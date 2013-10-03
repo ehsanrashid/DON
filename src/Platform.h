@@ -144,7 +144,7 @@ typedef unsigned long long  uint64_t;
 
 #else
 
-#   define LOGGER
+//#   define LOGGER
 
 #   if defined(LOGGER)
 

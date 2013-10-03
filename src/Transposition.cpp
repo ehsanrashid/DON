@@ -33,19 +33,37 @@ void TranspositionTable::resize (uint32_t size_mb)
 
     erase ();
 
-    _mem = std::calloc (total_entry * SIZE_TENTRY + SIZE_CACHE_LINE - 1, 1);
-    if (!_mem)
-    {
-        std::cerr << "ERROR: TT failed to allocate " << size_mb << " MB..." << std::endl;
-        Engine::exit(EXIT_FAILURE);
-    }
+    uint64_t size   = total_entry * SIZE_TENTRY;
 
-    _table_entry = (TranspositionEntry*) 
-        ((uintptr_t (_mem) + (SIZE_CACHE_LINE - 1)) & ~(SIZE_CACHE_LINE - 1));
-
+    aligned_memory_alloc (size, SIZE_CACHE_LINE); 
+    
     _mask_hash      = (total_entry - NUM_TENTRY_CLUSTER);
     _store_entry    = 0;
     _generation     = 0;
+
+}
+
+void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment)
+{
+    ASSERT (0 == (alignment & (alignment - 1)));
+
+    uint32_t offset = (alignment - 1) + sizeof (void *);
+    
+    _mem = std::calloc (size + offset, 1);
+    if (!_mem)
+    {
+        std::cerr << "ERROR: TT failed to allocate " << size << " byte..." << std::endl;
+        Engine::exit(EXIT_FAILURE);
+    }
+
+    void **ptr = (void**) ((uintptr_t (_mem) + offset) & ~uintptr_t (alignment - 1));
+    _table_entry = (TranspositionEntry*) ptr;
+
+    ASSERT (0 == (size & (alignment - 1)));
+    ASSERT (0 == (uintptr_t (_table_entry) & (alignment - 1)));
+
+    //*((void **)ptr-1) = _mem;
+    ptr[-1] = _mem;
 }
 
 // store() writes a new entry in the transposition table.
@@ -67,7 +85,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
 {
     uint32_t key32 = uint32_t (key); // 32 lower-bit of key
 
-    TranspositionEntry *te = get_entry (key);
+    TranspositionEntry *te = get_cluster (key);
     // By default replace first entry
     TranspositionEntry *re = te;
 
@@ -112,7 +130,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
 // Returns a pointer to the entry found or NULL if not found.
 const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 {
-    const TranspositionEntry* te = get_entry (key);
+    const TranspositionEntry* te = get_cluster (key);
     uint32_t key32 = uint32_t (key);
 
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)

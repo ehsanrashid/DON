@@ -101,12 +101,15 @@ private:
     uint64_t            _store_entry;
     uint8_t             _generation;
 
+    void aligned_memory_alloc (uint64_t size, uint32_t alignment);
+
     // erase() free the allocated memory
     void erase ()
     {
         if (_mem)
         {
             std::free (_mem);
+            _mem = _table_entry = NULL;
             _mask_hash      = 0;
             _store_entry    = 0;
             _generation     = 0;
@@ -187,9 +190,9 @@ public:
         const_cast<TranspositionEntry*> (te)->gen (_generation);
     }
 
-    // get_entry() returns a pointer to the first entry of a cluster given a position.
+    // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    TranspositionEntry* get_entry (Key key) const
+    TranspositionEntry* get_cluster (Key key) const
     {
         return _table_entry + ((key >> (SQ_NO - MAX_BIT_HASH)) & _mask_hash);
     }

@@ -80,7 +80,7 @@ int main (int argc, const char* const argv[])
     //TRI_LOG_ON ();
     //TRI_LOG_MSG ("hello");
 
-    log_io (true);
+    //log_io (true);
 
     //cout << Time::now() << endl;
 
@@ -96,18 +96,27 @@ int main (int argc, const char* const argv[])
     //
     //log_io (false);
 
-    //TranspositionTable tt;
-    //tt.resize (1);
+    cout << sizeof(void *) << endl;
 
-    //Key key         = 893333454547544;
-    //Move move       = Move (345);
-    //Depth depth     = DEPTH_NONE;
-    //Bound bound     = EXACT;
-    //Score score     = SCORE_INFINITE;
-    //uint64_t nodes  = 40;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //
-    //const TranspositionEntry *te = tt.retrieve (key);
+    TranspositionTable tt;
+    tt.resize (1);
+
+    Key key         = U64 (0x00000000087894321);
+    Move move       = Move (345);
+    Depth depth     = DEPTH_NONE;
+    Bound bound     = EXACT;
+    Score score     = SCORE_INFINITE;
+    uint64_t nodes  = 40;
+    tt.store (key, move, depth, bound, score, nodes);
+
+    key         = U64 (0x00000000087894551);
+    move       = Move (346);
+    depth++;
+
+    tt.store (key, move, depth, bound, score, nodes);
+    
+    const TranspositionEntry *te = tt.retrieve (key);
+
     //tt.clear();
 
     //cout << te->key();

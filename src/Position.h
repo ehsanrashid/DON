@@ -3,6 +3,8 @@
 #define POSITION_H_
 
 #include <algorithm>
+#include <memory>
+
 #include "Board.h"
 #include "Castle.h"
 #include "Move.h"
