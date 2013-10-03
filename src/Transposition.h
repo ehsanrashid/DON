@@ -121,8 +121,8 @@ public:
     static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
     // Number of entry in a cluster
     static const uint8_t NUM_TENTRY_CLUSTER = 0x04; // 4
-    // Max power of hash for cluster
 
+    // Max power of hash for cluster
     static const uint8_t MAX_BIT_HASH       = 0x24; // 36
     // Max size for Transposition table in mega-byte
     // 524288 MB = 512 GB
@@ -194,7 +194,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     TranspositionEntry* get_cluster (Key key) const
     {
-        return _table_entry + ((key >> (SQ_NO - MAX_BIT_HASH)) & _mask_hash);
+        return _table_entry + (uint32_t (key) & _mask_hash);
     }
 
     // store() writes a new entry in the transposition table.

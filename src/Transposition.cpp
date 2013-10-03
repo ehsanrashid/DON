@@ -83,7 +83,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 // * if the depth of e1 is bigger than the depth of e2.
 void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Score score, uint16_t nodes)
 {
-    uint32_t key32 = uint32_t (key); // 32 lower-bit of key
+    uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
     TranspositionEntry *te = get_cluster (key);
     // By default replace first entry
@@ -131,7 +131,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
 const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 {
     const TranspositionEntry* te = get_cluster (key);
-    uint32_t key32 = uint32_t (key);
+    uint32_t key32 = uint32_t (key >> 32);
 
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
     {
