@@ -1,8 +1,12 @@
 #include "PolyglotBook.h"
 #include <algorithm>
+#include <vector>
+#include <iomanip>
+
 //#include "Position.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
+#include "Notation.h"
 
 using namespace MoveGenerator;
 
@@ -77,6 +81,22 @@ PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
 {
     *this >> pe.key >> pe.move >> pe.weight >> pe.learn;
     return *this;
+}
+
+PolyglotBook::PolyglotEntry::operator ::std::string () const
+{
+    ::std::ostringstream spe;
+
+    Move m = Move (move);
+    PType pt = PType ((m >> 12) & 0x7);
+    // Set new type for promotion piece
+    if (pt) prom_type (m, pt);
+
+    spe << ::std::setw (5) << ::std::left
+        << move_to_can (m) << " "
+        << ::std::setw (4) << weight;
+
+    return spe.str ();
 }
 
 PolyglotBook::PolyglotBook()
@@ -187,7 +207,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
     if (!is_open () || !(_mode & ::std::ios_base::in)) return MOVE_NONE;
 
-    Key key = ZobPG.key_posi (pos); //pos.key_posi ();
+    Key key = ZobPG.key_posi (pos);
 
     size_t index = find_index (key);
     if (ERR_INDEX == index) return MOVE_NONE;
@@ -199,18 +219,80 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     PolyglotEntry pe;
     uint16_t max_weight = 0;
     uint32_t sum_weight = 0;
+
+    //::std::vector<PolyglotEntry> lst_pe;
+    //while ((*this >> pe), (pe.key == key) && good ())
+    //{
+    //    lst_pe.push_back (pe);
+    //    max_weight = ::std::max (max_weight, pe.weight);
+    //    sum_weight += pe.weight;
+    //}
+    //if (!lst_pe.size ()) return MOVE_NONE;
+    //
+    //if (pick_best)
+    //{
+    //    ::std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
+    //    while (itr != lst_pe.cend ())
+    //    {
+    //        pe = *itr;
+    //        if (pe.weight == max_weight)
+    //        {
+    //            move = Move (pe.move);
+    //            break;
+    //        }
+    //        ++itr;
+    //    }
+    //}
+    //else
+    //{
+    //    //There is a straightforward algorithm for picking an item at random, where items have individual weights:
+    //    //1) calculate the sum of all the weights
+    //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
+    //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
+    //
+    //    uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
+    //    ::std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
+    //    while (itr != lst_pe.cend ())
+    //    {
+    //        pe = *itr;
+    //        if (pe.weight > rand)
+    //        {
+    //            move = Move (pe.move);
+    //            break;
+    //        }
+    //        rand -= pe.weight;
+    //        ++itr;
+    //    }
+    //}
+
+
     while ((*this >> pe), (pe.key == key) && good ())
     {
         max_weight = ::std::max (max_weight, pe.weight);
         sum_weight += pe.weight;
 
-        // Choose book move according to its score. If a move has a very
-        // high score it has higher probability to be choosen than a move
-        // with lower score. Note that first entry is always chosen.
-        uint32_t rand = _rkiss.randX<uint32_t> ();
+        // Choose book move according to its score.
+        // If a move has a high score it has higher probability
+        // to be choosen than a move with lower score.
+        // Note that first entry is always chosen.
 
-        if (((sum_weight > 0) && (rand % sum_weight < pe.weight)) ||
-            (pick_best && (pe.weight == max_weight)))
+        //uint32_t rand = _rkiss.randX<uint32_t> ();
+        //if ((sum_weight && rand % sum_weight < pe.weight) ||
+        //    (pick_best && (pe.weight == max_weight)))
+        //{
+        //    move = Move (pe.move);
+        //}
+
+        if (pick_best)
+        {
+            if (pe.weight == max_weight) move = Move (pe.move);
+        }
+        else if (sum_weight)
+        {
+            uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
+            if (pe.weight > rand)   move = Move (pe.move);
+        }
+        else
         {
             move = Move (pe.move);
         }
@@ -254,6 +336,39 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     return MOVE_NONE;
 }
 
+void PolyglotBook::read (const Position &pos)
+{
+    if (!is_open () || !(_mode & ::std::ios_base::in)) return;
+
+    Key key = ZobPG.key_posi (pos);
+
+    size_t index = find_index (key);
+    if (ERR_INDEX == index)
+    {
+        ::std::cerr << "ERROR: no such key... "
+            << ::std::hex << ::std::uppercase << key << ::std::endl;
+        return;
+    }
+
+    seekg (POSITION (index));
+
+    ::std::vector<PolyglotEntry> lst_pe;
+
+    PolyglotEntry pe;
+    uint32_t sum_weight = 0;
+    while ((*this >> pe), (pe.key == key) && good ())
+    {
+        lst_pe.push_back (pe);
+        sum_weight += pe.weight;
+    }
+
+    ::std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
+    while (itr != lst_pe.cend ())
+    {
+        ::std::cout << *itr << ::std::endl;
+        ++itr;
+    }
+}
 
 void PolyglotBook::import_pgn (const ::std::string &fn_pgn)
 {

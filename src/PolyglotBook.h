@@ -34,6 +34,8 @@ public:
         uint16_t weight;
         uint32_t learn;
 
+        operator ::std::string () const;
+
     } PolyglotEntry;
 
     //typedef struct PolyglotHeader
@@ -100,6 +102,8 @@ public:
     // otherwise randomly chooses one, based on the move score.
     Move probe_move (const Position &pos, bool pick_best = true);
 
+    void read (const Position &pos);
+
     void import_pgn (const ::std::string &fn_pgn);
 
     void merge_book (const ::std::string &fn_book);
@@ -111,6 +115,13 @@ public:
 } PolyglotBook;
 
 
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const PolyglotBook::PolyglotEntry &pe)
+{
+    os << ::std::string (pe);
+    return os;
+}
 
 #pragma warning (pop)
 

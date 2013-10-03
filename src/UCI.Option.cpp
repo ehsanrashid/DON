@@ -256,7 +256,7 @@ namespace UCI {
 #pragma endregion
 
         Options["Clear Hash"]                    = OptionPtr (new ButtonOption (on_clear_hash));
-        Options["Hash"]                          = OptionPtr (new SpinOption (32, 4, 8192, on_resize_hash));
+        Options["Hash"]                          = OptionPtr (new SpinOption (TranspositionTable::DEF_SIZE_TT, TranspositionTable::MIN_SIZE_TT, TranspositionTable::MAX_SIZE_TT, on_resize_hash));
         Options["Ponder"]                        = OptionPtr (new CheckOption (true));
 
         //Options["Min Split Depth"]               = OptionPtr (new SpinOption (max_spl_depth, 4, 7, on_change_threads));

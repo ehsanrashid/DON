@@ -86,7 +86,7 @@ public:
 #pragma pack (pop)
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of NUM_TENTRY_CLUSTER number of Transposition Entry.
+// and each cluster consists of NUM_TENTRY_CLUSTER number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a SIZE_CACHE_LINE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -95,7 +95,6 @@ typedef class TranspositionTable sealed
 
 private:
 
-    void               *_mem;
     TranspositionEntry *_table_entry;
     uint64_t            _mask_hash;
     uint64_t            _store_entry;
@@ -106,14 +105,16 @@ private:
     // erase() free the allocated memory
     void erase ()
     {
-        if (_mem)
+        if (_table_entry)
         {
-            std::free (_mem);
-            _mem = _table_entry = NULL;
-            _mask_hash      = 0;
-            _store_entry    = 0;
-            _generation     = 0;
+            void *mem = ((void **) _table_entry)[-1];
+            std::free (mem);
+            mem = _table_entry = NULL;
         }
+
+        _mask_hash      = 0;
+        _store_entry    = 0;
+        _generation     = 0;
     }
 
 public:
@@ -123,25 +124,37 @@ public:
     static const uint8_t NUM_TENTRY_CLUSTER = 0x04; // 4
 
     // Max power of hash for cluster
+#ifdef _WIN64
     static const uint8_t MAX_BIT_HASH       = 0x24; // 36
-    // Max size for Transposition table in mega-byte
-    // 524288 MB = 512 GB
-    static const uint32_t MAX_SIZE_TT       = ((1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
+#else
+    static const uint8_t MAX_BIT_HASH       = 0x20; // 32
+#endif
+
+
+    static const size_t DEF_SIZE_TT         = 32;
+
+    // Minimum size for Transposition table in mega-byte
+    static const size_t MIN_SIZE_TT         = 4;
+
+    // Maximum size for Transposition table in mega-byte
+    // 524288 MB = 512 GB   -> WIN64
+    // 032768 MB = 032 GB   -> WIN32
+    static const size_t MAX_SIZE_TT         = (size_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
 
     static const uint32_t SIZE_CACHE_LINE   = 0x40; // 64
 
 
     TranspositionTable ()
-        : _mem (NULL)
-        , _table_entry (NULL)
+        : _table_entry (NULL)
         , _mask_hash (0)
         , _store_entry (0)
         , _generation (0)
-    {}
+    {
+        //resize (DEF_SIZE_TT);
+    }
 
     TranspositionTable (uint32_t size_mb)
-        : _mem (NULL)
-        , _table_entry (NULL)
+        : _table_entry (NULL)
         , _mask_hash (0)
         , _store_entry (0)
         , _generation (0)

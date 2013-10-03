@@ -24,6 +24,7 @@
 // - Return doubles with a full 53 bit mantissa
 // - Thread safe
 // - small noncryptographic PRNG approach is suited for Zobrist Hashing.
+// http://chessprogramming.wikispaces.com/Bob+Jenkins
 typedef class RKISS sealed
 {
 
@@ -95,7 +96,7 @@ inline void RKISS::init (uint32_t seed)
 inline uint64_t RKISS::rand64 (Rand &S)
 {
     const uint64_t
-        E = S.A - rotate_L (S.B, 07);
+        E = S.A - rotate_L (S.B, 7);
     S.A = S.B ^ rotate_L (S.C, 13);
     S.B = S.C + rotate_L (S.D, 37);
     S.C = S.D + E;

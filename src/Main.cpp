@@ -76,46 +76,54 @@ int main (int argc, const char* const argv[])
     //std::string args = string_args (argc, argv);
 
     //Engine::start ();
-    
-    //TRI_LOG_ON ();
-    //TRI_LOG_MSG ("hello");
 
     //log_io (true);
 
-    //cout << Time::now() << endl;
-
-    //cout << "hello" << endl;
-
-    //Bitboard bb = 
-    //    U64 (0x0067560000000000);
-    //    // (0x00000000675600);
-    //print (bb);
-    ////cout << (int) pop_count<FULL> (bb) << endl;
-    ////cout << (int) scan_lsb (bb) << endl;
-    ////cout << (int) scan_msb (bb) << endl;
-    //
     //log_io (false);
 
-    cout << sizeof(void *) << endl;
+    //TranspositionTable tt;
+    //tt.resize (4);
 
-    TranspositionTable tt;
-    tt.resize (1);
+    //Key key;
+    //Move move;
+    //Depth depth;
+    //Bound bound;
+    //Score score;
+    //uint64_t nodes;
+    //const TranspositionEntry *te;
 
-    Key key         = U64 (0x00000000087894321);
-    Move move       = Move (345);
-    Depth depth     = DEPTH_NONE;
-    Bound bound     = EXACT;
-    Score score     = SCORE_INFINITE;
-    uint64_t nodes  = 40;
-    tt.store (key, move, depth, bound, score, nodes);
+    //key     = U64 (0x87894321000000);
+    //move    = Move (345);
+    //depth   = DEPTH_NONE;
+    //bound   = EXACT;
+    //score   = SCORE_INFINITE;
+    //nodes   = 40;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
 
-    key         = U64 (0x00000000087894551);
-    move       = Move (346);
-    depth++;
+    //key         = U64 (0x878955FFFFFFFFFF);
+    //move       = Move (346);
+    //depth++;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
 
-    tt.store (key, move, depth, bound, score, nodes);
-    
-    const TranspositionEntry *te = tt.retrieve (key);
+    //key         = U64 (0x899955FFFFFFFFFF);
+    //move       = Move (346);
+    //depth++;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
+
+    //key         = U64 (0x834552FFFFFFFFFF);
+    //move       = Move (346);
+    //depth++;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
+
+    //key         = U64 (0x826552FFFFFFFFFF);
+    //move       = Move (346);
+    //depth++;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
 
     //tt.clear();
 
@@ -128,23 +136,25 @@ int main (int argc, const char* const argv[])
     //std::cout.setf (ios_base::hex | ios_base::uppercase);
 
 
-    //PolyglotBook pg ("Book.bin", ios_base::in);
+    PolyglotBook pg ("Book.bin", ios_base::in);
 
-    //Position pos (FEN_N);
+    Position pos (FEN_N);
     //cout << pos << endl;
+    pg.read (pos);
 
-    ////pg.find_index (KEY_POSI);
-    //cout << pg.probe_move (pos);
+    for (int i = 0; i < 100; ++i)
+    {
+        cout << pg.probe_move (pos, false) << endl;
+    }
 
-    
 
     cout << "-------------------" << endl;
 
     //"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w  KQkq  - 3  5";
     string fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
 
-        //"r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14";
-        //"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11";
+    //"r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14";
+    //"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11";
     //"6k1/2R3p1/8/4K2r/3P3b/2b5/6N1/8 w - - 0 1";
     //"1Q6/3q4/1R5p/q5pk/P4pP1/7P/8/3bB2K b - g3 0 10";
     //"8/8/1R5p/q5pk/P4pP1/7P/8/3B3K b - g3 0 10";
@@ -223,13 +233,13 @@ int main (int argc, const char* const argv[])
     //cout << pos << endl;
 
     //MoveList ml = generate <QUIET> (pos);
-        //generate <RELAX> (pos);
-        //generate<EVASION> (pos);
-        //generate<LEGAL> (pos);
+    //generate <RELAX> (pos);
+    //generate<EVASION> (pos);
+    //generate<LEGAL> (pos);
 
     //cout << ml;
 
-    
+
     //print_move (m);
     //cout << endl;
     //cout << move_to_can (m) << endl;

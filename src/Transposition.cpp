@@ -13,7 +13,10 @@ TranspositionTable TT;
 // each cluster consists of NUM_TENTRY_CLUSTER number of entry.
 void TranspositionTable::resize (uint32_t size_mb)
 {
+    ASSERT (size_mb >= MIN_SIZE_TT);
     ASSERT (size_mb <= MAX_SIZE_TT);
+
+    if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
     if (size_mb > MAX_SIZE_TT)
     {
         std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
@@ -36,7 +39,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     uint64_t size   = total_entry * SIZE_TENTRY;
 
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
-    
+
     _mask_hash      = (total_entry - NUM_TENTRY_CLUSTER);
     _store_entry    = 0;
     _generation     = 0;
@@ -47,23 +50,41 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
-    uint32_t offset = (alignment - 1) + sizeof (void *);
-    
-    _mem = std::calloc (size + offset, 1);
-    if (!_mem)
+    // We need to use malloc provided by C.
+    // First we need to allocate memory of size bytes + alignment + sizeof(void *).
+    // We need 'bytes' because user requested it.
+    // We need to add 'alignment' because malloc can give us any address and
+    // we need to find multiple of 'alignment', so at maximum multiple
+    // of alignment will be 'alignment' bytes away from any location.
+    // We need 'sizeof(void *)' for implementing 'aligned_free',
+    // since we are returning modified memory pointer, not given by malloc ,to the user,
+    // we must free the memory allocated by malloc not anything else.
+    // So storing address given by malloc just above pointer returning to user.
+    // Thats why needed extra space to store that address.
+    // Then checking for error returned by malloc, if it returns NULL then 
+    // aligned_malloc will fail and return NULL or exit().
+
+    uint32_t offset = 
+        //(alignment - 1) + sizeof (void *);
+        std::max<uint32_t> (alignment, sizeof (void *));
+
+    void *mem = std::calloc (size + offset, 1);
+    if (!mem)
     {
         std::cerr << "ERROR: TT failed to allocate " << size << " byte..." << std::endl;
         Engine::exit(EXIT_FAILURE);
     }
 
-    void **ptr = (void**) ((uintptr_t (_mem) + offset) & ~uintptr_t (alignment - 1));
+    void **ptr = 
+        //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
+        (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
+    
     _table_entry = (TranspositionEntry*) ptr;
 
     ASSERT (0 == (size & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_table_entry) & (alignment - 1)));
-
-    //*((void **)ptr-1) = _mem;
-    ptr[-1] = _mem;
+    
+    ptr[-1] = mem;
 }
 
 // store() writes a new entry in the transposition table.
@@ -96,10 +117,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
             // Do not overwrite when new type is EVAL_LOWER
             if (te->key() && EVAL_LOWER == bound) return;
 
-            if (MOVE_NONE == move)
-            {
-                move = te->move (); // preserve any existing TT move
-            }
+            // preserve any existing TT move
+            if (MOVE_NONE == move) move = te->move ();
 
             re = te;
             break;
@@ -135,10 +154,7 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
     {
-        if (te->key () == key32)
-        {
-            return te;
-        }
+        if (te->key () == key32) return te;
     }
     return NULL;
 }

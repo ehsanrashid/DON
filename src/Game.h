@@ -32,10 +32,7 @@ public:
         , index (idx)
     {}
 
-    operator ::std::string () const
-    {
-        return value;
-    }
+    operator ::std::string () const { return value; }
 
     //::std::string Tag::to_string () const
     //{
