@@ -29,17 +29,6 @@ namespace UCI {
             if (_on_change) _on_change = NULL;
         }
 
-        std::ostream& operator<< (std::ostream &ostream, const Option &opt)
-        {
-            ostream << opt.operator() ();
-            return ostream;
-        }
-        std::ostream& operator<< (std::ostream &ostream, const Option *opt)
-        {
-            ostream << opt->operator() ();
-            return ostream;
-        }
-
         ButtonOption::ButtonOption (const OnChange on_change)
             : Option (on_change)
         {}
@@ -192,6 +181,23 @@ namespace UCI {
             return *this;
         }
 
+
+        template<class charT, class Traits>
+        inline ::std::basic_ostream<charT, Traits>&
+            operator<< (::std::basic_ostream<charT, Traits>& os, const Option &opt)
+        {
+            os << opt.operator() ();
+            return os;
+        }
+
+        template<class charT, class Traits>
+        inline ::std::basic_ostream<charT, Traits>&
+            operator<< (::std::basic_ostream<charT, Traits>& os, const Option *opt)
+        {
+            os << opt->operator() ();
+            return os;
+        }
+
     }
 
     using namespace OptionType;
@@ -298,11 +304,11 @@ namespace UCI {
     ::std::string to_string (const UCI::OptionMap &options)
     {
         ::std::ostringstream sopt;
-        
+
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
             UCI::OptionMap::const_iterator itr = options.cbegin ();
-        
+
             while (itr != options.cend ())
             {
                 const UCI::OptionType::Option *opt = itr->second.get ();
@@ -317,12 +323,8 @@ namespace UCI {
 
         return sopt.str ();
     }
+
 }
 
 
-::std::ostream& operator<< (::std::ostream &ostream, const UCI::OptionMap &options)
-{
-    ostream << UCI::to_string (options);
-    return ostream;
-}
 

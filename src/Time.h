@@ -2,8 +2,10 @@
 #ifndef TIME_H_
 #define TIME_H_
 
-#include <iosfwd>
-#include <string>
+#include <iomanip>
+#include <sstream>
+#include <iostream>
+
 #include "Platform.h"
 
 
@@ -42,14 +44,47 @@ namespace Time {
 
     inline point now () { return point (system_time_msec ()); }
 
-    ::std::string to_string (const point point);
+    inline std::string to_string (const point point)
+    {
+
+#if defined(_WIN32)
+
+        time_t time = (point / Time::point::ONE_SEC);
+
+        char str_time[26];
+        errno_t err = ctime_s (str_time, sizeof (str_time), &time);
+        if (err) return std::string ("ERROR: Invalid time ") + ::std::to_string (time);
+
+        std::ostringstream stime;
+
+        str_time[10] = '\0';
+        str_time[19] = '\0';
+        str_time[24] = '\0';
+
+        stime << std::setfill ('0')
+            << &str_time[0] << " "
+            << &str_time[20] << " "
+            << &str_time[11] << "."
+            << std::setw (3) << (point % Time::point::ONE_SEC);
+
+#else
+
+        // TODO::
+
+#endif
+
+        return stime.str ();
+    }
 
 }
 
-template<typename charT, typename Traits>
-extern ::std::basic_ostream<charT, Traits>& operator<< (
-    ::std::basic_ostream<charT, Traits>& ostream,
-    const Time::point point);
 
+template<typename charT, typename Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Time::point point)
+{
+    os << Time::to_string (point);
+    return os;
+}
 
 #endif

@@ -82,7 +82,7 @@ int main (int argc, const char* const argv[])
 
     log_io (true);
 
-    cout << Time::now() << endl;
+    //cout << Time::now() << endl;
 
     //cout << "hello" << endl;
 
@@ -122,7 +122,7 @@ int main (int argc, const char* const argv[])
     //PolyglotBook pg ("Book.bin", ios_base::in);
 
     //Position pos (FEN_N);
-    ////cout << pos <<endl;
+    //cout << pos << endl;
 
     ////pg.find_index (KEY_POSI);
     //cout << pg.probe_move (pos);

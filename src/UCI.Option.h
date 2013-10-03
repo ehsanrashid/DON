@@ -131,6 +131,12 @@ namespace UCI {
 
 }
 
-extern ::std::ostream& operator<< (std::ostream &ostream, const UCI::OptionMap &options);
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const UCI::OptionMap &options)
+{
+    os << UCI::to_string (options);
+    return os;
+}
 
 #endif

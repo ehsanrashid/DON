@@ -45,10 +45,12 @@ public:
 } Tag;
 
 
-inline ::std::ostream& operator<< (::std::ostream &ostream, const Tag &tag)
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Tag &tag)
 {
-    ostream << ::std::string (tag);
-    return ostream;
+    os << ::std::string (tag);
+    return os;
 }
 
 typedef class Game sealed
@@ -107,10 +109,13 @@ public:
 } Game;
 
 
-inline ::std::ostream& operator<< (::std::ostream &ostream, const Game &game)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Game &game)
 {
-    ostream << ::std::string (game);
-    return ostream;
+    os << ::std::string (game);
+    return os;
 }
 
 #endif

@@ -38,7 +38,7 @@ namespace UCI {
         {
             std::atom ()
                 << Engine::info (true) << std::endl 
-                << to_string (Options) << std::endl
+                << (Options) << std::endl
                 << "uciok" << std::endl;
         }
 

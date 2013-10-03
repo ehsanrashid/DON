@@ -24,11 +24,16 @@ inline char to_char (File f, bool lower = true)
 {
     return char (f - F_A) + (lower ? 'a' : 'A');
 }
-inline std::ostream& operator<< (std::ostream &ostream, File f)
+
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, File f)
 {
-    ostream << to_char (f);
-    return ostream;
+    os << to_char (f);
+    return os;
 }
+
 
 inline bool   _ok (Rank r)
 {
@@ -47,10 +52,13 @@ inline char to_char (Rank r)
 {
     return char (r - R_1) + '1';
 }
-inline std::ostream& operator<< (std::ostream &ostream, Rank r)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, Rank r)
 {
-    ostream << to_char (r);
-    return ostream;
+    os << to_char (r);
+    return os;
 }
 
 inline bool _ok (Color c)
@@ -91,11 +99,14 @@ inline char to_char (Color  c)
     return '-';
 }
 
-inline std::ostream& operator<< (std::ostream &ostream, Color c)
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, Color c)
 {
-    ostream << to_char (c);
-    return ostream;
+    os << to_char (c);
+    return os;
 }
+
 
 inline Square operator| (File f, Rank r)
 {
@@ -178,11 +189,15 @@ inline std::string to_string (Square s)
     return "-";
 }
 
-inline std::ostream& operator<< (std::ostream &ostream, Square s)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, Square s)
 {
-    ostream << to_string (s);
-    return ostream;
+    os << to_string (s);
+    return os;
 }
+
 
 inline Delta pawn_push (Color c)
 {
@@ -197,15 +212,19 @@ inline Delta pawn_push (Color c)
 typedef std::vector<Square> SquareList;
 //typedef std::list  <Square> SquareList;
 
-inline std::ostream& operator<< (std::ostream &ostream, const SquareList &lst_sq)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const SquareList &lst_sq)
 {
     SquareList::const_iterator itr = lst_sq.cbegin ();
     while (itr != lst_sq.cend ())
     {
-        ostream << *itr << std::endl;
+        os << *itr << ::std::endl;
         ++itr;
     }
-    return ostream;
+    return os;
 }
+
 
 #endif

@@ -137,11 +137,16 @@ inline bool _ok (Move m)
 //
 //    return smove;
 //}
-inline std::ostream& operator<< (std::ostream &ostream, Move m)
+
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, Move m)
 {
-    ostream << move_to_can (m); //to_string (m);
-    return ostream;
+    os << move_to_can (m); //to_string (m);
+    return os;
 }
+
 
 //typedef union MoveParts
 //{
@@ -163,30 +168,39 @@ inline std::ostream& operator<< (std::ostream &ostream, Move m)
 //
 //} MoveParts;
 
+
+
 typedef std::vector<Move>   MoveList;
 typedef std::stack <Move>   MoveStack;
 
-inline std::ostream& operator<< (std::ostream &ostream, const MoveList  &lst_move)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const MoveList &lst_move)
 {
     MoveList::const_iterator itr = lst_move.cbegin ();
     while (itr != lst_move.cend ())
     {
-        ostream << *itr << std::endl;
+        os << *itr << std::endl;
         ++itr;
     }
-    return ostream;
+    return os;
 }
 
-inline std::ostream& operator<< (std::ostream &ostream, const MoveStack &stk_move)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const MoveStack &stk_move)
 {
     MoveStack stk_dup = stk_move;
     while (!stk_dup.empty ())
     {
-        ostream << stk_dup.top () << std::endl;
+        os << stk_dup.top () << ::std::endl;
         stk_dup.pop ();
     }
-    return ostream;
+    return os;
 }
+
 
 #endif
 

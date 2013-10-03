@@ -34,18 +34,26 @@ public:
     Tree<T>& operator[] (size_t index);
 
     void clear ();
-    
-    void print (std::ostream &ostream) const;
 
-    //friend ::std::ostream& operator<< (std::ostream &ostream, const Forest<T> &forest);
+    template<class charT, class Traits>
+    void print (::std::basic_ostream<charT, Traits>& os) const;
 
 };
 
+//template<class T>
+//::std::ostream& operator<< (::std::ostream &ostream, const Forest<T> &forest)
+//{
+//    forest.print (ostream);
+//    return ostream;
+//}
+
 template<class T>
-::std::ostream& operator<< (::std::ostream &ostream, const Forest<T> &forest)
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Forest<T> &forest)
 {
-    forest.print (ostream);
-    return ostream;
+    forest.print (os);
+    return os;
 }
 
 #include "Forest.hpp"

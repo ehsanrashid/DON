@@ -158,10 +158,13 @@ inline size_t Board::piece_count () const
 
 #pragma endregion
 
-inline ::std::ostream& operator<< (std::ostream &ostream, const Board &board)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Board &board)
 {
-    ostream << ::std::string (board);
-    return ostream;
+    os << ::std::string (board);
+    return os;
 }
 
 #endif

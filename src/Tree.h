@@ -23,7 +23,6 @@ private:
     typename Tree<T>::Ptr  _root;
     typename Tree<T>::List _branches;
 
-    void print (std::ostream &ostream, size_t indent) const;
 
 protected:
 
@@ -59,13 +58,26 @@ public:
 
     void clear ();
 
-    friend std::ostream& operator<< (std::ostream &ostream, const Tree<T> &tree)
-    {
-        tree.print (ostream, 0);
-        return ostream;
-    }
+    template<class charT, class Traits>
+    void print (::std::basic_ostream<charT, Traits>& os, size_t indent) const;
 
 };
+
+//template<class T>
+//inline ::std::ostream& operator<< (std::ostream &ostream, const Tree<T> &tree)
+//{
+//    tree.print (ostream, 0);
+//    return ostream;
+//}
+
+template<class T>
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Tree<T> &tree)
+{
+    tree.print (ostream, 0);
+    return os;
+}
 
 #include "Tree.hpp"
 

@@ -58,10 +58,13 @@ inline ::std::string to_string (CRight cr)
     return scastle;
 }
 
-inline ::std::ostream& operator<< (std::ostream &ostream, CRight cr)
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+operator<< (::std::basic_ostream<charT, Traits>& os, CRight cr)
 {
-    ostream << to_string (cr);
-    return ostream;
+    os << to_string (cr);
+    return os;
 }
 
 #endif

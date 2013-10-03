@@ -79,12 +79,13 @@ void Forest<T>::clear ()
 }
 
 template<class T>
-void Forest<T>::print (std::ostream &ostream) const
+template<class charT, class Traits>
+void Forest<T>::print (::std::basic_ostream<charT, Traits>& os) const
 {
-    ostream << endl;
+    os << endl;
     if (isempty ())
     {
-        ostream << "<empty>";
+        os << "<empty>";
     }
     else
     {
@@ -94,9 +95,9 @@ void Forest<T>::print (std::ostream &ostream) const
         typename Tree<T>::List::const_iterator itr = tree.cbegin ();
         while (itr != tree.cend ())
         {
-            ostream << ">";
-            ostream << *(*itr);
-            if (numTree != countTree) ostream << endl;
+            os << ">";
+            os << *(*itr);
+            if (numTree != countTree) os << endl;
 
             ++numTree;
             ++itr;

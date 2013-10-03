@@ -674,10 +674,12 @@ inline Piece Position::move_piece (Square s1, Square s2) { return _board.move_pi
 
 #pragma endregion
 
-inline ::std::ostream& operator<< (::std::ostream &ostream, const Position &pos)
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const Position &pos)
 {
-    ostream << ::std::string (pos);
-    return ostream;
+    os << ::std::string (pos);
+    return os;
 }
 
 #pragma endregion

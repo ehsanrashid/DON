@@ -173,35 +173,36 @@ void Tree<T>::clear ()
 }
 
 template<class T>
-void Tree<T>::print (std::ostream &ostream, size_t indent) const
+template<class charT, class Traits>
+void Tree<T>::print (::std::basic_ostream<charT, Traits>& os, size_t indent) const
 {
 
-    //ostream << _data;
+    //os << _data;
     //if (isempty())
     //{
-    //    //ostream << "(empty)";
+    //    //os << "(empty)";
     //}
     //else
     //{
     //    List branches = _branches;
     //    size_t countBranch = branches.size();
     //    size_t numBranch   = 1;
-    //    ostream << "(";
+    //    os << "(";
     //    typename Tree<T>::List::const_iterator itr = branches.cbegin();
     //    while (itr != branches.cend())
     //    {
-    //        (*(*itr)).print(ostream, indent+1);
-    //        if (numBranch < countBranch) ostream << " | ";
+    //        (*(*itr)).print(os, indent+1);
+    //        if (numBranch < countBranch) os << " | ";
     //        ++numBranch;
     //        ++itr;
     //    }
-    //    ostream << ")";
+    //    os << ")";
     //}
 
-    ostream << _data << endl;
+    os << _data << endl;
     if (isempty ())
     {
-        //ostream << "(empty)";
+        //os << "(empty)";
     }
     else
     {
@@ -209,9 +210,9 @@ void Tree<T>::print (std::ostream &ostream, size_t indent) const
         typename Tree<T>::List::const_iterator itr = branches.cbegin ();
         while (itr != branches.cend ())
         {
-            for (uint8_t i = 0; i < indent; ++i) ostream << "|  ";
-            ostream << "|->";
-            (*(*itr)).print (ostream, indent + 1);
+            for (uint8_t i = 0; i < indent; ++i) os << "|  ";
+            os << "|->";
+            (*(*itr)).print (os, indent + 1);
             ++itr;
         }
     }

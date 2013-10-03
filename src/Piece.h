@@ -118,14 +118,20 @@ inline char to_char (Piece p)
     }
     return ' ';
 }
+
 inline char to_char (Color c, PType pt)
 {
     return to_char (c | pt);
 }
-inline std::ostream& operator<< (std::ostream &ostream, Piece p)
+
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, Piece p)
 {
-    ostream << to_char (p);
-    return ostream;
+    os << to_char (p);
+    return os;
 }
+
 
 #endif
