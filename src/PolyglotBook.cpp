@@ -7,12 +7,13 @@
 #include "Zobrist.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
+#include "manipulator.h"
 
 using namespace MoveGenerator;
 
 #define POSITION(x) ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 
-#pragma region Operators
+#pragma region PolyglotEntry Operators
 
 inline bool operator== (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
 {
@@ -63,6 +64,27 @@ inline bool operator<= (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBo
     //(pe1.weight <= pe2.weight);  // order by weight value
 }
 
+PolyglotBook::PolyglotEntry::operator ::std::string () const
+{
+    ::std::ostringstream spe;
+
+    Move m = Move (move);
+    PType pt = PType ((m >> 12) & 0x7);
+    // Set new type for promotion piece
+    if (pt) prom_type (m, pt);
+
+    spe << ::std::setfill ('0')
+        << " key: " << ::std::setw (16) << ::std::hex << ::std::uppercase << key
+        << ::std::setfill ('.')
+        << " move: " << ::std::setw (5) << ::std::left << move_to_can (m)
+        << ::std::setfill ('0')
+        << " weight: " << ::std::setw (4) << ::std::right << ::std::dec << weight
+        << " learn: " << ::std::setw (2) << learn;
+
+    return spe.str ();
+}
+
+
 #pragma endregion
 
 template<class T>
@@ -83,22 +105,6 @@ PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
     return *this;
 }
 
-PolyglotBook::PolyglotEntry::operator ::std::string () const
-{
-    ::std::ostringstream spe;
-
-    Move m = Move (move);
-    PType pt = PType ((m >> 12) & 0x7);
-    // Set new type for promotion piece
-    if (pt) prom_type (m, pt);
-
-    spe << ::std::setw (5) << ::std::left
-        << move_to_can (m) << " "
-        << ::std::setw (4) << weight;
-
-    return spe.str ();
-}
-
 PolyglotBook::PolyglotBook()
     : ::std::fstream ()
     , _fn_book ("")
@@ -113,7 +119,7 @@ PolyglotBook::PolyglotBook (const          char *fn_book, ::std::ios_base::openm
     , _size_book (0)
     , _rkiss ()
 {}
-PolyglotBook::PolyglotBook (const ::std::string &fn_book, ios_base::openmode mode)
+PolyglotBook::PolyglotBook (const ::std::string &fn_book, ::std::ios_base::openmode mode)
     : ::std::fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
@@ -129,7 +135,7 @@ PolyglotBook::~PolyglotBook ()
 // open the file in mode
 // Read -> ios_base::in
 // Write-> ios_base::out
-bool PolyglotBook::open (const        char *fn_book, ::std::ios_base::openmode mode)
+bool PolyglotBook::open (const          char *fn_book, ::std::ios_base::openmode mode)
 {
     close ();
     ::std::fstream::open (fn_book, mode | ::std::ios_base::binary);
@@ -292,7 +298,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
             uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
             if (pe.weight > rand)   move = Move (pe.move);
         }
-        else
+        else // if not pick best and sum of weight = 0
         {
             move = Move (pe.move);
         }
@@ -336,9 +342,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     return MOVE_NONE;
 }
 
-void PolyglotBook::read (const Position &pos)
+::std::string PolyglotBook::read_entries (const Position &pos)
 {
-    if (!is_open () || !(_mode & ::std::ios_base::in)) return;
+    if (!is_open () || !(_mode & ::std::ios_base::in)) return "";
 
     Key key = ZobPG.key_posi (pos);
 
@@ -347,7 +353,7 @@ void PolyglotBook::read (const Position &pos)
     {
         ::std::cerr << "ERROR: no such key... "
             << ::std::hex << ::std::uppercase << key << ::std::endl;
-        return;
+        return "";
     }
 
     seekg (POSITION (index));
@@ -362,12 +368,45 @@ void PolyglotBook::read (const Position &pos)
         sum_weight += pe.weight;
     }
 
+    ::std::ostringstream sread;
+
     ::std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
     while (itr != lst_pe.cend ())
     {
-        ::std::cout << *itr << ::std::endl;
+        pe = *itr;
+        sread << ::std::setfill ('0')
+            << pe << " prob: " << ::std::right << ::std::fixed << ::std::width_prec (6, 2)
+            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0) << ::std::endl;
+
         ++itr;
     }
+
+    return sread.str ();
+}
+
+void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
+{
+    if (!is_open () || !(_mode & ::std::ios_base::out)) return;
+
+    size_t index = find_index (pe.key);
+    if (ERR_INDEX == index)
+    {
+
+    }
+    else
+    {
+        // move found
+        if (true)
+        {
+            // do nothing
+        }
+        else
+        {
+
+        }
+    }
+
+
 }
 
 void PolyglotBook::import_pgn (const ::std::string &fn_pgn)

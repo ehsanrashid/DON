@@ -115,4 +115,12 @@ inline ::std::basic_ostream<charT, Traits>&
     return os;
 }
 
+template<class charT, class Traits>
+inline ::std::basic_istream<charT, Traits>&
+    operator>> (::std::basic_istream<charT, Traits>& is, Game &game)
+{
+    //is >> ::std::string (game);
+    return is;
+}
+
 #endif

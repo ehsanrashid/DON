@@ -17,6 +17,8 @@
 #include "tri_logger.h"
 #include "Time.h"
 
+#include "manipulator.h"
+
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
@@ -71,7 +73,31 @@ namespace {
 }
 
 
-int main (int argc, const char* const argv[])
+#include <iostream>
+#include <thread>
+
+//This function will be called from a thread
+
+void call_from_thread()
+{
+    for (int i = 0; i < 100; i++)
+    {
+        std::cout << "Hello, World" << std::endl;
+    }
+}
+
+int main()
+{
+    //Launch a thread
+    std::thread t1(call_from_thread);
+
+    //Join the thread with the main thread
+    t1.join();
+
+    return 0;
+}
+
+int maine (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);
 
@@ -136,17 +162,16 @@ int main (int argc, const char* const argv[])
     //std::cout.setf (ios_base::hex | ios_base::uppercase);
 
 
-    PolyglotBook pg ("Book.bin", ios_base::in);
+    //PolyglotBook pg ("Book.bin", ios_base::in);
 
-    Position pos (FEN_N);
-    //cout << pos << endl;
-    pg.read (pos);
+    //Position pos (FEN_N);
+    ////cout << pos << endl;
+    //cout << pg.read_entries (pos);
 
-    for (int i = 0; i < 100; ++i)
-    {
-        cout << pg.probe_move (pos, false) << endl;
-    }
-
+    //for (int i = 0; i < 100; ++i)
+    //{
+    //    cout << pg.probe_move (pos, false) << endl;
+    //}
 
     cout << "-------------------" << endl;
 

@@ -102,7 +102,12 @@ public:
     // otherwise randomly chooses one, based on the move score.
     Move probe_move (const Position &pos, bool pick_best = true);
 
-    void read (const Position &pos);
+    ::std::string read_entries (const Position &pos);
+    
+    void insert_entry (const PolyglotBook::PolyglotEntry &pe);
+
+
+    void write ();
 
     void import_pgn (const ::std::string &fn_pgn);
 
