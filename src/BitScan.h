@@ -6,7 +6,7 @@
 
 #pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 
-#if defined(BSFQ)
+#ifdef BSFQ
 
 #   if defined(_MSC_VER)
 

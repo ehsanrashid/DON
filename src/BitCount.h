@@ -25,14 +25,14 @@ inline uint8_t pop_count (Bitboard bb);
 // according if platform is 32-bits or 64-bits,
 // to the maximum number of nonzero bits to count and if hardware popcnt instruction is available.
 
-#if defined (POPCNT)
+#ifdef POPCNT
 
 const BitCountType FULL  = CNT_HW_POPCNT;
 const BitCountType MAX15 = CNT_HW_POPCNT;
 
 #if defined(_MSC_VER)
 
-#   if defined(__INTEL_COMPILER)
+#   ifdef __INTEL_COMPILER
 
 #       include <nmmintrin.h> 
 // Intel header for  SSE4.1 or SSE4.2 intrinsics.
@@ -41,7 +41,7 @@ const BitCountType MAX15 = CNT_HW_POPCNT;
 template<>
 inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#       if defined(_WIN64)
+#       ifdef _WIN64
     {
         return (_mm_popcnt_u64 (bb));
     }
@@ -60,7 +60,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#   if defined(_WIN64)
+#   ifdef _WIN64
     {
         return (__popcnt64 (bb));
     }
@@ -88,7 +88,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #else
 
-#   if defined(_WIN64)
+#   ifdef _WIN64
 
 const BitCountType FULL  = CNT_64_FULL;
 const BitCountType MAX15 = CNT_64_MAX15;

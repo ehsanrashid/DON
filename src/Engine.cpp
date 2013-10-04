@@ -56,13 +56,13 @@ namespace Engine {
             sinfo << Version;
         }
 
-#if defined(_WIN64)
+#ifdef _WIN64
         sinfo << " x64";
 #else
         sinfo << " x86";
 #endif
 
-#if defined(POPCNT)
+#ifdef POPCNT
 
         sinfo << " SSE4.2";
 
