@@ -74,44 +74,6 @@ namespace {
     }
 }
 
-
-#include <iostream>
-#include <thread>
-
-//This function will be called from a thread
-
-void call_from_thread()
-{
-    for (int i = 0; i < 100; i++)
-    {
-        std::cout << "Hello, World" << std::endl;
-    }
-}
-
-int maine()
-{
-    //Launch a thread
-    //std::thread t1 (call_from_thread);
-
-    //Join the thread with the main thread
-    //t1.join();
-
-    //Use of an anonymous function (lambda) in a thread
-    //thread t( [] (string name) {
-    //    for (int i = 0; i < 100; i++)
-    //        cout << "Hello " << name << endl;
-    //}, "Tom");
-
-    ////Join the thread with the main thread
-    //t.join();
-
-    std::blocking_queue<int> block(10);
-    block.push (3);
-
-    system ("pause");
-    return 0;
-}
-
 int main (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);

@@ -1,8 +1,11 @@
 #pragma once
 
+//#include <deque>
+#include <queue>
 #include <mutex>
+#include <atomic>
+
 #include <condition_variable>
-#include <deque>
 #include <chrono>
 
 namespace std {
@@ -53,13 +56,13 @@ namespace std {
     //            _queue_empty.wait_for (lock, std::chrono::milliseconds(default_timeout), [=] { return !empty (); });
     //            //_queue_empty.wait_for (lock, [=] { return !empty (); });
 
-    //            T output (std::move (_queue.back ()));
+    //            T elem (std::move (_queue.back ()));
     //            _queue.pop_back ();
-    //            //T output (_queue.front ());
+    //            //T elem (_queue.front ());
     //            //_queue.pop_front ();
 
     //            _queue_full.notify_one ();
-    //            return output;
+    //            return elem;
     //        }
     //    }
 
@@ -89,14 +92,16 @@ namespace std {
 
     template<class T>
     class blocking_queue
-        : private std::deque<T> 
+        //: private std::deque<T> 
+        : private std::queue<T> 
     {
 
     private:
 
-        static const int default_timeout = 5000;
+        static const long long default_timeout = 5000;
 
         mutable std::mutex      _mutex;
+        std::atomic<bool> _shutdown;
 
         std::condition_variable _queue_empty;
         std::condition_variable _queue_full;
@@ -107,62 +112,68 @@ namespace std {
     public:
 
         blocking_queue (size_t capacity) 
-            : std::deque<T> ()
+            : std::queue<T> ()
             , _capacity(capacity)
             , _mutex ()
-        {
-        }
+            , _shutdown (false)
+        {}
 
-        void push (T const &value)
+        ~blocking_queue ()
+        {}
+
+        void push (const T &value)
         {
             {
                 std::unique_lock<std::mutex> lock (_mutex);
                 //_queue_full.wait_for (lock, std::chrono::milliseconds(default_timeout), [=] { return !full(); });
                 _queue_full.wait (lock, [=] { return !full(); });
-                std::deque<T>::push_front (value);
+                std::queue<T>::push (value);
             }
             _queue_empty.notify_one ();
         }
 
         T pop ()
         {
+            T elem;
             {
-                std::unique_lock<std::mutex> lock (_mutex);
-                _queue_empty.wait_for (lock, std::chrono::milliseconds(default_timeout), [=] { return !empty (); });
-                //_queue_empty.wait (lock, [=] { return !empty (); });
-
-                T output (std::move (std::deque<T>::back ()));
-                std::deque<T>::pop_back ();
-                //T output (_queue.front ());
-                //std::deque<T>::pop_front ();
-
-                _queue_full.notify_one ();
-                return output;
+                while (empty ())
+                {
+                    std::unique_lock<std::mutex> lock (_mutex);
+                    _queue_empty.wait_for (lock, std::chrono::milliseconds (default_timeout), [=] { return !empty () || _shutdown; });
+                    //_queue_empty.wait (lock, [=] { return !empty (); });
+                    if (_shutdown)
+                    {
+                        if (empty ()) return T ();
+                        break;
+                    }
+                }
+                elem = T (std::move (std::queue<T>::front ()));
+                std::queue<T>::pop ();
             }
+            _queue_full.notify_one ();
+            return elem;
         }
 
         bool empty() const
         {
-            {
-                std::lock_guard<std::mutex> lock (_mutex);
-                //std::unique_lock<std::mutex> lock (_mutex);
-                return std::deque<T>::empty ();
-            }
+            return std::queue<T>::empty ();
         }
 
         bool full() const
         {
+            if (std::queue<T>::size () > _capacity)
             {
-                std::lock_guard<std::mutex> lock (_mutex);
-                //std::unique_lock<std::mutex> lock (_mutex);
-                if (std::deque<T>::size () > _capacity)
-                {
-                    throw std::logic_error ("size of blocking_queue cannot be greater than the capacity.");
-                }
-                return (std::deque<T>::size () == _capacity);
+                throw std::logic_error ("size of blocking_queue cannot be greater than the capacity.");
             }
+            return (std::queue<T>::size () == _capacity);
         }
+
+        inline void shutdown ()
+        {
+            _shutdown = true;
+            _queue_empty.notify_all ();
+        }
+
     };
 }
-
 
