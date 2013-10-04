@@ -4,6 +4,8 @@
 
 #include <sstream>
 #include <iostream>
+#include <mutex>
+
 #include "noncopyable.h"
 //#include <memory>
 //#include "functor.h"
@@ -139,9 +141,12 @@ namespace std {
         atomic_stream& operator() ()
         {
             // lock
-            _out_stm << str () << ::std::flush;
+            {
+                std::unique_lock<std::mutex> lock;
+                _out_stm << str () << ::std::flush;
+                clear ();
+            }
             // unlock
-            clear ();
             return *this;
         }
 
