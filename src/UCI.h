@@ -1,6 +1,6 @@
 //#pragma once
-#ifndef UCI_OPTION_H_
-#define UCI_OPTION_H_
+#ifndef UCI_H_
+#define UCI_H_
 
 #include <map>
 #include <memory>
@@ -145,12 +145,6 @@ namespace UCI {
     extern void  init_options ();
     extern void clear_options ();
 
-    extern void start (const std::string &args = "");
-    extern void stop ();
-
-    extern void send_responce (const char format[], ...);
-
-
     template<class charT, class Traits>
     inline ::std::basic_ostream<charT, Traits>&
         operator<< (::std::basic_ostream<charT, Traits>& os, const OptionMap &options)
@@ -174,7 +168,14 @@ namespace UCI {
         return os;
     }
 
+    // ---------------------------------------------
+
+    extern void start (const std::string &args = "");
+    extern void stop ();
+
+    // ---
+    extern void send_responce (const char format[], ...);
+
 }
 
-
-#endif
+#endif // UCI_H_

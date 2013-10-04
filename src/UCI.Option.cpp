@@ -283,30 +283,4 @@ namespace UCI {
         Options.clear ();
     }
 
-    //::std::string to_string (const UCI::OptionMap &options)
-    //{
-    //    ::std::ostringstream sopt;
-
-    //    for (size_t idx = 0; idx < options.size (); ++idx)
-    //    {
-    //        UCI::OptionMap::const_iterator itr = options.cbegin ();
-
-    //        while (itr != options.cend ())
-    //        {
-    //            const UCI::OptionType::Option *opt = itr->second.get ();
-    //            if (idx == opt->index)
-    //            {
-    //                sopt << "option name " << (itr->first)
-    //                    << " " << (opt) << ::std::endl;
-    //            }
-    //            ++itr;
-    //        }
-    //    }
-
-    //    return sopt.str ();
-    //}
-
 }
-
-
-

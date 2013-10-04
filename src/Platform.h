@@ -13,6 +13,13 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
+#define POPCNT
+//#define __INTEL_COMPILER
+
+#define BSFQ
+
+//#define TRI_LOGGER
+
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
@@ -144,9 +151,8 @@ typedef unsigned long long  uint64_t;
 
 #else
 
-//#   define LOGGER
 
-#   if defined(LOGGER)
+#   if defined(TRI_LOGGER)
 
 #   include "trilogger.h"
 

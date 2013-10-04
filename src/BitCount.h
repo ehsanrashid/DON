@@ -2,8 +2,6 @@
 #ifndef BITCOUNT_H_
 #define BITCOUNT_H_
 
-#define POPCNT
-//#define __INTEL_COMPILER
 
 #include "Type.h"
 

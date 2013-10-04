@@ -18,7 +18,7 @@ namespace Engine {
         
         // Version number. If Version is left empty, then compile date, in the
         // format DD-MM-YY, is shown in engine_info.
-        const ::std::string Version   = ""; //"1.1";
+        const ::std::string Version   = "1.0";
         const ::std::string Author    = "Ehsan Rashid";
 
         const ::std::string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
@@ -47,8 +47,8 @@ namespace Engine {
                 >> year;
 
             sinfo << ::std::setfill ('0')
-                << ::std::setw (2) << day
-                << ::std::setw (2) << (Months.find (month) / 4 + 1)
+                << ::std::setw (2) << day << "-"
+                << ::std::setw (2) << (Months.find (month) / 4 + 1) << "-"
                 << ::std::setw (2) << year.substr (2);
         }
         else
@@ -57,13 +57,9 @@ namespace Engine {
         }
 
 #if defined(_WIN64)
-
         sinfo << " x64";
-
 #else
-
         sinfo << " x86";
-
 #endif
 
 #if defined(POPCNT)

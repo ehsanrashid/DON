@@ -21,13 +21,12 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position            pos;
+        Position            pos (int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
         // Needed by repetition draw detection.
         StateInfoStackPtr   setup_states;
-
 
         bool is_running = false;
 
