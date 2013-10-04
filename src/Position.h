@@ -490,7 +490,7 @@ inline CRight Position::can_castle (Color   c, CSide cs) const { return ::can_ca
 inline CRight Position::castle_right (Color c, File   f) const { return _castle_rights[c][f]; }
 inline CRight Position::castle_right (Color c, Square s) const { return (R_1 == rel_rank (c, s)) ? castle_right (c, _file (s)) : CR_NO; }
 
-inline Square Position::castle_rook (Color c, CSide cs) const { return _castle_rooks[c][cs]; }
+inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_rooks[c][cs]; }
 
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
@@ -510,7 +510,7 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 #pragma endregion
 
 // Color of the side on move
-inline Color Position::active () const { return _active; }
+inline Color    Position::active () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = ::std::max (2 * (game_move - 1), 0) + (BLACK == Active)
 inline uint16_t Position::game_ply () const { return _game_ply; }
@@ -518,7 +518,7 @@ inline uint16_t Position::game_ply () const { return _game_ply; }
 // game_move = ::std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
 inline uint16_t Position::game_move () const { return ::std::max<uint8_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
-inline bool Position::chess960 () const { return _chess960; }
+inline bool     Position::chess960 () const { return _chess960; }
 
 // Nodes visited
 inline uint64_t& Position::game_nodes () { return _game_nodes; }
