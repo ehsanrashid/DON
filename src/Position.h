@@ -71,7 +71,7 @@ public:
         null_ply;
 
     //  Value npMaterial[COLOR_NB];
-    Score psqScore;
+    Score psq_score;
 
     // Hash key of materials.
     Key key_matl;
@@ -91,24 +91,9 @@ public:
 
     StateInfo *p_si;
 
-    void clear ()
-    {
-        castle_rights = CR_NO;
-        en_passant = SQ_NO;
-        cap_type = PT_NO;
-        clock50 = 0;
-        null_ply = 0;
-
-        last_move = MOVE_NONE;
-
-        checkers = BitBoard::bb_NULL;
-
-        key_matl = U64 (0);
-        key_pawn = U64 (0);
-        key_posi = U64 (0);
-
-        p_si = NULL;
-    }
+    void clear ();
+    
+    operator ::std::string () const;
 
 } StateInfo;
 
@@ -116,7 +101,7 @@ public:
 
 // do_move() copy current state info up to 'key_posi' excluded to the new one.
 // calculate the quad words (64bits) needed to be copied.
-const size_t SIZE_COPY_SI = offsetof (StateInfo, key_posi);// / sizeof (uint32_t);// + 1;
+const uint32_t SIZE_COPY_SI = offsetof (StateInfo, key_posi); // / sizeof (uint32_t);// + 1;
 
 #pragma endregion
 
@@ -676,6 +661,17 @@ inline Piece Position::move_piece (Square s1, Square s2) { return _board.move_pi
 
 #pragma endregion
 
+#pragma endregion
+
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const StateInfo &si)
+{
+    os << ::std::string (si);
+    return os;
+}
+
 template<class charT, class Traits>
 inline ::std::basic_ostream<charT, Traits>&
     operator<< (::std::basic_ostream<charT, Traits>& os, const Position &pos)
@@ -688,11 +684,9 @@ template<class charT, class Traits>
 inline ::std::basic_istream<charT, Traits>&
     operator>> (::std::basic_istream<charT, Traits>& is, Position &pos)
 {
-    //is >> ::std::string (game);
+    //is >> ::std::string (pos);
     return is;
 }
-
-#pragma endregion
 
 
 typedef ::std::stack<StateInfo>             StateInfoStack;
