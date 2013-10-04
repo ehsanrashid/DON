@@ -131,6 +131,7 @@ public:
     void clear ();
 
 } CheckInfo;
+
 #pragma pack (pop)
 
 #pragma endregion
@@ -344,10 +345,10 @@ public:
 
 #pragma region Piece specific properties
 
-    bool is_pawn_passed(Color c, Square s) const;
-    bool has_pawn_on_7thR(Color c) const;
-    bool has_opposite_bishops() const;
-    bool has_pair_bishops(Color c) const;
+    bool is_pawn_passed (Color c, Square s) const;
+    bool has_pawn_on_7thR (Color c) const;
+    bool has_opposite_bishops () const;
+    bool has_pair_bishops (Color c) const;
 
 #pragma endregion
 
