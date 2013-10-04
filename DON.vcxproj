@@ -577,7 +577,7 @@
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\Tester.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
-    <ClCompile Include="src\tri_logger.cpp" />
+    <ClCompile Include="src\trilogger.cpp" />
     <ClCompile Include="src\UCI.cpp" />
     <ClCompile Include="src\UCI.Option.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
@@ -589,8 +589,11 @@
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitRotate.h" />
     <ClInclude Include="src\BitScan.h" />
+    <ClInclude Include="src\blockingqueue.h" />
     <ClInclude Include="src\Board.h" />
     <ClInclude Include="src\Castle.h" />
+    <ClInclude Include="src\concurrentblockingqueue.h" />
+    <ClInclude Include="src\criticalsection.h" />
     <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
@@ -598,12 +601,13 @@
     <ClInclude Include="src\Forest.hpp" />
     <ClInclude Include="src\functor.h" />
     <ClInclude Include="src\Game.h" />
-    <ClInclude Include="src\io_logger.h" />
+    <ClInclude Include="src\iologger.h" />
     <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Move.h" />
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
+    <ClInclude Include="src\noncopyable.h" />
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\PawnStructure.h" />
@@ -614,6 +618,7 @@
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PSQTable.h" />
     <ClInclude Include="src\RKISS.h" />
+    <ClInclude Include="src\scopedlock.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\Square.h" />
     <ClInclude Include="src\Tester.h" />
@@ -622,7 +627,7 @@
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\Tree.hpp" />
-    <ClInclude Include="src\tri_logger.h" />
+    <ClInclude Include="src\trilogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
     <ClInclude Include="src\UCI.Option.h" />

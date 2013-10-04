@@ -13,7 +13,7 @@
 #include "Evaluator.h"
 #include "Benchmark.h"
 #include "Notation.h"
-#include "tri_logger.h"
+#include "trilogger.h"
 
 //#include "Thread.h"
 
@@ -188,7 +188,7 @@ namespace UCI {
                         {
                             Move m = move_from_can (token, pos);
                             if (MOVE_NONE == m) continue;
-                            limits.search_moves.push_back (m);
+                            limits.search_moves.emplace_back (m);
                         }
                     }
                     else if (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;

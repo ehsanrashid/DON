@@ -146,8 +146,8 @@ namespace Searcher {
             score(-SCORE_INFINITE),
             score_last(-SCORE_INFINITE)
         {
-            pv.push_back (m);
-            pv.push_back (MOVE_NONE);
+            pv.emplace_back (m);
+            pv.emplace_back (MOVE_NONE);
         }
 
         // Ascending Sort

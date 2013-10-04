@@ -11,9 +11,9 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(lst_move, org, moves)         while (moves) { lst_move.push_back (mk_move<NORMAL> (org, pop_lsb(moves))); }
+#define SERIALIZE(lst_move, org, moves)         while (moves) { lst_move.emplace_back (mk_move<NORMAL> (org, pop_lsb(moves))); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define SERIALIZE_PAWNS(lst_move, delta, moves) while (moves) { Square dst = pop_lsb (moves); lst_move.push_back (mk_move<NORMAL> (dst - (delta), dst)); }
+#define SERIALIZE_PAWNS(lst_move, delta, moves) while (moves) { Square dst = pop_lsb (moves); lst_move.emplace_back (mk_move<NORMAL> (dst - (delta), dst)); }
 
     namespace {
 
@@ -23,7 +23,7 @@ namespace MoveGenerator {
         //{
         //    while (moves)
         //    {
-        //        lst_move.push_back (mk_move<NORMAL> (org, pop_lsb (moves)));
+        //        lst_move.emplace_back (mk_move<NORMAL> (org, pop_lsb (moves)));
         //    }
         //}
         //// Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
@@ -32,7 +32,7 @@ namespace MoveGenerator {
         //    while (moves)
         //    {
         //        Square dst = pop_lsb (moves);
-        //        lst_move.push_back (mk_move<NORMAL> (dst - (delta), dst));
+        //        lst_move.emplace_back (mk_move<NORMAL> (dst - (delta), dst));
         //    }
         //}
 
@@ -159,12 +159,12 @@ namespace MoveGenerator {
                     {
                         if (pos.is_move_check (m, *ci))
                         {
-                            lst_move.push_back (m);
+                            lst_move.emplace_back (m);
                         }
                     }
                     break;
 
-                default: lst_move.push_back (m);    break;
+                default: lst_move.emplace_back (m);    break;
                 }
             }
 
@@ -280,7 +280,7 @@ namespace MoveGenerator {
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
                                 while (pawns_ep)
                                 {
-                                    lst_move.push_back (mk_move<ENPASSANT> (pop_lsb (pawns_ep), ep_sq));
+                                    lst_move.emplace_back (mk_move<ENPASSANT> (pop_lsb (pawns_ep), ep_sq));
                                 }
                             }
                         }
@@ -330,15 +330,15 @@ namespace MoveGenerator {
                     if ((RELAX == G) || (EVASION == G) ||
                         ((CAPTURE == G) && (DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D)))
                     {
-                        lst_move.push_back (mk_move<PROMOTE> (org, dst, QUEN));
+                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, QUEN));
                     }
 
                     if ((RELAX == G) || (EVASION == G) ||
                         ((QUIET == G) && (DEL_N == D || DEL_S == D)))
                     {
-                        lst_move.push_back (mk_move<PROMOTE> (org, dst, ROOK));
-                        lst_move.push_back (mk_move<PROMOTE> (org, dst, BSHP));
-                        lst_move.push_back (mk_move<PROMOTE> (org, dst, NIHT));
+                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, ROOK));
+                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, BSHP));
+                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
                     }
 
                     // Knight-promotion is the only one that can give a direct check
@@ -349,7 +349,7 @@ namespace MoveGenerator {
                         {
                             if (attacks_bb<NIHT> (dst) & ci->king_sq)
                             {
-                                lst_move.push_back (mk_move<PROMOTE> (org, dst, NIHT));
+                                lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
                             }
                         }
                     }

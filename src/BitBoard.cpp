@@ -667,7 +667,7 @@ namespace BitBoard {
 
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
-        //    if (bb & s) lst_sq.push_back (s);
+        //    if (bb & s) lst_sq.emplace_back (s);
         //}
 
         // ---
@@ -675,7 +675,7 @@ namespace BitBoard {
         while (bb)
         {
             Square s = pop_lsb (bb);
-            lst_sq.push_back (s);
+            lst_sq.emplace_back (s);
         }
 
         return lst_sq;

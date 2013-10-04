@@ -21,7 +21,7 @@ namespace Searcher {
 
     //    do
     //    {
-    //        pv.push_back(m);
+    //        pv.emplace_back (m);
     //        //ASSERT (MoveList<LEGAL>(pos).contains(pv[ply]));
     //        pos.do_move(pv[ply++], *st++);
     //        te = TT.probe(pos.key_posi ());
@@ -32,7 +32,7 @@ namespace Searcher {
     //        ply < MAX_PLY &&
     //        (!pos.is_draw() || ply < 2));
 
-    //    pv.push_back(MOVE_NONE); // Must be zero-terminating
+    //    pv.emplace_back(MOVE_NONE); // Must be zero-terminating
 
     //    while (ply)
     //    {

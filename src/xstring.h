@@ -227,7 +227,7 @@ namespace std {
         //    }
         //    if (keep_empty || !isempty (part))
         //    {
-        //        list_s.push_back (part);
+        //        list_s.emplace_back (part);
         //    }
         //}
         //while (success && iss.good ());
@@ -244,7 +244,7 @@ namespace std {
         //    }
         //    if (keep_empty || !isempty (part))
         //    {
-        //        list_s.push_back (part);
+        //        list_s.emplace_back (part);
         //    }
         //    if (cmid == cend) break;
         //    cbeg = cmid + 1;
@@ -263,7 +263,7 @@ namespace std {
         //    }
         //    if (keep_empty || !isempty (part))
         //    {
-        //        list_s.push_back (part);
+        //        list_s.emplace_back (part);
         //    }
         //    if (std::string::npos == p1) break;
         //    dup = dup.substr (p1 + 1);
@@ -283,7 +283,7 @@ namespace std {
             }
             if (keep_empty || !part.empty ())
             {
-                list_s.push_back (part);
+                list_s.emplace_back (part);
             }
             if (std::string::npos == p1) break;
             ++p1;

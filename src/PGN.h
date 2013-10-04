@@ -6,6 +6,8 @@
 #include <vector>
 #include <stack>
 #include "Type.h"
+#include "noncopyable.h"
+
 
 class Game;
 
@@ -15,6 +17,7 @@ class Game;
 // PGN file with *.pgn extension
 typedef class PGN sealed
     : private ::std::fstream
+    , public ::std::noncopyable
 {
 
 private:

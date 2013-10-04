@@ -4,7 +4,7 @@
 #include "xcstring.h"
 #include "xstring.h"
 #include "Game.h"
-#include "tri_logger.h"
+#include "trilogger.h"
 
 PGN::PGN ()
     : ::std::fstream()
@@ -377,7 +377,7 @@ void PGN::_add_index (uint64_t pos)
     //    if (pos <= _indexes_game[g_count - 1]) return;
     //}
 
-    _indexes_game.push_back (pos);
+    _indexes_game.emplace_back (pos);
 }
 
 // Read the text index (1...n)

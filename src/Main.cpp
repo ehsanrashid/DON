@@ -13,11 +13,13 @@
 #include "Engine.h"
 #include "PolyglotBook.h"
 #include "MoveGenerator.h"
-#include "io_logger.h"
-#include "tri_logger.h"
+#include "iologger.h"
+#include "trilogger.h"
 #include "Time.h"
 
 #include "manipulator.h"
+
+#include "blockingqueue.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -89,20 +91,24 @@ void call_from_thread()
 int main()
 {
     //Launch a thread
-    //std::thread t1(call_from_thread);
+    //std::thread t1 (call_from_thread);
+
     //Join the thread with the main thread
     //t1.join();
 
     //Use of an anonymous function (lambda) in a thread
-    thread t( [] (string name) {
-        for (int i = 0; i < 100; i++)
-            cout << "Hello " << name << endl;
-    }, "Tom");
+    //thread t( [] (string name) {
+    //    for (int i = 0; i < 100; i++)
+    //        cout << "Hello " << name << endl;
+    //}, "Tom");
 
-    //Join the thread with the main thread
-    t.join();
+    ////Join the thread with the main thread
+    //t.join();
 
+    std::blocking_queue<int> block(10);
+    block.push (3);
 
+    system ("pause");
     return 0;
 }
 

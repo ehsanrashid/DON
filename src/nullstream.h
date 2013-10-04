@@ -17,13 +17,16 @@
 
 #include <streambuf>
 #include <ostream>
+#include "noncopyable.h"
+
 
 namespace std {
 
     // generic null stream buffer class
     template <class charT, class Traits = ::std::char_traits<charT> >
-    class basic_null_buffer :
-        public ::std::basic_streambuf<charT, Traits>
+    class basic_null_buffer
+        : public ::std::basic_streambuf<charT, Traits>
+        , public ::std::noncopyable
     {
 
     public:
@@ -43,17 +46,18 @@ namespace std {
 
     // generic null output stream class
     template <class charT, class Traits = ::std::char_traits<charT> >
-    class basic_null_stream sealed :
-        private ::std::basic_null_buffer<charT, Traits>,
-        public ::std::basic_ostream<charT, Traits>
+    class basic_null_stream sealed
+        : private ::std::basic_null_buffer<charT, Traits>
+        , public ::std::basic_ostream<charT, Traits>
+        , public ::std::noncopyable
     {
 
     public:
 
-        basic_null_stream() :
+        basic_null_stream()
             // C++98 standard allows that construction
             // 12.6.2/7
-            ::std::basic_ostream<charT, Traits>(this)
+            : ::std::basic_ostream<charT, Traits>(this)
         {}
 
     };
@@ -61,16 +65,14 @@ namespace std {
 
     template<class charT, class Traits, class T>
     ::std::basic_null_stream<charT, Traits>& operator<< (
-        ::std::basic_null_stream<charT, Traits> &nstream,
-        T const &)
+        ::std::basic_null_stream<charT, Traits> &nstream, T const &)
     {
         return nstream;
     }
 
     template<class charT, class Traits>
     ::std::basic_null_stream<charT, Traits>& operator<< (
-        ::std::basic_null_stream<charT, Traits> &nstream,
-        ::std::basic_ostream<charT, Traits> &(::std::basic_ostream<charT, Traits> &))
+        ::std::basic_null_stream<charT, Traits> &nstream, ::std::basic_ostream<charT, Traits> &(::std::basic_ostream<charT, Traits> &))
     {
         return nstream;
     }

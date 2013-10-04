@@ -78,7 +78,7 @@ bool Game::append_move (Move m)
     if (_last_pos.is_move_legal(m))
     {
         _stk_state.push (StateInfo ());
-        //_lst_move.push_back (m);
+        //_lst_move.emplace_back (m);
 
         _last_pos.do_move (m, _stk_state.top ());
 

@@ -148,7 +148,7 @@ typedef unsigned long long  uint64_t;
 
 #   if defined(LOGGER)
 
-#   include "tri_logger.h"
+#   include "trilogger.h"
 
 #   define ASSERT(condition)                    \
     do {                                        \

@@ -229,7 +229,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //::std::vector<PolyglotEntry> lst_pe;
     //while ((*this >> pe), (pe.key == key) && good ())
     //{
-    //    lst_pe.push_back (pe);
+    //    lst_pe.emplace_back (pe);
     //    max_weight = ::std::max (max_weight, pe.weight);
     //    sum_weight += pe.weight;
     //}
@@ -364,7 +364,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
     {
-        lst_pe.push_back (pe);
+        lst_pe.emplace_back (pe);
         sum_weight += pe.weight;
     }
 

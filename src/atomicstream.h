@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <iostream>
+#include "noncopyable.h"
 //#include <memory>
 //#include "functor.h"
 
@@ -115,6 +116,7 @@ namespace std {
 
     typedef class atomic_stream sealed
         : public ::std::ostringstream
+        , public ::std::noncopyable
     {
 
     private:

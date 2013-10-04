@@ -78,7 +78,7 @@ void benchmark (::std::istream& is, const Position &pos)
         }
         else if (fn_fen == "current")
         {
-            fens.push_back (pos.to_fen ());
+            fens.emplace_back (pos.to_fen ());
         }
         else
         {
@@ -95,7 +95,7 @@ void benchmark (::std::istream& is, const Position &pos)
             {
                 if (!fen.empty ())
                 {
-                    fens.push_back (fen);
+                    fens.emplace_back (fen);
                 }
             }
             ifstm_fen.close();
