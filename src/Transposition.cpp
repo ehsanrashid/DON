@@ -5,7 +5,7 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-
+// Global Transposition Table
 TranspositionTable TT;
 
 // resize(mb) sets the size of the table, measured in mega-bytes.

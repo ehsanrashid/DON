@@ -1,4 +1,4 @@
-#include "UCI.Option.h"
+#include "UCI.h"
 
 #include <iomanip>
 #include <sstream>
@@ -180,24 +180,6 @@ namespace UCI {
             if (_on_change) _on_change (*this);
             return *this;
         }
-
-
-        template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits>& os, const Option &opt)
-        {
-            os << opt.operator() ();
-            return os;
-        }
-
-        template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits>& os, const Option *opt)
-        {
-            os << opt->operator() ();
-            return os;
-        }
-
     }
 
     using namespace OptionType;
@@ -301,28 +283,28 @@ namespace UCI {
         Options.clear ();
     }
 
-    ::std::string to_string (const UCI::OptionMap &options)
-    {
-        ::std::ostringstream sopt;
+    //::std::string to_string (const UCI::OptionMap &options)
+    //{
+    //    ::std::ostringstream sopt;
 
-        for (size_t idx = 0; idx < options.size (); ++idx)
-        {
-            UCI::OptionMap::const_iterator itr = options.cbegin ();
+    //    for (size_t idx = 0; idx < options.size (); ++idx)
+    //    {
+    //        UCI::OptionMap::const_iterator itr = options.cbegin ();
 
-            while (itr != options.cend ())
-            {
-                const UCI::OptionType::Option *opt = itr->second.get ();
-                if (idx == opt->index)
-                {
-                    sopt << "option name " << (itr->first)
-                        << " " << (opt) << ::std::endl;
-                }
-                ++itr;
-            }
-        }
+    //        while (itr != options.cend ())
+    //        {
+    //            const UCI::OptionType::Option *opt = itr->second.get ();
+    //            if (idx == opt->index)
+    //            {
+    //                sopt << "option name " << (itr->first)
+    //                    << " " << (opt) << ::std::endl;
+    //            }
+    //            ++itr;
+    //        }
+    //    }
 
-        return sopt.str ();
-    }
+    //    return sopt.str ();
+    //}
 
 }
 

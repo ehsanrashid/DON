@@ -119,6 +119,7 @@ private:
 
 public:
 
+    // Total size for Transposition entry in byte
     static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
     // Number of entry in a cluster
     static const uint8_t NUM_TENTRY_CLUSTER = 0x04; // 4
@@ -131,6 +132,7 @@ public:
 #endif
 
 
+    // Minimum size for Transposition table in mega-byte
     static const size_t DEF_SIZE_TT         = 32;
 
     // Minimum size for Transposition table in mega-byte
@@ -222,7 +224,7 @@ public:
 
 #pragma warning (pop)
 
-
+// Global Transposition Table
 extern TranspositionTable TT;
 
 #endif

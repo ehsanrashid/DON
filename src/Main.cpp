@@ -88,7 +88,7 @@ void call_from_thread()
     }
 }
 
-int main()
+int maine()
 {
     //Launch a thread
     //std::thread t1 (call_from_thread);
@@ -112,11 +112,11 @@ int main()
     return 0;
 }
 
-int maine (int argc, const char* const argv[])
+int main (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);
 
-    //Engine::start ();
+    Engine::start ();
 
     //log_io (true);
 

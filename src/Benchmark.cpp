@@ -5,9 +5,7 @@
 #include "Position.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "UCI.Option.h"
-
-using namespace UCI;
+#include "UCI.h"
 
 namespace {
 

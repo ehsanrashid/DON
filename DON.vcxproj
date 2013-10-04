@@ -630,7 +630,6 @@
     <ClInclude Include="src\trilogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
-    <ClInclude Include="src\UCI.Option.h" />
     <ClInclude Include="src\xcstring.h" />
     <ClInclude Include="src\xstring.h" />
     <ClInclude Include="src\Zobrist.h" />

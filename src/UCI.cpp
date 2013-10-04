@@ -7,7 +7,6 @@
 #include "atomicstream.h"
 
 #include "Engine.h"
-#include "UCI.Option.h"
 #include "Transposition.h"
 #include "Searcher.h"
 #include "Evaluator.h"
