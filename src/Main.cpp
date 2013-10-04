@@ -89,10 +89,19 @@ void call_from_thread()
 int main()
 {
     //Launch a thread
-    std::thread t1(call_from_thread);
+    //std::thread t1(call_from_thread);
+    //Join the thread with the main thread
+    //t1.join();
+
+    //Use of an anonymous function (lambda) in a thread
+    thread t( [] (string name) {
+        for (int i = 0; i < 100; i++)
+            cout << "Hello " << name << endl;
+    }, "Tom");
 
     //Join the thread with the main thread
-    t1.join();
+    t.join();
+
 
     return 0;
 }
