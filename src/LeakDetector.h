@@ -2,9 +2,9 @@
 #ifndef LEAK_DETECTOR_H_
 #define LEAK_DETECTOR_H_
 
-typedef unsigned int    uint;
-
 namespace LeakDetector {
+
+    typedef unsigned int    uint;
 
     extern void* xmalloc (size_t size, const char fn[], uint line_no);
     extern void* xcalloc (size_t count, size_t size_elem, const char fn[], uint line_no);

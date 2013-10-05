@@ -182,10 +182,11 @@ namespace UCI {
         }
     }
 
-    using namespace OptionType;
 
     // option-events
     namespace {
+
+        using namespace OptionType;
 
         void on_clear_hash (const Option &opt)
         {
@@ -266,8 +267,6 @@ namespace UCI {
         //Options["Slow Mover"]                 = &SpinOption(100, 10, 1000);
         //Options["UCI_Chess960"]               = &CheckOption(false);
         //Options["UCI_AnalyseMode"]            = &CheckOption(false/*, on_eval*/);
-
-
 
         //std::cout << int32_t (*(Options["Hash"]));
 

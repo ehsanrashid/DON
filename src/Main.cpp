@@ -74,13 +74,11 @@ namespace {
     }
 }
 
-//alignas (4) int a[4];
-
 int main (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);
 
-    //Engine::start ();
+    Engine::start ();
 
     //log_io (true);
 

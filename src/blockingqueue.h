@@ -4,7 +4,6 @@
 #include <queue>
 #include <mutex>
 #include <atomic>
-
 #include <condition_variable>
 #include <chrono>
 
@@ -92,7 +91,6 @@ namespace std {
 
     template<class T>
     class blocking_queue
-        //: private std::deque<T> 
         : private std::queue<T> 
     {
 
@@ -101,19 +99,18 @@ namespace std {
         static const long long default_timeout = 5000;
 
         mutable std::mutex      _mutex;
-        std::atomic<bool> _shutdown;
+        std::atomic<bool>       _shutdown;
 
         std::condition_variable _queue_empty;
         std::condition_variable _queue_full;
 
         const size_t            _capacity;
 
-
     public:
 
         blocking_queue (size_t capacity) 
             : std::queue<T> ()
-            , _capacity(capacity)
+            , _capacity (capacity)
             , _mutex ()
             , _shutdown (false)
         {}
@@ -138,9 +135,11 @@ namespace std {
             {
                 while (empty ())
                 {
-                    std::unique_lock<std::mutex> lock (_mutex);
-                    _queue_empty.wait_for (lock, std::chrono::milliseconds (default_timeout), [=] { return !empty () || _shutdown; });
-                    //_queue_empty.wait (lock, [=] { return !empty (); });
+                    {
+                        std::unique_lock<std::mutex> lock (_mutex);
+                        //_queue_empty.wait (lock, [=] { return !empty () || _shutdown; });
+                        _queue_empty.wait_for (lock, std::chrono::milliseconds (default_timeout), [=] { return !empty () || _shutdown; });
+                    }
                     if (_shutdown)
                     {
                         if (empty ()) return T ();
@@ -154,12 +153,12 @@ namespace std {
             return elem;
         }
 
-        bool empty() const
+        bool empty () const
         {
             return std::queue<T>::empty ();
         }
 
-        bool full() const
+        bool full () const
         {
             if (std::queue<T>::size () > _capacity)
             {

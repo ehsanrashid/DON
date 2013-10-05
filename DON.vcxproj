@@ -593,7 +593,6 @@
     <ClInclude Include="src\blockingqueue.h" />
     <ClInclude Include="src\Board.h" />
     <ClInclude Include="src\Castle.h" />
-    <ClInclude Include="src\concurrentblockingqueue.h" />
     <ClInclude Include="src\criticalsection.h" />
     <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Engine.h" />
