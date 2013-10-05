@@ -133,7 +133,7 @@ public:
 
 
     // Minimum size for Transposition table in mega-byte
-    static const size_t DEF_SIZE_TT         = 32;
+    static const size_t DEF_SIZE_TT         = 128;
 
     // Minimum size for Transposition table in mega-byte
     static const size_t MIN_SIZE_TT         = 4;

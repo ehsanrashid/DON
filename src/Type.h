@@ -70,7 +70,7 @@ const uint8_t MAX_PLY_PLUS_6 = MAX_PLY + 6;
 
 const uint8_t MAX_THREADS                 = 64;
 const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
-const uint8_t MAX_SPLIT_DEPTH             = 12;
+const uint8_t MAX_SPLIT_DEPTH             = 99;
 
 #pragma warning (push)
 #pragma warning (disable: 4341)
