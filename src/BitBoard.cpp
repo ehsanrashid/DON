@@ -65,10 +65,8 @@ namespace BitBoard {
     uint8_t _b_shift_gap[_UI8_MAX + 1][F_NO];
 
 
-    CACHE_ALIGN64
-
-        // SQUARES
-        const Bitboard _bb_sq[SQ_NO] =
+    // SQUARES
+    CACHE_ALIGN(64) const Bitboard _bb_sq[SQ_NO] =
     {
         //U64(0x0000000000000001), U64(0x0000000000000002), U64(0x0000000000000004), U64(0x0000000000000008),
         //U64(0x0000000000000010), U64(0x0000000000000020), U64(0x0000000000000040), U64(0x0000000000000080),
@@ -102,7 +100,7 @@ namespace BitBoard {
 #undef S_2
     };
     // FILES
-    const Bitboard _bb_file[F_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_file[F_NO] =
     {
         bb_FA,
         bb_FB,
@@ -114,7 +112,7 @@ namespace BitBoard {
         bb_FH
     };
     // RANKS
-    const Bitboard _bb_rank[R_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_rank[R_NO] =
     {
         bb_R1,
         bb_R2,
@@ -126,7 +124,7 @@ namespace BitBoard {
         bb_R8
     };
     // DIAG-18
-    const Bitboard _bb_d18[D_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_d18[D_NO] =
     {
         bb_D18 >> (8 * 7),
         bb_D18 >> (8 * 6),
@@ -145,7 +143,7 @@ namespace BitBoard {
         bb_D18 << (8 * 7),
     };
     // DIAG-81
-    const Bitboard _bb_d81[D_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_d81[D_NO] =
     {
         bb_D81 >> (8 * 7),
         bb_D81 >> (8 * 6),
@@ -165,7 +163,7 @@ namespace BitBoard {
     };
 
     // ADJACENT FILES used for isolated-pawn
-    Bitboard _bb_adj_file[F_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_adj_file[F_NO] =
     {
         bb_FB,
         bb_FA | bb_FC,
@@ -177,7 +175,7 @@ namespace BitBoard {
         bb_FG
     };
     // ADJACENT RANKS
-    Bitboard _bb_adj_rank[R_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_adj_rank[R_NO] =
     {
         bb_R2,
         bb_R1 | bb_R3,
@@ -189,7 +187,7 @@ namespace BitBoard {
         bb_R7,
     };
     // FRONT RANK
-    Bitboard _bb_front_rank[CLR_NO][R_NO] =
+    CACHE_ALIGN(64) const Bitboard _bb_front_rank[CLR_NO][R_NO] =
     {
         bb_R2 | bb_R3 | bb_R4 | bb_R5 | bb_R6 | bb_R7 | bb_R8,
         bb_R3 | bb_R4 | bb_R5 | bb_R6 | bb_R7 | bb_R8,
@@ -210,25 +208,25 @@ namespace BitBoard {
         bb_R7 | bb_R6 | bb_R5 | bb_R4 | bb_R3 | bb_R2 | bb_R1
     };
     // FRONT SQUARES
-    Bitboard _bb_front_sq[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_front_sq[CLR_NO][SQ_NO];
 
-    Bitboard _bb_dia_rings[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard _bb_dia_rings[SQ_NO][F_NO];
 
     // ---
 
     // Attacks of the pawn
-    Bitboard _bb_attacks_pawn[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_attacks_pawn[CLR_NO][SQ_NO];
 
     // Attacks of the pieces
-    Bitboard _bb_attacks_type[PT_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_attacks_type[PT_NO][SQ_NO];
 
     // Span of the attacks of pawn
-    Bitboard _bb_attack_span_pawn[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_attack_span_pawn[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    Bitboard _bb_passer_span_pawn[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_passer_span_pawn[CLR_NO][SQ_NO];
 
-    Bitboard _bb_betwen_sq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _bb_betwen_sq[SQ_NO][SQ_NO];
 
 
     const Delta _deltas_pawn[CLR_NO][3] =

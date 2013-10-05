@@ -63,9 +63,9 @@ namespace BitBoard {
     extern const Bitboard _bb_d18[D_NO];
     extern const Bitboard _bb_d81[D_NO];
 
-    extern Bitboard _bb_adj_file[F_NO];
-    extern Bitboard _bb_adj_rank[R_NO];
-    extern Bitboard _bb_front_rank[CLR_NO][R_NO];
+    extern const Bitboard _bb_adj_file[F_NO];
+    extern const Bitboard _bb_adj_rank[R_NO];
+    extern const Bitboard _bb_front_rank[CLR_NO][R_NO];
     extern Bitboard _bb_front_sq[CLR_NO][SQ_NO];
 
     extern Bitboard _bb_betwen_sq[SQ_NO][SQ_NO];

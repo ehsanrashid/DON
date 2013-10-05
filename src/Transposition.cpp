@@ -15,13 +15,12 @@ void TranspositionTable::resize (uint32_t size_mb)
 {
     ASSERT (size_mb >= MIN_SIZE_TT);
     ASSERT (size_mb <= MAX_SIZE_TT);
-
     if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
-    if (size_mb > MAX_SIZE_TT)
-    {
-        std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
-        return;
-    }
+    if (size_mb > MAX_SIZE_TT) size_mb = MAX_SIZE_TT;
+    //{
+    //    std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
+    //    return;
+    //}
 
     uint64_t size_byte      = uint64_t (size_mb) << 20;
     uint64_t total_entry    = (size_byte) / SIZE_TENTRY;
@@ -36,7 +35,7 @@ void TranspositionTable::resize (uint32_t size_mb)
 
     erase ();
 
-    uint64_t size   = total_entry * SIZE_TENTRY;
+    size_t size   = total_entry * SIZE_TENTRY;
 
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
@@ -46,7 +45,7 @@ void TranspositionTable::resize (uint32_t size_mb)
 
 }
 
-void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment)
+void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
@@ -95,7 +94,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 //  - depth.
 //  - bound.
 //  - nodes.
-// The lowest order bits of position key are used to decide on which cluster the position will be placed.
+// The upper order bits of position key are used to decide on which cluster the position will be placed.
 // When a new entry is written and there are no empty entries available in cluster,
 // it replaces the least valuable of these entries.
 // An entry e1 is considered to be more valuable than a entry e2
@@ -104,7 +103,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 // * if the depth of e1 is bigger than the depth of e2.
 void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Score score, uint16_t nodes)
 {
-    uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
+    uint32_t key32 = uint32_t (key); // 32 lower-bit of key
 
     TranspositionEntry *te = get_cluster (key);
     // By default replace first entry
@@ -149,9 +148,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
 // Returns a pointer to the entry found or NULL if not found.
 const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 {
+    uint32_t key32 = uint32_t (key);
     const TranspositionEntry* te = get_cluster (key);
-    uint32_t key32 = uint32_t (key >> 32);
-
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
     {
         if (te->key () == key32) return te;

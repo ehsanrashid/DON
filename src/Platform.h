@@ -125,15 +125,12 @@ typedef unsigned long long  uint64_t;
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
-#   define CACHE_ALIGN8     __declspec(align(0x08))
-#   define CACHE_ALIGN32    __declspec(align(0x20))
-#   define CACHE_ALIGN64    __declspec(align(0x40))
-
+#   define CACHE_ALIGN(x)     __declspec(align(x))
+//#   define CACHE_ALIGN(x)     alignas(x)
+                                
 #elif defined(__GNUC__)
 
-#   define CACHE_ALIGN8     __attribute__((aligned(0x08)))
-#   define CACHE_ALIGN32    __attribute__((aligned(0x20)))
-#   define CACHE_ALIGN64    __attribute__((aligned(0x40)))
+#   define CACHE_ALIGN(x)     __attribute__((aligned(x)))
 
 #else
 
@@ -174,6 +171,9 @@ typedef unsigned long long  uint64_t;
 
 #   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
 #   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
+
+//#   define ASSERT(condition)          static_assert((condition), #condition)
+//#   define ASSERT_MSG(condition, msg) static_assert((condition), msg)
 
 #   endif
 

@@ -275,6 +275,7 @@
       <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>
       </AdditionalOptions>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <AdditionalDependencies>

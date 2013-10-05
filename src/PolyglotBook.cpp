@@ -223,6 +223,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     Move move = MOVE_NONE;
 
     PolyglotEntry pe;
+
     uint16_t max_weight = 0;
     uint32_t sum_weight = 0;
 
@@ -271,7 +272,6 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    }
     //}
 
-
     while ((*this >> pe), (pe.key == key) && good ())
     {
         max_weight = ::std::max (max_weight, pe.weight);
@@ -296,7 +296,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         else if (sum_weight)
         {
             uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
-            if (pe.weight > rand)   move = Move (pe.move);
+            if (pe.weight > rand) move = Move (pe.move);
         }
         else // if not pick best and sum of weight = 0
         {
@@ -358,9 +358,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     seekg (POSITION (index));
 
+    PolyglotEntry pe;
     ::std::vector<PolyglotEntry> lst_pe;
 
-    PolyglotEntry pe;
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
     {

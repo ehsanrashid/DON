@@ -50,7 +50,8 @@ namespace MoveGenerator {
                 //template<GType G, PType P>
                 //inline void Generator<G, P>::generate (MoveList &lst_move, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
             {
-                ASSERT ((KING != P) && (PAWN != P));
+                //ASSERT ((KING != P) && (PAWN != P));
+                static_assert ((KING != P) && (PAWN != P), "P must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
                 Piece piece = (c | P);
@@ -95,6 +96,8 @@ namespace MoveGenerator {
                 //template<GType G>
                 //void Generator<G, KING>::generate (MoveList &lst_move, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci)
             {
+                //static_assert ((EVASION != G) && (CHECK != G), "G must not be EVASION & CHECK");
+
                 if ((EVASION != G) && (CHECK != G) && (QUIET_CHECK != G))
                 {
                     Square sq_king = pos.king_sq (clr);
@@ -125,6 +128,8 @@ namespace MoveGenerator {
                 //template<CSide SIDE>
                 //void Generator<G, KING>::generate_castling (MoveList &lst_move, const Position &pos, Color clr, const CheckInfo *ci)
             {
+                //static_assert ((EVASION != G) && (CHECK != G), "G must not be EVASION & CHECK");
+
                 ASSERT (!pos.castle_impeded (clr, SIDE));
                 ASSERT (pos.can_castle (clr, SIDE));
                 ASSERT (!pos.checkers ());
@@ -182,7 +187,9 @@ namespace MoveGenerator {
                 //template<Color C>
                 //void Generator<G, PAWN>::generate<> (MoveList &lst_move, const Position &pos, Bitboard target, const CheckInfo *ci)
             {
-                Color _C = ~C;
+
+                const Color _C = ~C;
+
                 const Delta FRONT = (WHITE == C ? DEL_N  : DEL_S);
                 const Delta RIHT = (WHITE == C ? DEL_NE : DEL_SW);
                 const Delta LEFT = (WHITE == C ? DEL_NW : DEL_SE);
@@ -319,6 +326,8 @@ namespace MoveGenerator {
                 //template<Delta D>
                 //void Generator<G, PAWN>::generate_promotion (MoveList &lst_move, Bitboard pawns_on_R7, Bitboard target, const CheckInfo *ci)
             {
+                static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "D may be wrong");
+
                 //if (pawns_on_R7)
                 //{
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & target;
@@ -345,12 +354,9 @@ namespace MoveGenerator {
                     // not already included in the queen-promotion (queening).
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
-                        if (ci)
+                        if (ci && attacks_bb<NIHT> (dst) & ci->king_sq)
                         {
-                            if (attacks_bb<NIHT> (dst) & ci->king_sq)
-                            {
-                                lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
-                            }
+                            lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
                         }
                     }
                     else
@@ -408,7 +414,9 @@ namespace MoveGenerator {
     {
         MoveList lst_move;
 
-        ASSERT (RELAX == G || CAPTURE == G || QUIET == G);
+        //ASSERT (RELAX == G || CAPTURE == G || QUIET == G);
+        static_assert (RELAX == G || CAPTURE == G || QUIET == G, "G must be RELAX | CAPTURE | QUIET");
+
         ASSERT (!pos.checkers ());
         //if (!pos.checkers ())
         //{

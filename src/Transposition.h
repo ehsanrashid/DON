@@ -62,8 +62,8 @@ public:
         uint16_t nodes = (0),
         uint8_t  gen   = (0),
         Score    score = (SCORE_ZERO),
-        Score    score_eval     = (SCORE_DRAW),
-        Score    margin_eval    = (SCORE_DRAW))
+        Score    score_eval  = (SCORE_DRAW),
+        Score    margin_eval = (SCORE_DRAW))
     {
         _key   = key;
         _move  = move;
@@ -100,7 +100,7 @@ private:
     uint64_t            _store_entry;
     uint8_t             _generation;
 
-    void aligned_memory_alloc (uint64_t size, uint32_t alignment);
+    void aligned_memory_alloc (size_t size, uint32_t alignment);
 
     // erase() free the allocated memory
     void erase ()
@@ -209,7 +209,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     TranspositionEntry* get_cluster (Key key) const
     {
-        return _table_entry + (uint32_t (key) & _mask_hash);
+        return _table_entry + (uint32_t (key >> (SQ_NO - MAX_BIT_HASH)) & _mask_hash);
     }
 
     // store() writes a new entry in the transposition table.
