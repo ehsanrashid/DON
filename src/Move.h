@@ -104,7 +104,7 @@ inline bool _ok (Move m)
     return false;
 }
 
-//inline std::string to_string (Move m, bool chess960 = false)
+//inline std::string to_string (Move m, bool c960 = false)
 //{
 //    if (MOVE_NONE == m) return "(none)";
 //    if (MOVE_NULL == m) return "(0000)";
@@ -112,7 +112,7 @@ inline bool _ok (Move m)
 //
 //    Square org = sq_org (m);
 //    Square dst = sq_dst (m);
-//    if (!chess960)
+//    if (!c960)
 //    {
 //        if (CASTLE == _mtype (m))
 //        {

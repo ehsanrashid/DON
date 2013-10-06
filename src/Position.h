@@ -536,7 +536,7 @@ inline Bitboard Position::attacks_from (Square s) const
         return attacks_bb<PT> (s);
         break;
     }
-    return bb_NULL;
+    return 0;
 }
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
@@ -577,7 +577,7 @@ inline Bitboard Position::blockers (Square s, Bitboard pinners) const
 {
     Bitboard occ = _board.pieces ();
     Bitboard defenders = _board.pieces (_active);
-    Bitboard blockers = BitBoard::bb_NULL;
+    Bitboard blockers = 0;
     while (pinners)
     {
         Bitboard blocker = BitBoard::mask_btw_sq (s, pop_lsb (pinners)) & occ;
@@ -598,7 +598,7 @@ inline Bitboard Position::hidden_checkers (Square sq_king, Color c) const
     Bitboard hdn_chkrs =
         (BitBoard::attacks_bb<ROOK> (sq_king) & _board.pieces (c, QUEN, ROOK)) |
         (BitBoard::attacks_bb<BSHP> (sq_king) & _board.pieces (c, QUEN, BSHP));
-    return (hdn_chkrs) ? blockers (sq_king, hdn_chkrs) : BitBoard::bb_NULL;
+    return (hdn_chkrs) ? blockers (sq_king, hdn_chkrs) : 0;
 }
 
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.

@@ -87,7 +87,7 @@ int main (int argc, const char* const argv[])
     //printf("Current stack usage: %d bytes\n", high_stack - low_stack);
 
 
-    //Engine::start ();
+    Engine::start ();
 
     //log_io (true);
 
@@ -111,7 +111,7 @@ int main (int argc, const char* const argv[])
     //move    = Move (345);
     //depth   = DEPTH_NONE;
     //bound   = EXACT;
-    //score   = SCORE_INFINITE;
+    //score   = VALUE_INFINITE;
     //nodes   = 40;
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);

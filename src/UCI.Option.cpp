@@ -8,7 +8,10 @@
 #include "xstring.h"
 #include "atomicstream.h"
 
+#include "Searcher.h"
 #include "Transposition.h"
+#include "Searcher.h"
+
 #include "iologger.h"
 
 //#include "Thread.h"
@@ -16,10 +19,11 @@
 //#undef min
 //#undef max
 
-namespace UCI {
 
-    // Global string mapping of options
-    OptionMap Options;
+// Global string mapping of options
+UCI::OptionMap Options;
+
+namespace UCI {
 
     namespace OptionType {
 
@@ -184,7 +188,6 @@ namespace UCI {
         }
     }
 
-
     // option-events
     namespace {
 
@@ -215,6 +218,11 @@ namespace UCI {
             //ifstream ifstm ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
             //ifstm >> tt;
             //ifstm.close ();
+        }
+
+        void on_change_book (const Option &opt)
+        {
+            if (book.is_open ()) book.close ();
         }
 
         void on_change_threads (const Option &opt)
@@ -345,7 +353,7 @@ namespace UCI {
 #pragma region Book Options
 
         Options["Use Book"]                     = OptionPtr (new CheckOption (false));
-        Options["Book File"]                    = OptionPtr (new StringOption ("book.bin"));
+        Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
 #pragma endregion

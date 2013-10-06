@@ -142,7 +142,7 @@ bool PolyglotBook::open (const          char *fn_book, ::std::ios_base::openmode
     clear (); // Reset any error flag to allow retry open()
     _fn_book = fn_book;
     _mode    = mode;
-    return is_open ();
+    return ::std::fstream::is_open ();
 }
 bool PolyglotBook::open (const ::std::string &fn_book, ::std::ios_base::openmode mode)
 {
@@ -151,14 +151,14 @@ bool PolyglotBook::open (const ::std::string &fn_book, ::std::ios_base::openmode
     clear (); // Reset any error flag to allow retry open()
     _fn_book = fn_book;
     _mode    = mode;
-    return is_open ();
+    return ::std::fstream::is_open ();
 }
 
-void PolyglotBook::close () { if (is_open ()) ::std::fstream::close (); }
+void PolyglotBook::close () { if (::std::fstream::is_open ()) ::std::fstream::close (); }
 
 size_t PolyglotBook::find_index (const Key key)
 {
-    if (!is_open ()) return ERR_INDEX;
+    if (!::std::fstream::is_open ()) return ERR_INDEX;
 
     size_t beg = size_t (0);
     size_t end = size_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
@@ -211,7 +211,7 @@ size_t PolyglotBook::find_index (const ::std::string &fen, bool c960)
 
 Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
-    if (!is_open () || !(_mode & ::std::ios_base::in)) return MOVE_NONE;
+    if (!::std::fstream::is_open () || !(_mode & ::std::ios_base::in)) return MOVE_NONE;
 
     Key key = ZobPG.key_posi (pos);
 
@@ -346,7 +346,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
 ::std::string PolyglotBook::read_entries (const Position &pos)
 {
-    if (!is_open () || !(_mode & ::std::ios_base::in)) return "";
+    if (!::std::fstream::is_open () || !(_mode & ::std::ios_base::in)) return "";
 
     Key key = ZobPG.key_posi (pos);
 
@@ -388,7 +388,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
 void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 {
-    if (!is_open () || !(_mode & ::std::ios_base::out)) return;
+    if (!::std::fstream::is_open () || !(_mode & ::std::ios_base::out)) return;
 
     size_t index = find_index (pe.key);
     if (ERR_INDEX == index)

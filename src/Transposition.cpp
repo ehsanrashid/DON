@@ -100,7 +100,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Score score, uint16_t nodes)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, uint16_t nodes)
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
@@ -139,7 +139,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Sc
         }
     }
 
-    re->save (key32, move, depth, bound, _generation, nodes, score, SCORE_ZERO, SCORE_ZERO);
+    re->save (key32, move, depth, bound, _generation, nodes, value, VALUE_ZERO, VALUE_ZERO);
     ++_store_entry;
 }
 

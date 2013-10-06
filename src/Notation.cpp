@@ -14,8 +14,8 @@ AmbType ambiguity (Move m, const Position &pos)
 
     Square org = sq_org (m);
     Square dst = sq_dst (m);
-    Piece mp = pos[org];
-    PType mpt = _ptype (mp);
+    Piece mp   = pos[org];
+    PType mpt  = _ptype (mp);
 
     //MoveList lst_move = generate<LEGAL> (pos);
     //uint8_t n = 0;
@@ -113,7 +113,7 @@ Move move_from_can (std::string &can, const Position &pos)
     if (5 == can.length ())
     {
         // promotion piece in lowercase
-        can[4] = char (tolower (can[4]));
+        if (isupper (can[4])) can[4] = char (tolower (can[4]));
     }
     MoveList lst_move = generate<LEGAL>(pos);
     MoveList::const_iterator itr = lst_move.cbegin ();
@@ -150,7 +150,7 @@ std::string move_to_can (Move m, bool c960)
     if (!_ok (m))      return "(xxxx)";
     Square org = sq_org (m);
     Square dst = sq_dst (m);
-    MType mt = _mtype (m);
+    MType mt   = _mtype (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     std::string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
@@ -166,8 +166,8 @@ std::string move_to_san (Move m, Position &pos)
     std::string san;
     Square org = sq_org (m);
     Square dst = sq_dst (m);
-    Piece mp = pos[org];
-    PType mpt = _ptype (mp);
+    Piece mp   = pos[org];
+    PType mpt  = _ptype (mp);
 
     //    switch (mpt)
     //    {
@@ -295,3 +295,23 @@ std::string move_to_lan (Move m, Position &pos)
 
     return lan;
 }
+
+//// score_to_uci() converts a value to a string suitable for use with the UCI
+//// protocol specifications:
+////
+//// cp <x>     The score from the engine's point of view in centipawns.
+//// mate <y>   Mate in y moves, not plies. If the engine is getting mated
+////            use negative values for y.
+//std::string score_to_uci(Value v, Value alpha, Value beta)
+//{
+//    std::stringstream s;
+//
+//    if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+//        s << "cp " << v * 100 / int(PawnValueMg);
+//    else
+//        s << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+//
+//    s << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
+//
+//    return s.str();
+//}

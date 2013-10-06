@@ -139,8 +139,7 @@ namespace UCI {
 
     typedef ::std::map<::std::string, OptionPtr, ::std::string_less_comparer> OptionMap;
 
-    // Global string mapping of options
-    extern OptionMap Options;
+
 
     extern void  init_options ();
     extern void clear_options ();
@@ -174,9 +173,12 @@ namespace UCI {
     extern void stop ();
 
     // ---
-    
+
     extern void send_responce (const char format[], ...);
 
 }
+
+// Global string mapping of options
+extern UCI::OptionMap Options;
 
 #endif // UCI_H_

@@ -8,7 +8,7 @@ class Position;
 
 namespace Evaluator {
 
-    extern Score evaluate (const Position &pos);
+    extern Value evaluate (const Position &pos);
 
 }
 

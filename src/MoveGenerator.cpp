@@ -211,7 +211,7 @@ namespace MoveGenerator {
                 default:      enemies = pos.pieces (_C);          break;
                 }
 
-                Bitboard empty = bb_NULL;
+                Bitboard empty = 0;
                 // Pawn single-push and double-push, no promotions
                 if ((CAPTURE != G))
                 {
@@ -423,7 +423,7 @@ namespace MoveGenerator {
         Color active = pos.active ();
         Color pasive = ~active;
 
-        Bitboard target = bb_NULL;
+        Bitboard target = 0;
         //CheckInfo *ci = NULL;
 
         switch (G)
@@ -479,7 +479,7 @@ namespace MoveGenerator {
             Square org = pop_lsb (discovers);
             PType type = _ptype (pos[org]);
 
-            Bitboard moves = bb_NULL;
+            Bitboard moves = 0;
             switch (type)
             {
             case PAWN: continue; // Will be generated together with direct checks
@@ -521,7 +521,7 @@ namespace MoveGenerator {
             Square org = pop_lsb (discovers);
             PType type = _ptype (pos[org]);
 
-            Bitboard moves = bb_NULL;
+            Bitboard moves = 0;
             switch (type)
             {
             case PAWN: continue; // Will be generated together with direct checks

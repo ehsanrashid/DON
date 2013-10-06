@@ -2,29 +2,22 @@
 #ifndef SEARCHER_H_
 #define SEARCHER_H_
 
-//#include <memory>
-//#include "Timer.h"
+#include "Time.h"
+
+#include "PolyglotBook.h"
+
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Evaluator.h"
 
 class Position;
 
-inline Score mate_in (int32_t ply)
-{
-    return (SCORE_MATE - ply);
-}
-
-inline Score mated_in (int32_t ply)
-{
-    return (-SCORE_MATE + ply);
-}
 
 #include <iomanip>
 
 inline std::ostream& operator<< (std::ostream &ostream, const Score &score)
 {
-    if (abs (int16_t (score)) < SCORE_INFINITE - 300)
+    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
     {
         ostream.setf (std::ios_base::fixed, std::ios_base::floatfield);
         ostream.setf (std::ios_base::right, std::ios_base::adjustfield);
@@ -35,7 +28,7 @@ inline std::ostream& operator<< (std::ostream &ostream, const Score &score)
     else
     {
         ostream << ((score > 0) ? "+" : "-");
-        int32_t value = SCORE_INFINITE - abs (int16_t (score));
+        int32_t value = VALUE_INFINITE - abs (int16_t (score));
         ostream << "MAT" << value;
         if (value < 10)
         {
@@ -45,6 +38,7 @@ inline std::ostream& operator<< (std::ostream &ostream, const Score &score)
     return ostream;
 }
 
+extern PolyglotBook book;
 
 namespace Searcher {
 
@@ -143,29 +137,29 @@ namespace Searcher {
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
-    //  - Current score.
-    //  - Last score.
+    //  - Current value.
+    //  - Last value.
     //  - Node count.
     //  - PV (really a refutation in the case of moves which fail low).
     // Score is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        Score curr_score;
-        Score last_score;
+        Value curr_value;
+        Value last_value;
         uint64_t nodes;
 
         MoveList pv;
 
         RootMove(Move m) :
-            curr_score(-SCORE_INFINITE),
-            last_score(-SCORE_INFINITE)
+            curr_value(-VALUE_INFINITE),
+            last_value(-VALUE_INFINITE)
         {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);
         }
 
         // Ascending Sort
-        bool operator< (const RootMove &rm) const { return curr_score > rm.curr_score; }
+        bool operator< (const RootMove &rm) const { return curr_value > rm.curr_value; }
         bool operator== (const Move &m) const { return m == pv[0]; }
 
         void extract_pv_from_tt (Position &pos);
@@ -174,49 +168,62 @@ namespace Searcher {
     };
 
 
+    extern Limits               limits;
+    extern volatile Signals     signals;
 
-    extern int nThreads;
-    extern int maxThreadsPerNode;
+    extern std::vector<RootMove> root_moves;
+    extern Position             root_pos;
+    extern Color                root_color;
 
-    //typedef struct Node
-    //{
-    //    //Node* parent;
-    //    //Node* children[maxThreads];
-    //    Position pos;
-    //
-    //    //volatile bool _stopped;
-    //    //volatile int workers;
-    //    //bool used;
-    //    //int threadNumber;
-    //    //pthread_mutex_t mutex;
-    //    //Variation pv;
-    //    //int nodes;
-    //    //int qNodes;
-    //    //int failHighs;
-    //    //int failHighFirsts;
-    //    //int transRefProbes;
-    //    //int transRefHits;
-    //    //Move killer1[maxPly],killer2[maxPly];
-    //    //Score pValue;
-    //    //Score cValue;
-    //    //Score alpha;
-    //    //Score beta;
-    //    //Depth depth;
-    //    //int ply;
-    //    //Depth totalExtension;
-    //    //Moves moves[maxPly];
-    //    //int nextMove[maxPly];
-    //    //Move bestMove;
-    //
-    //} Node;
-    //
-    //
-    //extern void Think(Node &rootNode);
-    //
-    //Score search(Node &node, Score alpha, Score beta, Depth depth, int ply, bool nullMoveIsOK, int8_t totalExtension);
+    extern Time::point          search_time;
+    extern StateInfoStackPtr    setup_states;
 
-    extern void search(const Position &pos, Depth depth);
+
+
+    //extern int nThreads;
+    //extern int maxThreadsPerNode;
+
+    ////typedef struct Node
+    ////{
+    ////    //Node* parent;
+    ////    //Node* children[maxThreads];
+    ////    Position pos;
+    ////
+    ////    //volatile bool _stopped;
+    ////    //volatile int workers;
+    ////    //bool used;
+    ////    //int threadNumber;
+    ////    //pthread_mutex_t mutex;
+    ////    //Variation pv;
+    ////    //int nodes;
+    ////    //int qNodes;
+    ////    //int failHighs;
+    ////    //int failHighFirsts;
+    ////    //int transRefProbes;
+    ////    //int transRefHits;
+    ////    //Move killer1[maxPly],killer2[maxPly];
+    ////    //Score pValue;
+    ////    //Score cValue;
+    ////    //Score alpha;
+    ////    //Score beta;
+    ////    //Depth depth;
+    ////    //int ply;
+    ////    //Depth totalExtension;
+    ////    //Moves moves[maxPly];
+    ////    //int nextMove[maxPly];
+    ////    //Move bestMove;
+    ////
+    ////} Node;
+    ////
+    ////
+    ////extern void Think(Node &rootNode);
+    ////
+    ////Score search(Node &node, Score alpha, Score beta, Depth depth, int ply, bool nullMoveIsOK, int8_t totalExtension);
+
+    //extern void search(const Position &pos, Depth depth);
+
+    extern void think ();
 
 }
 
-#endif
+#endif // SEARCHER_H_

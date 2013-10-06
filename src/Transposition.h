@@ -37,9 +37,9 @@ private:
     uint8_t  _gen;
     //uint16_t  _nodes;
     int16_t
-        _score
-        , _score_eval
-        , _margin_eval
+        _value
+        , _value_eval
+        , _margn_eval
         ;
 
 public:
@@ -50,9 +50,9 @@ public:
     Bound   bound () const { return Bound (_bound); }
     uint8_t   gen () const { return _gen; }
     //uint16_t nodes () const { return uint16_t (_nodes); }
-    Score   score () const { return Score (_score); }
-    //Score score_eval () const  { return Score (_score_eval); }
-    //Score margin_eval () const { return Score (_margin_eval); }
+    Value   value () const { return Value (_value); }
+    //Value value_eval () const  { return Value (_value_eval); }
+    //Value margn_eval () const { return Value (_margn_eval); }
 
     void save (
         uint32_t key   = U32 (0),
@@ -61,19 +61,19 @@ public:
         Bound    bound = (UNKNOWN),
         uint8_t  gen   = (0),
         uint16_t nodes = (0),
-        Score    score = (SCORE_ZERO),
-        Score    score_eval  = (SCORE_DRAW),
-        Score    margin_eval = (SCORE_DRAW))
+        Value    value = (VALUE_ZERO),
+        Value    value_eval = (VALUE_DRAW),
+        Value    margn_eval = (VALUE_DRAW))
     {
         _key   = key;
         _move  = move;
-        _score = score;
+        _value = value;
         _depth = depth;
         _bound = bound;
         //_nodes  = nodes;
         _gen   = gen;
-        //_score_eval = score_eval;
-        //_margin_eval = margin_eval;
+        //_value_eval = value_eval;
+        //_margn_eval = margn_eval;
     }
 
     void gen (uint8_t gen)
@@ -214,7 +214,7 @@ public:
     }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, Score score, uint16_t nodes);
+    void store (Key key, Move move, Depth depth, Bound bound, Value value, uint16_t nodes);
 
     // retrieve() looks up the entry in the transposition table.
     const TranspositionEntry* TranspositionTable::retrieve (Key key) const;

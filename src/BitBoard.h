@@ -27,8 +27,8 @@ namespace BitBoard {
     extern const Bitboard bb_R7;
     extern const Bitboard bb_R8;
 
-    extern const Bitboard bb_NULL;
-    extern const Bitboard bb_FULL;
+    //extern const Bitboard bb_NULL;
+    //extern const Bitboard bb_FULL;
 
     extern const Bitboard bb_R1_;
     extern const Bitboard bb_R8_;
@@ -459,7 +459,7 @@ namespace BitBoard {
 
 #pragma region Attacks
 
-    extern Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = BitBoard::bb_NULL);
+    extern Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = 0);
 
     template<PType PT>
     // Attacks of the PAWN

@@ -147,19 +147,19 @@ static const uint16_t PieceWeight [PT_NO] =
     16383,  // KING
 };
 
-static Score evaluate_material   (const Position &pos);
-static Score evaluate_mobility   (const Position &pos);
+static Value evaluate_material   (const Position &pos);
+static Value evaluate_mobility   (const Position &pos);
 
 
 namespace Evaluator {
 
-    Score evaluate (const Position &pos)
+    Value evaluate (const Position &pos)
     {
-        Score score = SCORE_DRAW;
+        Value score = VALUE_DRAW;
 
         score   = evaluate_material (pos);
 
-        if (SCORE_INFINITE == abs (int16_t (score))) return score;
+        if (VALUE_INFINITE == abs (int16_t (score))) return score;
 
         score  += evaluate_mobility (pos);
 
@@ -185,7 +185,7 @@ namespace Evaluator {
 
 }
 
-static Score evaluate_material   (const Position &pos)
+static Value evaluate_material   (const Position &pos)
 {
     const Color active = pos.active ();
     const Color pasive =    ~active;
@@ -193,7 +193,7 @@ static Score evaluate_material   (const Position &pos)
     size_t kingDiff = pos.piece_count(active, KING) - pos.piece_count(pasive, KING);
     if (kingDiff)
     {
-        return (kingDiff > 0) ? SCORE_INFINITE : -SCORE_INFINITE;
+        return (kingDiff > 0) ? VALUE_INFINITE : -VALUE_INFINITE;
     }
 
     size_t pieceValue   [CLR_NO]  = { 0, 0 };
@@ -203,11 +203,11 @@ static Score evaluate_material   (const Position &pos)
         pieceValue[pasive]   += PieceWeight[t] * pos.piece_count(pasive, t);
     }
 
-    return (Score) (pieceValue[active] - pieceValue[pasive]);
-    //return (SCORE_INFINITE * (double) (pieceValue[active] - pieceValue[pasive])) / (double) (pieceValue[active] + pieceValue[pasive]);
+    return Value (pieceValue[active] - pieceValue[pasive]);
+    //return (VALUE_INFINITE * (double) (pieceValue[active] - pieceValue[pasive])) / (double) (pieceValue[active] + pieceValue[pasive]);
 }
 
-static Score evaluate_mobility   (const Position &pos)
+static Value evaluate_mobility   (const Position &pos)
 {
     const Color active = pos.active ();
     const Color pasive =    ~active;
@@ -239,8 +239,8 @@ static Score evaluate_mobility   (const Position &pos)
         }
     }
 
-    return (Score) (mobilityValue[active] - mobilityValue[pasive]) / 10;
+    return Value ((mobilityValue[active] - mobilityValue[pasive]) / 10);
 
-    //return (SCORE_INFINITE * (mobilityValue[active] - mobilityValue[pasive])) / (mobilityValue[active] + mobilityValue[pasive]) / 10;
+    //return (VALUE_INFINITE * (mobilityValue[active] - mobilityValue[pasive])) / (mobilityValue[active] + mobilityValue[pasive]) / 10;
 
 }

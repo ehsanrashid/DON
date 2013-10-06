@@ -28,8 +28,8 @@ namespace BitBoard {
     const Bitboard bb_R7 = bb_R1 << (8 * 6);//U64 (0x00FF000000000000);
     const Bitboard bb_R8 = bb_R1 << (8 * 7);//U64 (0xFF00000000000000);
 
-    const Bitboard bb_NULL = U64 (0x0000000000000000);             // 00 NULL squares.
-    const Bitboard bb_FULL = ~bb_NULL;//U64 (0xFFFFFFFFFFFFFFFF);  // 64 FULL squares.
+    //const Bitboard bb_NULL =  U64(0);//U64 (0x0000000000000000);  // 00 NULL squares.
+    //const Bitboard bb_FULL = ~U64(0);//U64 (0xFFFFFFFFFFFFFFFF);  // 64 FULL squares.
 
     const Bitboard bb_R1_ = ~bb_R1;//U64 (0xFFFFFFFFFFFFFF00);    // 56 Not RANK-1
     const Bitboard bb_R8_ = ~bb_R8;//U64 (0x00FFFFFFFFFFFFFF);    // 56 Not RANK-8
@@ -196,9 +196,9 @@ namespace BitBoard {
         bb_R6 | bb_R7 | bb_R8,
         bb_R7 | bb_R8,
         bb_R8,
-        bb_NULL,
+        0,
 
-        bb_NULL,
+        0,
         bb_R1,
         bb_R2 | bb_R1,
         bb_R3 | bb_R2 | bb_R1,
@@ -251,7 +251,7 @@ namespace BitBoard {
 
     Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ)
     {
-        Bitboard attacks_slid = bb_NULL;
+        Bitboard attacks_slid = 0;
         int8_t i = 0;
         Delta del = deltas[i++];
         while (DEL_O != del)
@@ -315,7 +315,7 @@ namespace BitBoard {
         case QUEN: return attacks_bb<QUEN>(s, occ); break;
         case KING: return attacks_bb<KING>(s);      break;
         }
-        return bb_NULL;
+        return 0;
     }
 
 #pragma endregion

@@ -54,7 +54,7 @@ namespace Tester {
 
             Bitboard b;
 
-            b = bb_NULL;
+            b = 0;
             b = b + SQ_D4 + SQ_H8;
             ASSERT (b == U64 (0x8000000008000000));
 
