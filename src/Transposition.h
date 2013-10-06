@@ -2,12 +2,12 @@
 #ifndef TRANSPOSITION_H_
 #define TRANSPOSITION_H_
 
-#include <cstring>
+#include <iostream>
 #include <cstdlib>
 #include "Type.h"
 
-#pragma warning (push) 
-#pragma warning (disable : 4244) 
+#pragma warning (push)
+#pragma warning (disable : 4244)
 
 // Transposition Entry needs the 16 byte to be stored
 //
@@ -15,8 +15,8 @@
 //  Move         2
 //  Depth        2
 //  Bound        1
-////  Nodes          2
 //  Gen          1
+////  Nodes          2
 //  Score        2
 //  static value 2
 //  static mrgin 2
@@ -34,8 +34,8 @@ private:
     uint16_t _move;
     int16_t  _depth;
     uint8_t  _bound;
-    //uint16_t  _nodes;
     uint8_t  _gen;
+    //uint16_t  _nodes;
     int16_t
         _score
         , _score_eval
@@ -48,8 +48,8 @@ public:
     Move     move () const { return Move (_move); }
     Depth   depth () const { return Depth (_depth); }
     Bound   bound () const { return Bound (_bound); }
-    //uint16_t nodes () const { return uint16_t (_nodes); }
     uint8_t   gen () const { return _gen; }
+    //uint16_t nodes () const { return uint16_t (_nodes); }
     Score   score () const { return Score (_score); }
     //Score score_eval () const  { return Score (_score_eval); }
     //Score margin_eval () const { return Score (_margin_eval); }
@@ -59,8 +59,8 @@ public:
         Move     move  = (MOVE_NONE),
         Depth    depth = (DEPTH_ZERO),
         Bound    bound = (UNKNOWN),
-        uint16_t nodes = (0),
         uint8_t  gen   = (0),
+        uint16_t nodes = (0),
         Score    score = (SCORE_ZERO),
         Score    score_eval  = (SCORE_DRAW),
         Score    margin_eval = (SCORE_DRAW))
@@ -209,7 +209,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     TranspositionEntry* get_cluster (Key key) const
     {
-        return _table_entry + (uint32_t (key >> (SQ_NO - MAX_BIT_HASH)) & _mask_hash);
+        return _table_entry + (key & _mask_hash);
     }
 
     // store() writes a new entry in the transposition table.
@@ -220,9 +220,52 @@ public:
 
     double permill_full () const;
 
+    template<class charT, class Traits>
+    friend ::std::basic_ostream<charT, Traits>&
+        operator<< (::std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt);
+    template<class charT, class Traits>
+    friend ::std::basic_istream<charT, Traits>&
+        operator>> (::std::basic_istream<charT, Traits>& is, TranspositionTable &tt);
+
 } TranspositionTable;
 
 #pragma warning (pop)
+
+
+template<class charT, class Traits>
+inline ::std::basic_ostream<charT, Traits>&
+    operator<< (::std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt)
+{
+    uint64_t size_byte  = ((tt._mask_hash + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
+    uint32_t size_mb    = size_byte >> 20;
+    os.write ((char *) &size_mb, sizeof (size_mb));
+    os.write ((char *) &TranspositionTable::SIZE_TENTRY, sizeof (TranspositionTable::SIZE_TENTRY));
+    os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (TranspositionTable::NUM_TENTRY_CLUSTER));
+    uint8_t dummy = 0;
+    os.write ((char *) &dummy, sizeof (dummy));
+    os.write ((char *) &tt._generation, sizeof (tt._generation));
+    os.write ((char *) &tt._mask_hash, sizeof (tt._mask_hash));
+    os.write ((char *) tt._table_entry, size_byte);
+    return os;
+}
+
+template<class charT, class Traits>
+inline ::std::basic_istream<charT, Traits>&
+    operator>> (::std::basic_istream<charT, Traits>& is, TranspositionTable &tt)
+{
+    uint32_t size_mb;
+    is.read ((char *) &size_mb, sizeof (size_mb));
+    uint8_t dummy;
+    is.read ((char *) &dummy, sizeof (dummy));
+    is.read ((char *) &dummy, sizeof (dummy));
+    is.read ((char *) &dummy, sizeof (dummy));
+    tt.resize (size_mb);
+    is.read ((char *) &tt._generation, sizeof (tt._generation));
+    is.read ((char *) &tt._mask_hash, sizeof (tt._mask_hash));
+    is.read ((char *) tt._table_entry, size_mb << 20);
+    return is;
+}
+
 
 // Global Transposition Table
 extern TranspositionTable TT;

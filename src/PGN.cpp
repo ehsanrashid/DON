@@ -4,7 +4,7 @@
 #include "xcstring.h"
 #include "xstring.h"
 #include "Game.h"
-#include "trilogger.h"
+#include "TriLogger.h"
 
 PGN::PGN ()
     : ::std::fstream()
@@ -476,7 +476,7 @@ Game   PGN::read_game (size_t index)
 size_t PGN::write_game (const Game &game)
 {
     // TODO::
-    ::std::string pgn = game.to_pgn ();
+    ::std::string pgn = game.pgn ();
     (*this) << pgn;
 
     return 0;

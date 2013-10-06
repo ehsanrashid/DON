@@ -97,7 +97,7 @@ public:
     void clear ();
     void reset ();
 
-    ::std::string to_pgn () const;
+    ::std::string pgn () const;
     operator ::std::string () const;
 
     static bool parse (Game &game, const          char *text);

@@ -12,7 +12,7 @@
 #include "Evaluator.h"
 #include "Benchmark.h"
 #include "Notation.h"
-#include "trilogger.h"
+#include "TriLogger.h"
 
 //#include "Thread.h"
 
@@ -21,12 +21,12 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position            pos (int8_t (0));
+        Position            pos = Position (int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
         // Needed by repetition draw detection.
-        StateInfoStackPtr   setup_states;
+        StateInfoStackPtr   states;
 
         bool is_running = false;
 
@@ -35,8 +35,8 @@ namespace UCI {
         void exe_uci ()
         {
             std::atom ()
-                << Engine::info (true) << std::endl 
-                << (Options) << std::endl
+                << Engine::info (true) << '\n' 
+                << (Options) << '\n'
                 << "uciok" << std::endl;
         }
 
@@ -85,25 +85,25 @@ namespace UCI {
             }
         }
 
+        // exe_register() is the command to try to register an engine or to tell the engine that registration
+        // will be done later. This command should always be sent if the engine has sent "registration error"
+        // at program startup.
+        // The following tokens are allowed:
+        // * later
+        //   the user doesn't want to register the engine now.
+        // * name <x>
+        //   the engine should be registered with the name <x>
+        // * code <y>
+        //   the engine should be registered with the code <y>
+        // Example:
+        //   "register later"
+        //   "register name Stefan MK code 4359874324"
         void exe_register (::std::istringstream &cstm)
         {
-            //this is the command to try to register an engine or to tell the engine that registration
-            //will be done later. This command should always be sent if the engine has sent "registration error"
-            //at program startup.
-            //The following tokens are allowed:
-            //* later
-            //   the user doesn't want to register the engine now.
-            //* name <x>
-            //   the engine should be registered with the name <x>
-            //* code <y>
-            //   the engine should be registered with the code <y>
-            //Example:
-            //   "register later"
-            //   "register name Stefan MK code 4359874324"
 
         }
 
-        // position(cmd, pos) is called when engine receives the "position" UCI command.
+        // position(cmd) is called when engine receives the "position" UCI command.
         // The function sets up the position:
         //  - starting position ("startpos")
         //  - fen-string position ("fen")
@@ -140,7 +140,7 @@ namespace UCI {
 
             if (iequals (token, "moves"))
             {
-                setup_states = StateInfoStackPtr (new std::stack<StateInfo> ());
+                states = StateInfoStackPtr (new std::stack<StateInfo> ());
 
                 // parse move list (if any)
                 while (cstm.good () && (cstm >> token))
@@ -151,8 +151,8 @@ namespace UCI {
                         TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
-                    setup_states->push (StateInfo ());
-                    pos.do_move (m, setup_states->top ());
+                    states->push (StateInfo ());
+                    pos.do_move (m, states->top ());
                 }
             }
         }
@@ -205,7 +205,7 @@ namespace UCI {
                 {}
             }
 
-            //Threads.start_thinking(pos, setup_states, limits);
+            //Threads.start_thinking(pos, states, limits);
 
         }
 
@@ -223,6 +223,16 @@ namespace UCI {
         void exe_print ()
         {
             std::atom () << pos << std::endl;
+        }
+
+        void exe_key ()
+        {
+            std::atom () << std::hex << std::uppercase << std::setfill('0')
+                << "fen: " << pos.fen () << '\n'
+                << "posi key: " << std::setw (16) << pos.key_posi () << '\n'
+                << "matl key: " << std::setw (16) << pos.key_matl () << '\n'
+                << "pawn key: " << std::setw (16) << pos.key_pawn ()
+                << std::dec << std::endl;
         }
 
         void exe_flip ()
@@ -289,11 +299,10 @@ namespace UCI {
                 else if (iequals (token, "uci"))        exe_uci ();
                 else if (iequals (token, "ucinewgame")) exe_ucinewgame ();
                 else if (iequals (token, "isready"))    exe_isready ();
-                else if (iequals (token, "setoption"))  exe_setoption (cstm);
                 else if (iequals (token, "register"))   exe_register (cstm);
+                else if (iequals (token, "setoption"))  exe_setoption (cstm);
                 else if (iequals (token, "position"))   exe_position (cstm);
                 else if (iequals (token, "go"))         exe_go (cstm);
-                else if (iequals (token, "debug"))      exe_debug (cstm);
                 else if (iequals (token, "ponderhit"))
                 {
                     // GUI sends 'ponderhit' to tell us to ponder on the same move the
@@ -303,14 +312,15 @@ namespace UCI {
                     // switching from pondering to normal search.
                     false/*Search::Signals.stopOnPonderhit*/ ? exe_stop () : exe_ponderhit ();
                 }
+                else if (iequals (token, "debug"))      exe_debug (cstm);
                 else if (iequals (token, "print"))      exe_print ();
+                else if (iequals (token, "key"))        exe_key ();
                 else if (iequals (token, "flip"))       exe_flip ();
                 else if (iequals (token, "eval"))       exe_eval ();
                 else if (iequals (token, "perft"))      exe_perft (cstm);
                 else if (iequals (token, "bench"))      benchmark (cstm, pos);
                 else if (iequals (token, "quit")
                     || iequals (token, "stop"))         exe_stop ();
-
                 else
                 {
                     //std::atom () << "WHAT??? No such command: '" << cmd << "'";

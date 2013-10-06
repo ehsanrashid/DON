@@ -342,7 +342,7 @@ typedef enum Score : int16_t
 
 } Score;
 
-typedef enum Depth : int8_t
+typedef enum Depth : int16_t
 {
     ONE_PLY             =    1,
 

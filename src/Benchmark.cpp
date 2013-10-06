@@ -61,27 +61,27 @@ void benchmark (::std::istream& is, const Position &pos)
         //Options["Threads"] = threads;
         TT.clear();
         Searcher::Limits limits;
-        if (false);
-        // movetime is in ms
-        else if (iequals (limit_type, "time"))  limits.move_time = 1000 * ::std::stoi (limit_val);
-        else if (iequals (limit_type, "nodes")) limits.nodes    = ::std::stoi (limit_val);
-        else if (iequals (limit_type, "mate"))  limits.mate_in  = ::std::stoi (limit_val);
-        //if (iequals (limit_type, "depth"))
-        else                                    limits.depth    = ::std::stoi (limit_val);
 
-        if (false) ;
+        if (false);
+        else if (iequals (limit_type, "time"))  limits.move_time = ::std::stoi (limit_val) * 1000; // movetime is in ms
+        else if (iequals (limit_type, "nodes")) limits.nodes     = ::std::stoi (limit_val);
+        else if (iequals (limit_type, "mate"))  limits.mate_in   = ::std::stoi (limit_val);
+        //if (iequals (limit_type, "depth"))
+        else                                    limits.depth     = ::std::stoi (limit_val);
+
+        if (false);
         else if (fn_fen == "default")
         {
             fens.assign (default_fens, default_fens + NUM_FEN);
         }
         else if (fn_fen == "current")
         {
-            fens.emplace_back (pos.to_fen ());
+            fens.emplace_back (pos.fen ());
         }
         else
         {
             ::std::string fen;
-            ::std::ifstream ifstm_fen (fn_fen.c_str ());
+            ::std::ifstream ifstm_fen (fn_fen);
 
             if (!ifstm_fen.is_open ())
             {
@@ -96,9 +96,8 @@ void benchmark (::std::istream& is, const Position &pos)
                     fens.emplace_back (fen);
                 }
             }
-            ifstm_fen.close();
+            ifstm_fen.close ();
         }
-
     }
     catch (...)
     {}

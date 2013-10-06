@@ -224,7 +224,7 @@ namespace Tester {
 
             fen = FEN_N;
             Position::parse (pos, fen);
-            pos.to_fen (buf);
+            pos.fen (buf);
 
             ASSERT (equals (buf, fen));
 
@@ -267,7 +267,7 @@ namespace Tester {
 
             fen = "rn3rk1/pbppq1pp/1p2pb2/4N2Q/3PN3/3B4/PPP2PPP/R3K2R w KQ - 4 11";
             Position::parse (pos, fen);
-            pos.to_fen (buf);
+            pos.fen (buf);
 
             ASSERT (equals (buf, fen));
 
@@ -311,7 +311,7 @@ namespace Tester {
 
             fen = "8/8/1R5p/q5pk/PR3pP1/7P/8/7K b - g3 2 10";
             Position::parse (pos, fen);
-            pos.to_fen (buf);
+            pos.fen (buf);
 
             //ASSERT (!equals (buf, fen));
             ASSERT (equals (buf, "8/8/1R5p/q5pk/PR3pP1/7P/8/7K b - g3 0 10"));
@@ -325,7 +325,7 @@ namespace Tester {
 
             fen = "r4r2/3b1pk1/p1p5/4p1p1/1PQbPq1p/P2P4/3RBP1P/2R3K1 w - - 1 25";
             Position::parse (pos, fen);
-            pos.to_fen (buf);
+            pos.fen (buf);
 
             ASSERT (equals (buf, fen));
 
@@ -363,7 +363,7 @@ namespace Tester {
 
             fen = "r1bqr1k1/p1p2ppp/2p5/3p4/2PQn3/1B6/P1P2PPP/R1B2RK1 b - - 3 12";
             Position::parse (pos, fen);
-            pos.to_fen (buf);
+            pos.fen (buf);
 
             ASSERT (equals (buf, fen));
 
@@ -406,7 +406,7 @@ namespace Tester {
 
             fen = "rkbnrnqb/pppppppp/8/8/8/8/PPPPPPPP/RKBNRNQB w EAea - 0 1";
             Position::parse (pos, fen, true);
-            pos.to_fen (buf, true);
+            pos.fen (buf, true);
 
             ASSERT (equals (buf, fen));
 

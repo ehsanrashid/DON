@@ -33,35 +33,35 @@
 
 //#define OTLOG
 //#define ETLOG
-#define FTLOG   log_eng
+//#define FTLOG   log_eng
 
-namespace trivial_logger {
+namespace TrivialLogger {
 
     namespace implementation {
 
-        class tri_logger_impl;
+        class TriLoggerImpl;
     }
 
     // main trivial logger class
-    typedef class tri_logger sealed
+    typedef class TriLogger sealed
     {
 
     private:
 
-        static ::std::unique_ptr<implementation::tri_logger_impl> _tl_impl;
+        static ::std::unique_ptr<implementation::TriLoggerImpl> _tl_impl;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable
         // otherwise may accidently get copies of singleton.
         // Don't Implement these functions.
-        tri_logger (tri_logger const &);
+        TriLogger (TriLogger const &);
         template<class T>
-        T& operator= (tri_logger const &);
+        T& operator= (TriLogger const &);
 
     public:
 
-        tri_logger ();
-        ~tri_logger ();
+        TriLogger ();
+        ~TriLogger ();
 
         // check if logger is active
         static bool is_active ();
@@ -72,7 +72,7 @@ namespace trivial_logger {
         // return reference to pointer to output stream
         static ::std::ostream*& ostream_ptr ();
 
-    } tri_logger;
+    } TriLogger;
 
     // important funtion which helps solves
     // "static initialisation fiasco" problem
@@ -80,11 +80,11 @@ namespace trivial_logger {
     // 1. S. Habdank-Wojewodzki, "C++ Trivial Logger", Overload 77, Feb 2007, pp.19-23
     // 2. http://www.parashift.com/c++-faq-lite/ctors.html#faq-10.13
     // present solution is much better
-    extern tri_logger& instance ();
+    extern TriLogger& instance ();
 
     namespace implementation
     {
-        extern ::std::unique_ptr<tri_logger> tri_logger_out_ptr;
+        extern ::std::unique_ptr<TriLogger> tl_ptr;
     }
 }
 
@@ -112,14 +112,14 @@ namespace trivial_logger {
 #else
 
 // macros for switching off and on logger
-#define TRI_LOG_ON()    trivial_logger::instance ().activate (true)
-#define TRI_LOG_OFF()   trivial_logger::instance ().activate (false)
+#define TRI_LOG_ON()    TrivialLogger::instance ().activate (true)
+#define TRI_LOG_OFF()   TrivialLogger::instance ().activate (false)
 
 // macro prints variable name and its value to the logger stream
 #define TRI_LOG_VAR(var)                            \
     do {                                            \
-    if (trivial_logger::instance ().is_active ()) { \
-    *trivial_logger::instance ().ostream_ptr ()     \
+    if (TrivialLogger::instance ().is_active ()) { \
+    *TrivialLogger::instance ().ostream_ptr ()     \
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
@@ -129,8 +129,8 @@ namespace trivial_logger {
 // macro prints value of constant strings to the logger stream
 #define TRI_LOG_MSG(msg)                            \
     do {                                            \
-    if (trivial_logger::instance ().is_active ()) { \
-    *trivial_logger::instance ().ostream_ptr ()     \
+    if (TrivialLogger::instance ().is_active ()) { \
+    *TrivialLogger::instance ().ostream_ptr ()     \
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
@@ -140,13 +140,13 @@ namespace trivial_logger {
 
 
 // namespace for the trivial logger
-//namespace trivial_logger {
+//namespace TrivialLogger {
 //
 //    // example how to create functions which operates on logger stream
 //    // here are used templates for preparing function which is independent
 //    // on the type, but this is not required
 //    template <typename T1, typename T2, typename T3, typename T4> 
-//    void put_debug_info (tri_logger & log, const T1 & t1, const T2 &t2, const T3 &t3, const T4 &t4)
+//    void put_debug_info (TriLogger & log, const T1 & t1, const T2 &t2, const T3 &t3, const T4 &t4)
 //    {
 //        if (log.is_active())
 //        {
@@ -156,7 +156,7 @@ namespace trivial_logger {
 //    }
 //    
 //    template <typename T> 
-//    void put_log_info (tri_logger &log, const T & t)
+//    void put_log_info (TriLogger &log, const T & t)
 //    {
 //        if (log.is_active())
 //        {
@@ -167,14 +167,14 @@ namespace trivial_logger {
 //
 //// macro shows how to write macros which using user-defined functions
 //#define TRI_LOG_FN(var)   \
-//    ::trivial_logger::put_debug_info (trivial_logger::instance (), __FILE__, __LINE__, #var, (var))
+//    ::TrivialLogger::put_debug_info (TrivialLogger::instance (), __FILE__, __LINE__, #var, (var))
 //
 //// below is a place for user defined logger formating data
 //
 //// ...
 //
 //#define TRI_LOG_INFO(var) \
-//    ::trivial_logger::put_log_info (trivial_logger::instance (), (var))
+//    ::TrivialLogger::put_log_info (TrivialLogger::instance (), (var))
 //
 
 

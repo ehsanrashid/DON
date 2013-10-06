@@ -14,17 +14,14 @@
 #include "PolyglotBook.h"
 #include "MoveGenerator.h"
 #include "iologger.h"
-#include "trilogger.h"
+#include "TriLogger.h"
 #include "Time.h"
 
 #include "manipulator.h"
 
-#include "blockingqueue.h"
-
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
-
 
 namespace {
 
@@ -80,12 +77,16 @@ int main (int argc, const char* const argv[])
 
     Engine::start ();
 
+    
     //log_io (true);
 
     //log_io (false);
 
+    //return 0;
+
     //TranspositionTable tt;
-    //tt.resize (4);
+    //tt.resize (1);
+
 
     //Key key;
     //Move move;
@@ -104,35 +105,49 @@ int main (int argc, const char* const argv[])
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    //key         = U64 (0x878955FFFFFFFFFF);
+    //key         = U64 (0xFFFFFFFFFF878955);
     //move       = Move (346);
     //depth++;
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    //key         = U64 (0x899955FFFFFFFFFF);
+    //key         = U64 (0xFFFFFFFFFF899955);
     //move       = Move (346);
     //depth++;
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    //key         = U64 (0x834552FFFFFFFFFF);
+    //key         = U64 (0xFFFFFFFFFF834552);
     //move       = Move (346);
     //depth++;
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    //key         = U64 (0x826552FFFFFFFFFF);
+    //key         = U64 (0xFFFFFFFFFF826552);
     //move       = Move (346);
     //depth++;
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    //tt.clear();
+    ////ofstream out_dat ("hash.dat", ::std::ios_base::out | ::std::ios_base::binary);
+    ////out_dat << tt;
+    ////out_dat.close ();
+
+    ////tt.clear();
+
+    ////ifstream in_dat ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
+    ////in_dat >> tt;
+    ////in_dat.close ();
+
+    //key         = U64 (0xFFFFFFFFFF877552);
+    //move       = Move (355);
+    //depth++;
+    //tt.store (key, move, depth, bound, score, nodes);
+    //te = tt.retrieve (key);
 
     //cout << te->key();
     //cout << (int)++te;
-
+    
     //initialize_IO        ();
     //std::cout.setf (ios_base::boolalpha);
     //std::cout.unsetf (ios_base::dec);

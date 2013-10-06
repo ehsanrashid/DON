@@ -4,10 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include "BitBoard.h"
-#include "Position.h"
 #include "UCI.h"
-#include "Transposition.h"
-#include "Zobrist.h"
 #include "Tester.h"
 
 namespace Engine {
@@ -30,7 +27,7 @@ namespace Engine {
         ::std::stringstream sinfo;
 
         if (uci) sinfo << "id name ";
-        sinfo << Engine << " ";
+        sinfo << Engine << ' ';
 
         if (Version.empty ())
         {
@@ -47,8 +44,8 @@ namespace Engine {
                 >> year;
 
             sinfo << ::std::setfill ('0')
-                << ::std::setw (2) << day << "-"
-                << ::std::setw (2) << (Months.find (month) / 4 + 1) << "-"
+                << ::std::setw (2) << day << '-'
+                << ::std::setw (2) << (Months.find (month) / 4 + 1) << '-'
                 << ::std::setw (2) << year.substr (2);
         }
         else
@@ -81,7 +78,11 @@ namespace Engine {
 
         BitBoard::initialize ();
 
+#ifdef _DEBUG
+
         //Tester::main_test ();
+
+#endif
 
         UCI::start ();
 

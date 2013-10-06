@@ -87,11 +87,11 @@ namespace UCI {
         typedef class SpinOption : public Option
         {
         public:
-            uint32_t default;
-            uint32_t value;
-            uint32_t min, max;
+            int32_t default;
+            int32_t value;
+            int32_t min, max;
 
-            SpinOption (uint32_t val, uint32_t min_val, uint32_t max_val, const OnChange on_change = NULL);
+            SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
 
             ::std::string operator() ()  const;
             operator int32_t () const;
@@ -170,10 +170,11 @@ namespace UCI {
 
     // ---------------------------------------------
 
-    extern void start (const std::string &args = "");
+    extern void start (const ::std::string &args = "");
     extern void stop ();
 
     // ---
+    
     extern void send_responce (const char format[], ...);
 
 }

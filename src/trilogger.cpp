@@ -4,7 +4,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // ( copy at http://www.boost.org/LICENSE_1_0.txt )
 
-#include "trilogger.h"
+#include "TriLogger.h"
 
 #if !defined(CLEANTLOG)
 
@@ -19,11 +19,11 @@
 
 #   endif
 
-namespace trivial_logger {
+namespace TrivialLogger {
 
     namespace implementation {
 
-        typedef class tri_logger_impl sealed
+        typedef class TriLoggerImpl sealed
         {
 
         public:
@@ -31,47 +31,47 @@ namespace trivial_logger {
             static bool _is_active;
 
             // auto pointer helps manage resources;
-            static ::std::unique_ptr<::std::ostream> _outstream_helper_ptr;
+            static ::std::unique_ptr<::std::ostream> _outstream_ptr;
 
             // pointer to the output stream of the logger
             static ::std::ostream *_outstream;
 
-        } tri_logger_impl;
+        } TriLoggerImpl;
 
         // activate logger by default
-        bool tri_logger_impl::_is_active = true;
+        bool TriLoggerImpl::_is_active = true;
 
         void init_tri_logger_impl ();
     }
 
 
-    ::std::unique_ptr<implementation::tri_logger_impl> 
-        tri_logger::_tl_impl (::std::unique_ptr<implementation::tri_logger_impl> (new implementation::tri_logger_impl ()));
+    ::std::unique_ptr<implementation::TriLoggerImpl> 
+        TriLogger::_tl_impl (::std::unique_ptr<implementation::TriLoggerImpl> (new implementation::TriLoggerImpl ()));
 
 
-    tri_logger::tri_logger ()
+    TriLogger::TriLogger ()
     {
         if (NULL == _tl_impl.get ())
         {
-            tri_logger::_tl_impl.reset (new implementation::tri_logger_impl ());
+            TriLogger::_tl_impl.reset (new implementation::TriLoggerImpl ());
         }
         implementation::init_tri_logger_impl ();
     }
 
-    tri_logger::~tri_logger ()
+    TriLogger::~TriLogger ()
     {}
 
-    bool tri_logger::is_active ()
+    bool TriLogger::is_active ()
     {
         return _tl_impl->_is_active;
     }
 
-    void tri_logger::activate (bool active)
+    void TriLogger::activate (bool active)
     {
         _tl_impl->_is_active = active;
     }
 
-    ::std::ostream*& tri_logger::ostream_ptr ()
+    ::std::ostream*& TriLogger::ostream_ptr ()
     {
         return _tl_impl->_outstream;
     }
@@ -81,17 +81,17 @@ namespace trivial_logger {
     // set auto pointer to the null stream
     // reason: ::std::cout can not be created in runtime, so
     // the auto pointer has nothing to do with its resources
-    ::std::unique_ptr<::std::ostream> implementation::tri_logger_impl::_outstream_helper_ptr =
+    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
         ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::tri_logger_impl::_outstream = &std::cout;
+    ::std::ostream *implementation::TriLoggerImpl::_outstream = &std::cout;
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::tri_logger_impl::_outstream_helper_ptr.get ())
+        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::tri_logger_impl::_outstream_helper_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
         }
-        implementation::tri_logger_impl::_outstream = &std::cout;
+        implementation::TriLoggerImpl::_outstream = &std::cout;
     }
 
 #   elif defined (ETLOG)
@@ -99,17 +99,17 @@ namespace trivial_logger {
     // set auto pointer to the null stream
     // reason: ::std::cerr can not be created in runtime, so
     // the auto pointer has nothing to do with its resources
-    ::std::unique_ptr<::std::ostream> implementation::tri_logger_impl::_outstream_helper_ptr =
+    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
         ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::tri_logger_impl::_outstream = &std::cerr;
+    ::std::ostream *implementation::TriLoggerImpl::_outstream = &std::cerr;
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::tri_logger_impl::_outstream_helper_ptr.get ())
+        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::tri_logger_impl::_outstream_helper_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
         }
-        implementation::tri_logger_impl::_outstream = &std::cerr;
+        implementation::TriLoggerImpl::_outstream = &std::cerr;
     }
 
 
@@ -262,19 +262,19 @@ namespace trivial_logger {
 #       undef MAX
 
     // new file is opened and its destruction is managed by unique_ptr
-    ::std::unique_ptr<::std::ostream> implementation::tri_logger_impl::_outstream_helper_ptr =
+    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
         ::std::unique_ptr<::std::ostream> (new ::std::ofstream (filename, ::std::ios_base::out | ::std::ios_base::app));
     // set pointer output stream
-    ::std::ostream *implementation::tri_logger_impl::_outstream = _outstream_helper_ptr.get ();
+    ::std::ostream *implementation::TriLoggerImpl::_outstream = _outstream_ptr.get ();
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::tri_logger_impl::_outstream_helper_ptr.get ())
+        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::tri_logger_impl::_outstream_helper_ptr.reset (new ::std::ofstream (filename, ::std::ios_base::out | ::std::ios_base::app));
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::ofstream (filename, ::std::ios_base::out | ::std::ios_base::app));
             // set pointer output stream
-            implementation::tri_logger_impl::_outstream =
-                implementation::tri_logger_impl::_outstream_helper_ptr.get ();
+            implementation::TriLoggerImpl::_outstream =
+                implementation::TriLoggerImpl::_outstream_ptr.get ();
         }
     }
 
@@ -284,32 +284,32 @@ namespace trivial_logger {
 
 #   else
 
-    ::std::unique_ptr<::std::ostream> implementation::tri_logger_impl::_outstream_helper_ptr =
+    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
         ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::tri_logger_impl::_outstream =
-        implementation::tri_logger_impl::_outstream_helper_ptr.get ();
+    ::std::ostream *implementation::TriLoggerImpl::_outstream =
+        implementation::TriLoggerImpl::_outstream_ptr.get ();
 
     void implementation::init_tri_logger_impl ()
     {
-        if (NULL == implementation::tri_logger_impl::_outstream_helper_ptr.get ())
+        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::tri_logger_impl::_outstream_helper_ptr.reset (new ::std::null_stream ());
-            implementation::tri_logger_impl::_outstream =
-                implementation::tri_logger_impl::_outstream_helper_ptr.get ();
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream =
+                implementation::TriLoggerImpl::_outstream_ptr.get ();
         }
     }
 
 #   endif
 
-    ::std::unique_ptr<tri_logger> implementation::tri_logger_out_ptr (new tri_logger ());
+    ::std::unique_ptr<TriLogger> implementation::tl_ptr (new TriLogger ());
 
-    tri_logger& instance ()
+    TriLogger& instance ()
     {
-        if (NULL == implementation::tri_logger_out_ptr.get ())
+        if (NULL == implementation::tl_ptr.get ())
         {
-            implementation::tri_logger_out_ptr.reset (new tri_logger ());
+            implementation::tl_ptr.reset (new TriLogger ());
         }
-        return *(implementation::tri_logger_out_ptr);
+        return *(implementation::tl_ptr);
     }
 
 }

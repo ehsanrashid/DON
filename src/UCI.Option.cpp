@@ -8,6 +8,7 @@
 #include "atomicstream.h"
 
 #include "Transposition.h"
+#include "iologger.h"
 
 //#include "Thread.h"
 
@@ -115,7 +116,7 @@ namespace UCI {
             return *this;
         }
 
-        SpinOption::SpinOption (uint32_t val, uint32_t min_val, uint32_t max_val, const OnChange on_change)
+        SpinOption::SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change)
             : Option (on_change)
         {
             default = value = val;
@@ -135,7 +136,7 @@ namespace UCI {
         Option& SpinOption::operator= (char       v[])
         {
             if (iswhitespace (v)) return *this;
-            uint32_t val = to_int (v);
+            int32_t val = to_int (v);
             val = std::min (std::max (val, min), max);
             //if (min < val && val < max)
             {
@@ -150,7 +151,7 @@ namespace UCI {
         Option& SpinOption::operator= (std::string &v)
         {
             if (iswhitespace (v)) return *this;
-            uint32_t val = std::stoi (v);
+            int32_t val = std::stoi (v);
             val = std::min (std::max (val, min), max);
             //if (min < val && val < max)
             {
@@ -216,6 +217,16 @@ namespace UCI {
         void on_evaluation (const Option& opt)
         {
 
+        }
+
+        
+        void on_log_io (const Option &opt)
+        {
+            log_io (opt);
+        }
+
+        void on_query (const Option &opt)
+        {
         }
 
     }
@@ -364,11 +375,11 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       = OptionPtr (new CheckOption (true));
 
-        //Number of principal variations shown.
-        //Default 1, min 1, max 32.
+        // Number of principal variations shown.
+        // Default 1, min 1, max 32.
         //
-        //The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 500));
+        // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 32));
 
         // Limit the multi-PV analysis to moves within a range of the best move.
         // Default 0, min 0, max 999.
@@ -402,6 +413,8 @@ namespace UCI {
         // By default the contempt is only activated during game play, not during infinite analysis.
         // If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
         Options["Contempt"]                     = OptionPtr (new SpinOption (1, 0, 2));
+        
+        Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
 
         // Activate Contempt for position analysis.
         // Default false.
@@ -464,6 +477,16 @@ namespace UCI {
         //Options["Slow Mover"]                 = &SpinOption(100, 10, 1000);
 
 #pragma endregion
+
+#pragma region Debug Options
+
+        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_io));
+        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
+        Options["Search Log File"]              = OptionPtr (new StringOption ("log_search.txt"));
+
+#pragma endregion
+
+        Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
         //std::cout << int32_t (*(Options["Hash"]));
 

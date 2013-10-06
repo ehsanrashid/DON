@@ -395,8 +395,8 @@ public:
 
 #pragma region Conversions
 
-    bool          to_fen (const char *fen, bool c960 = false, bool full = true) const;
-    ::std::string to_fen (bool                  c960 = false, bool full = true) const;
+    bool          fen (const char *fen, bool c960 = false, bool full = true) const;
+    ::std::string fen (bool                  c960 = false, bool full = true) const;
 
     operator ::std::string () const;
 

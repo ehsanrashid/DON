@@ -153,6 +153,11 @@ namespace std {
             return elem;
         }
 
+        size_t size()
+        {
+            return std::queue<T>::size ();
+        }
+
         bool empty () const
         {
             return std::queue<T>::empty ();

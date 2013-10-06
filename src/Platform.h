@@ -18,7 +18,13 @@
 
 #define BSFQ
 
+
 //#define TRI_LOGGER
+
+//#define CLEANTLOG
+//#define OTLOG
+//#define ETLOG
+#define FTLOG   log_eng
 
 
 // STD TYPES
@@ -151,18 +157,18 @@ typedef unsigned long long  uint64_t;
 
 #   ifdef TRI_LOGGER
 
-#   include "trilogger.h"
+#   include "TriLogger.h"
 
 #   define ASSERT(condition)                    \
     do {                                        \
     if (!(condition)) {                         \
-    TRI_LOG_MSG ("ASSERT: \"" #condition "\""); \
+    TRI_LOG_MSG ("ASSERT: \'" #condition "\'"); \
     } } while (false)
 
 #   define ASSERT_MSG(condition, msg)           \
     do {                                        \
     if (!(condition)) {                         \
-    TRI_LOG_MSG ("ASSERT: \"" msg "\"");        \
+    TRI_LOG_MSG ("ASSERT: \'" msg "\'");        \
     } } while (false)
 
 #   else
@@ -171,9 +177,6 @@ typedef unsigned long long  uint64_t;
 
 #   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
 #   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
-
-//#   define ASSERT(condition)          static_assert((condition), #condition)
-//#   define ASSERT_MSG(condition, msg) static_assert((condition), msg)
 
 #   endif
 

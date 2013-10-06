@@ -131,7 +131,7 @@ void Game::reset ()
     }
 }
 
-::std::string Game::to_pgn () const
+::std::string Game::pgn () const
 {
     ::std::ostringstream spgn;
     // pgn format

@@ -10,7 +10,9 @@
 
 std::blocking_queue<int> q (50);
 
-void producer()
+
+
+void producer ()
 { 
     for (int i=0; i < 50000; i++)
     {
@@ -20,10 +22,10 @@ void producer()
 
     // Tell consumer to exit
     //q.push (-1);
-    q.shutdown();            
+    q.shutdown ();            
 }
 
-void consumer()
+void consumer ()
 { 
     int count = 0;
     while (true)
@@ -39,6 +41,7 @@ void consumer()
 
 int maine()
 {
+
     //Launch a thread
     //std::thread t1 (call_from_thread);
 
