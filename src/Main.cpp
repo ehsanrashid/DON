@@ -17,8 +17,6 @@
 #include "TriLogger.h"
 #include "Time.h"
 
-#include "manipulator.h"
-
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
@@ -62,22 +60,34 @@ namespace {
         ::std::cout << key << ::std::endl;
     }
 
-    void print_move (Move m)
+    char *low_stack, *high_stack;
+    void deepest_stack_path_function()
     {
-        Square org = sq_org (m);
-        Square dst = sq_dst (m);
-        ::std::cout << org << ":" << dst;
-        if (PROMOTE == _mtype (m)) ::std::cout << " " << to_char (prom_type (m));
+        int var;
+        low_stack = (char *) &var;
+        // ...
+    }
+    void sampling_timer_interrupt_handler()
+    {
+        int var;
+        char *cur_stack = (char *) &var;
+        if (cur_stack < low_stack) low_stack = cur_stack;
     }
 }
 
+
+
 int main (int argc, const char* const argv[])
 {
+    deepest_stack_path_function ();
+
     //std::string args = string_args (argc, argv);
+    high_stack = (char *) &argc;
+    printf("Current stack usage: %d bytes\n", high_stack - low_stack);
 
-    Engine::start ();
 
-    
+    //Engine::start ();
+
     //log_io (true);
 
     //log_io (false);
@@ -147,7 +157,7 @@ int main (int argc, const char* const argv[])
 
     //cout << te->key();
     //cout << (int)++te;
-    
+
     //initialize_IO        ();
     //std::cout.setf (ios_base::boolalpha);
     //std::cout.unsetf (ios_base::dec);
@@ -255,10 +265,6 @@ int main (int argc, const char* const argv[])
     //generate<LEGAL> (pos);
 
     //cout << ml;
-
-
-    //print_move (m);
-    //cout << endl;
     //cout << move_to_can (m) << endl;
 
     //std::string sm = "e2e4";

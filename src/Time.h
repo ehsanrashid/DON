@@ -49,23 +49,21 @@ namespace Time {
 
 #if defined(_WIN32)
 
-        time_t time = (point / Time::point::ONE_SEC);
+        time_t time = (point / Time::ONE_SEC);
 
         char str_time[26];
         errno_t err = ctime_s (str_time, sizeof (str_time), &time);
         if (err) return std::string ("ERROR: Invalid time ") + ::std::to_string (time);
-
-        std::ostringstream stime;
-
         str_time[10] = '\0';
         str_time[19] = '\0';
         str_time[24] = '\0';
 
+        std::ostringstream stime;
         stime << std::setfill ('0')
             << &str_time[0] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (point % Time::point::ONE_SEC);
+            << std::setw (3) << (point % Time::ONE_SEC);
 
 #else
 
@@ -75,7 +73,6 @@ namespace Time {
 
         return stime.str ();
     }
-
 }
 
 

@@ -575,7 +575,6 @@
     <ClCompile Include="src\PGN.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
-    <ClCompile Include="src\producer_consumer.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\Tester.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
@@ -591,10 +590,8 @@
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitRotate.h" />
     <ClInclude Include="src\BitScan.h" />
-    <ClInclude Include="src\blockingqueue.h" />
     <ClInclude Include="src\Board.h" />
     <ClInclude Include="src\Castle.h" />
-    <ClInclude Include="src\criticalsection.h" />
     <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
@@ -619,7 +616,6 @@
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PSQTable.h" />
     <ClInclude Include="src\RKISS.h" />
-    <ClInclude Include="src\scopedlock.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\Square.h" />
     <ClInclude Include="src\Tester.h" />

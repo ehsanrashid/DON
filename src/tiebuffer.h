@@ -7,7 +7,6 @@
 
 namespace std {
 
-
     template<class Elem, class Traits>
     class basic_tie_buf sealed : public ::std::basic_streambuf<Elem, Traits>
     {
