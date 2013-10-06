@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include "xcstring.h"
 #include "xstring.h"
@@ -191,22 +192,29 @@ namespace UCI {
 
         void on_clear_hash (const Option &opt)
         {
-            std::atom () << "hash cleared" << std::endl;
             TT.clear ();
+            std::atom () << "info string hash cleared." << std::endl;
         }
 
         void on_resize_hash (const Option &opt)
         {
-            std::atom () << "info string hash resized " << opt << " MB Hash" << std::endl;
-            TT.resize (int32_t (opt));
+            uint32_t size_mb = int32_t (opt);
+            TT.resize (size_mb);
+            std::atom () << "info string hash resized " << size_mb << " MB Hash..." << std::endl;
         }
 
         void on_save_hash (const Option &opt)
         {
+            //ofstream ofstm ("hash.dat", ::std::ios_base::out | ::std::ios_base::binary);
+            //ofstm << tt;
+            //ofstm.close ();
         }
 
         void on_load_hash (const Option &opt)
         {
+            //ifstream ifstm ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
+            //ifstm >> tt;
+            //ifstm.close ();
         }
 
         void on_change_threads (const Option &opt)
@@ -219,10 +227,10 @@ namespace UCI {
 
         }
 
-        
+
         void on_log_io (const Option &opt)
         {
-            log_io (opt);
+            log_io (bool (opt));
         }
 
         void on_query (const Option &opt)
@@ -413,7 +421,7 @@ namespace UCI {
         // By default the contempt is only activated during game play, not during infinite analysis.
         // If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
         Options["Contempt"]                     = OptionPtr (new SpinOption (1, 0, 2));
-        
+
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
 
         // Activate Contempt for position analysis.

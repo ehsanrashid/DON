@@ -5,7 +5,10 @@
 //#include <memory>
 //#include "Timer.h"
 #include "Position.h"
+#include "MoveGenerator.h"
 #include "Evaluator.h"
+
+class Position;
 
 inline Score mate_in (int32_t ply)
 {
@@ -46,24 +49,32 @@ inline std::ostream& operator<< (std::ostream &ostream, const Score &score)
 namespace Searcher {
 
 
-    //typedef std::unique_ptr<StateInfoStack>     StateInfoStackPtr;
+    const uint16_t MAX_DEPTH = 64;
+    const uint16_t MAX_MOVES = 192;
+    const uint16_t MAX_PLY   = 100;
+    const uint16_t MAX_PLY_2 = MAX_PLY + 2;
+
+    const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
+    const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
+    const uint16_t MAX_THREAT = 90;
 
     // GameClock stores the available time and time-gain per move
     typedef struct GameClock
     {
-        int32_t time;   // unit: milli-seconds
-        int32_t inc;    // unit: milli-seconds
+        // unit: milli-seconds
+        int32_t time;   // time left
+        int32_t inc;    // time gain
 
-        GameClock()
+        GameClock ()
         {
             time  = 5 * 60 * 1000; // 5 mins default time
             inc   = 0;
         }
 
-        GameClock(int32_t time_left, int32_t time_gain)
+        GameClock (int32_t t, int32_t i)
         {
-            time  = time_left;
-            inc   = time_gain;
+            time  = t;
+            inc   = i;
         }
 
     } GameClock;
@@ -79,12 +90,12 @@ namespace Searcher {
     {
         GameClock game_clock[CLR_NO];
 
-        uint32_t  move_time;      // search time in milli-seconds
-        uint8_t   moves_to_go;    // search x moves to the next time control
-        uint8_t   depth;          // search x plies only
-        uint16_t  nodes;          // search x nodes only
-        uint8_t   mate_in;        // search mate in x moves
-        MoveList  search_moves;   // search these moves only
+        uint32_t  move_time;      // search <x> time in milli-seconds
+        uint8_t   moves_to_go;    // search <x> moves to the next time control
+        uint8_t   depth;          // search <x> depth (plies) only
+        uint16_t  nodes;          // search <x> nodes only
+        uint8_t   mate_in;        // search mate in <x> moves
+        MoveList  search_moves;   // search these moves only restrict
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
 
@@ -92,7 +103,7 @@ namespace Searcher {
 
         bool use_time_management () const
         {
-            return !(mate_in | move_time | depth | nodes) && !infinite;
+            return !(infinite || mate_in || move_time || depth || nodes);
         }
 
         // Determines how much time it should search
@@ -103,9 +114,9 @@ namespace Searcher {
 
             //int cpuInc = board->turn == WHITE ? wInc : bInc;
 
-            //if (movesToGo > 0)
+            //if (moves_to_go > 0)
             //{
-            //  return cpuTime / movesToGo + cpuInc / 2 + (cpuTime - humanTime) / 2;
+            //  return cpuTime / moves_to_go + cpuInc / 2 + (cpuTime - humanTime) / 2;
             //}
 
             //return cpuTime / 30 + cpuInc / 2;
@@ -113,66 +124,55 @@ namespace Searcher {
 
     } Limits;
 
-    // Signal stores volatile flags updated during the search sent by the GUI
+    // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
+    //  - Stop search (to stop the search by the GUI).
     //  - Stop on ponderhit.
-    //  - Stop Search. (to stop the search by the GUI)
-    //  - First root move.
+    //  - On first root move.
     //  - Falied low at root.
-    typedef struct Signal
+    typedef struct Signals
     {
+        bool stop;
         bool stop_on_ponderhit;
-        bool stop_search;
-        bool first_root_move;
+        bool on_first_root_move;
         bool failed_low_at_root;
 
-        Signal() { std::memset (this, 0, sizeof (Signal)); }
+        Signals() { std::memset (this, 0, sizeof (Signals)); }
 
-    } Signal;
+    } Signals;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
-    //  - Score,
+    //  - Current score.
+    //  - Last score.
     //  - Node count.
     //  - PV (really a refutation in the case of moves which fail low).
     // Score is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        Score score;
-        Score score_last;
+        Score curr_score;
+        Score last_score;
+        uint64_t nodes;
+
         MoveList pv;
 
         RootMove(Move m) :
-            score(-SCORE_INFINITE),
-            score_last(-SCORE_INFINITE)
+            curr_score(-SCORE_INFINITE),
+            last_score(-SCORE_INFINITE)
         {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);
         }
 
         // Ascending Sort
-        bool operator< (const RootMove &m) const
-        {
-            return score > m.score;
-        }
-        bool operator== (const Move &m) const
-        {
-            return pv[0] == m;
-        }
+        bool operator< (const RootMove &rm) const { return curr_score > rm.curr_score; }
+        bool operator== (const Move &m) const { return m == pv[0]; }
 
-        void extract_pv_from_tt (Position& pos);
-        void insert_pv_into_tt (Position& pos);
+        void extract_pv_from_tt (Position &pos);
+        void insert_pv_into_tt (Position &pos);
 
     };
 
-    const uint16_t MAX_DEPTH = 64;
-    const uint16_t MAX_MOVES = 192;
-    const uint16_t MAX_PLY   = 100;
-    const uint16_t MAX_PLY_2 = MAX_PLY + 2;
-
-    const uint16_t FAIL_LOW_MARGIN = 50; // => 20
-    const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
-    const uint16_t MAX_THREAT = 90;
 
 
     extern int nThreads;

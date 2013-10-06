@@ -79,11 +79,12 @@ namespace {
 
 int main (int argc, const char* const argv[])
 {
-    deepest_stack_path_function ();
-
     //std::string args = string_args (argc, argv);
-    high_stack = (char *) &argc;
-    printf("Current stack usage: %d bytes\n", high_stack - low_stack);
+
+    //deepest_stack_path_function ();
+
+    //high_stack = (char *) &argc;
+    //printf("Current stack usage: %d bytes\n", high_stack - low_stack);
 
 
     //Engine::start ();

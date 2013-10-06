@@ -15,12 +15,12 @@ void TranspositionTable::resize (uint32_t size_mb)
 {
     //ASSERT (size_mb >= MIN_SIZE_TT);
     //ASSERT (size_mb <= MAX_SIZE_TT);
-    //if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
-    //if (size_mb > MAX_SIZE_TT) size_mb = MAX_SIZE_TT;
-    ////{
-    ////    std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
-    ////    return;
-    ////}
+    if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
+    if (size_mb > MAX_SIZE_TT) size_mb = MAX_SIZE_TT;
+    //{
+    //    std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
+    //    return;
+    //}
 
     size_t size_byte    = size_t (size_mb) << 20;
     size_t total_entry  = (size_byte) / SIZE_TENTRY;
@@ -31,7 +31,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     if (bit_hash >= MAX_BIT_HASH) return;
 
     total_entry     = size_t (1) << bit_hash;
-    if (_mask_hash == (total_entry - NUM_TENTRY_CLUSTER)) return;
+    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return;
 
     erase ();
 
@@ -39,7 +39,7 @@ void TranspositionTable::resize (uint32_t size_mb)
 
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
-    _mask_hash      = (total_entry - NUM_TENTRY_CLUSTER);
+    _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
     _store_entry    = 0;
     _generation     = 0;
 }
@@ -76,10 +76,10 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
     
-    _table_entry = (TranspositionEntry*) ptr;
+    _hash_table = (TranspositionEntry*) ptr;
 
     ASSERT (0 == (size & (alignment - 1)));
-    ASSERT (0 == (uintptr_t (_table_entry) & (alignment - 1)));
+    ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
     
     ptr[-1] = mem;
 }
@@ -163,7 +163,7 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 // hash, are using <x>%. of the state of full.
 double TranspositionTable::permill_full () const
 {
-    uint64_t total_entry = (_mask_hash + NUM_TENTRY_CLUSTER);
+    uint64_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
 
     //return (0 != total_entry) ?
     //    //(1 - exp (_store_entry * log (1.0 - 1.0/total_entry))) * 1000 :

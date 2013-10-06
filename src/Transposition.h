@@ -95,8 +95,8 @@ typedef class TranspositionTable sealed
 
 private:
 
-    TranspositionEntry *_table_entry;
-    uint64_t            _mask_hash;
+    TranspositionEntry *_hash_table;
+    uint64_t            _hash_mask;
     uint64_t            _store_entry;
     uint8_t             _generation;
 
@@ -105,14 +105,14 @@ private:
     // erase() free the allocated memory
     void erase ()
     {
-        if (_table_entry)
+        if (_hash_table)
         {
-            void *mem = ((void **) _table_entry)[-1];
+            void *mem = ((void **) _hash_table)[-1];
             std::free (mem);
-            mem = _table_entry = NULL;
+            mem = _hash_table = NULL;
         }
 
-        _mask_hash      = 0;
+        _hash_mask      = 0;
         _store_entry    = 0;
         _generation     = 0;
     }
@@ -147,8 +147,8 @@ public:
 
 
     TranspositionTable ()
-        : _table_entry (NULL)
-        , _mask_hash (0)
+        : _hash_table (NULL)
+        , _hash_mask (0)
         , _store_entry (0)
         , _generation (0)
     {
@@ -156,8 +156,8 @@ public:
     }
 
     TranspositionTable (uint32_t size_mb)
-        : _table_entry (NULL)
-        , _mask_hash (0)
+        : _hash_table (NULL)
+        , _hash_mask (0)
         , _store_entry (0)
         , _generation (0)
     {
@@ -177,9 +177,10 @@ public:
     // 'ucinewgame' (from the UCI interface).
     void clear ()
     {
-        if (_table_entry)
+        if (_hash_table)
         {
-            std::memset (_table_entry, 0, size_t ((_mask_hash + NUM_TENTRY_CLUSTER) * SIZE_TENTRY));
+            size_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
+            std::memset (_hash_table, 0, size_byte);
             _store_entry    = 0;
             _generation     = 0;
         }
@@ -209,7 +210,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     TranspositionEntry* get_cluster (Key key) const
     {
-        return _table_entry + (key & _mask_hash);
+        return _hash_table + (key & _hash_mask);
     }
 
     // store() writes a new entry in the transposition table.
@@ -236,16 +237,16 @@ template<class charT, class Traits>
 inline ::std::basic_ostream<charT, Traits>&
     operator<< (::std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt)
 {
-    uint64_t size_byte  = ((tt._mask_hash + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
-    uint32_t size_mb    = size_byte >> 20;
+    size_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
+    uint32_t size_mb  = size_byte >> 20;
     os.write ((char *) &size_mb, sizeof (size_mb));
     os.write ((char *) &TranspositionTable::SIZE_TENTRY, sizeof (TranspositionTable::SIZE_TENTRY));
     os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (TranspositionTable::NUM_TENTRY_CLUSTER));
     uint8_t dummy = 0;
     os.write ((char *) &dummy, sizeof (dummy));
     os.write ((char *) &tt._generation, sizeof (tt._generation));
-    os.write ((char *) &tt._mask_hash, sizeof (tt._mask_hash));
-    os.write ((char *) tt._table_entry, size_byte);
+    os.write ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
+    os.write ((char *) tt._hash_table, size_byte);
     return os;
 }
 
@@ -259,13 +260,14 @@ inline ::std::basic_istream<charT, Traits>&
     is.read ((char *) &dummy, sizeof (dummy));
     is.read ((char *) &dummy, sizeof (dummy));
     is.read ((char *) &dummy, sizeof (dummy));
+    is.read ((char *) &dummy, sizeof (dummy));
+    //is.read ((char *) &tt._generation, sizeof (tt._generation));
+    is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
     tt.resize (size_mb);
-    is.read ((char *) &tt._generation, sizeof (tt._generation));
-    is.read ((char *) &tt._mask_hash, sizeof (tt._mask_hash));
-    is.read ((char *) tt._table_entry, size_mb << 20);
+    tt._generation = dummy;
+    is.read ((char *) tt._hash_table, size_mb << 20);
     return is;
 }
-
 
 // Global Transposition Table
 extern TranspositionTable TT;

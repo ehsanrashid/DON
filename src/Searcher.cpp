@@ -6,72 +6,80 @@ namespace Searcher {
 
 
 
-    //// RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
-    //// We consider also failing high nodes and not only BOUND_EXACT nodes so to
-    //// allow to always have a ponder move even when we fail high at root, and a
-    //// long PV to print that is important for position analysis.
-    //void RootMove::extract_pv_from_tt (Position& pos)
-    //{
-    //    StateInfo state[MAX_PLY_PLUS_6], *st = state;
-    //    const TranspositionEntry* te;
-    //    int ply = 0;
-    //    Move m = pv[0];
 
-    //    pv.clear();
+    // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
+    // We consider also failing high nodes and not only BOUND_EXACT nodes so to
+    // allow to always have a ponder move even when we fail high at root, and a
+    // long PV to print that is important for position analysis.
+    void RootMove::extract_pv_from_tt (Position &pos)
+    {
+        StateInfo states[MAX_PLY_PLUS_6], *st = states;
 
-    //    do
-    //    {
-    //        pv.emplace_back (m);
-    //        //ASSERT (MoveList<LEGAL>(pos).contains(pv[ply]));
-    //        pos.do_move(pv[ply++], *st++);
-    //        te = TT.probe(pos.key_posi ());
-    //    }
-    //    while (te &&
-    //        pos.is_move_pseudo_legal (m = te->move()) && // Local copy, TT could change
-    //        pos.is_move_legal (m) && 
-    //        ply < MAX_PLY &&
-    //        (!pos.is_draw() || ply < 2));
+        const TranspositionEntry* te;
+        uint16_t ply = 0;
+        Move m = pv[ply];
+        pv.clear();
 
-    //    pv.emplace_back(MOVE_NONE); // Must be zero-terminating
+        do
+        {
+            pv.emplace_back (m);
 
-    //    while (ply)
-    //    {
-    //        pos.undo_move ();
-    //        pv[--ply];
-    //    }
-    //}
+            //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));
+            //ASSERT (generate<LEGAL>(pos).contains (pv[ply]));
 
+            pos.do_move (pv[ply++], *st++);
+            te = TT.retrieve (pos.key_posi ());
 
-    //// RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
-    //// inserts the PV back into the TT. This makes sure the old PV moves are searched
-    //// first, even if the old TT entries have been overwritten.
-    //void RootMove::insert_pv_into_tt (Position& pos)
-    //{
-    //    StateInfo state[MAX_PLY_PLUS_6], *st = state;
-    //    const TranspositionEntry* te;
-    //    int ply = 0;
+            // Local copy, TT could change
+            if (!te || MOVE_NONE == (m = te->move ())) break;
+            if (!pos.is_move_pseudo_legal (m) || !pos.is_move_legal (m)) break;
+            if (!(ply < MAX_PLY && (!pos.is_draw() || ply < 2))) break;
+        }
+        while (true);
 
-    //    do
-    //    {
-    //        te = TT.probe(pos.key_posi ());
-    //        // Don't overwrite correct entries
-    //        if (!te || te->move() != pv[ply])
-    //        {
-    //            TT.store(pos.key_posi (), VALUE_NONE, BOUND_NONE, DEPTH_NONE, pv[ply], VALUE_NONE, VALUE_NONE);
-    //        }
-    //        //assert(MoveList<LEGAL>(pos).contains(pv[ply]));
+        pv.emplace_back (MOVE_NONE); // Must be zero-terminating
 
-    //        pos.do_move(pv[ply++], *st++);
+        while (ply)
+        {
+            pos.undo_move ();
+            --ply;
+        }
+    }
 
-    //    }
-    //    while (pv[ply] != MOVE_NONE);
+    // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
+    // inserts the PV back into the TT. This makes sure the old PV moves are searched
+    // first, even if the old TT entries have been overwritten.
+    void RootMove::insert_pv_into_tt (Position &pos)
+    {
+        StateInfo states[MAX_PLY_PLUS_6], *st = states;
 
-    //    while (ply) pos.undo_move(pv[--ply]);
-    //}
+        const TranspositionEntry* te;
+        uint16_t ply = 0;
 
+        do
+        {
+            te = TT.retrieve (pos.key_posi ());
+            // Don't overwrite correct entries
+            if (!te || te->move() != pv[ply])
+            {
+                TT.store (pos.key_posi (), pv[ply], DEPTH_NONE, UNKNOWN, SCORE_NONE, SCORE_NONE);
+            }
 
+            //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));
+            //ASSERT (generate<LEGAL>(pos).contains (pv[ply]));
 
+            pos.do_move (pv[ply++], *st++);
+        }
+        while (MOVE_NONE != pv[ply]);
 
+        while (ply)
+        {
+            pos.undo_move ();
+            --ply;
+        }
+    }
+
+#pragma region search
 
     using namespace std;
 
@@ -817,5 +825,8 @@ finish:
     //        StoreTTEntry(board.getHashKey(), best, EXACT, depth);
     //    return best;
     //}
+
+#pragma endregion
+
 
 }

@@ -693,5 +693,4 @@ inline ::std::basic_istream<charT, Traits>&
 typedef ::std::stack<StateInfo>             StateInfoStack;
 typedef ::std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
 
-
 #endif

@@ -1,7 +1,6 @@
 #include "Evaluator.h"
 #include "BitCount.h"
 #include "Position.h"
-#include "MoveGenerator.h"
 
 using namespace std;
 using namespace BitBoard;
