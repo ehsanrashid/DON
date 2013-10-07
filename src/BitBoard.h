@@ -377,8 +377,9 @@ namespace BitBoard {
     {
         return bool ((bb) & (bb - 1));
     }
+
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool is_sqs_aligned (Square s1, Square s2, Square s3)
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3)
     {
         return
             (

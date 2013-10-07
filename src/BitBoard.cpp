@@ -254,7 +254,7 @@ namespace BitBoard {
         Bitboard attacks_slid = 0;
         int8_t i = 0;
         Delta del = deltas[i++];
-        while (DEL_O != del)
+        while (del)
         {
             Square sq = s + del;
             while (_ok (sq) && _del_sq[sq][sq - del] == 1)
@@ -412,33 +412,33 @@ namespace BitBoard {
                     continue;
                 }
                 // West Count
-                int8_t countW = 8;
+                int8_t count_w = 8;
                 if (F_A < f) // west
                 {
-                    countW = 1;
-                    File w = File (f - 1);
-                    while (F_A != w && !(_bb_sq[w] & occ))
+                    count_w = 1;
+                    File fw = File (f - 1);
+                    while (F_A != fw && !(_bb_sq[fw] & occ))
                     {
-                        //if (F_A == w || (_bb_sq[w] & occ)) break;
-                        ++countW;
-                        --w;
+                        //if (F_A == fw || (_bb_sq[fw] & occ)) break;
+                        ++count_w;
+                        --fw;
                     }
                 }
                 // East Count
-                int8_t countE = 8;
+                int8_t count_e = 8;
                 if (F_H > f) // east
                 {
-                    countE = 1;
-                    File e = File (f + 1);
-                    while (F_H != e && !(_bb_sq[e] & occ))
+                    count_e = 1;
+                    File fe = File (f + 1);
+                    while (F_H != fe && !(_bb_sq[fe] & occ))
                     {
-                        //if (F_H == e || (_bb_sq[e] & occ)) break;
-                        ++countE;
-                        ++e;
+                        //if (F_H == fe || (_bb_sq[fe] & occ)) break;
+                        ++count_e;
+                        ++fe;
                     }
                 }
 
-                _b_shift_gap[occ][f] = ::std::min (countW, countE);
+                _b_shift_gap[occ][f] = ::std::min (count_w, count_e);
             }
         }
 

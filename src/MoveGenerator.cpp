@@ -160,7 +160,7 @@ namespace MoveGenerator {
                 case QUIET_CHECK:
                     if (ci)
                     {
-                        if (pos.is_move_check (m, *ci))
+                        if (pos.check (m, *ci))
                         {
                             lst_move.emplace_back (m);
                         }
@@ -391,7 +391,7 @@ namespace MoveGenerator {
             {
                 Move m = *itr;
                 if (((sq_org (m) == sq_king) || pinneds || (ENPASSANT == _mtype (m))) &&
-                    !pos.is_move_legal (m, pinneds))
+                    !pos.legal (m, pinneds))
                 {
                     itr = lst_move.erase (itr);
                 }

@@ -223,7 +223,7 @@ public:
 
 #pragma region Board properties
 
-    bool is_empty (Square s) const;
+    bool empty (Square s) const;
     const Piece operator[] (Square s) const;
     const Bitboard operator[] (Color c) const;
     const Bitboard operator[] (PType t) const;
@@ -301,7 +301,7 @@ public:
 
     uint64_t& game_nodes ();
 
-    bool is_draw () const;
+    bool draw () const;
     bool ok (int8_t *step_failed = NULL) const;
 
 #pragma endregion
@@ -338,22 +338,22 @@ public:
 
 #pragma region Move properties
 
-    Piece piece_moved (Move m) const;
-    Piece piece_captured (Move m) const;
+    Piece moved_piece (Move m) const;
+    Piece captured_piece (Move m) const;
 
-    bool is_move_pseudo_legal (Move m) const;
-    bool is_move_legal (Move m, Bitboard pins) const;
-    bool is_move_legal (Move m) const;
-    bool is_move_capture (Move m) const;
-    bool is_move_capture_or_promotion(Move m) const;
-    bool is_move_check (Move m, const CheckInfo &ci) const;
-    bool is_move_checkmate (Move m, const CheckInfo &ci) const;
+    bool pseudo_legal (Move m) const;
+    bool legal (Move m, Bitboard pinned) const;
+    bool legal (Move m) const;
+    bool capture (Move m) const;
+    bool capture_or_promotion(Move m) const;
+    bool check (Move m, const CheckInfo &ci) const;
+    bool checkmate (Move m, const CheckInfo &ci) const;
 
 #pragma endregion
 
 #pragma region Piece specific properties
 
-    bool is_pawn_passed (Color c, Square s) const;
+    bool passed_pawn (Color c, Square s) const;
     bool has_pawn_on_7thR (Color c) const;
     bool has_opposite_bishops () const;
     bool has_pair_bishops (Color c) const;
@@ -420,7 +420,7 @@ public:
 
 #pragma region Board properties
 
-inline bool Position::is_empty (Square s) const { return _board.is_empty (s); }
+inline bool Position::empty (Square s) const { return _board.empty (s); }
 
 inline const Piece    Position::operator[] (Square s) const { return _board[s]; }
 inline const Bitboard Position::operator[] (Color  c) const { return _board[c]; }
@@ -634,17 +634,17 @@ inline Bitboard Position::check_discovers () const
 
 #pragma region Piece properties
 
-inline bool Position::is_pawn_passed(Color c, Square s) const
+inline bool Position::passed_pawn (Color c, Square s) const
 {
     return !(_board.pieces (~c, PAWN) & BitBoard::passer_span_pawn (c, s));
 }
 
-inline bool Position::has_pawn_on_7thR(Color c) const
+inline bool Position::has_pawn_on_7thR (Color c) const
 {
     return _board.pieces (c, PAWN) & BitBoard::mask_rel_rank (c, R_7);
 }
 // check the opposite sides have opposite bishops
-inline bool Position::has_opposite_bishops() const
+inline bool Position::has_opposite_bishops () const
 {
     return
         (_board.piece_count (WHITE, BSHP) == 1) &&
@@ -652,7 +652,7 @@ inline bool Position::has_opposite_bishops() const
         opposite_colors(_board[W_BSHP][0], _board[B_BSHP][0]);
 }
 // check the side has pair of opposite color bishops
-inline bool Position::has_pair_bishops(Color c) const
+inline bool Position::has_pair_bishops (Color c) const
 {
     size_t bishop_count = _board.piece_count(c, BSHP);
     if (bishop_count >= 2)

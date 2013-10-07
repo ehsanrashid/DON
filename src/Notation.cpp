@@ -10,7 +10,7 @@ using namespace MoveGenerator;
 // NOTE: for pawns it is not needed because 'org' file is explicit.
 AmbType ambiguity (Move m, const Position &pos)
 {
-    ASSERT (pos.is_move_legal (m));
+    ASSERT (pos.legal (m));
 
     Square org = sq_org (m);
     Square dst = sq_dst (m);
@@ -93,7 +93,7 @@ AmbType ambiguity (Move m, const Position &pos)
     while (b)
     {
         Move move = mk_move (pop_lsb (b), dst);
-        if (!pos.is_move_legal (move, pinneds))
+        if (!pos.legal (move, pinneds))
         {
             others -= sq_org (move);
         }
@@ -161,7 +161,7 @@ std::string move_to_san (Move m, Position &pos)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
-    ASSERT (pos.is_move_legal (m));
+    ASSERT (pos.legal (m));
     std::string san;
     Square org = sq_org (m);
     Square dst = sq_dst (m);
@@ -172,7 +172,7 @@ std::string move_to_san (Move m, Position &pos)
     //    {
     //    case PAWN:
     //        san = "";
-    //        if (pos.is_move_capture (m))
+    //        if (pos.capture (m))
     //        {
     //            san += to_char (_file (org));
     //            san += 'x';
@@ -224,7 +224,7 @@ std::string move_to_san (Move m, Position &pos)
     //    default:       ASSERT (false);               break;
     //    }
     //
-    //    if (pos.is_move_capture (m))
+    //    if (pos.capture (m))
     //    {
     //        san += 'x';
     //    }
@@ -233,7 +233,7 @@ std::string move_to_san (Move m, Position &pos)
     //    // promote ????????
     //move_marker:
     //    // Marker for check & checkmate
-    //    if (pos.is_move_check (m, CheckInfo (pos)))
+    //    if (pos.check (m, CheckInfo (pos)))
     //    {
     //        StateInfo sinfo;
     //        Position p = pos;
@@ -253,7 +253,7 @@ std::string move_to_san (Move m, Position &pos)
     default:
         if (PAWN == mpt)
         {
-            if (pos.is_move_capture (m)) san = to_char (_file (org));
+            if (pos.capture (m)) san = to_char (_file (org));
         }
         else
         {
@@ -269,14 +269,14 @@ std::string move_to_san (Move m, Position &pos)
             default:       ASSERT (false);               break;
             }
         }
-        if (pos.is_move_capture (m)) san += 'x';
+        if (pos.capture (m)) san += 'x';
         san += to_string (dst);
         if (PROMOTE == mt && PAWN == mpt) san += "=" + to_char (prom_type (m));
         break;
     }
 
     // Move marker for check & checkmate
-    if (pos.is_move_check (m, CheckInfo (pos)))
+    if (pos.check (m, CheckInfo (pos)))
     {
         pos.do_move (m, StateInfo());
         san += (generate<EVASION> (pos).size () ? "+" : "#");

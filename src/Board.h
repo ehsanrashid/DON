@@ -31,7 +31,7 @@ public:
 
 #pragma region Properties
 
-    bool is_empty (Square s) const;
+    bool empty (Square s) const;
 
     const Piece operator[] (Square s) const;
     const Bitboard operator[] (Color c) const;
@@ -73,7 +73,7 @@ public:
 
 #pragma region Properties
 
-inline bool Board::is_empty (Square s) const
+inline bool Board::empty (Square s) const
 {
     return (PS_NO == _piece_arr[s]);
 }

@@ -50,8 +50,8 @@ namespace Searcher {
 
             // Local copy, TT could change
             if (!te || MOVE_NONE == (m = te->move ())) break;
-            if (!pos.is_move_pseudo_legal (m) || !pos.is_move_legal (m)) break;
-            if (!(ply < MAX_PLY && (!pos.is_draw() || ply < 2))) break;
+            if (!pos.pseudo_legal (m) || !pos.legal (m)) break;
+            if (!(ply < MAX_PLY && (!pos.draw() || ply < 2))) break;
         }
         while (true);
 
