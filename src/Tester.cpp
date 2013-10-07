@@ -11,6 +11,10 @@
 
 namespace Tester {
 
+    using ::std::string;
+    using ::std::cout;
+    using ::std::endl;
+
     namespace {
 
         using namespace BitBoard;
@@ -33,7 +37,7 @@ namespace Tester {
             ASSERT (CR_B == ~CR_W);
             ASSERT (CR_W == ~CR_B);
 
-            ::std::cout << "Type done !!!" << ::std::endl;
+            cout << "Type done !!!" << endl;
         }
 
         void test_bitboard ()
@@ -212,7 +216,7 @@ namespace Tester {
 
             ASSERT (pop_count<FULL> (attacks) == count);
 
-            ::std::cout << "Attacks done !!!" << ::std::endl;
+            cout << "Attacks done !!!" << endl;
         }
 
         void test_fen ()
@@ -410,13 +414,13 @@ namespace Tester {
 
             ASSERT (equals (buf, fen));
 
-            ::std::cout << "FEN done !!!" << ::std::endl;
+            cout << "FEN done !!!" << endl;
 
         }
 
         void test_position ()
         {
-            ::std::string fen;
+            string fen;
             Position pos (int8_t (0));
 
             //Test pinned position in pinned()
@@ -428,7 +432,7 @@ namespace Tester {
             pos.setup (fen);
             ASSERT (U64 (0x0000002000000000)==pos.check_discovers ());
 
-            ::std::cout << "Position done !!!" << ::std::endl;
+            cout << "Position done !!!" << endl;
         }
 
         // Test polyglot zobrist
@@ -476,12 +480,12 @@ namespace Tester {
             ASSERT (U64 (0xE230E747697ABB10) == ZobPG.key_posi (pos));
             ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.key_fen (fen));
 
-            ::std::cout << "Zobrist done !!!" << ::std::endl;
+            cout << "Zobrist done !!!" << endl;
         }
 
         void test_move ()
         {
-            ::std::string fen;
+            string fen;
             Position pos (int8_t (0));
             StateInfoStack stk_si;
 
@@ -591,13 +595,13 @@ namespace Tester {
 
             }
 
-            ::std::cout << "Move done !!!" << ::std::endl;
+            cout << "Move done !!!" << endl;
         }
 
         void test_uci ()
         {
 
-            ::std::cout << "UCI done !!!" << ::std::endl;
+            cout << "UCI done !!!" << endl;
         }
 
     }

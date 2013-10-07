@@ -217,12 +217,7 @@ template<class charT, class Traits>
 inline ::std::basic_ostream<charT, Traits>&
     operator<< (::std::basic_ostream<charT, Traits>& os, const SquareList &lst_sq)
 {
-    SquareList::const_iterator itr = lst_sq.cbegin ();
-    while (itr != lst_sq.cend ())
-    {
-        os << *itr << ::std::endl;
-        ++itr;
-    }
+    std::for_each (lst_sq.cbegin (), lst_sq.cend (), [&os] (Square s) { os << s << std::endl; });
     return os;
 }
 

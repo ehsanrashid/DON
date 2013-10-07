@@ -329,8 +329,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     // Add 'special move' flags and verify it is legal
     MoveList lst_move = generate<LEGAL> (pos);
-    MoveList::const_iterator itr = lst_move.cbegin ();
-    while (itr != lst_move.cend ())
+    for (MoveList::const_iterator itr = lst_move.cbegin (); itr != lst_move.cend (); ++itr)
     {
         Move m = *itr;
         //if ((m ^ _mtype (m)) == move)
@@ -338,7 +337,6 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         {
             return m;
         }
-        ++itr;
     }
 
     return MOVE_NONE;
@@ -371,17 +369,12 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     }
 
     ::std::ostringstream sread;
-
-    ::std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
-    while (itr != lst_pe.cend ())
+    ::std::for_each (lst_pe.cbegin (), lst_pe.cend (), [&sread, &sum_weight] (PolyglotEntry pe)
     {
-        pe = *itr;
         sread << ::std::setfill ('0')
             << pe << " prob: " << ::std::right << ::std::fixed << ::std::width_prec (6, 2)
             << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0) << ::std::endl;
-
-        ++itr;
-    }
+    });
 
     return sread.str ();
 }

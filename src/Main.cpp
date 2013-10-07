@@ -86,8 +86,10 @@ int main (int argc, const char* const argv[])
     //high_stack = (char *) &argc;
     //printf("Current stack usage: %d bytes\n", high_stack - low_stack);
 
+    BitBoard::initialize ();
 
-    Engine::start ();
+    
+    //Engine::start ();
 
     //log_io (true);
 
@@ -179,7 +181,7 @@ int main (int argc, const char* const argv[])
     cout << "-------------------" << endl;
 
     //"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w  KQkq  - 3  5";
-    string fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
+    string fen = //"2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
 
     //"r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14";
     //"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11";
@@ -199,13 +201,15 @@ int main (int argc, const char* const argv[])
     //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 4 5";
     //"rnbqkbnr/pppppppp/8/8/1P2P1P1/1N3N2/2P2PP1/R1BQKB1R w KQkq - 0 1";
 
-    //Position pos;
+    Position pos (int8_t (0));
     //Move m;
     //StateInfoStack stk_si;
 
-    //pos.setup (fen);
+    pos.setup (fen);
     //
-    //cout << pos << endl;
+    cout << pos << endl;
+
+    cout << generate<LEGAL>(pos);
 
     //m = mk_move (SQ_B6, SQ_B1);
     //m = mk_move (SQ_F2, SQ_F4);

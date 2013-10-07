@@ -10,6 +10,8 @@
 
 namespace UCI {
 
+    using ::std::string;
+
     namespace OptionType {
 
         // Option class implements an option as defined by UCI protocol
@@ -29,14 +31,14 @@ namespace UCI {
             Option (const OnChange on_change = NULL);
             virtual ~Option ();
 
-            virtual ::std::string operator() ()  const   = NULL;
+            virtual string operator() ()  const   = NULL;
 
             virtual operator bool ()        const { return bool (); }
             virtual operator int32_t ()     const { return int32_t (); }
-            virtual operator ::std::string () const { return ::std::string (); }
+            virtual operator string () const { return string (); }
 
-            virtual Option& operator= (char        v[]) = NULL;
-            virtual Option& operator= (std::string &v) = NULL;
+            virtual Option& operator= (char   *v) = NULL;
+            virtual Option& operator= (string &v) = NULL;
 
         } Option;
 
@@ -45,10 +47,10 @@ namespace UCI {
         public:
             ButtonOption (const OnChange on_change = NULL);
 
-            ::std::string operator() ()  const;
+            string operator() ()  const;
 
-            Option& operator= (char        v[]);
-            Option& operator= (std::string &v);
+            Option& operator= (char   *v);
+            Option& operator= (string &v);
 
         } ButtonOption;
 
@@ -58,29 +60,29 @@ namespace UCI {
             bool default;
             bool value;
 
-            CheckOption (const bool b, const OnChange on_change = NULL);
+            CheckOption (const bool val, const OnChange on_change = NULL);
 
-            ::std::string operator() ()  const;
+            string operator() ()  const;
             virtual operator bool () const;
 
-            Option& operator= (char        v[]);
-            Option& operator= (std::string &v);
+            Option& operator= (char   *v);
+            Option& operator= (string &v);
 
         } CheckOption;
 
         typedef class StringOption : public Option
         {
         public:
-            ::std::string default;
-            ::std::string value;
+            string default;
+            string value;
 
-            StringOption (const char s[], const OnChange on_change = NULL);
+            StringOption (const char val[], const OnChange on_change = NULL);
 
-            ::std::string operator() ()  const;
-            operator ::std::string () const;
+            string operator() ()  const;
+            operator string () const;
 
-            Option& operator= (char        v[]);
-            Option& operator= (std::string &v);
+            Option& operator= (char   *v);
+            Option& operator= (string &v);
 
         } StringOption;
 
@@ -93,11 +95,11 @@ namespace UCI {
 
             SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
 
-            ::std::string operator() ()  const;
+            string operator() ()  const;
             operator int32_t () const;
 
-            Option& operator= (char        v[]);
-            Option& operator= (std::string &v);
+            Option& operator= (char   *v);
+            Option& operator= (string &v);
 
         } SpinOption;
 
@@ -108,10 +110,10 @@ namespace UCI {
 
             ComboOption (const OnChange on_change = NULL);
 
-            ::std::string operator() ()  const;
+            string operator() ()  const;
 
-            Option& operator= (char       v[]);
-            Option& operator= (std::string &v);
+            Option& operator= (char   *v);
+            Option& operator= (string &v);
 
         } ComboOption;
 
@@ -137,9 +139,7 @@ namespace UCI {
     //typedef ::std::shared_ptr<OptionType::Option> OptionPtr;
     typedef ::std::unique_ptr<OptionType::Option> OptionPtr;
 
-    typedef ::std::map<::std::string, OptionPtr, ::std::string_less_comparer> OptionMap;
-
-
+    typedef ::std::map<string, OptionPtr, ::std::string_less_comparer> OptionMap;
 
     extern void  init_options ();
     extern void clear_options ();
@@ -150,30 +150,25 @@ namespace UCI {
     {
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
-            OptionMap::const_iterator itr = options.cbegin ();
-
-            while (itr != options.cend ())
+            for (OptionMap::const_iterator itr = options.cbegin (); itr != options.cend (); ++itr)
             {
-                const UCI::OptionType::Option *opt = itr->second.get ();
-                if (idx == opt->index)
+                if (idx == itr->second->index)
                 {
-                    os << "option name " << (itr->first)
-                        << " " << (opt) << ::std::endl;
+                    const OptionType::Option *opt = itr->second.get ();
+                    os << "option name " << itr->first << " " << opt << ::std::endl;
+                    break;
                 }
-                ++itr;
             }
         }
-
         return os;
     }
 
     // ---------------------------------------------
 
-    extern void start (const ::std::string &args = "");
+    extern void start (const string &args = "");
     extern void stop ();
 
     // ---
-
     extern void send_responce (const char format[], ...);
 
 }

@@ -57,20 +57,18 @@ namespace MoveGenerator {
                 Piece piece = (c | P);
                 const SquareList orgs = pos[piece];
 
-                SquareList::const_iterator itr = orgs.cbegin ();
-                for (; itr != orgs.cend (); ++itr)
+                std::for_each (orgs.cbegin (), orgs.cend (), [&] (Square org)
                 {
-                    Square org = *itr;
-
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
                         if (ci)
                         {
                             if ((BSHP == P) || (ROOK == P) || (QUEN == P) &&
-                                !(attacks_bb<P> (org) & target & ci->checking_bb[P])) continue;
+                                !(attacks_bb<P> (org) & target & ci->checking_bb[P])) 
+                                return;
 
-                            if (UNLIKELY (ci->check_discovers) &&
-                                (ci->check_discovers & org)) continue;
+                            if (UNLIKELY (ci->check_discovers) && (ci->check_discovers & org))
+                                return;
                         }
                     }
 
@@ -81,7 +79,7 @@ namespace MoveGenerator {
                     }
 
                     SERIALIZE (lst_move, org, moves);
-                }
+                });
             }
 
         };

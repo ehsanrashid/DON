@@ -115,16 +115,15 @@ Move move_from_can (std::string &can, const Position &pos)
         // promotion piece in lowercase
         if (isupper (can[4])) can[4] = char (tolower (can[4]));
     }
+
     MoveList lst_move = generate<LEGAL>(pos);
-    MoveList::const_iterator itr = lst_move.cbegin ();
-    while (itr != lst_move.cend ())
+    for (MoveList::const_iterator itr = lst_move.cbegin (); itr != lst_move.cend (); ++itr)
     {
         Move m = *itr;
         if (iequals (can, move_to_can (m, pos.chess960 ())))
         {
             return m;
         }
-        ++itr;
     }
     return MOVE_NONE;
 }

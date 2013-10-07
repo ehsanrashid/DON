@@ -30,16 +30,16 @@ namespace BitBoard {
     //extern const Bitboard bb_NULL;
     //extern const Bitboard bb_FULL;
 
-    extern const Bitboard bb_R1_;
-    extern const Bitboard bb_R8_;
-    extern const Bitboard bb_FA_;
-    extern const Bitboard bb_FH_;
+    extern const Bitboard bb_R1_;  // 56 Not RANK-1
+    extern const Bitboard bb_R8_;  // 56 Not RANK-8
+    extern const Bitboard bb_FA_;  // 56 Not FILE-A
+    extern const Bitboard bb_FH_;  // 56 Not FILE-H
 
-    extern const Bitboard bb_D18;
-    extern const Bitboard bb_D81;
+    extern const Bitboard bb_D18;  // 08 DIAG-18 squares.
+    extern const Bitboard bb_D81;  // 08 DIAG-81 squares.
 
-    extern const Bitboard bb_SQ_W;
-    extern const Bitboard bb_SQ_B;
+    extern const Bitboard bb_SQ_L; // 32 LIGHT squares.
+    extern const Bitboard bb_SQ_D; // 32 DARK  squares.
 
 #pragma endregion
 

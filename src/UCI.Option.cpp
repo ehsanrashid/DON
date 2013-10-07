@@ -16,10 +16,6 @@
 
 //#include "Thread.h"
 
-//#undef min
-//#undef max
-
-
 // Global string mapping of options
 UCI::OptionMap Options;
 
@@ -38,35 +34,35 @@ namespace UCI {
         ButtonOption::ButtonOption (const OnChange on_change)
             : Option (on_change)
         {}
-        std::string ButtonOption::operator() () const
+        string ButtonOption::operator() () const
         {
-            return std::string ("type button");
+            return string ("type button");
         }
-        Option& ButtonOption::operator= (char       v[])
+        Option& ButtonOption::operator= (char   *v)
         {
             if (_on_change) _on_change (*this);
             return *this;
         }
-        Option& ButtonOption::operator= (std::string &v)
+        Option& ButtonOption::operator= (string &v)
         {
             if (_on_change) _on_change (*this);
             return *this;
         }
 
-        CheckOption::CheckOption (const bool b, const OnChange on_change)
+        CheckOption::CheckOption (const bool val, const OnChange on_change)
             : Option (on_change)
         {
-            default = value = b;
+            default = value = val;
         }
-        std::string CheckOption::operator() () const
+        string CheckOption::operator() () const
         {
-            return std::string ("type check default ") + std::string ((default) ? "true" : "false");
+            return string ("type check default ") + string ((default) ? "true" : "false");
         }
         CheckOption::operator bool () const
         {
             return value;
         }
-        Option& CheckOption::operator= (char       v[])
+        Option& CheckOption::operator= (char   *v)
         {
             if (iswhitespace (v)) return *this;
             bool val = iequals (v, "true");
@@ -77,7 +73,7 @@ namespace UCI {
             }
             return *this;
         }
-        Option& CheckOption::operator= (std::string &v)
+        Option& CheckOption::operator= (string &v)
         {
             if (iswhitespace (v)) return *this;
             bool val = iequals (v, "true");
@@ -89,20 +85,20 @@ namespace UCI {
             return *this;
         }
 
-        StringOption::StringOption (const char s[], const OnChange on_change)
+        StringOption::StringOption (const char val[], const OnChange on_change)
             : Option (on_change)
         {
-            default = value = s;
+            default = value = val;
         }
-        std::string StringOption::operator() () const
+        string StringOption::operator() () const
         {
-            return std::string ("type string default ") + std::string (iswhitespace (default) ? "<empty>" : value);
+            return string ("type string default ") + string (iswhitespace (default) ? "<empty>" : value);
         }
-        StringOption::operator std::string () const
+        StringOption::operator string () const
         {
             return iswhitespace (value) ? "<empty>" : value;
         }
-        Option& StringOption::operator= (char       v[])
+        Option& StringOption::operator= (char   *v)
         {
             if (value != v)
             {
@@ -111,7 +107,7 @@ namespace UCI {
             }
             return *this;
         }
-        Option& StringOption::operator= (std::string &v)
+        Option& StringOption::operator= (string &v)
         {
             if (value != v)
             {
@@ -128,17 +124,17 @@ namespace UCI {
             min = min_val;
             max = max_val;
         }
-        std::string SpinOption::operator() () const
+        string SpinOption::operator() () const
         {
-            return std::string ("type spin default ") + std::to_string (default) +
-                std::string (" min ") + std::to_string (min) +
-                std::string (" max ") + std::to_string (max);
+            return string ("type spin default ") + std::to_string (default) +
+                string (" min ") + std::to_string (min) +
+                string (" max ") + std::to_string (max);
         }
         SpinOption::operator int32_t () const
         {
             return value;
         }
-        Option& SpinOption::operator= (char       v[])
+        Option& SpinOption::operator= (char   *v)
         {
             if (iswhitespace (v)) return *this;
             int32_t val = to_int (v);
@@ -153,7 +149,7 @@ namespace UCI {
             }
             return *this;
         }
-        Option& SpinOption::operator= (std::string &v)
+        Option& SpinOption::operator= (string &v)
         {
             if (iswhitespace (v)) return *this;
             int32_t val = std::stoi (v);
@@ -172,16 +168,16 @@ namespace UCI {
         ComboOption::ComboOption (const OnChange on_change)
             : Option (on_change)
         {}
-        std::string ComboOption::operator() () const
+        string ComboOption::operator() () const
         {
-            return std::string ("type combo");
+            return string ("type combo");
         }
-        Option& ComboOption::operator= (char       v[])
+        Option& ComboOption::operator= (char   *v)
         {
             if (_on_change) _on_change (*this);
             return *this;
         }
-        Option& ComboOption::operator= (std::string &v)
+        Option& ComboOption::operator= (string &v)
         {
             if (_on_change) _on_change (*this);
             return *this;
@@ -282,7 +278,7 @@ namespace UCI {
         //
         // For infinite analysis or long time control matches you should use the largest hash that fits in the physical memory of your system.
         // For example, on a system with 4 GB of memory you can use up to 2048 MB hash size.
-        // For shorter games, for example 3 to 5 minute games, it’s better to use 256 MB or 512 MB as this will provide the best performance.
+        // For shorter games, for example 3 to 5 minute games, it’val better to use 256 MB or 512 MB as this will provide the best performance.
         // For 16 min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
@@ -507,8 +503,8 @@ namespace UCI {
         //std::cout << int32_t (*(Options["Hash"]));
 
         //std::cout << (*Options["hash"])();
-        //*Options["Clear Hash"]  = std::string("");
-        //*Options["Hash"]        = std::string("128");
+        //*Options["Clear Hash"]  = string("");
+        //*Options["Hash"]        = string("128");
 
         //::std::cout << Options;
     }

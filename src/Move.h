@@ -178,16 +178,11 @@ template<class charT, class Traits>
 inline ::std::basic_ostream<charT, Traits>&
     operator<< (::std::basic_ostream<charT, Traits>& os, const MoveList &lst_move)
 {
-    MoveList::const_iterator itr = lst_move.cbegin ();
-    while (itr != lst_move.cend ())
-    {
-        os << *itr << std::endl;
-        ++itr;
-    }
+    std::for_each (lst_move.cbegin (), lst_move.cend (), [&os] (Move m) { os << m << std::endl; });
     return os;
 }
 
-
+// TODO:: remove
 template<class charT, class Traits>
 inline ::std::basic_ostream<charT, Traits>&
     operator<< (::std::basic_ostream<charT, Traits>& os, const MoveStack &stk_move)
