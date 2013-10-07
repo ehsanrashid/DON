@@ -5,13 +5,11 @@
 #include "Time.h"
 
 #include "PolyglotBook.h"
-
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Evaluator.h"
 
 class Position;
-
 
 #include <iomanip>
 
@@ -146,13 +144,13 @@ namespace Searcher {
     {
         Value curr_value;
         Value last_value;
-        uint64_t nodes;
+        //uint64_t nodes;
 
         MoveList pv;
 
-        RootMove(Move m) :
-            curr_value(-VALUE_INFINITE),
-            last_value(-VALUE_INFINITE)
+        RootMove(Move m)
+            : curr_value(-VALUE_INFINITE)
+            , last_value(-VALUE_INFINITE)
         {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);

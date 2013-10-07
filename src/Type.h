@@ -352,7 +352,8 @@ typedef enum Value : int16_t
 // keep its data, so ensure Score to be an integer type.
 typedef enum Score : int32_t
 {
-    SCORE_ZERO = 0,
+    SCORE_ZERO      = 0,
+
     SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX,
     SCORE_ENSURE_INTEGER_SIZE_N = INT_MIN,
 
@@ -361,13 +362,14 @@ typedef enum Score : int32_t
 typedef enum Depth : int16_t
 {
     ONE_PLY             =    1,
+    ONE_MOVE            =    2,
 
-    DEPTH_ZERO          =    0 * ONE_PLY,
-    DEPTH_QS_CHECKS     =   -1 * ONE_PLY,
-    DEPTH_QS_NO_CHECKS  =   -2 * ONE_PLY,
-    DEPTH_QS_RECAPTURES =   -5 * ONE_PLY,
+    DEPTH_ZERO          =    0 * ONE_MOVE,
+    DEPTH_QS_CHECKS     =   -1 * ONE_MOVE,
+    DEPTH_QS_NO_CHECKS  =   -2 * ONE_MOVE,
+    DEPTH_QS_RECAPTURES =   -5 * ONE_MOVE,
 
-    DEPTH_NONE          = -128 * ONE_PLY,
+    DEPTH_NONE          = -128 * ONE_MOVE,
 
 } Depth;
 
@@ -415,7 +417,6 @@ typedef enum Bound : uint8_t
 
 #pragma warning (pop)
 
-
 inline Score make_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
 
 /// Extracting the signed lower and upper 16 bits it not so trivial because
@@ -423,7 +424,7 @@ inline Score make_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg
 /// and so is a right shift of a signed integer.
 inline Value mg_value (Score s)
 {
-    return Value (((s + 0x8000) & ~0xFFFF) / 0x10000);
+    return Value (((unsigned (s) + 0x8000) & ~0xFFFF) / 0x10000);
 }
 
 /// On Intel 64 bit we have a small speed regression with the standard conforming
@@ -433,62 +434,60 @@ inline Value mg_value (Score s)
 
 inline Value eg_value (Score s)
 {
-    return Value (s & 0xFFFF);
+    return Value (unsigned (s) & 0xFFFF);
 }
 
 #else
 
 inline Value eg_value (Score s)
 {
-    return Value ((int16_t)(unsigned(s) & 0x7FFFU) - (int16_t)(unsigned(s) & 0x8000U));
+    return Value (int16_t (unsigned (s) & 0x7FFFU) - int16_t (unsigned (s) & 0x8000U));
 }
 
 #endif
-
-
 
 #pragma region Operators
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-#define ARTHMAT_OPERATORS(T)                                                              \
-    inline T  operator+  (T  d)        { return T (+int32_t(d)); }                        \
-    inline T  operator-  (T  d)        { return T (-int32_t(d)); }                        \
-    inline T  operator+  (T  d1, T d2) { return T (int32_t(d1) + int32_t(d2)); }          \
-    inline T  operator-  (T  d1, T d2) { return T (int32_t(d1) - int32_t(d2)); }          \
-    inline T  operator*  (T  d, int32_t i) { return T (int32_t(d) * i); }                 \
-    inline T  operator+  (T  d, int32_t i) { return T (int32_t(d) + i); }                 \
-    inline T  operator-  (T  d, int32_t i) { return T (int32_t(d) - i); }                 \
-    inline T& operator+= (T &d1, T d2) { d1 = T (int32_t(d1) + int32_t(d2)); return d1; } \
-    inline T& operator-= (T &d1, T d2) { d1 = T (int32_t(d1) - int32_t(d2)); return d1; } \
-    inline T& operator+= (T &d, int32_t i) { d = T (int32_t(d) + i); return d; }          \
-    inline T& operator-= (T &d, int32_t i) { d = T (int32_t(d) - i); return d; }          \
-    inline T& operator*= (T &d, int32_t i) { d = T (int32_t(d) * i); return d; }          \
-    inline T& operator/= (T &d, int32_t i) { d = T (int32_t(d) / i); return d; }
-//inline T  operator+  (int32_t i, T d) { return T (i + int32_t(d)); }                  \
-//inline T  operator-  (int32_t i, T d) { return T (i - int32_t(d)); }                  \
-//inline T  operator*  (int32_t i, T  d) { return T (i * int32_t(d)); }                 \
-//inline T  operator/  (T  d, int32_t i) { return T (int32_t(d) / i); }                 \
+#define ARTHMAT_OPERATORS(T)                                                                \
+    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
+    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
+    inline T  operator+  (T  d1, T d2) { return T (int32_t (d1) + int32_t (d2)); }          \
+    inline T  operator-  (T  d1, T d2) { return T (int32_t (d1) - int32_t (d2)); }          \
+    inline T  operator*  (T  d, int32_t i) { return T (int32_t (d) * i); }                  \
+    inline T  operator+  (T  d, int32_t i) { return T (int32_t (d) + i); }                  \
+    inline T  operator-  (T  d, int32_t i) { return T (int32_t (d) - i); }                  \
+    inline T& operator+= (T &d1, T d2) { d1 = T (int32_t (d1) + int32_t (d2)); return d1; } \
+    inline T& operator-= (T &d1, T d2) { d1 = T (int32_t (d1) - int32_t (d2)); return d1; } \
+    inline T& operator+= (T &d, int32_t i) { d = T (int32_t (d) + i); return d; }           \
+    inline T& operator-= (T &d, int32_t i) { d = T (int32_t (d) - i); return d; }           \
+    inline T  operator*  (int32_t i, T  d) { return T (i * int32_t (d)); }                  \
+    inline T& operator*= (T &d, int32_t i) { d = T (int32_t (d) * i); return d; }
+//inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  \
+//inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  \
+//inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 \
+//inline T& operator/= (T &d, int32_t i) { d = T (int32_t (d) / i); return d; }
 
-#define INC_DEC_OPERATORS(T)                                                            \
-    inline T  operator++ (T &d, int32_t) { T o = d; d = T (int32_t(d) + 1); return o; } \
-    inline T  operator-- (T &d, int32_t) { T o = d; d = T (int32_t(d) - 1); return o; } \
-    inline T& operator++ (T &d         ) { d = T (int32_t(d) + 1); return d; }          \
-    inline T& operator-- (T &d         ) { d = T (int32_t(d) - 1); return d; }
+#define INC_DEC_OPERATORS(T)                                                             \
+    inline T  operator++ (T &d, int32_t) { T o = d; d = T (int32_t (d) + 1); return o; } \
+    inline T  operator-- (T &d, int32_t) { T o = d; d = T (int32_t (d) - 1); return o; } \
+    inline T& operator++ (T &d         ) { d = T (int32_t (d) + 1); return d; }          \
+    inline T& operator-- (T &d         ) { d = T (int32_t (d) - 1); return d; }
 
 
-inline File  operator+  (File  f, int32_t i) { return File (int32_t(f) + i); }
-inline File  operator-  (File  f, int32_t i) { return File (int32_t(f) - i); }
-inline File& operator+= (File &f, int32_t i) { f = File (int32_t(f) + i); return f; }
-inline File& operator-= (File &f, int32_t i) { f = File (int32_t(f) - i); return f; }
+inline File  operator+  (File  f, int32_t i) { return File (int32_t (f) + i); }
+inline File  operator-  (File  f, int32_t i) { return File (int32_t (f) - i); }
+inline File& operator+= (File &f, int32_t i) { f = File (int32_t (f) + i); return f; }
+inline File& operator-= (File &f, int32_t i) { f = File (int32_t (f) - i); return f; }
 INC_DEC_OPERATORS (File);
 
 
-inline Rank  operator+  (Rank  r, int32_t i) { return Rank (int32_t(r) + i); }
-inline Rank  operator-  (Rank  r, int32_t i) { return Rank (int32_t(r) - i); }
-inline Rank& operator+= (Rank &r, int32_t i) { r = Rank (int32_t(r) + i); return r; }
-inline Rank& operator-= (Rank &r, int32_t i) { r = Rank (int32_t(r) - i); return r; }
+inline Rank  operator+  (Rank  r, int32_t i) { return Rank (int32_t (r) + i); }
+inline Rank  operator-  (Rank  r, int32_t i) { return Rank (int32_t (r) - i); }
+inline Rank& operator+= (Rank &r, int32_t i) { r = Rank (int32_t (r) + i); return r; }
+inline Rank& operator-= (Rank &r, int32_t i) { r = Rank (int32_t (r) - i); return r; }
 INC_DEC_OPERATORS (Rank);
 
 //INC_DEC_OPERATORS (Diag);
@@ -496,25 +495,26 @@ INC_DEC_OPERATORS (Rank);
 INC_DEC_OPERATORS (Color);
 
 // Square operator
-inline Square  operator+  (Square  s, Delta d) { return Square (int32_t(s) + int32_t(d)); }
-inline Square  operator-  (Square  s, Delta d) { return Square (int32_t(s) - int32_t(d)); }
-inline Square& operator+= (Square &s, Delta d) { s = Square (int32_t(s) + int32_t(d)); return s; }
-inline Square& operator-= (Square &s, Delta d) { s = Square (int32_t(s) - int32_t(d)); return s; }
-inline Delta   operator-  (Square s1, Square s2) { return Delta (int32_t(s1) - int32_t(s2)); }
+inline Square  operator+  (Square  s, Delta d) { return Square (int32_t (s) + int32_t (d)); }
+inline Square  operator-  (Square  s, Delta d) { return Square (int32_t (s) - int32_t (d)); }
+inline Square& operator+= (Square &s, Delta d) { s = Square (int32_t (s) + int32_t (d)); return s; }
+inline Square& operator-= (Square &s, Delta d) { s = Square (int32_t (s) - int32_t (d)); return s; }
+inline Delta   operator-  (Square s1, Square s2) { return Delta (int32_t (s1) - int32_t (s2)); }
 INC_DEC_OPERATORS (Square);
 
-inline Delta   operator/  (Delta  d, int32_t i) { return Delta (int32_t(d) / i); }
+inline Delta  operator/  (Delta  d, int32_t i) { return Delta (int32_t (d) / i); }
+inline Delta& operator/= (Delta &d, int32_t i) { d = Delta (int32_t (d) / i); return d; }
 ARTHMAT_OPERATORS (Delta);
 
 INC_DEC_OPERATORS (CSide);
 
 // CRight operator
-inline CRight  operator|  (CRight  cr, int32_t i) { return CRight (int32_t(cr) | i); }
-inline CRight  operator&  (CRight  cr, int32_t i) { return CRight (int32_t(cr) & i); }
-inline CRight  operator^  (CRight  cr, int32_t i) { return CRight (int32_t(cr) ^ i); }
-inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t(cr) | i); return cr; }
-inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t(cr) & i); return cr; }
-inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t(cr) ^ i); return cr; }
+inline CRight  operator|  (CRight  cr, int32_t i) { return CRight (int32_t (cr) | i); }
+inline CRight  operator&  (CRight  cr, int32_t i) { return CRight (int32_t (cr) & i); }
+inline CRight  operator^  (CRight  cr, int32_t i) { return CRight (int32_t (cr) ^ i); }
+inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) | i); return cr; }
+inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) & i); return cr; }
+inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) ^ i); return cr; }
 
 INC_DEC_OPERATORS (PType);
 
@@ -526,6 +526,10 @@ inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); retur
 // Added operators for adding integers to a Value
 //inline Value operator+ (Value v, int32_t i) { return Value (int32_t (v) + i); }
 //inline Value operator- (Value v, int32_t i) { return Value (int32_t (v) - i); }
+inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
+inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
+inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }
+inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
 ARTHMAT_OPERATORS (Value);
 INC_DEC_OPERATORS (Value);
 
@@ -539,7 +543,6 @@ inline Score operator/ (Score s, int32_t i)
 }
 ARTHMAT_OPERATORS (Score);
 
-
 ARTHMAT_OPERATORS (Depth);
 INC_DEC_OPERATORS (Depth);
 
@@ -549,26 +552,6 @@ INC_DEC_OPERATORS (Depth);
 #pragma endregion
 
 inline Value mate_in  (int32_t ply) { return ( VALUE_MATE - ply); }
-
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
-
-
-//template <typename T, size_t N>
-//inline size_t sizeof_array (const T(&)[N])
-//{
-//    return N;
-//}
-//
-//#include <type_traits>
-//template <typename A>
-//typename std::enable_if <std::is_array <A> ::value, size_t> ::type sizeof_array (const A &a)
-//{
-//    return std::extent <A>::value;
-//}
-//
-//const char s[] = "Hello world!";
-//
-//// sizeof_array (s)
-
 
 #endif

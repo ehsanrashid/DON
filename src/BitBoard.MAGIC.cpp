@@ -49,36 +49,32 @@ namespace BitBoard {
         template<>
         uint16_t index_attacks<BSHP> (Square s, Bitboard occ)
         {
-
-#if defined(_WIN64)
+#ifdef _WIN64
 
             return uint16_t (((occ & _bbMasks_B[s]) * _bbMagics_B[s]) >> _bShifts_B[s]);
 
 #else
 
-            uint32_t lo = uint32_t (occ) & uint32_t (_bbMasks_B[s]);
-            uint32_t hi = uint32_t (occ >> 32) & uint32_t (_bbMasks_B[s] >> 32);
-            return ((lo * uint32_t (_bbMagics_B[s]) ^ hi * uint32_t (_bbMagics_B[s] >> 32)) >> _bShifts_B[s]);
+            uint32_t lo = (uint32_t (occ >>  0) & uint32_t (_bbMasks_B[s] >>  0)) * uint32_t (_bbMagics_B[s] >>  0);
+            uint32_t hi = (uint32_t (occ >> 32) & uint32_t (_bbMasks_B[s] >> 32)) * uint32_t (_bbMagics_B[s] >> 32);
+            return ((lo ^ hi) >> _bShifts_B[s]);
 
 #endif
-
         }
         template<>
         uint16_t index_attacks<ROOK> (Square s, Bitboard occ)
         {
-
-#if defined(_WIN64)
+#ifdef _WIN64
 
             return uint16_t (((occ & _bbMasks_R[s]) * _bbMagics_R[s]) >> _bShifts_R[s]);
 
 #else
 
-            uint32_t lo = uint32_t (occ) & uint32_t (_bbMasks_R[s]);
-            uint32_t hi = uint32_t (occ >> 32) & uint32_t (_bbMasks_R[s] >> 32);
-            return ((lo * uint32_t (_bbMagics_R[s]) ^ hi * uint32_t (_bbMagics_R[s] >> 32)) >> _bShifts_R[s]);
+            uint32_t lo = (uint32_t (occ >>  0) & uint32_t (_bbMasks_R[s] >>  0)) * uint32_t (_bbMagics_R[s] >>  0);
+            uint32_t hi = (uint32_t (occ >> 32) & uint32_t (_bbMasks_R[s] >> 32)) * uint32_t (_bbMagics_R[s] >> 32);
+            return ((lo ^ hi) >> _bShifts_R[s]);
 
 #endif
-
         }
 
 
@@ -184,8 +180,8 @@ namespace BitBoard {
 
                 // Use Carry-Rippler trick to enumerate all subsets of bbMasks[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                uint32_t size = 0;
-                Bitboard occ = bb_NULL;
+                uint32_t size   = 0;
+                Bitboard occ    = 0;
 
                 do
                 {
@@ -221,7 +217,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (bbAttacks[s], 0/*bb_NULL*/, size * sizeof (Bitboard));
+                    memset (bbAttacks[s], 0, size * sizeof (Bitboard));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the bbAttacks[s] database.

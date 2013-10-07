@@ -93,13 +93,12 @@ namespace BitBoard {
                 //| (rowB + 4*PATTERN_B)[r[5]]  // row 6
                 //| (rowB + 5*PATTERN_B)[r[6]]; // row 7
 
-                =
-                brdB[0][r[1]] | // row 2
-                brdB[1][r[2]] | // row 3
-                brdB[2][r[3]] | // row 4
-                brdB[3][r[4]] | // row 5
-                brdB[4][r[5]] | // row 6
-                brdB[5][r[6]];  // row 7
+                = brdB[0][r[1]] // row 2
+                | brdB[1][r[2]] // row 3
+                | brdB[2][r[3]] // row 4
+                | brdB[3][r[4]] // row 5
+                | brdB[4][r[5]] // row 6
+                | brdB[5][r[6]];// row 7
 
             return index;
         }
@@ -137,15 +136,14 @@ namespace BitBoard {
                 //| (rowR + 6*PATTERN_R)[r[6]]  // row 7
                 //| (rowR + 7*PATTERN_R)[r[7]]; // row 8
 
-                =
-                brdR[0][r[0]] | // row 1
-                brdR[1][r[1]] | // row 2
-                brdR[2][r[2]] | // row 3
-                brdR[3][r[3]] | // row 4
-                brdR[4][r[4]] | // row 5
-                brdR[5][r[5]] | // row 6
-                brdR[6][r[6]] | // row 7
-                brdR[7][r[7]];  // row 8
+                = brdR[0][r[0]] // row 1
+                | brdR[1][r[1]] // row 2
+                | brdR[2][r[2]] // row 3
+                | brdR[3][r[3]] // row 4
+                | brdR[4][r[4]] // row 5
+                | brdR[5][r[5]] // row 6
+                | brdR[6][r[6]] // row 7
+                | brdR[7][r[7]];// row 8
 
             return index;
         }

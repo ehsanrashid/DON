@@ -18,7 +18,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
     if (size_mb > MAX_SIZE_TT) size_mb = MAX_SIZE_TT;
     //{
-    //    std::cerr << "ERROR: TT size too large " << size_mb << " MB..." << std::endl;
+    //    std::cerr << "ERROR: hash size too large " << size_mb << " MB..." << std::endl;
     //    return;
     //}
 
@@ -68,7 +68,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
     void *mem = std::calloc (size + offset, 1);
     if (!mem)
     {
-        std::cerr << "ERROR: TT failed to allocate " << size << " byte..." << std::endl;
+        std::cerr << "ERROR: hash failed to allocate " << size << " byte..." << std::endl;
         Engine::exit (EXIT_FAILURE);
     }
 
@@ -76,7 +76,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
     
-    _hash_table = (TranspositionEntry*) ptr;
+    _hash_table = static_cast<TranspositionEntry*> (*ptr);
 
     ASSERT (0 == (size & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
@@ -100,7 +100,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, uint16_t nodes)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value, Value e_margn)
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
@@ -139,7 +139,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
         }
     }
 
-    re->save (key32, move, depth, bound, _generation, nodes, value, VALUE_ZERO, VALUE_ZERO);
+    re->save (key32, move, depth, bound, _generation, value, e_value, e_margn);
     ++_store_entry;
 }
 

@@ -9,6 +9,7 @@
 #include "Castle.h"
 #include "Move.h"
 #include "BitScan.h"
+#include "Zobrist.h"
 
 class Position;
 
@@ -58,6 +59,14 @@ extern bool _ok (const ::std::string &fen, bool c960 = false, bool full = true);
 typedef struct StateInfo sealed
 {
 public:
+    // Hash key of materials.
+    Key key_matl;
+    // Hash key of pawns.
+    Key key_pawn;
+
+    Value non_pawn_matl[CLR_NO];
+    Score psq_score;
+
     // Castling-rights information for both side.
     CRight castle_rights;
 
@@ -69,14 +78,6 @@ public:
     uint8_t
         clock50,
         null_ply;
-
-    //  Value npMaterial[COLOR_NB];
-    Score psq_score;
-
-    // Hash key of materials.
-    Key key_matl;
-    // Hash key of pawns.
-    Key key_pawn;
 
     // -------------------------------------
 
@@ -92,7 +93,7 @@ public:
     StateInfo *p_si;
 
     void clear ();
-    
+
     operator ::std::string () const;
 
 } StateInfo;
@@ -177,6 +178,7 @@ private:
     uint16_t _game_ply;
     bool     _chess960;
 
+    //Key      _exclusion;
     uint64_t _game_nodes;
 
 #pragma endregion
@@ -269,6 +271,12 @@ public:
     Key key_pawn () const;
     //
     Key key_posi () const;
+
+    Key key_posi_exclusion () const;
+
+    // Incremental piece-square evaluation
+    Value non_pawn_material (Color c) const;
+    Score psq_score () const;
 
 #pragma endregion
 
@@ -464,6 +472,12 @@ inline Key Position::key_matl () const { return _si->key_matl; }
 inline Key Position::key_pawn () const { return _si->key_pawn; }
 //
 inline Key Position::key_posi () const { return _si->key_posi; }
+//
+inline Key Position::key_posi_exclusion () const { return _si->key_posi ^ Zobrist::exclusion;}
+
+inline Score Position::psq_score () const { return _si->psq_score; }
+
+inline Value Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
 #pragma endregion
 

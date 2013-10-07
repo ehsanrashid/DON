@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include "BitBoard.h"
+#include "Zobrist.h"
 #include "UCI.h"
 #include "Tester.h"
 
@@ -77,6 +78,7 @@ namespace Engine {
         ::std::cout << Engine::info () << ::std::endl;
 
         BitBoard::initialize ();
+        Zobrist::initialize ();
 
 #ifdef _DEBUG
 

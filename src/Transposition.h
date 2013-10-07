@@ -18,8 +18,8 @@
 //  Gen          1
 ////  Nodes          2
 //  Score        2
-//  static value 2
-//  static mrgin 2
+//  eval value   2
+//  eval mrgin   2
 // ----------------
 //  total        16 byte
 
@@ -38,8 +38,8 @@ private:
     //uint16_t  _nodes;
     int16_t
         _value
-        , _value_eval
-        , _margn_eval
+        , _eval_value
+        , _eval_margn
         ;
 
 public:
@@ -51,29 +51,23 @@ public:
     uint8_t   gen () const { return _gen; }
     //uint16_t nodes () const { return uint16_t (_nodes); }
     Value   value () const { return Value (_value); }
-    //Value value_eval () const  { return Value (_value_eval); }
-    //Value margn_eval () const { return Value (_margn_eval); }
+    Value eval_value () const { return Value (_eval_value); }
+    Value eval_margn () const { return Value (_eval_margn); }
 
     void save (
-        uint32_t key   = U32 (0),
-        Move     move  = (MOVE_NONE),
-        Depth    depth = (DEPTH_ZERO),
-        Bound    bound = (UNKNOWN),
-        uint8_t  gen   = (0),
-        uint16_t nodes = (0),
-        Value    value = (VALUE_ZERO),
-        Value    value_eval = (VALUE_DRAW),
-        Value    margn_eval = (VALUE_DRAW))
+        uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, 
+        //uint16_t nodes,
+        Value value, Value e_value, Value e_margn)
     {
-        _key   = key;
-        _move  = move;
-        _value = value;
-        _depth = depth;
-        _bound = bound;
-        //_nodes  = nodes;
-        _gen   = gen;
-        //_value_eval = value_eval;
-        //_margn_eval = margn_eval;
+        _key        = uint32_t (key);
+        _move       = uint16_t (move);
+        _depth      = uint16_t (depth);
+        _bound      = uint8_t (bound);
+        _gen        = uint8_t (gen);
+        //_nodes      = uint16_t (nodes);
+        _value      = uint16_t (value);
+        _eval_value = uint16_t (e_value);
+        _eval_margn = uint16_t (e_margn);
     }
 
     void gen (uint8_t gen)
@@ -214,7 +208,7 @@ public:
     }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, Value value, uint16_t nodes);
+    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value, Value e_margn);
 
     // retrieve() looks up the entry in the transposition table.
     const TranspositionEntry* TranspositionTable::retrieve (Key key) const;

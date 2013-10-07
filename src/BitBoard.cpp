@@ -659,7 +659,7 @@ namespace BitBoard {
 
 #pragma endregion
 
-    SquareList square_list (Bitboard bb)
+    SquareList squares (Bitboard bb)
     {
         SquareList lst_sq;
 

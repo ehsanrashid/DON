@@ -322,11 +322,12 @@ namespace BitBoard {
 
     inline Bitboard mask_rel_rank (Color c, Rank   r)
     {
-        return _bb_rank[rel_rank (c, r)];//_bb_REL_R[c][r];
+        return _bb_rank[rel_rank (c, r)];
     }
     inline Bitboard mask_rel_rank (Color c, Square s)
     {
-        return _bb_rank[rel_rank (c, s)];//mask_rel_rank (c, _rank(s));
+        return _bb_rank[rel_rank (c, s)];
+        //mask_rel_rank (c, _rank(s));
     }
 
     // Bitboard of squares along the line in front of the square, from the point of view of the given color.
@@ -410,27 +411,27 @@ namespace BitBoard {
     //    return (bb) >> (x << 3);
     //}
 
-    template<Delta DELTA>
+    template<Delta D>
     // Shift the Bitboard using delta
-    extern Bitboard shift_del (Bitboard bb);
+    inline Bitboard shift_del (Bitboard bb);
 
     template<>
-    inline Bitboard shift_del<DEL_N> (Bitboard bb)
+    inline Bitboard shift_del<DEL_N > (Bitboard bb)
     {
         return (bb) << (8);
     }
     template<>
-    inline Bitboard shift_del<DEL_S> (Bitboard bb)
+    inline Bitboard shift_del<DEL_S > (Bitboard bb)
     {
         return (bb) >> (8);
     }
     template<>
-    inline Bitboard shift_del<DEL_E> (Bitboard bb)
+    inline Bitboard shift_del<DEL_E > (Bitboard bb)
     {
         return (bb & bb_FH_) << (1);
     }
     template<>
-    inline Bitboard shift_del<DEL_W> (Bitboard bb)
+    inline Bitboard shift_del<DEL_W > (Bitboard bb)
     {
         return (bb & bb_FA_) >> (1);
     }

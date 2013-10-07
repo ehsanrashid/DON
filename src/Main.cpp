@@ -60,19 +60,20 @@ namespace {
         ::std::cout << key << ::std::endl;
     }
 
-    char *low_stack, *high_stack;
-    void deepest_stack_path_function()
-    {
-        int var;
-        low_stack = (char *) &var;
-        // ...
-    }
-    void sampling_timer_interrupt_handler()
-    {
-        int var;
-        char *cur_stack = (char *) &var;
-        if (cur_stack < low_stack) low_stack = cur_stack;
-    }
+    //char *low_stack, *high_stack;
+    //void deepest_stack_path_function()
+    //{
+    //    int var;
+    //    low_stack = (char *) &var;
+    //    // ...
+    //}
+    //void sampling_timer_interrupt_handler()
+    //{
+    //    int var;
+    //    char *cur_stack = (char *) &var;
+    //    if (cur_stack < low_stack) low_stack = cur_stack;
+    //}
+
 }
 
 
@@ -89,7 +90,13 @@ int main (int argc, const char* const argv[])
     BitBoard::initialize ();
 
     
-    //Engine::start ();
+    //Value mg = Value (123);
+    //Value eg = Value (456);
+    //Score s = make_score (mg, eg);
+    //mg = mg_value (s);
+    //eg = eg_value (s);
+
+    Engine::start ();
 
     //log_io (true);
 

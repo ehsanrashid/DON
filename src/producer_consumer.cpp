@@ -11,6 +11,23 @@
 std::blocking_queue<int> q (50);
 
 
+//template <typename T, size_t N>
+//inline size_t sizeof_array (const T(&)[N])
+//{
+//    return N;
+//}
+//
+//#include <type_traits>
+//template <typename A>
+//typename std::enable_if <std::is_array <A> ::value, size_t> ::type sizeof_array (const A &a)
+//{
+//    return std::extent <A>::value;
+//}
+//
+//const char s[] = "Hello world!";
+//
+//// sizeof_array (s)
+
 
 void producer ()
 { 
