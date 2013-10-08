@@ -559,10 +559,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Benchmark.cpp" />
+    <ClCompile Include="src\BitBases.cpp" />
     <ClCompile Include="src\BitBoard.cpp" />
     <ClCompile Include="src\BitBoard.SHERWIN.cpp" />
     <ClCompile Include="src\Board.cpp" />
     <ClCompile Include="src\ECO.cpp" />
+    <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -586,6 +588,7 @@
   <ItemGroup>
     <ClInclude Include="src\atomicstream.h" />
     <ClInclude Include="src\Benchmark.h" />
+    <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitRotate.h" />
@@ -593,6 +596,7 @@
     <ClInclude Include="src\Board.h" />
     <ClInclude Include="src\Castle.h" />
     <ClInclude Include="src\ECO.h" />
+    <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\Forest.h" />

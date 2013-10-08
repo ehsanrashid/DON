@@ -101,10 +101,6 @@ public:
 
 #pragma pack (pop)
 
-// do_move() copy current state info up to 'key_posi' excluded to the new one.
-// calculate the quad words (64bits) needed to be copied.
-const uint32_t SIZE_COPY_SI = offsetof (StateInfo, key_posi); // / sizeof (uint32_t);// + 1;
-
 #pragma endregion
 
 #pragma region Check Inforamtion

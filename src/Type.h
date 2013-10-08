@@ -415,6 +415,14 @@ typedef enum Bound : uint8_t
 
 } Bound;
 
+enum ScaleFactor : uint8_t
+{
+    SCALE_FACTOR_DRAW   = 0,
+    SCALE_FACTOR_NORMAL = 64,
+    SCALE_FACTOR_MAX    = 128,
+    SCALE_FACTOR_NONE   = 255
+};
+
 #pragma warning (pop)
 
 inline Score make_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
