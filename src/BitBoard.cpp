@@ -302,6 +302,25 @@ namespace BitBoard {
         return _bb_attacks_type[KING][s];
     }
 
+    template<>
+    // BISHOP Attacks
+    Bitboard attacks_bb<BSHP> (Square s)
+    {
+        return _bb_attacks_type[BSHP][s];
+    }
+    template<>
+    // ROOK Attacks
+    Bitboard attacks_bb<ROOK> (Square s)
+    {
+        return _bb_attacks_type[ROOK][s];
+    }
+    template<>
+    // QUEEN Attacks
+    Bitboard attacks_bb<QUEN> (Square s)
+    {
+        return _bb_attacks_type[QUEN][s];
+    }
+
 
     // Piece attacks from square
     Bitboard attacks_bb (Piece p, Square s, Bitboard occ)

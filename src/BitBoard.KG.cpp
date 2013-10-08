@@ -28,36 +28,16 @@ namespace BitBoard {
     }
 
     template<>
-    // BISHOP Attacks
-    Bitboard attacks_bb<BSHP> (Square s)
-    {
-        return _bb_attacks_type[BSHP][s];
-    }
-    template<>
     // BISHOP Attacks with occ
     Bitboard attacks_bb<BSHP>(Square s, Bitboard occ)
     {
         return (attacks_diag18 (s, occ) | attacks_diag81 (s, occ));
-    }
-
-    template<>
-    // ROOK Attacks
-    Bitboard attacks_bb<ROOK> (Square s)
-    {
-        return _bb_attacks_type[ROOK][s];
     }
     template<>
     // ROOK Attacks with occ
     Bitboard attacks_bb<ROOK>(Square s, Bitboard occ)
     {
         return (attacks_rank (s, occ) | attacks_file (s, occ));
-    }
-
-    template<>
-    // QUEEN Attacks
-    Bitboard attacks_bb<QUEN> (Square s)
-    {
-        return _bb_attacks_type[QUEN][s];
     }
     template<>
     // QUEEN Attacks with occ

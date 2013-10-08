@@ -163,36 +163,16 @@ namespace BitBoard {
 #pragma region Attacks
 
     template<>
-    // BISHOP Attacks
-    Bitboard attacks_bb<BSHP> (Square s)
-    {
-        return _bb_attacks_type[BSHP][s];
-    }
-    template<>
     // BISHOP Attacks with occupancy
     Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
         return _bbTable_B[index_attacks<BSHP> (s, occ)];
-    }
-
-    template<>
-    // ROOK Attacks
-    Bitboard attacks_bb<ROOK> (Square s)
-    {
-        return _bb_attacks_type[ROOK][s];
     }
     template<>
     // ROOK Attacks with occupancy
     Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
         return _bbTable_R[index_attacks<ROOK> (s, occ)];
-    }
-
-    template<>
-    // QUEEN Attacks
-    Bitboard attacks_bb<QUEN> (Square s)
-    {
-        return _bb_attacks_type[QUEN][s];
     }
     template<>
     // QUEEN Attacks with occupancy
