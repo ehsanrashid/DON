@@ -78,61 +78,61 @@ const uint8_t MAX_SPLIT_DEPTH             = 99;
 // File of Square
 typedef enum File : int8_t
 {
-    F_A = 0,
-    F_B = 1,
-    F_C = 2,
-    F_D = 3,
-    F_E = 4,
-    F_F = 5,
-    F_G = 6,
-    F_H = 7,
-    F_NO = 8,
+    F_A,
+    F_B,
+    F_C,
+    F_D,
+    F_E,
+    F_F,
+    F_G,
+    F_H,
+    F_NO,
 
 } File;
 
 // Rank of Square
 typedef enum Rank : int8_t
 {
-    R_1 = 0,
-    R_2 = 1,
-    R_3 = 2,
-    R_4 = 3,
-    R_5 = 4,
-    R_6 = 5,
-    R_7 = 6,
-    R_8 = 7,
-    R_NO = 8,
+    R_1,
+    R_2,
+    R_3,
+    R_4,
+    R_5,
+    R_6,
+    R_7,
+    R_8,
+    R_NO,
 
 } Rank;
 
 // Diagonal of Square
 typedef enum Diag : int8_t
 {
-    D_01 =  0,
-    D_02 =  1,
-    D_03 =  2,
-    D_04 =  3,
-    D_05 =  4,
-    D_06 =  5,
-    D_07 =  6,
-    D_08 =  7,
-    D_09 =  8,
-    D_10 =  9,
-    D_11 = 10,
-    D_12 = 11,
-    D_13 = 12,
-    D_14 = 13,
-    D_15 = 14,
-    D_NO = 15,
+    D_01,
+    D_02,
+    D_03,
+    D_04,
+    D_05,
+    D_06,
+    D_07,
+    D_08,
+    D_09,
+    D_10,
+    D_11,
+    D_12,
+    D_13,
+    D_14,
+    D_15,
+    D_NO,
 
 } Diag;
 
 // Color of Square and Side
 typedef enum Color : uint8_t
 {
-    WHITE  = 0,
-    BLACK  = 1,
-    CLR_NO = 2,
+    WHITE,
+    BLACK,
+    CLR_NO,
 
 } Color;
 
@@ -210,11 +210,11 @@ typedef enum CSide : uint8_t
 // Castle Right
 typedef enum CRight : uint8_t
 {
-    CR_NO  = 0, // 0000
-    CR_W_K = 1, // 0001
-    CR_W_Q = 2, // 0010
-    CR_B_K = 4, // 0100
-    CR_B_Q = 8, // 1000
+    CR_NO  = 0,             // 0000
+    CR_W_K = 1,             // 0001
+    CR_W_Q = CR_W_K << 1,   // 0010
+    CR_B_K = CR_W_K << 2,   // 0100
+    CR_B_Q = CR_W_K << 3,   // 1000
 
     CR_W = CR_W_K | CR_W_Q, // 0011
     CR_B = CR_B_K | CR_B_Q, // 1100
@@ -252,21 +252,21 @@ typedef enum PType : int8_t
 // ONLY MAJOR    > 5
 typedef enum Piece : uint8_t
 {
-    PS_NO    = 0x00, //  0000
+    PS_NO  = 0, //  0000
 
-    W_PAWN   = 0x01, //  0001
-    W_KING   = 0x02, //  0010
-    W_NIHT   = 0x03, //  0011
-    W_BSHP   = 0x05, //  0101
-    W_ROOK   = 0x06, //  0110
-    W_QUEN   = 0x07, //  0111
+    W_PAWN = 1, //  0001
+    W_KING    , //  0010
+    W_NIHT    , //  0011
+    W_BSHP = 5, //  0101
+    W_ROOK    , //  0110
+    W_QUEN    , //  0111
 
-    B_PAWN   = 0x09, //  1001
-    B_KING   = 0x0A, //  1010
-    B_NIHT   = 0x0B, //  1011
-    B_BSHP   = 0x0D, //  1101
-    B_ROOK   = 0x0E, //  1110
-    B_QUEN   = 0x0F, //  1111
+    B_PAWN = 9, //  1001
+    B_KING    , //  1010
+    B_NIHT    , //  1011
+    B_BSHP =13, //  1101
+    B_ROOK    , //  1110
+    B_QUEN    , //  1111
 
     //W_PIEC    = 0x00, //  0...
     //B_PIEC    = 0x08, //  1...
@@ -392,7 +392,7 @@ typedef enum Bound : uint8_t
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    UPPER   = 2,
+    UPPER   = LOWER << 1,
 
     // EXACT (-) BOUND      - PV
     // EXACT evaluation, when receive a definite evaluation,
@@ -402,7 +402,7 @@ typedef enum Bound : uint8_t
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    EXACT   = 3,
+    EXACT   = LOWER | UPPER,
 
     // Evaluation cache for lower bound
     EVAL_LOWER = 4,

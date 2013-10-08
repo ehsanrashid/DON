@@ -78,7 +78,7 @@ namespace {
 
 
 
-int main (int argc, const char* const argv[])
+int maine (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);
 

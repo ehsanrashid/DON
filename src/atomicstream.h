@@ -5,9 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <mutex>
-
 #include "noncopyable.h"
-//#include <memory>
 //#include "functor.h"
 
 namespace std {
@@ -140,13 +138,13 @@ namespace std {
         // Write the whole shebang in one go & also flush
         atomic_stream& operator() ()
         {
-            // lock
             {
+                // acquire lock
                 std::unique_lock<std::mutex> lock;
                 _out_stm << str () << ::std::flush;
                 clear ();
+                // release lock
             }
-            // unlock
             return *this;
         }
 

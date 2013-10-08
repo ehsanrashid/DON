@@ -620,6 +620,7 @@
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\Square.h" />
     <ClInclude Include="src\Tester.h" />
+    <ClInclude Include="src\ThreadPool.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\Transposition.h" />
