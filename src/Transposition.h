@@ -5,7 +5,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "Type.h"
-#include "LeakDetector.h"
+//#include "LeakDetector.h"
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
