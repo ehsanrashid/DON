@@ -75,10 +75,10 @@ namespace Engine {
 
     void start ()
     {
-        ::std::cout << Engine::info () << ::std::endl;
-
         BitBoard::initialize ();
         Zobrist::initialize ();
+
+        ::std::cout << Engine::info () << ::std::endl;
 
 #ifdef _DEBUG
 

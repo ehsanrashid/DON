@@ -16,6 +16,7 @@
 #include "iologger.h"
 #include "TriLogger.h"
 #include "Time.h"
+#include "LeakDetector.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -78,7 +79,7 @@ namespace {
 
 
 
-int maine (int argc, const char* const argv[])
+int main (int argc, const char* const argv[])
 {
     //std::string args = string_args (argc, argv);
 
@@ -87,8 +88,8 @@ int maine (int argc, const char* const argv[])
     //high_stack = (char *) &argc;
     //printf("Current stack usage: %d bytes\n", high_stack - low_stack);
 
-    BitBoard::initialize ();
-
+    //BitBoard::initialize ();
+    //Zobrist::initialize ();
     
     //Value mg = Value (123);
     //Value eg = Value (456);
@@ -104,10 +105,9 @@ int maine (int argc, const char* const argv[])
 
     //return 0;
 
-    //TranspositionTable tt;
-    //tt.resize (1);
-
-
+    TranspositionTable tt;
+    tt.resize (1);
+    
     //Key key;
     //Move move;
     //Depth depth;
@@ -208,15 +208,15 @@ int maine (int argc, const char* const argv[])
     //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 4 5";
     //"rnbqkbnr/pppppppp/8/8/1P2P1P1/1N3N2/2P2PP1/R1BQKB1R w KQkq - 0 1";
 
-    Position pos (int8_t (0));
-    //Move m;
-    //StateInfoStack stk_si;
+    //Position pos (int8_t (0));
+    ////Move m;
+    ////StateInfoStack stk_si;
 
-    pos.setup (fen);
-    //
-    cout << pos << endl;
+    //pos.setup (fen);
+    ////
+    //cout << pos << endl;
 
-    cout << generate<LEGAL>(pos);
+    //cout << generate<LEGAL>(pos);
 
     //m = mk_move (SQ_B6, SQ_B1);
     //m = mk_move (SQ_F2, SQ_F4);
@@ -284,7 +284,8 @@ int maine (int argc, const char* const argv[])
 
     Engine::stop ();
 
-    //atexit(report_leak());
+    //atexit ((void (__cdecl *)()) (report_leak));
+    atexit (report_leak);
     system ("PAUSE");
     return EXIT_SUCCESS;
 }

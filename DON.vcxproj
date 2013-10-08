@@ -596,7 +596,6 @@
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\Forest.h" />
-    <ClInclude Include="src\Forest.hpp" />
     <ClInclude Include="src\functor.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\IOLogger.h" />
@@ -625,7 +624,6 @@
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Tree.h" />
-    <ClInclude Include="src\Tree.hpp" />
     <ClInclude Include="src\TriLogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />

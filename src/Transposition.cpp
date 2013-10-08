@@ -65,7 +65,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
     uint32_t offset = std::max<uint32_t> (alignment, sizeof (void *));
         //(alignment - 1) + sizeof (void *);
 
-    void *mem = std::calloc (size + offset, 1);
+    void *mem = calloc (size + offset, 1);
     if (!mem)
     {
         std::cerr << "ERROR: hash failed to allocate " << size << " byte..." << std::endl;

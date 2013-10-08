@@ -8,16 +8,16 @@ namespace Zobrist {
     using namespace std;
     using namespace BitBoard;
 
-    const Key KEY_MATL = U64 (0xC1D58449E708A0AD);
-    const Key KEY_PAWN = U64 (0x37FC40DA841E1692);
-    const Key KEY_POSI = U64 (0x463B96181691FC9C);
+    const Key PG_KEY_MATL = U64 (0xC1D58449E708A0AD);
+    const Key PG_KEY_PAWN = U64 (0x37FC40DA841E1692);
+    const Key PG_KEY_POSI = U64 (0x463B96181691FC9C);
+    
+    static RKISS rkiss;
 
     Key exclusion;
 
-    void Zob::initialize ()
+    void Zob::initialize (RKISS rkiss)
     {
-        RKISS rkiss;
-
 #pragma region Zobrist
 
         //for (Color c = WHITE; c <= BLACK; ++c)
@@ -53,7 +53,6 @@ namespace Zobrist {
         }
 
 #pragma endregion
-
     }
 
     // Hash key of the material situation.
@@ -453,9 +452,8 @@ namespace Zobrist {
 
     void initialize ()
     {
-        ZobRand.initialize ();
+        //ZobRand.initialize (rkiss);
 
-        RKISS rkiss;
         exclusion = rkiss.rand64 ();
     }
 
@@ -464,7 +462,7 @@ namespace Zobrist {
 #pragma region PolyGlot Randoms
 
 // Random numbers from PolyGlot, used to compute book hash keys
-const Zobrist::Zob ZobPoly =
+const Zobrist::Zob ZobPG =
 {
 
 #pragma region WHITE
@@ -711,4 +709,4 @@ Zobrist::Zob ZobRand;
 
 const Zobrist::Zob &ZobGlob =
     //ZobRand;
-    ZobPoly;
+    ZobPG;

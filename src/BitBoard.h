@@ -213,34 +213,34 @@ namespace BitBoard {
 
 #pragma region Deltas
 
-    F_INLINE Delta dist_file (Square s1, Square s2)
+    inline Delta dist_file (Square s1, Square s2)
     {
         //return abs(int8_t(_file(s1) - _file(s2)));
         return _del_file_rank[_file (s1)][_file (s2)];
     }
-    F_INLINE Delta dist_rank (Square s1, Square s2)
+    inline Delta dist_rank (Square s1, Square s2)
     {
         //return abs(int8_t(_rank(s1) - _rank(s2)));
         return _del_file_rank[_rank (s1)][_rank (s2)];
     }
-    F_INLINE Delta dist_sq (Square s1, Square s2)
+    inline Delta dist_sq (Square s1, Square s2)
     {
         return _del_sq[s1][s2];
     }
-    F_INLINE Delta dist_taxi (Square s1, Square s2)
+    inline Delta dist_taxi (Square s1, Square s2)
     {
         return _del_taxi[s1][s2];
     }
 
     // Absolute Difference of rank & file
-    F_INLINE Delta diff_rank_file (Square s1, Square s2)
+    inline Delta diff_rank_file (Square s1, Square s2)
     {
         int8_t rd = (s1 | 7) - (s2 | 7);
         int8_t fd = (s1 & 7) - (s2 & 7);
         return Delta (abs (rd) + abs (fd));
     }
 
-    F_INLINE Delta offset_sq (Square s1, Square s2)
+    inline Delta offset_sq (Square s1, Square s2)
     {
         return (s2 - s1) / dist_sq (s1, s2);
     }

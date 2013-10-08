@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "Type.h"
+#include "LeakDetector.h"
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
@@ -102,7 +103,7 @@ private:
         if (_hash_table)
         {
             void *mem = ((void **) _hash_table)[-1];
-            std::free (mem);
+            free (mem);
             mem = _hash_table = NULL;
         }
 
