@@ -40,6 +40,7 @@ extern bool _ok (const ::std::string &fen, bool c960 = false, bool full = true);
 #pragma region State Information
 
 #pragma pack (push, 4)
+
 // StateInfo stores information to restore Position object to its previous state when retracting a move.
 // Whenever a move is made on the board (do_move), a StateInfo object must be passed as a parameter.
 //
@@ -109,6 +110,7 @@ const uint32_t SIZE_COPY_SI = offsetof (StateInfo, key_posi); // / sizeof (uint3
 #pragma region Check Inforamtion
 
 #pragma pack (push, 4)
+
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
 //  - checking squares.
@@ -140,6 +142,7 @@ public:
 #pragma region Position
 
 #pragma pack (push, 4)
+
 // The position data structure. A position consists of the following data:
 //
 //  - Board for storing pieces.
@@ -414,6 +417,7 @@ public:
 #pragma endregion
 
 } Position;
+
 #pragma pack (pop)
 
 #pragma region Basic properties

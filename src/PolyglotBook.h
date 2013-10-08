@@ -6,6 +6,7 @@
 #include <fstream>
 #include "Type.h"
 #include "RKISS.h"
+#include "noncopyable.h"
 
 class Position;
 
@@ -18,6 +19,7 @@ class Position;
 // Polyglot book file has *.bin extension
 typedef class PolyglotBook sealed
     : private ::std::fstream
+    , public ::std::noncopyable
 {
 
 public:

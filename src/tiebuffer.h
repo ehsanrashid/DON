@@ -4,11 +4,14 @@
 
 #include <streambuf>
 #include <fstream>
+#include "noncopyable.h"
 
 namespace std {
 
     template<class Elem, class Traits>
-    class basic_tie_buf sealed : public ::std::basic_streambuf<Elem, Traits>
+    class basic_tie_buf sealed
+        : public ::std::basic_streambuf<Elem, Traits>
+        , public ::std::noncopyable
     {
 
     private:
