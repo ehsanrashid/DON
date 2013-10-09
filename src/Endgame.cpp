@@ -1,7 +1,5 @@
 #include "Endgame.h"
 
-
-
 namespace {
 
     // Table used to drive the king towards the edge of the board
@@ -64,7 +62,6 @@ namespace {
 
 } // namespace
 
-
 // Endgames members definitions
 Endgames::Endgames()
 {
@@ -89,8 +86,8 @@ Endgames::Endgames()
 
 Endgames::~Endgames()
 {
-    for_each(m1.begin(), m1.end(), delete_endgame<M1>);
-    for_each(m2.begin(), m2.end(), delete_endgame<M2>);
+    for_each (m1.begin(), m1.end(), delete_endgame<M1>);
+    for_each (m2.begin(), m2.end(), delete_endgame<M2>);
 }
 
 

@@ -552,7 +552,7 @@ namespace BitBoard {
             //rforeach (int8_t, 0, 1, n)
             //{
             //    string nibble_s = sb.substr(n * 4, 4);
-            //    if (isempty(nibble_s)) break;
+            //    if (empty(nibble_s)) break;
             //    else if (nibble_s == "0000") shex += "0";
             //    else if (nibble_s == "1000") shex += "1";
             //    else if (nibble_s == "0100") shex += "2";

@@ -17,27 +17,6 @@ namespace MoveGenerator {
 
     namespace {
 
-#pragma region old
-        //// Fill moves in the list for any piece using a very common while loop, no fancy.
-        //static inline void SERIALIZE (MoveList &lst_move, Square org, Bitboard moves)
-        //{
-        //    while (moves)
-        //    {
-        //        lst_move.emplace_back (mk_move<NORMAL> (org, pop_lsb (moves)));
-        //    }
-        //}
-        //// Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-        //static inline void SERIALIZE_PAWNS (MoveList &lst_move, Delta delta, Bitboard moves)
-        //{
-        //    while (moves)
-        //    {
-        //        Square dst = pop_lsb (moves);
-        //        lst_move.emplace_back (mk_move<NORMAL> (dst - (delta), dst));
-        //    }
-        //}
-
-#pragma endregion
-
 #pragma region Move Generators
 
         template<GType G, PType P>
@@ -594,8 +573,7 @@ namespace MoveGenerator {
     // Generates all legal moves.
     MoveList generate<LEGAL>       (const Position &pos)
     {
-        MoveList lst_move = 
-            pos.checkers () ?
+        MoveList lst_move = pos.checkers () ?
             generate<EVASION> (pos) :
             generate<RELAX> (pos);
 

@@ -64,7 +64,7 @@ namespace UCI {
         }
         Option& CheckOption::operator= (char   *v)
         {
-            if (iswhitespace (v)) return *this;
+            if (whitespace (v)) return *this;
             bool val = iequals (v, "true");
             if (value != val)
             {
@@ -75,7 +75,7 @@ namespace UCI {
         }
         Option& CheckOption::operator= (string &v)
         {
-            if (iswhitespace (v)) return *this;
+            if (whitespace (v)) return *this;
             bool val = iequals (v, "true");
             if (value != val)
             {
@@ -92,11 +92,11 @@ namespace UCI {
         }
         string StringOption::operator() () const
         {
-            return string ("type string default ") + string (iswhitespace (default) ? "<empty>" : value);
+            return string ("type string default ") + string (whitespace (default) ? "<empty>" : value);
         }
         StringOption::operator string () const
         {
-            return iswhitespace (value) ? "<empty>" : value;
+            return whitespace (value) ? "<empty>" : value;
         }
         Option& StringOption::operator= (char   *v)
         {
@@ -136,7 +136,7 @@ namespace UCI {
         }
         Option& SpinOption::operator= (char   *v)
         {
-            if (iswhitespace (v)) return *this;
+            if (whitespace (v)) return *this;
             int32_t val = to_int (v);
             val = std::min (std::max (val, min), max);
             //if (min < val && val < max)
@@ -151,7 +151,7 @@ namespace UCI {
         }
         Option& SpinOption::operator= (string &v)
         {
-            if (iswhitespace (v)) return *this;
+            if (whitespace (v)) return *this;
             int32_t val = std::stoi (v);
             val = std::min (std::max (val, min), max);
             //if (min < val && val < max)

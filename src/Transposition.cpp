@@ -28,8 +28,11 @@ void TranspositionTable::resize (uint32_t size_mb)
 
     uint8_t bit_hash = scan_msb (total_entry);
     ASSERT (bit_hash < MAX_BIT_HASH);
-    if (bit_hash >= MAX_BIT_HASH) return;
-
+    if (bit_hash >= MAX_BIT_HASH)
+    {
+        bit_hash = MAX_BIT_HASH - 1;
+        //return;
+    }
     total_entry     = size_t (1) << bit_hash;
     if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return;
 
@@ -40,7 +43,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
     _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
-    _store_entry    = 0;
+    _stored_entry    = 0;
     _generation     = 0;
 }
 
@@ -140,7 +143,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
     }
 
     re->save (key32, move, depth, bound, _generation, value, e_value, e_margn);
-    ++_store_entry;
+    ++_stored_entry;
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -166,12 +169,12 @@ double TranspositionTable::permill_full () const
     uint64_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
 
     //return (0 != total_entry) ?
-    //    //(1 - exp (_store_entry * log (1.0 - 1.0/total_entry))) * 1000 :
-    //    (1 - exp (log (1.0 - double (_store_entry) / double (total_entry)))) * 1000 :
-    //    //exp (log (1000.0 + _store_entry - total_entry)) :
+    //    //(1 - exp (_stored_entry * log (1.0 - 1.0/total_entry))) * 1000 :
+    //    (1 - exp (log (1.0 - double (_stored_entry) / double (total_entry)))) * 1000 :
+    //    //exp (log (1000.0 + _stored_entry - total_entry)) :
     //    0.0;
 
     return (0 != total_entry) ?
-        double (_store_entry) * 1000 / double (total_entry) : 0.0;
+        double (_stored_entry) * 1000 / double (total_entry) : 0.0;
 
 }

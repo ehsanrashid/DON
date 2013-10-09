@@ -415,13 +415,20 @@ typedef enum Bound : uint8_t
 
 } Bound;
 
-enum ScaleFactor : uint8_t
+typedef enum Phase
+{
+    PHASE_ENDGAME,
+    PHASE_MIDGAME = 128,
+    MG = 0, EG = 1, PHASE_NB = 2
+} Phase;
+
+typedef enum ScaleFactor : uint8_t
 {
     SCALE_FACTOR_DRAW   = 0,
     SCALE_FACTOR_NORMAL = 64,
     SCALE_FACTOR_MAX    = 128,
     SCALE_FACTOR_NONE   = 255
-};
+} ScaleFactor;
 
 #pragma warning (pop)
 

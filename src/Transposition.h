@@ -92,7 +92,7 @@ private:
 
     TranspositionEntry *_hash_table;
     uint64_t            _hash_mask;
-    uint64_t            _store_entry;
+    uint64_t            _stored_entry;
     uint8_t             _generation;
 
     void aligned_memory_alloc (size_t size, uint32_t alignment);
@@ -108,7 +108,7 @@ private:
         }
 
         _hash_mask      = 0;
-        _store_entry    = 0;
+        _stored_entry    = 0;
         _generation     = 0;
     }
 
@@ -144,7 +144,7 @@ public:
     TranspositionTable ()
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _store_entry (0)
+        , _stored_entry (0)
         , _generation (0)
     {
         //resize (DEF_SIZE_TT);
@@ -153,7 +153,7 @@ public:
     TranspositionTable (uint32_t size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _store_entry (0)
+        , _stored_entry (0)
         , _generation (0)
     {
         resize (size_mb);
@@ -176,7 +176,7 @@ public:
         {
             size_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
             std::memset (_hash_table, 0, size_byte);
-            _store_entry    = 0;
+            _stored_entry    = 0;
             _generation     = 0;
         }
     }
@@ -186,7 +186,7 @@ public:
     // transposition table entries from previous searches from entries from the current search.
     void inc_age ()
     {
-        _store_entry    = 0;
+        _stored_entry    = 0;
         ++_generation;
     }
 

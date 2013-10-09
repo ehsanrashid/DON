@@ -38,7 +38,6 @@ protected:
 
 public:
 
-
     ~IOLogger ()
     {
         stop ();

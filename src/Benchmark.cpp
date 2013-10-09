@@ -43,19 +43,19 @@ namespace {
 //     * depth (default).
 //     * time in secs
 //     * number of nodes.
-void benchmark (::std::istream& is, const Position &pos)
+void benchmark (std::istream& is, const Position &pos)
 {
-    ::std::string token;
-    ::std::vector<::std::string> fens;
+    std::string token;
+    std::vector<std::string> fens;
 
     try
     {
         // Assign default values to missing arguments
-        ::std::string size_tt    = (is >> token) ? token : "32";
-        ::std::string threads    = (is >> token) ? token : "1";
-        ::std::string fn_fen     = (is >> token) ? token : "default";
-        ::std::string limit_val  = (is >> token) ? token : "12";
-        ::std::string limit_type = (is >> token) ? token : "depth";
+        std::string size_tt    = (is >> token) ? token : "32";
+        std::string threads    = (is >> token) ? token : "1";
+        std::string fn_fen     = (is >> token) ? token : "default";
+        std::string limit_val  = (is >> token) ? token : "12";
+        std::string limit_type = (is >> token) ? token : "depth";
 
         //Options["Hash"]    = size_tt;
         //Options["Threads"] = threads;
@@ -63,33 +63,33 @@ void benchmark (::std::istream& is, const Position &pos)
         Searcher::Limits limits;
 
         if (false);
-        else if (iequals (limit_type, "time"))  limits.move_time = ::std::stoi (limit_val) * 1000; // movetime is in ms
-        else if (iequals (limit_type, "nodes")) limits.nodes     = ::std::stoi (limit_val);
-        else if (iequals (limit_type, "mate"))  limits.mate_in   = ::std::stoi (limit_val);
+        else if (iequals (limit_type, "time"))  limits.move_time = std::stoi (limit_val) * 1000; // movetime is in ms
+        else if (iequals (limit_type, "nodes")) limits.nodes     = std::stoi (limit_val);
+        else if (iequals (limit_type, "mate"))  limits.mate_in   = std::stoi (limit_val);
         //if (iequals (limit_type, "depth"))
-        else                                    limits.depth     = ::std::stoi (limit_val);
+        else                                    limits.depth     = std::stoi (limit_val);
 
         if (false);
-        else if (fn_fen == "default")
+        else if ("default" == fn_fen)
         {
             fens.assign (default_fens, default_fens + NUM_FEN);
         }
-        else if (fn_fen == "current")
+        else if ("current" == fn_fen)
         {
             fens.emplace_back (pos.fen ());
         }
         else
         {
-            ::std::string fen;
-            ::std::ifstream ifstm_fen (fn_fen);
+            std::string fen;
+            std::ifstream ifstm_fen (fn_fen);
 
             if (!ifstm_fen.is_open ())
             {
-                ::std::cerr << "ERROR: Unable to open file ... \'" << fn_fen << "\'" << ::std::endl;
+                std::cerr << "ERROR: Unable to open file ... \'" << fn_fen << "\'" << std::endl;
                 return;
             }
 
-            while (::std::getline (ifstm_fen, fen))
+            while (std::getline (ifstm_fen, fen))
             {
                 if (!fen.empty ())
                 {

@@ -13,7 +13,7 @@
 
 namespace std {
 
-    inline bool iswhitespace (const std::string &s)
+    inline bool whitespace (const std::string &s)
     {
         if (s.empty ()) return true;
         for (size_t i = 0; i < s.length (); ++i)
@@ -225,7 +225,7 @@ namespace std {
         //    {
         //        part = trim (part);
         //    }
-        //    if (keep_empty || !isempty (part))
+        //    if (keep_empty || !empty (part))
         //    {
         //        list_s.emplace_back (part);
         //    }
@@ -242,7 +242,7 @@ namespace std {
         //    {
         //        part = trim (part);
         //    }
-        //    if (keep_empty || !isempty (part))
+        //    if (keep_empty || !empty (part))
         //    {
         //        list_s.emplace_back (part);
         //    }
@@ -261,7 +261,7 @@ namespace std {
         //    {
         //        part = trim (part);
         //    }
-        //    if (keep_empty || !isempty (part))
+        //    if (keep_empty || !empty (part))
         //    {
         //        list_s.emplace_back (part);
         //    }

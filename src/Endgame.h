@@ -68,7 +68,8 @@ private:
 
 public:
     explicit Endgame(Color c)
-        : strongerSide(c), weakerSide(~c)
+        : strongerSide(c)
+        , weakerSide(~c)
     {}
 
     Color color() const { return strongerSide; }
@@ -97,6 +98,7 @@ class Endgames
     void add (const std::string& code);
 
 public:
+
     Endgames ();
     ~Endgames ();
 

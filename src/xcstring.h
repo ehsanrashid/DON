@@ -9,17 +9,17 @@
 
 #pragma warning (disable: 4996) // Function strcpy () may be unsafe use strcpy_s ()
 
-inline bool isnull (const char s[])
+inline bool null (const char s[])
 {
     return !s;
 }
-inline bool isempty (const char s[])
+inline bool empty (const char s[])
 {
     assert (s);
     if (!s)     return false;
     return !(*s);
 }
-inline bool iswhitespace (const char s[])
+inline bool whitespace (const char s[])
 {
     assert (s);
     if (!s)     return true;
@@ -399,7 +399,7 @@ inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, b
             //            part = trim (part);
             //        }
 
-            //        if (keep_empty || !isempty (part))
+            //        if (keep_empty || !empty (part))
             //        {
             //            list[idx++] = part;
             //        }
@@ -440,7 +440,7 @@ inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, b
                         part = trim (part);
                     }
 
-                    if (keep_empty || !isempty (part))
+                    if (keep_empty || !empty (part))
                     {
                         if (idx < count) list[idx++] = part;
                     }

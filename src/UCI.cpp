@@ -62,7 +62,7 @@ namespace UCI {
                 {
                     if (!(cstm >> token)) return;
                     if (iequals (token, "value")) break;
-                    name += iswhitespace (name) ? token : " " + token;
+                    name += whitespace (name) ? token : " " + token;
                 }
 
                 ::std::string value;
@@ -70,7 +70,7 @@ namespace UCI {
                 while (cstm.good ())
                 {
                     if (!(cstm >> token)) return;
-                    value += iswhitespace (value) ? token : " " + token;
+                    value += whitespace (value) ? token : " " + token;
                 }
 
                 if (Options.count (name) > 0)
@@ -127,7 +127,7 @@ namespace UCI {
                 while (cstm.good () && (cstm >> token))
                 {
                     if (iequals (token, "moves")) break;
-                    fen += iswhitespace (fen) ? token : " " + token;
+                    fen += whitespace (fen) ? token : " " + token;
                 }
 
                 bool ok_fen = _ok (fen);
@@ -288,8 +288,8 @@ namespace UCI {
         do
         {
             // Block here waiting for input
-            if (is_running && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
-            if (std::iswhitespace (cmd)) continue;
+            if (is_running && !::std::getline (std::cin, cmd, '\n')) cmd = "quit";
+            if (::std::whitespace (cmd)) continue;
             try
             {
                 ::std::istringstream cstm (cmd);

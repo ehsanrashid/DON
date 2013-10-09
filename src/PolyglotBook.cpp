@@ -300,7 +300,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         }
         else if (sum_weight)
         {
-            uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
+            uint16_t rand = _rkiss.randX<uint16_t> () % sum_weight;
             if (pe.weight > rand) move = Move (pe.move);
         }
         else if (MOVE_NONE == move) // if not pick best and sum of weight = 0
