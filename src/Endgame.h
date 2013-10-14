@@ -64,15 +64,15 @@ template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
 struct Endgame : public EndgameBase<T>
 {
 private:
-    Color strongerSide, weakerSide;
+    Color _strong_side, _weak_side;
 
 public:
     explicit Endgame(Color c)
-        : strongerSide(c)
-        , weakerSide(~c)
+        : _strong_side(c)
+        , _weak_side(~c)
     {}
 
-    Color color() const { return strongerSide; }
+    Color color() const { return _strong_side; }
 
     T operator() (const Position&) const;
 

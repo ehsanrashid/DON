@@ -450,35 +450,35 @@ namespace Tester {
             fen = FEN_N;
             Position::parse (pos, fen);
 
-            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.key_matl (pos));
-            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.key_pawn (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.key_posi (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.key_fen (fen));
+            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.compute_matl_key (pos));
+            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.compute_pawn_key (pos));
+            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_posi_key (pos));
+            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_fen_key (fen));
 
             fen = FEN_X;
             Position::parse (pos, fen, true);
 
-            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.key_matl (pos));
-            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.key_pawn (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.key_posi (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.key_fen (fen, true));
+            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.compute_matl_key (pos));
+            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.compute_pawn_key (pos));
+            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_posi_key (pos));
+            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_fen_key (fen, true));
 
             fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
             Position::parse (pos, fen);
 
             ASSERT (pos.ok ());
-            ASSERT (U64 (0xC1D58449E708A0AD) == ZobPG.key_matl (pos));
-            ASSERT (U64 (0x76916F86F34AE5BE) == ZobPG.key_pawn (pos));
-            ASSERT (U64 (0x0756B94461C50FB0) == ZobPG.key_posi (pos));
-            ASSERT (U64 (0x1BCF67975D7D9F11) == ZobPG.key_fen (fen));
+            ASSERT (U64 (0xC1D58449E708A0AD) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0x76916F86F34AE5BE) == ZobPG.compute_pawn_key (pos));
+            ASSERT (U64 (0x0756B94461C50FB0) == ZobPG.compute_posi_key (pos));
+            ASSERT (U64 (0x1BCF67975D7D9F11) == ZobPG.compute_fen_key (fen));
 
             fen = "8/8/8/8/k1Pp2R1/8/6K1/8 b - c3 0 1";
             Position::parse (pos, fen);
 
-            ASSERT (U64 (0x6EF251F2C474D658) == ZobPG.key_matl (pos));
-            ASSERT (U64 (0xB7B954171FD65613) == ZobPG.key_pawn (pos));
-            ASSERT (U64 (0xE230E747697ABB10) == ZobPG.key_posi (pos));
-            ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.key_fen (fen));
+            ASSERT (U64 (0x6EF251F2C474D658) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0xB7B954171FD65613) == ZobPG.compute_pawn_key (pos));
+            ASSERT (U64 (0xE230E747697ABB10) == ZobPG.compute_posi_key (pos));
+            ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.compute_fen_key (fen));
 
             cout << "Zobrist done !!!" << endl;
         }
@@ -494,56 +494,56 @@ namespace Tester {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             pos.setup (fen);
 
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.key_posi ());
+            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             m =  mk_move (SQ_E2, SQ_E4);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.key_posi ());
+            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
 
             m =  mk_move (SQ_D7, SQ_D5);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.key_posi ());
+            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
 
             m = mk_move (SQ_E4, SQ_E5);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.key_posi ());
+            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
 
             m = mk_move (SQ_F7, SQ_F5);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.key_posi ());
+            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
 
             m = mk_move (SQ_E1, SQ_E2);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.key_posi ());
+            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
 
             m = mk_move (SQ_E8, SQ_F7);
             stk_si.push (StateInfo ());
             pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x00FDD303C946BDD9) == pos.key_posi ());
+            //ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
 
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.key_posi ());
+            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.key_posi ());
+            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.key_posi ());
+            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.key_posi ());
+            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.key_posi ());
+            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
             pos.undo_move ();
             stk_si.pop ();
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.key_posi ());
+            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             // castling do/undo
             ////"rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";

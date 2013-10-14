@@ -46,7 +46,7 @@ namespace Searcher {
             //ASSERT (generate<LEGAL>(pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *st++);
-            te = TT.retrieve (pos.key_posi ());
+            te = TT.retrieve (pos.posi_key ());
 
             // Local copy, TT could change
             if (!te || MOVE_NONE == (m = te->move ())) break;
@@ -76,11 +76,11 @@ namespace Searcher {
 
         do
         {
-            te = TT.retrieve (pos.key_posi ());
+            te = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
             if (!te || te->move() != pv[ply])
             {
-                TT.store (pos.key_posi (), pv[ply], DEPTH_NONE, UNKNOWN, VALUE_NONE, VALUE_NONE, VALUE_NONE);
+                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, UNKNOWN, VALUE_NONE, VALUE_NONE, VALUE_NONE);
             }
 
             //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));

@@ -45,7 +45,7 @@ inline bool _ok (Piece p)
     //return 
     //    (W_PAWN <= p && p <= W_QUEN) ||
     //    (B_PAWN <= p && p <= B_QUEN);
-    return !(p & 0xF0) && (p & 0x07);
+    return (p & 0x3) && !(p & ~0xF);
 }
 inline PType _ptype (Piece p)
 {

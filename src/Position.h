@@ -61,9 +61,9 @@ typedef struct StateInfo sealed
 {
 public:
     // Hash key of materials.
-    Key key_matl;
+    Key matl_key;
     // Hash key of pawns.
-    Key key_pawn;
+    Key pawn_key;
 
     Value non_pawn_matl[CLR_NO];
     Score psq_score;
@@ -83,7 +83,7 @@ public:
     // -------------------------------------
 
     // Hash key of position.
-    Key key_posi;
+    Key posi_key;
     // Move played on the previous position.
     Move last_move;
     // Piece type captured.
@@ -265,11 +265,11 @@ public:
     //
     Bitboard checkers () const;
     //
-    Key key_matl () const;
+    Key matl_key () const;
     //
-    Key key_pawn () const;
+    Key pawn_key () const;
     //
-    Key key_posi () const;
+    Key posi_key () const;
 
     Key key_posi_exclusion () const;
 
@@ -467,13 +467,13 @@ inline Piece Position::cap_piece () const
 //
 inline Bitboard Position::checkers () const { return _si->checkers; }
 //
-inline Key Position::key_matl () const { return _si->key_matl; }
+inline Key Position::matl_key () const { return _si->matl_key; }
 //
-inline Key Position::key_pawn () const { return _si->key_pawn; }
+inline Key Position::pawn_key () const { return _si->pawn_key; }
 //
-inline Key Position::key_posi () const { return _si->key_posi; }
+inline Key Position::posi_key () const { return _si->posi_key; }
 //
-inline Key Position::key_posi_exclusion () const { return _si->key_posi ^ Zobrist::exclusion;}
+inline Key Position::key_posi_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
 
 inline Score Position::psq_score () const { return _si->psq_score; }
 

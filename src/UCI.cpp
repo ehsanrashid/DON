@@ -229,9 +229,9 @@ namespace UCI {
         {
             std::atom () << std::hex << std::uppercase << std::setfill('0')
                 << "fen: " << pos.fen () << '\n'
-                << "posi key: " << std::setw (16) << pos.key_posi () << '\n'
-                << "matl key: " << std::setw (16) << pos.key_matl () << '\n'
-                << "pawn key: " << std::setw (16) << pos.key_pawn ()
+                << "posi key: " << std::setw (16) << pos.posi_key () << '\n'
+                << "matl key: " << std::setw (16) << pos.matl_key () << '\n'
+                << "pawn key: " << std::setw (16) << pos.pawn_key ()
                 << std::dec << std::endl;
         }
 

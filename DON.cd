@@ -154,8 +154,8 @@
       <FileName>src\ECO.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="key_pawn" />
-      <Field Name="key_posi" />
+      <Field Name="pawn_key" />
+      <Field Name="posi_key" />
     </ShowAsAssociation>
   </Struct>
   <Typedef Name="LeakDetector::uint" Collapsed="true">

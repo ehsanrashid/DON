@@ -6,8 +6,8 @@
 
 typedef struct ECO
 {
-    Key         key_posi;
-    Key         key_pawn;
+    Key         posi_key;
+    Key         pawn_key;
     int8_t      length;
     ::std::string code;
     ::std::string name;

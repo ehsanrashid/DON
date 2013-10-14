@@ -198,15 +198,15 @@ size_t PolyglotBook::find_index (const Key key)
 }
 size_t PolyglotBook::find_index (const Position &pos)
 {
-    return find_index (ZobPG.key_posi (pos));
+    return find_index (ZobPG.compute_posi_key (pos));
 }
 size_t PolyglotBook::find_index (const        char *fen, bool c960)
 {
-    return find_index (ZobPG.key_fen (fen, c960));
+    return find_index (ZobPG.compute_fen_key (fen, c960));
 }
 size_t PolyglotBook::find_index (const ::std::string &fen, bool c960)
 {
-    return find_index (ZobPG.key_fen (fen, c960));
+    return find_index (ZobPG.compute_fen_key (fen, c960));
 }
 
 Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
@@ -216,7 +216,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         if (!open (_fn_book,::std::ios_base::in)) return MOVE_NONE;
     }
 
-    Key key = ZobPG.key_posi (pos);
+    Key key = ZobPG.compute_posi_key (pos);
 
     size_t index = find_index (key);
     if (ERR_INDEX == index) return MOVE_NONE;
@@ -349,7 +349,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
     if (!::std::fstream::is_open () || !(_mode & ::std::ios_base::in)) return "";
 
-    Key key = ZobPG.key_posi (pos);
+    Key key = ZobPG.compute_posi_key (pos);
 
     size_t index = find_index (key);
     if (ERR_INDEX == index)
