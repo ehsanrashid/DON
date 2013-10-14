@@ -2,22 +2,12 @@
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
-//#undef FALSE
-//#undef TRUE
-//#define FALSE 0
-//#define TRUE  1
-
-#ifndef NOMINMAX
-#   define NOMINMAX // disable macros min() and max()
-#endif
-
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
 #define POPCNT
 //#define __INTEL_COMPILER
 
 #define BSFQ
-
 
 //#define TRI_LOGGER
 
@@ -30,6 +20,10 @@
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
+#ifndef NOMINMAX
+#   define NOMINMAX // disable macros min() and max()
+#endif
+
 // Disable some silly and noisy warning from MSVC compiler
 #pragma warning (disable: 4127) // Conditional expression is constant
 #pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
@@ -41,12 +35,12 @@
 // MSVC does not support <inttypes.h>
 //#   include <stdint.h>
 
-typedef   signed __int8      int8_t;
-typedef unsigned __int8     uint8_t;
-typedef   signed __int16     int16_t;
-typedef unsigned __int16    uint16_t;
-typedef   signed __int64     int64_t;
-typedef unsigned __int64    uint64_t;
+typedef   signed __int8          int8_t;
+typedef unsigned __int8         uint8_t;
+typedef   signed __int16         int16_t;
+typedef unsigned __int16        uint16_t;
+typedef   signed __int64         int64_t;
+typedef unsigned __int64        uint64_t;
 
 #ifdef _WIN64
 
@@ -92,14 +86,14 @@ typedef unsigned __int32 __w64  uint32_t;
 
 #else
 
-typedef   signed char        int8_t;
-typedef unsigned char       uint8_t;
-typedef   signed short       int16_t;
-typedef unsigned short      uint16_t;
-typedef   signed int         int32_t;
-typedef unsigned int        uint32_t;
-typedef   signed long long   int64_t;
-typedef unsigned long long  uint64_t;
+typedef   signed char            int8_t;
+typedef unsigned char           uint8_t;
+typedef   signed short           int16_t;
+typedef unsigned short          uint16_t;
+typedef   signed int             int32_t;
+typedef unsigned int            uint32_t;
+typedef   signed long long       int64_t;
+typedef unsigned long long      uint64_t;
 
 #   define S32(X) (X## L )
 #   define U32(X) (X##UL )

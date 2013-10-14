@@ -7,13 +7,13 @@
 #include "TriLogger.h"
 
 PGN::PGN ()
-    : ::std::fstream()
+    : std::fstream()
     , _fn_pgn ("")
     , _mode (0)
     , _size_pgn (0)
 {}
-PGN::PGN (const          char *fn_pgn, ::std::ios_base::openmode mode)
-    : ::std::fstream (fn_pgn, mode | ::std::ios_base::binary)
+PGN::PGN (const          char *fn_pgn, std::ios_base::openmode mode)
+    : std::fstream (fn_pgn, mode | std::ios_base::binary)
     , _fn_pgn (fn_pgn)
     , _mode (mode)
     , _size_pgn (0)
@@ -22,8 +22,8 @@ PGN::PGN (const          char *fn_pgn, ::std::ios_base::openmode mode)
     _build_indexes ();
 }
 
-PGN::PGN (const ::std::string &fn_pgn, ::std::ios_base::openmode mode)
-    : ::std::fstream (fn_pgn, mode | ::std::ios_base::binary)
+PGN::PGN (const std::string &fn_pgn, std::ios_base::openmode mode)
+    : std::fstream (fn_pgn, mode | std::ios_base::binary)
     , _fn_pgn (fn_pgn)
     , _mode (mode)
     , _size_pgn (0)
@@ -35,22 +35,22 @@ PGN::PGN (const ::std::string &fn_pgn, ::std::ios_base::openmode mode)
 PGN::~PGN () { close (); }
 
 // open the file in mode
-// Read -> ::std::ios_base::in
-// Write-> ::std::ios_base::out
-bool PGN::open (const          char *fn_pgn, ::std::ios_base::openmode mode)
+// Read -> std::ios_base::in
+// Write-> std::ios_base::out
+bool PGN::open (const          char *fn_pgn, std::ios_base::openmode mode)
 {
     close ();
-    ::std::fstream::open (fn_pgn, mode | ::std::ios_base::binary);
+    std::fstream::open (fn_pgn, mode | std::ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _fn_pgn = fn_pgn;
     _mode   = mode;
     _build_indexes ();
     return is_open ();
 }
-bool PGN::open (const ::std::string &fn_pgn, ::std::ios_base::openmode mode)
+bool PGN::open (const std::string &fn_pgn, std::ios_base::openmode mode)
 {
     close ();
-    ::std::fstream::open (fn_pgn, mode | ::std::ios_base::binary);
+    std::fstream::open (fn_pgn, mode | std::ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _fn_pgn = fn_pgn;
     _mode   = mode;
@@ -58,7 +58,7 @@ bool PGN::open (const ::std::string &fn_pgn, ::std::ios_base::openmode mode)
     return is_open ();
 }
 
-void PGN::close () { if (is_open ()) { ::std::fstream::close (); _reset (); } }
+void PGN::close () { if (is_open ()) { std::fstream::close (); _reset (); } }
 
 void PGN::_reset ()
 {
@@ -70,7 +70,7 @@ void PGN::_reset ()
 
 void PGN::_build_indexes ()
 {
-    if (is_open () && (_mode & ::std::ios_base::in) && good ())
+    if (is_open () && (_mode & std::ios_base::in) && good ())
     {
         if (0 < game_count ()) _reset ();
 
@@ -94,7 +94,7 @@ void PGN::_build_indexes ()
             seekg (0L);
             do
             {
-                ::std::memset (buf, '\0', MAX_SIZE);
+                std::memset (buf, '\0', MAX_SIZE);
                 read (buf, MAX_SIZE);
                 _scan_index (buf, pos, pgn_state);
             }
@@ -132,7 +132,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
 #define skip_whitespace() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
 
 #define check_incomplete() do { if (!c) {    \
-    ::std::cerr << "ERROR: incomplete game"; \
+    std::cerr << "ERROR: incomplete game"; \
     pgn_state = PGN_ERR; goto done;          \
     } } while (false)
 
@@ -146,14 +146,14 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
         {
             if (!_stk_char.empty ())
             {
-                ::std::cerr << "ERROR: missing closing character of: " <<
+                std::cerr << "ERROR: missing closing character of: " <<
                     _stk_char.top () << "at location: " << (pos + offset);
                 pgn_state = PGN_ERR;
                 goto done;
             }
             else
             {
-                ::std::cerr << ("****SUCCESS****");
+                std::cerr << ("****SUCCESS****");
             }
             break;
         }
@@ -192,7 +192,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
                 pgn_state = PGN_MOV_LST;
                 break;
             default:
-                ::std::cerr << ("ERROR: invalid character");
+                std::cerr << ("ERROR: invalid character");
                 pgn_state = PGN_ERR;
                 goto done;
                 break;
@@ -311,7 +311,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
             case  ')':
                 if (_stk_char.empty () || '(' != _stk_char.top ())
                 {
-                    ::std::cerr << ("ERROR: missing opening of variation");
+                    std::cerr << ("ERROR: missing opening of variation");
                     pgn_state = PGN_ERR;
                     goto done;
                 }
@@ -339,7 +339,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
             case  '}':
                 if (_stk_char.empty () || '{' != _stk_char.top ())
                 {
-                    ::std::cerr << ("ERROR:: missing opening of variation comment");
+                    std::cerr << ("ERROR:: missing opening of variation comment");
                     pgn_state = PGN_ERR;
                     goto done;
                 }
@@ -401,14 +401,14 @@ std::string PGN::read_text (size_t index)
             //    //remove_substring (buf, "\r");
             //    remove_all (buf, '\r');
             //
-            //    ::std::string text = buf;
+            //    std::string text = buf;
             //    delete[] buf; buf = NULL;
             //
             //    //remove_substring (text, "\r");
             //    return text;
             //}
 
-            ::std::string text (size, ' ');
+            std::string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
             remove_substring (text, "\r");
@@ -441,7 +441,7 @@ std::string PGN::read_text (size_t index_beg, size_t index_end)
             //    //remove_substring (buf, "\r");
             //    remove_all (buf, '\r');
             //
-            //    ::std::string text = buf;
+            //    std::string text = buf;
             //    delete[] buf; buf = NULL;
             //
             //    //remove_substring (text, "\r");
@@ -449,7 +449,7 @@ std::string PGN::read_text (size_t index_beg, size_t index_end)
             //}
 
 
-            ::std::string text (size, ' ');
+            std::string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
             remove_substring (text, "\r");
@@ -459,7 +459,7 @@ std::string PGN::read_text (size_t index_beg, size_t index_end)
     return "";
 }
 // Write the text and return index of the text
-size_t PGN::write_text (const ::std::string &text)
+size_t PGN::write_text (const std::string &text)
 {
     if (is_open () && good ())
     {
@@ -476,7 +476,7 @@ Game   PGN::read_game (size_t index)
 size_t PGN::write_game (const Game &game)
 {
     // TODO::
-    ::std::string pgn = game.pgn ();
+    std::string pgn = game.pgn ();
     (*this) << pgn;
 
     return 0;

@@ -16,8 +16,8 @@ class Game;
 
 // PGN file with *.pgn extension
 typedef class PGN sealed
-    : private ::std::fstream
-    , public ::std::noncopyable
+    : private std::fstream
+    , public std::noncopyable
 {
 
 private:
@@ -41,13 +41,13 @@ private:
 
     } PGN_State;
 
-    ::std::string _fn_pgn;
-    ::std::ios_base::openmode _mode;
+    std::string _fn_pgn;
+    std::ios_base::openmode _mode;
 
     uint64_t    _size_pgn;
 
-    ::std::vector<uint64_t>   _indexes_game;
-    ::std::stack<char>        _stk_char;
+    std::vector<uint64_t>   _indexes_game;
+    std::stack<char>        _stk_char;
 
     void _reset ();
     void _build_indexes ();
@@ -57,13 +57,13 @@ private:
 public:
 
     PGN ();
-    // mode = ::std::ios_base::in | ::std::ios_base::out
-    PGN (const          char *fn_pgn, ::std::ios_base::openmode mode);
-    PGN (const ::std::string &fn_pgn, ::std::ios_base::openmode mode);
+    // mode = std::ios_base::in | std::ios_base::out
+    PGN (const          char *fn_pgn, std::ios_base::openmode mode);
+    PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
     ~PGN ();
 
-    bool open (const          char *fn_pgn, ::std::ios_base::openmode mode);
-    bool open (const ::std::string &fn_pgn, ::std::ios_base::openmode mode);
+    bool open (const          char *fn_pgn, std::ios_base::openmode mode);
+    bool open (const std::string &fn_pgn, std::ios_base::openmode mode);
 
     void close ();
 
@@ -72,21 +72,21 @@ public:
         if (0 >= _size_pgn)
         {
             uint64_t pos_cur = tellg ();
-            seekg (0L, ::std::ios_base::end);
+            seekg (0L, std::ios_base::end);
             _size_pgn = tellg ();
-            seekg (pos_cur, ::std::ios_base::beg);
+            seekg (pos_cur, std::ios_base::beg);
             clear ();
         }
         return _size_pgn;
     }
 
-    ::std::string filename () const { return _fn_pgn; }
+    std::string filename () const { return _fn_pgn; }
 
     size_t game_count () const { return _indexes_game.size (); }
 
-    ::std::string read_text (size_t index);
-    ::std::string read_text (size_t index_beg, size_t index_end);
-    size_t write_text (const ::std::string &text);
+    std::string read_text (size_t index);
+    std::string read_text (size_t index_beg, size_t index_end);
+    size_t write_text (const std::string &text);
 
     Game   read_game (size_t index);
     size_t write_game (const Game &game);

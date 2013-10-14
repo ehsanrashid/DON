@@ -18,8 +18,8 @@ class Position;
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
 typedef class PolyglotBook sealed
-    : private ::std::fstream
-    , public ::std::noncopyable
+    : private std::fstream
+    , public std::noncopyable
 {
 
 public:
@@ -36,7 +36,7 @@ public:
         uint16_t weight;
         uint32_t learn;
 
-        operator ::std::string () const;
+        operator std::string () const;
 
     } PolyglotEntry;
 
@@ -53,8 +53,8 @@ public:
 
 private:
 
-    ::std::string _fn_book;
-    ::std::ios_base::openmode _mode;
+    std::string _fn_book;
+    std::ios_base::openmode _mode;
 
     uint64_t    _size_book;
 
@@ -69,36 +69,36 @@ public:
     size_t find_index (const Key key);
     size_t find_index (const Position &pos);
     size_t find_index (const          char *fen, bool c960 = false);
-    size_t find_index (const ::std::string &fen, bool c960 = false);
+    size_t find_index (const std::string &fen, bool c960 = false);
 
 public:
 
     PolyglotBook();
-    // mode = ::std::ios_base::in | ::std::ios_base::out
-    PolyglotBook (const          char *fn_book, ::std::ios_base::openmode mode);
-    PolyglotBook (const ::std::string &fn_book, ::std::ios_base::openmode mode);
+    // mode = std::ios_base::in | std::ios_base::out
+    PolyglotBook (const          char *fn_book, std::ios_base::openmode mode);
+    PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
-    bool open (const          char *fn_book, ::std::ios_base::openmode mode);
-    bool open (const ::std::string &fn_book, ::std::ios_base::openmode mode);
+    bool open (const          char *fn_book, std::ios_base::openmode mode);
+    bool open (const std::string &fn_book, std::ios_base::openmode mode);
     void close ();
 
-    ::std::string filename () const { return _fn_book; }
+    std::string filename () const { return _fn_book; }
 
     uint64_t size ()
     {
         if (0 >= _size_book)
         {
             uint64_t pos_cur = tellg ();
-            seekg (0L, ::std::ios_base::end);
+            seekg (0L, std::ios_base::end);
             _size_book = tellg ();
-            seekg (pos_cur, ::std::ios_base::beg);
+            seekg (pos_cur, std::ios_base::beg);
             clear ();
         }
         return _size_book;
     }
 
-    bool is_open () const { return ::std::fstream::is_open(); }
+    bool is_open () const { return std::fstream::is_open(); }
 
     // probe_move() tries to find a book move for the given position.
     // If no move is found returns MOVE_NONE.
@@ -106,16 +106,16 @@ public:
     // otherwise randomly chooses one, based on the move score.
     Move probe_move (const Position &pos, bool pick_best = true);
 
-    ::std::string read_entries (const Position &pos);
+    std::string read_entries (const Position &pos);
     
     void insert_entry (const PolyglotBook::PolyglotEntry &pe);
 
 
     void write ();
 
-    void import_pgn (const ::std::string &fn_pgn);
+    void import_pgn (const std::string &fn_pgn);
 
-    void merge_book (const ::std::string &fn_book);
+    void merge_book (const std::string &fn_book);
 
     //void dump ();
     //void info ();
@@ -125,10 +125,10 @@ public:
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const PolyglotBook::PolyglotEntry &pe)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const PolyglotBook::PolyglotEntry &pe)
 {
-    os << ::std::string (pe);
+    os << std::string (pe);
     return os;
 }
 

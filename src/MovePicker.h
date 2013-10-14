@@ -26,15 +26,15 @@ typedef std::vector<ScoredMove>     ScoredMoveList;
 extern void order (ScoredMoveList &lst_sm, bool full = true);
 
 
-// The Stats struct stores moves statistics. According to the template parameter
-// the class can store both History and Gains type statistics. History records
-// how often different moves have been successful or unsuccessful during the
-// current search and is used for reduction and move ordering decisions. Gains
-// records the move's best evaluation gain from one ply to the next and is used
-// for pruning decisions. Entries are stored according only to moving piece and
-// destination square, in particular two moves with different origin but same
-// destination and same piece will be considered identical.
 template<bool Gain>
+// The Stats struct stores moves statistics.
+// According to the template parameter the class can store both History and Gains type statistics.
+// History records how often different moves have been successful or unsuccessful during the
+// current search and is used for reduction and move ordering decisions.
+// Gains records the move's best evaluation gain from one ply to the next and is used
+// for pruning decisions.
+// Entries are stored according only to moving piece and destination square,
+// in particular two moves with different origin but same destination and same piece will be considered identical.
 struct Stats
 {
 private:
@@ -46,12 +46,12 @@ public:
     //const Score* operator[] (Piece p) const { return &_Table[p][0]; }
     const Score& operator[] (Piece p) const { return  _Table[p][0]; }
 
-    void Clear ()
+    void clear ()
     {
         std::memset (_Table, 0, sizeof (_Table));
     }
 
-    void Update (Piece p, Square s, Score v)
+    void update (Piece p, Square s, Score v)
     {
         if (false);
         else if (Gain)

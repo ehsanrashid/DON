@@ -29,7 +29,7 @@ private:
 
 public:
     Worker (ThreadPool &p)
-        : pool(p)
+        : pool (p)
     {}
 
     void operator() ();
@@ -143,7 +143,7 @@ auto ThreadPool::submit_task (F &&f)
     // don't allow enqueueing after stopping the pool
     if (stop)
     {
-        throw std::runtime_error ("submit_task() on stopped thread pool");
+        throw std::runtime_error ("submit_task() on stopped thread pool.");
     }
 
     auto task = std::make_shared<std::packaged_task<return_type ()> > (std::forward<F> (f));

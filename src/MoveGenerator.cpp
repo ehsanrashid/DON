@@ -11,7 +11,7 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(lst_move, org, moves)         while (moves) { lst_move.emplace_back (mk_move<NORMAL> (org, pop_lsb(moves))); }
+#define SERIALIZE(lst_move, org, moves)         while (moves) { lst_move.emplace_back (mk_move<NORMAL> ((org), pop_lsb(moves))); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
 #define SERIALIZE_PAWNS(lst_move, delta, moves) while (moves) { Square dst = pop_lsb (moves); lst_move.emplace_back (mk_move<NORMAL> (dst - (delta), dst)); }
 

@@ -28,12 +28,12 @@ const uint8_t MAX_FEN     = 88;
 
 extern const char *const FEN_N;
 extern const char *const FEN_X;
-//extern const ::std::string FEN_N;
-//extern const ::std::string FEN_X;
+//extern const std::string FEN_N;
+//extern const std::string FEN_X;
 
 // Check the validity of FEN string
 extern bool _ok (const          char *fen, bool c960 = false, bool full = true);
-extern bool _ok (const ::std::string &fen, bool c960 = false, bool full = true);
+extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
 
@@ -95,7 +95,7 @@ public:
 
     void clear ();
 
-    operator ::std::string () const;
+    operator std::string () const;
 
 } StateInfo;
 
@@ -196,7 +196,7 @@ public:
     {
         if (!setup (fen, c960, full)) clear ();
     }
-    Position (const ::std::string &fen, bool c960 = false, bool full = true)
+    Position (const std::string &fen, bool c960 = false, bool full = true)
     {
         if (!setup (fen, c960, full)) clear ();
     }
@@ -369,7 +369,7 @@ public:
     Piece   move_piece (Square s1, Square s2);
 
     bool setup (const          char *fen, bool c960 = false, bool full = true);
-    bool setup (const ::std::string &fen, bool c960 = false, bool full = true);
+    bool setup (const std::string &fen, bool c960 = false, bool full = true);
 
 private:
     void clr_castles ();
@@ -390,7 +390,7 @@ public:
     // do/undo move
     void do_move (Move m, StateInfo &si_n, const CheckInfo *ci);
     void do_move (Move m, StateInfo &si_n);
-    void do_move (::std::string &can, StateInfo &si_n);
+    void do_move (std::string &can, StateInfo &si_n);
     void undo_move ();
 
     void do_null_move (StateInfo &si_n);
@@ -403,12 +403,12 @@ public:
 #pragma region Conversions
 
     bool          fen (const char *fen, bool c960 = false, bool full = true) const;
-    ::std::string fen (bool                  c960 = false, bool full = true) const;
+    std::string fen (bool                  c960 = false, bool full = true) const;
 
-    operator ::std::string () const;
+    operator std::string () const;
 
     static bool parse (Position &pos, const          char *fen, bool c960 = false, bool full = true);
-    static bool parse (Position &pos, const ::std::string &fen, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
 
@@ -512,11 +512,11 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 // Color of the side on move
 inline Color    Position::active () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
-// game_ply  = ::std::max (2 * (game_move - 1), 0) + (BLACK == Active)
+// game_ply  = std::max (2 * (game_move - 1), 0) + (BLACK == Active)
 inline uint16_t Position::game_ply () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
-// game_move = ::std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return ::std::max<uint8_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+// game_move = std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
+inline uint16_t Position::game_move () const { return std::max<uint8_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
 inline bool     Position::chess960 () const { return _chess960; }
 
@@ -680,31 +680,31 @@ inline Piece Position::move_piece (Square s1, Square s2) { return _board.move_pi
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const StateInfo &si)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const StateInfo &si)
 {
-    os << ::std::string (si);
+    os << std::string (si);
     return os;
 }
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Position &pos)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Position &pos)
 {
-    os << ::std::string (pos);
+    os << std::string (pos);
     return os;
 }
 
 template<class charT, class Traits>
-inline ::std::basic_istream<charT, Traits>&
-    operator>> (::std::basic_istream<charT, Traits>& is, Position &pos)
+inline std::basic_istream<charT, Traits>&
+    operator>> (std::basic_istream<charT, Traits>& is, Position &pos)
 {
-    //is >> ::std::string (pos);
+    //is >> std::string (pos);
     return is;
 }
 
 
-typedef ::std::stack<StateInfo>             StateInfoStack;
-typedef ::std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::stack<StateInfo>             StateInfoStack;
+typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
 
 #endif

@@ -17,7 +17,6 @@ typedef enum AmbType : uint8_t
 
 } AmbType;
 
-
 extern AmbType ambiguity (Move m, const Position &pos);
 
 extern Move move_from_can (std::string &can, const Position &pos);

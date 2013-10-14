@@ -118,8 +118,8 @@ namespace TrivialLogger {
 // macro prints variable name and its value to the logger stream
 #define TRI_LOG_VAR(var)                            \
     do {                                            \
-    if (TrivialLogger::instance ().is_active ()) { \
-    *TrivialLogger::instance ().ostream_ptr ()     \
+    if (TrivialLogger::instance ().is_active ()) {  \
+    *TrivialLogger::instance ().ostream_ptr ()      \
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
@@ -129,8 +129,8 @@ namespace TrivialLogger {
 // macro prints value of constant strings to the logger stream
 #define TRI_LOG_MSG(msg)                            \
     do {                                            \
-    if (TrivialLogger::instance ().is_active ()) { \
-    *TrivialLogger::instance ().ostream_ptr ()     \
+    if (TrivialLogger::instance ().is_active ()) {  \
+    *TrivialLogger::instance ().ostream_ptr ()      \
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \

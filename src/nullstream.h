@@ -19,7 +19,6 @@
 #include <ostream>
 #include "noncopyable.h"
 
-
 namespace std {
 
     // generic null stream buffer class
