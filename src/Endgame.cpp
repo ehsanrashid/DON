@@ -93,7 +93,7 @@ Endgames::~Endgames()
 
 
 template<EndgameType E>
-void Endgames::add(const std::string& code)
+void Endgames::add (const std::string &code)
 {
     //map((Endgame<E>*)0)[key (code, WHITE)] = new Endgame<E> (WHITE);
     //map((Endgame<E>*)0)[key (code, BLACK)] = new Endgame<E> (BLACK);

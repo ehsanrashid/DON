@@ -232,27 +232,27 @@ namespace {
 
     // Function prototypes
     template<bool Trace>
-    Value do_evaluate(const Position& pos, Value& margin);
+    Value do_evaluate(const Position &pos, Value& margin);
 
     template<Color Us>
-    void init_eval_info(const Position& pos, EvalInfo& ei);
+    void init_eval_info(const Position &pos, EvalInfo& ei);
 
     template<Color Us, bool Trace>
-    Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score& mobility);
+    Score evaluate_pieces_of_color(const Position &pos, EvalInfo& ei, Score& mobility);
 
     template<Color Us, bool Trace>
-    Score evaluate_king(const Position& pos, const EvalInfo& ei, Value margins[]);
+    Score evaluate_king(const Position &pos, const EvalInfo& ei, Value margins[]);
 
     template<Color Us, bool Trace>
-    Score evaluate_threats(const Position& pos, const EvalInfo& ei);
+    Score evaluate_threats(const Position &pos, const EvalInfo& ei);
 
     template<Color Us, bool Trace>
-    Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei);
+    Score evaluate_passed_pawns(const Position &pos, const EvalInfo& ei);
 
     template<Color Us>
-    int evaluate_space(const Position& pos, const EvalInfo& ei);
+    int evaluate_space(const Position &pos, const EvalInfo& ei);
 
-    Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei);
+    Score evaluate_unstoppable_pawns(const Position &pos, Color us, const EvalInfo& ei);
 
     Value interpolate(const Score& v, Phase ph, ScaleFactor sf);
     Score apply_weight(Score v, Score w);
@@ -388,7 +388,7 @@ namespace {
     // pawn attacks. To be done at the beginning of the evaluation.
 
     template<Color Us>
-    void init_eval_info(const Position& pos, EvalInfo& ei) {
+    void init_eval_info(const Position &pos, EvalInfo& ei) {
 
         const Color  Them = (Us == WHITE ? BLACK : WHITE);
         const Square Down = (Us == WHITE ? DELTA_S : DELTA_N);
@@ -410,7 +410,7 @@ namespace {
 
     // evaluate_outposts() evaluates bishop and knight outposts squares
     template<PType Piece, Color Us>
-    Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s)
+    Score evaluate_outposts(const Position &pos, EvalInfo& ei, Square s)
     {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
@@ -436,7 +436,7 @@ namespace {
 
     // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
     template<PType Piece, Color Us, bool Trace>
-    Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score& mobility, Bitboard mobilityArea)
+    Score evaluate_pieces(const Position &pos, EvalInfo& ei, Score& mobility, Bitboard mobilityArea)
     {
 
         Bitboard b;
@@ -560,7 +560,7 @@ namespace {
     // and the type of attacked one.
 
     template<Color Us, bool Trace>
-    Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
+    Score evaluate_threats(const Position &pos, const EvalInfo& ei) {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -603,7 +603,7 @@ namespace {
     // pieces of a given color.
 
     template<Color Us, bool Trace>
-    Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score& mobility) {
+    Score evaluate_pieces_of_color(const Position &pos, EvalInfo& ei, Score& mobility) {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -631,7 +631,7 @@ namespace {
     // evaluate_king<>() assigns bonuses and penalties to a king of a given color
 
     template<Color Us, bool Trace>
-    Score evaluate_king(const Position& pos, const EvalInfo& ei, Value margins[]) {
+    Score evaluate_king(const Position &pos, const EvalInfo& ei, Value margins[]) {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -744,7 +744,7 @@ namespace {
     // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
 
     template<Color Us, bool Trace>
-    Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
+    Score evaluate_passed_pawns(const Position &pos, const EvalInfo& ei) {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -859,7 +859,7 @@ namespace {
     // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
     // related to the possibility pawns are unstoppable.
 
-    Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei)
+    Score evaluate_unstoppable_pawns(const Position &pos, Color us, const EvalInfo& ei)
     {
         Bitboard b = 0; //ei.pi->passed_pawns(us) | ei.pi->candidate_pawns(us);
 
@@ -877,7 +877,7 @@ namespace {
     // twice. Finally, the space bonus is scaled by a weight taken from the
     // material hash table. The aim is to improve play on game opening.
     template<Color Us>
-    int evaluate_space(const Position& pos, const EvalInfo& ei)
+    int evaluate_space(const Position &pos, const EvalInfo& ei)
     {
 
         const Color Them = (Us == WHITE ? BLACK : WHITE);
@@ -972,7 +972,7 @@ namespace {
         }
     }
 
-    std::string Tracing::do_trace(const Position& pos) {
+    std::string Tracing::do_trace(const Position &pos) {
 
         stream.str("");
         stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);

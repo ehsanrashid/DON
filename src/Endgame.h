@@ -56,7 +56,7 @@ public:
 
     virtual Color color () const = 0;
 
-    virtual T operator () (const Position&) const = 0;
+    virtual T operator () (const Position &pos) const = 0;
 
 };
 
@@ -67,6 +67,7 @@ private:
     Color _strong_side, _weak_side;
 
 public:
+
     explicit Endgame(Color c)
         : _strong_side(c)
         , _weak_side(~c)
@@ -74,7 +75,7 @@ public:
 
     Color color() const { return _strong_side; }
 
-    T operator() (const Position&) const;
+    T operator() (const Position &pos) const;
 
 };
 
@@ -95,7 +96,7 @@ class Endgames
     M2& map (M2::mapped_type) { return m2; }
 
     template<EndgameType E>
-    void add (const std::string& code);
+    void add (const std::string &code);
 
 public:
 
@@ -103,7 +104,7 @@ public:
     ~Endgames ();
 
     template<typename T>
-    T probe (Key key, T& eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
+    T probe (Key key, T &eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
 
 };
 

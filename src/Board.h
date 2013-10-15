@@ -14,7 +14,6 @@
 //  - Count of the pieces.
 typedef class Board sealed
 {
-
 private:
 
     Piece

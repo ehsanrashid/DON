@@ -239,11 +239,13 @@ public:
     Bitboard pieces () const;
     Bitboard empties () const;
 
-    size_t piece_count (Color c, PType t) const;
-    size_t piece_count (Piece p) const;
-    size_t piece_count (Color c) const;
-    size_t piece_count (PType t) const;
-    size_t piece_count () const;
+    uint32_t piece_count (Color c, PType t) const;
+    uint32_t piece_count (Piece p) const;
+    uint32_t piece_count (Color c) const;
+    uint32_t piece_count (PType t) const;
+    uint32_t piece_count () const;
+    template<PType T>
+    uint32_t piece_count (Color c) const;
 
 #pragma endregion
 
@@ -438,11 +440,13 @@ inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _b
 inline Bitboard Position::pieces () const { return _board.pieces (); }
 inline Bitboard Position::empties () const { return _board.empties (); }
 
-inline size_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
-inline size_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
-inline size_t Position::piece_count (Color c) const { return _board.piece_count (c); }
-inline size_t Position::piece_count (PType t) const { return _board.piece_count (t); }
-inline size_t Position::piece_count ()        const { return _board.piece_count (); }
+inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
+inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
+inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
+inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
+template<PType T>
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
 
 #pragma endregion
 

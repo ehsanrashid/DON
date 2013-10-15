@@ -5,7 +5,7 @@
 #include <cctype>
 #include "Platform.h"
 #include <climits>
-//#include <cstdlib>
+#include <vector>
 
 #pragma region LIMITS
 #ifndef   _I8_MIN
@@ -568,5 +568,25 @@ INC_DEC_OPERATORS (Depth);
 
 inline Value mate_in  (int32_t ply) { return ( VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
+
+
+template<class Entry, int Size>
+class HashTable sealed
+{
+private:
+    std::vector<Entry> e;
+
+public:
+    HashTable()
+        : e (Size, Entry())
+    {}
+
+    Entry* operator[] (Key k)
+    {
+        return &e[(uint32_t)k & (Size - 1)];
+    }
+
+};
+
 
 #endif

@@ -606,6 +606,7 @@
     <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\manipulator.h" />
+    <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\Move.h" />
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
