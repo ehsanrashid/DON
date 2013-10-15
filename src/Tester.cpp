@@ -450,18 +450,18 @@ namespace Tester {
             fen = FEN_N;
             Position::parse (pos, fen);
 
-            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.compute_matl_key (pos));
-            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.compute_pawn_key (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_posi_key (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_fen_key (fen));
+            ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
+            ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));
+            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
+            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen));
 
             fen = FEN_X;
             Position::parse (pos, fen, true);
 
-            ASSERT (Zobrist::PG_KEY_MATL == ZobPG.compute_matl_key (pos));
-            ASSERT (Zobrist::PG_KEY_PAWN == ZobPG.compute_pawn_key (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_posi_key (pos));
-            ASSERT (Zobrist::PG_KEY_POSI == ZobPG.compute_fen_key (fen, true));
+            ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
+            ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));
+            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
+            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen, true));
 
             fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
             Position::parse (pos, fen);

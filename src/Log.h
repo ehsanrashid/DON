@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-class Log
+class Log sealed
     : public ::std::ofstream
 {
 

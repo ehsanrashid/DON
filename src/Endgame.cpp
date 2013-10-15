@@ -91,7 +91,6 @@ Endgames::~Endgames()
     for_each (m2.begin(), m2.end(), delete_endgame<M2>);
 }
 
-
 template<EndgameType E>
 void Endgames::add (const std::string &code)
 {

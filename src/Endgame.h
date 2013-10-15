@@ -61,14 +61,15 @@ public:
 };
 
 template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
-struct Endgame : public EndgameBase<T>
+struct Endgame
+    : public EndgameBase<T>
 {
 private:
     Color _strong_side, _weak_side;
 
 public:
 
-    explicit Endgame(Color c)
+    explicit Endgame (Color c)
         : _strong_side(c)
         , _weak_side(~c)
     {}
@@ -103,7 +104,7 @@ public:
     Endgames ();
     ~Endgames ();
 
-    template<typename T>
+    template<class T>
     T probe (Key key, T &eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
 
 };

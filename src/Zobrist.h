@@ -10,9 +10,9 @@ class Position;
 
 namespace Zobrist {
 
-    extern const Key PG_KEY_MATL; // = U64 (0xC1D58449E708A0AD);
-    extern const Key PG_KEY_PAWN; // = U64 (0x37FC40DA841E1692);
-    extern const Key PG_KEY_POSI; // = U64 (0x463B96181691FC9C);
+    extern const Key MATL_KEY_PG; // = U64 (0xC1D58449E708A0AD);
+    extern const Key PAWN_KEY_PG; // = U64 (0x37FC40DA841E1692);
+    extern const Key POSI_KEY_PG; // = U64 (0x463B96181691FC9C);
 
     // 2*6*64 + 2*2 + 8 + 1
     //    768 +   4 + 8 + 1

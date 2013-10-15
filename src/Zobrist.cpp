@@ -8,9 +8,9 @@ namespace Zobrist {
     using namespace std;
     using namespace BitBoard;
 
-    const Key PG_KEY_MATL = U64 (0xC1D58449E708A0AD);
-    const Key PG_KEY_PAWN = U64 (0x37FC40DA841E1692);
-    const Key PG_KEY_POSI = U64 (0x463B96181691FC9C);
+    const Key MATL_KEY_PG = U64 (0xC1D58449E708A0AD);
+    const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
+    const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
     
     static RKISS rkiss;
 

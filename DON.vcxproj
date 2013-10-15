@@ -637,7 +637,9 @@
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="DON.cd" />
+    <None Include="DON.cd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="IncludeFileDependencies.dgml">
       <SubType>Designer</SubType>
     </None>
