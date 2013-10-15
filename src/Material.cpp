@@ -210,12 +210,12 @@ namespace Material {
         {
             if (!pos.piece_count<PAWN>(BLACK))
             {
-                assert(pos.piece_count<PAWN>(WHITE) >= 2);
+                assert (pos.piece_count<PAWN>(WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else if (!pos.piece_count<PAWN>(WHITE))
             {
-                assert(pos.piece_count<PAWN>(BLACK) >= 2);
+                assert (pos.piece_count<PAWN>(BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else if (pos.piece_count<PAWN>(WHITE) == 1 && pos.piece_count<PAWN>(BLACK) == 1)
@@ -232,13 +232,13 @@ namespace Material {
         if (!pos.piece_count<PAWN>(WHITE) && npm_w - npm_b <= VALUE_MG_BISHOP)
         {
             e->factor[WHITE] = (uint8_t)
-                (npm_w == npm_b || npm_w < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min<uint32_t>(pos.piece_count<BSHP>(WHITE), 2)]);
+                (npm_w == npm_b || npm_w < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min<uint8_t>(pos.piece_count<BSHP>(WHITE), 2)]);
         }
 
         if (!pos.piece_count<PAWN>(BLACK) && npm_b - npm_w <= VALUE_MG_BISHOP)
         {
             e->factor[BLACK] = (uint8_t)
-                (npm_w == npm_b || npm_b < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min<uint32_t>(pos.piece_count<BSHP>(BLACK), 2)]);
+                (npm_w == npm_b || npm_b < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min<uint8_t>(pos.piece_count<BSHP>(BLACK), 2)]);
         }
 
         // Compute the space weight

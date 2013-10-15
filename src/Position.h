@@ -239,13 +239,13 @@ public:
     Bitboard pieces () const;
     Bitboard empties () const;
 
-    uint32_t piece_count (Color c, PType t) const;
-    uint32_t piece_count (Piece p) const;
-    uint32_t piece_count (Color c) const;
-    uint32_t piece_count (PType t) const;
-    uint32_t piece_count () const;
+    uint8_t piece_count (Color c, PType t) const;
+    uint8_t piece_count (Piece p) const;
+    uint8_t piece_count (Color c) const;
+    uint8_t piece_count (PType t) const;
+    uint8_t piece_count () const;
     template<PType T>
-    uint32_t piece_count (Color c) const;
+    uint8_t piece_count (Color c) const;
 
 #pragma endregion
 
@@ -440,13 +440,13 @@ inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _b
 inline Bitboard Position::pieces () const { return _board.pieces (); }
 inline Bitboard Position::empties () const { return _board.empties (); }
 
-inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
-inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
-inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
-inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
+inline uint8_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
+inline uint8_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
+inline uint8_t Position::piece_count (Color c) const { return _board.piece_count (c); }
+inline uint8_t Position::piece_count (PType t) const { return _board.piece_count (t); }
+inline uint8_t Position::piece_count ()        const { return _board.piece_count (); }
 template<PType T>
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
+inline uint8_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
 
 #pragma endregion
 
@@ -658,10 +658,10 @@ inline bool Position::has_opposite_bishops () const
 // check the side has pair of opposite color bishops
 inline bool Position::has_pair_bishops (Color c) const
 {
-    size_t bishop_count = _board.piece_count(c, BSHP);
+    uint8_t bishop_count = _board.piece_count(c, BSHP);
     if (bishop_count >= 2)
     {
-        for (size_t cnt = 0; cnt < bishop_count-1; ++cnt)
+        for (uint8_t cnt = 0; cnt < bishop_count-1; ++cnt)
         {
             if (opposite_colors(_board[c|BSHP][cnt], _board[c|BSHP][cnt+1])) return true;
         }

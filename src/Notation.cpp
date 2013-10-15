@@ -113,7 +113,10 @@ Move move_from_can (std::string &can, const Position &pos)
     if (5 == can.length ())
     {
         // promotion piece in lowercase
-        if (isupper (can[4])) can[4] = char (tolower (can[4]));
+        if (isupper ((unsigned char) can[4]))
+        {
+            can[4] = char (tolower (can[4]));
+        }
     }
 
     MoveList lst_move = generate<LEGAL>(pos);
