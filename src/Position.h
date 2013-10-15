@@ -315,10 +315,10 @@ private:
 
 public:
 
-    template<PType PT>
+    template<PType T>
     // Attacks of the PAWN (Color) from the square
     Bitboard attacks_from (Color c, Square s) const;
-    template<PType PT>
+    template<PType T>
     // Attacks of the PTYPE from the square
     Bitboard attacks_from (Square s) const;
 
@@ -537,11 +537,11 @@ inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
 {
     return BitBoard::attacks_bb<PAWN> (c, s);
 }
-template<PType PT>
+template<PType T>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
-    switch (PT)
+    switch (T)
     {
     case PAWN:
         return BitBoard::attacks_bb<PAWN> (_active, s);
@@ -551,7 +551,7 @@ inline Bitboard Position::attacks_from (Square s) const
     case ROOK:
     case QUEN:
     case KING:
-        return attacks_bb<PT> (s);
+        return attacks_bb<T> (s);
         break;
     }
     return 0;
