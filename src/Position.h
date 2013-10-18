@@ -277,7 +277,7 @@ public:
 
     // Incremental piece-square evaluation
     Value non_pawn_material (Color c) const;
-    Value pawn_material (Color c) const;
+    //Value pawn_material (Color c) const;
     
     template<PType T>
     const SquareList list (Color c) const;
@@ -488,7 +488,7 @@ inline Score Position::psq_score () const { return _si->psq_score; }
 
 inline Value Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
+//inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
 
 template<PType T>
 inline const SquareList Position::list (Color c) const

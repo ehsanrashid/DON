@@ -17,6 +17,7 @@
 #include "TriLogger.h"
 #include "Time.h"
 #include "LeakDetector.h"
+#include "Evaluator.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -98,6 +99,9 @@ int main (int argc, const char* const argv[])
     //eg = eg_value (s);
 
     Engine::start ();
+    Position pos;
+    Value v;
+    Evaluator::evaluate(pos, v);
 
     //log_io (true);
 
