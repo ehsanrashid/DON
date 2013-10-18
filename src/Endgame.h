@@ -7,10 +7,9 @@
 #include "Position.h"
 
 // EndgameType lists all supported endgames
-enum EndgameType
+typedef enum EndgameType
 {
     // Evaluation functions
-
     KNNK,  // KNN vs K
     KXK,   // Generic "mate lone king" eval
     KBNK,  // KBN vs K
@@ -23,12 +22,14 @@ enum EndgameType
     KBBKN, // KBB vs KN
     KmmKm, // K and two minors vs K and one or two minors
 
+
     // Scaling functions
     SCALE_FUNS,
 
     KBPsK,   // KB+pawns vs K
     KQKRPs,  // KQ vs KR+pawns
     KRPKR,   // KRP vs KR
+    KRPKB,   // KRP vs KB
     KRPPKRP, // KRPP vs KRP
     KPsK,    // King and pawns vs king
     KBPKB,   // KBP vs KB
@@ -37,7 +38,8 @@ enum EndgameType
     KNPK,    // KNP vs K
     KNPKB,   // KNP vs KB
     KPKP     // KP vs KP
-};
+
+} EndgameType;
 
 
 // Endgame functions can be of two types according if return a Value or a ScaleFactor.

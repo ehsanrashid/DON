@@ -239,13 +239,13 @@ public:
     Bitboard pieces () const;
     Bitboard empties () const;
 
-    uint8_t piece_count (Color c, PType t) const;
-    uint8_t piece_count (Piece p) const;
-    uint8_t piece_count (Color c) const;
-    uint8_t piece_count (PType t) const;
-    uint8_t piece_count () const;
+    uint32_t piece_count (Color c, PType t) const;
+    uint32_t piece_count (Piece p) const;
+    uint32_t piece_count (Color c) const;
+    uint32_t piece_count (PType t) const;
+    uint32_t piece_count () const;
     template<PType T>
-    uint8_t piece_count (Color c) const;
+    uint32_t piece_count (Color c) const;
 
 #pragma endregion
 
@@ -277,6 +277,11 @@ public:
 
     // Incremental piece-square evaluation
     Value non_pawn_material (Color c) const;
+    Value pawn_material (Color c) const;
+    
+    template<PType T>
+    const SquareList list (Color c) const;
+
     Score psq_score () const;
 
 #pragma endregion
@@ -440,13 +445,13 @@ inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _b
 inline Bitboard Position::pieces () const { return _board.pieces (); }
 inline Bitboard Position::empties () const { return _board.empties (); }
 
-inline uint8_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
-inline uint8_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
-inline uint8_t Position::piece_count (Color c) const { return _board.piece_count (c); }
-inline uint8_t Position::piece_count (PType t) const { return _board.piece_count (t); }
-inline uint8_t Position::piece_count ()        const { return _board.piece_count (); }
+inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
+inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
+inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
+inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
 template<PType T>
-inline uint8_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
 
 #pragma endregion
 
@@ -482,6 +487,14 @@ inline Key Position::key_posi_exclusion () const { return _si->posi_key ^ Zobris
 inline Score Position::psq_score () const { return _si->psq_score; }
 
 inline Value Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+
+inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
+
+template<PType T>
+inline const SquareList Position::list (Color c) const
+{
+    return _board[c | T];
+}
 
 #pragma endregion
 
@@ -520,7 +533,7 @@ inline Color    Position::active () const { return _active; }
 inline uint16_t Position::game_ply () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return std::max<uint8_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline uint16_t Position::game_move () const { return std::max<uint32_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
 inline bool     Position::chess960 () const { return _chess960; }
 
@@ -658,10 +671,10 @@ inline bool Position::has_opposite_bishops () const
 // check the side has pair of opposite color bishops
 inline bool Position::has_pair_bishops (Color c) const
 {
-    uint8_t bishop_count = _board.piece_count(c, BSHP);
+    uint32_t bishop_count = _board.piece_count(c, BSHP);
     if (bishop_count >= 2)
     {
-        for (uint8_t cnt = 0; cnt < bishop_count-1; ++cnt)
+        for (uint32_t cnt = 0; cnt < bishop_count-1; ++cnt)
         {
             if (opposite_colors(_board[c|BSHP][cnt], _board[c|BSHP][cnt+1])) return true;
         }

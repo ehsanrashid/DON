@@ -48,11 +48,11 @@ public:
     Bitboard pieces () const;
     Bitboard empties () const;
 
-    uint8_t piece_count (Color c, PType t) const;
-    uint8_t piece_count (Piece p) const;
-    uint8_t piece_count (Color c) const;
-    uint8_t piece_count (PType t) const;
-    uint8_t piece_count () const;
+    uint32_t piece_count (Color c, PType t) const;
+    uint32_t piece_count (Piece p) const;
+    uint32_t piece_count (Color c) const;
+    uint32_t piece_count (PType t) const;
+    uint32_t piece_count () const;
 
     bool ok (int8_t *step_failed = NULL) const;
 
@@ -132,25 +132,25 @@ inline Bitboard Board::empties () const
     return ~_bb_types[PT_NO];
 }
 
-inline uint8_t Board::piece_count (Color c, PType t) const
+inline uint32_t Board::piece_count (Color c, PType t) const
 {
     return _piece_list[c][t].size ();
 }
-inline uint8_t Board::piece_count (Piece p) const
+inline uint32_t Board::piece_count (Piece p) const
 {
     return _piece_list[_color (p)][_ptype (p)].size ();
 }
-inline uint8_t Board::piece_count (Color c) const
+inline uint32_t Board::piece_count (Color c) const
 {
     return
         piece_count (c, PAWN) + piece_count (c, NIHT) + piece_count (c, BSHP) +
         piece_count (c, ROOK) + piece_count (c, QUEN) + piece_count (c, KING);
 }
-inline uint8_t Board::piece_count (PType t) const
+inline uint32_t Board::piece_count (PType t) const
 {
     return piece_count (WHITE, t) + piece_count (BLACK, t);
 }
-inline uint8_t Board::piece_count () const
+inline uint32_t Board::piece_count () const
 {
     return piece_count (WHITE) + piece_count (BLACK);
 }
