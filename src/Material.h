@@ -26,12 +26,13 @@ namespace Material {
         Score _space_weight;
         Phase _game_phase;
 
-        Score material_value() const { return mk_score(value, value); }
-        Score space_weight() const { return _space_weight; }
-        Phase game_phase() const { return _game_phase; }
+        Score material_value()  const { return mk_score(value, value); }
+        Score space_weight()    const { return _space_weight; }
+        Phase game_phase()      const { return _game_phase; }
 
-        bool specialized_eval_exists() const { return evaluation_func != NULL; }
+        bool specialized_eval_exists()      const { return evaluation_func != NULL; }
         Value evaluate(const Position &pos) const { return (*evaluation_func) (pos); }
+
         ScaleFactor scale_factor(const Position &pos, Color c) const;
 
     };
@@ -49,8 +50,8 @@ namespace Material {
     /// which checks for draws with rook pawns and wrong-colored bishops.
     inline ScaleFactor Entry::scale_factor (const Position &pos, Color c) const
     {
-        return !scaling_func[c] || (*scaling_func[c])(pos) == SCALE_FACTOR_NONE
-            ? ScaleFactor(factor[c]) : (*scaling_func[c])(pos);
+        return (!scaling_func[c] || (*scaling_func[c])(pos) == SCALE_FACTOR_NONE) ?
+            ScaleFactor(factor[c]) : (*scaling_func[c])(pos);
     }
 
 }

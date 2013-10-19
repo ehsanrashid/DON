@@ -92,7 +92,7 @@ namespace {
         Square s;
         File f;
         bool passed, isolated, doubled, opposed, chain, backward, candidate;
-        Score _pawn_value = SCORE_ZERO;
+        Score pawn_value = SCORE_ZERO;
 
         const SquareList pl = pos.list<PAWN>(C);
 
@@ -170,17 +170,17 @@ namespace {
                 e->_passed_pawns[C] |= s;
 
             // Score this pawn
-            if (isolated) _pawn_value -= Isolated[opposed][f];
+            if (isolated) pawn_value -= Isolated[opposed][f];
 
-            if (doubled) _pawn_value -= Doubled[opposed][f];
+            if (doubled) pawn_value -= Doubled[opposed][f];
 
-            if (backward) _pawn_value -= Backward[opposed][f];
+            if (backward) pawn_value -= Backward[opposed][f];
 
-            if (chain) _pawn_value += ChainMember[f];
+            if (chain) pawn_value += ChainMember[f] + CandidatePassed[rel_rank(C, s)] / 2;
 
             if (candidate)
             {
-                _pawn_value += CandidatePassed[rel_rank(C, s)];
+                pawn_value += CandidatePassed[rel_rank(C, s)];
 
                 if (!doubled) e->_candidate_pawns[C] |= s;
             }
@@ -188,7 +188,7 @@ namespace {
             ++itr;
         }
 
-        return _pawn_value;
+        return pawn_value;
     }
 
 } // namespace

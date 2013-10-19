@@ -86,7 +86,7 @@ public:
 // Endgames class stores in two std::map the pointers to endgame evaluation
 // and scaling base objects. Then we use polymorphism to invoke the actual
 // endgame function calling its operator() that is virtual.
-class Endgames
+typedef class Endgames
 {
 
     typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
@@ -109,6 +109,6 @@ public:
     template<class T>
     T probe (Key key, T &eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
 
-};
+} Endgames;
 
 #endif

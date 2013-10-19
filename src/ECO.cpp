@@ -2,7 +2,9 @@
 
 namespace {
 
-    const ECO _ECO[] =
+    const uint16_t MAX_ECO = 500;
+
+    const ECO _ECO[MAX_ECO] =
     {
 
         { 0, 0, 1, "A00", "Polish (Sokolsky) opening", "1. b4" },
@@ -517,7 +519,7 @@ namespace {
 
 void get_eco ()
 {
-    for (uint16_t i = 0; i < 500; ++i)
+    for (uint16_t i = 0; i < MAX_ECO; ++i)
     {
         ;
 

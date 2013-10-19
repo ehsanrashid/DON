@@ -184,7 +184,7 @@ namespace MoveGenerator {
                 switch (G)
                 {
                 case EVASION: enemies = pos.pieces (_C) & target; break;
-                case CAPTURE: enemies = target;                     break;
+                case CAPTURE: enemies = target;                   break;
                 default:      enemies = pos.pieces (_C);          break;
                 }
 

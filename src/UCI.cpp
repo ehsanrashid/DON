@@ -18,8 +18,7 @@
 
 namespace UCI {
 
-    //using isstream = std::istringstream;
-    typedef std::istringstream isstream;
+    typedef std::istringstream cmdstream;
 
     using std::string;
     using std::atom;
@@ -35,7 +34,7 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr   states;
 
-        bool is_running = false;
+        bool active = false;
 
 #pragma region uci-commands
 
@@ -57,7 +56,7 @@ namespace UCI {
             atom () << "readyok" << endl;
         }
 
-        void exe_setoption (isstream &cstm)
+        void exe_setoption (cmdstream &cstm)
         {
             string token;
             if (!(cstm >> token)) return; // consume "name" token
@@ -105,7 +104,7 @@ namespace UCI {
         // Example:
         //   "register later"
         //   "register name Stefan MK code 4359874324"
-        void exe_register (isstream &cstm)
+        void exe_register (cmdstream &cstm)
         {
 
         }
@@ -116,7 +115,7 @@ namespace UCI {
         //  - fen-string position ("fen")
         // and then makes the moves given in the following move list ("moves")
         // also saving the moves on stack.
-        void exe_position (isstream &cstm)
+        void exe_position (cmdstream &cstm)
         {
             string token;
             // consume "startpos" or "fen" token
@@ -176,44 +175,38 @@ namespace UCI {
         //  - infinite
         //  - ponder
         // and starts the search.
-        void exe_go (isstream &cstm)
+        void exe_go (cmdstream &cstm)
         {
             Searcher::Limits limits;
             string token;
 
             while (cstm.good () && (cstm >> token))
             {
-                try
+                if (false);
+                else if (iequals (token, "searchmoves"))
                 {
-                    if (false);
-                    else if (iequals (token, "searchmoves"))
+                    //limits.search_moves.clear ();
+                    while (cstm.good () && (cstm >> token))
                     {
-                        //limits.search_moves.clear ();
-                        while (cstm.good () && (cstm >> token))
-                        {
-                            Move m = move_from_can (token, pos);
-                            if (MOVE_NONE == m) continue;
-                            limits.search_moves.emplace_back (m);
-                        }
+                        Move m = move_from_can (token, pos);
+                        if (MOVE_NONE == m) continue;
+                        limits.search_moves.emplace_back (m);
                     }
-                    else if (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
-                    else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
-                    else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
-                    else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
-                    else if (iequals (token, "movetime"))   cstm >> limits.move_time;
-                    else if (iequals (token, "movestogo"))  cstm >> limits.moves_to_go;
-                    else if (iequals (token, "depth"))      cstm >> limits.depth;
-                    else if (iequals (token, "nodes"))      cstm >> limits.nodes;
-                    else if (iequals (token, "mate"))       cstm >> limits.mate_in;
-                    else if (iequals (token, "infinite"))   limits.infinite  = true;
-                    else if (iequals (token, "ponder"))     limits.ponder    = true;
                 }
-                catch (const std::exception &)
-                {}
+                else if (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
+                else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
+                else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
+                else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
+                else if (iequals (token, "movetime"))   cstm >> limits.move_time;
+                else if (iequals (token, "movestogo"))  cstm >> limits.moves_to_go;
+                else if (iequals (token, "depth"))      cstm >> limits.depth;
+                else if (iequals (token, "nodes"))      cstm >> limits.nodes;
+                else if (iequals (token, "mate"))       cstm >> limits.mate_in;
+                else if (iequals (token, "infinite"))   limits.infinite  = true;
+                else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
 
             //Threads.start_thinking(pos, states, limits);
-
         }
 
         void exe_ponderhit ()
@@ -222,7 +215,7 @@ namespace UCI {
             //Threads.main()->notify_one(); // Could be sleeping
         }
 
-        void exe_debug (isstream &cstm)
+        void exe_debug (cmdstream &cstm)
         {
             // debug on/off
         }
@@ -252,7 +245,7 @@ namespace UCI {
             //atom () << Eval::trace (pos) << endl;
         }
 
-        void exe_perft (isstream &cstm)
+        void exe_perft (cmdstream &cstm)
         {
             string token;
             // Read perft depth
@@ -289,17 +282,17 @@ namespace UCI {
 
         pos.setup (FEN_N, *(Options["UCI_Chess960"]));
 
-        is_running = args.empty ();
+        active = args.empty ();
         string cmd = args;
         string token;
         do
         {
             // Block here waiting for input
-            if (is_running && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
+            if (active && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
             if (std::whitespace (cmd)) continue;
             try
             {
-                isstream cstm (cmd);
+                cmdstream cstm (cmd);
                 cstm >> std::skipws >> token;
 
                 if (false);
@@ -330,22 +323,23 @@ namespace UCI {
                     || iequals (token, "stop"))         exe_stop ();
                 else
                 {
-                    //atom () << "WHAT??? No such command: '" << cmd << "'";
+                    TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
                 }
             }
-            catch (...)
-            {}
+            catch (std::exception &exp)
+            {
+                TRI_LOG_MSG (exp.what ());
+            }
         }
-        while (is_running && !iequals (cmd, "quit"));
+        while (active && !iequals (cmd, "quit"));
 
-        //Threads.wait_for_think_finished(); // Cannot quit while search stream is_running
+        //Threads.wait_for_think_finished(); // Cannot quit while search stream active
     }
 
     void stop ()
     {
-        is_running = false;
+        active = false;
     }
-
 
     void send_responce (const char format[], ...)
     {

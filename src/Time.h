@@ -8,7 +8,6 @@
 
 #include "Platform.h"
 
-
 #if defined(_WIN32) // WINDOWS
 
 #   include <sys/timeb.h>
@@ -46,6 +45,7 @@ namespace Time {
 
     inline std::string to_string (const point point)
     {
+        std::ostringstream stime;
 
 #if defined(_WIN32)
 
@@ -58,7 +58,6 @@ namespace Time {
         str_time[19] = '\0';
         str_time[24] = '\0';
 
-        std::ostringstream stime;
         stime << std::setfill ('0')
             << &str_time[0] << " "
             << &str_time[20] << " "

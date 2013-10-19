@@ -233,19 +233,24 @@ public:
     Bitboard pieces (Color c) const;
     Bitboard pieces (PType t) const;
     Bitboard pieces (Color c, PType t) const;
-    Bitboard pieces (Piece p) const;
     Bitboard pieces (PType t1, PType t2) const;
     Bitboard pieces (Color c, PType t1, PType t2) const;
     Bitboard pieces () const;
     Bitboard empties () const;
+    //Bitboard pieces (Piece p) const;
 
-    uint32_t piece_count (Color c, PType t) const;
-    uint32_t piece_count (Piece p) const;
-    uint32_t piece_count (Color c) const;
-    uint32_t piece_count (PType t) const;
-    uint32_t piece_count () const;
     template<PType T>
     uint32_t piece_count (Color c) const;
+    template<PType T>
+    uint32_t piece_count () const;
+    uint32_t piece_count (Color c) const;
+    uint32_t piece_count () const;
+    uint32_t piece_count (Color c, PType t) const;
+    //uint32_t piece_count (Piece p) const;
+    //uint32_t piece_count (PType t) const;
+
+    template<PType T>
+    const SquareList list (Color c) const;
 
 #pragma endregion
 
@@ -279,8 +284,6 @@ public:
     Value non_pawn_material (Color c) const;
     //Value pawn_material (Color c) const;
     
-    template<PType T>
-    const SquareList list (Color c) const;
 
     Score psq_score () const;
 
@@ -308,7 +311,7 @@ public:
     uint64_t& game_nodes ();
 
     bool draw () const;
-    bool ok (int8_t *step_failed = NULL) const;
+    bool ok (int8_t *failed_step = NULL) const;
 
 #pragma endregion
 
@@ -409,8 +412,8 @@ public:
 
 #pragma region Conversions
 
-    bool          fen (const char *fen, bool c960 = false, bool full = true) const;
-    std::string fen (bool                    c960 = false, bool full = true) const;
+    bool        fen (const char *fen, bool c960 = false, bool full = true) const;
+    std::string fen (bool                  c960 = false, bool full = true) const;
 
     operator std::string () const;
 
@@ -439,19 +442,27 @@ inline Square Position::king_sq (Color c) const { return _board.king_sq (c); }
 inline Bitboard Position::pieces (Color c) const { return _board.pieces (c); }
 inline Bitboard Position::pieces (PType t) const { return _board.pieces (t); }
 inline Bitboard Position::pieces (Color c, PType t) const { return _board.pieces (c, t); }
-inline Bitboard Position::pieces (Piece p) const { return _board.pieces (p); }
 inline Bitboard Position::pieces (PType t1, PType t2) const { return _board.pieces (t1, t2); }
 inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _board.pieces (c, t1, t2); }
-inline Bitboard Position::pieces () const { return _board.pieces (); }
+inline Bitboard Position::pieces ()  const { return _board.pieces (); }
 inline Bitboard Position::empties () const { return _board.empties (); }
+//inline Bitboard Position::pieces (Piece p) const { return _board.pieces (p); }
 
-inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
-inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
-inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
-inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
 template<PType T>
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c, T); }
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count<T> (c); }
+template<PType T>
+inline uint32_t Position::piece_count ()        const { return _board.piece_count<T> (); }
+inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
+inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
+inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
+//inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
+//inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
+
+template<PType T>
+inline const SquareList Position::list (Color c) const
+{
+    return _board[c | T];
+}
 
 #pragma endregion
 
@@ -469,10 +480,7 @@ inline Move Position::last_move () const { return _si->last_move; }
 //
 inline PType Position::cap_type () const { return _si->cap_type; }
 //
-inline Piece Position::cap_piece () const
-{
-    return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ());
-}
+inline Piece Position::cap_piece () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
 //
 inline Bitboard Position::checkers () const { return _si->checkers; }
 //
@@ -489,12 +497,6 @@ inline Score Position::psq_score () const { return _si->psq_score; }
 inline Value Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
 //inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
-
-template<PType T>
-inline const SquareList Position::list (Color c) const
-{
-    return _board[c | T];
-}
 
 #pragma endregion
 
@@ -564,7 +566,7 @@ inline Bitboard Position::attacks_from (Square s) const
     case ROOK:
     case QUEN:
     case KING:
-        return attacks_bb<T> (s);
+        return BitBoard::attacks_bb<T> (s);
         break;
     }
     return 0;

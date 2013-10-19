@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-class Log sealed
+typedef class Log sealed
     : public std::ofstream
 {
 
@@ -17,6 +17,7 @@ public:
     {
         if (is_open ()) close ();
     }
-};
+
+} Log;
 
 #endif

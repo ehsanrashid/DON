@@ -6,6 +6,6 @@
 
 class Position;
 
-extern void benchmark (std::istream& is, const Position &pos);
+extern void benchmark (std::istream &is, const Position &pos);
 
 #endif

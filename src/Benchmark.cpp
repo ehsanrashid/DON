@@ -6,6 +6,7 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "UCI.h"
+#include "TriLogger.h"
 
 namespace {
 
@@ -43,7 +44,7 @@ namespace {
 //     * depth (default).
 //     * time in secs
 //     * number of nodes.
-void benchmark (std::istream& is, const Position &pos)
+void benchmark (std::istream &is, const Position &pos)
 {
     std::string token;
     std::vector<std::string> fens;
@@ -70,11 +71,11 @@ void benchmark (std::istream& is, const Position &pos)
         else                                    limits.depth     = std::stoi (limit_val);
 
         if (false);
-        else if ("default" == fn_fen)
+        else if (iequals (fn_fen, "default"))
         {
             fens.assign (default_fens, default_fens + NUM_FEN);
         }
-        else if ("current" == fn_fen)
+        else if (iequals (fn_fen, "current"))
         {
             fens.emplace_back (pos.fen ());
         }
@@ -85,7 +86,7 @@ void benchmark (std::istream& is, const Position &pos)
 
             if (!ifstm_fen.is_open ())
             {
-                std::cerr << "ERROR: Unable to open file ... \'" << fn_fen << "\'" << std::endl;
+                TRI_LOG_MSG ("ERROR: Unable to open file ... \'" << fn_fen << "\'");
                 return;
             }
 

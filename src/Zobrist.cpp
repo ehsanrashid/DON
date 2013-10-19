@@ -12,13 +12,11 @@ namespace Zobrist {
     const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
     const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
     
-    static RKISS rkiss;
-
+    RKISS rkiss;
     Key exclusion;
 
     void Zob::initialize (RKISS rkiss)
     {
-#pragma region Zobrist
 
         //for (Color c = WHITE; c <= BLACK; ++c)
         //{
@@ -43,16 +41,12 @@ namespace Zobrist {
         //}
         //_.side_move = rkiss.rand64();
 
-#pragma endregion
-
-#pragma region Random
 
         for (uint16_t i = 0; i < SIZE_RANDOM; ++i)
         {
             random[i] = rkiss.rand64 ();
         }
 
-#pragma endregion
     }
 
     // Hash key of the material situation.
@@ -703,7 +697,7 @@ const Zobrist::Zob ZobPG =
 
 #pragma region ZobRand Randoms
 
-Zobrist::Zob ZobRand;
+//Zobrist::Zob ZobRand;
 
 #pragma endregion
 

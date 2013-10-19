@@ -182,7 +182,7 @@ inline std::string to_string (Square s)
 {
     if (_ok (s))
     {
-        char sq[] = { to_char (_file (s)), to_char (_rank (s)), '\0' };
+        char sq[3] = { to_char (_file (s)), to_char (_rank (s)), '\0' };
         return sq;
         //return { to_char (_file (s)), to_char (_rank (s)), '\0' };
     }

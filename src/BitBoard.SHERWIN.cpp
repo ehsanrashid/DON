@@ -268,8 +268,6 @@ namespace BitBoard {
 
         void initialize_RTable ()
         {
-            const Delta DeltasR[] = { DEL_N, DEL_E, DEL_S, DEL_W };
-
             uint32_t index_base = 0;
             for (uint8_t b = 12; b >= 10; --b)
             {
