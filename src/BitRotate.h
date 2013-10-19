@@ -173,7 +173,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //    //bb |= bb >> 0x04;
 //    //bb |= bb >> 0x02;
 //    //bb |= bb >> 0x01;
-//    //bb &= bb_FA;
+//    //bb &= FA_bb;
 //    //bb |= bb >> 0x07;
 //    //bb |= bb >> 0x0E;
 //    //bb |= bb >> 0x1C;
@@ -184,7 +184,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //    bb |= bb >> 0x04;
 //    bb |= bb >> 0x02;
 //    bb |= bb >> 0x01;
-//    return (((bb & bb_FA) * bb_D81) >> 0x38);
+//    return (((bb & FA_bb) * D81_bb) >> 0x38);
 //}
 //
 //// Collapse all RANKs to 1st RANK (Rank overlay)
@@ -192,10 +192,10 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //{
 //    // LOGIC failed
 //    //uint32_t folded = (bb) | (bb >> 0x20);
-//    //return (folded * bb_FA) >> 0x18;
+//    //return (folded * FA_bb) >> 0x18;
 //    // -
 //
-//    //return (bb * bb_FA) >> 0x38;
+//    //return (bb * FA_bb) >> 0x38;
 //
 //    // ---
 //
@@ -214,7 +214,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //inline uint8_t CollapsedRANKsIndex (Bitboard bb, File f)
 //{
 //    bb = (bb >> f);
-//    bb &= bb_FA;
+//    bb &= FA_bb;
 //    bb |= bb >> 0x07;
 //    bb |= bb >> 0x0E;
 //    bb |= bb >> 0x1C;
@@ -223,7 +223,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //    // ---
 //
 //    //bb = (bb >> f);
-//    //return (((bb & bb_FA) * bb_D81) >> 0x38);
+//    //return (((bb & FA_bb) * D81_bb) >> 0x38);
 //}
 //// Collapse RANK 'r' to 1st RANK
 //inline uint8_t CollapsedFILEsIndex (Bitboard bb, Rank r)
@@ -310,7 +310,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard      EastOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FA_;
+//    pro &= FA_bb_;
 //    gen |= pro &    (gen <<  1);
 //    pro &=          (pro <<  1);
 //    gen |= pro &    (gen <<  2);
@@ -321,7 +321,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard      WestOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FH_;
+//    pro &= FH_bb_;
 //    gen |= pro &    (gen >>  1);
 //    pro &=          (pro >>  1);
 //    gen |= pro &    (gen >>  2);
@@ -332,7 +332,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard NorthEastOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FA_;
+//    pro &= FA_bb_;
 //    gen |= pro &    (gen <<  9);
 //    pro &=          (pro <<  9);
 //    gen |= pro &    (gen << 18);
@@ -343,7 +343,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard SouthEastOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FA_;
+//    pro &= FA_bb_;
 //    gen |= pro &    (gen >>  7);
 //    pro &=          (pro >>  7);
 //    gen |= pro &    (gen >> 14);
@@ -354,7 +354,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard NorthWestOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FH_;
+//    pro &= FH_bb_;
 //    gen |= pro &    (gen <<  7);
 //    pro &=          (pro <<  7);
 //    gen |= pro &    (gen << 14);
@@ -365,7 +365,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //
 //inline Bitboard SouthWestOcclude(Bitboard gen, Bitboard pro)
 //{
-//    pro &= bb_FH_;
+//    pro &= FH_bb_;
 //    gen |= pro &    (gen >>  9);
 //    pro &=          (pro >>  9);
 //    gen |= pro &    (gen >> 18);

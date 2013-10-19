@@ -32,7 +32,7 @@ extern const char *const FEN_X;
 //extern const std::string FEN_X;
 
 // Check the validity of FEN string
-extern bool _ok (const          char *fen, bool c960 = false, bool full = true);
+extern bool _ok (const        char *fen, bool c960 = false, bool full = true);
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
@@ -192,7 +192,7 @@ public:
     {
         clear ();
     }
-    Position (const          char *fen, bool c960 = false, bool full = true)
+    Position (const        char *fen, bool c960 = false, bool full = true)
     {
         if (!setup (fen, c960, full)) clear ();
     }
@@ -375,7 +375,7 @@ public:
     Piece remove_piece (Square s);
     Piece   move_piece (Square s1, Square s2);
 
-    bool setup (const          char *fen, bool c960 = false, bool full = true);
+    bool setup (const        char *fen, bool c960 = false, bool full = true);
     bool setup (const std::string &fen, bool c960 = false, bool full = true);
 
 private:
@@ -410,11 +410,11 @@ public:
 #pragma region Conversions
 
     bool          fen (const char *fen, bool c960 = false, bool full = true) const;
-    std::string fen (bool                  c960 = false, bool full = true) const;
+    std::string fen (bool                    c960 = false, bool full = true) const;
 
     operator std::string () const;
 
-    static bool parse (Position &pos, const          char *fen, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const        char *fen, bool c960 = false, bool full = true);
     static bool parse (Position &pos, const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
@@ -611,7 +611,7 @@ inline Bitboard Position::blockers (Square s, Bitboard pinners) const
     Bitboard blockers = 0;
     while (pinners)
     {
-        Bitboard blocker = BitBoard::mask_btw_sq (s, pop_lsb (pinners)) & occ;
+        Bitboard blocker = BitBoard::betwen_sq_bb (s, pop_lsb (pinners)) & occ;
         //if (blocker && !BitBoard::more_than_one (blocker) && (blocker & defenders))
         //{
         //    blockers |= blocker;
@@ -653,12 +653,12 @@ inline Bitboard Position::check_discovers () const
 
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(_board.pieces (~c, PAWN) & BitBoard::passer_span_pawn (c, s));
+    return !(_board.pieces (~c, PAWN) & BitBoard::passer_span_pawn_bb (c, s));
 }
 
 inline bool Position::has_pawn_on_7thR (Color c) const
 {
-    return _board.pieces (c, PAWN) & BitBoard::mask_rel_rank (c, R_7);
+    return _board.pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the opposite sides have opposite bishops
 inline bool Position::has_opposite_bishops () const

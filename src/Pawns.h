@@ -36,7 +36,7 @@ namespace Pawns {
         Bitboard pawn_attacks(Color c) const { return _pawn_attacks[c]; }
         Bitboard passed_pawns(Color c) const { return _passed_pawns[c]; }
         Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
-        int32_t pawns_on_same_color_squares(Color c, Square s) const { return num_pawns_on_sq[c][!!(BitBoard::bb_SQ_DR & s)]; }
+        int32_t pawns_on_same_color_squares(Color c, Square s) const { return num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)]; }
         int32_t semiopen(Color c, File f) const { return _semiopen_files[c] & (1 << int32_t(f)); }
         int32_t semiopen_on_side(Color c, File f, bool left) const
         {

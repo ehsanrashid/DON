@@ -61,7 +61,7 @@ protected:
 
 public:
 
-    explicit ThreadPool (size_t threads = std::thread::hardware_concurrency ());
+    explicit ThreadPool (uint32_t threads = std::thread::hardware_concurrency ());
 
     ~ThreadPool ();
 
@@ -76,10 +76,10 @@ public:
 };
 
 // the constructor just launches some amount of workers
-inline ThreadPool::ThreadPool (size_t threads)
+inline ThreadPool::ThreadPool (uint32_t threads)
     : stop (false)
 {
-    for (size_t i = 0; i < threads; ++i)
+    for (uint32_t i = 0; i < threads; ++i)
     {
         workers.emplace_back (std::thread (Worker (*this)));
     }
@@ -97,7 +97,7 @@ ThreadPool::~ThreadPool()
     condition.notify_all ();
 
     // join them
-    for (size_t i = 0; i < workers.size (); ++i)
+    for (uint32_t i = 0; i < workers.size (); ++i)
     {
         workers[i].join ();
     }
@@ -196,7 +196,7 @@ auto ThreadPool::submit_task (F &&f)
 //    : stop (false)
 //{
 //
-//    for (size_t i = 0; i < threads; ++i)
+//    for (uint32_t i = 0; i < threads; ++i)
 //    {
 //        workers.emplace_back([this]
 //        {
@@ -228,7 +228,7 @@ auto ThreadPool::submit_task (F &&f)
 //
 //    condition.notify_all();
 //    
-//    for (size_t i = 0; i < workers.size(); ++i)
+//    for (uint32_t i = 0; i < workers.size(); ++i)
 //    {
 //        workers[i].join ();
 //    }

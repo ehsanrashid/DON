@@ -112,7 +112,7 @@ PolyglotBook::PolyglotBook()
     , _size_book (0)
     , _rkiss ()
 {}
-PolyglotBook::PolyglotBook (const          char *fn_book, std::ios_base::openmode mode)
+PolyglotBook::PolyglotBook (const        char *fn_book, std::ios_base::openmode mode)
     : std::fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
@@ -135,7 +135,7 @@ PolyglotBook::~PolyglotBook ()
 // open the file in mode
 // Read -> ios_base::in
 // Write-> ios_base::out
-bool PolyglotBook::open (const          char *fn_book, std::ios_base::openmode mode)
+bool PolyglotBook::open (const        char *fn_book, std::ios_base::openmode mode)
 {
     close ();
     std::fstream::open (fn_book, mode | std::ios_base::binary);
@@ -213,7 +213,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
     if (!std::fstream::is_open () || !(_mode & std::ios_base::in))
     {
-        if (!open (_fn_book,std::ios_base::in)) return MOVE_NONE;
+        if (!open (_fn_book, std::ios_base::in)) return MOVE_NONE;
     }
 
     Key key = ZobPG.compute_posi_key (pos);

@@ -25,12 +25,12 @@ using namespace MoveGenerator;
 
 namespace {
 
-    ::std::string string_args (size_t argc, const char* const argv[])
+    std::string string_args (size_t argc, const char* const argv[])
     {
-        ::std::string args;
+        std::string args;
         for (size_t i = 1; i < argc; ++i)
         {
-            args += args.empty () ? ::std::string (argv[i]) : " " + ::std::string (argv[i]);
+            args += args.empty () ? std::string (argv[i]) : " " + std::string (argv[i]);
         }
         return args;
     }
@@ -43,23 +43,23 @@ namespace {
         //setvbuf (stdout, buffer, (buffer) ? _IOFBF : _IONBF, size_buf); // _IOLBF breaks on Windows!
 
         //cout.unsetf(ios_base::dec);
-        //::std::cout.setf (std::ios_base::boolalpha);
-        ::std::cout.setf (
-            //    ::std::ios_base::showpos |
-            //    ::std::ios_base::boolalpha |
-            ::std::ios_base::hex |
-            //    ::std::ios_base::uppercase |
-            //    ::std::ios_base::fixed |
-            //    //::std::ios_base::showpoint |
-            ::std::ios_base::unitbuf);
-        ::std::cout.precision (2);
+        //std::cout.setf (std::ios_base::boolalpha);
+        std::cout.setf (
+            //    std::ios_base::showpos |
+            //    std::ios_base::boolalpha |
+            std::ios_base::hex |
+            //    std::ios_base::uppercase |
+            //    std::ios_base::fixed |
+            //    //std::ios_base::showpoint |
+            std::ios_base::unitbuf);
+        std::cout.precision (2);
     }
 
     void print_fill_hex (Key key)
     {
-        ::std::cout.width (16);
-        ::std::cout.fill ('0');
-        ::std::cout << key << ::std::endl;
+        std::cout.width (16);
+        std::cout.fill ('0');
+        std::cout << key << std::endl;
     }
 
     //char *low_stack, *high_stack;
@@ -153,13 +153,13 @@ int main (int argc, const char* const argv[])
     //tt.store (key, move, depth, bound, score, nodes);
     //te = tt.retrieve (key);
 
-    ////ofstream out_dat ("hash.dat", ::std::ios_base::out | ::std::ios_base::binary);
+    ////ofstream out_dat ("hash.dat", std::ios_base::out | std::ios_base::binary);
     ////out_dat << tt;
     ////out_dat.close ();
 
     ////tt.clear();
 
-    ////ifstream in_dat ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
+    ////ifstream in_dat ("hash.dat", std::ios_base::in | std::ios_base::binary);
     ////in_dat >> tt;
     ////in_dat.close ();
 

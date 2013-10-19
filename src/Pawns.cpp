@@ -103,7 +103,7 @@ namespace {
         e->_king_sq[C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
         e->_pawn_attacks[C] = shift_del<RIGHT>(w_pawns) | shift_del<LEFT>(w_pawns);
-        e->num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & bb_SQ_DR);
+        e->num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & DR_SQ_bb);
         e->num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->num_pawns_on_sq[C][BLACK];
 
         auto itr = pl.cbegin ();
@@ -121,22 +121,22 @@ namespace {
             e->_semiopen_files[C] &= ~(1 << f);
 
             // Our rank plus previous one. Used for chain detection
-            b = mask_rank(s) | mask_rank(s - pawn_push(C));
+            b = rank_bb(s) | rank_bb(s - pawn_push(C));
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
-            chain    =   w_pawns   & mask_adj_files(f) & b;
-            isolated = !(w_pawns   & mask_adj_files(f));
-            doubled  =   w_pawns   & mask_front_sq(C, s);
-            opposed  =   b_pawns & mask_front_sq(C, s);
-            passed   = !(b_pawns & passer_span_pawn(C, s));
+            chain    =   w_pawns   & adj_files_bb(f) & b;
+            isolated = !(w_pawns   & adj_files_bb(f));
+            doubled  =   w_pawns   & front_squares_bb(C, s);
+            opposed  =   b_pawns & front_squares_bb(C, s);
+            passed   = !(b_pawns & passer_span_pawn_bb(C, s));
 
             // Test for backward pawn.
             // If the pawn is passed, isolated, or member of a pawn chain it cannot
             // be backward. If there are friendly pawns behind on adjacent files
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | chain)
-                || (w_pawns & attack_span_pawn(_C, s))
+                || (w_pawns & attack_span_pawn_bb(_C, s))
                 || (pos.attacks_from<PAWN>(C, s) & b_pawns))
                 backward = false;
             else
@@ -145,23 +145,23 @@ namespace {
                 // pawn on adjacent files. We now check whether the pawn is
                 // backward by looking in the forward direction on the adjacent
                 // files, and picking the closest pawn there.
-                b = attack_span_pawn(C, s) & (w_pawns | b_pawns);
-                b = attack_span_pawn(C, s) & mask_rank(backmost_rel_sq(C, b));
+                b = attack_span_pawn_bb(C, s) & (w_pawns | b_pawns);
+                b = attack_span_pawn_bb(C, s) & rank_bb(backmost_rel_sq(C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
                 backward = (b | shift_del<PUSH>(b)) & b_pawns;
             }
 
-            assert(opposed | passed | (attack_span_pawn(C, s) & b_pawns));
+            assert(opposed | passed | (attack_span_pawn_bb(C, s) & b_pawns));
 
             // A not passed pawn is a candidate to become passed if it is free to
             // advance and if the number of friendly pawns beside or behind this
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
             candidate =   !(opposed | passed | backward | isolated)
-                && (b = attack_span_pawn(_C, s + pawn_push(C)) & w_pawns) != 0
-                &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn(C, s) & b_pawns);
+                && (b = attack_span_pawn_bb(_C, s + pawn_push(C)) & w_pawns) != 0
+                &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn_bb(C, s) & b_pawns);
 
             // Passed pawns will be properly scored in evaluation because we need
             // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -219,7 +219,7 @@ namespace Pawns {
         const Color _C = ~C;
 
         Value safety = MaxSafetyBonus;
-        Bitboard b = pos.pieces(PAWN) & (mask_front_ranks(C, _rank(ksq)) | mask_rank(ksq));
+        Bitboard b = pos.pieces(PAWN) & (front_ranks_bb(C, _rank(ksq)) | rank_bb(ksq));
         Bitboard w_pawns = b & pos.pieces(C);
         Bitboard b_pawns = b & pos.pieces(_C);
         Rank w_rk, b_rk;
@@ -227,11 +227,11 @@ namespace Pawns {
 
         for (int32_t f = kf - 1; f <= kf + 1; ++f)
         {
-            b = w_pawns & _bb_file[f];
+            b = w_pawns & _file_bb[f];
             w_rk = b ? rel_rank(C, backmost_rel_sq(C, b)) : R_1;
             safety -= ShelterWeakness[w_rk];
 
-            b  = b_pawns & _bb_file[f];
+            b  = b_pawns & _file_bb[f];
             b_rk = b ? rel_rank(C, frontmost_rel_sq(_C, b)) : R_1;
             safety -= StormDanger[w_rk == R_1 ? 0 : b_rk == w_rk + 1 ? 2 : 1][b_rk];
         }
@@ -253,7 +253,7 @@ namespace Pawns {
         Bitboard pawns = pos.pieces(C, PAWN);
         if (pawns)
         {
-            while (!(mask_dist_ring(ksq, _min_dist_KP[C]++) & pawns))
+            while (!(dia_rings_bb(ksq, _min_dist_KP[C]++) & pawns))
             {}
         }
 

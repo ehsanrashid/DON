@@ -184,8 +184,8 @@ namespace {
     // friendly minor pieces.
     const Bitboard SpaceMask[] =
     {
-        (bb_FC | bb_FD | bb_FE | bb_FB) & (bb_R2 | bb_R3 | bb_R4),
-        (bb_FC | bb_FD | bb_FE | bb_FB) & (bb_R7 | bb_R6 | bb_R5)
+        (FC_bb | FD_bb | FE_bb | FB_bb) & (R2_bb | R3_bb | R4_bb),
+        (FC_bb | FD_bb | FE_bb | FB_bb) & (R7_bb | R6_bb | R5_bb)
     };
 
     // King danger constants and variables. The king danger scores are taken
@@ -796,27 +796,27 @@ namespace {
 
                 // Adjust bonus based on kings proximity
                 ebonus +=
-                    Value(dist_sq(pos.king_sq(_C), block_sq) * 5 * rr) -
-                    Value(dist_sq(pos.king_sq(C  ), block_sq) * 2 * rr);
+                    Value(square_dist(pos.king_sq(_C), block_sq) * 5 * rr) -
+                    Value(square_dist(pos.king_sq(C  ), block_sq) * 2 * rr);
 
                 // If block_sq is not the queening square then consider also a second push
                 if (rel_rank(C, block_sq) != R_8)
                 {
-                    ebonus -= Value(dist_sq(pos.king_sq(C), block_sq + pawn_push(C)) * rr);
+                    ebonus -= Value(square_dist(pos.king_sq(C), block_sq + pawn_push(C)) * rr);
                 }
 
                 // If the pawn is free to advance, increase bonus
                 if (pos.empty(block_sq))
                 {
                     // squares to queen
-                    Bitboard squares_queen = mask_front_sq(C, s);
+                    Bitboard squares_queen = front_squares_bb(C, s);
                     Bitboard squares_defended, squares_unsafe;
 
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
-                    if (    UNLIKELY(mask_front_sq(_C, s) & pos.pieces(_C, ROOK, QUEN))
-                        && (mask_front_sq(_C, s) & pos.pieces(_C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
+                    if (    UNLIKELY(front_squares_bb(_C, s) & pos.pieces(_C, ROOK, QUEN))
+                        && (front_squares_bb(_C, s) & pos.pieces(_C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
                     {
                         squares_unsafe = squares_queen;
                     }
@@ -824,8 +824,8 @@ namespace {
                     {
                         squares_unsafe = squares_queen & (ei.attackedBy[_C][ALL_PIECES] | pos.pieces(_C));
                     }
-                    if (    UNLIKELY(mask_front_sq(_C, s) & pos.pieces(C, ROOK, QUEN))
-                        && (mask_front_sq(_C, s) & pos.pieces(C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
+                    if (    UNLIKELY(front_squares_bb(_C, s) & pos.pieces(C, ROOK, QUEN))
+                        && (front_squares_bb(_C, s) & pos.pieces(C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
                     {
                         squares_defended = squares_queen;
                     }
@@ -857,11 +857,11 @@ namespace {
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
             Bitboard sup_pawns = pos.pieces(C, PAWN) & adjacent_files_bb(_file (s));
-            if (sup_pawns & mask_rank (s))
+            if (sup_pawns & rank_bb (s))
             {
                 ebonus += Value(r * 20);
             }
-            else if (sup_pawns & mask_rank (s - pawn_push(C)))
+            else if (sup_pawns & rank_bb (s - pawn_push(C)))
             {
                 ebonus += Value(r * 12);
             }
@@ -874,7 +874,7 @@ namespace {
             // value if the other side has a rook or queen.
 
             //if (_file (s) == F_A || _file (s) == F_H)
-            if (mask_file (s) & (bb_FA | bb_FH))
+            if (file_bb (s) & (FA_bb | FH_bb))
             {
                 if (pos.non_pawn_material(_C) <= VALUE_MG_KNIGHT)
                 {

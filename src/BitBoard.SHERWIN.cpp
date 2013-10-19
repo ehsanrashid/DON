@@ -26,10 +26,10 @@ namespace BitBoard {
         const uint16_t PATTERN_R = 0x100;
 
 
-        Bitboard _bbTable_B[MAX_MOVES_B];
-        Bitboard _bbTable_R[MAX_MOVES_R];
+        Bitboard BTable_bb[MAX_MOVES_B];
+        Bitboard RTable_bb[MAX_MOVES_R];
 
-        const uint8_t _bBits_B[SQ_NO] =
+        const uint8_t BBits[SQ_NO] =
         {
             6, 5, 5, 5, 5, 5, 5, 6,
             5, 5, 5, 5, 5, 5, 5, 5,
@@ -40,7 +40,7 @@ namespace BitBoard {
             5, 5, 5, 5, 5, 5, 5, 5,
             6, 5, 5, 5, 5, 5, 5, 6,
         };
-        const uint8_t _bBits_R[SQ_NO] =
+        const uint8_t RBits[SQ_NO] =
         {
             12, 11, 11, 11, 11, 11, 11, 12,
             11, 10, 10, 10, 10, 10, 10, 11,
@@ -52,31 +52,31 @@ namespace BitBoard {
             12, 11, 11, 11, 11, 11, 11, 12,
         };
 
-        uint32_t _bRows_B[SQ_NO][6][PATTERN_B];
-        uint32_t _bRows_R[SQ_NO][8][PATTERN_R];
+        uint32_t BRows[SQ_NO][6][PATTERN_B];
+        uint32_t RRows[SQ_NO][8][PATTERN_R];
 
         typedef uint32_t (*Indexer) (Square s, Bitboard occ);
 
         template<PType T>
-        // Function 'index_attacks(s, occ)' for computing index for sliding attack bitboards.
+        // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
         // and returns a bitboard representing all squares attacked by T (BISHOP or ROOK) on the given square.
-        uint32_t index_attacks (Square s, Bitboard occ);
+        uint32_t attack_index (Square s, Bitboard occ);
 
         template<>
-        uint32_t index_attacks<BSHP> (Square s, Bitboard occ)
+        uint32_t attack_index<BSHP> (Square s, Bitboard occ)
         {
-            const Bitboard edges = mask_brd_edges (s);
+            const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (x)-rays
-            const Bitboard mocc = (occ & _bb_attacks_type[BSHP][s] & ~edges) >> 1;
+            const Bitboard mocc = (occ & _attacks_type_bb[BSHP][s] & ~edges) >> 1;
             const uint8_t*   r = (uint8_t*) (&mocc);
 
             // Since every square has its set of row values the six row lookups
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the bishop attack table.
 
-            //const uint32_t *rowB = _bRows_B[s][0]; // &_bRows_B[s][0][0];
-            const uint32_t (*brdB)[PATTERN_B] = _bRows_B[s];
+            //const uint32_t *rowB = BRows[s][0]; // &BRows[s][0][0];
+            const uint32_t (*brdB)[PATTERN_B] = BRows[s];
 
             const uint32_t index
                 //= (rowB + 0*PATTERN_B)[(mocc >>  8) & 0x3F]  // row 2
@@ -102,20 +102,21 @@ namespace BitBoard {
 
             return index;
         }
+        
         template<>
-        uint32_t index_attacks<ROOK> (Square s, Bitboard occ)
+        uint32_t attack_index<ROOK> (Square s, Bitboard occ)
         {
-            const Bitboard edges = mask_brd_edges (s);
+            const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (+)-rays
-            const Bitboard mocc = (occ & _bb_attacks_type[ROOK][s] & ~edges);
+            const Bitboard mocc = (occ & _attacks_type_bb[ROOK][s] & ~edges);
             const uint8_t*   r = (uint8_t*) (&mocc);
 
             // Since every square has its set of row values the eight row lookups
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the rook attack table.
 
-            //const uint32_t *rowR = _bRows_R[s][0]; // &_bRows_R[s][0][0];
-            const uint32_t (*brdR)[PATTERN_R] = _bRows_R[s];
+            //const uint32_t *rowR = RRows[s][0]; // &RRows[s][0][0];
+            const uint32_t (*brdR)[PATTERN_R] = RRows[s];
 
             const uint32_t index
                 //= (rowR + 0*PATTERN_R)[(mocc >>  0) & 0xFF]  // row 1
@@ -149,56 +150,52 @@ namespace BitBoard {
         }
 
 
-        void initialize_table_B ();
-        void initialize_table_R ();
+        void initialize_BTable ();
+        void initialize_RTable ();
 
     }
 
     void initialize_sliding ()
     {
-        initialize_table_B ();
-        initialize_table_R ();
+        initialize_BTable ();
+        initialize_RTable ();
     }
-
-#pragma region Attacks
 
     template<>
     // BISHOP Attacks with occupancy
     Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
-        return _bbTable_B[index_attacks<BSHP> (s, occ)];
+        return BTable_bb[attack_index<BSHP> (s, occ)];
     }
     template<>
     // ROOK Attacks with occupancy
     Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
-        return _bbTable_R[index_attacks<ROOK> (s, occ)];
+        return RTable_bb[attack_index<ROOK> (s, occ)];
     }
     template<>
     // QUEEN Attacks with occupancy
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return
-            _bbTable_B[index_attacks<BSHP> (s, occ)] |
-            _bbTable_R[index_attacks<ROOK> (s, occ)];
+            BTable_bb[attack_index<BSHP> (s, occ)] |
+            RTable_bb[attack_index<ROOK> (s, occ)];
     }
-
-#pragma endregion
 
     namespace {
 
-        void initialize_table_B ()
+        void initialize_BTable ()
         {
             uint32_t index_base = 0;
             for (uint8_t b = 9; b >= 5; --b)
             {
                 for (Square s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    if (_bBits_B[s] != b)  continue;
+                    if (BBits[s] != b)  continue;
 
                     // Board edges are not considered in the relevant occupancies
-                    const Bitboard edges = mask_brd_edges (s);
-                    const Bitboard moves = _bb_attacks_type[BSHP][s]; //attacks_sliding (s, _deltas_type[BSHP]);
+                    const Bitboard edges = brd_edges_bb (s);
+                    const Bitboard moves = _attacks_type_bb[BSHP][s]; //attacks_sliding (s, _deltas_type[BSHP]);
 
                     const Bitboard mask = moves & ~edges;
 
@@ -206,13 +203,16 @@ namespace BitBoard {
                     for (uint8_t row = 0; row < 6; ++row)
                     {
                         const uint16_t maskB = (mask >> (((row + 1) << 3) + 1)) & 0x3F;
+                    
                         for (uint16_t pattern = 0; pattern < PATTERN_B; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;
+                        
                             for (uint8_t i = 0; i < 6; ++i)
                             {
                                 uint16_t m = (1 << i);
+                            
                                 if (maskB & m)
                                 {
                                     if (pattern & m)
@@ -228,7 +228,7 @@ namespace BitBoard {
                                 }
                             }
 
-                            _bRows_B[s][row][pattern] = index_base + index;
+                            BRows[s][row][pattern] = index_base + index;
                         }
                     }
 
@@ -248,28 +248,25 @@ namespace BitBoard {
                     //    }
                     //
                     //    Bitboard moves  = attacks_sliding (s, _deltas_type[BSHP], occ);
-                    //    _bbTable_B[index_base + index] = moves;
+                    //    BTable_bb[index_base + index] = moves;
                     //}
 
                     uint32_t index = 0;
                     Bitboard occ = 0;
                     do
                     {
-                        _bbTable_B[index_base + index] = attacks_sliding (s, _deltas_type[BSHP], occ);
+                        BTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[BSHP], occ);
                         ++index;
                         occ = (occ - mask) & mask;
                     }
                     while (occ);
-                    uint32_t size = index;
 
-                    // ---
-
-                    index_base += size;  //(1 << b);
+                    index_base += index;  //size;
                 }
             }
         }
 
-        void initialize_table_R ()
+        void initialize_RTable ()
         {
             const Delta DeltasR[] = { DEL_N, DEL_E, DEL_S, DEL_W };
 
@@ -278,11 +275,11 @@ namespace BitBoard {
             {
                 for (Square s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    if (_bBits_R[s] != b)  continue;
+                    if (RBits[s] != b)  continue;
 
                     // Board edges are not considered in the relevant occupancies
-                    const Bitboard edges = mask_brd_edges (s);
-                    const Bitboard moves = _bb_attacks_type[ROOK][s]; //attacks_sliding (s, _deltas_type[ROOK]);
+                    const Bitboard edges = brd_edges_bb (s);
+                    const Bitboard moves = _attacks_type_bb[ROOK][s]; //attacks_sliding (s, _deltas_type[ROOK]);
 
                     const Bitboard mask = moves & ~edges;
 
@@ -290,13 +287,16 @@ namespace BitBoard {
                     for (uint8_t row = 0; row < 8; ++row)
                     {
                         const uint16_t maskR = (mask >> (row << 3)) & 0xFF;
+                    
                         for (uint16_t pattern = 0; pattern < PATTERN_R; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;
+                        
                             for (uint8_t i = 0; i < 8; ++i)
                             {
                                 uint16_t m = (1 << i);
+                            
                                 if (maskR & m)
                                 {
                                     if (pattern & m)
@@ -311,7 +311,8 @@ namespace BitBoard {
                                     }
                                 }
                             }
-                            _bRows_R[s][row][pattern] = index_base + index;
+
+                            RRows[s][row][pattern] = index_base + index;
                         }
                     }
 
@@ -332,23 +333,20 @@ namespace BitBoard {
                     //    }
                     //
                     //    Bitboard moves = attacks_sliding (s, _deltas_type[ROOK], occ);
-                    //    _bbTable_R[index_base + index] = moves;
+                    //    RTable_bb[index_base + index] = moves;
                     //}
 
                     uint32_t index = 0;
                     Bitboard occ = 0;
                     do
                     {
-                        _bbTable_R[index_base + index] = attacks_sliding (s, _deltas_type[ROOK], occ);
+                        RTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[ROOK], occ);
                         ++index;
                         occ = (occ - mask) & mask;
                     }
                     while (occ);
-                    uint32_t size = index;
 
-                    // ---
-
-                    index_base += size;  //(1 << b);
+                    index_base += index;  //size;
                 }
             }
         }

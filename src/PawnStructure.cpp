@@ -9,8 +9,8 @@ namespace PawnStructure {
     {
         if (pawns)
         {
-            Bitboard w_attacks_east = shift_del<DEL_NE> (pawns /*& ~RANK1BB*/);
-            Bitboard w_attacks_west = shift_del<DEL_NW> (pawns /*& ~RANK1BB*/);
+            Bitboard w_attacks_east = shift_del<DEL_NE> (pawns /*& R1_bb_*/);
+            Bitboard w_attacks_west = shift_del<DEL_NW> (pawns /*& R1_bb_*/);
             return (w_attacks_east | w_attacks_west);
         }
         return 0;
@@ -19,8 +19,8 @@ namespace PawnStructure {
     {
         if (pawns)
         {
-            Bitboard b_attacks_east = shift_del<DEL_SE> (pawns /*& ~RANK8BB*/);
-            Bitboard b_attacks_west = shift_del<DEL_SW> (pawns /*& ~RANK8BB*/);
+            Bitboard b_attacks_east = shift_del<DEL_SE> (pawns /*& R8_bb_*/);
+            Bitboard b_attacks_west = shift_del<DEL_SW> (pawns /*& R8_bb_*/);
             return (b_attacks_east | b_attacks_west);
         }
         return 0;
@@ -40,7 +40,7 @@ namespace PawnStructure {
         if (pawns)
         {
             Bitboard empty   =~occ;
-            Bitboard emptyR3 = shift_del<DEL_S> (empty & bb_R4) & empty;
+            Bitboard emptyR3 = shift_del<DEL_S> (empty & R4_bb) & empty;
             return shift_del<DEL_S> (emptyR3) & pawns; //pawns_pushable_sgl<WHITE> (pawns, ~emptyR3);
         }
         return 0;
@@ -50,7 +50,7 @@ namespace PawnStructure {
         if (pawns)
         {
             Bitboard empty   =~occ;
-            Bitboard emptyR6 = shift_del<DEL_N> (empty & bb_R5) & empty;
+            Bitboard emptyR6 = shift_del<DEL_N> (empty & R5_bb) & empty;
             return shift_del<DEL_N> (emptyR6) & pawns; //pawns_pushable_sgl<BLACK> (pawns, ~emptyR6);
         }
         return 0;

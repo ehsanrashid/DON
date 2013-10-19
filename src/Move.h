@@ -96,8 +96,8 @@ inline bool _ok (Move m)
     Square dst = sq_dst (m);
     if (org == dst) return false;
 
-    uint8_t del_f = BitBoard::dist_file (org, dst);
-    uint8_t del_r = BitBoard::dist_rank (org, dst);
+    uint8_t del_f = BitBoard::file_dist (org, dst);
+    uint8_t del_r = BitBoard::rank_dist (org, dst);
     if (del_f == del_r) return true;
     if (0 == del_f || 0 == del_r) return true;
     if (5 == del_f*del_f + del_r*del_r) return true;

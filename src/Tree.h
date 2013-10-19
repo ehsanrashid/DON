@@ -58,7 +58,7 @@ public:
     void clear ();
 
     template<class charT, class Traits>
-    void print (std::basic_ostream<charT, Traits>& os, size_t indent) const;
+    void print (std::basic_ostream<charT, Traits>& os, uint32_t indent) const;
 
 };
 
@@ -220,7 +220,7 @@ inline void Tree<T>::clear () { _branches.clear (); }
 
 template<class T>
 template<class charT, class Traits>
-inline void Tree<T>::print (std::basic_ostream<charT, Traits>& os, size_t indent) const
+inline void Tree<T>::print (std::basic_ostream<charT, Traits>& os, uint32_t indent) const
 {
 
     //os << _data;
@@ -256,7 +256,7 @@ inline void Tree<T>::print (std::basic_ostream<charT, Traits>& os, size_t indent
         typename Tree<T>::List::const_iterator itr = branches.cbegin ();
         while (itr != branches.cend ())
         {
-            for (size_t i = 0; i < indent; ++i) os << "|  ";
+            for (uint32_t i = 0; i < indent; ++i) os << "|  ";
             os << "|->";
             (*(*itr)).print (os, indent + 1);
             ++itr;

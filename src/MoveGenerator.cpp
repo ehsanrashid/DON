@@ -171,9 +171,9 @@ namespace MoveGenerator {
                 const Delta RIHT  = (WHITE == C ? DEL_NE : DEL_SW);
                 const Delta LEFT  = (WHITE == C ? DEL_NW : DEL_SE);
 
-                Bitboard bbRR8 = mask_rel_rank (C, R_8);
-                Bitboard bbRR7 = mask_rel_rank (C, R_7);
-                Bitboard bbRR3 = mask_rel_rank (C, R_3);
+                Bitboard bbRR8 = rel_rank_bb (C, R_8);
+                Bitboard bbRR7 = rel_rank_bb (C, R_7);
+                Bitboard bbRR3 = rel_rank_bb (C, R_3);
 
                 Bitboard pawns = pos.pieces (C, PAWN);
                 Bitboard pawns_on_R7 = pawns &  bbRR7;
@@ -249,7 +249,7 @@ namespace MoveGenerator {
                     {
                         ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
 
-                        Bitboard bbRR5 = mask_rel_rank (C, R_5);
+                        Bitboard bbRR5 = rel_rank_bb (C, R_5);
                         Bitboard pawns_on_R5 = pawns_on_Rx & bbRR5;
                         if (pawns_on_R5)
                         {
@@ -506,7 +506,8 @@ namespace MoveGenerator {
             case BSHP: moves = attacks_bb<BSHP> (org, occ) & target; break;
             case ROOK: moves = attacks_bb<ROOK> (org, occ) & target; break;
             case QUEN: moves = attacks_bb<QUEN> (org, occ) & target; break;
-            case KING: moves = attacks_bb<KING> (org)      & target & ~attacks_bb<QUEN> (ci.king_sq); break;
+            case KING: moves = attacks_bb<KING> (org)      & target &
+                           ~attacks_bb<QUEN> (ci.king_sq);           break;
             }
 
             SERIALIZE (lst_move, org, moves);
@@ -542,7 +543,7 @@ namespace MoveGenerator {
 
         // Remove squares attacked by enemies, from the king evasions.
         // so to skip known illegal moves avoiding useless legality check later.
-        for (size_t k = 0; _deltas_type[KING][k]; ++k)
+        for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
         {
             Square sq = sq_king + _deltas_type[KING][k];
             if (_ok (sq))
@@ -558,7 +559,7 @@ namespace MoveGenerator {
         if (1 == num_checkers && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard target = checkers | mask_btw_sq (scan_lsb (checkers), sq_king);
+            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), sq_king);
             switch (active)
             {
             case WHITE: generate_color<WHITE, EVASION> (lst_move, pos, target); break;

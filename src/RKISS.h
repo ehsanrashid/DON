@@ -88,8 +88,8 @@ inline void RKISS::init (uint32_t seed)
     S.B = S.C = S.D = U64 (0xD4E12C77);
 
     // Scramble a few rounds
-    size_t round = (seed % 1000);
-    for (size_t i = 0; i < round; ++i) rand64 ();
+    uint32_t round = (seed % 1000);
+    for (uint32_t i = 0; i < round; ++i) rand64 ();
 }
 
 // Return 64 bit unsigned integer in between [0, 2^64 - 1]

@@ -83,8 +83,8 @@ AmbType ambiguity (Move m, const Position &pos)
     //case QUEN: ambiguous &= attacks_bb<QUEN> (dst, occ) & pos.pieces (QUEN); break;
     //}
     //if (!(ambiguous)) return AMB_NONE;
-    //if (!(ambiguous & mask_file (org))) return AMB_RANK;
-    //if (!(ambiguous & mask_rank (org))) return AMB_FILE;
+    //if (!(ambiguous & file_bb (org))) return AMB_RANK;
+    //if (!(ambiguous & rank_bb (org))) return AMB_FILE;
     //return AMB_SQR;
 
     Bitboard others, b;
@@ -100,8 +100,8 @@ AmbType ambiguity (Move m, const Position &pos)
     }
 
     if (!(others)) return AMB_NONE;
-    if (!(others & mask_file (org))) return AMB_RANK;
-    if (!(others & mask_rank (org))) return AMB_FILE;
+    if (!(others & file_bb (org))) return AMB_RANK;
+    if (!(others & rank_bb (org))) return AMB_FILE;
     return AMB_SQR;
 
 }

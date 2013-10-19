@@ -169,7 +169,7 @@ void Game::print_tags (std::ostream &ostream) const
     }
 }
 
-bool Game::parse (Game &game, const          char *text)
+bool Game::parse (Game &game, const        char *text)
 {
     bool is_ok = false;
     char *c = strdup (text);

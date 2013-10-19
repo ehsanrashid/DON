@@ -9,37 +9,37 @@ namespace BitBoard {
 
 #pragma region Constants
 
-    extern const Bitboard bb_FA;
-    extern const Bitboard bb_FB;
-    extern const Bitboard bb_FC;
-    extern const Bitboard bb_FD;
-    extern const Bitboard bb_FE;
-    extern const Bitboard bb_FF;
-    extern const Bitboard bb_FG;
-    extern const Bitboard bb_FH;
+    extern const Bitboard FA_bb;
+    extern const Bitboard FB_bb;
+    extern const Bitboard FC_bb;
+    extern const Bitboard FD_bb;
+    extern const Bitboard FE_bb;
+    extern const Bitboard FF_bb;
+    extern const Bitboard FG_bb;
+    extern const Bitboard FH_bb;
 
-    extern const Bitboard bb_R1;
-    extern const Bitboard bb_R2;
-    extern const Bitboard bb_R3;
-    extern const Bitboard bb_R4;
-    extern const Bitboard bb_R5;
-    extern const Bitboard bb_R6;
-    extern const Bitboard bb_R7;
-    extern const Bitboard bb_R8;
+    extern const Bitboard R1_bb;
+    extern const Bitboard R2_bb;
+    extern const Bitboard R3_bb;
+    extern const Bitboard R4_bb;
+    extern const Bitboard R5_bb;
+    extern const Bitboard R6_bb;
+    extern const Bitboard R7_bb;
+    extern const Bitboard R8_bb;
 
-    //extern const Bitboard bb_NULL;
-    //extern const Bitboard bb_FULL;
+    //extern const Bitboard NULL_bb;
+    //extern const Bitboard FULL_bb;
 
-    extern const Bitboard bb_R1_;  // 56 Not RANK-1
-    extern const Bitboard bb_R8_;  // 56 Not RANK-8
-    extern const Bitboard bb_FA_;  // 56 Not FILE-A
-    extern const Bitboard bb_FH_;  // 56 Not FILE-H
+    extern const Bitboard R1_bb_;  // 56 Not RANK-1
+    extern const Bitboard R8_bb_;  // 56 Not RANK-8
+    extern const Bitboard FA_bb_;  // 56 Not FILE-A
+    extern const Bitboard FH_bb_;  // 56 Not FILE-H
 
-    extern const Bitboard bb_D18;  // 08 DIAG-18 squares.
-    extern const Bitboard bb_D81;  // 08 DIAG-81 squares.
+    extern const Bitboard D18_bb;  // 08 DIAG-18 squares.
+    extern const Bitboard D81_bb;  // 08 DIAG-81 squares.
 
-    extern const Bitboard bb_SQ_LT; // 32 LIGHT squares.
-    extern const Bitboard bb_SQ_DR; // 32 DARK  squares.
+    extern const Bitboard LT_SQ_bb; // 32 LIGHT squares.
+    extern const Bitboard DR_SQ_bb; // 32 DARK  squares.
 
 #pragma endregion
 
@@ -47,37 +47,37 @@ namespace BitBoard {
 
     //namespace LookUp {
 
-    extern Delta _del_file_rank[F_NO][R_NO];
-    extern Delta _del_sq[SQ_NO][SQ_NO];
-    extern Delta _del_taxi[SQ_NO][SQ_NO];
+    extern Delta _file_rank_dist[F_NO][R_NO];
+    extern Delta _square_dist[SQ_NO][SQ_NO];
+    extern Delta _taxi_dist[SQ_NO][SQ_NO];
 
-    extern uint8_t _b_shift_gap[_UI8_MAX + 1][F_NO];
+    extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
     extern const Delta _deltas_pawn[CLR_NO][3];
     extern const Delta _deltas_type[PT_NO][9];
 
-    extern const Bitboard _bb_sq[SQ_NO];
-    extern const Bitboard _bb_file[F_NO];
-    extern const Bitboard _bb_rank[R_NO];
+    extern const Bitboard _square_bb[SQ_NO];
+    extern const Bitboard _file_bb[F_NO];
+    extern const Bitboard _rank_bb[R_NO];
 
-    extern const Bitboard _bb_d18[D_NO];
-    extern const Bitboard _bb_d81[D_NO];
+    extern const Bitboard _diag18_bb[D_NO];
+    extern const Bitboard _diag81_bb[D_NO];
 
-    extern const Bitboard _bb_adj_file[F_NO];
-    extern const Bitboard _bb_adj_rank[R_NO];
-    extern const Bitboard _bb_front_rank[CLR_NO][R_NO];
-    extern Bitboard _bb_front_sq[CLR_NO][SQ_NO];
+    extern const Bitboard _adj_file_bb[F_NO];
+    extern const Bitboard _adj_rank_bb[R_NO];
+    extern const Bitboard _front_rank_bb[CLR_NO][R_NO];
+    extern Bitboard _front_squares_bb[CLR_NO][SQ_NO];
 
-    extern Bitboard _bb_betwen_sq[SQ_NO][SQ_NO];
+    extern Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
 
-    extern Bitboard _bb_dia_rings[SQ_NO][F_NO];
+    extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
 
-    extern Bitboard _bb_attack_span_pawn[CLR_NO][SQ_NO];
-    extern Bitboard _bb_passer_span_pawn[CLR_NO][SQ_NO];
+    extern Bitboard _attack_span_pawn_bb[CLR_NO][SQ_NO];
+    extern Bitboard _passer_span_pawn_bb[CLR_NO][SQ_NO];
 
     // attacks of the pieces
-    extern Bitboard _bb_attacks_pawn[CLR_NO][SQ_NO];
-    extern Bitboard _bb_attacks_type[PT_NO][SQ_NO];
+    extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
+    extern Bitboard _attacks_type_bb[PT_NO][SQ_NO];
     //}
 
     //using namespace LookUp;
@@ -88,152 +88,152 @@ namespace BitBoard {
 
     F_INLINE Bitboard  operator&  (Bitboard  bb, Square s)
     {
-        return bb &   _bb_sq[s];
+        return bb &   _square_bb[s];
     }
     F_INLINE Bitboard  operator|  (Bitboard  bb, Square s)
     {
-        return bb | _bb_sq[s];
+        return bb | _square_bb[s];
     }
     F_INLINE Bitboard  operator^  (Bitboard  bb, Square s)
     {
-        return bb ^   _bb_sq[s];
+        return bb ^   _square_bb[s];
     }
     F_INLINE Bitboard  operator+  (Bitboard  bb, Square s)
     {
-        return bb | _bb_sq[s];
+        return bb | _square_bb[s];
     }
     F_INLINE Bitboard  operator-  (Bitboard  bb, Square s)
     {
-        return bb &  ~_bb_sq[s];
+        return bb &  ~_square_bb[s];
     }
     F_INLINE Bitboard& operator&= (Bitboard &bb, Square s)
     {
-        return bb &= _bb_sq[s];
+        return bb &= _square_bb[s];
     }
     F_INLINE Bitboard& operator|= (Bitboard &bb, Square s)
     {
-        return bb |= _bb_sq[s];
+        return bb |= _square_bb[s];
     }
     F_INLINE Bitboard& operator^= (Bitboard &bb, Square s)
     {
-        return bb ^= _bb_sq[s];
+        return bb ^= _square_bb[s];
     }
     F_INLINE Bitboard& operator+= (Bitboard &bb, Square s)
     {
-        return bb |= _bb_sq[s];
+        return bb |= _square_bb[s];
     }
     F_INLINE Bitboard& operator-= (Bitboard &bb, Square s)
     {
-        return bb &= ~_bb_sq[s];
+        return bb &= ~_square_bb[s];
     }
 
     F_INLINE Bitboard  operator&  (Bitboard  bb, File   f)
     {
-        return bb &   _bb_file[f];
+        return bb &   _file_bb[f];
     }
     F_INLINE Bitboard  operator|  (Bitboard  bb, File   f)
     {
-        return bb | _bb_file[f];
+        return bb | _file_bb[f];
     }
     F_INLINE Bitboard  operator^  (Bitboard  bb, File   f)
     {
-        return bb ^   _bb_file[f];
+        return bb ^   _file_bb[f];
     }
     F_INLINE Bitboard  operator+  (Bitboard  bb, File   f)
     {
-        return bb | _bb_file[f];
+        return bb | _file_bb[f];
     }
     F_INLINE Bitboard  operator-  (Bitboard  bb, File   f)
     {
-        return bb &  ~_bb_file[f];
+        return bb &  ~_file_bb[f];
     }
     F_INLINE Bitboard& operator&= (Bitboard &bb, File   f)
     {
-        return bb &= _bb_file[f];
+        return bb &= _file_bb[f];
     }
     F_INLINE Bitboard& operator|= (Bitboard &bb, File   f)
     {
-        return bb |= _bb_file[f];
+        return bb |= _file_bb[f];
     }
     F_INLINE Bitboard& operator^= (Bitboard &bb, File   f)
     {
-        return bb ^= _bb_file[f];
+        return bb ^= _file_bb[f];
     }
     F_INLINE Bitboard& operator+= (Bitboard &bb, File   f)
     {
-        return bb |= _bb_file[f];
+        return bb |= _file_bb[f];
     }
     F_INLINE Bitboard& operator-= (Bitboard &bb, File   f)
     {
-        return bb &= ~_bb_file[f];
+        return bb &= ~_file_bb[f];
     }
 
     F_INLINE Bitboard  operator&  (Bitboard  bb, Rank   r)
     {
-        return bb &   _bb_rank[r];
+        return bb &   _rank_bb[r];
     }
     F_INLINE Bitboard  operator|  (Bitboard  bb, Rank   r)
     {
-        return bb | _bb_rank[r];
+        return bb | _rank_bb[r];
     }
     F_INLINE Bitboard  operator^  (Bitboard  bb, Rank   r)
     {
-        return bb ^   _bb_rank[r];
+        return bb ^   _rank_bb[r];
     }
     F_INLINE Bitboard  operator+  (Bitboard  bb, Rank   r)
     {
-        return bb | _bb_rank[r];
+        return bb | _rank_bb[r];
     }
     F_INLINE Bitboard  operator-  (Bitboard  bb, Rank   r)
     {
-        return bb &  ~_bb_rank[r];
+        return bb &  ~_rank_bb[r];
     }
     F_INLINE Bitboard& operator&= (Bitboard &bb, Rank   r)
     {
-        return bb &= _bb_rank[r];
+        return bb &= _rank_bb[r];
     }
     F_INLINE Bitboard& operator|= (Bitboard &bb, Rank   r)
     {
-        return bb |= _bb_rank[r];
+        return bb |= _rank_bb[r];
     }
     F_INLINE Bitboard& operator^= (Bitboard &bb, Rank   r)
     {
-        return bb ^= _bb_rank[r];
+        return bb ^= _rank_bb[r];
     }
     F_INLINE Bitboard& operator+= (Bitboard &bb, Rank   r)
     {
-        return bb |= _bb_rank[r];
+        return bb |= _rank_bb[r];
     }
     F_INLINE Bitboard& operator-= (Bitboard &bb, Rank   r)
     {
-        return bb &= ~_bb_rank[r];
+        return bb &= ~_rank_bb[r];
     }
 
 #pragma endregion
 
 #pragma region Deltas
 
-    inline Delta dist_file (Square s1, Square s2)
+    inline Delta file_dist (Square s1, Square s2)
     {
         //return abs(int8_t(_file(s1) - _file(s2)));
-        return _del_file_rank[_file (s1)][_file (s2)];
+        return _file_rank_dist[_file (s1)][_file (s2)];
     }
-    inline Delta dist_rank (Square s1, Square s2)
+    inline Delta rank_dist (Square s1, Square s2)
     {
         //return abs(int8_t(_rank(s1) - _rank(s2)));
-        return _del_file_rank[_rank (s1)][_rank (s2)];
+        return _file_rank_dist[_rank (s1)][_rank (s2)];
     }
-    inline Delta dist_sq (Square s1, Square s2)
+    inline Delta square_dist (Square s1, Square s2)
     {
-        return _del_sq[s1][s2];
+        return _square_dist[s1][s2];
     }
-    inline Delta dist_taxi (Square s1, Square s2)
+    inline Delta taxi_dist (Square s1, Square s2)
     {
-        return _del_taxi[s1][s2];
+        return _taxi_dist[s1][s2];
     }
 
     // Absolute Difference of rank & file
-    inline Delta diff_rank_file (Square s1, Square s2)
+    inline Delta rank_file_diff (Square s1, Square s2)
     {
         int8_t rd = (s1 | 7) - (s2 | 7);
         int8_t fd = (s1 & 7) - (s2 & 7);
@@ -242,136 +242,136 @@ namespace BitBoard {
 
     inline Delta offset_sq (Square s1, Square s2)
     {
-        return (s2 - s1) / dist_sq (s1, s2);
+        return (s2 - s1) / square_dist (s1, s2);
     }
 
 #pragma endregion
 
 #pragma region Masks
 
-    inline Bitboard mask_sq (Square s)
+    inline Bitboard square_bb (Square s)
     {
-        return  _bb_sq[s];
+        return  _square_bb[s];
     }
-    inline Bitboard mask_sq_ (Square s)
+    inline Bitboard square_bb_ (Square s)
     {
-        return ~_bb_sq[s];
-    }
-
-    inline Bitboard mask_file (File   f)
-    {
-        return _bb_file[f];
-    }
-    inline Bitboard mask_file (Square s)
-    {
-        return _bb_file[_file (s)];
+        return ~_square_bb[s];
     }
 
-    inline Bitboard mask_rank (Rank   r)
+    inline Bitboard file_bb (File   f)
     {
-        return _bb_rank[r];
+        return _file_bb[f];
     }
-    inline Bitboard mask_rank (Square s)
+    inline Bitboard file_bb (Square s)
     {
-        return _bb_rank[_rank (s)];
+        return _file_bb[_file (s)];
     }
 
-    inline Bitboard mask_diag18 (Diag   d)
+    inline Bitboard rank_bb (Rank   r)
     {
-        return _bb_d18[d];
+        return _rank_bb[r];
     }
-    inline Bitboard mask_diag18 (Square s)
+    inline Bitboard rank_bb (Square s)
+    {
+        return _rank_bb[_rank (s)];
+    }
+
+    inline Bitboard diag18_bb (Diag   d)
+    {
+        return _diag18_bb[d];
+    }
+    inline Bitboard diag18_bb (Square s)
     {
         //  int8_t diag = 0x00 + (FileIndex(s) << 3) - RankIndex(s);
         //  uint8_t nort = -diag & (diag >> 31);
         //  uint8_t sout = diag & (-diag >> 31);
-        //  return (bb_D18 >> sout) << nort;
-        return _bb_d18[_diag18 (s)];
+        //  return (D18_bb >> sout) << nort;
+        return _diag18_bb[_diag18 (s)];
     }
 
-    inline Bitboard mask_diag81 (Diag   d)
+    inline Bitboard diag81_bb (Diag   d)
     {
-        return _bb_d81[d];
+        return _diag81_bb[d];
     }
-    inline Bitboard mask_diag81 (Square s)
+    inline Bitboard diag81_bb (Square s)
     {
         //  int8_t diag = 0x38 - (FileIndex(s) << 3) - RankIndex(s);
         //  uint8_t nort = -diag & (diag >> 31);
         //  uint8_t sout = diag & (-diag >> 31);
         //  return (Diag81Squares >> sout) << nort;
-        return _bb_d81[_diag81 (s)];
+        return _diag81_bb[_diag81 (s)];
     }
 
-    inline Bitboard mask_adj_files (File   f)
+    inline Bitboard adj_files_bb (File   f)
     {
-        return _bb_adj_file[f];
+        return _adj_file_bb[f];
     }
-    inline Bitboard mask_adj_files (Square s)
+    inline Bitboard adj_files_bb (Square s)
     {
-        return _bb_adj_file[_file (s)];
-    }
-
-    inline Bitboard mask_adj_ranks (Rank   r)
-    {
-        return _bb_adj_rank[r];
-    }
-    inline Bitboard mask_adj_ranks (Square s)
-    {
-        return _bb_adj_rank[_rank (s)];
+        return _adj_file_bb[_file (s)];
     }
 
-    inline Bitboard mask_rel_rank (Color c, Rank   r)
+    inline Bitboard adj_ranks_bb (Rank   r)
     {
-        return _bb_rank[rel_rank (c, r)];
+        return _adj_rank_bb[r];
     }
-    inline Bitboard mask_rel_rank (Color c, Square s)
+    inline Bitboard adj_ranks_bb (Square s)
     {
-        return _bb_rank[rel_rank (c, s)];
-        //mask_rel_rank (c, _rank(s));
+        return _adj_rank_bb[_rank (s)];
+    }
+
+    inline Bitboard rel_rank_bb (Color c, Rank   r)
+    {
+        return _rank_bb[rel_rank (c, r)];
+    }
+    inline Bitboard rel_rank_bb (Color c, Square s)
+    {
+        return _rank_bb[rel_rank (c, s)];
+        //rel_rank_bb (c, _rank(s));
     }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
-    inline Bitboard mask_front_ranks (Color c, Rank   r)
+    inline Bitboard front_ranks_bb (Color c, Rank   r)
     {
-        return _bb_front_rank[c][r];
+        return _front_rank_bb[c][r];
     }
     // Bitboard of squares along the line in front of the square, from the point of view of the given color.
-    inline Bitboard mask_front_sq (Color c, Square s)
+    inline Bitboard front_squares_bb (Color c, Square s)
     {
-        return _bb_front_sq[c][s];
+        return _front_squares_bb[c][s];
     }
 
     // Ring on the square with the distance 'd'
-    inline Bitboard mask_dist_ring (Square s, uint8_t d)
+    inline Bitboard dia_rings_bb (Square s, uint8_t d)
     {
-        return _bb_dia_rings[s][d];
+        return _dia_rings_bb[s][d];
     }
 
-    inline Bitboard mask_brd_edges (Square s)
+    inline Bitboard brd_edges_bb (Square s)
     {
-        return (((bb_FA | bb_FH) & ~mask_file (s)) | ((bb_R1 | bb_R8) & ~mask_rank (s)));
+        return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)));
     }
 
-    inline Bitboard mask_btw_sq (Square s1, Square s2)
+    inline Bitboard betwen_sq_bb (Square s1, Square s2)
     {
-        return _bb_betwen_sq[s1][s2];
+        return _betwen_sq_bb[s1][s2];
     }
 
-    /// attack_span_pawn() takes a color and a square as input, and returns a bitboard
+    /// attack_span_pawn_bb() takes a color and a square as input, and returns a bitboard
     /// representing all squares that can be attacked by a pawn of the given color
     /// when it moves along its file starting from the given square. Definition is:
     /// PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
-    inline Bitboard attack_span_pawn (Color c, Square s)
+    inline Bitboard attack_span_pawn_bb (Color c, Square s)
     {
-        return _bb_attack_span_pawn[c][s];
+        return _attack_span_pawn_bb[c][s];
     }
-    /// passer_span_pawn() takes a color and a square as input, and returns a
+    /// passer_span_pawn_bb() takes a color and a square as input, and returns a
     /// bitboard mask which can be used to test if a pawn of the given color on
     /// the given square is a passed pawn. Definition of the table is:
-    /// PassedPawnMask[c][s] = attack_span_pawn(c, s) | forward_bb(c, s)
-    inline Bitboard passer_span_pawn (Color c, Square s)
+    /// PassedPawnMask[c][s] = attack_span_pawn_bb(c, s) | forward_bb(c, s)
+    inline Bitboard passer_span_pawn_bb (Color c, Square s)
     {
-        return _bb_passer_span_pawn[c][s];
+        return _passer_span_pawn_bb[c][s];
     }
 
     inline bool more_than_one (Bitboard bb)
@@ -384,14 +384,14 @@ namespace BitBoard {
     {
         return
             (
-            _bb_sq[s1] |
-            _bb_sq[s2] |
-            _bb_sq[s3]
+            _square_bb[s1] |
+            _square_bb[s2] |
+            _square_bb[s3]
         ) &
             (
-            _bb_betwen_sq[s1][s2] |
-            _bb_betwen_sq[s2][s3] |
-            _bb_betwen_sq[s3][s1]
+            _betwen_sq_bb[s1][s2] |
+            _betwen_sq_bb[s2][s3] |
+            _betwen_sq_bb[s3][s1]
         );
     }
 
@@ -430,32 +430,32 @@ namespace BitBoard {
     template<>
     inline Bitboard shift_del<DEL_E > (Bitboard bb)
     {
-        return (bb & bb_FH_) << (1);
+        return (bb & FH_bb_) << (1);
     }
     template<>
     inline Bitboard shift_del<DEL_W > (Bitboard bb)
     {
-        return (bb & bb_FA_) >> (1);
+        return (bb & FA_bb_) >> (1);
     }
     template<>
     inline Bitboard shift_del<DEL_NE> (Bitboard bb)
     {
-        return (bb & bb_FH_) << (9); //(bb << 9) & bb_FA_;
+        return (bb & FH_bb_) << (9); //(bb << 9) & FA_bb_;
     }
     template<>
     inline Bitboard shift_del<DEL_SE> (Bitboard bb)
     {
-        return (bb & bb_FH_) >> (7); //(bb >> 7) & bb_FA_;
+        return (bb & FH_bb_) >> (7); //(bb >> 7) & FA_bb_;
     }
     template<>
     inline Bitboard shift_del<DEL_NW> (Bitboard bb)
     {
-        return (bb & bb_FA_) << (7); //(bb << 7) & bb_FH_;
+        return (bb & FA_bb_) << (7); //(bb << 7) & FH_bb_;
     }
     template<>
     inline Bitboard shift_del<DEL_SW> (Bitboard bb)
     {
-        return (bb & bb_FA_) >> (9); //(bb >> 9) & bb_FH_;
+        return (bb & FA_bb_) >> (9); //(bb >> 9) & FH_bb_;
     }
 
 #pragma endregion
@@ -484,9 +484,9 @@ namespace BitBoard {
 #pragma region Printing
 
     extern Bitboard to_bitboard (const char s[], int32_t radix = 16);
-    extern Bitboard to_bitboard (const ::std::string &s, int32_t radix = 16);
+    extern Bitboard to_bitboard (const std::string &s, int32_t radix = 16);
 
-    extern ::std::string to_hex_str (std::string &sbitboard);
+    extern std::string to_hex_str (std::string &sbitboard);
 
     extern void print_bit (Bitboard bb, uint8_t x = 64, char p = 'o');
     extern void print_bin (Bitboard bb);

@@ -43,18 +43,18 @@ namespace Tester {
         void test_bitboard ()
         {
 
-            ASSERT (0x04 == dist_rank (SQ_C2, SQ_E6));
-            ASSERT (0x03 == dist_rank (SQ_A4, SQ_G7));
+            ASSERT (0x04 == rank_dist (SQ_C2, SQ_E6));
+            ASSERT (0x03 == rank_dist (SQ_A4, SQ_G7));
 
-            ASSERT (0x02 == dist_file (SQ_C2, SQ_E6));
-            ASSERT (0x06 == dist_file (SQ_A4, SQ_G7));
+            ASSERT (0x02 == file_dist (SQ_C2, SQ_E6));
+            ASSERT (0x06 == file_dist (SQ_A4, SQ_G7));
 
-            ASSERT (0x05 == dist_sq (SQ_C3, SQ_H8));
-            ASSERT (0x05 == dist_sq (SQ_C3, SQ_H8));
+            ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
+            ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
 
-            ASSERT (0x09 == dist_taxi (SQ_B2, SQ_F7));
-            ASSERT (0x08 == dist_taxi (SQ_G3, SQ_B6));
-            ASSERT (0x04 == dist_taxi (SQ_H5, SQ_E4));
+            ASSERT (0x09 == taxi_dist (SQ_B2, SQ_F7));
+            ASSERT (0x08 == taxi_dist (SQ_G3, SQ_B6));
+            ASSERT (0x04 == taxi_dist (SQ_H5, SQ_E4));
 
             Bitboard b;
 
@@ -117,7 +117,7 @@ namespace Tester {
         void test_attacks ()
         {
             Square   s = SQ_D5;
-            Bitboard m = mask_sq (s);
+            Bitboard m = square_bb (s);
 
             Bitboard attacks;
             uint8_t count;
@@ -126,42 +126,42 @@ namespace Tester {
             attacks = attacks_bb<KING> (s);
             count = 0;
 
-            if (!(bb_FA & m))
+            if (!(FA_bb & m))
             {
                 ASSERT (attacks & (s + DEL_W));
                 ++count;
             }
-            if (!((bb_FH | bb_R1) & m))
+            if (!((FH_bb | R1_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_SE));
                 ++count;
             }
-            if (!(bb_R1 & m))
+            if (!(R1_bb & m))
             {
                 ASSERT (attacks & (s + DEL_S));
                 ++count;
             }
-            if (!((bb_FA | bb_R1) & m))
+            if (!((FA_bb | R1_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_SW));
                 ++count;
             }
-            if (!(bb_FH & m))
+            if (!(FH_bb & m))
             {
                 ASSERT (attacks & (s + DEL_E));
                 ++count;
             }
-            if (!((bb_FA | bb_R8) & m))
+            if (!((FA_bb | R8_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_NW));
                 ++count;
             }
-            if (!(bb_R8 & m))
+            if (!(R8_bb & m))
             {
                 ASSERT (attacks & (s + DEL_N));
                 ++count;
             }
-            if (!((bb_FH | bb_R8) & m))
+            if (!((FH_bb | R8_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_NE));
                 ++count;
@@ -173,42 +173,42 @@ namespace Tester {
             attacks = attacks_bb<NIHT> (s);
             count = 0;
 
-            if (!((bb_FH | bb_FG | bb_R1) & m))
+            if (!((FH_bb | FG_bb | R1_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_EES));
                 ++count;
             }
-            if (!((bb_FA | bb_FB | bb_R1) & m))
+            if (!((FA_bb | FB_bb | R1_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_WWS));
                 ++count;
             }
-            if (!((bb_R1 | bb_R2 | bb_FH) & m))
+            if (!((R1_bb | R2_bb | FH_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_SSE));
                 ++count;
             }
-            if (!((bb_R1 | bb_R2 | bb_FA) & m))
+            if (!((R1_bb | R2_bb | FA_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_SSW));
                 ++count;
             }
-            if (!((bb_FA | bb_FB | bb_R8) & m))
+            if (!((FA_bb | FB_bb | R8_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_WWN));
                 ++count;
             }
-            if (!((bb_FH | bb_FG | bb_R8) & m))
+            if (!((FH_bb | FG_bb | R8_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_EEN));
                 ++count;
             }
-            if (!((bb_R8 | bb_R7 | bb_FA) & m))
+            if (!((R8_bb | R7_bb | FA_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_NNW));
                 ++count;
             }
-            if (!((bb_R8 | bb_R7 | bb_FH) & m))
+            if (!((R8_bb | R7_bb | FH_bb) & m))
             {
                 ASSERT (attacks & (s + DEL_NNE));
                 ++count;
@@ -559,7 +559,7 @@ namespace Tester {
             fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
             pos.setup (fen);
 
-            for (size_t i = 0; i < 50; ++i)
+            for (uint32_t i = 0; i < 50; ++i)
             {
                 m = mk_move (SQ_F2, SQ_F4);
                 stk_si.push (StateInfo ());
