@@ -140,6 +140,7 @@ Move move_from_lan (std::string &lan, const Position &pos)
 {
     return MOVE_NONE;
 }
+
 // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
 // The only special case is castling moves,
 //  - e1g1 notation in normal chess mode,
@@ -158,6 +159,7 @@ std::string move_to_can (Move m, bool c960)
     if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
     return can;
 }
+
 // move_to_san(m, pos) takes a position and a legal move as input
 // and returns its short algebraic notation representation.
 std::string move_to_san (Move m, Position &pos)
@@ -288,6 +290,7 @@ std::string move_to_san (Move m, Position &pos)
 
     return san;
 }
+
 // move_to_lan(m, pos) takes a position and a legal move as input
 // and returns its long algebraic notation representation.
 std::string move_to_lan (Move m, Position &pos)

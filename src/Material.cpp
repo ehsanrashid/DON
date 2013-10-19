@@ -55,9 +55,9 @@ namespace {
     // Helper templates used to detect a given material distribution
     template<Color C> bool is_KXK(const Position &pos)
     {
-        const Color _C = ~C;
-        return  !pos.piece_count<PAWN>(_C)
-            && pos.non_pawn_material(_C) == VALUE_ZERO
+        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        return  !pos.piece_count<PAWN>(C_)
+            && pos.non_pawn_material(C_) == VALUE_ZERO
             && pos.non_pawn_material(C) >= VALUE_MG_ROOK;
     }
 
@@ -69,12 +69,12 @@ namespace {
     }
 
     template<Color C> bool is_KQKRPs(const Position &pos) {
-        const Color _C = ~C;
+        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
         return  !pos.piece_count<PAWN>(C)
             && pos.non_pawn_material(C) == VALUE_MG_QUEEN
             && pos.piece_count<QUEN>(C)  == 1
-            && pos.piece_count<ROOK>(_C) == 1
-            && pos.piece_count<PAWN>(_C) >= 1;
+            && pos.piece_count<ROOK>(C_) == 1
+            && pos.piece_count<PAWN>(C_) >= 1;
     }
 
     /// imbalance() calculates imbalance comparing piece count of each
@@ -83,7 +83,7 @@ namespace {
     template<Color C>
     int imbalance (const int pieceCount[][PT_NO])
     {
-        const Color _C = ~C;
+        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         int pt1, pt2, pc, v;
         int value = 0;
@@ -107,7 +107,7 @@ namespace {
             for (pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
                 v += QuadraticCoefficientsSameColor[pt1][pt2] * pieceCount[C][pt2]
-                +    QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[_C][pt2];
+                +    QuadraticCoefficientsOppositeColor[pt1][pt2] * pieceCount[C_][pt2];
             }
             value += pc * v;
         }

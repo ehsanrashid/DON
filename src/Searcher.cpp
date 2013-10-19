@@ -9,8 +9,9 @@
 // Defined static to initialize the PRNG only once
 PolyglotBook book;
 
-
 namespace Searcher {
+
+    using namespace MoveGenerator;
 
     Limits               limits;
     volatile Signals     signals;
@@ -18,10 +19,9 @@ namespace Searcher {
     std::vector<RootMove> root_moves;
     Position             root_pos;
     Color                root_color;
-
-    Time::point          search_time;
     StateInfoStackPtr    setup_states;
 
+    Time::point          search_time;
 
 #pragma region Root Move
 
@@ -36,7 +36,7 @@ namespace Searcher {
         const TranspositionEntry* te;
         uint16_t ply = 0;
         Move m = pv[ply];
-        pv.clear();
+        pv.clear ();
 
         do
         {
@@ -51,7 +51,7 @@ namespace Searcher {
             // Local copy, TT could change
             if (!te || MOVE_NONE == (m = te->move ())) break;
             if (!pos.pseudo_legal (m) || !pos.legal (m)) break;
-            if (!(ply < MAX_PLY && (!pos.draw() || ply < 2))) break;
+            if (!(ply < MAX_PLY && (!pos.draw () || ply < 2))) break;
         }
         while (true);
 
@@ -62,6 +62,7 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
+
     }
 
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
@@ -95,11 +96,58 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
+
     }
 
 
 #pragma endregion
 
+    void think ()
+    {
+        root_color = root_pos.active ();
+
+        //TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
+
+        if (root_moves.empty ())
+        {
+            root_moves.push_back (MOVE_NONE);
+            std::atom ()
+                << "info depth 0 score "
+                //<< score_to_uci (root_pos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                << std::endl;
+            goto finalize;
+        }
+
+        if (*(Options["Use Book"]) && !limits.infinite && !limits.mate_in)
+        {
+            if (!book.is_open ()) book.open (*(Options["Book File"]), std::ios_base::in);
+            Move book_move = book.probe_move (root_pos, *(Options["Best Book Move"]));
+            if (book_move && std::count (root_moves.begin (), root_moves.end (), book_move))
+            {
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
+                goto finalize;
+            }
+        }
+
+        if (*(Options["Write Search Log"]))
+        {
+            Log log (*(Options["Search Log File"]));
+            log << "Searching: "    << root_pos.fen() << '\n'
+                << " infinite: "    << limits.infinite
+                << " ponder: "      << limits.ponder
+                << " time: "        << limits.game_clock[root_color].time
+                << " increment: "   << limits.game_clock[root_color].inc
+                << " moves to go: " << limits.moves_to_go
+                << std::endl;
+        }
+
+
+
+finalize:
+
+        ;
+
+    }
 
 #pragma region search
 
@@ -850,51 +898,4 @@ namespace Searcher {
 
 #pragma endregion
 
-
-    void think ()
-    {
-        root_color = root_pos.active ();
-
-        //TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
-
-        if (root_moves.empty ())
-        {
-            root_moves.push_back (MOVE_NONE);
-            std::atom ()
-                << "info depth 0 score "
-                //<< score_to_uci (root_pos.checkers () ? -VALUE_MATE : VALUE_DRAW)
-                << std::endl;
-            goto finalize;
-        }
-
-        if (*(Options["Use Book"]) && !limits.infinite && !limits.mate_in)
-        {
-            if (!book.is_open ()) book.open (*(Options["Book File"]), std::ios_base::in);
-            Move book_move = book.probe_move (root_pos, *(Options["Best Book Move"]));
-            if (book_move && std::count (root_moves.begin (), root_moves.end (), book_move))
-            {
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
-                goto finalize;
-            }
-        }
-
-        if (*(Options["Write Search Log"]))
-        {
-            Log log (*(Options["Search Log File"]));
-            log << "Searching: "    << root_pos.fen() << '\n'
-                << " infinite: "    << limits.infinite
-                << " ponder: "      << limits.ponder
-                << " time: "        << limits.game_clock[root_color].time
-                << " increment: "   << limits.game_clock[root_color].inc
-                << " moves to go: " << limits.moves_to_go
-                << std::endl;
-        }
-
-
-
-finalize:
-
-        ;
-
-    }
 }

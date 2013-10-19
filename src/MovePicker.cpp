@@ -1,32 +1,6 @@
 #include "MovePicker.h"
 
 
-inline bool operator < (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score < sm2.Score);
-}
-inline bool operator > (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score > sm2.Score);
-}
-inline bool operator<= (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score <= sm2.Score);
-}
-inline bool operator>= (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score >= sm2.Score);
-}
-inline bool operator== (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score == sm2.Score);
-}
-inline bool operator!= (const ScoredMove &sm1, const ScoredMove &sm2)
-{
-    return (sm1.Score != sm2.Score);
-}
-
-
 //// Insertion Sort, guaranteed to be stable, as is needed
 //void insertion_sort (MoveScoreList* begin, MoveScoreList* end)
 //{

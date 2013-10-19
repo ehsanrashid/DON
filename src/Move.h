@@ -3,7 +3,8 @@
 #define MOVE_H_
 
 #include <vector>
-#include <stack>
+//#include <stack>
+
 #include "Square.h"
 #include "Piece.h"
 #include "BitBoard.h"
@@ -148,31 +149,7 @@ inline std::basic_ostream<charT, Traits>&
 }
 
 
-//typedef union MoveParts
-//{
-//    Move m;
-//
-//    struct {
-//
-//        uint8_t type : 2;
-//        uint8_t prom : 2;
-//        uint8_t      : 0;
-//        uint8_t dst  : 6;
-//        uint8_t org  : 6;
-//    };
-//
-//    MoveParts ()
-//    {
-//        m = MOVE_NONE;
-//    }
-//
-//} MoveParts;
-
-
-
 typedef std::vector<Move>   MoveList;
-typedef std::stack <Move>   MoveStack;
-
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
@@ -182,19 +159,21 @@ inline std::basic_ostream<charT, Traits>&
     return os;
 }
 
-// TODO:: remove
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const MoveStack &stk_move)
-{
-    MoveStack stk_dup = stk_move;
-    while (!stk_dup.empty ())
-    {
-        os << stk_dup.top () << ::std::endl;
-        stk_dup.pop ();
-    }
-    return os;
-}
+
+//typedef std::stack <Move>   MoveStack;
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits>& os, const MoveStack &stk_move)
+//{
+//    MoveStack stk_dup = stk_move;
+//    while (!stk_dup.empty ())
+//    {
+//        os << stk_dup.top () << ::std::endl;
+//        stk_dup.pop ();
+//    }
+//    return os;
+//}
 
 
 #endif

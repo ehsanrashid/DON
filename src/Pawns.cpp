@@ -82,11 +82,10 @@ namespace {
     template<Color C>
     Score evaluate(const Position &pos, Pawns::Entry* e)
     {
-        const Color  _C   = ~C;
-
-        const Delta PUSH  = (C == WHITE ? DEL_N  : DEL_S);
-        const Delta RIGHT = (C == WHITE ? DEL_NE : DEL_SW);
-        const Delta LEFT  = (C == WHITE ? DEL_NW : DEL_SE);
+        const Color  C_   = ((WHITE == C) ? BLACK : WHITE);
+        const Delta PUSH  = ((WHITE == C) ? DEL_N  : DEL_S);
+        const Delta RIGHT = ((WHITE == C) ? DEL_NE : DEL_SW);
+        const Delta LEFT  = ((WHITE == C) ? DEL_NW : DEL_SE);
 
         Bitboard b;
         Square s;
@@ -97,7 +96,7 @@ namespace {
         const SquareList pl = pos.list<PAWN>(C);
 
         Bitboard w_pawns = pos.pieces(C, PAWN);
-        Bitboard b_pawns = pos.pieces(_C, PAWN);
+        Bitboard b_pawns = pos.pieces(C_, PAWN);
 
         e->_passed_pawns[C] = e->_candidate_pawns[C] = 0;
         e->_king_sq[C] = SQ_NO;
@@ -136,7 +135,7 @@ namespace {
             // be backward. If there are friendly pawns behind on adjacent files
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | chain)
-                || (w_pawns & attack_span_pawn_bb(_C, s))
+                || (w_pawns & attack_span_pawn_bb(C_, s))
                 || (pos.attacks_from<PAWN>(C, s) & b_pawns))
                 backward = false;
             else
@@ -160,7 +159,7 @@ namespace {
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
             candidate =   !(opposed | passed | backward | isolated)
-                && (b = attack_span_pawn_bb(_C, s + pawn_push(C)) & w_pawns) != 0
+                && (b = attack_span_pawn_bb(C_, s + pawn_push(C)) & w_pawns) != 0
                 &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn_bb(C, s) & b_pawns);
 
             // Passed pawns will be properly scored in evaluation because we need
@@ -216,12 +215,12 @@ namespace Pawns {
     template<Color C>
     Value Entry::shelter_storm(const Position &pos, Square ksq) {
 
-        const Color _C = ~C;
+        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         Value safety = MaxSafetyBonus;
         Bitboard b = pos.pieces(PAWN) & (front_ranks_bb(C, _rank(ksq)) | rank_bb(ksq));
         Bitboard w_pawns = b & pos.pieces(C);
-        Bitboard b_pawns = b & pos.pieces(_C);
+        Bitboard b_pawns = b & pos.pieces(C_);
         Rank w_rk, b_rk;
         File kf = std::max (F_B, std::min(F_G, _file (ksq)));
 
@@ -232,7 +231,7 @@ namespace Pawns {
             safety -= ShelterWeakness[w_rk];
 
             b  = b_pawns & _file_bb[f];
-            b_rk = b ? rel_rank(C, frontmost_rel_sq(_C, b)) : R_1;
+            b_rk = b ? rel_rank(C, frontmost_rel_sq(C_, b)) : R_1;
             safety -= StormDanger[w_rk == R_1 ? 0 : b_rk == w_rk + 1 ? 2 : 1][b_rk];
         }
 

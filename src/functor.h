@@ -26,7 +26,7 @@ namespace std {
 
 
     // char case-insensitive less comparator
-    struct   char_less_comparer : public std::binary_function<unsigned char, unsigned char, bool>
+    struct   char_less_nocase_comparer : public std::binary_function<unsigned char, unsigned char, bool>
     {
         bool operator() (unsigned char c1, unsigned char c2) const
         {
@@ -36,7 +36,7 @@ namespace std {
     };
 
     // std::string case-insensitive less comparator
-    struct string_less_comparer : public std::binary_function<std::string &, std::string &, bool>
+    struct string_less_nocase_comparer : public std::binary_function<std::string &, std::string &, bool>
     {
         bool operator() (const std::string &s1, const std::string &s2) const
         {
@@ -53,12 +53,13 @@ namespace std {
             // ---
 
             //return stricmp(s1.c_str(), s2.c_str()) < 0;
-            return std::lexicographical_compare (s1.cbegin (), s1.cend (), s2.cbegin (), s2.cend (), char_less_comparer ());
+
+            return std::lexicographical_compare (s1.cbegin (), s1.cend (), s2.cbegin (), s2.cend (), char_less_nocase_comparer ());
         }
     };
 
     //// case-insensitive equal comparator for char
-    //struct   charEqualComparer : public std::binary_function<unsigned char, unsigned char, bool>
+    //struct   char_equal_nocase_comparer : public std::binary_function<unsigned char, unsigned char, bool>
     //{
     //    bool operator() (unsigned char c1, unsigned char c2) const
     //    {
@@ -68,12 +69,12 @@ namespace std {
     //};
 
     //// case-insensitive equal comparator for std::string
-    //struct stringEqualComparer : public std::binary_function<std::string &, std::string &, bool>
+    //struct string_equal_nocase_comparer : public std::binary_function<std::string &, std::string &, bool>
     //{
     //    bool operator() (const std::string &s1, const std::string &s2) const
     //    {
     //        return stricmp(s1.c_str(), s2.c_str()) == 0;
-    //        //return std::lexicographical_compare(s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(), charEqualComparer());
+    //        //return std::lexicographical_compare(s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(), char_equal_nocase_comparer());
     //    }
     //};
 

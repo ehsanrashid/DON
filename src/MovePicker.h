@@ -3,25 +3,27 @@
 #define MOVEPICKER_H_
 
 #include <vector>
+#include <set>
 #include "Type.h"
+
 
 typedef struct ScoredMove
 {
-    Move    Move;
-    Score   Score;
+    Move    move;
+    Score   score;
+
+    friend bool operator<  (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score <  sm2.score); }
+    friend bool operator>  (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score >  sm2.score); }
+    friend bool operator<= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score <= sm2.score); }
+    friend bool operator>= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score >= sm2.score); }
+    friend bool operator== (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score == sm2.score); }
+    friend bool operator!= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score != sm2.score); }
 
 } ScoredMove;
 
 
-extern bool operator<  (const ScoredMove &sm1, const ScoredMove &sm2);
-extern bool operator>  (const ScoredMove &sm1, const ScoredMove &sm2);
-extern bool operator<= (const ScoredMove &sm1, const ScoredMove &sm2);
-extern bool operator>= (const ScoredMove &sm1, const ScoredMove &sm2);
-extern bool operator== (const ScoredMove &sm1, const ScoredMove &sm2);
-extern bool operator!= (const ScoredMove &sm1, const ScoredMove &sm2);
-
-
 typedef std::vector<ScoredMove>     ScoredMoveList;
+typedef std::set<ScoredMove>        ScoredMoveSet;
 
 extern void order (ScoredMoveList &lst_sm, bool full = true);
 

@@ -13,29 +13,6 @@ class Position;
 
 #include <iomanip>
 
-inline std::ostream& operator<< (std::ostream &ostream, const Score &score)
-{
-    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
-    {
-        ostream.setf (std::ios_base::fixed, std::ios_base::floatfield);
-        ostream.setf (std::ios_base::right, std::ios_base::adjustfield);
-        ostream << std::setiosflags (std::ios_base::showpos);
-        ostream << std::setw (4) << std::setprecision (3) << (double) (score) / 1000;
-        ostream.unsetf (std::ios_base::showpos);
-    }
-    else
-    {
-        ostream << ((score > 0) ? "+" : "-");
-        int32_t value = VALUE_INFINITE - abs (int16_t (score));
-        ostream << "MAT" << value;
-        if (value < 10)
-        {
-            ostream << " ";
-        }
-    }
-    return ostream;
-}
-
 extern PolyglotBook book;
 
 namespace Searcher {
@@ -165,17 +142,15 @@ namespace Searcher {
 
     };
 
-
     extern Limits               limits;
     extern volatile Signals     signals;
 
     extern std::vector<RootMove> root_moves;
     extern Position             root_pos;
     extern Color                root_color;
-
-    extern Time::point          search_time;
     extern StateInfoStackPtr    setup_states;
 
+    extern Time::point          search_time;
 
 
     //extern int nThreads;
@@ -222,6 +197,29 @@ namespace Searcher {
 
     extern void think ();
 
+}
+
+inline std::ostream& operator<< (std::ostream &os, const Score &score)
+{
+    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
+    {
+        os.setf (std::ios_base::fixed, std::ios_base::floatfield);
+        os.setf (std::ios_base::right, std::ios_base::adjustfield);
+        os << std::setiosflags (std::ios_base::showpos);
+        os << std::setw (4) << std::setprecision (3) << (double) (score) / 1000;
+        os.unsetf (std::ios_base::showpos);
+    }
+    else
+    {
+        os << ((score > 0) ? "+" : "-");
+        int32_t value = VALUE_INFINITE - abs (int16_t (score));
+        os << "MAT" << value;
+        if (value < 10)
+        {
+            os << " ";
+        }
+    }
+    return os;
 }
 
 #endif // SEARCHER_H_

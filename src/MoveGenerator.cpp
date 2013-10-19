@@ -165,7 +165,7 @@ namespace MoveGenerator {
                 //void Generator<G, PAWN>::generate<> (MoveList &lst_move, const Position &pos, Bitboard target, const CheckInfo *ci)
             {
 
-                const Color _C = ~C;
+                const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
                 const Delta FRONT = (WHITE == C ? DEL_N  : DEL_S);
                 const Delta RIHT  = (WHITE == C ? DEL_NE : DEL_SW);
@@ -183,9 +183,9 @@ namespace MoveGenerator {
                 Bitboard enemies;
                 switch (G)
                 {
-                case EVASION: enemies = pos.pieces (_C) & target; break;
+                case EVASION: enemies = pos.pieces (C_) & target; break;
                 case CAPTURE: enemies = target;                   break;
-                default:      enemies = pos.pieces (_C);          break;
+                default:      enemies = pos.pieces (C_);          break;
                 }
 
                 Bitboard empty = 0;
@@ -209,7 +209,7 @@ namespace MoveGenerator {
                     case QUIET_CHECK:
                         if (ci)
                         {
-                            Bitboard attack = attacks_bb<PAWN> (_C, ci->king_sq);
+                            Bitboard attack = attacks_bb<PAWN> (C_, ci->king_sq);
 
                             push_1 &= attack;
                             push_2 &= attack;
@@ -259,7 +259,7 @@ namespace MoveGenerator {
                             // All time except when EVASION then 2nd condition must true
                             if ((EVASION != G) || (target & (ep_sq - FRONT)))
                             {
-                                Bitboard pawns_ep = attacks_bb<PAWN>(_C, ep_sq) & pawns_on_R5;
+                                Bitboard pawns_ep = attacks_bb<PAWN>(C_, ep_sq) & pawns_on_R5;
                                 ASSERT (pawns_ep);
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
                                 while (pawns_ep)

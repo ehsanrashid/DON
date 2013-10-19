@@ -157,14 +157,14 @@
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="std::char_less_comparer" Collapsed="true">
+  <Struct Name="std::char_less_nocase_comparer" Collapsed="true">
     <Position X="21.75" Y="2.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="std::string_less_comparer" Collapsed="true">
+  <Struct Name="std::string_less_nocase_comparer" Collapsed="true">
     <Position X="21.75" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

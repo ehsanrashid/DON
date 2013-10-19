@@ -54,7 +54,7 @@ typedef class Game sealed
 {
 public:
 
-    typedef std::map<std::string, Tag, std::string_less_comparer> TagMap;
+    typedef std::map<std::string, Tag, std::string_less_nocase_comparer> TagMap;
 
 private:
 

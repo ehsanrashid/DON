@@ -139,7 +139,7 @@ namespace UCI {
     //typedef ::std::shared_ptr<OptionType::Option> OptionPtr;
     typedef ::std::unique_ptr<OptionType::Option> OptionPtr;
 
-    typedef ::std::map<string, OptionPtr, ::std::string_less_comparer> OptionMap;
+    typedef ::std::map<string, OptionPtr, ::std::string_less_nocase_comparer> OptionMap;
 
     extern void  init_options ();
     extern void clear_options ();

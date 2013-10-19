@@ -110,7 +110,7 @@ namespace Bitbases {
             // If all moves lead to positions classified as WIN, the current position is classified WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const Color _C = ~C;
+            const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
             Result r = INVALID;
 
@@ -118,8 +118,8 @@ namespace Bitbases {
             while (b)
             {
                 r |= (WHITE == C) ?
-                    db[index(_C, bk_sq, pop_lsb (b), p_sq)] :
-                    db[index(_C, pop_lsb (b), wk_sq, p_sq)];
+                    db[index(C_, bk_sq, pop_lsb (b), p_sq)] :
+                    db[index(C_, pop_lsb (b), wk_sq, p_sq)];
             }
 
             if ((WHITE == C) && (_rank (p_sq) < R_7))

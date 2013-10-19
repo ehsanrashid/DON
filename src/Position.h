@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <stack>
 
 #include "Board.h"
 #include "Castle.h"
