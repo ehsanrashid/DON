@@ -5,12 +5,12 @@
 #include <fstream>
 
 class Log sealed
-    : public ::std::ofstream
+    : public std::ofstream
 {
 
 public:
-    Log(const ::std::string& fn = "log.txt")
-        : ::std::ofstream(fn, ::std::ios_base::out | ::std::ios_base::app)
+    Log(const std::string& fn = "log.txt")
+        : std::ofstream(fn, std::ios_base::out | std::ios_base::app)
     {}
     
     ~Log()

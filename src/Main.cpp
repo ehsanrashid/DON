@@ -94,7 +94,7 @@ int main (int argc, const char* const argv[])
     
     //Value mg = Value (123);
     //Value eg = Value (456);
-    //Score s = make_score (mg, eg);
+    //Score s = mk_score (mg, eg);
     //mg = mg_value (s);
     //eg = eg_value (s);
 

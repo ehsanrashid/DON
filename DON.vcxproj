@@ -570,9 +570,11 @@
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\LeakDetector.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
+    <ClCompile Include="src\Pawns.cpp" />
     <ClCompile Include="src\PawnStructure.cpp" />
     <ClCompile Include="src\PGN.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
@@ -613,6 +615,7 @@
     <ClInclude Include="src\noncopyable.h" />
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
+    <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\PawnStructure.h" />
     <ClInclude Include="src\PGN.h" />
     <ClInclude Include="src\Piece.h" />

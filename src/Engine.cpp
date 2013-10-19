@@ -94,7 +94,6 @@ namespace Engine {
     void stop ()
     {
         UCI::stop ();
-
     }
 
     void exit (int32_t exit_code)

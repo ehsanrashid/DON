@@ -38,8 +38,8 @@ namespace BitBoard {
     extern const Bitboard bb_D18;  // 08 DIAG-18 squares.
     extern const Bitboard bb_D81;  // 08 DIAG-81 squares.
 
-    extern const Bitboard bb_SQ_L; // 32 LIGHT squares.
-    extern const Bitboard bb_SQ_D; // 32 DARK  squares.
+    extern const Bitboard bb_SQ_LT; // 32 LIGHT squares.
+    extern const Bitboard bb_SQ_DR; // 32 DARK  squares.
 
 #pragma endregion
 
@@ -330,11 +330,12 @@ namespace BitBoard {
         //mask_rel_rank (c, _rank(s));
     }
 
-    // Bitboard of squares along the line in front of the square, from the point of view of the given color.
+    // Bitboard of ranks in front of the rank, from the point of view of the given color.
     inline Bitboard mask_front_ranks (Color c, Rank   r)
     {
         return _bb_front_rank[c][r];
     }
+    // Bitboard of squares along the line in front of the square, from the point of view of the given color.
     inline Bitboard mask_front_sq (Color c, Square s)
     {
         return _bb_front_sq[c][s];

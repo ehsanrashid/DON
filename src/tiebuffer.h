@@ -10,27 +10,27 @@ namespace std {
 
     template<class Elem, class Traits>
     class basic_tie_buf sealed
-        : public ::std::basic_streambuf<Elem, Traits>
-        , public ::std::noncopyable
+        : public std::basic_streambuf<Elem, Traits>
+        , public std::noncopyable
     {
 
     private:
-        ::std::basic_streambuf<Elem, Traits> *_sbuf;
-        ::std::basic_ofstream <Elem, Traits> *_fstm;
+        std::basic_streambuf<Elem, Traits> *_sbuf;
+        std::basic_ofstream <Elem, Traits> *_fstm;
 
     public:
 
-        //typedef typename ::std::basic_streambuf<Elem, Traits>::int_type int_type;
+        //typedef typename std::basic_streambuf<Elem, Traits>::int_type int_type;
         typedef typename Traits::int_type                               int_type;
 
         basic_tie_buf (
-            ::std::basic_streambuf<Elem, Traits> *sbuf,
-            ::std::basic_ofstream <Elem, Traits> *fstm)
+            std::basic_streambuf<Elem, Traits> *sbuf,
+            std::basic_ofstream <Elem, Traits> *fstm)
             : _sbuf (sbuf)
             , _fstm (fstm)
         {}
 
-        ::std::basic_streambuf<Elem, Traits>* sbuf () const
+        std::basic_streambuf<Elem, Traits>* sbuf () const
         {
             return _sbuf;
         }
@@ -81,8 +81,8 @@ namespace std {
 
     };
 
-    typedef basic_tie_buf<char,    ::std::char_traits<char> >     tie_buf;
-    typedef basic_tie_buf<wchar_t, ::std::char_traits<wchar_t> >  tie_wbuf;
+    typedef basic_tie_buf<char,    std::char_traits<char> >     tie_buf;
+    typedef basic_tie_buf<wchar_t, std::char_traits<wchar_t> >  tie_wbuf;
 
 
     //class TemporaryFilebuf : public std::filebuf

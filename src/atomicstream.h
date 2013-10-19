@@ -19,16 +19,16 @@ namespace std {
     //
     //private:
     //    // output stream for atomic_stream
-    //    //::std::shared_ptr<::std::ostream>   _out_stm;
-    //    ::std::ostream     &_out_stm;
+    //    //std::shared_ptr<std::ostream>   _out_stm;
+    //    std::ostream     &_out_stm;
     //
-    //    // ::std::stringstream is not copyable, so copies are already forbidden
-    //    ::std::ostringstream _os_stm;
+    //    // std::stringstream is not copyable, so copies are already forbidden
+    //    std::ostringstream _os_stm;
     //
     //public:
     //
-    //    explicit atomic_stream (::std::ostream &out_stm = ::std::cout)
-    //        //: _out_stm(::std::shared_ptr<::std::ostream> (&out_stm, ::std::unary_nullfunctor<::std::ostream> ()))
+    //    explicit atomic_stream (std::ostream &out_stm = std::cout)
+    //        //: _out_stm(std::shared_ptr<std::ostream> (&out_stm, std::unary_nullfunctor<std::ostream> ()))
     //        : _out_stm (out_stm)
     //    {}
     //
@@ -55,7 +55,7 @@ namespace std {
     //    // this is the type of std::cout
     //    //typedef std::basic_ostream<char, std::char_traits<char> > ostream;
     //    // this is the function signature of std::endl
-    //    typedef ::std::ostream& (*ostream_manipulator) (::std::ostream &);
+    //    typedef std::ostream& (*ostream_manipulator) (std::ostream &);
     //
     //    // define an operator<< to take in std::endl
     //    //template<>
@@ -92,7 +92,7 @@ namespace std {
     //    // Write the whole shebang in one go & also flush
     //    atomic_stream& operator() ()
     //    {
-    //        _out_stm << _os_stm.rdbuf () << ::std::flush;
+    //        _out_stm << _os_stm.rdbuf () << std::flush;
     //        return *this;
     //    }
     //
@@ -115,18 +115,18 @@ namespace std {
 
 
     typedef class atomic_stream sealed
-        : public ::std::ostringstream
-        , public ::std::noncopyable
+        : public std::ostringstream
+        , public std::noncopyable
     {
 
     private:
         // output stream for atomic_stream
-        ::std::ostream     &_out_stm;
+        std::ostream     &_out_stm;
 
     public:
 
-        explicit atomic_stream (::std::ostream &out_stm = ::std::cout)
-            : ::std::ostringstream ()
+        explicit atomic_stream (std::ostream &out_stm = std::cout)
+            : std::ostringstream ()
             , _out_stm (out_stm)
         {}
 
@@ -141,7 +141,7 @@ namespace std {
             {
                 // acquire lock
                 std::unique_lock<std::mutex> lock;
-                _out_stm << str () << ::std::flush;
+                _out_stm << str () << std::flush;
                 clear ();
                 // release lock
             }

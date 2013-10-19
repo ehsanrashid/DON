@@ -119,16 +119,16 @@ namespace UCI {
 
 
         template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits>& os, const Option &opt)
+        inline std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits>& os, const Option &opt)
         {
             os << opt.operator() ();
             return os;
         }
 
         template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits>& os, const Option *opt)
+        inline std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits>& os, const Option *opt)
         {
             os << opt->operator() ();
             return os;

@@ -21,7 +21,7 @@ namespace std {
         {}
 
         template<class charT, class Traits>
-        ::std::basic_ostream<charT, Traits>& operator() (::std::basic_ostream<charT, Traits> &os) const
+        std::basic_ostream<charT, Traits>& operator() (std::basic_ostream<charT, Traits> &os) const
         {
             os.setf (::std::ios_base::fixed, ::std::ios_base::floatfield);
             os.width (_width);
@@ -32,8 +32,8 @@ namespace std {
     };
 
     template<class charT, class Traits>
-    inline ::std::basic_ostream<charT, Traits>&
-        operator<< (::std::basic_ostream<charT, Traits>& os, const width_prec &wp)
+    inline std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits>& os, const width_prec &wp)
     {
         return wp (os);
     }
@@ -51,14 +51,14 @@ namespace std {
 
     private:                      
         T _val;
-        ::std::basic_ostream<C>& (*_fp_manip) (::std::basic_ostream<C>&, T);
+        std::basic_ostream<C>& (*_fp_manip) (std::basic_ostream<C>&, T);
 
     public:
-        manip_infra (::std::basic_ostream<C>& (*fp_manip) (::std::basic_ostream<C>&, T), T val)
+        manip_infra (std::basic_ostream<C>& (*fp_manip) (std::basic_ostream<C>&, T), T val)
             : _fp_manip(fp_manip), _val(val)
         {}
 
-        void operator() (::std::basic_ostream<C>& os) const
+        void operator() (std::basic_ostream<C>& os) const
         {
             // Invoke the function pointer with the stream and value
             _fp_manip(os, _val);
@@ -67,7 +67,7 @@ namespace std {
     };
 
     template<class T, class C>
-    inline ::std::basic_ostream<C>& operator<< (::std::basic_ostream<C>& os, const manip_infra<T, C>& manip)
+    inline std::basic_ostream<C>& operator<< (std::basic_ostream<C>& os, const manip_infra<T, C>& manip)
     {
         manip (os);
         return os;

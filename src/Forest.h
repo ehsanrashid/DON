@@ -35,7 +35,7 @@ public:
     void clear ();
 
     template<class charT, class Traits>
-    void print (::std::basic_ostream<charT, Traits>& os) const;
+    void print (std::basic_ostream<charT, Traits>& os) const;
 
 };
 
@@ -48,8 +48,8 @@ public:
 
 template<class T>
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Forest<T> &forest)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Forest<T> &forest)
 {
     forest.print (os);
     return os;
@@ -116,7 +116,7 @@ inline void Forest<T>::clear () { _trees.clear (); }
 
 template<class T>
 template<class charT, class Traits>
-inline void Forest<T>::print (::std::basic_ostream<charT, Traits>& os) const
+inline void Forest<T>::print (std::basic_ostream<charT, Traits>& os) const
 {
     os << endl;
     if (empty ())

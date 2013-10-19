@@ -19,7 +19,8 @@ namespace {
     //                                  pair  pawn knight bishop rook queen
     const int LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
 
-    const int QuadraticCoefficientsSameColor[][PT_NO] = {
+    const int QuadraticCoefficientsSameColor[][PT_NO] =
+    {
         // pair pawn knight bishop rook queen
         {   7                               }, // Bishop pair
         {  39,    2                         }, // Pawn
@@ -29,7 +30,8 @@ namespace {
         {  58,   29,  83,   148,   -3,  -25 }  // Queen
     };
 
-    const int QuadraticCoefficientsOppositeColor[][PT_NO] = {
+    const int QuadraticCoefficientsOppositeColor[][PT_NO] =
+    {
         //           THEIR PIECES
         // pair pawn knight bishop rook queen
         {  41                               }, // Bishop pair
@@ -122,7 +124,6 @@ namespace Material {
     // have to recompute everything when the same material configuration occurs again.
     Entry* probe (const Position &pos, Table &table, Endgames &endgames)
     {
-
         Key key = pos.matl_key();
         Entry* e = table[key];
 
@@ -134,7 +135,7 @@ namespace Material {
         std::memset (e, 0, sizeof(Entry));
         e->key = key;
         e->factor[WHITE] = e->factor[BLACK] = (uint8_t)SCALE_FACTOR_NORMAL;
-        e->game_phase = game_phase(pos);
+        e->_game_phase = game_phase(pos);
 
         // Let's look if we have a specialized evaluation function for this
         // particular material configuration. First we look for a fixed
@@ -247,7 +248,7 @@ namespace Material {
             int minorPieceCount =  pos.piece_count<NIHT>(WHITE) + pos.piece_count<BSHP>(WHITE)
                 + pos.piece_count<NIHT>(BLACK) + pos.piece_count<BSHP>(BLACK);
 
-            e->space_weight = make_score(minorPieceCount * minorPieceCount, 0);
+            e->_space_weight = mk_score(minorPieceCount * minorPieceCount, 0);
         }
 
         // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder

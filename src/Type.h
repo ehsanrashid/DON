@@ -433,7 +433,7 @@ typedef enum ScaleFactor : uint8_t
 
 #pragma warning (pop)
 
-inline Score make_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
 
 /// Extracting the signed lower and upper 16 bits it not so trivial because
 /// according to the standard a simple cast to short is implementation defined
@@ -555,7 +555,7 @@ inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, int32_t i)
 {
-    return make_score (mg_value (s) / i, eg_value (s) / i);
+    return mk_score (mg_value (s) / i, eg_value (s) / i);
 }
 ARTHMAT_OPERATORS (Score);
 

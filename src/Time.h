@@ -77,8 +77,8 @@ namespace Time {
 
 
 template<typename charT, typename Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Time::point point)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Time::point point)
 {
     os << Time::to_string (point);
     return os;

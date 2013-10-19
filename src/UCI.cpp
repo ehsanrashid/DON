@@ -18,6 +18,13 @@
 
 namespace UCI {
 
+    //using isstream = std::istringstream;
+    typedef std::istringstream isstream;
+
+    using std::string;
+    using std::atom;
+    using std::endl;
+
     namespace {
 
         // Root position
@@ -34,10 +41,10 @@ namespace UCI {
 
         void exe_uci ()
         {
-            std::atom ()
+            atom ()
                 << Engine::info (true) << '\n' 
                 << (Options) << '\n'
-                << "uciok" << std::endl;
+                << "uciok" << endl;
         }
 
         void exe_ucinewgame ()
@@ -47,16 +54,16 @@ namespace UCI {
 
         void exe_isready ()
         {
-            std::atom () << "readyok" << std::endl;
+            atom () << "readyok" << endl;
         }
 
-        void exe_setoption (::std::istringstream &cstm)
+        void exe_setoption (isstream &cstm)
         {
-            ::std::string token;
+            string token;
             if (!(cstm >> token)) return; // consume "name" token
             if (iequals (token, "name"))
             {
-                ::std::string name;
+                string name;
                 // Read option-name (can contain spaces)
                 while (cstm.good ())
                 {
@@ -65,7 +72,7 @@ namespace UCI {
                     name += whitespace (name) ? token : " " + token;
                 }
 
-                ::std::string value;
+                string value;
                 // Read option-value (can contain spaces)
                 while (cstm.good ())
                 {
@@ -76,11 +83,11 @@ namespace UCI {
                 if (Options.count (name) > 0)
                 {
                     (*Options[name]) = value;
-                    //std::atom () << (*Options[name])();
+                    //atom () << (*Options[name])();
                 }
                 else
                 {
-                    //std::atom () << "WHAT??? No such option: '" << name << "'";
+                    //atom () << "WHAT??? No such option: '" << name << "'";
                 }
             }
         }
@@ -98,7 +105,7 @@ namespace UCI {
         // Example:
         //   "register later"
         //   "register name Stefan MK code 4359874324"
-        void exe_register (::std::istringstream &cstm)
+        void exe_register (isstream &cstm)
         {
 
         }
@@ -109,13 +116,13 @@ namespace UCI {
         //  - fen-string position ("fen")
         // and then makes the moves given in the following move list ("moves")
         // also saving the moves on stack.
-        void exe_position (::std::istringstream &cstm)
+        void exe_position (isstream &cstm)
         {
-            ::std::string token;
+            string token;
             // consume "startpos" or "fen" token
             if (!(cstm >> token)) return;
 
-            ::std::string fen;
+            string fen;
             // consume "moves" token if any
             if (iequals (token, "startpos"))
             {
@@ -169,10 +176,10 @@ namespace UCI {
         //  - infinite
         //  - ponder
         // and starts the search.
-        void exe_go (::std::istringstream &cstm)
+        void exe_go (isstream &cstm)
         {
             Searcher::Limits limits;
-            ::std::string token;
+            string token;
 
             while (cstm.good () && (cstm >> token))
             {
@@ -215,24 +222,24 @@ namespace UCI {
             //Threads.main()->notify_one(); // Could be sleeping
         }
 
-        void exe_debug (::std::istringstream &cstm)
+        void exe_debug (isstream &cstm)
         {
             // debug on/off
         }
 
         void exe_print ()
         {
-            std::atom () << pos << std::endl;
+            atom () << pos << endl;
         }
 
         void exe_key ()
         {
-            std::atom () << std::hex << std::uppercase << std::setfill('0')
+            atom () << std::hex << std::uppercase << std::setfill('0')
                 << "fen: " << pos.fen () << '\n'
                 << "posi key: " << std::setw (16) << pos.posi_key () << '\n'
                 << "matl key: " << std::setw (16) << pos.matl_key () << '\n'
                 << "pawn key: " << std::setw (16) << pos.pawn_key ()
-                << std::dec << std::endl;
+                << std::dec << endl;
         }
 
         void exe_flip ()
@@ -242,17 +249,17 @@ namespace UCI {
 
         void exe_eval ()
         {
-            //std::atom () << Eval::trace (pos) << std::endl;
+            //atom () << Eval::trace (pos) << endl;
         }
 
-        void exe_perft (::std::istringstream &cstm)
+        void exe_perft (isstream &cstm)
         {
-            ::std::string token;
+            string token;
             // Read perft depth
             if (cstm.good () && (cstm >> token))
             {
-                ::std::stringstream ss;
-                //ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
+                std::stringstream ss;
+                ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
                 benchmark (ss, pos);
             }
         }
@@ -276,23 +283,23 @@ namespace UCI {
 
     }
 
-    void start (const ::std::string &args)
+    void start (const string &args)
     {
         init_options ();
 
         pos.setup (FEN_N, *(Options["UCI_Chess960"]));
 
         is_running = args.empty ();
-        ::std::string cmd = args;
-        ::std::string token;
+        string cmd = args;
+        string token;
         do
         {
             // Block here waiting for input
-            if (is_running && !::std::getline (std::cin, cmd, '\n')) cmd = "quit";
-            if (::std::whitespace (cmd)) continue;
+            if (is_running && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
+            if (std::whitespace (cmd)) continue;
             try
             {
-                ::std::istringstream cstm (cmd);
+                isstream cstm (cmd);
                 cstm >> std::skipws >> token;
 
                 if (false);
@@ -323,7 +330,7 @@ namespace UCI {
                     || iequals (token, "stop"))         exe_stop ();
                 else
                 {
-                    //std::atom () << "WHAT??? No such command: '" << cmd << "'";
+                    //atom () << "WHAT??? No such command: '" << cmd << "'";
                 }
             }
             catch (...)
@@ -347,7 +354,7 @@ namespace UCI {
             static char buf[1024];
             size_t size  =   sizeof (buf);
             size_t count = _countof (buf);
-            ::std::memset (buf, 0, size);
+            std::memset (buf, 0, size);
             va_list args;
             va_start (args, format);
             int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
@@ -355,7 +362,7 @@ namespace UCI {
             if (copied != -1)
             {
                 buf[copied] = '\0';
-                std::atom () << buf << std::endl;
+                atom () << buf << endl;
             }
         }
         catch (...)

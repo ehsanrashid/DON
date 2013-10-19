@@ -21,7 +21,7 @@ typedef struct Tag sealed
 private:
 
 private:
-    ::std::string value;
+    std::string value;
 
 public:
 
@@ -32,9 +32,9 @@ public:
         , index (idx)
     {}
 
-    operator ::std::string () const { return value; }
+    operator std::string () const { return value; }
 
-    //::std::string Tag::to_string () const
+    //std::string Tag::to_string () const
     //{
     //    return (*this);
     //}
@@ -43,10 +43,10 @@ public:
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Tag &tag)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Tag &tag)
 {
-    os << ::std::string (tag);
+    os << std::string (tag);
     return os;
 }
 
@@ -54,7 +54,7 @@ typedef class Game sealed
 {
 public:
 
-    typedef::std::map<::std::string, Tag, ::std::string_less_comparer> TagMap;
+    typedef std::map<std::string, Tag, std::string_less_comparer> TagMap;
 
 private:
 
@@ -66,7 +66,7 @@ private:
     Position   _last_pos;
     Result     _result;
 
-    void print_tags (::std::ostream &ostream) const;
+    void print_tags (std::ostream &ostream) const;
 
 public:
 
@@ -74,7 +74,7 @@ public:
     explicit Game (int8_t dummy);
 
     Game (const          char *text);
-    Game (const ::std::string &text);
+    Game (const std::string &text);
 
     //Game (const Game &game);
     //~Game ();
@@ -85,41 +85,41 @@ public:
     Result Result ()     const { return _result; }
 
     void add_tag (const Tag &tag);
-    void add_tag (const ::std::string &name, const ::std::string &value);
+    void add_tag (const std::string &name, const std::string &value);
 
     bool append_move (Move m);
-    bool append_move (const ::std::string &smove);
+    bool append_move (const std::string &smove);
 
     bool remove_move ();
 
-    bool setup (const ::std::string &fen, bool c960 = false, bool full = true);
+    bool setup (const std::string &fen, bool c960 = false, bool full = true);
 
     void clear ();
     void reset ();
 
-    ::std::string pgn () const;
-    operator ::std::string () const;
+    std::string pgn () const;
+    operator std::string () const;
 
     static bool parse (Game &game, const          char *text);
-    static bool parse (Game &game, const ::std::string &text);
+    static bool parse (Game &game, const std::string &text);
 
 } Game;
 
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Game &game)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Game &game)
 {
-    os << ::std::string (game);
+    os << std::string (game);
     return os;
 }
 
 template<class charT, class Traits>
-inline ::std::basic_istream<charT, Traits>&
-    operator>> (::std::basic_istream<charT, Traits>& is, Game &game)
+inline std::basic_istream<charT, Traits>&
+    operator>> (std::basic_istream<charT, Traits>& is, Game &game)
 {
-    //is >> ::std::string (game);
+    //is >> std::string (game);
     return is;
 }
 

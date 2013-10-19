@@ -66,7 +66,7 @@ public:
     Piece remove_piece (Square s);
     Piece   move_piece (Square s1, Square s2);
 
-    operator ::std::string () const;
+    operator std::string () const;
 
 } Board;
 
@@ -159,10 +159,10 @@ inline uint32_t Board::piece_count () const
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const Board &board)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const Board &board)
 {
-    os << ::std::string (board);
+    os << std::string (board);
     return os;
 }
 

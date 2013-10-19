@@ -168,8 +168,8 @@ namespace MoveGenerator {
                 const Color _C = ~C;
 
                 const Delta FRONT = (WHITE == C ? DEL_N  : DEL_S);
-                const Delta RIHT = (WHITE == C ? DEL_NE : DEL_SW);
-                const Delta LEFT = (WHITE == C ? DEL_NW : DEL_SE);
+                const Delta RIHT  = (WHITE == C ? DEL_NE : DEL_SW);
+                const Delta LEFT  = (WHITE == C ? DEL_NW : DEL_SE);
 
                 Bitboard bbRR8 = mask_rel_rank (C, R_8);
                 Bitboard bbRR7 = mask_rel_rank (C, R_7);

@@ -60,8 +60,8 @@ inline ::std::string to_string (CRight cr)
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-operator<< (::std::basic_ostream<charT, Traits>& os, CRight cr)
+inline std::basic_ostream<charT, Traits>&
+operator<< (std::basic_ostream<charT, Traits>& os, CRight cr)
 {
     os << to_string (cr);
     return os;

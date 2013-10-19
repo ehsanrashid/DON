@@ -217,11 +217,11 @@ public:
     double permill_full () const;
 
     template<class charT, class Traits>
-    friend ::std::basic_ostream<charT, Traits>&
-        operator<< (::std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt);
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt);
     template<class charT, class Traits>
-    friend ::std::basic_istream<charT, Traits>&
-        operator>> (::std::basic_istream<charT, Traits>& is, TranspositionTable &tt);
+    friend std::basic_istream<charT, Traits>&
+        operator>> (std::basic_istream<charT, Traits>& is, TranspositionTable &tt);
 
 } TranspositionTable;
 
@@ -229,8 +229,8 @@ public:
 
 
 template<class charT, class Traits>
-inline ::std::basic_ostream<charT, Traits>&
-    operator<< (::std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt)
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits>& os, const TranspositionTable &tt)
 {
     size_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
     uint32_t size_mb  = size_byte >> 20;
@@ -246,8 +246,8 @@ inline ::std::basic_ostream<charT, Traits>&
 }
 
 template<class charT, class Traits>
-inline ::std::basic_istream<charT, Traits>&
-    operator>> (::std::basic_istream<charT, Traits>& is, TranspositionTable &tt)
+inline std::basic_istream<charT, Traits>&
+    operator>> (std::basic_istream<charT, Traits>& is, TranspositionTable &tt)
 {
     uint32_t size_mb;
     is.read ((char *) &size_mb, sizeof (size_mb));

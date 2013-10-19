@@ -39,8 +39,8 @@ namespace BitBoard {
     const Bitboard bb_D18 = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
     const Bitboard bb_D81 = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
 
-    const Bitboard bb_SQ_L = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard bb_SQ_D = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
+    const Bitboard bb_SQ_LT = U64 (0x55AA55AA55AA55AA);           // 32 LIGHT squares.
+    const Bitboard bb_SQ_DR = U64 (0xAA55AA55AA55AA55);           // 32 DARK  squares.
 
     //const Bitboard bb_S_Q  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
     //const Bitboard bb_S_K  = ~bb_S_Q;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.

@@ -4,7 +4,6 @@
 
 #include "Type.h"
 #include "Endgame.h"
-//#include "misc.h"
 #include "position.h"
 
 namespace Material {
@@ -24,12 +23,12 @@ namespace Material {
         uint8_t factor[CLR_NO];
         EndgameBase<Value>* evaluation_func;
         EndgameBase<ScaleFactor>* scaling_func[CLR_NO];
-        Score space_weight;
-        Phase game_phase;
+        Score _space_weight;
+        Phase _game_phase;
 
-        Score material_value() const { return make_score(value, value); }
-        Score space_weight() const { return space_weight; }
-        Phase game_phase() const { return game_phase; }
+        Score material_value() const { return mk_score(value, value); }
+        Score space_weight() const { return _space_weight; }
+        Phase game_phase() const { return _game_phase; }
 
         bool specialized_eval_exists() const { return evaluation_func != NULL; }
         Value evaluate(const Position &pos) const { return (*evaluation_func) (pos); }
