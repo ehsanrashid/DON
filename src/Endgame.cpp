@@ -718,7 +718,7 @@ ScaleFactor Endgame<KPsK>::operator()(const Position &pos) const
     // If all pawns are ahead of the king, all pawns are on a single
     // rook file and the king is within one file of the pawns then draw.
     if (   !(pawns & ~front_ranks_bb (_weak_side, _rank (bk_sq)))
-        && !((pawns & ~FA_bb) && (pawns & ~FH_bb))
+        && !((pawns & FA_bb_) && (pawns & FH_bb_))
         && file_dist (bk_sq, wp_sq) <= 1)
     {
         return SCALE_FACTOR_DRAW;
@@ -745,8 +745,7 @@ ScaleFactor Endgame<KBPKB>::operator()(const Position &pos) const
     // Case 1: Defending king blocks the pawn, and cannot be driven away
     if (   _file (bk_sq) == _file (wp_sq)
         && rel_rank (_strong_side, wp_sq) < rel_rank (_strong_side, bk_sq)
-        && (   opposite_colors (bk_sq, wb_sq)
-        || rel_rank (_strong_side, bk_sq) <= R_6))
+        && (opposite_colors (bk_sq, wb_sq) || rel_rank (_strong_side, bk_sq) <= R_6))
     {
         return SCALE_FACTOR_DRAW;
     }
@@ -761,8 +760,7 @@ ScaleFactor Endgame<KBPKB>::operator()(const Position &pos) const
         //   c. The defending bishop attacks some square along the pawn's path,
         //      and is at least three squares away from the pawn.
         //
-        // These rules are probably not perfect, but in practice they work
-        // reasonably well.
+        // These rules are probably not perfect, but in practice they work reasonably well.
 
         if (rel_rank (_strong_side, wp_sq) <= R_5)
         {
@@ -771,14 +769,15 @@ ScaleFactor Endgame<KBPKB>::operator()(const Position &pos) const
         else
         {
             Bitboard path = front_squares_bb (_strong_side, wp_sq);
-
-            if ( path & pos.pieces (_weak_side, KING) ||
-                (pos.attacks_from<BSHP>(bb_sq) & path) && square_dist (bb_sq, wp_sq) >= 3)
+            if (    path & pos.pieces (_weak_side, KING)
+                || (pos.attacks_from<BSHP>(bb_sq) & path)
+                && square_dist (bb_sq, wp_sq) >= 3)
             {
                 return SCALE_FACTOR_DRAW;
             }
         }
     }
+
     return SCALE_FACTOR_NONE;
 }
 
@@ -793,57 +792,65 @@ ScaleFactor Endgame<KBPPKB>::operator()(const Position &pos) const
     Square wb_sq = pos.list<BSHP>(_strong_side)[0];
     Square bb_sq = pos.list<BSHP>(_weak_side)[0];
 
-    if (!opposite_colors (wb_sq, bb_sq))
-        return SCALE_FACTOR_NONE;
+    if (!opposite_colors (wb_sq, bb_sq)) return SCALE_FACTOR_NONE;
 
     Square bk_sq = pos.king_sq (_weak_side);
-    Square psq1 = pos.list<PAWN>(_strong_side)[0];
-    Square psq2 = pos.list<PAWN>(_strong_side)[1];
-    Rank r1 = _rank (psq1);
-    Rank r2 = _rank (psq2);
-    Square blockSq1, blockSq2;
+    Square wp_sq1 = pos.list<PAWN>(_strong_side)[0];
+    Square wp_sq2 = pos.list<PAWN>(_strong_side)[1];
+    Rank r1 = _rank (wp_sq1);
+    Rank r2 = _rank (wp_sq2);
+    Square block_sq1, block_sq2;
 
-    if (rel_rank (_strong_side, psq1) > rel_rank (_strong_side, psq2))
+    if (rel_rank (_strong_side, wp_sq1) > rel_rank (_strong_side, wp_sq2))
     {
-        blockSq1 = psq1 + pawn_push(_strong_side);
-        blockSq2 = _file (psq2) | _rank (psq1);
+        block_sq1 = wp_sq1 + pawn_push(_strong_side);
+        block_sq2 = _file (wp_sq2) | _rank (wp_sq1);
     }
     else
     {
-        blockSq1 = psq2 + pawn_push(_strong_side);
-        blockSq2 = _file (psq1) | _rank (psq2);
+        block_sq1 = wp_sq2 + pawn_push(_strong_side);
+        block_sq2 = _file (wp_sq1) | _rank (wp_sq2);
     }
 
-    switch (file_dist (psq1, psq2))
+    switch (file_dist (wp_sq1, wp_sq2))
     {
     case 0:
         // Both pawns are on the same file. Easy draw if defender firmly controls
         // some square in the frontmost pawn's path.
-        if (   _file (bk_sq) == _file (blockSq1)
-            && rel_rank (_strong_side, bk_sq) >= rel_rank (_strong_side, blockSq1)
+        if (   _file (bk_sq) == _file (block_sq1)
+            && rel_rank (_strong_side, bk_sq) >= rel_rank (_strong_side, block_sq1)
             && opposite_colors (bk_sq, wb_sq))
+        {
             return SCALE_FACTOR_DRAW;
+        }
         else
+        {
             return SCALE_FACTOR_NONE;
+        }
 
     case 1:
         // Pawns on adjacent files. Draw if defender firmly controls the square
         // in front of the frontmost pawn's path, and the square diagonally behind
         // this square on the file of the other pawn.
-        if (   bk_sq == blockSq1
+        if (   bk_sq == block_sq1
             && opposite_colors (bk_sq, wb_sq)
-            && (   bb_sq == blockSq2
-            || (pos.attacks_from<BSHP>(blockSq2) & pos.pieces (_weak_side, BSHP))
+            && (   bb_sq == block_sq2
+            || (pos.attacks_from<BSHP>(block_sq2) & pos.pieces (_weak_side, BSHP))
             || abs (int32_t (r1) - int32_t (r2)) >= 2))
+        {
             return SCALE_FACTOR_DRAW;
-
-        else if (   bk_sq == blockSq2
+        }
+        else if (   bk_sq == block_sq2
             && opposite_colors (bk_sq, wb_sq)
-            && (   bb_sq == blockSq1
-            || (pos.attacks_from<BSHP>(blockSq1) & pos.pieces (_weak_side, BSHP))))
+            && (   bb_sq == block_sq1
+            || (pos.attacks_from<BSHP>(block_sq1) & pos.pieces (_weak_side, BSHP))))
+        {
             return SCALE_FACTOR_DRAW;
+        }
         else
+        {
             return SCALE_FACTOR_NONE;
+        }
 
     default:
         // The pawns are not on the same file or adjacent files. No scaling.
@@ -931,15 +938,15 @@ ScaleFactor Endgame<KPKP>::operator()(const Position &pos) const
 
     Square wk_sq = pos.king_sq (_strong_side);
     Square bk_sq = pos.king_sq (_weak_side);
-    Square wp_sq  = pos.list<PAWN>(_strong_side)[0];
-    Color  c   = pos.active ();
+    Square wp_sq = pos.list<PAWN>(_strong_side)[0];
+    Color  c     = pos.active ();
 
     if (BLACK == _strong_side)
     {
         wk_sq = ~wk_sq;
         bk_sq = ~bk_sq;
-        wp_sq  = ~wp_sq;
-        c   = ~c;
+        wp_sq = ~wp_sq;
+        c     = ~c;
     }
 
     if (_file (wp_sq) >= F_E)

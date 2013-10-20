@@ -374,6 +374,12 @@ namespace BitBoard {
         return _passer_span_pawn_bb[c][s];
     }
 
+    // squares_of_color() returns a bitboard of all squares with the same color of the given square.
+    inline Bitboard squares_of_color(Square s)
+    {
+        return (DR_SQ_bb & s) ? DR_SQ_bb : LT_SQ_bb;
+    }
+
     inline bool more_than_one (Bitboard bb)
     {
         return bool ((bb) & (bb - 1));
@@ -469,10 +475,11 @@ namespace BitBoard {
     extern inline Bitboard attacks_bb (Color c, Square s);
 
     template<PType T>
-    // Attacks of the Piece
+    // Attacks of the PType
     extern inline Bitboard attacks_bb (Square s);
+
     template<PType T>
-    // Attacks of the Piece with occupancy
+    // Attacks of the PType with occupancy
     extern inline Bitboard attacks_bb (Square s, Bitboard occ);
 
     extern inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ);
