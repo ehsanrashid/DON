@@ -127,7 +127,7 @@ inline char to_char (Color c, PType pt)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, Piece p)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
 {
     os << to_char (p);
     return os;

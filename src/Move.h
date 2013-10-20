@@ -142,18 +142,19 @@ inline bool _ok (Move m)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, Move m)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
 {
     os << move_to_can (m); //to_string (m);
     return os;
 }
 
+// ----------------------------------
 
 typedef std::vector<Move>   MoveList;
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const MoveList &lst_move)
+    operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &lst_move)
 {
     std::for_each (lst_move.cbegin (), lst_move.cend (), [&os] (Move m) { os << m << std::endl; });
     return os;
@@ -164,7 +165,7 @@ inline std::basic_ostream<charT, Traits>&
 
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits>& os, const MoveStack &stk_move)
+//    operator<< (std::basic_ostream<charT, Traits> &os, const MoveStack &stk_move)
 //{
 //    MoveStack stk_dup = stk_move;
 //    while (!stk_dup.empty ())

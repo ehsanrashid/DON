@@ -71,6 +71,13 @@ public:
     Piece   move_piece (Square s1, Square s2);
 
     operator std::string () const;
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const Board &board)
+    {
+        os << std::string (board);
+        return os;
+    }
 
 } Board;
 
@@ -111,12 +118,5 @@ inline uint32_t Board::piece_count (Color c, PType t) const { return _piece_list
 
 #pragma endregion
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Board &board)
-{
-    os << std::string (board);
-    return os;
-}
 
 #endif

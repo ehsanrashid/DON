@@ -58,7 +58,7 @@ public:
     void clear ();
 
     template<class charT, class Traits>
-    void print (std::basic_ostream<charT, Traits>& os, uint32_t indent) const;
+    void print (std::basic_ostream<charT, Traits> &os, uint32_t indent) const;
 
 };
 
@@ -72,7 +72,7 @@ public:
 template<class T>
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Tree<T> &tree)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Tree<T> &tree)
 {
     tree.print (ostream, 0);
     return os;
@@ -220,7 +220,7 @@ inline void Tree<T>::clear () { _branches.clear (); }
 
 template<class T>
 template<class charT, class Traits>
-inline void Tree<T>::print (std::basic_ostream<charT, Traits>& os, uint32_t indent) const
+inline void Tree<T>::print (std::basic_ostream<charT, Traits> &os, uint32_t indent) const
 {
 
     //os << _data;

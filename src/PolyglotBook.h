@@ -38,6 +38,14 @@ public:
 
         operator std::string () const;
 
+        template<class charT, class Traits>
+        friend std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits> &os, const PolyglotEntry &pe)
+        {
+            os << std::string (pe);
+            return os;
+        }
+
     } PolyglotEntry;
 
     //typedef struct PolyglotHeader
@@ -107,7 +115,7 @@ public:
     Move probe_move (const Position &pos, bool pick_best = true);
 
     std::string read_entries (const Position &pos);
-    
+
     void insert_entry (const PolyglotBook::PolyglotEntry &pe);
 
 
@@ -124,13 +132,6 @@ public:
 } PolyglotBook;
 
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const PolyglotBook::PolyglotEntry &pe)
-{
-    os << std::string (pe);
-    return os;
-}
 
 #pragma warning (pop)
 

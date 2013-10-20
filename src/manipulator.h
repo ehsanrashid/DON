@@ -29,15 +29,14 @@ namespace std {
             return os;
         }
 
+        template<class charT, class Traits>
+        friend std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits> &os, const width_prec &wp)
+        {
+            return wp (os);
+        }
+
     };
-
-    template<class charT, class Traits>
-    inline std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits>& os, const width_prec &wp)
-    {
-        return wp (os);
-    }
-
 
     // manip_infra is a small, intermediary class that serves as a utility
     // for custom manipulators with arguments.
@@ -64,17 +63,23 @@ namespace std {
             _fp_manip(os, _val);
         }  
 
+        friend std::basic_ostream<C>& operator<< (std::basic_ostream<C> &os, const manip_infra<T, C> &manip)
+        {
+            manip (os);
+            return os;
+        }
     };
 
-    template<class T, class C>
-    inline std::basic_ostream<C>& operator<< (std::basic_ostream<C>& os, const manip_infra<T, C>& manip)
-    {
-        manip (os);
-        return os;
-    }
+    //template<class T, class C>
+    //inline std::basic_ostream<C>& operator<< (std::basic_ostream<C> &os, const manip_infra<T, C> &manip)
+    //{
+    //    manip (os);
+    //    return os;
+    //}
+
 
     // Helper function that is ultimately called by the ManipInfra class
-    inline ::std::ostream& set_width (::std::ostream& os, int n)
+    inline ::std::ostream& set_width (::std::ostream &os, int n)
     {
         os.width (n);
         return (os);
@@ -87,7 +92,7 @@ namespace std {
     }
 
     // Another helper that takes a char argument
-    inline ::std::ostream& set_fill (::std::ostream& os, char c)
+    inline ::std::ostream& set_fill (::std::ostream &os, char c)
     {
         os.fill (c);
         return (os);

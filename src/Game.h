@@ -39,16 +39,16 @@ public:
     //    return (*this);
     //}
 
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const Tag &tag)
+    {
+        os << std::string (tag);
+        return os;
+    }
+
 } Tag;
 
-
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Tag &tag)
-{
-    os << std::string (tag);
-    return os;
-}
 
 typedef class Game sealed
 {
@@ -103,24 +103,23 @@ public:
     static bool parse (Game &game, const          char *text);
     static bool parse (Game &game, const std::string &text);
 
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const Game &game)
+    {
+        os << std::string (game);
+        return os;
+    }
+
+    template<class charT, class Traits>
+    friend std::basic_istream<charT, Traits>&
+        operator>> (std::basic_istream<charT, Traits> &is, Game &game)
+    {
+        //is >> std::string (game);
+        return is;
+    }
+
+
 } Game;
-
-
-
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Game &game)
-{
-    os << std::string (game);
-    return os;
-}
-
-template<class charT, class Traits>
-inline std::basic_istream<charT, Traits>&
-    operator>> (std::basic_istream<charT, Traits>& is, Game &game)
-{
-    //is >> std::string (game);
-    return is;
-}
 
 #endif

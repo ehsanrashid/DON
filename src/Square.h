@@ -28,7 +28,7 @@ inline char to_char (File f, bool lower = true)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, File f)
+    operator<< (std::basic_ostream<charT, Traits> &os, File f)
 {
     os << to_char (f);
     return os;
@@ -55,7 +55,7 @@ inline char to_char (Rank r)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, Rank r)
+    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
 {
     os << to_char (r);
     return os;
@@ -101,7 +101,7 @@ inline char to_char (Color  c)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, Color c)
+    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
 {
     os << to_char (c);
     return os;
@@ -192,7 +192,7 @@ inline std::string to_string (Square s)
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, Square s)
+    operator<< (std::basic_ostream<charT, Traits> &os, Square s)
 {
     os << to_string (s);
     return os;
@@ -215,7 +215,7 @@ typedef std::vector<Square> SquareList;
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const SquareList &lst_sq)
+    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &lst_sq)
 {
     std::for_each (lst_sq.cbegin (), lst_sq.cend (), [&os] (Square s) { os << s << std::endl; });
     return os;

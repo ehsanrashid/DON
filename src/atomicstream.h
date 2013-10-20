@@ -99,7 +99,7 @@ namespace std {
     //} atom;
 
     //template<class T>
-    //std::atom& operator<< (std::atom& os, T& (*manip) (T &))
+    //std::atom& operator<< (std::atom &os, T& (*manip) (T &))
     //{
     //    //manip (os._os_stm);
     //    return os;
@@ -107,7 +107,7 @@ namespace std {
 
     //typedef std::ostream& (*ostream_manipulator)(std::ostream &);
     //template<>
-    //std::atom& operator<< (std::atom& os, ostream_manipulator pf)
+    //std::atom& operator<< (std::atom &os, ostream_manipulator pf)
     //{
     //    //os.operator<< <ostream_manipulator> (os, pf);
     //    return os;

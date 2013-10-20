@@ -120,7 +120,7 @@ namespace UCI {
 
         template<class charT, class Traits>
         inline std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits>& os, const Option &opt)
+            operator<< (std::basic_ostream<charT, Traits> &os, const Option &opt)
         {
             os << opt.operator() ();
             return os;
@@ -128,7 +128,7 @@ namespace UCI {
 
         template<class charT, class Traits>
         inline std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits>& os, const Option *opt)
+            operator<< (std::basic_ostream<charT, Traits> &os, const Option *opt)
         {
             os << opt->operator() ();
             return os;
@@ -146,7 +146,7 @@ namespace UCI {
 
     template<class charT, class Traits>
     inline ::std::basic_ostream<charT, Traits>&
-        operator<< (::std::basic_ostream<charT, Traits>& os, const OptionMap &options)
+        operator<< (::std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
 
         for (size_t idx = 0; idx < options.size (); ++idx)

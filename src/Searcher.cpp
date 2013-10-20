@@ -2,8 +2,8 @@
 #include <iostream>
 
 #include "atomicstream.h"
-#include "UCI.h"
 #include "Transposition.h"
+#include "UCI.h"
 #include "Log.h"
 
 namespace Searcher {
@@ -16,11 +16,11 @@ namespace Searcher {
     volatile Signals     signals;
 
     std::vector<RootMove> root_moves;
-    Position             root_pos;
-    Color                root_color;
-    StateInfoStackPtr    setup_states;
+    Position             rootPos;
+    Color                rootColor;
+    StateInfoStackPtr    setupStates;
 
-    Time::point          search_time;
+    Time::point          searchTime;
 
     // initialize the PRNG only once
     PolyglotBook book;
@@ -107,7 +107,7 @@ namespace Searcher {
 
     void think ()
     {
-        root_color = root_pos.active ();
+        rootColor = rootPos.active ();
 
         //TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
 
@@ -116,7 +116,7 @@ namespace Searcher {
             root_moves.push_back (MOVE_NONE);
             atom ()
                 << "info depth 0 score "
-                //<< score_to_uci (root_pos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                //<< score_to_uci (rootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << endl;
 
             goto finish;
@@ -125,7 +125,7 @@ namespace Searcher {
         if (*(Options["Use Book"]) && !limits.infinite && !limits.mate_in)
         {
             if (!book.is_open ()) book.open (*(Options["Book File"]), std::ios_base::in);
-            Move book_move = book.probe_move (root_pos, *(Options["Best Book Move"]));
+            Move book_move = book.probe_move (rootPos, *(Options["Best Book Move"]));
             if (book_move && std::count (root_moves.begin (), root_moves.end (), book_move))
             {
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
@@ -136,11 +136,11 @@ namespace Searcher {
         if (*(Options["Write Search Log"]))
         {
             Log log (*(Options["Search Log File"]));
-            log << "Searching: "    << root_pos.fen() << '\n'
+            log << "Searching: "    << rootPos.fen() << '\n'
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
-                << " time: "        << limits.game_clock[root_color].time
-                << " increment: "   << limits.game_clock[root_color].inc
+                << " time: "        << limits.game_clock[rootColor].time
+                << " increment: "   << limits.game_clock[rootColor].inc
                 << " moves to go: " << limits.moves_to_go
                 << endl;
         }
@@ -151,8 +151,8 @@ finish:
 
         // When search is stopped this info is not printed
         atom ()
-            << "info nodes " << root_pos.game_nodes ()
-            << " time " << Time::now() - search_time + 1 << endl;
+            << "info nodes " << rootPos.game_nodes ()
+            << " time " << Time::now() - searchTime + 1 << endl;
 
         // When we reach max depth we arrive here even without Signals.stop is raised,
         // but if we are pondering or in infinite search, according to UCI protocol,
@@ -162,7 +162,7 @@ finish:
         if (!signals.stop && (limits.ponder || limits.infinite))
         {
             signals.stop_on_ponderhit = true;
-            //root_pos.this_thread()->wait_for(signals.stop);
+            //rootPos.this_thread()->wait_for(signals.stop);
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
@@ -172,6 +172,7 @@ finish:
             << endl;
 
     }
+
 
 #pragma region search
 

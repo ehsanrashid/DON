@@ -24,8 +24,10 @@ namespace UCI {
     namespace OptionType {
 
         Option::Option (const OnChange on_change)
-            : _on_change (on_change), index (Options.size ())
+            : _on_change (on_change)
+            , index (Options.size ())
         {}
+
         Option::~Option ()
         {
             if (_on_change) _on_change = NULL;
@@ -189,7 +191,7 @@ namespace UCI {
 
         using namespace OptionType;
 
-        void on_clear_hash (const Option &opt)
+        void on_clear_hash  (const Option &opt)
         {
             TT.clear ();
             std::atom () << "info string hash cleared." << std::endl;
@@ -202,14 +204,14 @@ namespace UCI {
             std::atom () << "info string hash resized " << size_mb << " MB Hash..." << std::endl;
         }
 
-        void on_save_hash (const Option &opt)
+        void on_save_hash   (const Option &opt)
         {
             //ofstream ofstm ("hash.dat", ::std::ios_base::out | ::std::ios_base::binary);
             //ofstm << tt;
             //ofstm.close ();
         }
 
-        void on_load_hash (const Option &opt)
+        void on_load_hash   (const Option &opt)
         {
             //ifstream ifstm ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
             //ifstm >> tt;
@@ -221,22 +223,22 @@ namespace UCI {
             if (Searcher::book.is_open ()) Searcher::book.close ();
         }
 
-        void on_change_threads (const Option &opt)
+        void on_change_threads  (const Option &opt)
         {
             std::atom () << "thread changed" << std::endl;
         }
 
-        void on_evaluation (const Option& opt)
+        void on_evaluation  (const Option& opt)
         {
 
         }
 
-        void on_log_io (const Option &opt)
+        void on_log_io      (const Option &opt)
         {
             log_io (bool (opt));
         }
 
-        void on_query (const Option &opt)
+        void on_query       (const Option &opt)
         {
         }
 

@@ -63,14 +63,14 @@ namespace std {
 
 
     template<class charT, class Traits, class T>
-    std::basic_null_stream<charT, Traits>& operator<< (
+    inline std::basic_null_stream<charT, Traits>& operator<< (
         std::basic_null_stream<charT, Traits> &nstream, T const &)
     {
         return nstream;
     }
 
     template<class charT, class Traits>
-    std::basic_null_stream<charT, Traits>& operator<< (
+    inline std::basic_null_stream<charT, Traits>& operator<< (
         std::basic_null_stream<charT, Traits> &nstream, std::basic_ostream<charT, Traits> &(std::basic_ostream<charT, Traits> &))
     {
         return nstream;

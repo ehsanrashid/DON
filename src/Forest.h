@@ -37,6 +37,15 @@ public:
     template<class charT, class Traits>
     void print (std::basic_ostream<charT, Traits>& os) const;
 
+    template<class T>
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const Forest<T> &forest)
+    {
+        forest.print (os);
+        return os;
+    }
+
 };
 
 //template<class T>
@@ -46,14 +55,6 @@ public:
 //    return ostream;
 //}
 
-template<class T>
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Forest<T> &forest)
-{
-    forest.print (os);
-    return os;
-}
 
 
 template<class T>

@@ -726,8 +726,8 @@ namespace {
             // value that will be used for pruning because this value can sometimes
             // be very big, and so capturing a single attacking piece can therefore
             // result in a score change far bigger than the value of the captured piece.
-            score -= KingDanger[C == Searcher::root_color][attack_units];
-            margins[C] += mg_value(KingDanger[C == Searcher::root_color][attack_units]);
+            score -= KingDanger[C == Searcher::rootColor][attack_units];
+            margins[C] += mg_value(KingDanger[C == Searcher::rootColor][attack_units]);
         }
 
         if (TRACE)

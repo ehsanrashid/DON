@@ -145,11 +145,11 @@ namespace Searcher {
     extern volatile Signals     signals;
 
     extern std::vector<RootMove> root_moves;
-    extern Position             root_pos;
-    extern Color                root_color;
-    extern StateInfoStackPtr    setup_states;
+    extern Position             rootPos;
+    extern Color                rootColor;
+    extern StateInfoStackPtr    setupStates;
 
-    extern Time::point          search_time;
+    extern Time::point          searchTime;
 
 
     extern void think ();

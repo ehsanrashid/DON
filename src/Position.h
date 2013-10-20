@@ -98,6 +98,14 @@ public:
 
     operator std::string () const;
 
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const StateInfo &si)
+    {
+        os << std::string (si);
+        return os;
+    }
+
 } StateInfo;
 
 #pragma pack (pop)
@@ -284,7 +292,7 @@ public:
     // Incremental piece-square evaluation
     Value non_pawn_material (Color c) const;
     //Value pawn_material (Color c) const;
-    
+
 
     Score psq_score () const;
 
@@ -422,6 +430,22 @@ public:
     static bool parse (Position &pos, const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
+
+    template<class charT, class Traits>
+    friend std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const Position &pos)
+    {
+        os << std::string (pos);
+        return os;
+    }
+
+    template<class charT, class Traits>
+    friend std::basic_istream<charT, Traits>&
+        operator>> (std::basic_istream<charT, Traits> &is, Position &pos)
+    {
+        //is >> std::string (pos);
+        return is;
+    }
 
 } Position;
 
@@ -699,29 +723,7 @@ inline Piece Position::move_piece (Square s1, Square s2) { return _board.move_pi
 #pragma endregion
 
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const StateInfo &si)
-{
-    os << std::string (si);
-    return os;
-}
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits>& os, const Position &pos)
-{
-    os << std::string (pos);
-    return os;
-}
-
-template<class charT, class Traits>
-inline std::basic_istream<charT, Traits>&
-    operator>> (std::basic_istream<charT, Traits>& is, Position &pos)
-{
-    //is >> std::string (pos);
-    return is;
-}
 
 
 typedef std::stack<StateInfo>             StateInfoStack;

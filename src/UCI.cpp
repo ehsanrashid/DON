@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cstdarg>
+
 #include "xcstring.h"
 #include "xstring.h"
 #include "atomicstream.h"
@@ -14,6 +15,7 @@
 #include "Notation.h"
 #include "TriLogger.h"
 
+#include <thread>
 //#include "Thread.h"
 
 namespace UCI {
@@ -27,12 +29,12 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position            pos = Position (int8_t (0));
+        Position            rootPos = Position (int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
         // Needed by repetition draw detection.
-        StateInfoStackPtr   states;
+        StateInfoStackPtr   setupStates;
 
         bool active = false;
 
@@ -142,23 +144,23 @@ namespace UCI {
             }
             else return;
 
-            pos.setup (fen, *(Options["UCI_Chess960"]));
+            rootPos.setup (fen, *(Options["UCI_Chess960"]));
 
             if (iequals (token, "moves"))
             {
-                states = StateInfoStackPtr (new StateInfoStack ());
+                setupStates = StateInfoStackPtr (new StateInfoStack ());
 
                 // parse move list (if any)
                 while (cstm.good () && (cstm >> token))
                 {
-                    Move m = move_from_can (token, pos);
+                    Move m = move_from_can (token, rootPos);
                     if (MOVE_NONE == m)
                     {
                         TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
-                    states->push (StateInfo ());
-                    pos.do_move (m, states->top ());
+                    setupStates->push (StateInfo ());
+                    rootPos.do_move (m, setupStates->top ());
                 }
             }
         }
@@ -188,7 +190,7 @@ namespace UCI {
                     //limits.search_moves.clear ();
                     while (cstm.good () && (cstm >> token))
                     {
-                        Move m = move_from_can (token, pos);
+                        Move m = move_from_can (token, rootPos);
                         if (MOVE_NONE == m) continue;
                         limits.search_moves.emplace_back (m);
                     }
@@ -206,7 +208,7 @@ namespace UCI {
                 else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
 
-            //Threads.start_thinking(pos, states, limits);
+            //Threads.start_thinking(rootPos, setupStates, limits);
         }
 
         void exe_ponderhit ()
@@ -222,27 +224,27 @@ namespace UCI {
 
         void exe_print ()
         {
-            atom () << pos << endl;
+            atom () << rootPos << endl;
         }
 
         void exe_key ()
         {
             atom () << std::hex << std::uppercase << std::setfill('0')
-                << "fen: " << pos.fen () << '\n'
-                << "posi key: " << std::setw (16) << pos.posi_key () << '\n'
-                << "matl key: " << std::setw (16) << pos.matl_key () << '\n'
-                << "pawn key: " << std::setw (16) << pos.pawn_key ()
+                << "fen: " << rootPos.fen () << '\n'
+                << "posi key: " << std::setw (16) << rootPos.posi_key () << '\n'
+                << "matl key: " << std::setw (16) << rootPos.matl_key () << '\n'
+                << "pawn key: " << std::setw (16) << rootPos.pawn_key ()
                 << std::dec << endl;
         }
 
         void exe_flip ()
         {
-            pos.flip ();
+            rootPos.flip ();
         }
 
         void exe_eval ()
         {
-            //atom () << Eval::trace (pos) << endl;
+            //atom () << Eval::trace (rootPos) << endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -253,7 +255,7 @@ namespace UCI {
             {
                 std::stringstream ss;
                 ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
-                benchmark (ss, pos);
+                benchmark (ss, rootPos);
             }
         }
 
@@ -280,7 +282,7 @@ namespace UCI {
     {
         init_options ();
 
-        pos.setup (FEN_N, *(Options["UCI_Chess960"]));
+        rootPos.setup (FEN_N, *(Options["UCI_Chess960"]));
 
         active = args.empty ();
         string cmd = args;
@@ -318,7 +320,7 @@ namespace UCI {
                 else if (iequals (token, "flip"))       exe_flip ();
                 else if (iequals (token, "eval"))       exe_eval ();
                 else if (iequals (token, "perft"))      exe_perft (cstm);
-                else if (iequals (token, "bench"))      benchmark (cstm, pos);
+                else if (iequals (token, "bench"))      benchmark (cstm, rootPos);
                 else if (iequals (token, "quit")
                     || iequals (token, "stop"))         exe_stop ();
                 else
