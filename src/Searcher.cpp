@@ -6,12 +6,11 @@
 #include "Transposition.h"
 #include "Log.h"
 
-// Defined static to initialize the PRNG only once
-PolyglotBook book;
-
 namespace Searcher {
 
     using namespace MoveGenerator;
+    using std::atom;
+    using std::endl;
 
     Limits               limits;
     volatile Signals     signals;
@@ -22,6 +21,9 @@ namespace Searcher {
     StateInfoStackPtr    setup_states;
 
     Time::point          search_time;
+
+    // initialize the PRNG only once
+    PolyglotBook book;
 
 #pragma region Root Move
 
@@ -102,6 +104,7 @@ namespace Searcher {
 
 #pragma endregion
 
+
     void think ()
     {
         root_color = root_pos.active ();
@@ -111,11 +114,12 @@ namespace Searcher {
         if (root_moves.empty ())
         {
             root_moves.push_back (MOVE_NONE);
-            std::atom ()
+            atom ()
                 << "info depth 0 score "
                 //<< score_to_uci (root_pos.checkers () ? -VALUE_MATE : VALUE_DRAW)
-                << std::endl;
-            goto finalize;
+                << endl;
+
+            goto finish;
         }
 
         if (*(Options["Use Book"]) && !limits.infinite && !limits.mate_in)
@@ -125,7 +129,7 @@ namespace Searcher {
             if (book_move && std::count (root_moves.begin (), root_moves.end (), book_move))
             {
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
-                goto finalize;
+                goto finish;
             }
         }
 
@@ -138,14 +142,34 @@ namespace Searcher {
                 << " time: "        << limits.game_clock[root_color].time
                 << " increment: "   << limits.game_clock[root_color].inc
                 << " moves to go: " << limits.moves_to_go
-                << std::endl;
+                << endl;
         }
 
 
 
-finalize:
+finish:
 
-        ;
+        // When search is stopped this info is not printed
+        atom ()
+            << "info nodes " << root_pos.game_nodes ()
+            << " time " << Time::now() - search_time + 1 << endl;
+
+        // When we reach max depth we arrive here even without Signals.stop is raised,
+        // but if we are pondering or in infinite search, according to UCI protocol,
+        // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit"
+        // command. We simply wait here until GUI sends one of those commands (that
+        // raise Signals.stop).
+        if (!signals.stop && (limits.ponder || limits.infinite))
+        {
+            signals.stop_on_ponderhit = true;
+            //root_pos.this_thread()->wait_for(signals.stop);
+        }
+
+        // Best move could be MOVE_NONE when searching on a stalemate position
+        atom ()
+            //<< "bestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
+            //<< " ponder "  << move_to_uci(RootMoves[0].pv[1], RootPos.is_chess960())
+            << endl;
 
     }
 

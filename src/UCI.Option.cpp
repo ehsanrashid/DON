@@ -218,7 +218,7 @@ namespace UCI {
 
         void on_change_book (const Option &opt)
         {
-            if (book.is_open ()) book.close ();
+            if (Searcher::book.is_open ()) Searcher::book.close ();
         }
 
         void on_change_threads (const Option &opt)
@@ -230,7 +230,6 @@ namespace UCI {
         {
 
         }
-
 
         void on_log_io (const Option &opt)
         {

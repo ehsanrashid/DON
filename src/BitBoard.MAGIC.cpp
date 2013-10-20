@@ -49,33 +49,29 @@ namespace BitBoard {
         template<>
         uint16_t attack_index<BSHP> (Square s, Bitboard occ)
         {
-#ifdef _WIN64
 
+#ifdef _64BIT
             return uint16_t (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
-
 #else
-
             uint32_t lo = (uint32_t (occ >>  0) & uint32_t (BMask_bb[s] >>  0)) * uint32_t (BMagic_bb[s] >>  0);
             uint32_t hi = (uint32_t (occ >> 32) & uint32_t (BMask_bb[s] >> 32)) * uint32_t (BMagic_bb[s] >> 32);
             return ((lo ^ hi) >> BShift[s]);
-
 #endif
+
         }
 
         template<>
         uint16_t attack_index<ROOK> (Square s, Bitboard occ)
         {
-#ifdef _WIN64
 
+#ifdef _64BIT
             return uint16_t (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
-
 #else
-
             uint32_t lo = (uint32_t (occ >>  0) & uint32_t (RMask_bb[s] >>  0)) * uint32_t (RMagic_bb[s] >>  0);
             uint32_t hi = (uint32_t (occ >> 32) & uint32_t (RMask_bb[s] >> 32)) * uint32_t (RMagic_bb[s] >> 32);
             return ((lo ^ hi) >> RShift[s]);
-
 #endif
+
         }
 
 
@@ -116,7 +112,7 @@ namespace BitBoard {
         {
 
             uint16_t _bMagicBoosters[R_NO] =
-#if defined(_WIN64)
+#if defined(_64BIT)
             { 0x423, 0xE18, 0x25D, 0xCA2, 0xCFE, 0x026, 0x7ED, 0xBE3, }; // 64-bit
 #else
             { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
@@ -147,7 +143,7 @@ namespace BitBoard {
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
                 shift[s] =
-#if defined(_WIN64)
+#if defined(_64BIT)
                     64 - pop_count<MAX15> (mask);
 #else
                     32 - pop_count<MAX15> (mask);

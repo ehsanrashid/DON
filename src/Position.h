@@ -178,7 +178,6 @@ private:
     uint16_t _game_ply;
     bool     _chess960;
 
-    //Key      _exclusion;
     uint64_t _game_nodes;
 
 #pragma endregion
@@ -214,6 +213,7 @@ public:
     //        _si = _si->p_si;
     //    }
     //}
+
 #pragma endregion
 
     Position& operator= (const Position &pos);
@@ -726,5 +726,6 @@ inline std::basic_istream<charT, Traits>&
 
 typedef std::stack<StateInfo>             StateInfoStack;
 typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+
 
 #endif

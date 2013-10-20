@@ -271,55 +271,25 @@ namespace BitBoard {
 
     template<>
     // PAWN attacks
-    Bitboard attacks_bb<PAWN> (Color c, Square s)
-    {
-        return _attacks_pawn_bb[c][s];
-    }
+    Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
+
+    template<PType T>
+    Bitboard attacks_bb (Square s) { return _attacks_type_bb[T][s]; }
+    // --------------------------------
+    // explicit template instantiations
+    template Bitboard attacks_bb<NIHT> (Square s);
+    template Bitboard attacks_bb<BSHP> (Square s);
+    template Bitboard attacks_bb<ROOK> (Square s);
+    template Bitboard attacks_bb<QUEN> (Square s);
+    template Bitboard attacks_bb<KING> (Square s);
+    // --------------------------------
 
     template<>
     // KNIGHT attacks
-    Bitboard attacks_bb<NIHT> (Square s)
-    {
-        return _attacks_type_bb[NIHT][s];
-    }
-    template<>
-    // KNIGHT attacks
-    Bitboard attacks_bb<NIHT> (Square s, Bitboard occ)
-    {
-        return _attacks_type_bb[NIHT][s];
-    }
-
+    Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
     template<>
     // KING attacks
-    Bitboard attacks_bb<KING> (Square s)
-    {
-        return _attacks_type_bb[KING][s];
-    }
-    template<>
-    // KING attacks
-    Bitboard attacks_bb<KING> (Square s, Bitboard occ)
-    {
-        return _attacks_type_bb[KING][s];
-    }
-
-    template<>
-    // BISHOP Attacks
-    Bitboard attacks_bb<BSHP> (Square s)
-    {
-        return _attacks_type_bb[BSHP][s];
-    }
-    template<>
-    // ROOK Attacks
-    Bitboard attacks_bb<ROOK> (Square s)
-    {
-        return _attacks_type_bb[ROOK][s];
-    }
-    template<>
-    // QUEEN Attacks
-    Bitboard attacks_bb<QUEN> (Square s)
-    {
-        return _attacks_type_bb[QUEN][s];
-    }
+    Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
 
 
     // Piece attacks from square
@@ -404,7 +374,7 @@ namespace BitBoard {
 
                 _square_dist[s1][s2] = std::max (dFile, dRank);
                 _taxi_dist  [s1][s2] = (dFile + dRank);
-                
+
                 if (s1 != s2)
                 {
                     _dia_rings_bb[s1][_square_dist[s1][s2] - 1] |= s2;

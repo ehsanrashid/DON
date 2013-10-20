@@ -198,8 +198,8 @@ namespace Zobrist {
                     ASSERT ('1' <= ch && ch <= '8');
                     if ('1' > ch || ch > '8') return U64 (0);
 
-                    uint8_t emptySqr = (ch - '0');
-                    f += emptySqr;
+                    uint8_t empty = (ch - '0');
+                    f += empty;
 
                     ASSERT (f <= F_NO);
                     if (f > F_NO) return U64 (0);
@@ -289,6 +289,7 @@ namespace Zobrist {
 #pragma endregion
             }
         }
+
         skip_whitespace ();
         get_next ();
         if ('-' != ch)
@@ -339,8 +340,8 @@ namespace Zobrist {
                     ASSERT ('1' <= ch && ch <= '8');
                     if ('1' > ch || ch > '8') return U64 (0);
 
-                    uint8_t emptySqr = (ch - '0');
-                    f += emptySqr;
+                    uint8_t empty = (ch - '0');
+                    f += empty;
 
                     ASSERT (f <= F_NO);
                     if (f > F_NO) return U64 (0);

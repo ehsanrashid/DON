@@ -108,7 +108,7 @@ private:
         }
 
         _hash_mask      = 0;
-        _stored_entry    = 0;
+        _stored_entry   = 0;
         _generation     = 0;
     }
 
@@ -117,10 +117,10 @@ public:
     // Total size for Transposition entry in byte
     static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
     // Number of entry in a cluster
-    static const uint8_t NUM_TENTRY_CLUSTER = 0x04; // 4
+    static const uint8_t NUM_TENTRY_CLUSTER = 4;
 
     // Max power of hash for cluster
-#ifdef _WIN64
+#ifdef _64BIT
     static const uint8_t MAX_BIT_HASH       = 0x24; // 36
 #else
     static const uint8_t MAX_BIT_HASH       = 0x20; // 32

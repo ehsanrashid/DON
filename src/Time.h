@@ -8,7 +8,7 @@
 
 #include "Platform.h"
 
-#if defined(_WIN32) // WINDOWS
+#ifdef _WIN32   // WINDOWS
 
 #   include <sys/timeb.h>
 #   include <time.h>
@@ -47,7 +47,7 @@ namespace Time {
     {
         std::ostringstream stime;
 
-#if defined(_WIN32)
+#ifdef _WIN32
 
         time_t time = (point / Time::ONE_SEC);
 

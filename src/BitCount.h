@@ -41,7 +41,7 @@ const BitCountType MAX15 = CNT_HW_POPCNT;
 template<>
 inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#       ifdef _WIN64
+#       ifdef _64BIT
     {
         return (_mm_popcnt_u64 (bb));
     }
@@ -60,7 +60,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#   ifdef _WIN64
+#   ifdef _64BIT
     {
         return (__popcnt64 (bb));
     }
@@ -88,7 +88,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #else
 
-#   ifdef _WIN64
+#   ifdef _64BIT
 
 const BitCountType FULL  = CNT_64_FULL;
 const BitCountType MAX15 = CNT_64_MAX15;

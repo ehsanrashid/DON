@@ -328,7 +328,7 @@ typedef enum Value : int16_t
     VALUE_DRAW      = 0,
 
     VALUE_NONE      = _I16_MAX,
-    VALUE_INFINITE  = VALUE_NONE     - 1,
+    VALUE_INFINITE  = VALUE_NONE - 1,
     
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 2,
@@ -339,9 +339,9 @@ typedef enum Value : int16_t
     VALUE_ENSURE_INTEGER_SIZE_P = _I16_MAX,
     VALUE_ENSURE_INTEGER_SIZE_N = _I16_MIN,
 
-    VALUE_MG_PAWN   = 198,   VALUE_EG_PAWN   = 258,
-    VALUE_MG_KNIGHT = 817,   VALUE_EG_KNIGHT = 846,
-    VALUE_MG_BISHOP = 836,   VALUE_EG_BISHOP = 857,
+    VALUE_MG_PAWN   =  198,  VALUE_EG_PAWN   =  258,
+    VALUE_MG_KNIGHT =  817,  VALUE_EG_KNIGHT =  846,
+    VALUE_MG_BISHOP =  836,  VALUE_EG_BISHOP =  857,
     VALUE_MG_ROOK   = 1270,  VALUE_EG_ROOK   = 1278,
     VALUE_MG_QUEEN  = 2521,  VALUE_EG_QUEEN  = 2558,
 
@@ -440,7 +440,7 @@ inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg);
 /// and so is a right shift of a signed integer.
 inline Value mg_value (Score s)
 {
-    return Value (((unsigned (s) + 0x8000) & ~0xFFFF) / 0x10000);
+    return Value (((uint32_t (s) + 0x8000) & ~0xFFFF) / 0x10000);
 }
 
 /// On Intel 64 bit we have a small speed regression with the standard conforming
@@ -450,14 +450,14 @@ inline Value mg_value (Score s)
 
 inline Value eg_value (Score s)
 {
-    return Value (unsigned (s) & 0xFFFF);
+    return Value (uint32_t (s) & 0xFFFF);
 }
 
 #else
 
 inline Value eg_value (Score s)
 {
-    return Value (int16_t (unsigned (s) & 0x7FFFU) - int16_t (unsigned (s) & 0x8000U));
+    return Value (int16_t (uint32_t (s) & 0x7FFFU) - int16_t (uint32_t (s) & 0x8000U));
 }
 
 #endif

@@ -3,6 +3,7 @@
 #define SEARCHER_H_
 
 #include "Time.h"
+#include <iomanip>
 
 #include "PolyglotBook.h"
 #include "Position.h"
@@ -11,12 +12,7 @@
 
 class Position;
 
-#include <iomanip>
-
-extern PolyglotBook book;
-
 namespace Searcher {
-
 
     const uint16_t MAX_DEPTH = 64;
     const uint16_t MAX_MOVES = 192;
@@ -26,6 +22,9 @@ namespace Searcher {
     const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
     const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
     const uint16_t MAX_THREAT = 90;
+
+    extern PolyglotBook book;
+
 
     // GameClock stores the available time and time-gain per move
     typedef struct GameClock
@@ -103,7 +102,7 @@ namespace Searcher {
     {
         bool stop;
         bool stop_on_ponderhit;
-        bool on_first_root_move;
+        bool first_root_move;
         bool failed_low_at_root;
 
         Signals() { std::memset (this, 0, sizeof (Signals)); }
@@ -153,6 +152,9 @@ namespace Searcher {
     extern Time::point          search_time;
 
 
+    extern void think ();
+
+
     //extern int nThreads;
     //extern int maxThreadsPerNode;
 
@@ -195,7 +197,6 @@ namespace Searcher {
 
     //extern void search(const Position &pos, Depth depth);
 
-    extern void think ();
 
 }
 

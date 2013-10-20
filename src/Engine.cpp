@@ -54,7 +54,7 @@ namespace Engine {
             sinfo << Version;
         }
 
-#ifdef _WIN64
+#ifdef _64BIT
         sinfo << " x64";
 #else
         sinfo << " x86";

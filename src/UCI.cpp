@@ -86,7 +86,7 @@ namespace UCI {
                 }
                 else
                 {
-                    //atom () << "WHAT??? No such option: '" << name << "'";
+                    //atom () << "WHAT??? No such option: \'" << name << "\'";
                 }
             }
         }
@@ -146,7 +146,7 @@ namespace UCI {
 
             if (iequals (token, "moves"))
             {
-                states = StateInfoStackPtr (new std::stack<StateInfo> ());
+                states = StateInfoStackPtr (new StateInfoStack ());
 
                 // parse move list (if any)
                 while (cstm.good () && (cstm >> token))

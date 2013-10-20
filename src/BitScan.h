@@ -17,7 +17,7 @@ inline Square scan_lsb (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef _WIN64
+#ifdef _64BIT
 
     _BitScanForward64 (&index, bb);
 
@@ -42,7 +42,7 @@ inline Square scan_msb (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef _WIN64
+#ifdef _64BIT
 
     _BitScanReverse64 (&index, bb);
 
@@ -65,7 +65,7 @@ inline Square scan_msb (Bitboard bb)
 
 #   elif defined(__arm__)
 
-#ifndef _WIN64
+#ifndef _64BIT
 
 inline uint8_t scan_lsb32 (uint32_t w)
 {
@@ -78,7 +78,7 @@ inline uint8_t scan_lsb32 (uint32_t w)
 inline Square scan_lsb (Bitboard bb)
 {
 
-#ifdef _WIN64
+#ifdef _64BIT
     // TODO::
     //return __builtin_clzll (bb);
 
@@ -93,7 +93,7 @@ inline Square scan_lsb (Bitboard bb)
 
 inline Square scan_msb (Bitboard bb)
 {
-#ifdef _WIN64
+#ifdef _64BIT
 
     return Square (63 - __builtin_clzll (bb));
 
@@ -132,7 +132,7 @@ inline Square  scan_lsb (Bitboard bb)
     /// ---> (X & -X) == X & (~X + 1) != (X ^ (X - 1))
     /// two's complement (-X) and ones' decrement (X-1) are complement sets
 
-#ifdef _WIN64
+#ifdef _64BIT
 
     /// Modulo operation of the isolated LS1B by the prime number 67.
     /// The remainder 0..66 can be used to perfectly hash the bit - index table. Three gaps are 0, 17, and 34
@@ -246,7 +246,7 @@ inline Square  scan_lsb (Bitboard bb)
 inline Square  scan_msb (Bitboard bb)
 {
 
-#ifdef _WIN64
+#ifdef _64BIT
 
     /// * @authors Kim Walisch, Mark Dickinson (2012)
     /// * DeBruijn(U32(0x4000000)) = U64(0X03F79D71B4CB0A89)

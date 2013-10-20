@@ -44,6 +44,8 @@ typedef unsigned __int64        uint64_t;
 
 #ifdef _WIN64
 
+#define _64BIT
+
 typedef   signed __int32         int32_t;
 typedef unsigned __int32        uint32_t;
 
@@ -141,7 +143,7 @@ typedef unsigned long long      uint64_t;
 #undef ASSERT
 #undef ASSERT_MSG
 
-#if defined(NDEBUG)
+#ifdef NDEBUG
 
 #   define ASSERT(condition)          ((void) 0)
 #   define ASSERT_MSG(condition, msg) ((void) 0)
