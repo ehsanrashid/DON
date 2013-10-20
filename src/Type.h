@@ -393,7 +393,7 @@ typedef enum Bound : uint8_t
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    UPPER   = LOWER << 1,
+    UPPER   = 2,
 
     // EXACT (-) BOUND      - PV
     // EXACT evaluation, when receive a definite evaluation,
@@ -567,24 +567,23 @@ INC_DEC_OPERATORS (Depth);
 
 #pragma endregion
 
-inline Value mate_in  (int32_t ply) { return ( VALUE_MATE - ply); }
+inline Value mates_in (int32_t ply) { return ( VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
-
-template<class Entry, int Size>
+template<class Entry, int SIZE>
 class HashTable sealed
 {
 private:
-    std::vector<Entry> e;
+    std::vector<Entry> _table;
 
 public:
-    HashTable()
-        : e (Size, Entry())
+    HashTable ()
+        : _table (SIZE, Entry ())
     {}
 
     Entry* operator[] (Key k)
     {
-        return &e[(uint32_t)k & (Size - 1)];
+        return &_table[uint32_t (k) & (SIZE - 1)];
     }
 
 };

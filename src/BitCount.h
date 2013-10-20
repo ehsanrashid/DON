@@ -2,7 +2,6 @@
 #ifndef BITCOUNT_H_
 #define BITCOUNT_H_
 
-
 #include "Type.h"
 
 #pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
@@ -81,7 +80,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
     __asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
-    return (bb);
+    return bb;
 }
 
 #endif

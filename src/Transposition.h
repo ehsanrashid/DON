@@ -147,7 +147,7 @@ public:
         , _stored_entry (0)
         , _generation (0)
     {
-        //resize (DEF_SIZE_TT);
+        resize (DEF_SIZE_TT);
     }
 
     TranspositionTable (uint32_t size_mb)
@@ -218,51 +218,42 @@ public:
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt);
+        operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
+    {
+        size_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
+        uint32_t size_mb  = size_byte >> 20;
+        os.write ((char *) &size_mb, sizeof (size_mb));
+        os.write ((char *) &TranspositionTable::SIZE_TENTRY, sizeof (TranspositionTable::SIZE_TENTRY));
+        os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (TranspositionTable::NUM_TENTRY_CLUSTER));
+        uint8_t dummy = 0;
+        os.write ((char *) &dummy, sizeof (dummy));
+        os.write ((char *) &tt._generation, sizeof (tt._generation));
+        os.write ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
+        os.write ((char *) tt._hash_table, size_byte);
+        return os;
+    }
+
     template<class charT, class Traits>
     friend std::basic_istream<charT, Traits>&
-        operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt);
+        operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
+    {
+        uint32_t size_mb;
+        is.read ((char *) &size_mb, sizeof (size_mb));
+        uint8_t dummy;
+        is.read ((char *) &dummy, sizeof (dummy));
+        is.read ((char *) &dummy, sizeof (dummy));
+        is.read ((char *) &dummy, sizeof (dummy));
+        is.read ((char *) &dummy, sizeof (dummy));
+        is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
+        tt.resize (size_mb);
+        tt._generation = dummy;
+        is.read ((char *) tt._hash_table, size_mb << 20);
+        return is;
+    }
 
 } TranspositionTable;
 
 #pragma warning (pop)
-
-
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
-{
-    size_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
-    uint32_t size_mb  = size_byte >> 20;
-    os.write ((char *) &size_mb, sizeof (size_mb));
-    os.write ((char *) &TranspositionTable::SIZE_TENTRY, sizeof (TranspositionTable::SIZE_TENTRY));
-    os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (TranspositionTable::NUM_TENTRY_CLUSTER));
-    uint8_t dummy = 0;
-    os.write ((char *) &dummy, sizeof (dummy));
-    os.write ((char *) &tt._generation, sizeof (tt._generation));
-    os.write ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
-    os.write ((char *) tt._hash_table, size_byte);
-    return os;
-}
-
-template<class charT, class Traits>
-inline std::basic_istream<charT, Traits>&
-    operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
-{
-    uint32_t size_mb;
-    is.read ((char *) &size_mb, sizeof (size_mb));
-    uint8_t dummy;
-    is.read ((char *) &dummy, sizeof (dummy));
-    is.read ((char *) &dummy, sizeof (dummy));
-    is.read ((char *) &dummy, sizeof (dummy));
-    is.read ((char *) &dummy, sizeof (dummy));
-    //is.read ((char *) &tt._generation, sizeof (tt._generation));
-    is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
-    tt.resize (size_mb);
-    tt._generation = dummy;
-    is.read ((char *) tt._hash_table, size_mb << 20);
-    return is;
-}
 
 // Global Transposition Table
 extern TranspositionTable TT;

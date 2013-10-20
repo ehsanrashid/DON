@@ -73,13 +73,13 @@ namespace MoveGenerator {
                 //template<GType G>
                 //void Generator<G, KING>::generate (MoveList &lst_move, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci)
             {
-                //static_assert ((EVASION != G) && (CHECK != G), "G must not be EVASION & CHECK");
+                //static_assert ((EVASION != G), "G must not be EVASION");
 
                 if ((EVASION != G) && (CHECK != G) && (QUIET_CHECK != G))
                 {
-                    Square sq_king = pos.king_sq (clr);
-                    Bitboard moves = attacks_bb<KING> (sq_king) & target;
-                    SERIALIZE (lst_move, sq_king, moves);
+                    Square k_sq    = pos.king_sq (clr);
+                    Bitboard moves = attacks_bb<KING> (k_sq) & target;
+                    SERIALIZE (lst_move, k_sq, moves);
                 }
 
                 if ((EVASION != G) && (CAPTURE != G))
@@ -357,19 +357,23 @@ namespace MoveGenerator {
             Generator<G, BSHP>::generate (lst_move, pos, C, target, ci);
             Generator<G, ROOK>::generate (lst_move, pos, C, target, ci);
             Generator<G, QUEN>::generate (lst_move, pos, C, target, ci);
-            Generator<G, KING>::generate (lst_move, pos, C, target, ci);
+
+            if (EVASION != G)
+            {
+                Generator<G, KING>::generate (lst_move, pos, C, target, ci);
+            }
         }
 
         inline void filter_illegal (MoveList &lst_move, const Position &pos)
         {
-            Square sq_king = pos.king_sq (pos.active ());
+            Square k_sq      = pos.king_sq (pos.active ());
             Bitboard pinneds = pos.pinneds ();
 
             MoveList::iterator itr = lst_move.begin ();
             while (itr != lst_move.end ())
             {
                 Move m = *itr;
-                if (((sq_org (m) == sq_king) || pinneds || (ENPASSANT == _mtype (m))) &&
+                if (((sq_org (m) == k_sq) || pinneds || (ENPASSANT == _mtype (m))) &&
                     !pos.legal (m, pinneds))
                 {
                     itr = lst_move.erase (itr);
@@ -531,21 +535,20 @@ namespace MoveGenerator {
         Bitboard checkers = pos.checkers ();
         uint8_t num_checkers = pop_count<FULL> (checkers);
         ASSERT (num_checkers != 0); // If any checker exists
-        //if (num_checkers != 0)
-        //{
-        Square sq_king = pos.king_sq (active);
-        Bitboard mocc = pos.pieces () - sq_king;
+
+        Square k_sq      = pos.king_sq (active);
+        Bitboard mocc    = pos.pieces () - k_sq;
         Bitboard friends = pos.pieces (active);
         Bitboard enemies = pos.pieces (pasive);
 
         // Generates evasions for king, capture and non-capture moves excluding friends
-        Bitboard moves = attacks_bb<KING> (sq_king) & ~friends;
+        Bitboard moves = attacks_bb<KING> (k_sq) & ~friends;
 
         // Remove squares attacked by enemies, from the king evasions.
         // so to skip known illegal moves avoiding useless legality check later.
         for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
         {
-            Square sq = sq_king + _deltas_type[KING][k];
+            Square sq = k_sq + _deltas_type[KING][k];
             if (_ok (sq))
             {
                 if ((moves & sq) && (pos.attackers_to (sq, mocc) & enemies))
@@ -555,18 +558,17 @@ namespace MoveGenerator {
             }
         }
 
-        SERIALIZE (lst_move, sq_king, moves);
+        SERIALIZE (lst_move, k_sq, moves);
         if (1 == num_checkers && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), sq_king);
+            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), k_sq);
             switch (active)
             {
             case WHITE: generate_color<WHITE, EVASION> (lst_move, pos, target); break;
             case BLACK: generate_color<BLACK, EVASION> (lst_move, pos, target); break;
             }
         }
-        //}
         return lst_move;
     }
 

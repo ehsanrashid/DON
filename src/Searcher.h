@@ -114,7 +114,7 @@ namespace Searcher {
     //  - Current value.
     //  - Last value.
     //  - Node count.
-    //  - PV (really a refutation in the case of moves which fail low).
+    //  - PV (really a refutation table in the case of moves which fail low).
     // Score is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
