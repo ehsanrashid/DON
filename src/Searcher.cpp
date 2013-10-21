@@ -122,7 +122,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (*(Options["Use Book"]) && !limits.infinite && !limits.mate_in)
+        if (*(Options["Own Book"]) && !limits.infinite && !limits.mate_in)
         {
             if (!book.is_open ()) book.open (*(Options["Book File"]), std::ios_base::in);
             Move book_move = book.probe_move (rootPos, *(Options["Best Book Move"]));

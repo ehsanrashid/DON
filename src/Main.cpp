@@ -19,6 +19,8 @@
 #include "LeakDetector.h"
 #include "Evaluator.h"
 
+#include "Scheduler.h"
+
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;

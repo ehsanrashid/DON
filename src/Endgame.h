@@ -32,6 +32,7 @@ typedef enum EndgameType
     KRPKB,   // KRP vs KB
     KRPPKRP, // KRPP vs KRP
     KPsK,    // King and pawns vs king
+    //KBPKP,   // KBP vs KP
     KBPKB,   // KBP vs KB
     KBPPKB,  // KBPP vs KB
     KBPKN,   // KBP vs KN

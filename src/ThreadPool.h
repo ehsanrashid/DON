@@ -4,8 +4,8 @@
 //+A simple C++11 Thread Pool implementation
 
 //#pragma once
-#ifndef THREAD_POOL_H
-#define THREAD_POOL_H
+#ifndef THREAD_POOL_H_
+#define THREAD_POOL_H_
 
 #include <vector>
 #include <queue>
@@ -21,7 +21,7 @@
 class ThreadPool;
 
 // our worker thread objects
-class Worker
+typedef class Worker sealed
 {
 
 private:
@@ -33,10 +33,11 @@ public:
     {}
 
     void operator() ();
-};
+
+} Worker;
 
 // thread pool without variadics template
-class ThreadPool
+typedef class ThreadPool sealed
 {
 
 private:
@@ -73,7 +74,7 @@ public:
     auto submit_task (F &&f)
         -> std::future<decltype (std::declval<F>()())>;
 
-};
+} ThreadPool;
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool (uint32_t threads)
@@ -288,4 +289,4 @@ inline void Worker::operator() ()
     }
 }
 
-#endif
+#endif // THREAD_POOL_H_

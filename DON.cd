@@ -52,13 +52,11 @@
   <Class Name="Board">
     <Position X="3.5" Y="5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>EEIAAgAIAAAgAAAAAYAAAAACACEAAAAgABAAACAAAQA=</HashCode>
+      <HashCode>AEIAAgAIAAAgAAAAAIAgAAECACEAAAAgABAAACAAAQA=</HashCode>
       <FileName>src\Board.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
       <Field Name="_piece_arr" />
-      <Field Name="_bb_types" />
-      <Field Name="_bb_color" />
       <Field Name="_piece_list" />
     </ShowAsCollectionAssociation>
   </Class>
@@ -77,7 +75,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="Worker">
-    <Position X="19.25" Y="9.25" Width="1.5" />
+    <Position X="19.5" Y="9.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAABAAAAAAAAAAEAAAAAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
       <FileName>src\ThreadPool.h</FileName>
@@ -87,7 +85,7 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="ThreadPool">
-    <Position X="16.75" Y="8.5" Width="1.5" />
+    <Position X="17.25" Y="9" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAIACAAAAAAAAAAAAAAIAAAAgACgAAABgAAAAIAA=</HashCode>
       <FileName>src\ThreadPool.h</FileName>
@@ -213,7 +211,7 @@
   <Struct Name="Material::Entry" Collapsed="true">
     <Position X="20" Y="3.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CAAAAAAAgAAEQBAAAAAEAAAAQAIAACAAgAAACAAAAAA=</HashCode>
+      <HashCode>CAAEAAAAgAAEQBAAAAAEAAAAQAIAACAAgAAADAAAAAA=</HashCode>
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -395,7 +393,7 @@
   <Enum Name="EndgameType" Collapsed="true">
     <Position X="25.25" Y="5.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BEAAAAAAAAACAABAAAAAAEDAgBCKIABAQQABAIAAAAE=</HashCode>
+      <HashCode>BEAAAAAAAAACAARAAAAAAEDAgBCKIABAQQABAIAAAAE=</HashCode>
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Enum>

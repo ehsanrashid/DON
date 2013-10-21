@@ -11,8 +11,8 @@ namespace std {
         ~noncopyable () {}
 
     private:  // emphasize the following members are private
-        noncopyable (const noncopyable &);
-        const noncopyable& operator= (const noncopyable &);
+        noncopyable (const noncopyable &);                  // = delete;
+        const noncopyable& operator= (const noncopyable &); // = delete;
     };
 
 }

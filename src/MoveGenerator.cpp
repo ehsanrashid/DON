@@ -74,25 +74,27 @@ namespace MoveGenerator {
                 //void Generator<G, KING>::generate (MoveList &lst_move, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci)
             {
                 //static_assert ((EVASION != G), "G must not be EVASION");
-
-                if ((EVASION != G) && (CHECK != G) && (QUIET_CHECK != G))
+                if (EVASION != G)
                 {
-                    Square k_sq    = pos.king_sq (clr);
-                    Bitboard moves = attacks_bb<KING> (k_sq) & target;
-                    SERIALIZE (lst_move, k_sq, moves);
-                }
-
-                if ((EVASION != G) && (CAPTURE != G))
-                {
-                    if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
+                    if ((CHECK != G) && (QUIET_CHECK != G))
                     {
-                        if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
+                        Square k_sq    = pos.king_sq (clr);
+                        Bitboard moves = attacks_bb<KING> (k_sq) & target;
+                        SERIALIZE (lst_move, k_sq, moves);
+                    }
+
+                    if (CAPTURE != G)
+                    {
+                        if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
-                            generate_castling<CS_K> (lst_move, pos, clr, ci);
-                        }
-                        if (!pos.castle_impeded (clr, CS_Q) && pos.can_castle (clr, CS_Q))
-                        {
-                            generate_castling<CS_Q> (lst_move, pos, clr, ci);
+                            if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
+                            {
+                                generate_castling<CS_K> (lst_move, pos, clr, ci);
+                            }
+                            if (!pos.castle_impeded (clr, CS_Q) && pos.can_castle (clr, CS_Q))
+                            {
+                                generate_castling<CS_Q> (lst_move, pos, clr, ci);
+                            }
                         }
                     }
                 }
@@ -164,12 +166,10 @@ namespace MoveGenerator {
                 //template<Color C>
                 //void Generator<G, PAWN>::generate<> (MoveList &lst_move, const Position &pos, Bitboard target, const CheckInfo *ci)
             {
-
-                const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-
-                const Delta FRONT = (WHITE == C ? DEL_N  : DEL_S);
-                const Delta RIHT  = (WHITE == C ? DEL_NE : DEL_SW);
-                const Delta LEFT  = (WHITE == C ? DEL_NW : DEL_SE);
+                const Color C_   = ((WHITE == C) ? BLACK : WHITE);
+                const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
+                const Delta RIHT = ((WHITE == C) ? DEL_NE : DEL_SW);
+                const Delta LEFT = ((WHITE == C) ? DEL_NW : DEL_SE);
 
                 Bitboard bbRR8 = rel_rank_bb (C, R_8);
                 Bitboard bbRR7 = rel_rank_bb (C, R_7);
@@ -194,8 +194,8 @@ namespace MoveGenerator {
                 {
                     empty = ((QUIET == G) || (QUIET_CHECK == G) ? target : ~occ);
 
-                    Bitboard push_1 = shift_del<FRONT> (pawns_on_Rx) & empty;
-                    Bitboard push_2 = shift_del<FRONT> (push_1 & bbRR3) & empty;
+                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx) & empty;
+                    Bitboard push_2 = shift_del<PUSH> (push_1 & bbRR3) & empty;
 
                     switch (G)
                     {
@@ -222,8 +222,8 @@ namespace MoveGenerator {
                             // promotion has been already generated among captures.
                             if (pawns_chk_dis)
                             {
-                                Bitboard push_cd_1 = shift_del<FRONT>(pawns_chk_dis) & empty;
-                                Bitboard push_cd_2 = shift_del<FRONT>(push_cd_1 & bbRR3) & empty;
+                                Bitboard push_cd_1 = shift_del<PUSH>(pawns_chk_dis) & empty;
+                                Bitboard push_cd_2 = shift_del<PUSH>(push_cd_1 & bbRR3) & empty;
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -232,8 +232,8 @@ namespace MoveGenerator {
                         break;
                     }
 
-                    SERIALIZE_PAWNS (lst_move, Delta (FRONT << 0), push_1);
-                    SERIALIZE_PAWNS (lst_move, Delta (FRONT << 1), push_2);
+                    SERIALIZE_PAWNS (lst_move, Delta (PUSH << 0), push_1);
+                    SERIALIZE_PAWNS (lst_move, Delta (PUSH << 1), push_2);
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if ((QUIET != G) && (QUIET_CHECK != G))
@@ -257,7 +257,7 @@ namespace MoveGenerator {
                             // is the double pushed pawn and so is in the target. Otherwise this
                             // is a discovery check and we are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
-                            if ((EVASION != G) || (target & (ep_sq - FRONT)))
+                            if ((EVASION != G) || (target & (ep_sq - PUSH)))
                             {
                                 Bitboard pawns_ep = attacks_bb<PAWN>(C_, ep_sq) & pawns_on_R5;
                                 ASSERT (pawns_ep);
@@ -284,7 +284,7 @@ namespace MoveGenerator {
 
                         if ((CAPTURE != G))
                         {
-                            generate_promotion<FRONT> (lst_move, pawns_on_R7, empty, ci);
+                            generate_promotion<PUSH> (lst_move, pawns_on_R7, empty, ci);
                         }
 
                         if ((QUIET != G) && (QUIET_CHECK != G))
@@ -393,33 +393,24 @@ namespace MoveGenerator {
     // Generates all pseudo-legal moves.
     MoveList generate (const Position &pos)
     {
-        MoveList lst_move;
-
         //ASSERT (RELAX == G || CAPTURE == G || QUIET == G);
         static_assert (RELAX == G || CAPTURE == G || QUIET == G, "G must be RELAX | CAPTURE | QUIET");
-
         ASSERT (!pos.checkers ());
-        //if (!pos.checkers ())
-        //{
+
+        MoveList lst_move;
+
         Color active = pos.active ();
         Color pasive = ~active;
 
         Bitboard target = 0;
         //CheckInfo *ci = NULL;
-
         switch (G)
         {
-        case CAPTURE:
-            target = pos.pieces (pasive);
-            break;
+        case CAPTURE: target = pos.pieces (pasive);  break;
 
-        case QUIET:
-            target = pos.empties ();
-            break;
+        case QUIET  : target = pos.empties ();       break;
 
-        case RELAX:
-            target = ~pos.pieces (active);
-            break;
+        case RELAX  : target = ~pos.pieces (active); break;
         }
 
         switch (active)
@@ -427,7 +418,6 @@ namespace MoveGenerator {
         case WHITE: generate_color<WHITE, G> (lst_move, pos, target); break;
         case BLACK: generate_color<BLACK, G> (lst_move, pos, target); break;
         }
-        //}
 
         return lst_move;
     }
@@ -444,10 +434,8 @@ namespace MoveGenerator {
     MoveList generate<QUIET_CHECK> (const Position &pos)
     {
         ASSERT (!pos.checkers ());
-        MoveList lst_move;
 
-        //if (!pos.checkers ())
-        //{
+        MoveList lst_move;
         Color active = pos.active ();
         //Color pasive = ~active;
         Bitboard occ = pos.pieces ();
@@ -480,7 +468,7 @@ namespace MoveGenerator {
         case WHITE: generate_color<WHITE, QUIET_CHECK> (lst_move, pos, empty, &ci); break;
         case BLACK: generate_color<BLACK, QUIET_CHECK> (lst_move, pos, empty, &ci); break;
         }
-        //}
+
         return lst_move;
     }
 
@@ -522,6 +510,7 @@ namespace MoveGenerator {
         case WHITE: generate_color<WHITE, CHECK> (lst_move, pos, target, &ci); break;
         case BLACK: generate_color<BLACK, CHECK> (lst_move, pos, target, &ci); break;
         }
+        
         return lst_move;
     }
 
@@ -530,6 +519,7 @@ namespace MoveGenerator {
     MoveList generate<EVASION>     (const Position &pos)
     {
         MoveList lst_move;
+
         Color active = pos.active ();
         Color pasive = ~active;
         Bitboard checkers = pos.checkers ();
@@ -569,6 +559,7 @@ namespace MoveGenerator {
             case BLACK: generate_color<BLACK, EVASION> (lst_move, pos, target); break;
             }
         }
+        
         return lst_move;
     }
 
@@ -581,6 +572,7 @@ namespace MoveGenerator {
             generate<RELAX> (pos);
 
         filter_illegal (lst_move, pos);
+        
         return lst_move;
     }
 

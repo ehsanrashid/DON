@@ -43,13 +43,13 @@ namespace Time {
 
     inline point now () { return point (system_time_msec ()); }
 
-    inline std::string to_string (const point point)
+    inline std::string to_string (const point t)
     {
         std::ostringstream stime;
 
 #ifdef _WIN32
 
-        time_t time = (point / Time::ONE_SEC);
+        time_t time = (t / Time::ONE_SEC);
 
         char str_time[26];
         errno_t err = ctime_s (str_time, sizeof (str_time), &time);
@@ -62,7 +62,7 @@ namespace Time {
             << &str_time[0] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (point % Time::ONE_SEC);
+            << std::setw (3) << (t % Time::ONE_SEC);
 
 #else
 
@@ -77,9 +77,9 @@ namespace Time {
 
 template<typename charT, typename Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point point)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point t)
 {
-    os << Time::to_string (point);
+    os << Time::to_string (t);
     return os;
 }
 

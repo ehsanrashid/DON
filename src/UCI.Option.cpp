@@ -349,7 +349,7 @@ namespace UCI {
 
 #pragma region Book Options
 
-        Options["Use Book"]                     = OptionPtr (new CheckOption (false));
+        Options["Own Book"]                     = OptionPtr (new CheckOption (false));
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
