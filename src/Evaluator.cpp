@@ -259,12 +259,12 @@ namespace {
     template<Color C>
     int32_t evaluate_space(const Position &pos, const EvalInfo &ei);
 
-    Score evaluate_unstoppable_pawns(const Position &pos, Color us, const EvalInfo &ei);
+    Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei);
 
-    Value interpolate(const Score& v, Phase ph, ScaleFactor sf);
-    Score apply_weight (Score v, Score w);
+    Value interpolate(const Score& score, Phase ph, ScaleFactor sf);
+    Score apply_weight (Score score, Score w);
     Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internal_weight);
-    double to_cp (Value v);
+    double to_cp (Value value);
 
     // --------------------------------------------------
 
@@ -369,7 +369,7 @@ namespace {
         }
 
         margin = margins[pos.active ()];
-        Value v = interpolate(score, ei.mi->game_phase (), sf);
+        Value value = interpolate(score, ei.mi->game_phase (), sf);
 
         // In case of tracing add all single evaluation contributions for both white and black
         if (TRACE)
@@ -385,16 +385,18 @@ namespace {
 
             Tracing::add (SPACE, apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
             Tracing::add (TOTAL, score);
-            Tracing::stream << "\nUncertainty margin: White: " << to_cp (margins[WHITE])
-                << ", Black: " << to_cp (margins[BLACK])
-                << "\nScaling: " << std::noshowpos
-                << std::setw(6) << 100.0 * ei.mi->game_phase () / 128.0 << "% MG, "
-                << std::setw(6) << 100.0 * (1.0 - ei.mi->game_phase () / 128.0) << "% * "
+            Tracing::stream
+                << "\nUncertainty margin:"
+                << " White: " << to_cp (margins[WHITE]) << "-"
+                << " Black: " << to_cp (margins[BLACK]) << "\n"
+                << "Scaling: " << std::noshowpos
+                << std::setw(6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
+                << std::setw(6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
                 << std::setw(6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
-                << "Total evaluation: " << to_cp (v);
+                << "Total evaluation: " << to_cp (value);
         }
 
-        return (WHITE == pos.active ()) ? v : -v;
+        return (WHITE == pos.active ()) ? value : -value;
     }
 
     // init_eval_info() initializes king bitboards for given color adding
@@ -932,15 +934,15 @@ namespace {
     // evaluate_unstoppable_pawns() scores the most advanced among the passed and
     // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
     // related to the possibility pawns are unstoppable.
-    Score evaluate_unstoppable_pawns(const Position &pos, Color us, const EvalInfo &ei)
+    Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei)
     {
-        Bitboard b = 0; //ei.pi->passed_pawns(us) | ei.pi->candidate_pawns(us);
+        Bitboard b = ei.pi->passed_pawns(c) | ei.pi->candidate_pawns(c);
 
-        if (!b || pos.non_pawn_material(~us))
+        if (!b || pos.non_pawn_material(~c))
         {
             return SCORE_ZERO;
         }
-        return UnstoppablePawn * int32_t (rel_rank (us, frontmost_rel_sq(us, b)));
+        return UnstoppablePawn * int32_t (rel_rank (c, frontmost_rel_sq(c, b)));
     }
 
     // evaluate_space() computes the space evaluation for a given side. The
@@ -977,21 +979,21 @@ namespace {
 
     // interpolate() interpolates between a middle game and an endgame score,
     // based on game phase. It also scales the return value by a ScaleFactor array.
-    Value interpolate(const Score& v, Phase ph, ScaleFactor sf)
+    Value interpolate(const Score& score, Phase ph, ScaleFactor sf)
     {
-        assert (mg_value(v) > -VALUE_INFINITE && mg_value(v) < VALUE_INFINITE);
-        assert (eg_value(v) > -VALUE_INFINITE && eg_value(v) < VALUE_INFINITE);
+        assert (mg_value(score) > -VALUE_INFINITE && mg_value(score) < VALUE_INFINITE);
+        assert (eg_value(score) > -VALUE_INFINITE && eg_value(score) < VALUE_INFINITE);
         assert (ph >= PHASE_ENDGAME && ph <= PHASE_MIDGAME);
 
-        int32_t e = (eg_value(v) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
-        int32_t r = (mg_value(v) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
+        int32_t e = (eg_value(score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        int32_t r = (mg_value(score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
         return Value ((r / GrainSize) * GrainSize); // Sign independent
     }
 
-    // apply_weight () weights score v by score w trying to prevent overflow
-    Score apply_weight (Score v, Score w)
+    // apply_weight () weights score 's' by score 'w' trying to prevent overflow
+    Score apply_weight (Score score, Score w)
     {
-        return mk_score ((int32_t (mg_value(v)) * mg_value(w)) / 0x100, (int32_t (eg_value(v)) * eg_value(w)) / 0x100);
+        return mk_score ((int32_t (mg_value(score)) * mg_value(w)) / 0x100, (int32_t (eg_value(score)) * eg_value(w)) / 0x100);
     }
 
     // weight_option() computes the value of an evaluation weight, by combining
@@ -1005,7 +1007,8 @@ namespace {
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
-    double to_cp (Value v) { return double(v) / double(VALUE_MG_PAWN); }
+    double to_cp (Value value) { return double(value) / double(VALUE_MG_PAWN); }
+
 
     namespace Tracing {
 
@@ -1095,7 +1098,6 @@ namespace Evaluator {
     {
         return Tracing::do_trace(pos);
     }
-
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
     // and setup king tables.

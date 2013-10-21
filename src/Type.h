@@ -421,6 +421,7 @@ typedef enum Phase
     PHASE_ENDGAME,
     PHASE_MIDGAME = 128,
     MG = 0, EG = 1, PHASE_NB = 2
+
 } Phase;
 
 typedef enum ScaleFactor : uint8_t

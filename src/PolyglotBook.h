@@ -69,7 +69,9 @@ private:
     RKISS       _rkiss;
 
     template<class T>
-    PolyglotBook& operator>> (T &n);
+    PolyglotBook& operator>> (T &t);
+    template<class T>
+    PolyglotBook& operator<< (T &t);
 
 public:
     // find_index() takes a hash-key as input, and search through the book file for the given key.

@@ -10,6 +10,8 @@
 #include <memory>
 
 using std::chrono::system_clock;
+using std::chrono::time_point;
+using std::chrono::milliseconds;
 
 struct function_timer
 {
@@ -72,7 +74,7 @@ public:
     {
         while (go_on)
         {
-            std::chrono::time_point<system_clock, system_clock::duration> now =
+            time_point<system_clock, system_clock::duration> now =
                 system_clock::now ();
 
             while (!tasks.empty () && tasks.top ().time <= now)
@@ -84,7 +86,7 @@ public:
 
             if (tasks.empty ())
             {
-                std::this_thread::sleep_for (std::chrono::milliseconds (100));
+                std::this_thread::sleep_for (milliseconds (100));
             }
             else
             {
@@ -108,6 +110,7 @@ public:
 
         schedule_at (std::move (wait_func), system_clock::now () + interval);
     }
+
 };
 
 #endif // SCHEDULER_H_

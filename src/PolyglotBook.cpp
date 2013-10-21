@@ -88,13 +88,13 @@ PolyglotBook::PolyglotEntry::operator std::string () const
 #pragma endregion
 
 template<class T>
-PolyglotBook& PolyglotBook::operator>> (T &n)
+PolyglotBook& PolyglotBook::operator>> (T &t)
 {
-    n = T ();
+    t = T ();
     for (size_t i = 0; i < sizeof (T) && good (); ++i)
     {
         uint8_t byte = get ();
-        n = T ((n << 8) + byte);
+        t = T ((t << 8) + byte);
     }
     return *this;
 }
@@ -102,6 +102,24 @@ template<>
 PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
 {
     *this >> pe.key >> pe.move >> pe.weight >> pe.learn;
+    return *this;
+}
+
+template<class T>
+PolyglotBook& PolyglotBook::operator<< (T &t)
+{
+    for (size_t i = 0; i < sizeof (T) && good (); ++i)
+    {
+        t >>= 8;
+        uint8_t byte = uint8_t (t);
+        put (byte);
+    }
+    return *this;
+}
+template<>
+PolyglotBook& PolyglotBook::operator<< (PolyglotEntry &pe)
+{
+    *this << pe.key << pe.move << pe.weight << pe.learn;
     return *this;
 }
 

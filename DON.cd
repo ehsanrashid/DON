@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1" GroupingSetting="Access">
   <Class Name="PGN" Collapsed="true">
-    <Position X="14.5" Y="4.75" Width="1.5" />
+    <Position X="6" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AQAAwIBAAIAAAAAACqAAAACAECAAABAgAIBAIIQAAAA=</HashCode>
       <FileName>src\PGN.h</FileName>
@@ -22,14 +22,22 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
-    <Position X="8.75" Y="6" Width="1.5" />
+    <Position X="8.75" Y="7.25" Width="1.5" />
+    <InheritanceLine Type="std::basic_streambuf&lt;_Elem, _Traits&gt;" FixedToPoint="true">
+      <Path>
+        <Point X="11" Y="6.252" />
+        <Point X="11" Y="6.875" />
+        <Point X="9.75" Y="6.875" />
+        <Point X="9.75" Y="7.25" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AgAAAAAAAIAAAAAAAgAICAAAAAACAAAAAAAAAIgQAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_null_buffer&lt;charT, Traits&gt;">
-    <Position X="12" Y="6.25" Width="1.5" />
+    <Position X="11.75" Y="7.25" Width="1.5" />
     <NestedTypes>
       <Typedef Name="std::basic_null_buffer&lt;charT, Traits&gt;::int_type" Collapsed="true">
         <TypeIdentifier>
@@ -37,13 +45,45 @@
         </TypeIdentifier>
       </Typedef>
     </NestedTypes>
+    <InheritanceLine Type="std::basic_streambuf&lt;_Elem, _Traits&gt;" FixedToPoint="true">
+      <Path>
+        <Point X="11" Y="6.252" />
+        <Point X="11" Y="6.875" />
+        <Point X="12.25" Y="6.875" />
+        <Point X="12.25" Y="7.25" />
+      </Path>
+    </InheritanceLine>
+    <InheritanceLine Type="std::noncopyable" ManuallyRouted="true">
+      <Path>
+        <Point X="11.25" Y="3.502" />
+        <Point X="11.25" Y="4.092" />
+        <Point X="12.5" Y="4.092" />
+        <Point X="12.5" Y="7.25" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAgAAAIAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_null_stream&lt;charT, Traits&gt;" Collapsed="true">
-    <Position X="14" Y="9" Width="1.5" />
+    <Position X="13" Y="10" Width="1.5" />
+    <InheritanceLine Type="std::basic_ostream&lt;_Elem, _Traits&gt;" FixedToPoint="true">
+      <Path>
+        <Point X="15" Y="8.872" />
+        <Point X="15" Y="9.625" />
+        <Point X="14.125" Y="9.625" />
+        <Point X="14.125" Y="10" />
+      </Path>
+    </InheritanceLine>
+    <InheritanceLine Type="std::basic_null_buffer&lt;charT, Traits&gt;" FixedToPoint="true">
+      <Path>
+        <Point X="12.5" Y="9.036" />
+        <Point X="12.5" Y="9.625" />
+        <Point X="13.5" Y="9.625" />
+        <Point X="13.5" Y="10" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
@@ -68,7 +108,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::atomic_stream" Collapsed="true">
-    <Position X="16.75" Y="4.75" Width="1.5" />
+    <Position X="14.75" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAAAAAAAAAAEAAEAAAAAgAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\atomicstream.h</FileName>
@@ -92,7 +132,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::noncopyable" Collapsed="true">
-    <Position X="12.25" Y="3.25" Width="1.5" />
+    <Position X="10.5" Y="3" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAgQAAAAAA=</HashCode>
       <FileName>src\noncopyable.h</FileName>
@@ -116,8 +156,8 @@
     <Position X="7.75" Y="4.75" Width="1.5" />
     <InheritanceLine Type="std::noncopyable" ManuallyRouted="true">
       <Path>
-        <Point X="13" Y="3.752" />
-        <Point X="13" Y="4.108" />
+        <Point X="11.25" Y="3.502" />
+        <Point X="11.25" Y="4.108" />
         <Point X="8.5" Y="4.108" />
         <Point X="8.5" Y="4.75" />
       </Path>
@@ -128,17 +168,66 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_streambuf&lt;_Elem, _Traits&gt;" Collapsed="true">
-    <Position X="10.75" Y="4.5" Width="1.5" />
+    <Position X="10.25" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>QABhgLiVJIEAgIFkAgYAAsQCAYCAQAJQAWCoApsACaA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\streambuf</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_ostream&lt;_Elem, _Traits&gt;" Collapsed="true">
-    <Position X="15.5" Y="7.25" Width="1.5" />
+    <Position X="14.25" Y="8.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ACAACAEAAAAAAAAAACKACAABAAAAAEAAAQggAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\ostream</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scheduler">
+    <Position X="6" Y="11.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAAAAAAEAAAAAAAAAAkAAAAgACAIgAAIAAAA=</HashCode>
+      <FileName>src\Scheduler.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="tasks" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;" Collapsed="true">
+    <Position X="8.5" Y="12.75" Width="1.5" />
+    <NestedTypes>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::_Myt" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::container_type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::value_type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::size_type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::reference" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Typedef Name="std::priority_queue&lt;_Ty, _Container, _Pr&gt;::const_reference" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAEAIAAAIgCAAAAAQCAAQAoAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\queue</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
@@ -215,6 +304,13 @@
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
+  <Struct Name="function_timer">
+    <Position X="8.75" Y="10.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAAAAAAAAAAAEAAAAAAAAAAEAAAAAAAAgAAA=</HashCode>
+      <FileName>src\Scheduler.h</FileName>
+    </TypeIdentifier>
+  </Struct>
   <Typedef Name="LeakDetector::uint" Collapsed="true">
     <Position X="21.75" Y="8.25" Width="1.5" />
     <TypeIdentifier>
@@ -237,35 +333,35 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_buf" Collapsed="true">
-    <Position X="7.5" Y="7.25" Width="1.5" />
+    <Position X="7.5" Y="8.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_wbuf" Collapsed="true">
-    <Position X="9.75" Y="7.25" Width="1.5" />
+    <Position X="9.75" Y="8.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::null_stream" Collapsed="true">
-    <Position X="13" Y="11" Width="1.5" />
+    <Position X="12" Y="11.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::null_wstream" Collapsed="true">
-    <Position X="14.75" Y="11" Width="1.5" />
+    <Position X="14.25" Y="11.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::atom" Collapsed="true">
-    <Position X="16.75" Y="6.25" Width="1.5" />
+    <Position X="14.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\atomicstream.h</FileName>

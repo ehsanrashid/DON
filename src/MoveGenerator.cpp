@@ -168,8 +168,8 @@ namespace MoveGenerator {
             {
                 const Color C_   = ((WHITE == C) ? BLACK : WHITE);
                 const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
-                const Delta RIHT = ((WHITE == C) ? DEL_NE : DEL_SW);
-                const Delta LEFT = ((WHITE == C) ? DEL_NW : DEL_SE);
+                const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
+                const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
                 Bitboard bbRR8 = rel_rank_bb (C, R_8);
                 Bitboard bbRR7 = rel_rank_bb (C, R_7);
@@ -190,7 +190,7 @@ namespace MoveGenerator {
 
                 Bitboard empty = 0;
                 // Pawn single-push and double-push, no promotions
-                if ((CAPTURE != G))
+                if (CAPTURE != G)
                 {
                     empty = ((QUIET == G) || (QUIET_CHECK == G) ? target : ~occ);
 
@@ -238,11 +238,11 @@ namespace MoveGenerator {
                 // Pawn normal and en-passant captures, no promotions
                 if ((QUIET != G) && (QUIET_CHECK != G))
                 {
-                    Bitboard attacksL = shift_del<LEFT> (pawns_on_Rx) & enemies;
-                    Bitboard attacksR = shift_del<RIHT> (pawns_on_Rx) & enemies;;
+                    Bitboard attacksL = shift_del<LCAP> (pawns_on_Rx) & enemies;
+                    Bitboard attacksR = shift_del<RCAP> (pawns_on_Rx) & enemies;;
 
-                    SERIALIZE_PAWNS (lst_move, LEFT, attacksL);
-                    SERIALIZE_PAWNS (lst_move, RIHT, attacksR);
+                    SERIALIZE_PAWNS (lst_move, LCAP, attacksL);
+                    SERIALIZE_PAWNS (lst_move, RCAP, attacksR);
 
                     Square ep_sq = pos.en_passant ();
                     if (SQ_NO != ep_sq)
@@ -282,15 +282,15 @@ namespace MoveGenerator {
                         case CAPTURE: empty = ~pos.pieces (); break;
                         }
 
-                        if ((CAPTURE != G))
+                        //if (CAPTURE != G)
                         {
                             generate_promotion<PUSH> (lst_move, pawns_on_R7, empty, ci);
                         }
 
                         if ((QUIET != G) && (QUIET_CHECK != G))
                         {
-                            generate_promotion<LEFT> (lst_move, pawns_on_R7, enemies, ci);
-                            generate_promotion<RIHT> (lst_move, pawns_on_R7, enemies, ci);
+                            generate_promotion<LCAP> (lst_move, pawns_on_R7, enemies, ci);
+                            generate_promotion<RCAP> (lst_move, pawns_on_R7, enemies, ci);
                         }
                     }
                 }
@@ -306,42 +306,42 @@ namespace MoveGenerator {
                 static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "D may be wrong");
 
                 //if (pawns_on_R7)
-                //{
-                Bitboard promotes = shift_del<D> (pawns_on_R7) & target;
-                while (promotes)
                 {
-                    Square dst = pop_lsb (promotes);
-                    Square org = dst - D;
-
-                    if ((RELAX == G) || (EVASION == G) ||
-                        ((CAPTURE == G) && (DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D)))
+                    Bitboard promotes = shift_del<D> (pawns_on_R7) & target;
+                    while (promotes)
                     {
-                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, QUEN));
-                    }
+                        Square dst = pop_lsb (promotes);
+                        Square org = dst - D;
 
-                    if ((RELAX == G) || (EVASION == G) ||
-                        ((QUIET == G) && (DEL_N == D || DEL_S == D)))
-                    {
-                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, ROOK));
-                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, BSHP));
-                        lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
-                    }
-
-                    // Knight-promotion is the only one that can give a direct check
-                    // not already included in the queen-promotion (queening).
-                    if ((CHECK == G) || (QUIET_CHECK == G))
-                    {
-                        if (ci && attacks_bb<NIHT> (dst) & ci->king_sq)
+                        if ( (RELAX == G) || (EVASION == G) ||
+                            ((CAPTURE == G) && (DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D)))
                         {
+                            lst_move.emplace_back (mk_move<PROMOTE> (org, dst, QUEN));
+                        }
+
+                        if ( (RELAX == G) || (EVASION == G) ||
+                            ((QUIET == G) && (DEL_N == D || DEL_S == D)))
+                        {
+                            lst_move.emplace_back (mk_move<PROMOTE> (org, dst, ROOK));
+                            lst_move.emplace_back (mk_move<PROMOTE> (org, dst, BSHP));
                             lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
                         }
-                    }
-                    else
-                    {
-                        (void) ci; // silence a warning under MSVC
+
+                        // Knight-promotion is the only one that can give a direct check
+                        // not already included in the queen-promotion (queening).
+                        if ((CHECK == G) || (QUIET_CHECK == G))
+                        {
+                            if (ci && attacks_bb<NIHT> (dst) & ci->king_sq)
+                            {
+                                lst_move.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
+                            }
+                        }
+                        else
+                        {
+                            (void) ci; // silence a warning under MSVC
+                        }
                     }
                 }
-                //}
             }
 
         };
@@ -510,7 +510,7 @@ namespace MoveGenerator {
         case WHITE: generate_color<WHITE, CHECK> (lst_move, pos, target, &ci); break;
         case BLACK: generate_color<BLACK, CHECK> (lst_move, pos, target, &ci); break;
         }
-        
+
         return lst_move;
     }
 
@@ -559,7 +559,7 @@ namespace MoveGenerator {
             case BLACK: generate_color<BLACK, EVASION> (lst_move, pos, target); break;
             }
         }
-        
+
         return lst_move;
     }
 
@@ -572,7 +572,7 @@ namespace MoveGenerator {
             generate<RELAX> (pos);
 
         filter_illegal (lst_move, pos);
-        
+
         return lst_move;
     }
 
