@@ -286,7 +286,7 @@ namespace {
 
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
-        score = pos.psq_score() + (pos.active () == WHITE ? Tempo : -Tempo);
+        score = pos.psq_score() + (WHITE == pos.active () ? Tempo : -Tempo);
 
         // Probe the material hash table
         //ei.mi = Material::probe (pos, th->materialTable, th->endgames);
@@ -462,9 +462,9 @@ namespace {
 
         ei.attackedBy[C][T] = 0;
 
-        Square s;
+        //Square s;
         //while ((s = *pl++) != SQ_NO)
-        while (true)
+        std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard b =
@@ -486,9 +486,9 @@ namespace {
                 }
             }
 
-            int32_t mob = (T != QUEN) ?
+            int32_t mob = (QUEN != T) ?
                 pop_count<MAX15>(b & mobility_area) :
-                pop_count<FULL>(b & mobility_area);
+                pop_count<FULL >(b & mobility_area);
 
             mobility[C] += MobilityBonus[T][mob];
 
@@ -529,11 +529,11 @@ namespace {
             }
 
             if (  (ROOK == T || QUEN == T)
-                && rel_rank (C, s) >= R_5)
+                && R_5 <= rel_rank (C, s))
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
-                if (   rel_rank (C, s) == R_7
-                    && rel_rank (C, pos.king_sq(C_)) == R_8)
+                if (   R_7 == rel_rank (C, s)
+                    && R_8 == rel_rank (C, pos.king_sq(C_)))
                 {
                     score += (ROOK == T) ? RookOn7th : QueenOn7th;
                 }
@@ -556,7 +556,8 @@ namespace {
                 }
                 if (mob > 3 || ei.pi->semiopen (C, _file (s)))
                 {
-                    continue;
+                    //continue;
+                    return;
                 }
 
                 Square k_sq = pos.king_sq(C);
@@ -564,7 +565,7 @@ namespace {
                 // Penalize rooks which are trapped inside a king. Penalize more if
                 // king has lost right to castle.
                 if (   ((_file (k_sq) < F_E) == (_file (s) < _file (k_sq)))
-                    && (_rank (k_sq) == _rank (s) || rel_rank (C, k_sq) == R_1)
+                    && (_rank (k_sq) == _rank (s) || R_1 == rel_rank (C, k_sq))
                     && !ei.pi->semiopen_on_side(C, _file (k_sq), _file (k_sq) < F_E))
                 {
                     score -= (TrappedRook - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
@@ -579,7 +580,7 @@ namespace {
                 && (s == rel_sq(C, SQ_A1) || s == rel_sq(C, SQ_H1)))
             {
                 const Piece P = (C | PAWN);
-                Delta d = pawn_push (C) + (_file (s) == F_A ? DEL_E : DEL_W);
+                Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
                 if (pos[s + d] == P)
                 {
                     score -=
@@ -588,7 +589,7 @@ namespace {
                         TrappedBishopA1H1 * 2 : TrappedBishopA1H1;
                 }
             }
-        }
+        });
 
         if (TRACE)
         {
@@ -871,7 +872,7 @@ namespace {
                     }
                     else if (squares_defended & block_sq)
                     {
-                        k += (squares_unsafe & squares_defended) == squares_unsafe ? 4 : 2;
+                        k += ((squares_unsafe & squares_defended) == squares_unsafe) ? 4 : 2;
                     }
 
                     mg_bonus += Value (k * rr);

@@ -19,42 +19,46 @@ namespace MoveGenerator {
 
 #pragma region Move Generators
 
-        template<GType G, PType P>
+        template<GType G, PType T>
         // Move Generator for PIECE
         struct Generator
         {
+
         public:
             // Generates piece common move
             static inline void generate (MoveList &lst_move, const Position &pos, Color c, Bitboard target, const CheckInfo *ci = NULL)
-                //template<GType G, PType P>
-                //inline void Generator<G, P>::generate (MoveList &lst_move, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
+                //template<GType G, PType T>
+                //inline void Generator<G, T>::generate (MoveList &lst_move, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
             {
-                //ASSERT ((KING != P) && (PAWN != P));
-                static_assert ((KING != P) && (PAWN != P), "P must not be KING & PAWN");
+                //ASSERT ((KING != T) && (PAWN != T));
+                static_assert ((KING != T) && (PAWN != T), "T must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
-                Piece piece = (c | P);
-                const SquareList orgs = pos[piece];
+                //Piece piece = (c | T);
+                const SquareList pl = pos.list<T>(c); //pos[piece];
 
-                std::for_each (orgs.cbegin (), orgs.cend (), [&] (Square org)
+                std::for_each (pl.cbegin (), pl.cend (), [&] (Square org)
                 {
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
                         if (ci)
                         {
-                            if ((BSHP == P) || (ROOK == P) || (QUEN == P) &&
-                                !(attacks_bb<P> (org) & target & ci->checking_bb[P])) 
+                            if ((BSHP == T) || (ROOK == T) || (QUEN == T) &&
+                                !(attacks_bb<T> (org) & target & ci->checking_bb[T]))
+                            {
                                 return;
-
+                            }
                             if (UNLIKELY (ci->check_discovers) && (ci->check_discovers & org))
+                            {
                                 return;
+                            }
                         }
                     }
 
-                    Bitboard moves = attacks_bb<P> (org, occ) & target;
+                    Bitboard moves = attacks_bb<T> (org, occ) & target;
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
-                        if (ci) moves &= ci->checking_bb[P];
+                        if (ci) moves &= ci->checking_bb[T];
                     }
 
                     SERIALIZE (lst_move, org, moves);
@@ -67,6 +71,7 @@ namespace MoveGenerator {
         // Move Generator for KING
         struct Generator<G, KING>
         {
+
         public:
             // Generates KING common move
             static inline void generate (MoveList &lst_move, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci = NULL)
@@ -158,6 +163,7 @@ namespace MoveGenerator {
         // Move Generator for PAWN
         struct Generator<G, PAWN>
         {
+
         public:
             template<Color C>
             // Generates PAWN common move

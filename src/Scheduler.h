@@ -32,7 +32,21 @@ public:
         , time (t)
     {}
 
-    void execute () const { func (); }
+    void execute () const
+    {
+        try
+        {
+            func ();
+        }
+        catch (const std::bad_function_call &/*exp*/)
+        {
+            //TRI_LOG_MSG (exp.what ());
+        }
+        catch (...) 
+        { 
+            //TRI_LOG_MSG ("unknown exception"); 
+        } 
+    }
 
     // Note: we want our priority_queue to be ordered in terms of smallest time to largest,
     // hence the '>' is used in operator< ().

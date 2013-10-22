@@ -292,6 +292,7 @@ namespace UCI {
             // Block here waiting for input
             if (active && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
             if (std::whitespace (cmd)) continue;
+            
             try
             {
                 cmdstream cstm (cmd);
@@ -327,6 +328,7 @@ namespace UCI {
                 {
                     TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
                 }
+            
             }
             catch (std::exception &exp)
             {

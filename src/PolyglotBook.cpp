@@ -108,10 +108,10 @@ PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    for (size_t i = 0; i < sizeof (T) && good (); ++i)
+    size_t size = sizeof (T);
+    for (size_t i = 0; i < size && good (); ++i)
     {
-        t >>= 8;
-        uint8_t byte = uint8_t (t);
+        uint8_t byte = uint8_t (t >> (8*(size - 1 - i)));
         put (byte);
     }
     return *this;

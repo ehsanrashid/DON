@@ -83,7 +83,7 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            const SquareList &lst_sq = pos[c | PAWN];
+            const SquareList &lst_sq = pos.list<PAWN> (c);
             for (uint8_t cnt = 0; cnt < lst_sq.size (); ++cnt)
             {
                 Square s = lst_sq[cnt];
