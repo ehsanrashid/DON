@@ -210,7 +210,7 @@ namespace std {
         return count;
     }
 
-    inline std::vector<std::string> str_splits (const std::string &s, char delim = ' ', bool keep_empty = false, bool do_trim = false)
+    inline std::vector<std::string> str_splits (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
     {
         std::vector<std::string> list_s;
 
@@ -221,7 +221,7 @@ namespace std {
         //{
         //    part.clear ();
         //    success = !std::getline (iss, part, delim).fail ();
-        //    if (do_trim)
+        //    if (trim_entry)
         //    {
         //        part = trim (part);
         //    }
@@ -238,7 +238,7 @@ namespace std {
         //{
         //    std::string::const_iterator cmid = find (cbeg, cend, delim); // find_if(cbeg, cend, isspace);
         //    std::string part = string (cbeg, cmid);
-        //    if (do_trim)
+        //    if (trim_entry)
         //    {
         //        part = trim (part);
         //    }
@@ -257,7 +257,7 @@ namespace std {
         //    if (string::npos == p0 || p0 > dup.length ()) break;
         //    size_t p1 = dup.find_first_of (delim, p0);
         //    std::string part = dup.substr (p0, ((std::string::npos != p1) ? p1 : dup.length ()) - p0);
-        //    if (do_trim)
+        //    if (trim_entry)
         //    {
         //        part = trim (part);
         //    }
@@ -277,7 +277,7 @@ namespace std {
             if (std::string::npos == p0 || p0 > length) break;
             p1 = s.find_first_of (delim, p0);
             std::string part = s.substr (p0, ((std::string::npos != p1) ? p1 : length) - p0);
-            if (do_trim)
+            if (trim_entry)
             {
                 part = trim (part);
             }

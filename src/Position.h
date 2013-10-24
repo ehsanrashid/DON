@@ -6,7 +6,8 @@
 #include <memory>
 #include <stack>
 
-#include "Board.h"
+#include "Square.h"
+#include "Piece.h"
 #include "Castle.h"
 #include "Move.h"
 #include "BitScan.h"
@@ -165,9 +166,13 @@ typedef class Position sealed
 private:
 
 #pragma region Fields
-
     // Board for storing pieces.
-    Board _board;
+    Piece    _piece_arr[SQ_NO];             // [Square]
+    Bitboard _color_bb[CLR_NO];             // [Color]
+    Bitboard _types_bb[1 + PT_NO];          // [PType] + 1 -> (ALL)
+
+    SquareList _piece_list[CLR_NO][PT_NO]; // [Color][PType]<vector>
+
     // Object for base status information
     StateInfo  _sb;
     // Pointer for current status information
@@ -455,39 +460,44 @@ public:
 
 #pragma region Board properties
 
-inline bool Position::empty (Square s) const { return _board.empty (s); }
+inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); }
 
-inline const Piece    Position::operator[] (Square s) const { return _board[s]; }
-inline const Bitboard Position::operator[] (Color  c) const { return _board[c]; }
-inline const Bitboard Position::operator[] (PType  t) const { return _board[t]; }
-inline const SquareList Position::operator[] (Piece p) const { return _board[p]; }
+inline const Piece    Position::operator[] (Square s) const { return _piece_arr[s]; }
+inline const Bitboard Position::operator[] (Color  c) const { return _color_bb[c]; }
+inline const Bitboard Position::operator[] (PType  t) const { return _types_bb[t]; }
+inline const SquareList Position::operator[] (Piece p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
-inline Square Position::king_sq (Color c) const { return _board.king_sq (c); }
-
-inline Bitboard Position::pieces (Color c) const { return _board.pieces (c); }
-inline Bitboard Position::pieces (PType t) const { return _board.pieces (t); }
-inline Bitboard Position::pieces (Color c, PType t) const { return _board.pieces (c, t); }
-inline Bitboard Position::pieces (PType t1, PType t2) const { return _board.pieces (t1, t2); }
-inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _board.pieces (c, t1, t2); }
-inline Bitboard Position::pieces ()  const { return _board.pieces (); }
-inline Bitboard Position::empties () const { return _board.empties (); }
-//inline Bitboard Position::pieces (Piece p) const { return _board.pieces (p); }
-
-template<PType T>
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count<T> (c); }
-template<PType T>
-inline uint32_t Position::piece_count ()        const { return _board.piece_count<T> (); }
-inline uint32_t Position::piece_count (Color c) const { return _board.piece_count (c); }
-inline uint32_t Position::piece_count ()        const { return _board.piece_count (); }
-inline uint32_t Position::piece_count (Color c, PType t) const { return _board.piece_count (c, t); }
-//inline uint32_t Position::piece_count (Piece p) const { return _board.piece_count (p); }
-//inline uint32_t Position::piece_count (PType t) const { return _board.piece_count (t); }
-
-template<PType T>
-inline const SquareList Position::list (Color c) const
+inline Square Position::king_sq (Color c) const
 {
-    return _board[c | T];
+    return _piece_list[c][KING][0];
 }
+
+inline Bitboard Position::pieces (Color c) const { return _color_bb[c]; }
+inline Bitboard Position::pieces (PType t) const { return _types_bb[t]; }
+inline Bitboard Position::pieces (Color c, PType t) const { return pieces (c) & pieces (t); }
+inline Bitboard Position::pieces (PType t1, PType t2) const { return pieces (t1) | pieces (t2); }
+inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return pieces (c) & pieces (t1, t2); }
+inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
+inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
+
+template<PType T>
+inline uint32_t Position::piece_count (Color c) const { return _piece_list[c][T].size (); }
+template<PType T>
+inline uint32_t Position::piece_count ()        const { return piece_count<T> (WHITE) + piece_count<T> (BLACK); }
+inline uint32_t Position::piece_count (Color c) const
+{
+    return
+        piece_count<PAWN> (c) + piece_count<NIHT> (c) + piece_count<BSHP> (c) +
+        piece_count<ROOK> (c) + piece_count<QUEN> (c) + piece_count<KING> (c);
+}   
+inline uint32_t Position::piece_count ()                 const { return piece_count (WHITE) + piece_count (BLACK); }
+inline uint32_t Position::piece_count (Color c, PType t) const { return _piece_list[c][t].size (); }
+//inline uint32_t Position::piece_count (Piece p) const { return _piece_list[_color (p)][_ptype (p)].size (); }
+//inline uint32_t Position::piece_count (PType t) const { return piece_count (WHITE, t) + piece_count (BLACK, t); }
+
+template<PType T>
+inline const SquareList Position::list (Color c) const { return _piece_list[c][T]; }
 
 #pragma endregion
 
@@ -538,7 +548,7 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
-    Bitboard occ = _board.pieces ();
+    Bitboard occ = pieces ();
     switch (cs)
     {
     case CS_K:
@@ -604,37 +614,37 @@ inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s) const
 {
-    return attacks_from (p, s, _board.pieces ());
+    return attacks_from (p, s, pieces ());
 }
 
 // Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return
-        (BitBoard::attacks_bb<PAWN> (WHITE, s) & _board.pieces (BLACK, PAWN)) |
-        (BitBoard::attacks_bb<PAWN> (BLACK, s) & _board.pieces (WHITE, PAWN)) |
-        (BitBoard::attacks_bb<NIHT> (s)      & _board.pieces (NIHT)) |
-        (BitBoard::attacks_bb<BSHP> (s, occ) & _board.pieces (BSHP, QUEN)) |
-        (BitBoard::attacks_bb<ROOK> (s, occ) & _board.pieces (ROOK, QUEN)) |
-        (BitBoard::attacks_bb<KING> (s)      & _board.pieces (KING));
+        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces (BLACK, PAWN)) |
+        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces (WHITE, PAWN)) |
+        (BitBoard::attacks_bb<NIHT> (s)      & pieces (NIHT)) |
+        (BitBoard::attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN)) |
+        (BitBoard::attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN)) |
+        (BitBoard::attacks_bb<KING> (s)      & pieces (KING));
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
 {
-    return attackers_to (s, _board.pieces ());
+    return attackers_to (s, pieces ());
 }
 
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (king_sq (c)) & _board.pieces (~c);
+    return attackers_to (king_sq (c)) & pieces (~c);
 }
 
 // Blockers are lonely defenders of the attacks on square by the attackers
 inline Bitboard Position::blockers (Square s, Bitboard pinners) const
 {
-    Bitboard occ = _board.pieces ();
-    Bitboard defenders = _board.pieces (_active);
+    Bitboard occ = pieces ();
+    Bitboard defenders = pieces (_active);
     Bitboard blockers = 0;
     while (pinners)
     {
@@ -654,8 +664,8 @@ inline Bitboard Position::blockers (Square s, Bitboard pinners) const
 inline Bitboard Position::hidden_checkers (Square sq_king, Color c) const
 {
     Bitboard hdn_chkrs =
-        (BitBoard::attacks_bb<ROOK> (sq_king) & _board.pieces (c, QUEN, ROOK)) |
-        (BitBoard::attacks_bb<BSHP> (sq_king) & _board.pieces (c, QUEN, BSHP));
+        (BitBoard::attacks_bb<ROOK> (sq_king) & pieces (c, QUEN, ROOK)) |
+        (BitBoard::attacks_bb<BSHP> (sq_king) & pieces (c, QUEN, BSHP));
     return (hdn_chkrs) ? blockers (sq_king, hdn_chkrs) : 0;
 }
 
@@ -664,14 +674,14 @@ inline Bitboard Position::hidden_checkers (Square sq_king, Color c) const
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
 inline Bitboard Position::pinneds () const
 {
-    return hidden_checkers (_board.king_sq (_active), ~_active);
+    return hidden_checkers (king_sq (_active), ~_active);
 }
 
 // Check discovers are candidate friend anti-sliders w.r.t piece behind it,
 // that give the discover check to enemy king when moved.
 inline Bitboard Position::check_discovers () const
 {
-    return hidden_checkers (_board.king_sq (~_active), _active);
+    return hidden_checkers (king_sq (~_active), _active);
 }
 
 #pragma endregion
@@ -680,30 +690,30 @@ inline Bitboard Position::check_discovers () const
 
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(_board.pieces (~c, PAWN) & BitBoard::passer_span_pawn_bb (c, s));
+    return !(pieces (~c, PAWN) & BitBoard::passer_span_pawn_bb (c, s));
 }
 
 inline bool Position::has_pawn_on_7thR (Color c) const
 {
-    return _board.pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
+    return pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the opposite sides have opposite bishops
 inline bool Position::has_opposite_bishops () const
 {
     return
-        (_board.piece_count (WHITE, BSHP) == 1) &&
-        (_board.piece_count (BLACK, BSHP) == 1) &&
-        opposite_colors(_board[W_BSHP][0], _board[B_BSHP][0]);
+        (piece_count (WHITE, BSHP) == 1) &&
+        (piece_count (BLACK, BSHP) == 1) &&
+        opposite_colors(list<BSHP>(WHITE)[0],list<BSHP>(BLACK)[0]);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::has_pair_bishops (Color c) const
 {
-    uint32_t bishop_count = _board.piece_count(c, BSHP);
+    uint32_t bishop_count = piece_count(c, BSHP);
     if (bishop_count >= 2)
     {
         for (uint32_t cnt = 0; cnt < bishop_count-1; ++cnt)
         {
-            if (opposite_colors(_board[c|BSHP][cnt], _board[c|BSHP][cnt+1])) return true;
+            if (opposite_colors(list<BSHP>(c)[cnt], list<BSHP>(c)[cnt+1])) return true;
         }
     }
     return false;
@@ -711,19 +721,8 @@ inline bool Position::has_pair_bishops (Color c) const
 
 #pragma endregion
 
-#pragma region Basic methods
-
-inline void Position::place_piece (Square s, Color c, PType t) { _board.place_piece (s, c, t); }
-inline void Position::place_piece (Square s, Piece p) { _board.place_piece (s, p); }
-inline Piece Position::remove_piece (Square s) { return _board.remove_piece (s); }
-inline Piece Position::move_piece (Square s1, Square s2) { return _board.move_piece (s1, s2); }
 
 #pragma endregion
-
-#pragma endregion
-
-
-
 
 
 typedef std::stack<StateInfo>             StateInfoStack;

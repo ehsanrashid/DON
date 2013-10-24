@@ -84,6 +84,8 @@ namespace {
 
 int main (int argc, const char* const argv[])
 {
+
+
     //std::string args = string_args (argc, argv);
 
     //deepest_stack_path_function ();
@@ -93,86 +95,15 @@ int main (int argc, const char* const argv[])
 
     //BitBoard::initialize ();
     //Zobrist::initialize ();
-    
-    //Value mg = Value (123);
-    //Value eg = Value (456);
-    //Score s = mk_score (mg, eg);
-    //mg = mg_value (s);
-    //eg = eg_value (s);
 
     Engine::start ();
-    Position pos;
-    Value v;
-    Evaluator::evaluate(pos, v);
+    //Position pos;
+    //Value v;
+    //Evaluator::evaluate(pos, v);
 
     //log_io (true);
 
     //log_io (false);
-
-    //return 0;
-
-    TranspositionTable tt;
-    tt.resize (1);
-    
-    //Key key;
-    //Move move;
-    //Depth depth;
-    //Bound bound;
-    //Score score;
-    //uint64_t nodes;
-    //const TranspositionEntry *te;
-
-    //key     = U64 (0x87894321000000);
-    //move    = Move (345);
-    //depth   = DEPTH_NONE;
-    //bound   = EXACT;
-    //score   = VALUE_INFINITE;
-    //nodes   = 40;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    //key         = U64 (0xFFFFFFFFFF878955);
-    //move       = Move (346);
-    //depth++;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    //key         = U64 (0xFFFFFFFFFF899955);
-    //move       = Move (346);
-    //depth++;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    //key         = U64 (0xFFFFFFFFFF834552);
-    //move       = Move (346);
-    //depth++;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    //key         = U64 (0xFFFFFFFFFF826552);
-    //move       = Move (346);
-    //depth++;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    ////ofstream out_dat ("hash.dat", std::ios_base::out | std::ios_base::binary);
-    ////out_dat << tt;
-    ////out_dat.close ();
-
-    ////tt.clear();
-
-    ////ifstream in_dat ("hash.dat", std::ios_base::in | std::ios_base::binary);
-    ////in_dat >> tt;
-    ////in_dat.close ();
-
-    //key         = U64 (0xFFFFFFFFFF877552);
-    //move       = Move (355);
-    //depth++;
-    //tt.store (key, move, depth, bound, score, nodes);
-    //te = tt.retrieve (key);
-
-    //cout << te->key();
-    //cout << (int)++te;
 
     //initialize_IO        ();
     //std::cout.setf (ios_base::boolalpha);

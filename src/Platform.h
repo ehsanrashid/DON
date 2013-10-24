@@ -42,23 +42,24 @@ typedef unsigned __int16        uint16_t;
 typedef   signed __int64         int64_t;
 typedef unsigned __int64        uint64_t;
 
-#ifdef _WIN64
+#   ifdef _WIN64
 
-#define _64BIT
+#       define _64BIT
+#       define PR_SIZET "I"
 
 typedef   signed __int32         int32_t;
 typedef unsigned __int32        uint32_t;
 
-#define PR_SIZET "I"
 
-#else
+#   elif _WIN32
+
+#undef _64BIT
+#define PR_SIZET ""
 
 typedef   signed __int32 __w64   int32_t;
 typedef unsigned __int32 __w64  uint32_t;
 
-#define PR_SIZET ""
-
-#endif
+#   endif
 
 #   define  S32(X) (X## i32)
 #   define  U32(X) (X##ui32)

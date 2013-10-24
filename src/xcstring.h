@@ -347,7 +347,7 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
     return count;
 }
 
-inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, bool do_trim = false, intptr_t *num_splits = NULL)
+inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, intptr_t *num_splits = NULL)
 {
     assert (s);
     if (!s)     return NULL;
@@ -394,7 +394,7 @@ inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, b
             //    char *part  = strdup (token);
             //    if (part)
             //    {
-            //        if (do_trim)
+            //        if (trim_entry)
             //        {
             //            part = trim (part);
             //        }
@@ -435,7 +435,7 @@ inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, b
                 char *part  = p;
                 if (part)
                 {
-                    if (do_trim)
+                    if (trim_entry)
                     {
                         part = trim (part);
                     }
