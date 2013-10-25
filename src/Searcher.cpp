@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "UCI.h"
+#include "Time.h"
 #include "Position.h"
 #include "PolyglotBook.h"
 #include "Transposition.h"
@@ -61,30 +62,32 @@ namespace {
 
     void iter_deep_loop(Position &pos);
 
-    Value value_to_tt  (Value v, int32_t ply);
-    Value value_from_tt(Value v, int32_t ply);
+    Value value_to_tt (Value v, int32_t ply);
+    Value value_fr_tt (Value v, int32_t ply);
 
     bool allows (const Position &pos, Move first, Move second);
     bool refutes(const Position &pos, Move first, Move second);
-    std::string uci_pv(const Position &pos, int32_t depth, Value alpha, Value beta);
+    std::string uci_pv_info(const Position &pos, int32_t depth, Value alpha, Value beta);
 
     struct Skill
     {
-        Skill(int32_t l) : level(l), best(MOVE_NONE) {}
+        int32_t level;
+        Move    best;
+
+        Skill(int32_t lvl)
+            : level(lvl), best(MOVE_NONE) {}
+        
         ~Skill()
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), best ? best : pick_move()));
+                std::swap(rootMoves[0], *std::find(rootMoves.begin (), rootMoves.end (), best ? best : pick_move()));
             }
         }
 
         bool enabled ()                  const { return level < 20; }
         bool time_to_pick(int32_t depth) const { return depth == 1 + level; }
         Move pick_move();
-
-        int32_t level;
-        Move best;
 
     };
 
@@ -188,7 +191,6 @@ namespace Searcher {
 
 #pragma endregion
 
-
     void think ()
     {
         rootColor = rootPos.active ();
@@ -258,7 +260,6 @@ finish:
     }
 
 }
-
 
 namespace {
 
@@ -346,7 +347,7 @@ namespace {
                     // the UI) before to research.
                     if (  (best_value <= alpha || best_value >= beta)
                         && Time::now() - SearchTime > 3000)
-                        sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                        sync_cout << uci_pv_info(pos, depth, alpha, beta) << sync_endl;
 
                     // In case of failing low/high increase aspiration window and
                     // research, otherwise exit the loop.
@@ -372,7 +373,7 @@ namespace {
                 std::stable_sort(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
 
                 if (PVIdx + 1 == PVSize || Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+                    sync_cout << uci_pv_info(pos, depth, alpha, beta) << sync_endl;
             }
 
             // Do we need to pick now the sub-optimal best move ?
@@ -420,11 +421,11 @@ namespace {
                     || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
                 {
                     Value rBeta = best_value - 2 * PawnValueMg;
-                    ss->excludedMove = RootMoves[0].pv[0];
+                    ss->excluded_move = RootMoves[0].pv[0];
                     ss->skipNullMove = true;
                     Value v = search<NonPV>(pos, ss, rBeta - 1, rBeta, (depth - 3) * ONE_PLY, true);
                     ss->skipNullMove = false;
-                    ss->excludedMove = MOVE_NONE;
+                    ss->excluded_move = MOVE_NONE;
 
                     if (v < rBeta)
                         stop = true;
@@ -455,56 +456,56 @@ namespace {
     template <NodeType N>
     Value  search(Position &pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cut_node)
     {
-        const bool PvNode   = (N == PV || N == Root || N == SplitPointPV || N == SplitPointRoot);
-        const bool SpNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
+        const bool PVNode   = (N == PV || N == Root || N == SplitPointPV || N == SplitPointRoot);
+        const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
         const bool RootNode = (N == Root || N == SplitPointRoot);
 
         assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
-        assert(PvNode || (alpha == beta - 1));
+        assert(PVNode || (alpha == beta - 1));
         assert(depth > DEPTH_ZERO);
 
         Move quietsSearched[64];
         StateInfo st;
         const TTEntry *tte;
-        SplitPoint* splitPoint;
-        Key posKey;
-        Move ttMove, move, excludedMove, best_move, threatMove;
-        Depth ext, newDepth;
-        Value best_value, value, ttValue;
-        Value eval, nullValue, futilityValue;
-        bool inCheck, givesCheck, pvMove, singularExtensionNode, improving;
+        SplitPoint* split_point;
+        Key posi_key;
+        Move tt_move, move, excluded_move, best_move, threat_move;
+        Depth ext, new_depth;
+        Value best_value, value, tt_value;
+        Value eval, null_value, futility_value;
+        bool in_check, gives_check, pvMove, singularExtensionNode, improving;
         bool captureOrPromotion, dangerous, doFullDepthSearch;
-        int moveCount, quietCount;
+        int move_count, quiet_count;
 
         // Step 1. Initialize node
         Thread* thisThread = pos.this_thread();
-        inCheck = pos.checkers();
+        in_check = pos.checkers();
 
-        if (SpNode)
+        if (SPNode)
         {
-            splitPoint = ss->splitPoint;
-            best_move   = splitPoint->best_move;
-            threatMove = splitPoint->threatMove;
-            best_value  = splitPoint->best_value;
+            split_point = ss->split_point;
+            best_move   = split_point->best_move;
+            threat_move = split_point->threat_move;
+            best_value  = split_point->best_value;
             tte = NULL;
-            ttMove = excludedMove = MOVE_NONE;
-            ttValue = VALUE_NONE;
+            tt_move = excluded_move = MOVE_NONE;
+            tt_value = VALUE_NONE;
 
-            assert(splitPoint->best_value > -VALUE_INFINITE && splitPoint->moveCount > 0);
+            assert(split_point->best_value > -VALUE_INFINITE && split_point->move_count > 0);
 
             goto moves_loop;
         }
 
-        moveCount = quietCount = 0;
+        move_count = quiet_count = 0;
         best_value = -VALUE_INFINITE;
-        ss->currentMove = threatMove = (ss+1)->excludedMove = best_move = MOVE_NONE;
+        ss->currentMove = threat_move = (ss+1)->excluded_move = best_move = MOVE_NONE;
         ss->ply = (ss-1)->ply + 1;
         ss->futilityMoveCount = 0;
         (ss+1)->skipNullMove = false; (ss+1)->reduction = DEPTH_ZERO;
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
-        // Used to send selDepth info to GUI
-        if (PvNode && thisThread->maxPly < ss->ply)
+        // Used to send sel_depth info to GUI
+        if (PVNode && thisThread->maxPly < ss->ply)
             thisThread->maxPly = ss->ply;
 
         if (!RootNode)
@@ -528,11 +529,11 @@ namespace {
         // Step 4. Transposition table lookup
         // We don't want the score of a partial search to overwrite a previous full search
         // TT value, so we use a different position key in case of an excluded move.
-        excludedMove = ss->excludedMove;
-        posKey = excludedMove ? pos.exclusion_key() : pos.key();
-        tte = TT.probe(posKey);
-        ttMove = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
-        ttValue = tte ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
+        excluded_move = ss->excluded_move;
+        posi_key = excluded_move ? pos.exclusion_key() : pos.key();
+        tte = TT.probe(posi_key);
+        tt_move = RootNode ? RootMoves[PVIdx].pv[0] : tte ? tte->move() : MOVE_NONE;
+        tt_value = tte ? value_fr_tt(tte->value(), ss->ply) : VALUE_NONE;
 
         // At PV nodes we check for exact scores, while at non-PV nodes we check for
         // a fail high/low. Biggest advantage at probing at PV nodes is to have a
@@ -541,27 +542,27 @@ namespace {
         if (   !RootNode
             && tte
             && tte->depth() >= depth
-            && ttValue != VALUE_NONE // Only in case of TT access race
-            && (           PvNode ?  tte->bound() == BOUND_EXACT
-            : ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
+            && tt_value != VALUE_NONE // Only in case of TT access race
+            && (           PVNode ?  tte->bound() == BOUND_EXACT
+            : tt_value >= beta ? (tte->bound() &  BOUND_LOWER)
             : (tte->bound() &  BOUND_UPPER)))
         {
             TT.refresh(tte);
-            ss->currentMove = ttMove; // Can be MOVE_NONE
+            ss->currentMove = tt_move; // Can be MOVE_NONE
 
-            if (    ttValue >= beta
-                &&  ttMove
-                && !pos.capture_or_promotion(ttMove)
-                &&  ttMove != ss->killers[0])
+            if (    tt_value >= beta
+                &&  tt_move
+                && !pos.capture_or_promotion(tt_move)
+                &&  tt_move != ss->killers[0])
             {
                 ss->killers[1] = ss->killers[0];
-                ss->killers[0] = ttMove;
+                ss->killers[0] = tt_move;
             }
-            return ttValue;
+            return tt_value;
         }
 
         // Step 5. Evaluate the position statically and update parent's gain statistics
-        if (inCheck)
+        if (in_check)
         {
             ss->staticEval = ss->evalMargin = eval = VALUE_NONE;
             goto moves_loop;
@@ -574,15 +575,15 @@ namespace {
                 ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
                 eval = ss->staticEval = evaluate(pos, ss->evalMargin);
 
-            // Can ttValue be used as a better position evaluation?
-            if (ttValue != VALUE_NONE)
-                if (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))
-                    eval = ttValue;
+            // Can tt_value be used as a better position evaluation?
+            if (tt_value != VALUE_NONE)
+                if (tte->bound() & (tt_value > eval ? BOUND_LOWER : BOUND_UPPER))
+                    eval = tt_value;
         }
         else
         {
             eval = ss->staticEval = evaluate(pos, ss->evalMargin);
-            TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
+            TT.store(posi_key, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                 ss->staticEval, ss->evalMargin);
         }
 
@@ -599,10 +600,10 @@ namespace {
         }
 
         // Step 6. Razoring (skipped when in check)
-        if (   !PvNode
+        if (   !PVNode
             &&  depth < 4 * ONE_PLY
             &&  eval + razor_margin(depth) < beta
-            &&  ttMove == MOVE_NONE
+            &&  tt_move == MOVE_NONE
             &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
             && !pos.pawn_on_7th(pos.side_to_move()))
         {
@@ -617,7 +618,7 @@ namespace {
         // Step 7. Static null move pruning (skipped when in check)
         // We're betting that the opponent doesn't have a move that will reduce
         // the score by more than futility_margin(depth) if we do a null move.
-        if (   !PvNode
+        if (   !PVNode
             && !ss->skipNullMove
             &&  depth < 4 * ONE_PLY
             &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
@@ -627,7 +628,7 @@ namespace {
             return eval - futility_margin(depth, (ss-1)->futilityMoveCount);
 
         // Step 8. Null move search with verification search (is omitted in PV nodes)
-        if (   !PvNode
+        if (   !PVNode
             && !ss->skipNullMove
             &&  depth >= 2 * ONE_PLY
             &&  eval >= beta
@@ -645,19 +646,19 @@ namespace {
 
             pos.do_null_move(st);
             (ss+1)->skipNullMove = true;
-            nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+            null_value = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                 : - search<NonPV>(pos, ss+1, -beta, -alpha, depth-R, !cut_node);
             (ss+1)->skipNullMove = false;
             pos.undo_null_move();
 
-            if (nullValue >= beta)
+            if (null_value >= beta)
             {
                 // Do not return unproven mate scores
-                if (nullValue >= VALUE_MATE_IN_MAX_PLY)
-                    nullValue = beta;
+                if (null_value >= VALUE_MATE_IN_MAX_PLY)
+                    null_value = beta;
 
                 if (depth < 12 * ONE_PLY)
-                    return nullValue;
+                    return null_value;
 
                 // Do verification search at high depths
                 ss->skipNullMove = true;
@@ -665,7 +666,7 @@ namespace {
                 ss->skipNullMove = false;
 
                 if (v >= beta)
-                    return nullValue;
+                    return null_value;
             }
             else
             {
@@ -675,12 +676,12 @@ namespace {
                 // move which was reduced. If a connection is found, return a fail
                 // low score (which will cause the reduced move to fail high in the
                 // parent node, which will trigger a re-search with full depth).
-                threatMove = (ss+1)->currentMove;
+                threat_move = (ss+1)->currentMove;
 
                 if (   depth < 5 * ONE_PLY
                     && (ss-1)->reduction
-                    && threatMove != MOVE_NONE
-                    && allows(pos, (ss-1)->currentMove, threatMove))
+                    && threat_move != MOVE_NONE
+                    && allows(pos, (ss-1)->currentMove, threat_move))
                     return alpha;
             }
         }
@@ -689,7 +690,7 @@ namespace {
         // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
         // and a reduced search returns a value much above beta, we can (almost) safely
         // prune the previous move.
-        if (   !PvNode
+        if (   !PVNode
             &&  depth >= 5 * ONE_PLY
             && !ss->skipNullMove
             &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
@@ -701,7 +702,7 @@ namespace {
             assert((ss-1)->currentMove != MOVE_NONE);
             assert((ss-1)->currentMove != MOVE_NULL);
 
-            MovePicker mp(pos, ttMove, History, pos.captured_piece_type());
+            MovePicker mp(pos, tt_move, History, pos.captured_piece_type());
             CheckInfo ci(pos);
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
@@ -717,27 +718,27 @@ namespace {
         }
 
         // Step 10. Internal iterative deepening (skipped when in check)
-        if (   depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
-            && ttMove == MOVE_NONE
-            && (PvNode || ss->staticEval + Value(256) >= beta))
+        if (   depth >= (PVNode ? 5 * ONE_PLY : 8 * ONE_PLY)
+            && tt_move == MOVE_NONE
+            && (PVNode || ss->staticEval + Value(256) >= beta))
         {
-            Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
+            Depth d = depth - 2 * ONE_PLY - (PVNode ? DEPTH_ZERO : depth / 4);
 
             ss->skipNullMove = true;
-            search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
+            search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
             ss->skipNullMove = false;
 
-            tte = TT.probe(posKey);
-            ttMove = tte ? tte->move() : MOVE_NONE;
+            tte = TT.probe(posi_key);
+            tt_move = tte ? tte->move() : MOVE_NONE;
         }
 
-moves_loop: // When in check and at SpNode search starts from here
+moves_loop: // When in check and at SPNode search starts from here
 
         Square prevMoveSq = to_sq((ss-1)->currentMove);
         Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
             Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 
-        MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
+        MovePicker mp(pos, tt_move, depth, History, countermoves, ss);
         CheckInfo ci(pos);
         value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
         improving =   ss->staticEval >= (ss-2)->staticEval
@@ -745,20 +746,20 @@ moves_loop: // When in check and at SpNode search starts from here
             ||(ss-2)->staticEval == VALUE_NONE;
 
         singularExtensionNode =   !RootNode
-            && !SpNode
+            && !SPNode
             &&  depth >= 8 * ONE_PLY
-            &&  ttMove != MOVE_NONE
-            && !excludedMove // Recursive singular search is not allowed
+            &&  tt_move != MOVE_NONE
+            && !excluded_move // Recursive singular search is not allowed
             && (tte->bound() & BOUND_LOWER)
             &&  tte->depth() >= depth - 3 * ONE_PLY;
 
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-        while ((move = mp.next_move<SpNode>()) != MOVE_NONE)
+        while ((move = mp.next_move<SPNode>()) != MOVE_NONE)
         {
             assert(is_ok(move));
 
-            if (move == excludedMove)
+            if (move == excluded_move)
                 continue;
 
             // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -767,81 +768,81 @@ moves_loop: // When in check and at SpNode search starts from here
             if (RootNode && !std::count(RootMoves.begin() + PVIdx, RootMoves.end(), move))
                 continue;
 
-            if (SpNode)
+            if (SPNode)
             {
                 // Shared counter cannot be decremented later if move turns out to be illegal
                 if (!pos.legal(move, ci.pinned))
                     continue;
 
-                moveCount = ++splitPoint->moveCount;
-                splitPoint->mutex.unlock();
+                move_count = ++split_point->move_count;
+                split_point->mutex.unlock();
             }
             else
-                ++moveCount;
+                ++move_count;
 
             if (RootNode)
             {
-                Signals.firstRootMove = (moveCount == 1);
+                Signals.firstRootMove = (move_count == 1);
 
                 if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
                     sync_cout << "info depth " << depth / ONE_PLY
-                    << " currmove " << move_to_uci(move, pos.is_chess960())
-                    << " currmovenumber " << moveCount + PVIdx << sync_endl;
+                    << " currmove " << move_to_uci(move, pos.chess960 ())
+                    << " currmovenumber " << move_count + PVIdx << sync_endl;
             }
 
             ext = DEPTH_ZERO;
             captureOrPromotion = pos.capture_or_promotion(move);
-            givesCheck = pos.gives_check(move, ci);
-            dangerous =   givesCheck
+            gives_check = pos.gives_check(move, ci);
+            dangerous =   gives_check
                 || pos.passed_pawn_push(move)
                 || type_of(move) == CASTLE;
 
             // Step 12. Extend checks
-            if (givesCheck && pos.see_sign(move) >= 0)
+            if (gives_check && pos.see_sign(move) >= 0)
                 ext = ONE_PLY;
 
             // Singular extension search. If all moves but one fail low on a search of
             // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
             // is singular and should be extended. To verify this we do a reduced search
-            // on all the other moves but the ttMove, if result is lower than ttValue minus
-            // a margin then we extend ttMove.
+            // on all the other moves but the tt_move, if result is lower than tt_value minus
+            // a margin then we extend tt_move.
             if (    singularExtensionNode
-                &&  move == ttMove
+                &&  move == tt_move
                 && !ext
                 &&  pos.legal(move, ci.pinned)
-                &&  abs(ttValue) < VALUE_KNOWN_WIN)
+                &&  abs(tt_value) < VALUE_KNOWN_WIN)
             {
-                assert(ttValue != VALUE_NONE);
+                assert(tt_value != VALUE_NONE);
 
-                Value rBeta = ttValue - int(depth);
-                ss->excludedMove = move;
+                Value rBeta = tt_value - int(depth);
+                ss->excluded_move = move;
                 ss->skipNullMove = true;
                 value = search<NonPV>(pos, ss, rBeta - 1, rBeta, depth / 2, cut_node);
                 ss->skipNullMove = false;
-                ss->excludedMove = MOVE_NONE;
+                ss->excluded_move = MOVE_NONE;
 
                 if (value < rBeta)
                     ext = ONE_PLY;
             }
 
             // Update current move (this must be done after singular extension search)
-            newDepth = depth - ONE_PLY + ext;
+            new_depth = depth - ONE_PLY + ext;
 
             // Step 13. Futility pruning (is omitted in PV nodes)
-            if (   !PvNode
+            if (   !PVNode
                 && !captureOrPromotion
-                && !inCheck
+                && !in_check
                 && !dangerous
-                // &&  move != ttMove Already implicit in the next condition 
+                // &&  move != tt_move Already implicit in the next condition 
                 &&  best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
                 if (   depth < 16 * ONE_PLY
-                    && moveCount >= FutilityMoveCounts[improving][depth]
-                && (!threatMove || !refutes(pos, move, threatMove)))
+                    && move_count >= FutilityMoveCounts[improving][depth]
+                && (!threat_move || !refutes(pos, move, threat_move)))
                 {
-                    if (SpNode)
-                        splitPoint->mutex.lock();
+                    if (SPNode)
+                        split_point->mutex.lock();
 
                     continue;
                 }
@@ -849,19 +850,19 @@ moves_loop: // When in check and at SpNode search starts from here
                 // Value based pruning
                 // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
                 // but fixing this made program slightly weaker.
-                Depth predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
-                futilityValue =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, moveCount)
+                Depth predictedDepth = new_depth - reduction<PVNode>(improving, depth, move_count);
+                futility_value =  ss->staticEval + ss->evalMargin + futility_margin(predictedDepth, move_count)
                     + Gains[pos.moved_piece(move)][to_sq(move)];
 
-                if (futilityValue < beta)
+                if (futility_value < beta)
                 {
-                    best_value = std::max(best_value, futilityValue);
+                    best_value = std::max(best_value, futility_value);
 
-                    if (SpNode)
+                    if (SPNode)
                     {
-                        splitPoint->mutex.lock();
-                        if (best_value > splitPoint->best_value)
-                            splitPoint->best_value = best_value;
+                        split_point->mutex.lock();
+                        if (best_value > split_point->best_value)
+                            split_point->best_value = best_value;
                     }
                     continue;
                 }
@@ -870,46 +871,46 @@ moves_loop: // When in check and at SpNode search starts from here
                 if (   predictedDepth < 4 * ONE_PLY
                     && pos.see_sign(move) < 0)
                 {
-                    if (SpNode)
-                        splitPoint->mutex.lock();
+                    if (SPNode)
+                        split_point->mutex.lock();
 
                     continue;
                 }
 
                 // We have not pruned the move that will be searched, but remember how
                 // far in the move list we are to be more aggressive in the child node.
-                ss->futilityMoveCount = moveCount;
+                ss->futilityMoveCount = move_count;
             }
             else
                 ss->futilityMoveCount = 0;
 
             // Check for legality only before to do the move
-            if (!RootNode && !SpNode && !pos.legal(move, ci.pinned))
+            if (!RootNode && !SPNode && !pos.legal(move, ci.pinned))
             {
-                --moveCount;
+                --move_count;
                 continue;
             }
 
-            pvMove = PvNode && moveCount == 1;
+            pvMove = PVNode && move_count == 1;
             ss->currentMove = move;
-            if (!SpNode && !captureOrPromotion && quietCount < 64)
-                quietsSearched[quietCount++] = move;
+            if (!SPNode && !captureOrPromotion && quiet_count < 64)
+                quietsSearched[quiet_count++] = move;
 
             // Step 14. Make the move
-            pos.do_move(move, st, ci, givesCheck);
+            pos.do_move(move, st, ci, gives_check);
 
             // Step 15. Reduced depth search (LMR). If the move fails high will be
             // re-searched at full depth.
             if (    depth >= 3 * ONE_PLY
                 && !pvMove
                 && !captureOrPromotion
-                &&  move != ttMove
+                &&  move != tt_move
                 &&  move != ss->killers[0]
             &&  move != ss->killers[1])
             {
-                ss->reduction = reduction<PvNode>(improving, depth, moveCount);
+                ss->reduction = reduction<PVNode>(improving, depth, move_count);
 
-                if (!PvNode && cut_node)
+                if (!PVNode && cut_node)
                     ss->reduction += ONE_PLY;
 
                 else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
@@ -918,9 +919,9 @@ moves_loop: // When in check and at SpNode search starts from here
                 if (move == countermoves[0] || move == countermoves[1])
                     ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
-                Depth d = std::max(newDepth - ss->reduction, ONE_PLY);
-                if (SpNode)
-                    alpha = splitPoint->alpha;
+                Depth d = std::max(new_depth - ss->reduction, ONE_PLY);
+                if (SPNode)
+                    alpha = split_point->alpha;
 
                 value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
@@ -933,34 +934,34 @@ moves_loop: // When in check and at SpNode search starts from here
             // Step 16. Full depth search, when LMR is skipped or fails high
             if (doFullDepthSearch)
             {
-                if (SpNode)
-                    alpha = splitPoint->alpha;
+                if (SPNode)
+                    alpha = split_point->alpha;
 
-                value = newDepth < ONE_PLY ?
-                    givesCheck ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                value = new_depth < ONE_PLY ?
+                    gives_check ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                     : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                    : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cut_node);
+                    : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
             // Only for PV nodes do a full PV search on the first move or after a fail
             // high, in the latter case search only if value < beta, otherwise let the
             // parent node to fail low with value <= alpha and to try another move.
-            if (PvNode && (pvMove || (value > alpha && (RootNode || value < beta))))
-                value = newDepth < ONE_PLY ?
-                givesCheck ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+            if (PVNode && (pvMove || (value > alpha && (RootNode || value < beta))))
+                value = new_depth < ONE_PLY ?
+                gives_check ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                 : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : - search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
+                : - search<PV>(pos, ss+1, -beta, -alpha, new_depth, false);
             // Step 17. Undo move
             pos.undo_move(move);
 
             assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
             // Step 18. Check for new best move
-            if (SpNode)
+            if (SPNode)
             {
-                splitPoint->mutex.lock();
-                best_value = splitPoint->best_value;
-                alpha = splitPoint->alpha;
+                split_point->mutex.lock();
+                best_value = split_point->best_value;
+                alpha = split_point->alpha;
             }
 
             // Finished searching the move. If Signals.stop is true, the search
@@ -995,20 +996,20 @@ moves_loop: // When in check and at SpNode search starts from here
 
             if (value > best_value)
             {
-                best_value = SpNode ? splitPoint->best_value = value : value;
+                best_value = SPNode ? split_point->best_value = value : value;
 
                 if (value > alpha)
                 {
-                    best_move = SpNode ? splitPoint->best_move = move : move;
+                    best_move = SPNode ? split_point->best_move = move : move;
 
-                    if (PvNode && value < beta) // Update alpha! Always alpha < beta
-                        alpha = SpNode ? splitPoint->alpha = value : value;
+                    if (PVNode && value < beta) // Update alpha! Always alpha < beta
+                        alpha = SPNode ? split_point->alpha = value : value;
                     else
                     {
                         assert(value >= beta); // Fail high
 
-                        if (SpNode)
-                            splitPoint->cutoff = true;
+                        if (SPNode)
+                            split_point->cutoff = true;
 
                         break;
                     }
@@ -1016,7 +1017,7 @@ moves_loop: // When in check and at SpNode search starts from here
             }
 
             // Step 19. Check for splitting the search
-            if (   !SpNode
+            if (   !SPNode
                 &&  depth >= Threads.minimumSplitDepth
                 &&  Threads.available_slave(thisThread)
                 &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
@@ -1024,13 +1025,13 @@ moves_loop: // When in check and at SpNode search starts from here
                 assert(best_value < beta);
 
                 thisThread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
-                    depth, threatMove, moveCount, &mp, N, cut_node);
+                    depth, threat_move, move_count, &mp, N, cut_node);
                 if (best_value >= beta)
                     break;
             }
         }
 
-        if (SpNode)
+        if (SPNode)
             return best_value;
 
         // Step 20. Check for mate and stalemate
@@ -1040,23 +1041,22 @@ moves_loop: // When in check and at SpNode search starts from here
         // harmless because return value is discarded anyhow in the parent nodes.
         // If we are in a singular extension search then return a fail low score.
         // A split node has at least one move, the one tried before to be splitted.
-        if (!moveCount)
-            return  excludedMove ? alpha
-            : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
+        if (!move_count)
+            return  excluded_move ? alpha
+            : in_check ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
 
         // If we have pruned all the moves without searching return a fail-low score
-        if (best_value == -VALUE_INFINITE)
-            best_value = alpha;
+        if (best_value == -VALUE_INFINITE) best_value = alpha;
 
-        TT.store(posKey, value_to_tt(best_value, ss->ply),
+        TT.store(posi_key, value_to_tt(best_value, ss->ply),
             best_value >= beta  ? BOUND_LOWER :
-            PvNode && best_move ? BOUND_EXACT : BOUND_UPPER,
+            PVNode && best_move ? BOUND_EXACT : BOUND_UPPER,
             depth, best_move, ss->staticEval, ss->evalMargin);
 
         // Quiet best move: update killers, history and countermoves
         if (    best_value >= beta
             && !pos.capture_or_promotion(best_move)
-            && !inCheck)
+            && !in_check)
         {
             if (ss->killers[0] != best_move)
             {
@@ -1068,7 +1068,7 @@ moves_loop: // When in check and at SpNode search starts from here
             // played non-capture moves.
             Value bonus = Value(int(depth) * int(depth));
             History.update(pos.moved_piece(best_move), to_sq(best_move), bonus);
-            for (int i = 0; i < quietCount - 1; ++i)
+            for (int i = 0; i < quiet_count - 1; ++i)
             {
                 Move m = quietsSearched[i];
                 History.update(pos.moved_piece(m), to_sq(m), -bonus);
@@ -1088,27 +1088,26 @@ moves_loop: // When in check and at SpNode search starts from here
     // search function when the remaining depth is zero (or, to be more precise,
     // less than ONE_PLY).
     template <NodeType N, bool InCheck>
-    Value qsearch(Position &pos, Stack* ss, Value alpha, Value beta, Depth depth) {
-
-        const bool PvNode = (N == PV);
+    Value qsearch(Position &pos, Stack* ss, Value alpha, Value beta, Depth depth)
+    {
+        const bool PVNode = (N == PV);
 
         assert(N == PV || N == NonPV);
         assert(InCheck == !!pos.checkers());
         assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
-        assert(PvNode || (alpha == beta - 1));
+        assert(PVNode || (alpha == beta - 1));
         assert(depth <= DEPTH_ZERO);
 
         StateInfo st;
         const TTEntry* tte;
-        Key posKey;
-        Move ttMove, move, best_move;
-        Value best_value, value, ttValue, futilityValue, futilityBase, oldAlpha;
-        bool givesCheck, evasionPrunable;
-        Depth ttDepth;
+        Key posi_key;
+        Move tt_move, move, best_move;
+        Value best_value, value, tt_value, futility_value, futility_base, old_alpha;
+        bool gives_check, evasion_prunable;
+        Depth tt_depth;
 
         // To flag BOUND_EXACT a node with eval above alpha and no available moves
-        if (PvNode)
-            oldAlpha = alpha;
+        if (PVNode) old_alpha = alpha;
 
         ss->currentMove = best_move = MOVE_NONE;
         ss->ply = (ss-1)->ply + 1;
@@ -1120,31 +1119,31 @@ moves_loop: // When in check and at SpNode search starts from here
         // Decide whether or not to include checks, this fixes also the type of
         // TT entry depth that we are going to use. Note that in qsearch we use
         // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-        ttDepth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
+        tt_depth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
             : DEPTH_QS_NO_CHECKS;
 
         // Transposition table lookup
-        posKey = pos.key();
-        tte = TT.probe(posKey);
-        ttMove = tte ? tte->move() : MOVE_NONE;
-        ttValue = tte ? value_from_tt(tte->value(),ss->ply) : VALUE_NONE;
+        posi_key = pos.key();
+        tte = TT.probe(posi_key);
+        tt_move = tte ? tte->move() : MOVE_NONE;
+        tt_value = tte ? value_fr_tt(tte->value(),ss->ply) : VALUE_NONE;
 
         if (   tte
-            && tte->depth() >= ttDepth
-            && ttValue != VALUE_NONE // Only in case of TT access race
-            && (           PvNode ?  tte->bound() == BOUND_EXACT
-            : ttValue >= beta ? (tte->bound() &  BOUND_LOWER)
+            && tte->depth() >= tt_depth
+            && tt_value != VALUE_NONE // Only in case of TT access race
+            && (           PVNode ?  tte->bound() == BOUND_EXACT
+            : tt_value >= beta ? (tte->bound() &  BOUND_LOWER)
             : (tte->bound() &  BOUND_UPPER)))
         {
-            ss->currentMove = ttMove; // Can be MOVE_NONE
-            return ttValue;
+            ss->currentMove = tt_move; // Can be MOVE_NONE
+            return tt_value;
         }
 
         // Evaluate the position statically
         if (InCheck)
         {
             ss->staticEval = ss->evalMargin = VALUE_NONE;
-            best_value = futilityBase = -VALUE_INFINITE;
+            best_value = futility_base = -VALUE_INFINITE;
         }
         else
         {
@@ -1155,10 +1154,10 @@ moves_loop: // When in check and at SpNode search starts from here
                     ||(ss->evalMargin = tte->eval_margin()) == VALUE_NONE)
                     ss->staticEval = best_value = evaluate(pos, ss->evalMargin);
 
-                // Can ttValue be used as a better position evaluation?
-                if (ttValue != VALUE_NONE)
-                    if (tte->bound() & (ttValue > best_value ? BOUND_LOWER : BOUND_UPPER))
-                        best_value = ttValue;
+                // Can tt_value be used as a better position evaluation?
+                if (tt_value != VALUE_NONE)
+                    if (tte->bound() & (tt_value > best_value ? BOUND_LOWER : BOUND_UPPER))
+                        best_value = tt_value;
             }
             else
                 ss->staticEval = best_value = evaluate(pos, ss->evalMargin);
@@ -1173,17 +1172,17 @@ moves_loop: // When in check and at SpNode search starts from here
                 return best_value;
             }
 
-            if (PvNode && best_value > alpha)
+            if (PVNode && best_value > alpha)
                 alpha = best_value;
 
-            futilityBase = best_value + ss->evalMargin + Value(128);
+            futility_base = best_value + ss->evalMargin + Value(128);
         }
 
         // Initialize a MovePicker object for the current position, and prepare
         // to search the moves. Because the depth is <= 0 here, only captures,
         // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
         // be generated.
-        MovePicker mp(pos, ttMove, depth, History, to_sq((ss-1)->currentMove));
+        MovePicker mp(pos, tt_move, depth, History, to_sq((ss-1)->currentMove));
         CheckInfo ci(pos);
 
         // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -1191,47 +1190,47 @@ moves_loop: // When in check and at SpNode search starts from here
         {
             assert(is_ok(move));
 
-            givesCheck = pos.gives_check(move, ci);
+            gives_check = pos.gives_check(move, ci);
 
             // Futility pruning
-            if (   !PvNode
+            if (   !PVNode
                 && !InCheck
-                && !givesCheck
-                &&  move != ttMove
+                && !gives_check
+                &&  move != tt_move
                 &&  type_of(move) != PROMOTION
-                &&  futilityBase > -VALUE_KNOWN_WIN
+                &&  futility_base > -VALUE_KNOWN_WIN
                 && !pos.passed_pawn_push(move))
             {
-                futilityValue =  futilityBase
+                futility_value =  futility_base
                     + PieceValue[EG][pos.piece_on(to_sq(move))]
                 + (type_of(move) == ENPASSANT ? PawnValueEg : VALUE_ZERO);
 
-                if (futilityValue < beta)
+                if (futility_value < beta)
                 {
-                    best_value = std::max(best_value, futilityValue);
+                    best_value = std::max(best_value, futility_value);
                     continue;
                 }
 
                 // Prune moves with negative or equal SEE and also moves with positive
-                // SEE where capturing piece loses a tempo and SEE < beta - futilityBase.
-                if (   futilityBase < beta
-                    && pos.see(move, beta - futilityBase) <= 0)
+                // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
+                if (   futility_base < beta
+                    && pos.see(move, beta - futility_base) <= 0)
                 {
-                    best_value = std::max(best_value, futilityBase);
+                    best_value = std::max(best_value, futility_base);
                     continue;
                 }
             }
 
             // Detect non-capture evasions that are candidate to be pruned
-            evasionPrunable =    InCheck
+            evasion_prunable =    InCheck
                 &&  best_value > VALUE_MATED_IN_MAX_PLY
                 && !pos.capture(move)
                 && !pos.can_castle(pos.side_to_move());
 
             // Don't search moves with negative SEE values
-            if (   !PvNode
-                && (!InCheck || evasionPrunable)
-                &&  move != ttMove
+            if (   !PVNode
+                && (!InCheck || evasion_prunable)
+                &&  move != tt_move
                 &&  type_of(move) != PROMOTION
                 &&  pos.see_sign(move) < 0)
                 continue;
@@ -1243,8 +1242,8 @@ moves_loop: // When in check and at SpNode search starts from here
             ss->currentMove = move;
 
             // Make and search the move
-            pos.do_move(move, st, ci, givesCheck);
-            value = givesCheck ? -qsearch<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
+            pos.do_move(move, st, ci, gives_check);
+            value = gives_check ? -qsearch<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
                 : -qsearch<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
             pos.undo_move(move);
 
@@ -1257,15 +1256,15 @@ moves_loop: // When in check and at SpNode search starts from here
 
                 if (value > alpha)
                 {
-                    if (PvNode && value < beta) // Update alpha here! Always alpha < beta
+                    if (PVNode && value < beta) // Update alpha here! Always alpha < beta
                     {
                         alpha = value;
                         best_move = move;
                     }
                     else // Fail high
                     {
-                        TT.store(posKey, value_to_tt(value, ss->ply), BOUND_LOWER,
-                            ttDepth, move, ss->staticEval, ss->evalMargin);
+                        TT.store(posi_key, value_to_tt(value, ss->ply), BOUND_LOWER,
+                            tt_depth, move, ss->staticEval, ss->evalMargin);
 
                         return value;
                     }
@@ -1278,9 +1277,9 @@ moves_loop: // When in check and at SpNode search starts from here
         if (InCheck && best_value == -VALUE_INFINITE)
             return mated_in(ss->ply); // Plies to mate from the root
 
-        TT.store(posKey, value_to_tt(best_value, ss->ply),
-            PvNode && best_value > oldAlpha ? BOUND_EXACT : BOUND_UPPER,
-            ttDepth, best_move, ss->staticEval, ss->evalMargin);
+        TT.store(posi_key, value_to_tt(best_value, ss->ply),
+            PVNode && best_value > old_alpha ? BOUND_EXACT : BOUND_UPPER,
+            tt_depth, best_move, ss->staticEval, ss->evalMargin);
 
         assert(best_value > -VALUE_INFINITE && best_value < VALUE_INFINITE);
 
@@ -1291,17 +1290,17 @@ moves_loop: // When in check and at SpNode search starts from here
     // value_to_tt() adjusts a mate score from "plies to mate from the root" to
     // "plies to mate from the current position". Non-mate scores are unchanged.
     // The function is called before storing a value to the transposition table.
-    Value value_to_tt  (Value v, int32_t ply)
+    Value value_to_tt (Value v, int32_t ply)
     {
         assert(v != VALUE_NONE);
         return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
             : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
     }
 
-    // value_from_tt() is the inverse of value_to_tt(): It adjusts a mate score
+    // value_fr_tt() is the inverse of value_to_tt(): It adjusts a mate score
     // from the transposition table (where refers to the plies to mate/be mated
     // from current position) to "plies to mate/be mated from the root".
-    Value value_from_tt(Value v, int32_t ply)
+    Value value_fr_tt (Value v, int32_t ply)
     {
         return  v == VALUE_NONE             ? VALUE_NONE
             : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
@@ -1438,800 +1437,53 @@ moves_loop: // When in check and at SpNode search starts from here
         }
         return best;
     }
+*/
 
-
-    // uci_pv() formats PV information according to UCI protocol. UCI requires
+    // uci_pv_info() formats PV information according to UCI protocol. UCI requires
     // to send all the PV lines also if are still to be searched and so refer to
     // the previous search score.
-    string uci_pv(const Position &pos, int32_t depth, Value alpha, Value beta) {
+    std::string uci_pv_info(const Position &pos, int32_t depth, Value alpha, Value beta)
+    {
+        std::stringstream spv;
 
-        std::stringstream s;
-        Time::point elapsed = Time::now() - SearchTime + 1;
-        size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
-        int32_t selDepth = 0;
+        Time::point elapsed = Time::point (Time::now() - searchTime + 1);
+        size_t uci_pv_size = std::min(size_t (int32_t (*(Options["MultiPV"]))), rootMoves.size());
+        int32_t sel_depth = 0;
 
-        for (size_t i = 0; i < Threads.size(); ++i)
-            if (Threads[i]->maxPly > selDepth)
-                selDepth = Threads[i]->maxPly;
+        //for (size_t i = 0; i < Threads.size(); ++i)
+        //{
+        //    if (Threads[i]->maxPly > sel_depth)
+        //        sel_depth = Threads[i]->maxPly;
+        //}
 
-        for (size_t i = 0; i < uciPVSize; ++i)
+        for (size_t i = 0; i < uci_pv_size; ++i)
         {
             bool updated = (i <= PVIdx);
 
-            if (depth == 1 && !updated)
-                continue;
+            if ((1 == depth) && !updated) continue;
 
-            int32_t d   = updated ? depth : depth - 1;
-            Value v = updated ? RootMoves[i].score : RootMoves[i].prevScore;
+            int32_t d = updated ? depth : depth - 1;
+            Value   v = updated ? rootMoves[i].curr_value : rootMoves[i].last_value;
+            
+            // Not at first line
+            if (spv.rdbuf()->in_avail()) spv << "\n";
 
-            if (s.rdbuf()->in_avail()) // Not at first line
-                s << "\n";
-
-            s << "info depth " << d
-                << " seldepth "  << selDepth
-                << " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
-                << " nodes "     << pos.nodes_searched()
-                << " nps "       << pos.nodes_searched() * 1000 / elapsed
+            spv << "info depth " << d
+                << " seldepth "  << sel_depth
+                //<< " score "     << (i == PVIdx ? score_to_uci(v, alpha, beta) : score_to_uci(v))
+                //<< " nodes "     << pos.game_nodes ()
+                //<< " nps "       << pos.game_nodes () * 1000 / elapsed
                 << " time "      << elapsed
                 << " multipv "   << i + 1
                 << " pv";
 
-            for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
-                s <<  " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
+            for (size_t j = 0; rootMoves[i].pv[j] != MOVE_NONE; ++j)
+            {
+                spv <<  " " << move_to_can(rootMoves[i].pv[j], pos.chess960 ());
+            }
         }
 
-        return s.str();
+        return spv.str();
     }
-*/
 
 } // namespace
-
-
-#pragma region search
-
-    //    using namespace std;
-    //
-    //    static Score search_best (const Position &pos, Depth depth, Score alpha, Score beta);
-    //
-    //    static Score search_aspiration   (Position &pos, Depth depth, Score guess, Score threshold);
-    //
-    //    static Score search_iterative_deepening   (Position &pos, Depth depth, Score guess);
-    //
-    //    static Score alphaBetaSSS   (Position &pos, Depth depth);
-    //
-    //    static Score MTDf   (Position &pos, Depth depth, Score guess);
-    //
-    //
-    //    //void Think  (Node &rootNode)
-    //    //{
-    //    //    Position &pos = rootNode.pos;
-    //    //
-    //    //
-    //    //
-    //    //}
-    //
-    //    //Score search(Node &node, Score alpha, Score beta, Depth depth, int16_t ply, bool nullMoveIsOK, int8_t totalExtension)
-    //    //{
-    //    //    return VALUE_DRAW;
-    //    //}
-    //
-    //    // alpha-beta
-    //    // nega-max
-    //    // nega-scout
-    //    //
-    //    // search_best(pos, depth, -inf, +inf)
-    //
-    //    void search(const Position &pos, Depth depth)
-    //    {
-    //        Score s = search_best(pos, depth, -VALUE_INFINITE, VALUE_INFINITE);
-    //        //std::cout << s;
-    //        //tblTpos.FindMove(s);
-    //    }
-    //
-    //    static Score search_best (const Position &pos, Depth depth, Score alpha, Score beta)
-    //    {
-    //        ASSERT ((-VALUE_INFINITE <= alpha) && (alpha < beta) && (beta  <= VALUE_INFINITE));
-    //        ASSERT ((0 <= depth) && (depth < MAX_DEPTH));
-    //
-    //        //const TranspositionEntry *te = tblTpos.probeEntry(pos.KeyPosi());
-    //        //if (te && te->Depth >= depth)
-    //        //{
-    //        //    //switch (te->Bound)
-    //        //    //{
-    //        //    //    // update lowerbound alpha if needed
-    //        //    //case ALPHA: alpha = std::max<Score> (te->Score, alpha); break;
-    //        //    //    // update upperbound beta if needed
-    //        //    //case BETA:  beta  = std::min<Score> (te->Score, beta); break;
-    //        //    //    // stored value is exact
-    //        //    //case EXACT: return te->Score;   break;
-    //
-    //        //    //default:    break;
-    //        //    //}
-    //        //    // if lowerbound surpasses upperbound
-    //        //    if (alpha >= beta) return te->Score;
-    //        //}
-    //
-    //        if (depth <= 0 /*|| isTerminal(pos)*/)  // leaf-node test
-    //        {
-    //            Score eval = Evaluator::evaluate(pos);
-    //
-    //            //if (false);
-    //            //else if (eval <= alpha) // a lowerbound eval
-    //            //{
-    //            //    tblTpos.storeEntry(pos.KeyPosi(), MOVE_NONE, eval, depth, ALPHA);
-    //            //}
-    //            //else if (eval >= beta) // an upperbound eval
-    //            //{
-    //            //    tblTpos.storeEntry(pos.KeyPosi(), MOVE_NONE, eval, depth, BETA);
-    //            //}
-    //            //else // a true minimax eval
-    //            //{
-    //            //    tblTpos.storeEntry(pos.KeyPosi(), MOVE_NONE, eval, depth, EXACT);
-    //            //}
-    //
-    //            return eval;
-    //        }
-    //
-    //        Score best      = -VALUE_INFINITE;
-    //        Score adap_beta = beta;
-    //
-    //        Move  bestMove  = MOVE_NONE;
-    //        const bool inCheck = pos.checkers();
-    //
-    //        MoveList lst_move;// legal lst_move
-    //        const size_t n  = lst_move.size();
-    //
-    //        //for i=1 to sizeof (lst_move) do // rating all lst_move 
-    //        //rating[i] = HistoryTable[ lst_move[i] ]; 
-    //        //Sort(lst_move, rating);
-    //
-    //        StateInfo s_info;
-    //
-    //        //for (auto m : lst_move)
-    //        for (size_t i = 0; i < n; ++i)
-    //        {
-    //            Move m  = lst_move[i];
-    //
-    //            //if (m == excludedMove)
-    //            //{
-    //            //    continue;
-    //            //}
-    //
-    //            //std::string mm  = to_string(m);
-    //            Position pos_i  = pos;
-    //            pos_i.do_move(m, s_info);
-    //
-    //            Score curr  = -search_best(pos_i, depth-1, -adap_beta, -alpha);   // initial window is (-β, -α)
-    //
-    //            // check if null-window failed high
-    //            if ((alpha < curr) && (curr < beta) && (i > 0) && (2 < depth) && (depth < MAX_DEPTH-1))
-    //            { // full re-search
-    //                curr    = -search_best(pos_i, depth-1, -beta, -curr);        // window is (-β, -α')
-    //            }
-    //
-    //            if (curr > best)
-    //            {
-    //                best = curr;
-    //
-    //                if (best > alpha)
-    //                {
-    //                    bestMove = m;
-    //
-    //                    if (best >= beta)
-    //                    {
-    //                        goto finish;            // fail-hard beta cut-off
-    //                    }
-    //
-    //                    ASSERT (best < beta);
-    //                    alpha = best;
-    //
-    //                    adap_beta = alpha + 1;      // set new null window
-    //                }
-    //            }
-    //        }
-    //
-    //        // No legal move was found. Check if it's checkmate or stalemate.
-    //        if (-VALUE_INFINITE == best /*|| MOVE_NONE == bestMove*/)
-    //        {
-    //            if (inCheck)
-    //            { // checkmate
-    //                best = mated_in(depth);
-    //            }
-    //            else
-    //            { // stalemate
-    //                best = VALUE_DRAW;
-    //                //best = variation->drawScore[position->activeColor];
-    //            }
-    //        }
-    //
-    //finish:
-    //
-    //        if (MOVE_NONE != bestMove)
-    //        {
-    //            // update history score 
-    //            //HistoryTable[bestMove] = HistoryTable[bestMove] + Weight(d); 
-    //        }
-    //
-    //
-    //        //if (false);
-    //        //else if (best <= alpha) // a lowerbound eval
-    //        //{
-    //        //    tblTpos.storeEntry(pos.KeyPosi(), bestMove, best, depth, ALPHA);
-    //        //}
-    //        //else if (best >= beta) // an upperbound eval
-    //        //{
-    //        //    tblTpos.storeEntry(pos.KeyPosi(), bestMove, best, depth, BETA);
-    //        //}
-    //        //else // a true minimax eval
-    //        //{
-    //        //    tblTpos.storeEntry(pos.KeyPosi(), bestMove, best, depth, EXACT);
-    //        //}
-    //
-    //        ASSERT (-VALUE_INFINITE <= best && best <= VALUE_INFINITE);
-    //        return best;
-    //    }
-    //
-    //    // depth = 5, threshold = 100, window = 2*threshold;
-    //    static Score search_aspiration   (Position &pos, Depth depth, Score guess, Score threshold)
-    //    {
-    //        ASSERT ((0 <= depth) && (depth < MAX_DEPTH));
-    //        Score alpha, beta;
-    //        Score upper_bound = guess - threshold;
-    //        Score lower_bound = guess + threshold;
-    //
-    //        Score best  = search_best(pos, depth, upper_bound, lower_bound);
-    //
-    //        if (best >= beta)   // fail high - beta cut off
-    //        {
-    //            return search_best(pos, depth, best, VALUE_INFINITE);
-    //        }
-    //        if (best <= alpha)  // fail low - alpha cut off
-    //        {
-    //            return search_best(pos, depth, -VALUE_INFINITE, best);
-    //        }
-    //        return best;
-    //    }
-    //
-    //    static Score search_iterative_deepening   (Position &pos, Depth depth, Score guess)
-    //    {
-    //        ASSERT ((0 <= depth) && (depth < MAX_DEPTH));
-    //
-    //        Score best = guess;
-    //        for (int8_t d = 1; d <= depth; ++d)
-    //        {
-    //            //best = searchMethod(pos, d, best);
-    //            //if timeUp() 
-    //            //    break;
-    //        }
-    //        return best;
-    //    }
-    //
-    //    static Score alphaBetaSSS   (Position &pos, Depth depth)
-    //    {
-    //        ASSERT ((0 <= depth) && (depth < MAX_DEPTH));
-    //        Score best;
-    //
-    //        //best  = VALUE_INFINITE;
-    //        //Score beta;
-    //        //do
-    //        //{
-    //        //    beta    = best;
-    //        //    best    = search_best(pos, depth, beta-1, beta);
-    //        //}
-    //        //while (best != beta);
-    //
-    //        best  = -VALUE_INFINITE;
-    //        Score alpha;
-    //        do
-    //        {
-    //            alpha   = best;
-    //            best    = search_best(pos, depth, alpha, alpha+1);
-    //        }
-    //        while (best != alpha);
-    //
-    //        return best;
-    //    }
-    //
-    //    static Score MTDf   (Position &pos, Depth depth, Score guess)
-    //    {
-    //        ASSERT ((0 <= depth) && (depth < MAX_DEPTH));
-    //
-    //        Score best = guess;
-    //
-    //        Score upper_bound = VALUE_INFINITE;
-    //        Score lower_bound = -VALUE_INFINITE;
-    //        do
-    //        {
-    //            // beta bound
-    //            Score bound = (Score) (best == lower_bound) ? best + 1 : best;
-    //
-    //            best = search_best(pos, depth, bound - 1, bound);
-    //
-    //            if (best < bound) 
-    //                upper_bound = best;
-    //            else
-    //                lower_bound = best;
-    //        }
-    //        while (lower_bound < upper_bound);
-    //
-    //        return best;
-    //    }
-    //
-    //
-    //    //static Score MaxiMin(Position &pos, Depth depth)
-    //    //{
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)
-    //    //    {
-    //    //        return -evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score minScore = VALUE_INFINITE;
-    //    //
-    //    //    MoveList lst_move = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore = MiniMax(c_pos, depth-1);
-    //    //        if (curScore < minScore)
-    //    //        {
-    //    //            minScore = curScore;
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return minScore;
-    //    //}
-    //    //static Score MiniMax(Position &pos, Depth depth) 
-    //    //{
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)
-    //    //    {
-    //    //        return evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score maxScore = -VALUE_INFINITE;
-    //    //
-    //    //    MoveList lst_move = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore = MaxiMin(c_pos, depth-1);
-    //    //        if (curScore > maxScore)
-    //    //        {
-    //    //            maxScore = curScore;
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return maxScore;
-    //    //}
-    //    //static Score NegaMax(Position &pos, Depth depth)
-    //    //{
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)
-    //    //    {
-    //    //        return evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score maxScore = -VALUE_INFINITE; // -oo;
-    //    //
-    //    //    MoveList lst_move = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore = -NegaMax(c_pos, depth-1);
-    //    //        if (curScore > maxScore)
-    //    //        {        
-    //    //            maxScore = curScore;
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return maxScore;
-    //    //}
-    //
-    //    //static Score MaxiMinAlphaBeta   (Position &pos, Depth depth, Score alpha, Score beta)
-    //    //{
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)
-    //    //    {
-    //    //        return -evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score bestScore = VALUE_INFINITE;
-    //    //
-    //    //    MoveList lst_move = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos  = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore  = MiniMaxAlphaBeta(c_pos, depth-1, alpha, beta);
-    //    //
-    //    //        if (curScore < bestScore)
-    //    //        {
-    //    //            bestScore = curScore;
-    //    //
-    //    //            if (bestScore < beta)
-    //    //            {
-    //    //                if (bestScore <= alpha)
-    //    //                {
-    //    //                    break;              // fail hard alpha-cutoff
-    //    //                }
-    //    //                ASSERT (bestScore > alpha);
-    //    //                beta = bestScore;       // beta acts like min
-    //    //            }
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return bestScore;
-    //    //}
-    //    //static Score MiniMaxAlphaBeta   (Position &pos, Depth depth, Score alpha, Score beta)
-    //    //{
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)
-    //    //    {
-    //    //        return evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score bestScore = -VALUE_INFINITE;
-    //    //
-    //    //    MoveList lst_move  = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos  = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore  = MaxiMinAlphaBeta(c_pos, depth-1, alpha, beta);
-    //    //
-    //    //        if (curScore > bestScore)
-    //    //        {
-    //    //            bestScore = curScore;
-    //    //
-    //    //            if (bestScore > alpha)
-    //    //            {
-    //    //                if (bestScore >= beta)
-    //    //                {
-    //    //                    break;              // fail hard beta-cutoff
-    //    //                }
-    //    //                ASSERT (bestScore < beta);
-    //    //                alpha = bestScore;      // alpha acts like max
-    //    //            }
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return bestScore;
-    //    //}
-    //
-    //    //static Score NegaMaxAlphaBeta   (Position &pos, Depth depth, Score alpha, Score beta)
-    //    //{
-    //    //    ASSERT (-VALUE_INFINITE <= alpha && alpha <= VALUE_INFINITE);
-    //    //    ASSERT (-VALUE_INFINITE <= beta  && beta  <= VALUE_INFINITE);
-    //    //    ASSERT (alpha < beta);
-    //    //    ASSERT (0 < depth && depth < MAX_DEPTH);
-    //    //
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)  // cutoff test
-    //    //    {
-    //    //        return evaluate(pos);
-    //    //    }
-    //    //
-    //    //    Score bestScore = -VALUE_INFINITE;
-    //    //    Move  bestMove  = MOVE_NONE;
-    //    //
-    //    //    Score alpha_old = alpha;
-    //    //
-    //    //    const bool inCheck = pos.checkers();
-    //    //
-    //    //    MoveList lst_move  = pos.GenerateLegalMoves();
-    //    //
-    //    //    //for i =1 to sizeof (lst_move) do // rating all lst_move 
-    //    //    //rating[i] = HistoryTable[ lst_move[i] ]; 
-    //    //    //Sort( lst_move, rating );
-    //    //
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos  = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore  = -NegaMaxAlphaBeta(c_pos, depth-1, -beta, -alpha);
-    //    //
-    //    //        if (curScore > bestScore)
-    //    //        {
-    //    //            bestScore = curScore;
-    //    //
-    //    //            if (bestScore > alpha)
-    //    //            {
-    //    //                bestMove = m;
-    //    //
-    //    //                if (bestScore >= beta)
-    //    //                {
-    //    //                    //break;
-    //    //                    goto finish;
-    //    //                }
-    //    //
-    //    //                ASSERT (bestScore < beta);
-    //    //                alpha = bestScore;
-    //    //            }
-    //    //        }
-    //    //
-    //    //
-    //    //    }
-    //    //
-    //    //    // No legal move was found. Check if it's checkmate or stalemate.
-    //    //    if (-VALUE_INFINITE == bestScore /*|| MOVE_NONE == bestMove*/)
-    //    //    {
-    //    //        if (inCheck)
-    //    //        { // checkmate
-    //    //            bestScore += depth;
-    //    //        }
-    //    //        else
-    //    //        { // stalemate
-    //    //            //bestScore = variation->drawScore[position->activeColor];
-    //    //        }
-    //    //    }
-    //    //
-    //    //
-    //    //finish:
-    //    //
-    //    //    if (MOVE_NONE != bestMove)
-    //    //    {
-    //    //
-    //    //        // update history score 
-    //    //        //HistoryTable[bestMove] = HistoryTable[bestMove] + Weight(d); 
-    //    //    }
-    //    //
-    //    //    //TEType type = (bestScore > alpha_old) ? (bestScore >= beta ? ALPHA : EXACT) : BETA;
-    //    //
-    //    //    ASSERT (-VALUE_INFINITE <= bestScore && bestScore <= VALUE_INFINITE);
-    //    //    return bestScore;
-    //    //}
-    //    //static Score NegaMaxAlphaBetaTT (Position &pos, Depth depth, Score alpha, Score beta)
-    //    //{
-    //    //    ASSERT (-VALUE_INFINITE <= alpha && alpha <= VALUE_INFINITE);
-    //    //    ASSERT (-VALUE_INFINITE <= beta  && beta  <= VALUE_INFINITE);
-    //    //    ASSERT (alpha < beta);
-    //    //    ASSERT (0 < depth && depth < MAX_DEPTH);
-    //    //
-    //    //    if (depth <= 0 /*|| isTerminal(pos)*/)  // cutoff test
-    //    //    {
-    //    //        return evaluate(pos);
-    //    //    }
-    //    //
-    //    //    // Probe the transposition table
-    //    //    // todo::
-    //    //
-    //    //
-    //    //    if (depth >= MAX_DEPTH)
-    //    //    {
-    //    //
-    //    //
-    //    //    }
-    //    //
-    //    //    Score bestScore = -VALUE_INFINITE;
-    //    //    Move  bestMove  = MOVE_NONE;
-    //    //
-    //    //    Score alpha_old = alpha;
-    //    //
-    //    //    const bool inCheck = pos.checkers();
-    //    //
-    //    //    MoveList lst_move  = pos.GenerateLegalMoves();
-    //    //    for (MoveList::const_iterator itr = lst_move.cbegin(); itr != lst_move.cend(); ++itr)
-    //    //        //for (auto m : lst_move)
-    //    //    {
-    //    //        Move m  = *itr;
-    //    //        Position c_pos  = pos;
-    //    //        //c_pos.do_move(m);
-    //    //        Score curScore  = -NegaMaxAlphaBeta(c_pos, depth-1, -beta, -alpha);
-    //    //
-    //    //        if (curScore > bestScore)
-    //    //        {
-    //    //            bestScore = curScore;
-    //    //
-    //    //            if (bestScore > alpha)
-    //    //            {
-    //    //                bestMove = m;
-    //    //
-    //    //                if (bestScore >= beta)
-    //    //                {
-    //    //                    goto finish;
-    //    //                }
-    //    //
-    //    //                ASSERT (bestScore < beta);
-    //    //                alpha = bestScore;
-    //    //            }
-    //    //        }
-    //    //    }
-    //    //
-    //    //    // No legal move was found. Check if it's checkmate or stalemate.
-    //    //    if (-VALUE_INFINITE == bestScore /*|| MOVE_NONE == bestMove*/)
-    //    //    {
-    //    //        if (inCheck)
-    //    //        { // checkmate
-    //    //            bestScore += depth;
-    //    //        }
-    //    //        else
-    //    //        { // stalemate
-    //    //            //bestScore = variation->drawScore[position->activeColor];
-    //    //        }
-    //    //    }
-    //    //
-    //    //
-    //    //finish:
-    //    //
-    //    //    if (MOVE_NONE != bestMove)
-    //    //    {
-    //    //
-    //    //
-    //    //    }
-    //    //
-    //    //    //TEType type = (bestScore > alpha_old) ? (bestScore >= beta ? ALPHA : EXACT) : BETA;
-    //    //
-    //    //    ASSERT (-VALUE_INFINITE <= bestScore && bestScore <= VALUE_INFINITE);
-    //    //    return bestScore;
-    //    //}
-    //
-    //    //void addNodeToTable(int TYPE, int SCORE, int DEPTHLEFT)
-    //    //{
-    //    //    // add node with parameters
-    //    //}
-    //
-    //    //int alphaBetaMax(Position &pos, int alpha, int beta, int height)
-    //    //{
-    //    //    if (height == 0) return evaluate();
-    //    //    for (all lst_move)
-    //    //    {
-    //    //
-    //    //        tableEntry entry = getEntryForNode(currentBoardConfig);
-    //    //        bool entryLookupResult = false;
-    //    //
-    //    //        if (entry.height <= height)
-    //    //        {
-    //    //            if (entry.type == EXACT)
-    //    //            {
-    //    //                score = entry.score;
-    //    //                entryLookupResult = true;
-    //    //                // do I return here?
-    //    //            }
-    //    //            else if (entry.type == UPPER)
-    //    //            {
-    //    //                if (entry.score <= alpha)
-    //    //                {
-    //    //                    return alpha;
-    //    //                }
-    //    //            }
-    //    //            else if (entry.type == LOWER)
-    //    //            {
-    //    //                if (entry.score >= beta)
-    //    //                {
-    //    //                    return beta;
-    //    //                }
-    //    //            }
-    //    //        }
-    //    //
-    //    //        if (entryLookupResult == false)
-    //    //            score = alphaBetaMin(alpha, beta, height-1);
-    //    //
-    //    //
-    //    //        if (score >= beta)
-    //    //        {
-    //    //             addNodeToTable(LOWER, beta); // should "beta" be "score" instead?
-    //    //             return beta; // beta-cutoff
-    //    //        }
-    //    //        if (score > alpha)
-    //    //        {
-    //    //            addNodeToTable(EXACT, score);
-    //    //            alpha = score; // alpha acts like max in MiniMax
-    //    //        }
-    //    //    }
-    //    //
-    //    //    return alpha;
-    //    //}
-    //
-    //    //int alphaBetaMin(Position &pos, int alpha, int beta, int height)
-    //    //{
-    //    //    if (height == 0) return -evaluate();
-    //    //    for (all lst_move)
-    //    //    {
-    //    //        tableEntry entry = getEntryForNode(currentBoardConfig);
-    //    //        bool entryLookupResult = false;
-    //    //
-    //    //        if (entry.height <= height)
-    //    //        {
-    //    //            if (entry.type == EXACT)
-    //    //            {
-    //    //                score = entry.score;
-    //    //                entryLookupResult = true;
-    //    //                // do i return here?
-    //    //            }
-    //    //
-    //    //            else if (entry.type == UPPER)
-    //    //            {
-    //    //                if (entry.score <= alpha)
-    //    //                {
-    //    //                    return alpha;
-    //    //                }
-    //    //            }
-    //    //            else if (entry.type == LOWER)
-    //    //            {
-    //    //                if (entry.score >= beta)
-    //    //                {
-    //    //                    return beta;
-    //    //                }
-    //    //            }
-    //    //        }
-    //    //
-    //    //
-    //    //        if (entryLookupResult == false)
-    //    //          score = alphaBetaMax(alpha, beta, height-1);
-    //    //
-    //    //       if (score <= alpha)
-    //    //       {
-    //    //            addNodeToTable(UPPER, alpha); // should "alpha" be "score" instead?
-    //    //            return alpha// alpha-cutoff
-    //    //       }
-    //    //       if (score < beta)
-    //    //       {
-    //    //           addNodeToTable(EXACT, score);
-    //    //           beta = score; // beta acts like min in MiniMax
-    //    //       }
-    //    //    }
-    //    //
-    //    //     return beta;
-    //    //}
-    //
-    //    //int alphaBetaTT(ChessBoard board, int depth, int alpha, int beta) 
-    //    //{
-    //    //    int value;
-    //    //    TranspositionEntry te = GetTTEntry(board.getHashKey());
-    //    //    if (te != null && te.depth >= depth)
-    //    //    {
-    //    //        if (te.type == EXACT_VALUE) // stored value is exact
-    //    //            return te.value;
-    //    //        if (te.type == LOWERBOUND && te.value > alpha) 
-    //    //            alpha = te.value; // update lowerbound alpha if needed
-    //    //        else if (te.type == UPPERBOUND && te.value < beta)
-    //    //            beta = te.value; // update upperbound beta if needed
-    //    //        if (alpha >= beta)
-    //    //            return te.value; // if lowerbound surpasses upperbound
-    //    //    }
-    //    //    if (depth == 0 || board.isEnded())
-    //    //    {
-    //    //        value = evaluate(board);
-    //    //        if (value <= alpha) // a lowerbound value
-    //    //            StoreTTEntry(board.getHashKey(), value, LOWERBOUND, depth);
-    //    //        else if (value >= beta) // an upperbound value
-    //    //            StoreTTEntry(board.getHashKey(), value, UPPERBOUND, depth);
-    //    //        else // a true minimax value
-    //    //            StoreTTEntry(board.getHashKey(), value, EXACT, depth);
-    //    //        return value;
-    //    //    }
-    //    //    board.getOrderedMoves();
-    //    //    int best = -MATE-1;
-    //    //    int move; ChessBoard nextBoard; 
-    //    //    while (board.hasMoreMoves()) 
-    //    //    {
-    //    //        move = board.getNextMove();
-    //    //        nextBoard = board.makeMove(move);
-    //    //        value = -alphaBetaTT(nextBoard, depth-1,-beta,-alpha);
-    //    //        if (value > best) 
-    //    //            best = value;
-    //    //        if (best > alpha)
-    //    //            alpha = best;
-    //    //        if (best >= beta)
-    //    //            break;
-    //    //    }
-    //    //    if (best <= alpha) // a lowerbound value
-    //    //        StoreTTEntry(board.getHashKey(), best, LOWERBOUND, depth);
-    //    //    else if (best >= beta) // an upperbound value
-    //    //        StoreTTEntry(board.getHashKey(), best, UPPERBOUND, depth);
-    //    //    else // a true minimax value
-    //    //        StoreTTEntry(board.getHashKey(), best, EXACT, depth);
-    //    //    return best;
-    //    //}
-
-#pragma endregion
