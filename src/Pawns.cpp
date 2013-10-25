@@ -4,7 +4,6 @@
 
 using namespace BitBoard;
 
-
 namespace {
 
 #define V Value
@@ -31,7 +30,7 @@ namespace {
         {S(20, 28), S(29, 31), S(33, 31), S(33, 31),
         S(33, 31), S(33, 31), S(29, 31), S(20, 28), } };
 
-    // Pawn chain membership bonus by file
+    // Pawn chain membership bonus by [file] and [rank]
     const Score ChainMember[F_NO][R_NO] = {
         { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
         { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
@@ -42,7 +41,7 @@ namespace {
         { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
         { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
 
-    // Candidate passed pawn bonus by rank
+    // Candidate passed pawn bonus by [rank]
     const Score CandidatePassed[R_NO] = {
         S( 0, 0), S( 6, 13), S(6,13), S(14,29), S(34,68), S(83,166), S(0, 0), S( 0, 0), };
 
@@ -67,7 +66,7 @@ namespace {
     template<Color C>
     Score evaluate(const Position &pos, Pawns::Entry* e)
     {
-        const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
+        const Color  C_  = ((WHITE == C) ? BLACK  : WHITE);
         const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
         const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
         const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
@@ -104,9 +103,9 @@ namespace {
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
-            bool chain    =   w_pawns   & adj_files_bb(f) & b;
-            bool isolated = !(w_pawns   & adj_files_bb(f));
-            bool doubled  =   w_pawns   & front_squares_bb(C, s);
+            bool chain    =   w_pawns & adj_files_bb(f) & b;
+            bool isolated = !(w_pawns & adj_files_bb(f));
+            bool doubled  =   w_pawns & front_squares_bb(C, s);
             bool opposed  =   b_pawns & front_squares_bb(C, s);
             bool passed   = !(b_pawns & passer_span_pawn_bb(C, s));
             
@@ -191,12 +190,11 @@ namespace Pawns {
         return e;
     }
 
-
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
     template<Color C>
-    Value Entry::shelter_storm(const Position &pos, Square ksq) {
-
+    Value Entry::shelter_storm(const Position &pos, Square ksq)
+    {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         Value safety = MaxSafetyBonus;
@@ -220,10 +218,8 @@ namespace Pawns {
         return safety;
     }
 
-
     // Entry::update_safety() calculates and caches a bonus for king safety. It is
     // called only when king square changes, about 20% of total king_safety() calls.
-
     template<Color C>
     Score Entry::update_safety(const Position &pos, Square ksq)
     {

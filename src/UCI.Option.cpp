@@ -6,12 +6,12 @@
 #include <iostream>
 #include "xcstring.h"
 #include "xstring.h"
-#include "atomicstream.h"
 
-#include "Searcher.h"
 #include "Transposition.h"
+#include "PolyglotBook.h"
 #include "Searcher.h"
 
+#include "atomicstream.h"
 #include "iologger.h"
 
 //#include "Thread.h"

@@ -151,7 +151,14 @@ public:
 
 // The position data structure. A position consists of the following data:
 //
-//  - Board for storing pieces.
+// Board consits of data about piece placement
+//  - 64-entry array of pieces, indexed by the square.
+//  - Bitboards of each piece type.
+//  - Bitboards of each color
+//  - Bitboard of all occupied squares.
+//  - List of squares for the pieces.
+//  - Count of the pieces.
+//  - ----------x-----------
 //  - Color of side on move.
 //  - Ply of the game.
 //  - StateInfo object for the base status.
@@ -462,10 +469,10 @@ public:
 
 inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); }
 
-inline const Piece    Position::operator[] (Square s) const { return _piece_arr[s]; }
-inline const Bitboard Position::operator[] (Color  c) const { return _color_bb[c]; }
-inline const Bitboard Position::operator[] (PType  t) const { return _types_bb[t]; }
-inline const SquareList Position::operator[] (Piece p) const { return _piece_list[_color (p)][_ptype (p)]; }
+inline const Piece      Position::operator[] (Square s) const { return _piece_arr[s]; }
+inline const Bitboard   Position::operator[] (Color  c) const { return _color_bb[c]; }
+inline const Bitboard   Position::operator[] (PType  t) const { return _types_bb[t]; }
+inline const SquareList Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
 inline Square Position::king_sq (Color c) const
 {
@@ -564,18 +571,18 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 #pragma endregion
 
 // Color of the side on move
-inline Color    Position::active () const { return _active; }
+inline Color    Position::active ()    const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = std::max (2 * (game_move - 1), 0) + (BLACK == Active)
-inline uint16_t Position::game_ply () const { return _game_ply; }
+inline uint16_t Position::game_ply ()  const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return std::max<uint32_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline uint16_t Position::game_move () const { return std::max<uint16_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
-inline bool     Position::chess960 () const { return _chess960; }
+inline bool     Position::chess960 ()  const { return _chess960; }
 
 // Nodes visited
-inline uint64_t& Position::game_nodes () { return _game_nodes; }
+inline uint64_t& Position::game_nodes ()     { return _game_nodes; }
 
 #pragma endregion
 
@@ -720,7 +727,6 @@ inline bool Position::has_pair_bishops (Color c) const
 }
 
 #pragma endregion
-
 
 #pragma endregion
 

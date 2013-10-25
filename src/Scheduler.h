@@ -75,7 +75,7 @@ public:
 
     Scheduler()
         : go_on (true)
-        , thread (new std::thread ([this] () { thread_work (); }))
+        , thread (new std::thread ([this] () { work_thread (); }))
     { }
 
     ~Scheduler()
@@ -84,7 +84,7 @@ public:
         thread->join ();
     }
 
-    void thread_work ()
+    void work_thread ()
     {
         while (go_on)
         {

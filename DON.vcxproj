@@ -574,7 +574,6 @@
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
-    <ClCompile Include="src\PawnStructure.cpp" />
     <ClCompile Include="src\PGN.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
@@ -614,7 +613,6 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\PawnStructure.h" />
     <ClInclude Include="src\PGN.h" />
     <ClInclude Include="src\Piece.h" />
     <ClInclude Include="src\Platform.h" />

@@ -5,12 +5,10 @@
 #include "Time.h"
 #include <iomanip>
 
-#include "PolyglotBook.h"
+#include "Move.h"
 #include "Position.h"
-#include "MoveGenerator.h"
-#include "Evaluator.h"
 
-class Position;
+class PolyglotBook;
 
 namespace Searcher {
 
@@ -24,7 +22,6 @@ namespace Searcher {
     const uint16_t MAX_THREAT = 90;
 
     extern PolyglotBook book;
-
 
     // GameClock stores the available time and time-gain per move
     typedef struct GameClock
@@ -141,15 +138,15 @@ namespace Searcher {
 
     };
 
-    extern Limits               limits;
-    extern volatile Signals     signals;
+    extern Limits                limits;
+    extern volatile Signals      signals;
 
-    extern std::vector<RootMove> root_moves;
-    extern Position             rootPos;
-    extern Color                rootColor;
-    extern StateInfoStackPtr    setupStates;
+    extern std::vector<RootMove> rootMoves;
+    extern Position              rootPos;
+    extern Color                 rootColor;
+    extern StateInfoStackPtr     setupStates;
 
-    extern Time::point          searchTime;
+    extern Time::point           searchTime;
 
 
     extern void think ();
@@ -197,30 +194,29 @@ namespace Searcher {
 
     //extern void search(const Position &pos, Depth depth);
 
-
 }
 
-inline std::ostream& operator<< (std::ostream &os, const Score &score)
-{
-    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
-    {
-        os.setf (std::ios_base::fixed, std::ios_base::floatfield);
-        os.setf (std::ios_base::right, std::ios_base::adjustfield);
-        os << std::setiosflags (std::ios_base::showpos);
-        os << std::setw (4) << std::setprecision (3) << (double) (score) / 1000;
-        os.unsetf (std::ios_base::showpos);
-    }
-    else
-    {
-        os << ((score > 0) ? "+" : "-");
-        int32_t value = VALUE_INFINITE - abs (int16_t (score));
-        os << "MAT" << value;
-        if (value < 10)
-        {
-            os << " ";
-        }
-    }
-    return os;
-}
+//inline std::ostream& operator<< (std::ostream &os, const Score &score)
+//{
+//    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
+//    {
+//        os.setf (std::ios_base::fixed, std::ios_base::floatfield);
+//        os.setf (std::ios_base::right, std::ios_base::adjustfield);
+//        os << std::setiosflags (std::ios_base::showpos);
+//        os << std::setw (4) << std::setprecision (3) << (double) (score) / 1000;
+//        os.unsetf (std::ios_base::showpos);
+//    }
+//    else
+//    {
+//        os << ((score > 0) ? "+" : "-");
+//        int32_t value = VALUE_INFINITE - abs (int16_t (score));
+//        os << "MAT" << value;
+//        if (value < 10)
+//        {
+//            os << " ";
+//        }
+//    }
+//    return os;
+//}
 
 #endif // SEARCHER_H_
