@@ -429,25 +429,27 @@ namespace {
     template<PType T, Color C>
     Score evaluate_outposts(const Position &pos, EvalInfo &ei, Square s)
     {
+        //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
         assert (BSHP == T || NIHT == T);
+        
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         // Initial bonus based on square
-        Value bonus;
-        switch (T)
-        {
-        case NIHT: bonus = Outpost[NIHT][rel_sq(C, s)]; break;
-        case BSHP: bonus = Outpost[BSHP][rel_sq(C, s)]; break;
-        }
+        Value bonus = Outpost[T - NIHT][rel_sq (C, s)];
+
         // Increase bonus if supported by pawn, especially if the opponent has
         // no minor piece which can exchange the outpost piece.
         if (bonus && (ei.attackedBy[C][PAWN] & s))
         {
             if (   !pos.pieces(C_, NIHT)
                 && !(squares_of_color(s) & pos.pieces(C_, BSHP)))
+            {
                 bonus += bonus + bonus / 2;
+            }
             else
+            {
                 bonus += bonus / 2;
+            }
         }
         return mk_score (bonus, bonus);
     }
@@ -583,8 +585,8 @@ namespace {
             // pawn diagonally in front of it is a very serious problem, especially
             // when that pawn is also blocked.
             if (   BSHP == T
-                && pos.chess960()
-                && (s == rel_sq(C, SQ_A1) || s == rel_sq(C, SQ_H1)))
+                && pos.chess960 ()
+                && (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
             {
                 const Piece P = (C | PAWN);
                 Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
@@ -646,8 +648,7 @@ namespace {
         // King shelter and enemy pawns storm
         Score score = ei.pi->king_safety<C>(pos, k_sq);
 
-        // King safety. This is quite complicated, and is almost certainly far
-        // from optimally tuned.
+        // Main king safety evaluation
         if (   ei.kingAttackersCount[C_] >= 2
             && ei.kingAdjacentZoneAttacksCount[C_])
         {
@@ -668,7 +669,7 @@ namespace {
             int32_t attack_units =
                 std::min(20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
                 + 3 * (ei.kingAdjacentZoneAttacksCount[C_] + pop_count<MAX15>(undefended))
-                + KingExposed[rel_sq(C, k_sq)] - mg_value(score) / 32;
+                + KingExposed[rel_sq (C, k_sq)] - mg_value(score) / 32;
 
             // Analyse enemy's safe queen contact checks. First find undefended
             // squares around the king attacked by enemy queen...
