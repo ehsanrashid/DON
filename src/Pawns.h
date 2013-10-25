@@ -14,7 +14,6 @@ namespace Pawns {
     // bitboard of passed pawns. We may want to add further information in the future.
     // A lookup to the pawn hash table (performed by calling the probe function)
     // returns a pointer to an Entry object.
-
     struct Entry
     {
 
@@ -32,9 +31,9 @@ namespace Pawns {
         int32_t _semiopen_files[CLR_NO];
         Score _king_safety[CLR_NO];
 
-        Score pawns_value() const { return _pawn_value; }
-        Bitboard pawn_attacks(Color c) const { return _pawn_attacks[c]; }
-        Bitboard passed_pawns(Color c) const { return _passed_pawns[c]; }
+        Score pawns_value()               const { return _pawn_value; }
+        Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
+        Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }
         Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
         int32_t pawns_on_same_color_squares(Color c, Square s) const { return num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)]; }
         int32_t semiopen(Color c, File f) const { return _semiopen_files[c] & (1 << int32_t(f)); }

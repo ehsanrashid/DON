@@ -254,14 +254,14 @@ public:
     //Bitboard pieces (Piece p) const;
 
     template<PType T>
-    uint32_t piece_count (Color c) const;
+    int32_t piece_count (Color c) const;
     template<PType T>
-    uint32_t piece_count () const;
-    uint32_t piece_count (Color c) const;
-    uint32_t piece_count () const;
-    uint32_t piece_count (Color c, PType t) const;
-    //uint32_t piece_count (Piece p) const;
-    //uint32_t piece_count (PType t) const;
+    int32_t piece_count () const;
+    int32_t piece_count (Color c) const;
+    int32_t piece_count () const;
+    int32_t piece_count (Color c, PType t) const;
+    //int32_t piece_count (Piece p) const;
+    //int32_t piece_count (PType t) const;
 
     template<PType T>
     const SquareList list (Color c) const;
@@ -482,19 +482,19 @@ inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
 
 template<PType T>
-inline uint32_t Position::piece_count (Color c) const { return _piece_list[c][T].size (); }
+inline int32_t Position::piece_count (Color c) const { return _piece_list[c][T].size (); }
 template<PType T>
-inline uint32_t Position::piece_count ()        const { return piece_count<T> (WHITE) + piece_count<T> (BLACK); }
-inline uint32_t Position::piece_count (Color c) const
+inline int32_t Position::piece_count ()        const { return piece_count<T> (WHITE) + piece_count<T> (BLACK); }
+inline int32_t Position::piece_count (Color c) const
 {
     return
         piece_count<PAWN> (c) + piece_count<NIHT> (c) + piece_count<BSHP> (c) +
         piece_count<ROOK> (c) + piece_count<QUEN> (c) + piece_count<KING> (c);
 }   
-inline uint32_t Position::piece_count ()                 const { return piece_count (WHITE) + piece_count (BLACK); }
-inline uint32_t Position::piece_count (Color c, PType t) const { return _piece_list[c][t].size (); }
-//inline uint32_t Position::piece_count (Piece p) const { return _piece_list[_color (p)][_ptype (p)].size (); }
-//inline uint32_t Position::piece_count (PType t) const { return piece_count (WHITE, t) + piece_count (BLACK, t); }
+inline int32_t Position::piece_count ()                 const { return piece_count (WHITE) + piece_count (BLACK); }
+inline int32_t Position::piece_count (Color c, PType t) const { return _piece_list[c][t].size (); }
+//inline int32_t Position::piece_count (Piece p) const { return _piece_list[_color (p)][_ptype (p)].size (); }
+//inline int32_t Position::piece_count (PType t) const { return piece_count (WHITE, t) + piece_count (BLACK, t); }
 
 template<PType T>
 inline const SquareList Position::list (Color c) const { return _piece_list[c][T]; }
@@ -701,17 +701,17 @@ inline bool Position::has_pawn_on_7thR (Color c) const
 inline bool Position::has_opposite_bishops () const
 {
     return
-        (piece_count (WHITE, BSHP) == 1) &&
-        (piece_count (BLACK, BSHP) == 1) &&
-        opposite_colors(list<BSHP>(WHITE)[0],list<BSHP>(BLACK)[0]);
+        (piece_count<BSHP> (WHITE) == 1) &&
+        (piece_count<BSHP> (BLACK) == 1) &&
+        opposite_colors(list<BSHP>(WHITE)[0], list<BSHP>(BLACK)[0]);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::has_pair_bishops (Color c) const
 {
-    uint32_t bishop_count = piece_count(c, BSHP);
+    int32_t bishop_count = piece_count<BSHP>(c);
     if (bishop_count >= 2)
     {
-        for (uint32_t cnt = 0; cnt < bishop_count-1; ++cnt)
+        for (int32_t cnt = 0; cnt < bishop_count-1; ++cnt)
         {
             if (opposite_colors(list<BSHP>(c)[cnt], list<BSHP>(c)[cnt+1])) return true;
         }

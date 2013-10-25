@@ -58,8 +58,8 @@ namespace Zobrist {
         {
             for (PType t = PAWN; t <= QUEN; ++t)
             {
-                uint8_t ps_count = pos.piece_count (c, t);
-                for (uint8_t cnt = 0; cnt < ps_count; ++cnt)
+                int32_t ps_count = pos.piece_count (c, t);
+                for (int32_t cnt = 0; cnt < ps_count; ++cnt)
                 {
                     matl_key ^= _.ps_sq[c][t][cnt];
                 }
@@ -84,7 +84,7 @@ namespace Zobrist {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             const SquareList &lst_sq = pos.list<PAWN> (c);
-            for (uint8_t cnt = 0; cnt < lst_sq.size (); ++cnt)
+            for (int32_t cnt = 0; cnt < lst_sq.size (); ++cnt)
             {
                 Square s = lst_sq[cnt];
                 pawn_key ^= _.ps_sq[c][PAWN][s];
@@ -109,7 +109,7 @@ namespace Zobrist {
         //    for (PType t = PAWN; t <= KING; ++t)
         //    {
         //        SquareList lst_sq = square_list (pos[c] & pos[t]);
-        //        for (uint8_t cnt = 0; cnt < lst_sq.size (); ++cnt)
+        //        for (int32_t cnt = 0; cnt < lst_sq.size (); ++cnt)
         //        {
         //            Square s = lst_sq[cnt];
         //            posi_key ^= _.ps_sq[c][t][s];
@@ -130,7 +130,7 @@ namespace Zobrist {
             for (PType t = PAWN; t <= KING; ++t)
             {
                 const SquareList &lst_sq = pos[c | t];
-                for (uint8_t cnt = 0; cnt < lst_sq.size (); ++cnt)
+                for (int32_t cnt = 0; cnt < lst_sq.size (); ++cnt)
                 {
                     Square s = lst_sq[cnt];
                     posi_key ^= _.ps_sq[c][t][s];

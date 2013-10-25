@@ -139,7 +139,7 @@ Value Endgame<KXK>::operator()(const Position &pos) const
 
     Value value =
         pos.non_pawn_material(_strong_side)
-        + int32_t (pos.piece_count<PAWN>(_strong_side)) * VALUE_EG_PAWN
+        + pos.piece_count<PAWN>(_strong_side) * VALUE_EG_PAWN
         + PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
 
     if (   pos.piece_count<QUEN>(_strong_side)

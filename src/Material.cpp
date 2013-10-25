@@ -63,15 +63,15 @@ namespace {
 
     template<Color C> bool is_KBPsKs(const Position &pos)
     {
-        return   pos.non_pawn_material(C) == VALUE_MG_BISHOP
+        return pos.non_pawn_material(C) == VALUE_MG_BISHOP
             && pos.piece_count<BSHP>(C) == 1
-            && pos.piece_count<PAWN  >(C) >= 1;
+            && pos.piece_count<PAWN>(C) >= 1;
     }
 
     template<Color C> bool is_KQKRPs(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        return  !pos.piece_count<PAWN>(C)
+        return!pos.piece_count<PAWN>(C)
             && pos.non_pawn_material(C) == VALUE_MG_QUEEN
             && pos.piece_count<QUEN>(C)  == 1
             && pos.piece_count<ROOK>(C_) == 1
@@ -105,9 +105,10 @@ namespace {
 
             for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
-                v += QuadraticCoefficientsSameColor[pt1][pt2] * piece_count[C][pt2]
+                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C][pt2]
                 +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
             }
+
             value += pc * v;
         }
         return value;

@@ -172,6 +172,7 @@ namespace {
     const Score RookOpenFile     = mk_score (43, 21);
     const Score RookSemiopenFile = mk_score (19, 10);
     const Score BishopPawns      = mk_score ( 8, 12);
+    const Score KnightPawns      = mk_score ( 8,  4);
     const Score MinorBehindPawn  = mk_score (16,  0);
     const Score UndefendedMinor  = mk_score (25, 10);
     const Score TrappedRook      = mk_score (90,  0);
@@ -201,12 +202,12 @@ namespace {
     const int32_t KingAttackWeights[PT_NO] = { 0, 0, 2, 2, 3, 5 };
 
     // Bonuses for enemy's safe checks
-    const int QueenContactCheck = 12;
-    const int RookContactCheck  = 8;
-    const int QueenCheck        = 6;
-    const int RookCheck         = 4;
-    const int BishopCheck       = 1;
-    const int KnightCheck       = 2;
+    const int QueenContactCheck = 24;
+    const int RookContactCheck  = 16;
+    const int QueenCheck        = 12;
+    const int RookCheck         = 8;
+    const int BishopCheck       = 2;
+    const int KnightCheck       = 3;
 
     // KingExposed[Square] contains penalties based on the position of the
     // defending king, indexed by king's square (from white's point of view).
@@ -513,6 +514,12 @@ namespace {
                 score -= BishopPawns * ei.pi->pawns_on_same_color_squares(C, s);
             }
 
+            // Penalty for knight when there are few enemy pawns
+            if (NIHT == T)
+            {
+                score -= KnightPawns * std::max(5 - pos.piece_count<PAWN>(C_), 0);
+            }
+
             if (BSHP == T || NIHT == T)
             {
                 // Bishop and knight outposts squares
@@ -560,7 +567,7 @@ namespace {
                     return;
                 }
 
-                Square k_sq = pos.king_sq(C);
+                Square k_sq = pos.king_sq (C);
 
                 // Penalize rooks which are trapped inside a king. Penalize more if
                 // king has lost right to castle.
