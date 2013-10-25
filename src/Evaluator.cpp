@@ -202,12 +202,12 @@ namespace {
     const int32_t KingAttackWeights[PT_NO] = { 0, 0, 2, 2, 3, 5 };
 
     // Bonuses for enemy's safe checks
-    const int QueenContactCheck = 24;
-    const int RookContactCheck  = 16;
-    const int QueenCheck        = 12;
-    const int RookCheck         = 8;
-    const int BishopCheck       = 2;
-    const int KnightCheck       = 3;
+    const int32_t QueenContactCheck = 24;
+    const int32_t RookContactCheck  = 16;
+    const int32_t QueenCheck        = 12;
+    const int32_t RookCheck         = 8;
+    const int32_t BishopCheck       = 2;
+    const int32_t KnightCheck       = 3;
 
     // KingExposed[Square] contains penalties based on the position of the
     // defending king, indexed by king's square (from white's point of view).
@@ -905,8 +905,6 @@ namespace {
             // we try the following: Increase the value for rook pawns if the
             // other side has no pieces apart from a knight, and decrease the
             // value if the other side has a rook or queen.
-
-            //if (_file (s) == F_A || _file (s) == F_H)
             if (file_bb (s) & (FA_bb | FH_bb))
             {
                 if (pos.non_pawn_material(C_) <= VALUE_MG_KNIGHT)
@@ -920,8 +918,7 @@ namespace {
             }
 
             // Increase the bonus if we have more non-pawn pieces
-            if (pos.piece_count(C ) - pos.piece_count<PAWN>(C ) >
-                pos.piece_count(C_) - pos.piece_count<PAWN>(C_))
+            if (pos.piece_count<PAWN>(C) < pos.piece_count<PAWN>(C_))
             {
                 eg_bonus += eg_bonus / 4;
             }

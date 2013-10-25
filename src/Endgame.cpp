@@ -52,24 +52,43 @@ namespace {
 
 #endif
 
+
+    // Map the square as if strongSide is white and strongSide's only pawn
+    // is on the left half of the board.
+    inline Square normalize (const Position &pos, Color strong_side, Square sq)
+    {
+        assert (pos.piece_count<PAWN>(strong_side) == 1);
+
+        if (_file (pos.list<PAWN>(strong_side)[0]) >= F_E)
+        {
+            sq = !sq;
+        }
+        if (BLACK == strong_side)
+        {
+            sq = ~sq;
+        }
+
+        return sq;
+    }
+
     // Get the material key of a Position out of the given endgame key code
     // like "KBPKN". The trick here is to first forge an ad-hoc fen string
     // and then let a Position object to do the work for us. Note that the
     // fen string could correspond to an illegal position.
     Key key (const std::string &code, Color c)
     {
-        ASSERT (code.length() > 0 && code.length() < 8);
+        ASSERT (code.length () > 0 && code.length () < 8);
         ASSERT (code[0] == 'K');
 
         std::string sides[CLR_NO] =
         {
-            code.substr(code.find('K', 1)),   // Weaker
-            code.substr(0, code.find('K', 1)) // Stronger
+            code.substr (   code.find('K', 1)), // Weak
+            code.substr (0, code.find('K', 1)), // Strong
         };
 
         std::transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
 
-        std::string fen =  sides[0] + char ('0' + int32_t (8 - code.length()))
+        std::string fen =  sides[0] + char ('0' + 8 - code.length ())
             + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
 
         //return Position(fen, false, NULL).matl_key ();
@@ -186,25 +205,12 @@ Value Endgame<KPK>::operator()(const Position &pos) const
     assert (verify_material (pos, _strong_side, VALUE_ZERO, 1));
     assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
-    Color  c   = pos.active ();
-    Square wk_sq = pos.king_sq (_strong_side);
-    Square bk_sq = pos.king_sq (_weak_side);
-    Square wp_sq = pos.list<PAWN>(_strong_side)[0];
+    // Assume _strong_side is white and the pawn is on files A-D
+    Square wk_sq = normalize (pos, _strong_side, pos.king_sq (_strong_side));
+    Square bk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
+    Square wp_sq = normalize (pos, _strong_side, pos.list<PAWN>(_strong_side)[0]);
 
-    if (BLACK == _strong_side)
-    {
-        c     = ~c;
-        wk_sq = ~wk_sq;
-        bk_sq = ~bk_sq;
-        wp_sq = ~wp_sq;
-    }
-
-    if (_file (wp_sq) >= F_E)
-    {
-        wk_sq = !(wk_sq);
-        bk_sq = !(bk_sq);
-        wp_sq = !(wp_sq);
-    }
+    Color c = (_strong_side == pos.active ()) ? WHITE : BLACK;
 
     if (!Bitbases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
     {
@@ -501,31 +507,12 @@ ScaleFactor Endgame<KRPKR>::operator()(const Position &pos) const
     assert (verify_material (pos, _strong_side, VALUE_MG_ROOK, 1));
     assert (verify_material (pos, _weak_side,   VALUE_MG_ROOK, 0));
 
-    Square wk_sq = pos.king_sq (_strong_side);
-    Square bk_sq = pos.king_sq (_weak_side);
-    Square wr_sq = pos.list<ROOK>(_strong_side)[0];
-    Square wp_sq = pos.list<PAWN>(_strong_side)[0];
-    Square br_sq = pos.list<ROOK>(_weak_side)[0];
-
-    // Orient the board in such a way that the stronger side is white, and the
-    // pawn is on the left half of the board.
-    if (BLACK == _strong_side)
-    {
-        wk_sq = ~wk_sq;
-        wr_sq = ~wr_sq;
-        wp_sq = ~wp_sq;
-        bk_sq = ~bk_sq;
-        br_sq = ~br_sq;
-    }
-
-    if (_file (wp_sq) > F_D)
-    {
-        wk_sq = !(wk_sq);
-        wr_sq = !(wr_sq);
-        wp_sq = !(wp_sq);
-        bk_sq = !(bk_sq);
-        br_sq = !(br_sq);
-    }
+    // Assume _strong_side is white and the pawn is on files A-D
+    Square wk_sq = normalize (pos, _strong_side, pos.king_sq (_strong_side));
+    Square bk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
+    Square wr_sq = normalize (pos, _strong_side, pos.list<ROOK>(_strong_side)[0]);
+    Square wp_sq = normalize (pos, _strong_side, pos.list<PAWN>(_strong_side)[0]);
+    Square br_sq = normalize (pos, _strong_side, pos.list<ROOK>(_weak_side)[0]);
 
     File f = _file (wp_sq);
     Rank r = _rank (wp_sq);
@@ -891,19 +878,15 @@ ScaleFactor Endgame<KNPK>::operator()(const Position &pos) const
     assert (verify_material (pos, _strong_side, VALUE_MG_KNIGHT, 1));
     assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
-    Square wp_sq = pos.list<PAWN>(_strong_side)[0];
-    Square bk_sq = pos.king_sq (_weak_side);
+    // Assume _strong_side is white and the pawn is on files A-D
+    Square wp_sq = normalize (pos, _strong_side, pos.list<PAWN>(_strong_side)[0]);
+    Square bk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
 
-    if (   wp_sq == rel_sq (_strong_side, SQ_A7)
-        && square_dist (bk_sq, rel_sq (_strong_side, SQ_A8)) <= 1)
+    if (wp_sq == SQ_A7 && square_dist (SQ_A8, bk_sq) <= 1)
     {
         return SCALE_FACTOR_DRAW;
     }
-    if (   wp_sq == rel_sq (_strong_side, SQ_H7)
-        && square_dist (bk_sq, rel_sq (_strong_side, SQ_H8)) <= 1)
-    {
-        return SCALE_FACTOR_DRAW;
-    }
+
     return SCALE_FACTOR_NONE;
 }
 
@@ -936,25 +919,12 @@ ScaleFactor Endgame<KPKP>::operator()(const Position &pos) const
     assert (verify_material (pos, _strong_side, VALUE_ZERO, 1));
     assert (verify_material (pos, _weak_side,   VALUE_ZERO, 1));
 
-    Square wk_sq = pos.king_sq (_strong_side);
-    Square bk_sq = pos.king_sq (_weak_side);
-    Square wp_sq = pos.list<PAWN>(_strong_side)[0];
-    Color  c     = pos.active ();
-
-    if (BLACK == _strong_side)
-    {
-        wk_sq = ~wk_sq;
-        bk_sq = ~bk_sq;
-        wp_sq = ~wp_sq;
-        c     = ~c;
-    }
-
-    if (_file (wp_sq) >= F_E)
-    {
-        wk_sq = !(wk_sq);
-        bk_sq = !(bk_sq);
-        wp_sq = !(wp_sq);
-    }
+    // Assume _strong_side is white and the pawn is on files A-D
+    Square wk_sq = normalize (pos, _strong_side, pos.king_sq (_strong_side));
+    Square bk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
+    Square wp_sq = normalize (pos, _strong_side, pos.list<PAWN>(_strong_side)[0]);
+    
+    Color c = (_strong_side == pos.active ()) ? WHITE : BLACK;
 
     // If the pawn has advanced to the fifth rank or further, and is not a
     // rook pawn, it's too dangerous to assume that it's at least a draw.

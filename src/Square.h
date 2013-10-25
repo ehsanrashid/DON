@@ -160,15 +160,15 @@ inline Square operator!  (Square s)
 {
     return Square (s ^ 0x07);  // MIRROR => SQ_A1 -> SQ_H1
 }
-inline Rank   rel_rank (Color c, Rank r)
+inline Rank   rel_rank  (Color c, Rank r)
 {
     return Rank (r ^ (c * 0x07));
 }
-inline Rank   rel_rank (Color c, Square s)
+inline Rank   rel_rank  (Color c, Square s)
 {
     return rel_rank (c, _rank (s));
 }
-inline Square rel_sq (Color c, Square s)
+inline Square rel_sq    (Color c, Square s)
 {
     return Square (s ^ (c * 0x38));
 }

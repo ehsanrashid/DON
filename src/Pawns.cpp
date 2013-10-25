@@ -44,8 +44,7 @@ namespace {
 
     // Candidate passed pawn bonus by rank
     const Score CandidatePassed[R_NO] = {
-        S( 0, 0), S( 6, 13), S(6,13), S(14,29),
-        S(34,68), S(83,166), S(0, 0), S( 0, 0), };
+        S( 0, 0), S( 6, 13), S(6,13), S(14,29), S(34,68), S(83,166), S(0, 0), S( 0, 0), };
 
     // Weakness of our pawn shelter in front of the king indexed by [rank]
     const Value ShelterWeakness[R_NO] = {
@@ -95,6 +94,7 @@ namespace {
             assert(pos[s] == (C | PAWN));
 
             File f = _file (s);
+            Rank r = rel_rank (C, s);
 
             // This file cannot be semi-open
             e->_semiopen_files[C] &= ~(1 << f);
@@ -128,14 +128,14 @@ namespace {
                 // backward by looking in the forward direction on the adjacent
                 // files, and picking the closest pawn there.
                 b = attack_span_pawn_bb(C, s) & (w_pawns | b_pawns);
-                b = attack_span_pawn_bb(C, s) & rank_bb(backmost_rel_sq(C, b));
+                b = attack_span_pawn_bb(C, s) & rank_bb (backmost_rel_sq(C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
                 backward = (b | shift_del<PUSH>(b)) & b_pawns;
             }
 
-            assert(opposed | passed | (attack_span_pawn_bb(C, s) & b_pawns));
+            assert(opposed | passed | (attack_span_pawn_bb (C, s) & b_pawns));
 
             // A not passed pawn is a candidate to become passed if it is free to
             // advance and if the number of friendly pawns beside or behind this
@@ -157,11 +157,11 @@ namespace {
 
             if (backward)   pawn_value -= Backward[opposed][f];
 
-            if (chain)      pawn_value += ChainMember[f][rel_rank(C, s)];
+            if (chain)      pawn_value += ChainMember[f][r];
 
             if (candidate)
             {
-                pawn_value += CandidatePassed[rel_rank(C, s)];
+                pawn_value += CandidatePassed[r];
 
                 if (!doubled) e->_candidate_pawns[C] |= s;
             }
