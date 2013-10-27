@@ -324,12 +324,12 @@ public:
 
 #pragma endregion
 
-    Color active () const;
-    uint16_t game_ply () const;
+    Color    active    () const;
+    uint16_t game_ply  () const;
     uint16_t game_move () const;
-    bool chess960 () const;
+    bool     chess960  () const;
 
-    uint64_t& game_nodes ();
+    uint64_t game_nodes () const;
 
     bool draw () const;
     bool ok (int8_t *failed_step = NULL) const;
@@ -582,7 +582,7 @@ inline uint16_t Position::game_move () const { return std::max<uint16_t> ((_game
 inline bool     Position::chess960 ()  const { return _chess960; }
 
 // Nodes visited
-inline uint64_t& Position::game_nodes ()     { return _game_nodes; }
+inline uint64_t Position::game_nodes () const { return _game_nodes; }
 
 #pragma endregion
 

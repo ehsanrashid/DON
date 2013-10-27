@@ -579,6 +579,7 @@
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\Tester.cpp" />
+    <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
     <ClCompile Include="src\TriLogger.cpp" />
     <ClCompile Include="src\UCI.cpp" />
@@ -626,6 +627,7 @@
     <ClInclude Include="src\ThreadPool.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />
+    <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\TriLogger.h" />

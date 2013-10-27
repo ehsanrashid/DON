@@ -1,6 +1,6 @@
 //#pragma once
-#ifndef MOVEGENERATOR_H_
-#define MOVEGENERATOR_H_
+#ifndef MOVE_GENERATOR_H_
+#define MOVE_GENERATOR_H_
 
 #include "Move.h"
 
