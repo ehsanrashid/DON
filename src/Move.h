@@ -150,8 +150,6 @@ inline std::basic_ostream<charT, Traits>&
 
 // ----------------------------------
 
-typedef std::vector<Move>   MoveList;
-
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &lst_move)

@@ -465,8 +465,6 @@ namespace {
 
         ei.attackedBy[C][T] = 0;
 
-        //Square s;
-        //while ((s = *pl++) != SQ_NO)
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
@@ -519,7 +517,7 @@ namespace {
             // Penalty for knight when there are few enemy pawns
             if (NIHT == T)
             {
-                score -= KnightPawns * std::max(5 - pos.piece_count<PAWN>(C_), 0);
+                score -= KnightPawns * std::max (5 - pos.piece_count<PAWN>(C_), 0);
             }
 
             if (BSHP == T || NIHT == T)
@@ -667,7 +665,7 @@ namespace {
             // attacked and undefended squares around our king, the square of the
             // king, and the quality of the pawn shelter.
             int32_t attack_units =
-                std::min(20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
+                std::min (20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
                 + 3 * (ei.kingAdjacentZoneAttacksCount[C_] + pop_count<MAX15>(undefended))
                 + KingExposed[rel_sq (C, k_sq)] - mg_value(score) / 32;
 
@@ -730,7 +728,7 @@ namespace {
             if (b) attack_units += KnightCheck * pop_count<MAX15>(b);
 
             // To index KingDanger[] attack_units must be in [0, 99] range
-            attack_units = std::min(std::max(0, attack_units), 99);
+            attack_units = std::min (std::max (0, attack_units), 99);
 
             // Finally, extract the king danger score from the KingDanger[]
             // array and subtract the score from evaluation. Set also margins[]
@@ -1121,7 +1119,7 @@ namespace Evaluator {
 
         for (int32_t t = 0, i = 1; i < 100; ++i)
         {
-            t = std::min(Peak, std::min(int32_t (0.4 * i * i), t + MaxSlope));
+            t = std::min (Peak, std::min (int32_t (0.4 * i * i), t + MaxSlope));
 
             KingDanger[1][i] = apply_weight (mk_score (t, 0), Weights[KingDanger_C]);
             KingDanger[0][i] = apply_weight (mk_score (t, 0), Weights[KingDanger_C_]);

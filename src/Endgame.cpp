@@ -670,7 +670,7 @@ ScaleFactor Endgame<KRPPKRP>::operator()(const Position &pos) const
         return SCALE_FACTOR_NONE;
     }
 
-    Rank r = std::max(rel_rank (_strong_side, wpsq1), rel_rank (_strong_side, wpsq2));
+    Rank r = std::max (rel_rank (_strong_side, wpsq1), rel_rank (_strong_side, wpsq2));
 
     if (   file_dist (bk_sq, wpsq1) <= 1
         && file_dist (bk_sq, wpsq2) <= 1

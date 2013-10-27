@@ -24,7 +24,7 @@ namespace Pawns {
         Bitboard _pawn_attacks[CLR_NO];
         
         Square  _king_sq[CLR_NO];
-        int32_t num_pawns_on_sq[CLR_NO][CLR_NO];
+        int32_t _num_pawns_on_sq[CLR_NO][CLR_NO];
         int32_t _min_dist_KP[CLR_NO];
         int32_t _castle_rights[CLR_NO];
         int32_t _semiopen_files[CLR_NO];
@@ -36,7 +36,7 @@ namespace Pawns {
         Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
         int32_t  pawns_on_same_color_squares(Color c, Square s) const
         {
-            return num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)];
+            return _num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)];
         }
         int32_t  semiopen        (Color c, File f) const
         {

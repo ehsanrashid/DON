@@ -87,6 +87,7 @@ inline void RKISS::init (uint32_t seed)
     S.A = U64 (0xF1EA5EED);
     S.B = S.C = S.D = U64 (0xD4E12C77);
 
+    // PRNG sequence should be not deterministic
     // Scramble a few rounds
     uint32_t round = (seed % 1000);
     for (uint32_t i = 0; i < round; ++i) rand64 ();

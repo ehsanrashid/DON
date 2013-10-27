@@ -181,10 +181,10 @@ public:
         }
     }
 
-    // inc_age() is called at the beginning of every new search.
+    // new_gen() is called at the beginning of every new search.
     // It increments the "Generation" variable, which is used to distinguish
     // transposition table entries from previous searches from entries from the current search.
-    void inc_age ()
+    void new_gen ()
     {
         _stored_entry    = 0;
         ++_generation;

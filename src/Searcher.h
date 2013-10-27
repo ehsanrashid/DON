@@ -12,10 +12,12 @@ class PolyglotBook;
 
 namespace Searcher {
 
+    //const uint16_t MAX_MOVES = 192;
+    //const uint16_t MAX_PLY   = 100;
+    //const uint16_t MAX_PLY_2 = MAX_PLY + 2;
+
     const uint16_t MAX_DEPTH = 64;
-    const uint16_t MAX_MOVES = 192;
-    const uint16_t MAX_PLY   = 100;
-    const uint16_t MAX_PLY_2 = MAX_PLY + 2;
+
 
     const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
     const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60

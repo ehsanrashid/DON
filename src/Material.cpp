@@ -232,12 +232,12 @@ namespace Material {
         // catches some trivial draws like KK, KBK and KNK
         if (!pos.piece_count<PAWN>(WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min(pos.piece_count<BSHP>(WHITE), 2)]);
+            e->factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP>(WHITE), 2)]);
         }
 
         if (!pos.piece_count<PAWN>(BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min(pos.piece_count<BSHP>(BLACK), 2)]);
+            e->factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP>(BLACK), 2)]);
         }
 
         // Compute the space weight

@@ -41,6 +41,9 @@ namespace Time {
         ONE_SEC = 1000,
     } point;
 
+    inline int64_t  operator-  (point  p1, point p2) { return int64_t (int64_t (p1) - int64_t (p2)); }
+
+
     inline point now () { return point (system_time_msec ()); }
 
     inline std::string to_string (const point t)

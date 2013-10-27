@@ -64,9 +64,9 @@
 typedef uint64_t   Bitboard; // Type for Bitboard
 typedef uint64_t   Key;      // Type for Zobrist Hash
 
-const uint8_t MAX_MOVES      = 192;
-const uint8_t MAX_PLY        = 100;
-const uint8_t MAX_PLY_PLUS_6 = MAX_PLY + 6;
+const uint16_t MAX_MOVES    = 192;
+const uint16_t MAX_PLY      = 100;
+const uint16_t MAX_PLY_6    = MAX_PLY + 6;
 
 const uint8_t MAX_THREADS                 = 64;
 const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
@@ -567,6 +567,8 @@ INC_DEC_OPERATORS (Depth);
 #undef INC_DEC_OPERATORS
 
 #pragma endregion
+
+typedef std::vector<Move>   MoveList;
 
 inline Value mates_in (int32_t ply) { return ( VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }

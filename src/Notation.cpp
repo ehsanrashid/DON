@@ -1,4 +1,8 @@
 #include "Notation.h"
+
+#include <sstream>
+#include <iomanip>
+
 #include "xstring.h"
 #include "Position.h"
 #include "MoveGenerator.h"
@@ -301,22 +305,126 @@ std::string move_to_lan (Move m, Position &pos)
     return lan;
 }
 
-//// score_to_uci() converts a value to a string suitable for use with the UCI
-//// protocol specifications:
-////
-//// cp <x>     The score from the engine's point of view in centipawns.
-//// mate <y>   Mate in y moves, not plies. If the engine is getting mated
-////            use negative values for y.
-//std::string score_to_uci(Value v, Value alpha, Value beta)
-//{
-//    std::stringstream s;
+// uci_score() converts a value to a string suitable for use with the UCI
+// protocol specifications:
 //
-//    if (abs(v) < VALUE_MATE_IN_MAX_PLY)
-//        s << "cp " << v * 100 / int(PawnValueMg);
-//    else
-//        s << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
-//
-//    s << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
-//
-//    return s.str();
-//}
+// cp <x>     The score from the engine's point of view in centipawns.
+// mate <y>   Mate in y moves, not plies. If the engine is getting mated
+//            use negative values for y.
+std::string uci_score (Value v, Value alpha, Value beta)
+{
+    std::stringstream s;
+
+    if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+    {
+        s << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
+    }
+    else
+    {
+        s << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+    }
+    s << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
+
+    return s.str();
+}
+
+namespace {
+
+    // score to string
+    std::string to_string(Value v)
+    {
+        std::stringstream s;
+
+        if (false);
+        else if (v >= VALUE_MATE_IN_MAX_PLY)
+        {
+            s << "#" << (VALUE_MATE - v + 1) / 2;
+        }
+        else if (v <= VALUE_MATED_IN_MAX_PLY)
+        {
+            s << "-#" << (VALUE_MATE + v) / 2;
+        }
+        else
+        {
+            s << std::setprecision(2) << std::fixed << std::showpos << double(v) / VALUE_MG_PAWN;
+        }
+        return s.str();
+    }
+
+    // time to string
+    std::string to_string(int64_t msecs)
+    {
+        const int MSecMinute = 1000 * 60;
+        const int MSecHour   = 1000 * 60 * 60;
+
+        int64_t hours   =   msecs / MSecHour;
+        int64_t minutes =  (msecs % MSecHour) / MSecMinute;
+        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
+
+        std::stringstream s;
+
+        if (hours) s << hours << ':';
+        s << std::setfill('0') << std::setw(2) << minutes << ':' << std::setw(2) << seconds;
+
+        return s.str();
+    }
+
+}
+
+// pretty_pv() formats human-readable search information, typically to be
+// appended to the search log file. It uses the two helpers below to pretty
+// format time and score respectively.
+std::string pretty_pv(Position& pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
+{
+    const int64_t K = 1000;
+    const int64_t M = 1000000;
+
+    StateInfoStack st;
+    std::string san, padding;
+    size_t length;
+    std::stringstream spv;
+
+    spv << std::setw(2) << depth
+        << std::setw(8) << to_string(value)
+        << std::setw(8) << to_string(msecs);
+
+    if (pos.game_nodes() < M)
+    {
+        spv << std::setw(8) << pos.game_nodes() / 1 << "  ";
+    }
+    else if (pos.game_nodes() < K * M)
+    {
+        spv << std::setw(7) << pos.game_nodes() / K << "K  ";
+    }
+    else
+    {
+        spv << std::setw(7) << pos.game_nodes() / M << "M  ";
+    }
+
+    padding = std::string (spv.str().length(), ' ');
+    length = padding.length();
+
+    std::for_each (pv.cbegin (), pv.cend (), [&] (Move m)
+    {
+        san = move_to_san (m, pos);
+
+        if (length + san.length() > 80)
+        {
+            spv << "\n" + padding;
+            length = padding.length();
+        }
+
+        spv << san << ' ';
+        length += san.length() + 1;
+
+        st.push (StateInfo());
+        pos.do_move (m, st.top ());
+    });
+
+    std::for_each (pv.crend (), pv.crbegin (), [&] (Move m)
+    {
+        pos.undo_move ();
+    });
+
+    return spv.str();
+}

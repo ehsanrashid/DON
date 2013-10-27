@@ -67,12 +67,11 @@ namespace {
     Score evaluate(const Position &pos, Pawns::Entry* e)
     {
         const Color  C_  = ((WHITE == C) ? BLACK  : WHITE);
-        const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
         const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
         const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
         Score pawn_value = SCORE_ZERO;
-        
+
         Bitboard w_pawns = pos.pieces(C, PAWN);
         Bitboard b_pawns = pos.pieces(C_, PAWN);
 
@@ -80,15 +79,15 @@ namespace {
         e->_king_sq[C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
         e->_pawn_attacks[C] = shift_del<RCAP>(w_pawns) | shift_del<LCAP>(w_pawns);
-        e->num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & DR_SQ_bb);
-        e->num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->num_pawns_on_sq[C][BLACK];
+        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & DR_SQ_bb);
+        e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->_num_pawns_on_sq[C][BLACK];
 
         const SquareList pl = pos.list<PAWN>(C);
-        auto itr = pl.cbegin ();
+
         // Loop through all pawns of the current color and score each pawn
-        while (itr != pl.cend ())
+        std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
-            Square s = *itr;
+            const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
 
             assert(pos[s] == (C | PAWN));
 
@@ -108,7 +107,7 @@ namespace {
             bool doubled  =   w_pawns & front_squares_bb(C, s);
             bool opposed  =   b_pawns & front_squares_bb(C, s);
             bool passed   = !(b_pawns & passer_span_pawn_bb(C, s));
-            
+
             bool backward;
             // Test for backward pawn.
             // If the pawn is passed, isolated, or member of a pawn chain it cannot
@@ -164,9 +163,7 @@ namespace {
 
                 if (!doubled) e->_candidate_pawns[C] |= s;
             }
-
-            ++itr;
-        }
+        });
 
         return pawn_value;
     }
@@ -202,7 +199,7 @@ namespace Pawns {
         Bitboard w_pawns = b & pos.pieces(C);
         Bitboard b_pawns = b & pos.pieces(C_);
 
-        File kf = std::max (F_B, std::min(F_G, _file (ksq)));
+        File kf = std::max (F_B, std::min (F_G, _file (ksq)));
 
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
