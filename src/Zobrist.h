@@ -33,7 +33,7 @@ namespace Zobrist {
             Key ps_sq[CLR_NO][PT_NO][SQ_NO]; // [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO]; // [COLOR][CASTLE SIDE]
             Key en_passant[F_NO];            // [ENPASSANT FILE]
-            Key side_move;                   // COLOR
+            Key mover_side;                   // COLOR
 
         } _;
 

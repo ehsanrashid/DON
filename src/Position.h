@@ -179,7 +179,7 @@ private:
     Bitboard _color_bb[CLR_NO];             // [Color]
     Bitboard _types_bb[1 + PT_NO];          // [PType] + 1 -> (ALL)
 
-    SquareList _piece_list[CLR_NO][PT_NO]; // [Color][PType]<vector>
+    SquareList _piece_list[CLR_NO][PT_NO];  // [Color][PType]<vector>
 
     // Object for base status information
     StateInfo  _sb;
@@ -203,7 +203,7 @@ private:
 
 #pragma endregion
 
-    void _link_ptr () { _si = &_sb; }
+    inline void _link_ptr () { _si = &_sb; }
 
 public:
 
@@ -211,10 +211,7 @@ public:
 
 #pragma region Constructors
 
-        Position ()
-    {
-        clear ();
-    }
+    Position () { clear (); }
     Position (const        char *fen, bool c960 = false, bool full = true)
     {
         if (!setup (fen, c960, full)) clear ();
@@ -240,7 +237,6 @@ public:
 #pragma endregion
 
     Position& operator= (const Position &pos);
-    //static void initialize ();
 
 #pragma region Basic properties
 
@@ -417,9 +413,11 @@ private:
     bool can_en_passant (File   ep_f) const;
 
 public:
+
     void flip ();
 
     Score compute_psq_score() const;
+    Value compute_non_pawn_material(Color c) const;
 
 #pragma region Do/Undo Move
 

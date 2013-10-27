@@ -438,8 +438,8 @@ namespace Tester {
         // Test polyglot zobrist
         void test_zobrist ()
         {
-            ASSERT ((ZobPG._.side_move >> 32) == U32 (0xF8D626AA));
-            //if ((ZobPG._.side_move >> 32) != U32(0xF8D626AA))
+            ASSERT ((ZobPG._.mover_side >> 32) == U32 (0xF8D626AA));
+            //if ((ZobPG._.mover_side >> 32) != U32(0xF8D626AA))
             //{ // upper half of the hash Color WHITE
             //    exit(EXIT_FAILURE);
             //}

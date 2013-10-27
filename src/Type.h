@@ -568,11 +568,18 @@ INC_DEC_OPERATORS (Depth);
 
 #pragma endregion
 
-extern Value PieceValue[PHASE_NO][PT_NO];
-
 typedef std::vector<Move>   MoveList;
 
-inline Value mates_in (int32_t ply) { return ( VALUE_MATE - ply); }
+
+CACHE_ALIGN(64)
+    const Value PieceValue[PHASE_NO][PT_NO] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
+};
+
+
+inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
 template<class Entry, int SIZE>

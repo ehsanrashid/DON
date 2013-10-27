@@ -39,7 +39,7 @@ namespace Zobrist {
         //        _.castle_right[c][cs] = rkiss.rand64();
         //    }
         //}
-        //_.side_move = rkiss.rand64();
+        //_.mover_side = rkiss.rand64();
 
 
         for (uint16_t i = 0; i < SIZE_RANDOM; ++i)
@@ -160,7 +160,7 @@ namespace Zobrist {
         Square ep_sq = pos.en_passant ();
         if (SQ_NO != ep_sq) posi_key ^= _.en_passant[_file (ep_sq)];
 
-        if (WHITE == pos.active ()) posi_key ^= _.side_move;
+        if (WHITE == pos.active ()) posi_key ^= _.mover_side;
 
         return posi_key;
     }
@@ -228,7 +228,7 @@ namespace Zobrist {
         }
         skip_whitespace ();
         char active = get_next ();
-        if (WHITE == to_color (active)) fen_key ^= _.side_move;
+        if (WHITE == to_color (active)) fen_key ^= _.mover_side;
 
         skip_whitespace ();
         // 3. Castling availability
@@ -370,7 +370,7 @@ namespace Zobrist {
         }
         sfen >> std::skipws >> ch;
         char active = ch;
-        if (WHITE == to_color (active)) fen_key ^= _.side_move;
+        if (WHITE == to_color (active)) fen_key ^= _.mover_side;
 
         sfen >> std::skipws >> ch;
         if ('-' != ch)

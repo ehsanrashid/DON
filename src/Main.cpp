@@ -97,6 +97,7 @@ int main (int argc, const char* const argv[])
     //Zobrist::initialize ();
 
     Engine::start ();
+    
     //Position pos;
     //Value v;
     //Evaluator::evaluate(pos, v);
