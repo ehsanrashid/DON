@@ -70,8 +70,8 @@ namespace {
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    bool allows (const Position &pos, Move first, Move second);
-    bool refutes(const Position &pos, Move first, Move second);
+    bool allows (const Position &pos, Move m1, Move m2);
+    bool refutes(const Position &pos, Move m1, Move m2);
     std::string uci_pv_info (const Position &pos, int32_t depth, Value alpha, Value beta);
 
     struct Skill
@@ -103,12 +103,12 @@ namespace {
 // available time and so stop the search.
 void check_time()
 {
-    static Time::point lastInfoTime = Time::now ();
+    static Time::point last_info_time = Time::now ();
     int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
-    if (Time::now () - lastInfoTime >= 1000)
+    if (Time::now () - last_info_time >= 1000)
     {
-        lastInfoTime = Time::now ();
+        last_info_time = Time::now ();
         //dbg_print();
     }
 
@@ -128,18 +128,14 @@ void check_time()
         //    for (int j = 0; j < Threads[i]->splitPointsSize; ++j)
         //    {
         //        SplitPoint& sp = Threads[i]->splitPoints[j];
-
         //        sp.mutex.lock();
-
         //        nodes += sp.nodes;
         //        Bitboard sm = sp.slavesMask;
         //        while (sm)
         //        {
         //            Position* pos = Threads[pop_lsb(sm)]->activePosition;
-        //            if (pos)
-        //                nodes += pos->game_nodes();
+        //            if (pos) nodes += pos->game_nodes();
         //        }
-
         //        sp.mutex.unlock();
         //    }
         //}
@@ -147,11 +143,14 @@ void check_time()
     }
 
     Time::point elapsed = Time::point (Time::now () - searchTime);
-    bool still_at_first_move = signals.first_root_move
+
+    bool still_at_first_move = 
+        signals.first_root_move
         && !signals.failed_low_at_root
         &&  elapsed > time_mgr.available_time();
 
-    bool noMoreTime = elapsed > time_mgr.maximum_time() - 2 * TimerResolution
+    bool noMoreTime = 
+        elapsed > time_mgr.maximum_time() - 2 * TimerResolution
         || still_at_first_move;
 
     if (   (limits.use_time_management() && noMoreTime)
@@ -160,6 +159,7 @@ void check_time()
     {
         signals.stop = true;
     }
+
 }
 
 
@@ -449,7 +449,7 @@ namespace {
                     }
                     else if (best_value >= beta)
                     {
-                        beta = std::min (best_value + delta, VALUE_INFINITE);
+                        beta = std::min (best_value + delta, +VALUE_INFINITE);
                     }
                     else
                     {
@@ -458,7 +458,7 @@ namespace {
 
                     delta += delta / 2;
 
-                    assert (alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
+                    assert (alpha >= -VALUE_INFINITE && beta <= +VALUE_INFINITE);
                 }
 
                 // Sort the PV lines searched so far and update the GUI
@@ -565,7 +565,7 @@ namespace {
     const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
     const bool RootNode = (N == Root || N == SplitPointRoot);
 
-    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
+    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha == beta - 1));
     assert(depth > DEPTH_ZERO);
 
@@ -1059,7 +1059,7 @@ namespace {
     // Step 17. Undo move
     pos.undo_move(move);
 
-    assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
+    assert(value > -VALUE_INFINITE && value < +VALUE_INFINITE);
 
     // Step 18. Check for new best move
     if (SPNode)
@@ -1183,7 +1183,7 @@ namespace {
     Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, best_move);
     }
 
-    assert(best_value > -VALUE_INFINITE && best_value < VALUE_INFINITE);
+    assert(best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
 
     return best_value;
     }
@@ -1199,7 +1199,7 @@ namespace {
 
     assert(N == PV || N == NonPV);
     assert(InCheck == !!pos.checkers());
-    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
+    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha == beta - 1));
     assert(depth <= DEPTH_ZERO);
 
@@ -1352,7 +1352,7 @@ namespace {
     : -qsearch<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
     pos.undo_move(move);
 
-    assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
+    assert(value > -VALUE_INFINITE && value < +VALUE_INFINITE);
 
     // Check for new best move
     if (value > best_value)
@@ -1386,20 +1386,20 @@ namespace {
     PVNode && best_value > old_alpha ? BOUND_EXACT : BOUND_UPPER,
     tt_depth, best_move, ss->staticEval, ss->evalMargin);
 
-    assert(best_value > -VALUE_INFINITE && best_value < VALUE_INFINITE);
+    assert(best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
 
     return best_value;
     }
-
+    */
 
     // value_to_tt() adjusts a mate score from "plies to mate from the root" to
     // "plies to mate from the current position". Non-mate scores are unchanged.
     // The function is called before storing a value to the transposition table.
     Value value_to_tt (Value v, int32_t ply)
     {
-    assert(v != VALUE_NONE);
-    return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
-    : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
+        assert(v != VALUE_NONE);
+        return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
+            : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
     }
 
     // value_fr_tt() is the inverse of value_to_tt(): It adjusts a mate score
@@ -1407,101 +1407,102 @@ namespace {
     // from current position) to "plies to mate/be mated from the root".
     Value value_fr_tt (Value v, int32_t ply)
     {
-    return  v == VALUE_NONE             ? VALUE_NONE
-    : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
-    : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+        return  v == VALUE_NONE             ? VALUE_NONE
+            : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
+            : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
     }
 
 
-    // allows() tests whether the 'first' move at previous ply somehow makes the
-    // 'second' move possible, for instance if the moving piece is the same in
-    // both moves. Normally the second move is the threat (the best move returned
-    // from a null search that fails low).
-    bool allows(const Position &pos, Move first, Move second) {
-
-    assert(is_ok(first));
-    assert(is_ok(second));
-    assert(color_of(pos.piece_on(from_sq(second))) == ~pos.side_to_move());
-    assert(type_of(first) == CASTLE || color_of(pos.piece_on(to_sq(first))) == ~pos.side_to_move());
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // The piece is the same or second's destination was vacated by the first move
-    // We exclude the trivial case where a sliding piece does in two moves what
-    // it could do in one move: eg. Ra1a2, Ra2a3.
-    if (    m2to == m1from
-    || (m1to == m2from && !squares_aligned(m1from, m2from, m2to)))
-    return true;
-
-    // Second one moves through the square vacated by first one
-    if (between_bb(m2from, m2to) & m1from)
-    return true;
-
-    // Second's destination is defended by the first move's piece
-    Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
-    if (m1att & m2to)
-    return true;
-
-    // Second move gives a discovered check through the first's checking piece
-    if (m1att & pos.king_square(pos.side_to_move()))
+    // allows() tests whether the 'm1' move at previous ply somehow makes the
+    // 'm2' move possible, for instance if the moving piece is the same in both moves.
+    // Normally the m2 move is the threat (the best move returned from a null search that fails low).
+    bool allows  (const Position &pos, Move m1, Move m2)
     {
-    assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
-    return true;
+        assert(_ok(m1));
+        assert(_ok(m2));
+        assert (_color(pos[sq_org(m2)]) == ~pos.active ());
+        assert (_mtype(m1) == CASTLE || _color(pos[sq_dst(m1)]) == ~pos.active ());
+
+        Square org_m1 = sq_org(m1);
+        Square org_m2 = sq_org(m2);
+        Square dst_m1 = sq_dst(m1);
+        Square dst_m2 = sq_dst(m2);
+
+        // The piece is the same or m2's destination was vacated by the m1 move
+        // We exclude the trivial case where a sliding piece does in two moves what
+        // it could do in one move: eg. Ra1a2, Ra2a3.
+        if (    dst_m2 == org_m1
+            || (dst_m1 == org_m2 && !BitBoard::sqrs_aligned(org_m1, org_m2, dst_m2)))
+        {
+            return true;
+        }
+
+        // Second one moves through the square vacated by m1 one
+        if (BitBoard::betwen_sq_bb(org_m2, dst_m2) & org_m1) return true;
+
+        // Second's destination is defended by the m1 move's piece
+        Bitboard m1att = pos.attacks_from(pos[dst_m1], dst_m1, pos.pieces() ^ org_m2);
+        if (m1att & dst_m2) return true;
+
+        // Second move gives a discovered check through the m1's checking piece
+        if (m1att & pos.king_sq(pos.active ()))
+        {
+            assert(BitBoard::betwen_sq_bb(dst_m1, pos.king_sq(pos.active())) & org_m2);
+            return true;
+        }
+
+        return false;
     }
 
-    return false;
-    }
-
-    // refutes() tests whether a 'first' move is able to defend against a 'second'
-    // opponent's move. In this case will not be pruned. Normally the second move
-    // is the threat (the best move returned from a null search that fails low).
-    bool refutes(const Position &pos, Move first, Move second) {
-
-    assert(is_ok(first));
-    assert(is_ok(second));
-
-    Square m1from = from_sq(first);
-    Square m2from = from_sq(second);
-    Square m1to = to_sq(first);
-    Square m2to = to_sq(second);
-
-    // Don't prune moves of the threatened piece
-    if (m1from == m2to)
-    return true;
-
-    // If the threatened piece has value less than or equal to the value of the
-    // threat piece, don't prune moves which defend it.
-    if (    pos.capture(second)
-    && (   PieceValue[MG][pos.piece_on(m2from)] >= PieceValue[MG][pos.piece_on(m2to)]
-    || type_of(pos.piece_on(m2from)) == KING))
+    // refutes() tests whether a 'm1' move is able to defend against a 'm2' opponent's move.
+    // In this case 'm1' will not be pruned. Normally the 'm2' move is the threat
+    // (the best move returned from a null search that fails low).
+    bool refutes (const Position &pos, Move m1, Move m2)
     {
-    // Update occupancy as if the piece and the threat are moving
-    Bitboard occ = pos.pieces() ^ m1from ^ m1to ^ m2from;
-    Piece pc = pos.piece_on(m1from);
+        assert (_ok(m1));
+        assert (_ok(m2));
 
-    // The moved piece attacks the square 'tto' ?
-    if (pos.attacks_from(pc, m1to, occ) & m2to)
-    return true;
+        Square org_m1 = sq_org (m1);
+        Square org_m2 = sq_org (m2);
+        Square dst_m1 = sq_dst (m1);
+        Square dst_m2 = sq_dst (m2);
 
-    // Scan for possible X-ray attackers behind the moved piece
-    Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
-    | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
+        // Don't prune moves of the threatened piece
+        if (org_m1 == dst_m2)
+            return true;
 
-    // Verify attackers are triggered by our move and not already existing
-    if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
-    return true;
+        // If the threatened piece has value less than or equal to the value of the
+        // threat piece, don't prune moves which defend it.
+        if (    pos.capture(m2)
+            //&& (   PieceValue[MG][pos[org_m2]] >= PieceValue[MG][pos[dst_m2]]
+                //|| _ptype (pos[org_m2]) == KING)
+                    )
+        {
+            // Update occupancy as if the piece and the threat are moving
+            Bitboard occ = pos.pieces() ^ org_m1 ^ dst_m1 ^ org_m2;
+            Piece pc = pos[org_m1];
+
+            // The moved piece attacks the square 'tto' ?
+            if (pos.attacks_from(pc, dst_m1, occ) & dst_m2) return true;
+
+            // Scan for possible X-ray attackers behind the moved piece
+            Bitboard xray =
+                (BitBoard::attacks_bb<ROOK>(dst_m2, occ) & pos.pieces(_color(pc), QUEN, ROOK)) |
+                (BitBoard::attacks_bb<BSHP>(dst_m2, occ) & pos.pieces(_color(pc), QUEN, BSHP));
+
+            // Verify attackers are triggered by our move and not already existing
+            if (UNLIKELY(xray) && (xray & ~pos.attacks_from<QUEN>(dst_m2))) return true;
+
+        }
+
+        // Don't prune safe moves which block the threat path
+        //if ((BitBoard::betwen_sq_bb(org_m2, dst_m2) & dst_m1) && pos.see_sign(m1) >= 0)
+        //{
+        //    return true;
+        //}
+
+        return false;
     }
-
-    // Don't prune safe moves which block the threat path
-    if ((between_bb(m2from, m2to) & m1to) && pos.see_sign(first) >= 0)
-    return true;
-
-    return false;
-    }
-    */
 
     // When playing with strength handicap choose best move among the MultiPV set
     // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
