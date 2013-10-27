@@ -170,6 +170,7 @@ public:
 //  - Chess 960 info
 typedef class Position sealed
 {
+
 private:
 
 #pragma region Fields
@@ -206,9 +207,11 @@ private:
 
 public:
 
+    static void initialize ();
+
 #pragma region Constructors
 
-    Position ()
+        Position ()
     {
         clear ();
     }
@@ -334,6 +337,10 @@ public:
     bool draw () const;
     bool ok (int8_t *failed_step = NULL) const;
 
+    // Static exchange evaluation
+    int32_t see(Move m, int32_t asymm_threshold = 0) const;
+    int32_t see_sign(Move m) const;
+
 #pragma endregion
 
 #pragma region Attack properties
@@ -411,6 +418,8 @@ private:
 
 public:
     void flip ();
+
+    Score compute_psq_score() const;
 
 #pragma region Do/Undo Move
 

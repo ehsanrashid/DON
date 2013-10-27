@@ -315,7 +315,7 @@ std::string uci_score (Value v, Value alpha, Value beta)
 {
     std::stringstream s;
 
-    if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+    if (abs(v) < VALUE_MATES_IN_MAX_PLY)
     {
         s << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
     }
@@ -331,14 +331,14 @@ std::string uci_score (Value v, Value alpha, Value beta)
 namespace {
 
     // score to string
-    std::string to_string(Value v)
+    std::string to_string (Value v)
     {
         std::stringstream s;
 
         if (false);
-        else if (v >= VALUE_MATE_IN_MAX_PLY)
+        else if (v >= VALUE_MATES_IN_MAX_PLY)
         {
-            s << "#" << (VALUE_MATE - v + 1) / 2;
+            s <<  "#" << (VALUE_MATE - v + 1) / 2;
         }
         else if (v <= VALUE_MATED_IN_MAX_PLY)
         {
@@ -378,35 +378,33 @@ std::string pretty_pv(Position& pos, int16_t depth, Value value, int64_t msecs, 
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
-
-    StateInfoStack st;
-    std::string san, padding;
-    size_t length;
+    
     std::stringstream spv;
 
     spv << std::setw(2) << depth
-        << std::setw(8) << to_string(value)
-        << std::setw(8) << to_string(msecs);
+        << std::setw(8) << to_string (value)
+        << std::setw(8) << to_string (msecs);
 
-    if (pos.game_nodes() < M)
+    if (pos.game_nodes () < M)
     {
-        spv << std::setw(8) << pos.game_nodes() / 1 << "  ";
+        spv << std::setw(8) << pos.game_nodes () / 1 << "  ";
     }
-    else if (pos.game_nodes() < K * M)
+    else if (pos.game_nodes () < K * M)
     {
-        spv << std::setw(7) << pos.game_nodes() / K << "K  ";
+        spv << std::setw(7) << pos.game_nodes () / K << "K  ";
     }
     else
     {
-        spv << std::setw(7) << pos.game_nodes() / M << "M  ";
+        spv << std::setw(7) << pos.game_nodes () / M << "M  ";
     }
 
-    padding = std::string (spv.str().length(), ' ');
-    length = padding.length();
+    std::string padding = std::string (spv.str().length(), ' ');
+    size_t length = padding.length();
+    StateInfoStack st;
 
     std::for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
-        san = move_to_san (m, pos);
+        std::string san = move_to_san (m, pos);
 
         if (length + san.length() > 80)
         {
@@ -419,9 +417,10 @@ std::string pretty_pv(Position& pos, int16_t depth, Value value, int64_t msecs, 
 
         st.push (StateInfo());
         pos.do_move (m, st.top ());
+
     });
 
-    std::for_each (pv.crend (), pv.crbegin (), [&] (Move m)
+    std::for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
         pos.undo_move ();
     });

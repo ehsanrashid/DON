@@ -333,7 +333,7 @@ typedef enum Value : int16_t
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 2,
 
-    VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
+    VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - MAX_PLY,
     VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
 
     VALUE_ENSURE_INTEGER_SIZE_P = _I16_MAX,
@@ -420,7 +420,7 @@ typedef enum Phase
 {
     PHASE_ENDGAME,
     PHASE_MIDGAME = 128,
-    MG = 0, EG = 1, PHASE_NB = 2
+    MG = 0, EG = 1, PHASE_NO = 2
 
 } Phase;
 
@@ -567,6 +567,8 @@ INC_DEC_OPERATORS (Depth);
 #undef INC_DEC_OPERATORS
 
 #pragma endregion
+
+extern Value PieceValue[PHASE_NO][PT_NO];
 
 typedef std::vector<Move>   MoveList;
 

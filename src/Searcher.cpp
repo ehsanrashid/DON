@@ -80,13 +80,15 @@ namespace {
         Move    best;
 
         Skill(int32_t lvl)
-            : level(lvl), best(MOVE_NONE) {}
+            : level(lvl)
+            , best(MOVE_NONE)
+        {}
 
         ~Skill()
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                std::swap(rootMoves[0], *std::find(rootMoves.begin (), rootMoves.end (), best ? best : pick_move()));
+                std::swap(rootMoves[0], *std::find(rootMoves.begin (), rootMoves.end (), best ? best : pick_move ()));
             }
         }
 
@@ -458,7 +460,7 @@ namespace {
 
                     delta += delta / 2;
 
-                    assert (alpha >= -VALUE_INFINITE && beta <= +VALUE_INFINITE);
+                    ASSERT (alpha >= -VALUE_INFINITE && beta <= +VALUE_INFINITE);
                 }
 
                 // Sort the PV lines searched so far and update the GUI
@@ -490,7 +492,7 @@ namespace {
 
             // Do we have found a "mate in x"?
             if (   limits.mate_in
-                && best_value >= VALUE_MATE_IN_MAX_PLY
+                && best_value >= VALUE_MATES_IN_MAX_PLY
                 && VALUE_MATE - best_value <= 2 * limits.mate_in)
             {
                 signals.stop = true;
@@ -565,9 +567,9 @@ namespace {
     const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
     const bool RootNode = (N == Root || N == SplitPointRoot);
 
-    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-    assert(PVNode || (alpha == beta - 1));
-    assert(depth > DEPTH_ZERO);
+    ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
+    ASSERT (PVNode || (alpha == beta - 1));
+    ASSERT (depth > DEPTH_ZERO);
 
     Move quietsSearched[64];
     StateInfo st;
@@ -596,7 +598,7 @@ namespace {
     tt_move = excluded_move = MOVE_NONE;
     tt_value = VALUE_NONE;
 
-    assert(split_point->best_value > -VALUE_INFINITE && split_point->move_count > 0);
+    ASSERT (split_point->best_value > -VALUE_INFINITE && split_point->move_count > 0);
 
     goto moves_loop;
     }
@@ -709,7 +711,7 @@ namespace {
     &&  depth < 4 * ONE_PLY
     &&  eval + razor_margin(depth) < beta
     &&  tt_move == MOVE_NONE
-    &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
+    &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
     && !pos.pawn_on_7th(pos.side_to_move()))
     {
     Value rbeta = beta - razor_margin(depth);
@@ -727,7 +729,7 @@ namespace {
     && !ss->skipNullMove
     &&  depth < 4 * ONE_PLY
     &&  eval - futility_margin(depth, (ss-1)->futilityMoveCount) >= beta
-    &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
+    &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
     &&  abs(eval) < VALUE_KNOWN_WIN
     &&  pos.non_pawn_material(pos.side_to_move()))
     return eval - futility_margin(depth, (ss-1)->futilityMoveCount);
@@ -737,7 +739,7 @@ namespace {
     && !ss->skipNullMove
     &&  depth >= 2 * ONE_PLY
     &&  eval >= beta
-    &&  abs(beta) < VALUE_MATE_IN_MAX_PLY
+    &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
     &&  pos.non_pawn_material(pos.side_to_move()))
     {
     ss->currentMove = MOVE_NULL;
@@ -759,7 +761,7 @@ namespace {
     if (null_value >= beta)
     {
     // Do not return unproven mate scores
-    if (null_value >= VALUE_MATE_IN_MAX_PLY)
+    if (null_value >= VALUE_MATES_IN_MAX_PLY)
     null_value = beta;
 
     if (depth < 12 * ONE_PLY)
@@ -798,14 +800,14 @@ namespace {
     if (   !PVNode
     &&  depth >= 5 * ONE_PLY
     && !ss->skipNullMove
-    &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
+    &&  abs(beta) < VALUE_MATES_IN_MAX_PLY)
     {
     Value rbeta = beta + 200;
     Depth rdepth = depth - ONE_PLY - 3 * ONE_PLY;
 
-    assert(rdepth >= ONE_PLY);
-    assert((ss-1)->currentMove != MOVE_NONE);
-    assert((ss-1)->currentMove != MOVE_NULL);
+    ASSERT (rdepth >= ONE_PLY);
+    ASSERT ((ss-1)->currentMove != MOVE_NONE);
+    ASSERT ((ss-1)->currentMove != MOVE_NULL);
 
     MovePicker mp(pos, tt_move, History, pos.captured_piece_type());
     CheckInfo ci(pos);
@@ -862,7 +864,7 @@ namespace {
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move<SPNode>()) != MOVE_NONE)
     {
-    assert(is_ok(move));
+    ASSERT (is_ok(move));
 
     if (move == excluded_move)
     continue;
@@ -917,7 +919,7 @@ namespace {
     &&  pos.legal(move, ci.pinned)
     &&  abs(tt_value) < VALUE_KNOWN_WIN)
     {
-    assert(tt_value != VALUE_NONE);
+    ASSERT (tt_value != VALUE_NONE);
 
     Value rBeta = tt_value - int(depth);
     ss->excluded_move = move;
@@ -1059,7 +1061,7 @@ namespace {
     // Step 17. Undo move
     pos.undo_move(move);
 
-    assert(value > -VALUE_INFINITE && value < +VALUE_INFINITE);
+    ASSERT (value > -VALUE_INFINITE && value < +VALUE_INFINITE);
 
     // Step 18. Check for new best move
     if (SPNode)
@@ -1111,7 +1113,7 @@ namespace {
     alpha = SPNode ? split_point->alpha = value : value;
     else
     {
-    assert(value >= beta); // Fail high
+    ASSERT (value >= beta); // Fail high
 
     if (SPNode)
     split_point->cutoff = true;
@@ -1127,7 +1129,7 @@ namespace {
     &&  Threads.available_slave(thisThread)
     &&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD)
     {
-    assert(best_value < beta);
+    ASSERT (best_value < beta);
 
     thisThread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
     depth, threat_move, move_count, &mp, N, cut_node);
@@ -1183,7 +1185,7 @@ namespace {
     Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, best_move);
     }
 
-    assert(best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
+    ASSERT (best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
 
     return best_value;
     }
@@ -1197,11 +1199,11 @@ namespace {
     {
     const bool PVNode = (N == PV);
 
-    assert(N == PV || N == NonPV);
-    assert(InCheck == !!pos.checkers());
-    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-    assert(PVNode || (alpha == beta - 1));
-    assert(depth <= DEPTH_ZERO);
+    ASSERT (N == PV || N == NonPV);
+    ASSERT (InCheck == !!pos.checkers());
+    ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
+    ASSERT (PVNode || (alpha == beta - 1));
+    ASSERT (depth <= DEPTH_ZERO);
 
     StateInfo st;
     const TTEntry* tte;
@@ -1293,7 +1295,7 @@ namespace {
     // Loop through the moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move<false>()) != MOVE_NONE)
     {
-    assert(is_ok(move));
+    ASSERT (is_ok(move));
 
     gives_check = pos.gives_check(move, ci);
 
@@ -1352,7 +1354,7 @@ namespace {
     : -qsearch<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
     pos.undo_move(move);
 
-    assert(value > -VALUE_INFINITE && value < +VALUE_INFINITE);
+    ASSERT (value > -VALUE_INFINITE && value < +VALUE_INFINITE);
 
     // Check for new best move
     if (value > best_value)
@@ -1386,7 +1388,7 @@ namespace {
     PVNode && best_value > old_alpha ? BOUND_EXACT : BOUND_UPPER,
     tt_depth, best_move, ss->staticEval, ss->evalMargin);
 
-    assert(best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
+    ASSERT (best_value > -VALUE_INFINITE && best_value < +VALUE_INFINITE);
 
     return best_value;
     }
@@ -1397,9 +1399,10 @@ namespace {
     // The function is called before storing a value to the transposition table.
     Value value_to_tt (Value v, int32_t ply)
     {
-        assert(v != VALUE_NONE);
-        return  v >= VALUE_MATE_IN_MAX_PLY  ? v + ply
-            : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
+        ASSERT (v != VALUE_NONE);
+        return
+            v >= VALUE_MATES_IN_MAX_PLY ? v + ply :
+            v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
     }
 
     // value_fr_tt() is the inverse of value_to_tt(): It adjusts a mate score
@@ -1407,9 +1410,10 @@ namespace {
     // from current position) to "plies to mate/be mated from the root".
     Value value_fr_tt (Value v, int32_t ply)
     {
-        return  v == VALUE_NONE             ? VALUE_NONE
-            : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
-            : v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+        return
+            v == VALUE_NONE             ? VALUE_NONE :
+            v >= VALUE_MATES_IN_MAX_PLY ? v - ply :
+            v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
     }
 
 
@@ -1418,10 +1422,10 @@ namespace {
     // Normally the m2 move is the threat (the best move returned from a null search that fails low).
     bool allows  (const Position &pos, Move m1, Move m2)
     {
-        assert(_ok(m1));
-        assert(_ok(m2));
-        assert (_color(pos[sq_org(m2)]) == ~pos.active ());
-        assert (_mtype(m1) == CASTLE || _color(pos[sq_dst(m1)]) == ~pos.active ());
+        ASSERT (_ok(m1));
+        ASSERT (_ok(m2));
+        ASSERT (_color(pos[sq_org(m2)]) == ~pos.active ());
+        ASSERT (_mtype(m1) == CASTLE || _color(pos[sq_dst(m1)]) == ~pos.active ());
 
         Square org_m1 = sq_org(m1);
         Square org_m2 = sq_org(m2);
@@ -1441,13 +1445,13 @@ namespace {
         if (BitBoard::betwen_sq_bb(org_m2, dst_m2) & org_m1) return true;
 
         // Second's destination is defended by the m1 move's piece
-        Bitboard m1att = pos.attacks_from(pos[dst_m1], dst_m1, pos.pieces() ^ org_m2);
+        Bitboard m1att = pos.attacks_from(pos[dst_m1], dst_m1, pos.pieces () ^ org_m2);
         if (m1att & dst_m2) return true;
 
         // Second move gives a discovered check through the m1's checking piece
         if (m1att & pos.king_sq(pos.active ()))
         {
-            assert(BitBoard::betwen_sq_bb(dst_m1, pos.king_sq(pos.active())) & org_m2);
+            ASSERT (BitBoard::betwen_sq_bb(dst_m1, pos.king_sq(pos.active ())) & org_m2);
             return true;
         }
 
@@ -1459,8 +1463,8 @@ namespace {
     // (the best move returned from a null search that fails low).
     bool refutes (const Position &pos, Move m1, Move m2)
     {
-        assert (_ok(m1));
-        assert (_ok(m2));
+        ASSERT (_ok(m1));
+        ASSERT (_ok(m2));
 
         Square org_m1 = sq_org (m1);
         Square org_m2 = sq_org (m2);
@@ -1474,12 +1478,10 @@ namespace {
         // If the threatened piece has value less than or equal to the value of the
         // threat piece, don't prune moves which defend it.
         if (    pos.capture(m2)
-            //&& (   PieceValue[MG][pos[org_m2]] >= PieceValue[MG][pos[dst_m2]]
-                //|| _ptype (pos[org_m2]) == KING)
-                    )
+            && (PieceValue[MG][_ptype (pos[org_m2])] >= PieceValue[MG][_ptype (pos[dst_m2])] || _ptype (pos[org_m2]) == KING))
         {
             // Update occupancy as if the piece and the threat are moving
-            Bitboard occ = pos.pieces() ^ org_m1 ^ dst_m1 ^ org_m2;
+            Bitboard occ = pos.pieces () ^ org_m1 ^ dst_m1 ^ org_m2;
             Piece pc = pos[org_m1];
 
             // The moved piece attacks the square 'tto' ?
@@ -1487,8 +1489,8 @@ namespace {
 
             // Scan for possible X-ray attackers behind the moved piece
             Bitboard xray =
-                (BitBoard::attacks_bb<ROOK>(dst_m2, occ) & pos.pieces(_color(pc), QUEN, ROOK)) |
-                (BitBoard::attacks_bb<BSHP>(dst_m2, occ) & pos.pieces(_color(pc), QUEN, BSHP));
+                (BitBoard::attacks_bb<ROOK>(dst_m2, occ) & pos.pieces (_color(pc), QUEN, ROOK)) |
+                (BitBoard::attacks_bb<BSHP>(dst_m2, occ) & pos.pieces (_color(pc), QUEN, BSHP));
 
             // Verify attackers are triggered by our move and not already existing
             if (UNLIKELY(xray) && (xray & ~pos.attacks_from<QUEN>(dst_m2))) return true;
@@ -1510,7 +1512,7 @@ namespace {
     {
         static RKISS rk;
 
-        for (int32_t i = Time::now () % 50; i > 0; --i) rk.randX<unsigned>();
+        for (int32_t i = Time::now () % 50; i > 0; --i) rk.randX<uint32_t>();
 
         // rootMoves are already sorted by score in descending order
         int32_t variance = std::min (rootMoves[0].curr_value - rootMoves[pv_size - 1].curr_value, VALUE_MG_PAWN);
@@ -1526,12 +1528,14 @@ namespace {
             int32_t s = rootMoves[i].curr_value;
 
             // Don't allow crazy blunders even at very low skills
-            if (i > 0 && rootMoves[i-1].curr_value > s + 2 * VALUE_MG_PAWN)
+            if (i > 0 && rootMoves[i-1].curr_value > (s + 2 * VALUE_MG_PAWN))
+            {
                 break;
+            }
 
             // This is our magic formula
-            s += (  weakness * int32_t(rootMoves[0].curr_value - s)
-                + variance * (rk.randX<unsigned>() % weakness)) / 128;
+            s += (  weakness * int32_t (rootMoves[0].curr_value - s)
+                + variance * (rk.randX<uint32_t>() % weakness)) / 128;
 
             if (s > max_s)
             {

@@ -5,6 +5,7 @@
 #include <iostream>
 #include "BitBoard.h"
 #include "Zobrist.h"
+#include "Position.h"
 #include "UCI.h"
 #include "Tester.h"
 
@@ -13,7 +14,7 @@ namespace Engine {
     namespace {
 
         const ::std::string Engine    = "DON";
-        
+
         // Version number. If Version is left empty, then compile date, in the
         // format DD-MM-YY, is shown in engine_info.
         const ::std::string Version   = "1.0";
@@ -22,7 +23,7 @@ namespace Engine {
         const ::std::string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
 
     }
-    
+
     ::std::string info (bool uci)
     {
         ::std::stringstream sinfo;
@@ -77,6 +78,7 @@ namespace Engine {
     {
         BitBoard::initialize ();
         Zobrist::initialize ();
+        Position::initialize ();
 
         ::std::cout << Engine::info () << ::std::endl;
 
