@@ -79,14 +79,14 @@ namespace std {
     //
     //    // define the custom endl for this stream.
     //    // note how it matches the `atomic_stream` function signature
-    //    static atomic_stream& endl (atomic_stream &atom)
+    //    static atomic_stream& endl (atomic_stream &atom ())
     //    {
     //        // put a new line
-    //        atom._os_stm.put ('\n');
+    //        atom ()._os_stm.put ('\n');
     //        // do other stuff with the stream
     //        // std::cout, for example, will flush the stream
-    //        //atom << "Called MyStream::endl!" << std::endl;
-    //        return atom;
+    //        //atom () << "Called MyStream::endl!" << std::endl;
+    //        return atom ();
     //    }
     //
     //    // Write the whole shebang in one go & also flush
@@ -96,7 +96,7 @@ namespace std {
     //        return *this;
     //    }
     //
-    //} atom;
+    //} atom ();
 
     //template<class T>
     //std::atom& operator<< (std::atom &os, T& (*manip) (T &))

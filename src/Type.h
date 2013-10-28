@@ -497,34 +497,34 @@ inline Value eg_value (Score s)
     inline T& operator-- (T &d         ) { d = T (int32_t (d) - 1); return d; }
 
 
+INC_DEC_OPERATORS (File);
 inline File  operator+  (File  f, int32_t i) { return File (int32_t (f) + i); }
 inline File  operator-  (File  f, int32_t i) { return File (int32_t (f) - i); }
 inline File& operator+= (File &f, int32_t i) { f = File (int32_t (f) + i); return f; }
 inline File& operator-= (File &f, int32_t i) { f = File (int32_t (f) - i); return f; }
-INC_DEC_OPERATORS (File);
 
 
+INC_DEC_OPERATORS (Rank);
 inline Rank  operator+  (Rank  r, int32_t i) { return Rank (int32_t (r) + i); }
 inline Rank  operator-  (Rank  r, int32_t i) { return Rank (int32_t (r) - i); }
 inline Rank& operator+= (Rank &r, int32_t i) { r = Rank (int32_t (r) + i); return r; }
 inline Rank& operator-= (Rank &r, int32_t i) { r = Rank (int32_t (r) - i); return r; }
-INC_DEC_OPERATORS (Rank);
 
 //INC_DEC_OPERATORS (Diag);
 
 INC_DEC_OPERATORS (Color);
 
 // Square operator
+INC_DEC_OPERATORS (Square);
 inline Square  operator+  (Square  s, Delta d) { return Square (int32_t (s) + int32_t (d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square (int32_t (s) - int32_t (d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square (int32_t (s) + int32_t (d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square (int32_t (s) - int32_t (d)); return s; }
 inline Delta   operator-  (Square s1, Square s2) { return Delta (int32_t (s1) - int32_t (s2)); }
-INC_DEC_OPERATORS (Square);
 
+ARTHMAT_OPERATORS (Delta);
 inline Delta  operator/  (Delta  d, int32_t i) { return Delta (int32_t (d) / i); }
 inline Delta& operator/= (Delta &d, int32_t i) { d = Delta (int32_t (d) / i); return d; }
-ARTHMAT_OPERATORS (Delta);
 
 INC_DEC_OPERATORS (CSide);
 
@@ -543,6 +543,9 @@ inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); retur
 inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); return m; }
 
 
+
+ARTHMAT_OPERATORS (Value);
+INC_DEC_OPERATORS (Value);
 // Added operators for adding integers to a Value
 //inline Value operator+ (Value v, int32_t i) { return Value (int32_t (v) + i); }
 //inline Value operator- (Value v, int32_t i) { return Value (int32_t (v) - i); }
@@ -550,9 +553,8 @@ inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); 
 inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
 inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }
 inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
-ARTHMAT_OPERATORS (Value);
-INC_DEC_OPERATORS (Value);
 
+ARTHMAT_OPERATORS (Score);
 /// Only declared but not defined. We don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
@@ -561,10 +563,11 @@ inline Score operator/ (Score s, int32_t i)
 {
     return mk_score (mg_value (s) / i, eg_value (s) / i);
 }
-ARTHMAT_OPERATORS (Score);
 
 ARTHMAT_OPERATORS (Depth);
 INC_DEC_OPERATORS (Depth);
+inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); }
+
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS

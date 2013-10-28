@@ -360,7 +360,7 @@
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="std::atom" Collapsed="true">
+  <Typedef Name="std::atom ()" Collapsed="true">
     <Position X="14.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

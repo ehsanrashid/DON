@@ -57,12 +57,20 @@ public:
         std::memset (_table, 0, sizeof (_table));
     }
 
-    void update (Piece p, Square s, Score v)
+    void update (Piece p, Square s, Move m)
+    {
+        if (m == _table[p][s].first) return;
+
+        _table[p][s].second = _table[p][s].first;
+        _table[p][s].first = m;
+    }
+
+    void update (Piece p, Square s, Value v)
     {
         if (false);
         else if (Gain)
         {
-            _table[p][s] = std::max<Score> (v, _table[p][s] - 1);
+            _table[p][s] = std::max<Value> (v, _table[p][s] - 1);
         }
         else if (abs (_table[p][s] + v) < MaxValue)
         {
@@ -89,7 +97,7 @@ class MovePicker
 private:
     template<MoveGenerator::GType>
     void value();
-    
+
     void generate_next();
 
     const Position     &pos;
@@ -113,7 +121,7 @@ private:
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
 public:
-    
+
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
     MovePicker(const Position &, Move, const HistoryStats &, PType);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Move*, Searcher::Stack*);

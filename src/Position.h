@@ -298,7 +298,7 @@ public:
     //
     Key posi_key () const;
 
-    Key key_posi_exclusion () const;
+    Key posi_key_exclusion () const;
 
     // Incremental piece-square evaluation
     Value non_pawn_material (Color c) const;
@@ -381,6 +381,7 @@ public:
     bool capture_or_promotion(Move m) const;
     bool check (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
+    bool passed_pawn_push(Move m) const;
 
 #pragma endregion
 
@@ -539,7 +540,7 @@ inline Key Position::pawn_key () const { return _si->pawn_key; }
 //
 inline Key Position::posi_key () const { return _si->posi_key; }
 //
-inline Key Position::key_posi_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
+inline Key Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
 
 inline Score Position::psq_score () const { return _si->psq_score; }
 

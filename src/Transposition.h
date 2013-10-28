@@ -40,7 +40,7 @@ private:
     int16_t
         _value
         , _eval_value
-        , _eval_margn
+        , _eval_mrgn
         ;
 
 public:
@@ -53,7 +53,7 @@ public:
     //uint16_t nodes () const { return uint16_t (_nodes); }
     Value   value () const { return Value (_value); }
     Value eval_value () const { return Value (_eval_value); }
-    Value eval_margn () const { return Value (_eval_margn); }
+    Value eval_mrgn () const { return Value (_eval_mrgn); }
 
     void save (
         uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, 
@@ -68,7 +68,7 @@ public:
         //_nodes      = uint16_t (nodes);
         _value      = uint16_t (value);
         _eval_value = uint16_t (e_value);
-        _eval_margn = uint16_t (e_margn);
+        _eval_mrgn  = uint16_t (e_margn);
     }
 
     void gen (uint8_t gen)
