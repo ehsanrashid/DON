@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-//#include "Searcher.h"
 #include "UCI.h"
 
 namespace {
@@ -55,16 +54,16 @@ namespace {
         const double TMaxRatio   = (OptimumTime == T ? 1 : MaxRatio);
         const double TStealRatio = (OptimumTime == T ? 0 : StealRatio);
 
-        int32_t curr_moves_importance   = move_importance (current_ply) * slow_mover / 100;
-        int32_t other_moves_importance  = 0;
+        double curr_moves_importance   = double (move_importance (current_ply) * slow_mover) / 100;
+        double other_moves_importance  = 0.0;
 
         for (int32_t i = 1; i < moves_to_go; ++i)
         {
-            other_moves_importance += move_importance (current_ply + 2 * i);
+            other_moves_importance += double (move_importance (current_ply + 2 * i));
         }
 
-        double time_ratio1 = (TMaxRatio * curr_moves_importance) / double(TMaxRatio * curr_moves_importance + other_moves_importance);
-        double time_ratio2 = (curr_moves_importance + TStealRatio * other_moves_importance) / double(curr_moves_importance + other_moves_importance);
+        double time_ratio1 = (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
+        double time_ratio2 = (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
 
         return int32_t (floor (my_time * std::min (time_ratio1, time_ratio2)));
     }

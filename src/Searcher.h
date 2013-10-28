@@ -12,10 +12,6 @@ class PolyglotBook;
 
 namespace Searcher {
 
-    //const uint16_t MAX_MOVES = 192;
-    //const uint16_t MAX_PLY   = 100;
-    //const uint16_t MAX_PLY_2 = MAX_PLY + 2;
-
     const uint16_t MAX_DEPTH = 64;
 
 
@@ -74,12 +70,12 @@ namespace Searcher {
         }
 
         // Determines how much time it should search
-        int time_to_search ()
+        int32_t time_to_search ()
         {
-            //int cpuTime = board->turn == WHITE ? wTime : bTime;
-            //int humanTime = board->turn == WHITE ? bTime : wTime;
+            //int32_t cpuTime = board->turn == WHITE ? wTime : bTime;
+            //int32_t humanTime = board->turn == WHITE ? bTime : wTime;
 
-            //int cpuInc = board->turn == WHITE ? wInc : bInc;
+            //int32_t cpuInc = board->turn == WHITE ? wInc : bInc;
 
             //if (moves_to_go > 0)
             //{
@@ -136,9 +132,27 @@ namespace Searcher {
         bool operator== (const Move &m) const { return m == pv[0]; }
 
         void extract_pv_from_tt (Position &pos);
-        void insert_pv_into_tt (Position &pos);
+        void  insert_pv_into_tt (Position &pos);
 
     };
+
+    // The Stack struct keeps track of the information we need to remember from
+    // nodes shallower and deeper in the tree during the search. Each search thread
+    // has its own array of Stack objects, indexed by the current ply.
+    struct Stack
+    {
+        //SplitPoint* split_point;
+        int32_t ply;
+        Move current_move;
+        Move excluded_move;
+        Move killers[2];
+        Depth reduction;
+        Value static_eval;
+        Value static_mrgin;
+        int32_t skip_null_move;
+        int32_t futility_move_count;
+    };
+
 
     extern Limits                limits;
     extern volatile Signals      signals;
@@ -150,12 +164,13 @@ namespace Searcher {
 
     extern Time::point           searchTime;
 
+    extern void initialize ();
 
     extern void think ();
 
 
-    //extern int nThreads;
-    //extern int maxThreadsPerNode;
+    //extern int32_t nThreads;
+    //extern int32_t maxThreadsPerNode;
 
     ////typedef struct Node
     ////{
@@ -164,27 +179,27 @@ namespace Searcher {
     ////    Position pos;
     ////
     ////    //volatile bool _stopped;
-    ////    //volatile int workers;
+    ////    //volatile int32_t workers;
     ////    //bool used;
-    ////    //int threadNumber;
+    ////    //int32_t threadNumber;
     ////    //pthread_mutex_t mutex;
     ////    //Variation pv;
-    ////    //int nodes;
-    ////    //int qNodes;
-    ////    //int failHighs;
-    ////    //int failHighFirsts;
-    ////    //int transRefProbes;
-    ////    //int transRefHits;
+    ////    //int32_t nodes;
+    ////    //int32_t qNodes;
+    ////    //int32_t failHighs;
+    ////    //int32_t failHighFirsts;
+    ////    //int32_t transRefProbes;
+    ////    //int32_t transRefHits;
     ////    //Move killer1[maxPly],killer2[maxPly];
     ////    //Score pValue;
     ////    //Score cValue;
     ////    //Score alpha;
     ////    //Score beta;
     ////    //Depth depth;
-    ////    //int ply;
+    ////    //int32_t ply;
     ////    //Depth totalExtension;
     ////    //Moves moves[maxPly];
-    ////    //int nextMove[maxPly];
+    ////    //int32_t nextMove[maxPly];
     ////    //Move bestMove;
     ////
     ////} Node;
@@ -192,7 +207,7 @@ namespace Searcher {
     ////
     ////extern void Think(Node &rootNode);
     ////
-    ////Score search(Node &node, Score alpha, Score beta, Depth depth, int ply, bool nullMoveIsOK, int8_t totalExtension);
+    ////Score search(Node &node, Score alpha, Score beta, Depth depth, int32_t ply, bool nullMoveIsOK, int8_t totalExtension);
 
     //extern void search(const Position &pos, Depth depth);
 

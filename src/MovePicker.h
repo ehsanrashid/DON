@@ -5,30 +5,33 @@
 #include <vector>
 #include <set>
 #include "Type.h"
+#include "MoveGenerator.h"
+#include "Searcher.h"
 
+class Position;
 
-typedef struct ScoredMove
+typedef struct ValMove
 {
     Move    move;
-    Score   score;
+    Value   value;
 
-    friend bool operator<  (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score <  sm2.score); }
-    friend bool operator>  (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score >  sm2.score); }
-    friend bool operator<= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score <= sm2.score); }
-    friend bool operator>= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score >= sm2.score); }
-    friend bool operator== (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score == sm2.score); }
-    friend bool operator!= (const ScoredMove &sm1, const ScoredMove &sm2) { return (sm1.score != sm2.score); }
+    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
+    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
+    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
+    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
+    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
+    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
 
-} ScoredMove;
-
-
-typedef std::vector<ScoredMove>     ScoredMoveList;
-typedef std::set<ScoredMove>        ScoredMoveSet;
-
-extern void order (ScoredMoveList &lst_sm, bool full = true);
+} ValMove;
 
 
-template<bool Gain>
+typedef std::vector<ValMove>     ValMoveList;
+typedef std::set<ValMove>        ValMoveSet;
+
+extern void order (ValMoveList &vm_list, bool full = true);
+
+
+template<bool Gain, typename T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store both History and Gains type statistics.
 // History records how often different moves have been successful or unsuccessful during the
@@ -39,18 +42,19 @@ template<bool Gain>
 // in particular two moves with different origin but same destination and same piece will be considered identical.
 struct Stats
 {
+
 private:
-    Score _Table[PT_NO][SQ_NO];
+    T _table[PT_NO][SQ_NO];
 
 public:
-    static const Score MaxScore = Score (2000);
+    static const Value MaxValue = Value (2000);
 
-    //const Score* operator[] (Piece p) const { return &_Table[p][0]; }
-    const Score& operator[] (Piece p) const { return  _Table[p][0]; }
+    const T* operator[] (Piece p) const { return &_table[p][0]; }
+    //const T& operator[] (Piece p) const { return  _table[p][0]; }
 
     void clear ()
     {
-        std::memset (_Table, 0, sizeof (_Table));
+        std::memset (_table, 0, sizeof (_table));
     }
 
     void update (Piece p, Square s, Score v)
@@ -58,14 +62,67 @@ public:
         if (false);
         else if (Gain)
         {
-            _Table[p][s] = std::max<Score> (v, _Table[p][s] - 1);
+            _table[p][s] = std::max<Score> (v, _table[p][s] - 1);
         }
-        else if (abs (_Table[p][s] + v) < MaxScore)
+        else if (abs (_table[p][s] + v) < MaxValue)
         {
-            _Table[p][s] += v;
+            _table[p][s] += v;
         }
     }
 
 };
+
+typedef Stats< true, Value> GainsStats;
+typedef Stats<false, Value> HistoryStats;
+typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
+
+
+// MovePicker class is used to pick one pseudo legal move at a time from the
+// current position. The most important method is next_move(), which returns a
+// new pseudo legal move each time it is called, until there are no moves left,
+// when MOVE_NONE is returned. In order to improve the efficiency of the alpha
+// beta algorithm, MovePicker attempts to return the moves which are most likely
+// to get a cut-off first.
+class MovePicker
+{
+
+private:
+    template<MoveGenerator::GType>
+    void value();
+    
+    void generate_next();
+
+    const Position     &pos;
+    const HistoryStats &history;
+    Searcher::Stack    *ss;
+    Move               *counter_moves;
+
+    Move                tt_move;
+    Depth               depth;
+
+    ValMove             killers[4];
+    Square              recapture_sq;
+    int32_t             capture_threshold;
+    int32_t             stage;
+    ValMove            *cur;
+    ValMove            *end;
+    ValMove            *end_quiets;
+    ValMove            *end_bad_captures;
+    ValMove             moves[MAX_MOVES];
+
+    MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
+
+public:
+    
+    MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
+    MovePicker(const Position &, Move, const HistoryStats &, PType);
+    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move*, Searcher::Stack*);
+
+    template<bool SpNode>
+    Move next_move();
+
+};
+
+
 
 #endif
