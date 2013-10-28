@@ -71,8 +71,9 @@ namespace {
 
     Score Weights[6];
 
-    typedef Value V;
+    //typedef Value V;
 
+#define V         Value
 #define S(mg, eg) mk_score (mg, eg)
 
     // Internal evaluation weights. These are applied on top of the evaluation
@@ -162,6 +163,7 @@ namespace {
     };
 
 #undef S
+#undef V
 
     const Score Tempo            = mk_score (24, 11);
     const Score BishopPin        = mk_score (66, 11);

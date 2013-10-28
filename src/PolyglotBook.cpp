@@ -11,7 +11,7 @@
 
 using namespace MoveGenerator;
 
-#define POSITION(x) ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
+#define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 
 #pragma region PolyglotEntry Operators
 
@@ -176,7 +176,7 @@ void PolyglotBook::close () { if (std::fstream::is_open ()) std::fstream::close 
 
 size_t PolyglotBook::find_index (const Key key)
 {
-    if (!std::fstream::is_open ()) return ERR_INDEX;
+    if (!std::fstream::is_open ()) return ERROR_INDEX;
 
     size_t beg = size_t (0);
     size_t end = size_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
@@ -187,9 +187,8 @@ size_t PolyglotBook::find_index (const Key key)
 
     if (beg == end)
     {
-        seekg (POSITION (beg));
+        seekg (STM_POS (beg));
         *this >> pe;
-        if (key != pe.key) return ERR_INDEX;
     }
     else
     {
@@ -198,7 +197,7 @@ size_t PolyglotBook::find_index (const Key key)
             size_t mid = (beg + end) / 2;
             ASSERT (mid >= beg && mid < end);
 
-            seekg (POSITION (mid));
+            seekg (STM_POS (mid));
 
             *this >> pe;
             if (key <= pe.key)
@@ -211,8 +210,9 @@ size_t PolyglotBook::find_index (const Key key)
             }
         }
     }
+
     ASSERT (beg == end);
-    return beg;
+    return (key == pe.key) ? beg : ERROR_INDEX;
 }
 size_t PolyglotBook::find_index (const Position &pos)
 {
@@ -237,9 +237,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     Key key = ZobPG.compute_posi_key (pos);
 
     size_t index = find_index (key);
-    if (ERR_INDEX == index) return MOVE_NONE;
+    if (ERROR_INDEX == index) return MOVE_NONE;
 
-    seekg (POSITION (index));
+    seekg (STM_POS (index));
 
     Move move = MOVE_NONE;
 
@@ -248,19 +248,19 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     uint16_t max_weight = 0;
     uint32_t sum_weight = 0;
 
-    //std::vector<PolyglotEntry> lst_pe;
+    //std::vector<PolyglotEntry> pe_list;
     //while ((*this >> pe), (pe.key == key) && good ())
     //{
-    //    lst_pe.emplace_back (pe);
+    //    pe_list.emplace_back (pe);
     //    max_weight = std::max (max_weight, pe.weight);
     //    sum_weight += pe.weight;
     //}
-    //if (!lst_pe.size ()) return MOVE_NONE;
+    //if (!pe_list.size ()) return MOVE_NONE;
     //
     //if (pick_best)
     //{
-    //    std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
-    //    while (itr != lst_pe.cend ())
+    //    std::vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
+    //    while (itr != pe_list.cend ())
     //    {
     //        pe = *itr;
     //        if (pe.weight == max_weight)
@@ -279,8 +279,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
     //    uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
-    //    std::vector<PolyglotEntry>::const_iterator itr = lst_pe.cbegin ();
-    //    while (itr != lst_pe.cend ())
+    //    std::vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
+    //    while (itr != pe_list.cend ())
     //    {
     //        pe = *itr;
     //        if (pe.weight > rand)
@@ -370,27 +370,27 @@ std::string PolyglotBook::read_entries (const Position &pos)
     Key key = ZobPG.compute_posi_key (pos);
 
     size_t index = find_index (key);
-    if (ERR_INDEX == index)
+    if (ERROR_INDEX == index)
     {
         std::cerr << "ERROR: no such key... "
             << std::hex << std::uppercase << key << std::endl;
         return "";
     }
 
-    seekg (POSITION (index));
+    seekg (STM_POS (index));
 
     PolyglotEntry pe;
-    std::vector<PolyglotEntry> lst_pe;
+    std::vector<PolyglotEntry> pe_list;
 
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
     {
-        lst_pe.emplace_back (pe);
+        pe_list.emplace_back (pe);
         sum_weight += pe.weight;
     }
 
     std::ostringstream sread;
-    std::for_each (lst_pe.cbegin (), lst_pe.cend (), [&sread, &sum_weight] (PolyglotEntry pe)
+    std::for_each (pe_list.cbegin (), pe_list.cend (), [&sread, &sum_weight] (PolyglotEntry pe)
     {
         sread << std::setfill ('0')
             << pe << " prob: " << std::right << std::fixed << std::width_prec (6, 2)
@@ -405,7 +405,7 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
     if (!std::fstream::is_open () || !(_mode & std::ios_base::out)) return;
 
     size_t index = find_index (pe.key);
-    if (ERR_INDEX == index)
+    if (ERROR_INDEX == index)
     {
 
     }
@@ -414,7 +414,7 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
         // move found
         if (true)
         {
-            // do nothing
+            // do nothing (UPDATE)
         }
         else
         {
@@ -444,5 +444,3 @@ void PolyglotBook::merge_book (const std::string &fn_book)
 //{
 //
 //}
-
-

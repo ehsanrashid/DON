@@ -57,7 +57,7 @@ public:
     static const uint8_t SIZE_PGENTRY   = sizeof (PolyglotEntry);
     static const uint8_t SIZE_PGHEADER  = 0*SIZE_PGENTRY;
 
-    static const size_t  ERR_INDEX      = size_t (-1);
+    static const size_t  ERROR_INDEX      = size_t (-1);
 
 private:
 

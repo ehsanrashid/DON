@@ -129,15 +129,16 @@ inline void Forest<T>::print (std::basic_ostream<charT, Traits>& os) const
         const typename Tree<T>::List &tree = _trees;
         size_t tree_count   = tree.size ();
         size_t count        = 1;
-        typename Tree<T>::List::const_iterator itr = tree.cbegin ();
-        while (itr != tree.cend ())
+        
+        for (typename Tree<T>::List::const_iterator itr = tree.cbegin ();
+            itr != tree.cend ();
+            ++itr)
         {
             os << ">";
             os << *(*itr);
             if (count != tree_count) os << endl;
 
             ++count;
-            ++itr;
         }
     }
 }
