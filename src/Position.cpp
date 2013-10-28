@@ -238,7 +238,7 @@ void Position::initialize ()
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            psq[WHITE][pt][ s] =  (score + PSQT[pt][s]);
+            psq[WHITE][pt][ s] = +(score + PSQT[pt][s]);
             psq[BLACK][pt][~s] = -(score + PSQT[pt][s]);
         }
     }

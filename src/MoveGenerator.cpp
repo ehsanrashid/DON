@@ -34,9 +34,7 @@ namespace MoveGenerator {
                 static_assert ((KING != T) && (PAWN != T), "T must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
-                //Piece piece = (c | T);
-                const SquareList pl = pos.list<T>(c); //pos[piece];
-
+                const SquareList pl = pos.list<T>(c);
                 std::for_each (pl.cbegin (), pl.cend (), [&] (Square org)
                 {
                     if ((CHECK == G) || (QUIET_CHECK == G))
@@ -79,7 +77,7 @@ namespace MoveGenerator {
                 //void Generator<G, KING>::generate (MoveList &m_list, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci)
             {
                 //static_assert ((EVASION != G), "G must not be EVASION");
-                if (EVASION != G)
+                if ((EVASION != G))
                 {
                     if ((CHECK != G) && (QUIET_CHECK != G))
                     {
@@ -88,7 +86,7 @@ namespace MoveGenerator {
                         SERIALIZE (m_list, k_sq, moves);
                     }
 
-                    if (CAPTURE != G)
+                    if ((CAPTURE != G))
                     {
                         if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
@@ -196,7 +194,7 @@ namespace MoveGenerator {
 
                 Bitboard empty = U64 (0);
                 // Pawn single-push and double-push, no promotions
-                if (CAPTURE != G)
+                if ((CAPTURE != G))
                 {
                     empty = ((QUIET == G) || (QUIET_CHECK == G) ? target : ~occ);
 
@@ -288,7 +286,7 @@ namespace MoveGenerator {
                         case CAPTURE: empty = ~pos.pieces (); break;
                         }
 
-                        //if (CAPTURE != G)
+                        //if ((CAPTURE != G))
                         {
                             generate_promotion<PUSH> (m_list, pawns_on_R7, empty, ci);
                         }
@@ -364,7 +362,7 @@ namespace MoveGenerator {
             Generator<G, ROOK>::generate (m_list, pos, C, target, ci);
             Generator<G, QUEN>::generate (m_list, pos, C, target, ci);
 
-            if (EVASION != G)
+            if ((EVASION != G))
             {
                 Generator<G, KING>::generate (m_list, pos, C, target, ci);
             }
@@ -555,7 +553,7 @@ namespace MoveGenerator {
         }
 
         SERIALIZE (m_list, k_sq, moves);
-        if (1 == num_checkers && pop_count<FULL> (friends) > 1)
+        if ((1 == num_checkers) && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
             Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), k_sq);
