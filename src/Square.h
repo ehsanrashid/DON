@@ -215,9 +215,9 @@ typedef std::vector<Square> SquareList;
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &lst_sq)
+    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_list)
 {
-    std::for_each (lst_sq.cbegin (), lst_sq.cend (), [&os] (Square s) { os << s << std::endl; });
+    std::for_each (sq_list.cbegin (), sq_list.cend (), [&os] (Square s) { os << s << std::endl; });
     return os;
 }
 

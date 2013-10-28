@@ -329,7 +329,7 @@ typedef enum Value : int16_t
 
     VALUE_NONE      = _I16_MAX,
     VALUE_INFINITE  = VALUE_NONE - 1,
-    
+
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 2,
 
@@ -420,7 +420,10 @@ typedef enum Phase
 {
     PHASE_ENDGAME,
     PHASE_MIDGAME = 128,
-    MG = 0, EG = 1, PHASE_NO = 2
+
+    MG = 0,
+    EG = 1,
+    PHASE_NO = 2,
 
 } Phase;
 

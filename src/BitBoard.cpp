@@ -651,11 +651,11 @@ namespace BitBoard {
 
     SquareList squares (Bitboard bb)
     {
-        SquareList lst_sq;
+        SquareList sq_list;
 
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
-        //    if (bb & s) lst_sq.emplace_back (s);
+        //    if (bb & s) sq_list.emplace_back (s);
         //}
 
         // ---
@@ -663,10 +663,10 @@ namespace BitBoard {
         while (bb)
         {
             Square s = pop_lsb (bb);
-            lst_sq.emplace_back (s);
+            sq_list.emplace_back (s);
         }
 
-        return lst_sq;
+        return sq_list;
     }
 
 }

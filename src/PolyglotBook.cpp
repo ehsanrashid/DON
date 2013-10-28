@@ -349,8 +349,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     if (pt) prom_type (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    MoveList lst_move = generate<LEGAL> (pos);
-    for (MoveList::const_iterator itr = lst_move.cbegin (); itr != lst_move.cend (); ++itr)
+    MoveList m_list = generate<LEGAL> (pos);
+    for (MoveList::const_iterator itr = m_list.cbegin (); itr != m_list.cend (); ++itr)
     {
         Move m = *itr;
         //if ((m ^ _mtype (m)) == move)
