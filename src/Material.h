@@ -8,21 +8,21 @@
 
 namespace Material {
 
-    /// Material::Entry contains various information about a material configuration.
-    /// It contains a material balance evaluation, a function pointer to a special
-    /// endgame evaluation function (which in most cases is NULL, meaning that the
-    /// standard evaluation function will be used), and "scale factors".
-    ///
-    /// The scale factors are used to scale the evaluation score up or down.
-    /// For instance, in KRB vs KR endgames, the score is scaled down by a factor
-    /// of 4, which will result in scores of absolute value less than one pawn.
+    // Material::Entry contains various information about a material configuration.
+    // It contains a material balance evaluation, a function pointer to a special
+    // endgame evaluation function (which in most cases is NULL, meaning that the
+    // standard evaluation function will be used), and "scale factors".
+    //
+    // The scale factors are used to scale the evaluation score up or down.
+    // For instance, in KRB vs KR endgames, the score is scaled down by a factor
+    // of 4, which will result in scores of absolute value less than one pawn.
     struct Entry
     {
         Key key;
         int16_t value;
         uint8_t factor[CLR_NO];
-        EndgameBase<Value>* evaluation_func;
-        EndgameBase<ScaleFactor>* scaling_func[CLR_NO];
+        EndGame::EndgameBase<Value>* evaluation_func;
+        EndGame::EndgameBase<ScaleFactor>* scaling_func[CLR_NO];
         Score _space_weight;
         Phase _game_phase;
 
@@ -39,7 +39,7 @@ namespace Material {
 
     typedef HashTable<Entry, 8192> Table;
 
-    Entry* probe (const Position &pos, Table &table, Endgames &endgames);
+    Entry* probe (const Position &pos, Table &table, EndGame::Endgames &endgames);
     Phase game_phase (const Position &pos);
 
     /// Material::scale_factor takes a position and a color as input, and

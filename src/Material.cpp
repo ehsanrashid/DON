@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstring>
 
+using namespace EndGame;
+
 namespace {
 
     // Values modified by Joona Kiiski
@@ -78,10 +80,9 @@ namespace {
             && pos.piece_count<PAWN>(C_) >= 1;
     }
 
-    /// imbalance() calculates imbalance comparing piece count of each
-    /// piece type for both colors.
-
     template<Color C>
+    // imbalance<>() calculates imbalance comparing piece count of each
+    // piece type for both colors.
     int32_t imbalance (const int32_t piece_count[][PT_NO])
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -164,7 +165,7 @@ namespace Material {
             assert((pos.pieces(BLACK, NIHT) | pos.pieces(BLACK, BSHP)));
 
             if (pos.piece_count<BSHP>(WHITE) + pos.piece_count<NIHT>(WHITE) <= 2
-             && pos.piece_count<BSHP>(BLACK) + pos.piece_count<NIHT>(BLACK) <= 2)
+                && pos.piece_count<BSHP>(BLACK) + pos.piece_count<NIHT>(BLACK) <= 2)
             {
                 e->evaluation_func = &EvaluateKmmKm[pos.active ()];
                 return e;

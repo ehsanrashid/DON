@@ -4,7 +4,7 @@
 
 #include "Type.h"
 
-namespace Bitbases {
+namespace BitBases {
 
     void init_kpk ();
 

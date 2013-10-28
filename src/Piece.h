@@ -5,7 +5,7 @@
 #include "Type.h"
 #include <string>
 
-inline bool    _ok (PType pt)
+inline bool     _ok (PType pt)
 {
     return (PAWN <= pt && pt <= KING);
 }
@@ -35,12 +35,12 @@ inline Piece operator| (Color c, PType pt)
     }
     return Piece ((c << 3) | pCode);
 }
-inline Piece mk_piece (Color c, PType pt)
+inline Piece mk_piece  (Color c, PType pt)
 {
     return c | pt;
 }
 
-inline bool _ok (Piece p)
+inline bool     _ok (Piece p)
 {
     //return 
     //    (W_PAWN <= p && p <= W_QUEN) ||
@@ -49,26 +49,22 @@ inline bool _ok (Piece p)
 }
 inline PType _ptype (Piece p)
 {
-    if (_ok (p))
+    PType pt;
+    switch (p & 0x07)
     {
-        PType pt;
-        switch (p & 0x07)
-        {
-        case W_PAWN: pt = PAWN; break;
-        case W_KING: pt = KING; break;
-        case W_NIHT: pt = NIHT; break;
-        case W_BSHP: pt = BSHP; break;
-        case W_ROOK: pt = ROOK; break;
-        case W_QUEN: pt = QUEN; break;
-        default:    pt = PT_NO; break;
-        }
-        return pt;
+    case W_PAWN: pt = PAWN; break;
+    case W_KING: pt = KING; break;
+    case W_NIHT: pt = NIHT; break;
+    case W_BSHP: pt = BSHP; break;
+    case W_ROOK: pt = ROOK; break;
+    case W_QUEN: pt = QUEN; break;
+    default:    pt = PT_NO; break;
     }
-    return PT_NO;
+    return pt;
 }
 inline Color _color (Piece p)
 {
-    return _ok (p) ? Color ((p >> 3) & 1) : CLR_NO;
+    return Color ((p >> 3) & 1);
 }
 
 inline Piece operator~ (Piece p)

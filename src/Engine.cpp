@@ -76,8 +76,9 @@ namespace Engine {
 
     void start ()
     {
+
         BitBoard::initialize ();
-        Zobrist::initialize ();
+        Zobrist ::initialize ();
         Position::initialize ();
 
         ::std::cout << Engine::info () << ::std::endl;

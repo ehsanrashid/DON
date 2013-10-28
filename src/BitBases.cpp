@@ -4,8 +4,7 @@
 #include "Square.h"
 #include <vector>
 
-namespace Bitbases {
-
+namespace BitBases {
 
     namespace {
 
@@ -141,7 +140,6 @@ namespace Bitbases {
 
     }
 
-
     void init_kpk ()
     {
         std::vector<KPKPosition> db;
@@ -175,13 +173,11 @@ namespace Bitbases {
         }
     }
 
-
     bool probe_kpk (Color c, Square wk_sq, Square p_sq, Square bk_sq)
     {
 
 
         return false;
     }
-
 
 }
