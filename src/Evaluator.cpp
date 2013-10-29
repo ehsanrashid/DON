@@ -82,7 +82,7 @@ namespace {
     // parameters at 100, which looks prettier.
     //
     // Values modified by Joona Kiiski
-    const Score WeightsInternal[PT_NO] =
+    const Score WeightsInternal[] =
     {
         S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
     };
@@ -92,7 +92,6 @@ namespace {
     // friendly pieces.
     const Score MobilityBonus[PT_NO][32] =
     {
-        {},
         {},
         // Knights
         {S(-35,-30), S(-22,-20), S(-9,-10), S( 3,  0), S(15, 10),
@@ -148,7 +147,6 @@ namespace {
     const Score Threat[PT_NO][PT_NO] =
     {
         {},
-        {},
         { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // NIHT
         { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BSHP
         { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
@@ -159,7 +157,7 @@ namespace {
     // type is attacked by an enemy pawn.
     const Score ThreatenedByPawn[PT_NO] =
     {
-        S(0, 0), S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118)
+        S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118), S(0, 0),
     };
 
 #undef S
@@ -192,7 +190,7 @@ namespace {
     const Bitboard SpaceMask[CLR_NO] =
     {
         (FC_bb | FD_bb | FE_bb | FB_bb) & (R2_bb | R3_bb | R4_bb),
-        (FC_bb | FD_bb | FE_bb | FB_bb) & (R7_bb | R6_bb | R5_bb)
+        (FC_bb | FD_bb | FE_bb | FB_bb) & (R7_bb | R6_bb | R5_bb),
     };
 
     // King danger constants and variables. The king danger scores are taken
@@ -201,7 +199,7 @@ namespace {
     // is used as an index to KingDanger[].
     //
     // KingAttackWeights[PType] contains king attack weights by piece type
-    const int32_t KingAttackWeights[PT_NO] = { 0, 0, 2, 2, 3, 5 };
+    const int32_t KingAttackWeights[PT_NO] = { 0, 2, 2, 3, 5, 0, };
 
     // Bonuses for enemy's safe checks
     const int32_t QueenContactCheck = 24;
@@ -410,7 +408,7 @@ namespace {
         const Color  C_ = ((WHITE == C) ? BLACK : WHITE);
         const Delta PULL = ((WHITE == C) ? DEL_S : DEL_N);
 
-        Bitboard b = ei.attackedBy[C_][KING] = pos.attacks_from<KING>(pos.king_sq(C_));
+        Bitboard b = ei.attackedBy[C_][KING] = pos.attacks_from<KING>(pos.king_sq (C_));
         ei.attackedBy[C][PAWN] = ei.pi->pawn_attacks(C);
 
         // Init king safety tables only if we are going to use them
@@ -433,7 +431,7 @@ namespace {
     {
         //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
         assert (BSHP == T || NIHT == T);
-        
+
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         // Initial bonus based on square
@@ -443,8 +441,8 @@ namespace {
         // no minor piece which can exchange the outpost piece.
         if (bonus && (ei.attackedBy[C][PAWN] & s))
         {
-            if (   !pos.pieces(C_, NIHT)
-                && !(squares_of_color(s) & pos.pieces(C_, BSHP)))
+            if (   !pos.pieces (C_, NIHT)
+                && !(squares_of_color(s) & pos.pieces (C_, BSHP)))
             {
                 bonus += bonus + bonus / 2;
             }
@@ -463,17 +461,17 @@ namespace {
         Score score = SCORE_ZERO;
 
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        const SquareList pl = pos.list<T>(C);
 
         ei.attackedBy[C][T] = 0;
-
+        
+        const SquareList pl = pos.list<T>(C);
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard b =
-                BSHP == T ? attacks_bb<BSHP>(s, pos.pieces() ^ pos.pieces(C, QUEN, BSHP)) :
-                ROOK == T ? attacks_bb<ROOK>(s, pos.pieces() ^ pos.pieces(C, QUEN, ROOK)) :
-                pos.attacks_from<T>(s);
+                BSHP == T ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
+                ROOK == T ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
+                pos.attacks_from<T> (s);
 
             ei.attackedBy[C][T] |= b;
 
@@ -504,8 +502,8 @@ namespace {
             // Otherwise give a bonus if we are a bishop and can pin a piece or can
             // give a discovered check through an x-ray attack.
             else if (    BSHP == T
-                && (attacks_bb<BSHP>(pos.king_sq(C_)) & s)
-                && !more_than_one(betwen_sq_bb(s, pos.king_sq(C_)) & pos.pieces()))
+                && (attacks_bb<BSHP>(pos.king_sq (C_)) & s)
+                && !more_than_one(betwen_sq_bb(s, pos.king_sq (C_)) & pos.pieces ()))
             {
                 score += BishopPin;
             }
@@ -525,13 +523,13 @@ namespace {
             if (BSHP == T || NIHT == T)
             {
                 // Bishop and knight outposts squares
-                if (!(pos.pieces(C_, PAWN) & attack_span_pawn_bb (C, s)))
+                if (!(pos.pieces (C_, PAWN) & attack_span_pawn_bb (C, s)))
                 {
                     score += evaluate_outposts<T, C>(pos, ei, s);
                 }
                 // Bishop or knight behind a pawn
                 if (    rel_rank (C, s) < R_5
-                    && (pos.pieces(PAWN) & (s + pawn_push (C))))
+                    && (pos.pieces (PAWN) & (s + pawn_push (C))))
                 {
                     score += MinorBehindPawn;
                 }
@@ -542,13 +540,13 @@ namespace {
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
                 if (   R_7 == rel_rank (C, s)
-                    && R_8 == rel_rank (C, pos.king_sq(C_)))
+                    && R_8 == rel_rank (C, pos.king_sq (C_)))
                 {
                     score += (ROOK == T) ? RookOn7th : QueenOn7th;
                 }
 
                 // Major piece attacking enemy pawns on the same rank/file
-                Bitboard pawns = pos.pieces(C_, PAWN) & attacks_bb<ROOK>(s);
+                Bitboard pawns = pos.pieces (C_, PAWN) & attacks_bb<ROOK>(s);
                 if (pawns)
                 {
                     score += int32_t (pop_count<MAX15>(pawns)) * ((ROOK == T) ? RookOnPawn : QueenOnPawn);
@@ -616,7 +614,7 @@ namespace {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-        const Bitboard mobility_area = ~(ei.attackedBy[C_][PAWN] | pos.pieces(C, PAWN, KING));
+        const Bitboard mobility_area = ~(ei.attackedBy[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
         Score score =
             evaluate_pieces<NIHT, C, TRACE>(pos, ei, mobility, mobility_area);
@@ -643,7 +641,7 @@ namespace {
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
-        const Square k_sq = pos.king_sq(C);
+        const Square k_sq = pos.king_sq (C);
 
         // King shelter and enemy pawns storm
         Score score = ei.pi->king_safety<C>(pos, k_sq);
@@ -673,7 +671,7 @@ namespace {
 
             // Analyse enemy's safe queen contact checks. First find undefended
             // squares around the king attacked by enemy queen...
-            Bitboard b = undefended & ei.attackedBy[C_][QUEN] & ~pos.pieces(C_);
+            Bitboard b = undefended & ei.attackedBy[C_][QUEN] & ~pos.pieces (C_);
             if (b)
             {
                 // ...then remove squares not supported by another enemy piece
@@ -691,7 +689,7 @@ namespace {
 
             // Analyse enemy's safe rook contact checks. First find undefended
             // squares around the king attacked by enemy rooks...
-            b = undefended & ei.attackedBy[C_][ROOK] & ~pos.pieces(C_);
+            b = undefended & ei.attackedBy[C_][ROOK] & ~pos.pieces (C_);
             // Consider only squares where the enemy rook gives check
             b &= attacks_bb<ROOK>(k_sq);
             if (b)
@@ -708,7 +706,7 @@ namespace {
             }
 
             // Analyse enemy's safe distance checks for sliders and knights
-            Bitboard safe = ~(pos.pieces(C_) | ei.attackedBy[C][PT_NO]);
+            Bitboard safe = ~(pos.pieces (C_) | ei.attackedBy[C][PT_NO]);
 
             Bitboard b1 = pos.attacks_from<ROOK>(k_sq) & safe;
             Bitboard b2 = pos.attacks_from<BSHP>(k_sq) & safe;
@@ -759,7 +757,7 @@ namespace {
         Score score = SCORE_ZERO;
 
         // Undefended minors get penalized even if not under attack
-        Bitboard undefended_minors = pos.pieces(C_, BSHP, NIHT) & ~ei.attackedBy[C_][PT_NO];
+        Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attackedBy[C_][PT_NO];
 
         if (undefended_minors)
         {
@@ -768,7 +766,7 @@ namespace {
 
         // Enemy pieces not defended by a pawn and under our attack
         Bitboard weak_enemies = 
-            pos.pieces(C_) &
+            pos.pieces (C_) &
             ~ei.attackedBy[C_][PAWN] &
             ei.attackedBy[C][PT_NO];
 
@@ -784,7 +782,7 @@ namespace {
                 {
                     for (PType pt2 = PAWN; pt2 < KING; ++pt2)
                     {
-                        if (b & pos.pieces(pt2))
+                        if (b & pos.pieces (pt2))
                         {
                             score += Threat[pt1][pt2];
                         }
@@ -829,13 +827,13 @@ namespace {
 
                 // Adjust bonus based on kings proximity
                 eg_bonus +=
-                    Value (square_dist (pos.king_sq(C_), block_sq) * 5 * rr) -
-                    Value (square_dist (pos.king_sq(C ), block_sq) * 2 * rr);
+                    Value (square_dist (pos.king_sq (C_), block_sq) * 5 * rr) -
+                    Value (square_dist (pos.king_sq (C ), block_sq) * 2 * rr);
 
                 // If block_sq is not the queening square then consider also a second push
                 if (rel_rank (C, block_sq) != R_8)
                 {
-                    eg_bonus -= Value (square_dist (pos.king_sq(C), block_sq + pawn_push (C)) * rr);
+                    eg_bonus -= Value (square_dist (pos.king_sq (C), block_sq + pawn_push (C)) * rr);
                 }
 
                 // If the pawn is free to advance, increase bonus
@@ -848,18 +846,18 @@ namespace {
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
-                    if (    UNLIKELY(front_squares_bb (C_, s) & pos.pieces(C_, ROOK, QUEN))
-                        && (front_squares_bb (C_, s) & pos.pieces(C_, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
+                    if (    UNLIKELY(front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN))
+                        && (front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
                     {
                         squares_unsafe = squares_queen;
                     }
                     else
                     {
-                        squares_unsafe = squares_queen & (ei.attackedBy[C_][PT_NO] | pos.pieces(C_));
+                        squares_unsafe = squares_queen & (ei.attackedBy[C_][PT_NO] | pos.pieces (C_));
                     }
 
-                    if (    UNLIKELY(front_squares_bb (C_, s) & pos.pieces(C, ROOK, QUEN))
-                        && (front_squares_bb (C_, s) & pos.pieces(C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
+                    if (    UNLIKELY(front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
+                        && (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK>(s)))
                     {
                         squares_defended = squares_queen;
                     }
@@ -890,7 +888,7 @@ namespace {
 
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
-            Bitboard sup_pawns = pos.pieces(C, PAWN) & adj_files_bb (_file (s));
+            Bitboard sup_pawns = pos.pieces (C, PAWN) & adj_files_bb (_file (s));
             if (sup_pawns & rank_bb (s))
             {
                 eg_bonus += Value (r * 20);
@@ -912,7 +910,7 @@ namespace {
                 {
                     eg_bonus += eg_bonus / 4;
                 }
-                else if (pos.pieces(C_, ROOK, QUEN))
+                else if (pos.pieces (C_, ROOK, QUEN))
                 {
                     eg_bonus -= eg_bonus / 4;
                 }
@@ -967,12 +965,12 @@ namespace {
         // pawn, or if it is undefended and attacked by an enemy piece.
         Bitboard safe = 
             SpaceMask[C] &
-            ~pos.pieces(C, PAWN) &
+            ~pos.pieces (C, PAWN) &
             ~ei.attackedBy[C_][PAWN] &
             (ei.attackedBy[C][PT_NO] | ~ei.attackedBy[C_][PT_NO]);
 
         // Find all squares which are at most three squares behind some friendly pawn
-        Bitboard behind = pos.pieces(C, PAWN);
+        Bitboard behind = pos.pieces (C, PAWN);
         behind |= ((WHITE == C) ? behind >>  8 : behind <<  8);
         behind |= ((WHITE == C) ? behind >> 16 : behind << 16);
 

@@ -8,40 +8,40 @@ using namespace EndGame;
 namespace {
 
     // Values modified by Joona Kiiski
-    const Value MidgameLimit = Value(15581);
-    const Value EndgameLimit = Value(3998);
+    const Value MidgameLimit = Value (15581);
+    const Value EndgameLimit = Value (3998);
 
     // Scale factors used when one side has no more pawns
     const int32_t NoPawnsSF[4] = { 6, 12, 32 };
 
     // Polynomial material balance parameters
-    const Value RedundantQueen = Value(320);
-    const Value RedundantRook  = Value(554);
+    const Value RedundantQueen = Value (320);
+    const Value RedundantRook  = Value (554);
 
-    //                                  pair  pawn knight bishop rook queen
-    const int32_t LinearCoefficients[6] = { 1617, -162, -1172, -190,  105,  26 };
+    //                                       pawn knight bishop rook queen pair
+    const int32_t LinearCoefficients[6] = { -162, -1122,  -190,  105,  26, 1817, };
 
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
-        // pair pawn knight bishop rook queen
-        {   7                               }, // Bishop pair
-        {  39,    2                         }, // Pawn
-        {  35,  271,  -4                    }, // Knight
-        {   7,  105,   4,    7              }, // Bishop
-        { -27,   -2,  46,   100,   56       }, // Rook
-        {  58,   29,  83,   148,   -3,  -25 }  // Queen
+        // P    N    B    R    Q    BP
+        {   2,                          }, // P
+        { 271,  -4,                     }, // N
+        { 105,   4,   7,                }, // B
+        {  -2,  46, 100,  56,           }, // R
+        {  29,  83, 148,  -3, -25,      }, // Q
+        {  39,  35,   7, -27,  58,   7, }, // BP
     };
 
     const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
     {
-        //           THEIR PIECES
-        // pair pawn knight bishop rook queen
-        {  41                               }, // Bishop pair
-        {  37,   41                         }, // Pawn
-        {  10,   62,  41                    }, // Knight      OUR PIECES
-        {  57,   64,  39,    41             }, // Bishop
-        {  50,   40,  23,   -22,   41       }, // Rook
-        { 106,  101,   3,   151,  171,   41 }  // Queen
+        //       THEIR PIECES
+        // P    N    B    R    Q    BP
+        {  41,                          }, // P
+        {  62,  41,                     }, // N      OUR PIECES
+        {  64,  39,  41,                }, // B
+        {  40,  23, -22,  41,           }, // R
+        { 101,   3, 151, 171,  41,      }, // Q
+        {  37,  10,  57,  50, 106,  41, }, // BP
     };
 
     // Endgame evaluation and scaling functions accessed direcly and not through
@@ -50,7 +50,7 @@ namespace {
     Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>   (WHITE), Endgame<KXK>   (BLACK) };
 
     Endgame<KBPsK>  ScaleKBPsK  [CLR_NO] = { Endgame<KBPsK> (WHITE), Endgame<KBPsK> (BLACK) };
-    Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>(WHITE), Endgame<KQKRPs>(BLACK) };
+    Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
     Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>  (WHITE), Endgame<KPsK>  (BLACK) };
     Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>  (WHITE), Endgame<KPKP>  (BLACK) };
 
@@ -58,30 +58,30 @@ namespace {
     template<Color C> bool is_KXK(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        return  !pos.piece_count<PAWN>(C_)
-            && pos.non_pawn_material(C_) == VALUE_ZERO
-            && pos.non_pawn_material(C) >= VALUE_MG_ROOK;
+        return  !pos.piece_count<PAWN> (C_)
+            && pos.non_pawn_material (C_) == VALUE_ZERO
+            && pos.non_pawn_material (C) >= VALUE_MG_ROOK;
     }
 
     template<Color C> bool is_KBPsKs(const Position &pos)
     {
-        return pos.non_pawn_material(C) == VALUE_MG_BISHOP
-            && pos.piece_count<BSHP>(C) == 1
-            && pos.piece_count<PAWN>(C) >= 1;
+        return pos.non_pawn_material (C) == VALUE_MG_BISHOP
+            && pos.piece_count<BSHP> (C) == 1
+            && pos.piece_count<PAWN> (C) >= 1;
     }
 
     template<Color C> bool is_KQKRPs(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        return!pos.piece_count<PAWN>(C)
-            && pos.non_pawn_material(C) == VALUE_MG_QUEEN
-            && pos.piece_count<QUEN>(C)  == 1
-            && pos.piece_count<ROOK>(C_) == 1
-            && pos.piece_count<PAWN>(C_) >= 1;
+        return!pos.piece_count<PAWN> (C)
+            && pos.non_pawn_material (C) == VALUE_MG_QUEEN
+            && pos.piece_count<QUEN> (C)  == 1
+            && pos.piece_count<ROOK> (C_) == 1
+            && pos.piece_count<PAWN> (C_) >= 1;
     }
 
     template<Color C>
-    // imbalance<>() calculates imbalance comparing piece count of each
+    // imbalance<> () calculates imbalance comparing piece count of each
     // piece type for both colors.
     int32_t imbalance (const int32_t piece_count[][PT_NO])
     {
@@ -93,11 +93,12 @@ namespace {
         // "The Evaluation of Material Imbalances in Chess"
         if (piece_count[C][ROOK] > 0)
         {
-            value -= RedundantRook * (piece_count[C][ROOK] - 1)
-                +    RedundantQueen * piece_count[C][QUEN];
+            value -= RedundantRook  * (piece_count[C][ROOK] - 1)
+                +    RedundantQueen * (piece_count[C][QUEN]);
         }
+
         // Second-degree polynomial material imbalance by Tord Romstad
-        for (PType pt1 = PAWN; pt1 <= QUEN; ++pt1)
+        for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
         {
             int32_t pc = piece_count[C][pt1];
             if (!pc) continue;
@@ -145,13 +146,13 @@ namespace Material {
         {
             return e;
         }
-        if (is_KXK<WHITE>(pos))
+        if (is_KXK<WHITE> (pos))
         {
             e->evaluation_func = &EvaluateKXK[WHITE];
             return e;
         }
 
-        if (is_KXK<BLACK>(pos))
+        if (is_KXK<BLACK> (pos))
         {
             e->evaluation_func = &EvaluateKXK[BLACK];
             return e;
@@ -164,8 +165,8 @@ namespace Material {
             assert((pos.pieces(WHITE, NIHT) | pos.pieces(WHITE, BSHP)));
             assert((pos.pieces(BLACK, NIHT) | pos.pieces(BLACK, BSHP)));
 
-            if (pos.piece_count<BSHP>(WHITE) + pos.piece_count<NIHT>(WHITE) <= 2
-                && pos.piece_count<BSHP>(BLACK) + pos.piece_count<NIHT>(BLACK) <= 2)
+            if (pos.piece_count<BSHP> (WHITE) + pos.piece_count<NIHT> (WHITE) <= 2
+                && pos.piece_count<BSHP> (BLACK) + pos.piece_count<NIHT> (BLACK) <= 2)
             {
                 e->evaluation_func = &EvaluateKmmKm[pos.active ()];
                 return e;
@@ -188,39 +189,39 @@ namespace Material {
         // Generic scaling functions that refer to more then one material
         // distribution. Should be probed after the specialized ones.
         // Note that these ones don't return after setting the function.
-        if (is_KBPsKs<WHITE>(pos))
+        if (is_KBPsKs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKBPsK[WHITE];
         }
-        if (is_KBPsKs<BLACK>(pos))
+        if (is_KBPsKs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKBPsK[BLACK];
         }
-        if (is_KQKRPs<WHITE>(pos))
+        if (is_KQKRPs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
         }
-        else if (is_KQKRPs<BLACK>(pos))
+        else if (is_KQKRPs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
         }
 
-        Value w_npm = pos.non_pawn_material(WHITE);
-        Value b_npm = pos.non_pawn_material(BLACK);
+        Value w_npm = pos.non_pawn_material (WHITE);
+        Value b_npm = pos.non_pawn_material (BLACK);
 
         if (w_npm + b_npm == VALUE_ZERO)
         {
-            if (!pos.piece_count<PAWN>(BLACK))
+            if (!pos.piece_count<PAWN> (BLACK))
             {
-                assert (pos.piece_count<PAWN>(WHITE) >= 2);
+                assert (pos.piece_count<PAWN> (WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
-            else if (!pos.piece_count<PAWN>(WHITE))
+            else if (!pos.piece_count<PAWN> (WHITE))
             {
-                assert (pos.piece_count<PAWN>(BLACK) >= 2);
+                assert (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
-            else if (pos.piece_count<PAWN>(WHITE) == 1 && pos.piece_count<PAWN>(BLACK) == 1)
+            else if (pos.piece_count<PAWN> (WHITE) == 1 && pos.piece_count<PAWN> (BLACK) == 1)
             {
                 // This is a special case because we set scaling functions
                 // for both colors instead of only one.
@@ -231,21 +232,21 @@ namespace Material {
 
         // No pawns makes it difficult to win, even with a material advantage. This
         // catches some trivial draws like KK, KBK and KNK
-        if (!pos.piece_count<PAWN>(WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
+        if (!pos.piece_count<PAWN> (WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP>(WHITE), 2)]);
+            e->factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (WHITE), 2)]);
         }
 
-        if (!pos.piece_count<PAWN>(BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
+        if (!pos.piece_count<PAWN> (BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP>(BLACK), 2)]);
+            e->factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (BLACK), 2)]);
         }
 
         // Compute the space weight
         if (w_npm + b_npm >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
-            int32_t minorPieceCount =  pos.piece_count<NIHT>(WHITE) + pos.piece_count<BSHP>(WHITE)
-                + pos.piece_count<NIHT>(BLACK) + pos.piece_count<BSHP>(BLACK);
+            int32_t minorPieceCount =  pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE)
+                + pos.piece_count<NIHT> (BLACK) + pos.piece_count<BSHP> (BLACK);
 
             e->_space_weight = mk_score(minorPieceCount * minorPieceCount, 0);
         }
@@ -255,15 +256,15 @@ namespace Material {
         // in defining bishop pair bonuses.
         const int32_t piece_count[CLR_NO][PT_NO] =
         {
-            {pos.piece_count<BSHP>(WHITE) > 1, pos.piece_count<PAWN>(WHITE), pos.piece_count<NIHT>(WHITE),
-            pos.piece_count<BSHP>(WHITE)    , pos.piece_count<ROOK>(WHITE), pos.piece_count<QUEN >(WHITE)
+            {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
+            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.piece_count<BSHP> (WHITE) > 1
             },
-            {pos.piece_count<BSHP>(BLACK) > 1, pos.piece_count<PAWN>(BLACK), pos.piece_count<NIHT>(BLACK),
-            pos.piece_count<BSHP>(BLACK)    , pos.piece_count<ROOK>(BLACK), pos.piece_count<QUEN >(BLACK)
+            {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
+            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.piece_count<BSHP> (BLACK) > 1,
             },
         };
 
-        e->value = int16_t ((imbalance<WHITE>(piece_count) - imbalance<BLACK>(piece_count)) / 16);
+        e->value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
         return e;
     }
 
@@ -273,7 +274,7 @@ namespace Material {
     // is stored in MaterialEntry.
     Phase game_phase (const Position &pos)
     {
-        Value npm = pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK);
+        Value npm = pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK);
 
         return  npm >= MidgameLimit ? PHASE_MIDGAME
             : npm <= EndgameLimit ? PHASE_ENDGAME
