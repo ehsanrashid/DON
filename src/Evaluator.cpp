@@ -262,7 +262,7 @@ namespace {
 
     Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei);
 
-    Value interpolate(const Score& score, Phase ph, ScaleFactor sf);
+    Value interpolate (const Score& score, Phase ph, ScaleFactor sf);
     Score apply_weight (Score score, Score w);
     Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internal_weight);
     double to_cp (Value value);
@@ -330,7 +330,7 @@ namespace {
             -    evaluate_passed_pawns<BLACK, TRACE>(pos, ei);
 
         // If one side has only a king, score for potential unstoppable pawns
-        if (!pos.non_pawn_material(WHITE) || !pos.non_pawn_material(BLACK))
+        if (!pos.non_pawn_material (WHITE) || !pos.non_pawn_material (BLACK))
         {
             score += evaluate_unstoppable_pawns(pos, WHITE, ei)
                 -    evaluate_unstoppable_pawns(pos, BLACK, ei);
@@ -344,17 +344,17 @@ namespace {
 
         // Scale winning side if position is more drawish that what it appears
         ScaleFactor sf = (eg_value(score) > VALUE_DRAW) ?
-            ei.mi->scale_factor(pos, WHITE) : ei.mi->scale_factor(pos, BLACK);
+            ei.mi->scale_factor (pos, WHITE) : ei.mi->scale_factor (pos, BLACK);
 
         // If we don't already have an unusual scale factor, check for opposite
         // colored bishop endgames, and use a lower scale for those.
         if (   ei.mi->game_phase () < PHASE_MIDGAME
-            && pos.has_opposite_bishops()
+            && pos.has_opposite_bishops ()
             && sf == SCALE_FACTOR_NORMAL)
         {
             // Only the two bishops ?
-            if (   pos.non_pawn_material(WHITE) == VALUE_MG_BISHOP
-                && pos.non_pawn_material(BLACK) == VALUE_MG_BISHOP)
+            if (   pos.non_pawn_material (WHITE) == VALUE_MG_BISHOP
+                && pos.non_pawn_material (BLACK) == VALUE_MG_BISHOP)
             {
                 // Check for KBP vs KB with only a single pawn that is almost
                 // certainly a draw or at least two pawns.
@@ -370,7 +370,7 @@ namespace {
         }
 
         margin = margins[pos.active ()];
-        Value value = interpolate(score, ei.mi->game_phase (), sf);
+        Value value = interpolate (score, ei.mi->game_phase (), sf);
 
         // In case of tracing add all single evaluation contributions for both white and black
         if (TRACE)
@@ -412,7 +412,7 @@ namespace {
         ei.attackedBy[C][PAWN] = ei.pi->pawn_attacks(C);
 
         // Init king safety tables only if we are going to use them
-        if (pos.piece_count<QUEN>(C) && pos.non_pawn_material(C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
+        if (pos.piece_count<QUEN>(C) && pos.non_pawn_material (C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
         {
             ei.kingRing[C_] = b | shift_del<PULL>(b);
             b &= ei.attackedBy[C][PAWN];
@@ -906,7 +906,7 @@ namespace {
             // value if the other side has a rook or queen.
             if (file_bb (s) & (FA_bb | FH_bb))
             {
-                if (pos.non_pawn_material(C_) <= VALUE_MG_KNIGHT)
+                if (pos.non_pawn_material (C_) <= VALUE_MG_KNIGHT)
                 {
                     eg_bonus += eg_bonus / 4;
                 }
@@ -942,7 +942,7 @@ namespace {
     {
         Bitboard b = ei.pi->passed_pawns(c) | ei.pi->candidate_pawns(c);
 
-        if (!b || pos.non_pawn_material(~c))
+        if (!b || pos.non_pawn_material (~c))
         {
             return SCORE_ZERO;
         }
@@ -981,9 +981,9 @@ namespace {
         return pop_count<FULL>(((WHITE == C) ? safe << 32 : safe >> 32) | (behind & safe));
     }
 
-    // interpolate() interpolates between a middle game and an endgame score,
+    // interpolate () interpolates between a middle game and an endgame score,
     // based on game phase. It also scales the return value by a ScaleFactor array.
-    Value interpolate(const Score& score, Phase ph, ScaleFactor sf)
+    Value interpolate (const Score& score, Phase ph, ScaleFactor sf)
     {
         assert (mg_value(score) > -VALUE_INFINITE && mg_value(score) < VALUE_INFINITE);
         assert (eg_value(score) > -VALUE_INFINITE && eg_value(score) < VALUE_INFINITE);
