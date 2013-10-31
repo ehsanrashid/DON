@@ -18,8 +18,8 @@ namespace {
     const Value RedundantQueen = Value (320);
     const Value RedundantRook  = Value (554);
 
-    //                                       pawn knight bishop rook queen pair
-    const int32_t LinearCoefficients[6] = { -162, -1122,  -190,  105,  26, 1817, };
+    //                                            P      N      B      R      Q     BP
+    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -190,   105,    26,  1817, };
 
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
@@ -37,8 +37,8 @@ namespace {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
         {  41,   0,   0,   0,   0,  37, }, // P
-        {  62,  41,   0,   0,   0,  10, }, // N      OUR PIECES
-        {  64,  39,  41,   0,   0,  57, }, // B
+        {  62,  41,   0,   0,   0,  10, }, // N
+        {  64,  39,  41,   0,   0,  57, }, // B     OUR PIECES
         {  40,  23, -22,  41,   0,  50, }, // R
         { 101,   3, 151, 171,  41, 106, }, // Q
         {   0,   0,   0,   0,   0,  41, }, // BP
@@ -46,13 +46,13 @@ namespace {
 
     // Endgame evaluation and scaling functions accessed direcly and not through
     // the function maps because correspond to more then one material hash key.
-    Endgame<KmmKm> EvaluateKmmKm[CLR_NO] = { Endgame<KmmKm> (WHITE), Endgame<KmmKm> (BLACK) };
-    Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>   (WHITE), Endgame<KXK>   (BLACK) };
+    Endgame<KmmKm> EvaluateKmmKm[CLR_NO] = { Endgame<KmmKm>  (WHITE), Endgame<KmmKm>  (BLACK) };
+    Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
 
-    Endgame<KBPsK>  ScaleKBPsK  [CLR_NO] = { Endgame<KBPsK> (WHITE), Endgame<KBPsK> (BLACK) };
+    Endgame<KBPsK>  ScaleKBPsK  [CLR_NO] = { Endgame<KBPsK>  (WHITE), Endgame<KBPsK>  (BLACK) };
     Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
-    Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>  (WHITE), Endgame<KPsK>  (BLACK) };
-    Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>  (WHITE), Endgame<KPKP>  (BLACK) };
+    Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
+    Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
     // Helper templates used to detect a given material distribution
     template<Color C> bool is_KXK(const Position &pos)
@@ -87,7 +87,7 @@ namespace {
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
-        int32_t value = 0;
+        int32_t value = VALUE_ZERO;
 
         // Redundancy of major pieces, formula based on Kaufman's paper
         // "The Evaluation of Material Imbalances in Chess"
@@ -107,7 +107,7 @@ namespace {
 
             for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
-                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C][pt2]
+                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
                 +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
             }
 
@@ -126,7 +126,7 @@ namespace Material {
     // have to recompute everything when the same material configuration occurs again.
     Entry* probe (const Position &pos, Table &table, Endgames &endgames)
     {
-        Key key = pos.matl_key();
+        Key key  = pos.matl_key ();
         Entry* e = table[key];
 
         // If e->key matches the position's material hash key, it means that we
@@ -137,7 +137,7 @@ namespace Material {
         std::memset (e, 0, sizeof (Entry));
         e->key = key;
         e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-        e->_game_phase  = game_phase(pos);
+        e->_game_phase   = game_phase (pos);
 
         // Let's look if we have a specialized evaluation function for this
         // particular material configuration. First we look for a fixed
@@ -151,21 +151,20 @@ namespace Material {
             e->evaluation_func = &EvaluateKXK[WHITE];
             return e;
         }
-
         if (is_KXK<BLACK> (pos))
         {
             e->evaluation_func = &EvaluateKXK[BLACK];
             return e;
         }
 
-        if (!pos.pieces(PAWN) && !pos.pieces(ROOK) && !pos.pieces(QUEN))
+        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) && !pos.pieces (QUEN))
         {
             // Minor piece endgame with at least one minor piece per side and
             // no pawns. Note that the case KmmK is already handled by KXK.
-            assert((pos.pieces(WHITE, NIHT) | pos.pieces(WHITE, BSHP)));
-            assert((pos.pieces(BLACK, NIHT) | pos.pieces(BLACK, BSHP)));
+            ASSERT ((pos.pieces (WHITE, NIHT) | pos.pieces (WHITE, BSHP)));
+            ASSERT ((pos.pieces (BLACK, NIHT) | pos.pieces (BLACK, BSHP)));
 
-            if (pos.piece_count<BSHP> (WHITE) + pos.piece_count<NIHT> (WHITE) <= 2
+            if (   pos.piece_count<BSHP> (WHITE) + pos.piece_count<NIHT> (WHITE) <= 2
                 && pos.piece_count<BSHP> (BLACK) + pos.piece_count<NIHT> (BLACK) <= 2)
             {
                 e->evaluation_func = &EvaluateKmmKm[pos.active ()];
@@ -178,11 +177,11 @@ namespace Material {
         //
         // We face problems when there are several conflicting applicable
         // scaling functions and we need to decide which one to use.
-        EndgameBase<ScaleFactor>* sf;
+        EndgameBase<ScaleFactor> *sf;
 
         if (endgames.probe (key, sf))
         {
-            e->scaling_func[sf->color()] = sf;
+            e->scaling_func[sf->color ()] = sf;
             return e;
         }
 
@@ -201,7 +200,7 @@ namespace Material {
         {
             e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
         }
-        else if (is_KQKRPs<BLACK> (pos))
+        if (is_KQKRPs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
         }
@@ -251,9 +250,9 @@ namespace Material {
             e->_space_weight = mk_score(minorPieceCount * minorPieceCount, 0);
         }
 
-        // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
-        // for the bishop pair "extended piece", this allow us to be more flexible
-        // in defining bishop pair bonuses.
+        // Evaluate the material imbalance.
+        // We use KING as a place holder for the bishop pair "extended piece",
+        // this allow us to be more flexible in defining bishop pair bonuses.
         const int32_t piece_count[CLR_NO][PT_NO] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
@@ -268,16 +267,16 @@ namespace Material {
         return e;
     }
 
-    // Material::game_phase() calculates the phase given the current
+    // Material::game_phase () calculates the phase given the current
     // position. Because the phase is strictly a function of the material, it
     // is stored in MaterialEntry.
     Phase game_phase (const Position &pos)
     {
         Value npm = pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK);
 
-        return  npm >= MidgameLimit ? PHASE_MIDGAME
-            : npm <= EndgameLimit ? PHASE_ENDGAME
-            : Phase (((npm - EndgameLimit) * 128) / (MidgameLimit - EndgameLimit));
+        return npm >= MidgameLimit ? PHASE_MIDGAME
+            :  npm <= EndgameLimit ? PHASE_ENDGAME
+            :  Phase (((npm - EndgameLimit) * 128) / (MidgameLimit - EndgameLimit));
     }
 
 } // namespace Material

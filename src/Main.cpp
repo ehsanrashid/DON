@@ -97,7 +97,8 @@ int main (int argc, const char* const argv[])
     //Zobrist::initialize ();
 
     Engine::start ();
-    
+
+
     //Position pos;
     //Value v;
     //Evaluator::evaluate(pos, v);
@@ -128,18 +129,18 @@ int main (int argc, const char* const argv[])
     //"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w  KQkq  - 3  5";
     string fen = //"2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
 
-    //"r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14";
-    //"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11";
-    //"6k1/2R3p1/8/4K2r/3P3b/2b5/6N1/8 w - - 0 1";
-    //"1Q6/3q4/1R5p/q5pk/P4pP1/7P/8/3bB2K b - g3 0 10";
-    //"8/8/1R5p/q5pk/P4pP1/7P/8/3B3K b - g3 0 10";
-    //"8/8/1R5p/q5pk/P4pP1/7P/8/4B2K b - g3 0 10";
-    //"8/8/1R5p/q5p1/P4pPk/7P/8/4B2K b - g3 0 10";
-    //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
-    //"2k5/1r6/P3n1r1/8/4B3/8/8/1K1Q3r w - - 0 0";
-    //"1rk5/8/4n3/5B2/1N6/8/8/1K1Q4 w - - 0 0";
-    //"1rk5/8/4n3/5B2/1N6/8/8/1K1Q4 w - - 0 0";
-    FEN_N; //"1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - -";
+        //"r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14";
+        //"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11";
+        //"6k1/2R3p1/8/4K2r/3P3b/2b5/6N1/8 w - - 0 1";
+        //"1Q6/3q4/1R5p/q5pk/P4pP1/7P/8/3bB2K b - g3 0 10";
+        //"8/8/1R5p/q5pk/P4pP1/7P/8/3B3K b - g3 0 10";
+        //"8/8/1R5p/q5pk/P4pP1/7P/8/4B2K b - g3 0 10";
+        //"8/8/1R5p/q5p1/P4pPk/7P/8/4B2K b - g3 0 10";
+        //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
+        //"2k5/1r6/P3n1r1/8/4B3/8/8/1K1Q3r w - - 0 0";
+        //"1rk5/8/4n3/5B2/1N6/8/8/1K1Q4 w - - 0 0";
+        //"1rk5/8/4n3/5B2/1N6/8/8/1K1Q4 w - - 0 0";
+        FEN_N; //"1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - -";
     //"r1b1k3/p4p2/1p1pq2n/2n1p1rp/1RP2P2/N5bN/PP3Q1P/2B1K1BR w Kq - 0 1";
     //"rnb1kbnr/pppppppp/8/5P2/2B1q3/8/PPPP2PP/RN1QKBNR w KQkq - 0 1";
     //"rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR   w   KQkq  - 3  5";
