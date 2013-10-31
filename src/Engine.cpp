@@ -5,6 +5,7 @@
 #include <iostream>
 #include "BitBoard.h"
 #include "Zobrist.h"
+#include "Pawns.h"
 #include "Position.h"
 #include "UCI.h"
 #include "Tester.h"
@@ -79,6 +80,7 @@ namespace Engine {
 
         BitBoard::initialize ();
         Zobrist ::initialize ();
+        Pawns   ::initialize ();
         Position::initialize ();
 
         ::std::cout << Engine::info () << ::std::endl;

@@ -24,24 +24,24 @@ namespace {
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
         // P    N    B    R    Q    BP
-        {   2,                          }, // P
-        { 271,  -4,                     }, // N
-        { 105,   4,   7,                }, // B
-        {  -2,  46, 100,  56,           }, // R
-        {  29,  83, 148,  -3, -25,      }, // Q
-        {  39,  35,   7, -27,  58,   7, }, // BP
+        {   2,   0,   0,   0,   0,  39, }, // P
+        { 271,  -4,   0,   0,   0,  35, }, // N
+        { 105,   4,   7,   0,   0,   7, }, // B
+        {  -2,  46, 100,  56,   0, -27, }, // R
+        {  29,  83, 148,  -3, -25,  58, }, // Q
+        {   0,   0,   0,   0,   0,   7, }, // BP
     };
 
     const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
     {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
-        {  41,                          }, // P
-        {  62,  41,                     }, // N      OUR PIECES
-        {  64,  39,  41,                }, // B
-        {  40,  23, -22,  41,           }, // R
-        { 101,   3, 151, 171,  41,      }, // Q
-        {  37,  10,  57,  50, 106,  41, }, // BP
+        {  41,   0,   0,   0,   0,  37, }, // P
+        {  62,  41,   0,   0,   0,  10, }, // N      OUR PIECES
+        {  64,  39,  41,   0,   0,  57, }, // B
+        {  40,  23, -22,  41,   0,  50, }, // R
+        { 101,   3, 151, 171,  41, 106, }, // Q
+        {   0,   0,   0,   0,   0,  41, }, // BP
     };
 
     // Endgame evaluation and scaling functions accessed direcly and not through
@@ -267,7 +267,6 @@ namespace Material {
         e->value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
         return e;
     }
-
 
     // Material::game_phase() calculates the phase given the current
     // position. Because the phase is strictly a function of the material, it

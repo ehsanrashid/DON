@@ -291,7 +291,6 @@ namespace BitBoard {
     // KING attacks
     Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
 
-
     // Piece attacks from square
     Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {

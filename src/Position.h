@@ -220,19 +220,16 @@ public:
     {
         if (!setup (fen, c960, full)) clear ();
     }
-    Position (const Position &pos)
-    {
-        *this = pos;
-    }
+    Position (const Position &pos) { *this = pos; }
     explicit Position (int8_t dummy) {}
 
-    //~Position ()
-    //{
-    //    while (_si->p_si)
-    //    {
-    //        _si = _si->p_si;
-    //    }
-    //}
+    ~Position ()
+    {
+        while (_si->p_si)
+        {
+            _si = _si->p_si;
+        }
+    }
 
 #pragma endregion
 

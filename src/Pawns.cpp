@@ -31,15 +31,18 @@ namespace {
         S(33, 31), S(33, 31), S(29, 31), S(20, 28), } };
 
     // Pawn chain membership bonus by [file] and [rank]
-    const Score ChainMember[F_NO][R_NO] = {
-        { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
-        { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-        { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-        { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-        { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-        { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-        { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-        { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
+    //const Score ChainMember[F_NO][R_NO] = {
+    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
+    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
+  
+    // Pawn chain membership bonus by [file] and [rank] (initialized by formula)
+    Score ChainMember[F_NO][R_NO];
 
     // Candidate passed pawn bonus by [rank]
     const Score CandidatePassed[R_NO] = {
@@ -172,21 +175,6 @@ namespace {
 
 namespace Pawns {
 
-    // probe() takes a position object as input, computes a Entry object, and returns
-    // a pointer to it. The result is also stored in a hash table, so we don't have
-    // to recompute everything when the same pawn structure occurs again.
-    Entry* probe(const Position &pos, Table &table)
-    {
-        Key key = pos.pawn_key();
-        Entry *e = table[key];
-
-        if (e->key == key) return e;
-
-        e->key = key;
-        e->_pawn_value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
-        return e;
-    }
-
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
     template<Color C>
@@ -254,6 +242,36 @@ namespace Pawns {
     // Explicit template instantiation
     template Score Entry::update_safety<WHITE>(const Position &pos, Square ksq);
     template Score Entry::update_safety<BLACK>(const Position &pos, Square ksq);
+
+
+    void initialize ()
+    {
+        const int32_t chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        for (Rank r = R_1; r < R_8; ++r)
+        {
+            for (File f = F_A; f <= F_H; ++f)
+            {
+                int32_t bonus = r * (r-1) * (r-2) + chainByFile[f] * (r/2 + 1);
+                ChainMember[f][r] = mk_score (bonus, bonus);
+            }
+        }
+    }
+
+    // probe() takes a position object as input, computes a Entry object, and returns
+    // a pointer to it. The result is also stored in a hash table, so we don't have
+    // to recompute everything when the same pawn structure occurs again.
+    Entry* probe(const Position &pos, Table &table)
+    {
+        Key key = pos.pawn_key();
+        Entry *e = table[key];
+
+        if (e->key == key) return e;
+
+        e->key = key;
+        e->_pawn_value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
+        return e;
+    }
+
 
 } // namespace Pawns
 
