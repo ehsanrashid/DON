@@ -1,6 +1,6 @@
 ﻿#include "Searcher.h"
 #include <iostream>
-
+#include <cfloat>
 #include "UCI.h"
 #include "Time.h"
 #include "TimeManager.h"
@@ -75,28 +75,29 @@ namespace {
     bool  allows (const Position &pos, Move m1, Move m2);
     bool refutes (const Position &pos, Move m1, Move m2);
     
-    std::string uci_pv_info (const Position &pos, int32_t depth, Value alpha, Value beta);
+    std::string uci_pv_info (const Position &pos, int16_t depth, Value alpha, Value beta);
 
     struct Skill
     {
         int32_t level;
         Move    move;
 
-        Skill(int32_t lvl)
+        Skill (int32_t lvl)
             : level(lvl)
             , move(MOVE_NONE)
         {}
 
-        ~Skill()
+        ~Skill ()
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                std::swap(rootMoves[0], *std::find(rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
+                std::swap (rootMoves[0], *std::find (rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
             }
         }
 
         bool enabled ()                  const { return level < 20; }
-        bool time_to_pick(int32_t depth) const { return depth == 1 + level; }
+        bool time_to_pick(int16_t depth) const { return depth == (1 + level); }
+        
         Move pick_move();
 
     };
@@ -1369,13 +1370,13 @@ moves_loop: // When in check and at SPNode search starts from here
 
         pv_size = std::min (pv_size, rootMoves.size());
 
-        best_move_changes = 0;
+        best_move_changes = 0.0;
 
-        Depth depth      = DEPTH_ZERO;
         Value best_value = -VALUE_INFINITE;
         Value delta      = -VALUE_INFINITE;
         Value alpha      = -VALUE_INFINITE;
         Value beta       = +VALUE_INFINITE;
+        Depth depth      = DEPTH_ZERO;
 
         // Iterative deepening loop until requested to stop or target depth reached
         while (++depth <= MAX_PLY && !signals.stop && (!limits.depth || depth <= limits.depth))
@@ -1516,20 +1517,20 @@ moves_loop: // When in check and at SPNode search starts from here
                 // Stop search early if one move seems to be much better than others
                 if (   !stop
                     &&  depth >= 12
+                    &&  best_move_changes <= DBL_EPSILON
                     &&  pv_size == 1
                     &&  best_value > VALUE_MATED_IN_MAX_PLY
-                    && (   rootMoves.size() == 1
-                    || Time::now () - searchTime > (time_mgr.available_time() * 20) / 100))
+                    && (rootMoves.size() == 1 ||  Time::now () - searchTime > (time_mgr.available_time() * 20) / 100))
                 {
                     Value r_beta = best_value - 2 * VALUE_MG_PAWN;
                     ss->skip_null_move = true;
                     ss->excluded_move  = rootMoves[0].pv[0];
                     
-                    Value v = search<NonPV>(pos, ss, r_beta - 1, r_beta, (depth - 3) * int32_t (ONE_PLY), true);
+                    Value value = search<NonPV>(pos, ss, r_beta - 1, r_beta, (depth - 3) * int32_t (ONE_PLY), true);
                     ss->skip_null_move = false;
                     ss->excluded_move  = MOVE_NONE;
 
-                    if (v < r_beta) stop = true;
+                    if (value < r_beta) stop = true;
                 }
 
                 if (stop)
@@ -1570,7 +1571,6 @@ moves_loop: // When in check and at SPNode search starts from here
             v >= VALUE_MATES_IN_MAX_PLY ? v - ply :
             v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
     }
-
 
     // allows() tests whether the 'm1' move at previous ply somehow makes the
     // 'm2' move possible, for instance if the moving piece is the same in both moves.
@@ -1703,7 +1703,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // uci_pv_info() formats PV information according to UCI protocol. UCI requires
     // to send all the PV lines also if are still to be searched and so refer to
     // the previous search score.
-    std::string uci_pv_info (const Position &pos, int32_t depth, Value alpha, Value beta)
+    std::string uci_pv_info (const Position &pos, int16_t depth, Value alpha, Value beta)
     {
         std::stringstream spv;
 
