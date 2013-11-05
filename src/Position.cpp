@@ -561,9 +561,9 @@ bool Position::ok (int8_t *failed_step) const
             for (PType t = PAWN; t <= KING; ++t)
             {
                 Piece p = (c | t);
-                for (int32_t cnt = 0; cnt < piece_count (c, t); ++cnt)
+                for (int32_t pc = 0; pc < piece_count (c, t); ++pc)
                 {
-                    if (_piece_arr[_piece_list[c][t][cnt]] != p) return false;
+                    if (_piece_arr[_piece_list[c][t][pc]] != p) return false;
                 }
             }
         }
@@ -1040,9 +1040,9 @@ bool Position::legal (Move m, Bitboard pinned) const
     //{
     //    Color active = c_pos.active ();
     //    Color pasive = ~active;
-    //    Square k_sq = c_pos.king_sq (pasive);
+    //    Square fk_sq = c_pos.king_sq (pasive);
     //    Bitboard enemies  = c_pos.pieces (active);
-    //    Bitboard checkers = attackers_to(c_pos, k_sq) & enemies;
+    //    Bitboard checkers = attackers_to(c_pos, fk_sq) & enemies;
     //    uint8_t numChecker = pop_count<FULL> (checkers);
     //    return !numChecker;
     //}
@@ -1058,8 +1058,8 @@ bool Position::legal (Move m, Bitboard pinned) const
     PType mpt = _ptype (mp);
     ASSERT ((active == mpc) && (PT_NO != mpt));
 
-    Square k_sq = king_sq (active);
-    ASSERT ((active | KING) == _piece_arr[k_sq]);
+    Square fk_sq = king_sq (active);
+    ASSERT ((active | KING) == _piece_arr[fk_sq]);
 
     MType mt = _mtype (m);
     switch (mt)
@@ -1083,8 +1083,8 @@ bool Position::legal (Move m, Bitboard pinned) const
 
             // if any attacker then in check & not legal
             return !(
-                (attacks_bb<ROOK> (k_sq, mocc) & pieces (pasive, QUEN, ROOK)) |
-                (attacks_bb<BSHP> (k_sq, mocc) & pieces (pasive, QUEN, BSHP)));
+                (attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasive, QUEN, ROOK)) |
+                (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasive, QUEN, BSHP)));
         }
         break;
     }
@@ -1101,7 +1101,7 @@ bool Position::legal (Move m, Bitboard pinned) const
     // A non-king move is legal if and only if it is not pinned or it
     // is moving along the ray towards or away from the king or
     // is a blocking evasion or a capture of the checking piece.
-    return !pinned || !(pinned & org) || sqrs_aligned (org, dst, k_sq);
+    return !pinned || !(pinned & org) || sqrs_aligned (org, dst, fk_sq);
 }
 bool Position::legal (Move m) const
 {
@@ -1192,7 +1192,7 @@ bool Position::check (Move m, const CheckInfo &ci) const
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
-    Square k_sq = king_sq (pasive);
+    Square ek_sq = king_sq (pasive);
     Bitboard occ = pieces ();
     switch (mt)
     {
@@ -1206,8 +1206,8 @@ bool Position::check (Move m, const CheckInfo &ci) const
             Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             return
-                (attacks_bb<ROOK> (dst_rook) & k_sq) &&
-                (attacks_bb<ROOK> (dst_rook, (occ - org_king - org_rook + dst_king + dst_rook)) & k_sq);
+                (attacks_bb<ROOK> (dst_rook) & ek_sq) &&
+                (attacks_bb<ROOK> (dst_rook, (occ - org_king - org_rook + dst_king + dst_rook)) & ek_sq);
         }
         break;
 
@@ -1219,14 +1219,14 @@ bool Position::check (Move m, const CheckInfo &ci) const
             Square cap = _file (dst) | _rank (org);
             Bitboard mocc = occ - org - cap + dst;
             return // if any attacker then in check
-                (attacks_bb<ROOK> (k_sq, mocc) & pieces (_active, QUEN, ROOK)) |
-                (attacks_bb<BSHP> (k_sq, mocc) & pieces (_active, QUEN, BSHP));
+                (attacks_bb<ROOK> (ek_sq, mocc) & pieces (_active, QUEN, ROOK)) |
+                (attacks_bb<BSHP> (ek_sq, mocc) & pieces (_active, QUEN, BSHP));
         }
         break;
 
     case PROMOTE:
         // Promotion with check ?
-        return (attacks_from ((active | prom_type (m)), dst, occ - org + dst) & k_sq);
+        return (attacks_from ((active | prom_type (m)), dst, occ - org + dst) & ek_sq);
         break;
 
     default:
@@ -1393,7 +1393,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     // Check en-passant is legal for the position
 
-    Square k_sq = king_sq (active);
+    Square fk_sq = king_sq (active);
     Bitboard occ = pieces ();
     for (MoveList::const_iterator itr = m_list.cbegin (); itr != m_list.cend (); ++itr)
     {
@@ -1402,8 +1402,8 @@ bool Position::can_en_passant (Square ep_sq) const
         Square dst = sq_dst (m);
         Bitboard mocc = occ - org - cap + dst;
         if (!(
-            (attacks_bb<ROOK> (k_sq, mocc) & pieces (pasive, QUEN, ROOK)) |
-            (attacks_bb<BSHP> (k_sq, mocc) & pieces (pasive, QUEN, BSHP))))
+            (attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasive, QUEN, ROOK)) |
+            (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasive, QUEN, BSHP))))
         {
             return true;
         }

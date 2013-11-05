@@ -11,7 +11,7 @@ namespace Zobrist {
     const Key MATL_KEY_PG = U64 (0xC1D58449E708A0AD);
     const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
     const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
-    
+
     RKISS rkiss;
     Key exclusion;
 
@@ -58,10 +58,9 @@ namespace Zobrist {
         {
             for (PType t = PAWN; t <= QUEN; ++t)
             {
-                int32_t ps_count = pos.piece_count (c, t);
-                for (int32_t cnt = 0; cnt < ps_count; ++cnt)
+                for (int32_t pc = 0; pc < pos.piece_count (c, t); ++pc)
                 {
-                    matl_key ^= _.ps_sq[c][t][cnt];
+                    matl_key ^= _.ps_sq[c][t][pc];
                 }
             }
         }
@@ -84,11 +83,10 @@ namespace Zobrist {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             const SquareList &sq_list = pos.list<PAWN> (c);
-            for (int32_t cnt = 0; cnt < int32_t (sq_list.size ()); ++cnt)
+            std::for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
             {
-                Square s = sq_list[cnt];
                 pawn_key ^= _.ps_sq[c][PAWN][s];
-            }
+            });
         }
 
         return pawn_key;
@@ -109,9 +107,9 @@ namespace Zobrist {
         //    for (PType t = PAWN; t <= KING; ++t)
         //    {
         //        SquareList sq_list = square_list (pos[c] & pos[t]);
-        //        for (int32_t cnt = 0; cnt < sq_list.size (); ++cnt)
+        //        for (int32_t pc = 0; pc < sq_list.size (); ++pc)
         //        {
-        //            Square s = sq_list[cnt];
+        //            Square s = sq_list[pc];
         //            posi_key ^= _.ps_sq[c][t][s];
         //        }
         //    }
@@ -130,11 +128,10 @@ namespace Zobrist {
             for (PType t = PAWN; t <= KING; ++t)
             {
                 const SquareList &sq_list = pos[c | t];
-                for (int32_t cnt = 0; cnt < int32_t (sq_list.size ()); ++cnt)
+                std::for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
                 {
-                    Square s = sq_list[cnt];
                     posi_key ^= _.ps_sq[c][t][s];
-                }
+                });
             }
         }
 

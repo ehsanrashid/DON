@@ -21,11 +21,25 @@
 
 #include "Scheduler.h"
 
+#include "Timer.h"
+
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
 namespace {
+
+    void test1()
+    {
+        cout << "hello";
+    }
+
+    void test2(int a)
+    {
+        printf("%i\n", a);
+        return;
+    }
+
 
     std::string string_args (size_t argc, const char* const argv[])
     {
@@ -97,7 +111,11 @@ int main (int argc, const char* const argv[])
     //Zobrist::initialize ();
 
     Engine::start ();
+    //int arg = 101;
+    //std::timer t1 (1000, true, test1);
 
+
+    //std::timer later_test2(1000, false, &test2, 101);
 
     //Position pos;
     //Value v;

@@ -81,9 +81,9 @@ namespace MoveGenerator {
                 {
                     if ((CHECK != G) && (QUIET_CHECK != G))
                     {
-                        Square k_sq    = pos.king_sq (clr);
-                        Bitboard moves = attacks_bb<KING> (k_sq) & target;
-                        SERIALIZE (m_list, k_sq, moves);
+                        Square fk_sq   = pos.king_sq (clr);
+                        Bitboard moves = attacks_bb<KING> (fk_sq) & target;
+                        SERIALIZE (m_list, fk_sq, moves);
                     }
 
                     if ((CAPTURE != G))
@@ -370,14 +370,14 @@ namespace MoveGenerator {
 
         inline void filter_illegal (MoveList &m_list, const Position &pos)
         {
-            Square k_sq      = pos.king_sq (pos.active ());
+            Square fk_sq     = pos.king_sq (pos.active ());
             Bitboard pinneds = pos.pinneds ();
 
             MoveList::iterator itr = m_list.begin ();
             while (itr != m_list.end ())
             {
                 Move m = *itr;
-                if (((sq_org (m) == k_sq) || pinneds || (ENPASSANT == _mtype (m))) &&
+                if (((sq_org (m) == fk_sq) || pinneds || (ENPASSANT == _mtype (m))) &&
                     !pos.legal (m, pinneds))
                 {
                     itr = m_list.erase (itr);
@@ -530,19 +530,19 @@ namespace MoveGenerator {
         uint8_t num_checkers = pop_count<FULL> (checkers);
         ASSERT (num_checkers != 0); // If any checker exists
 
-        Square k_sq      = pos.king_sq (active);
-        Bitboard mocc    = pos.pieces () - k_sq;
+        Square fk_sq     = pos.king_sq (active);
+        Bitboard mocc    = pos.pieces () - fk_sq;
         Bitboard friends = pos.pieces (active);
         Bitboard enemies = pos.pieces (pasive);
 
         // Generates evasions for king, capture and non-capture moves excluding friends
-        Bitboard moves = attacks_bb<KING> (k_sq) & ~friends;
+        Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends;
 
         // Remove squares attacked by enemies, from the king evasions.
         // so to skip known illegal moves avoiding useless legality check later.
         for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
         {
-            Square sq = k_sq + _deltas_type[KING][k];
+            Square sq = fk_sq + _deltas_type[KING][k];
             if (_ok (sq))
             {
                 if ((moves & sq) && (pos.attackers_to (sq, mocc) & enemies))
@@ -552,11 +552,11 @@ namespace MoveGenerator {
             }
         }
 
-        SERIALIZE (m_list, k_sq, moves);
+        SERIALIZE (m_list, fk_sq, moves);
         if ((1 == num_checkers) && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), k_sq);
+            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), fk_sq);
             switch (active)
             {
             case WHITE: generate_color<WHITE, EVASION> (m_list, pos, target); break;

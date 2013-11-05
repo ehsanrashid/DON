@@ -723,9 +723,9 @@ inline bool Position::has_pair_bishops (Color c) const
     int32_t bishop_count = piece_count<BSHP>(c);
     if (bishop_count >= 2)
     {
-        for (int32_t cnt = 0; cnt < bishop_count-1; ++cnt)
+        for (int32_t pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors(list<BSHP>(c)[cnt], list<BSHP>(c)[cnt+1])) return true;
+            if (opposite_colors(list<BSHP>(c)[pc], list<BSHP>(c)[pc+1])) return true;
         }
     }
     return false;

@@ -19,29 +19,29 @@ namespace {
     const Value RedundantRook  = Value (554);
 
     //                                            P      N      B      R      Q     BP
-    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -190,   105,    26,  1817, };
+    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -183,   105,    26,  1852, };
 
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
         // P    N    B    R    Q    BP
         {   2,   0,   0,   0,   0,  39, }, // P
         { 271,  -4,   0,   0,   0,  35, }, // N
-        { 105,   4,   7,   0,   0,   7, }, // B
+        { 105,   4,   0,   0,   0,   0, }, // B
         {  -2,  46, 100,  56,   0, -27, }, // R
         {  29,  83, 148,  -3, -25,  58, }, // Q
-        {   0,   0,   0,   0,   0,   7, }, // BP
+        {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
     const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
     {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
-        {  41,   0,   0,   0,   0,  37, }, // P
-        {  62,  41,   0,   0,   0,  10, }, // N
-        {  64,  39,  41,   0,   0,  57, }, // B     OUR PIECES
-        {  40,  23, -22,  41,   0,  50, }, // R
-        { 101,   3, 151, 171,  41, 106, }, // Q
-        {   0,   0,   0,   0,   0,  41, }, // BP
+        {   0,   0,   0,   0,   0,  37, }, // P
+        {  62,   0,   0,   0,   0,  10, }, // N
+        {  64,  39,   0,   0,   0,  57, }, // B     OUR PIECES
+        {  40,  23, -22,   0,   0,  50, }, // R
+        { 101,   3, 151, 171,   0, 106, }, // Q
+        {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
     // Endgame evaluation and scaling functions accessed direcly and not through

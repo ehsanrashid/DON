@@ -461,6 +461,7 @@ namespace {
         Score score = SCORE_ZERO;
 
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Square ek_sq = pos.king_sq (C_);
 
         ei.attackedBy[C][T] = 0;
         
@@ -502,8 +503,8 @@ namespace {
             // Otherwise give a bonus if we are a bishop and can pin a piece or can
             // give a discovered check through an x-ray attack.
             else if (    BSHP == T
-                && (attacks_bb<BSHP>(pos.king_sq (C_)) & s)
-                && !more_than_one(betwen_sq_bb(s, pos.king_sq (C_)) & pos.pieces ()))
+                && (attacks_bb<BSHP>(ek_sq) & s)
+                && !more_than_one(betwen_sq_bb(s, ek_sq) & pos.pieces ()))
             {
                 score += BishopPin;
             }
@@ -540,7 +541,7 @@ namespace {
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
                 if (   R_7 == rel_rank (C, s)
-                    && R_8 == rel_rank (C, pos.king_sq (C_)))
+                    && R_8 == rel_rank (C, ek_sq))
                 {
                     score += (ROOK == T) ? RookOn7th : QueenOn7th;
                 }
