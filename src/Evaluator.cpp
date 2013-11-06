@@ -811,7 +811,7 @@ namespace {
 
         while (b)
         {
-            Square s = pop_lsb(b);
+            Square s = pop_lsq(b);
 
             assert (pos.passed_pawn(C, s));
 
@@ -947,7 +947,7 @@ namespace {
         {
             return SCORE_ZERO;
         }
-        return UnstoppablePawn * int32_t (rel_rank (c, frontmost_rel_sq(c, b)));
+        return UnstoppablePawn * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, b)));
     }
 
     // evaluate_space() computes the space evaluation for a given side. The

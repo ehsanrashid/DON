@@ -13,7 +13,7 @@
 #   include <intrin.h> // MSVC popcnt and bsfq instrinsics
 // _BitScanForward64() & _BitScanReverse64()
 
-inline Square scan_lsb (Bitboard bb)
+inline Square scan_lsq (Bitboard bb)
 {
     unsigned long index;
 
@@ -38,7 +38,7 @@ inline Square scan_lsb (Bitboard bb)
     return Square (index);
 }
 
-inline Square scan_msb (Bitboard bb)
+inline Square scan_msq (Bitboard bb)
 {
     unsigned long index;
 
@@ -75,7 +75,7 @@ inline uint8_t scan_lsb32 (uint32_t w)
 
 #endif
 
-inline Square scan_lsb (Bitboard bb)
+inline Square scan_lsq (Bitboard bb)
 {
 
 #ifdef _64BIT
@@ -91,7 +91,7 @@ inline Square scan_lsb (Bitboard bb)
 #endif
 }
 
-inline Square scan_msb (Bitboard bb)
+inline Square scan_msq (Bitboard bb)
 {
 #ifdef _64BIT
 
@@ -109,13 +109,13 @@ inline Square scan_msb (Bitboard bb)
 #   else
 
 // Assembly code by Heinz van Saanen
-inline Square scan_lsb (Bitboard bb)
+inline Square scan_lsq (Bitboard bb)
 {
     uint8_t index;
     __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
     return Square (index);
 }
-inline Square scan_msb (Bitboard bb)
+inline Square scan_msq (Bitboard bb)
 {
     uint8_t index;
     __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
@@ -126,7 +126,7 @@ inline Square scan_msb (Bitboard bb)
 
 #else
 
-inline Square  scan_lsb (Bitboard bb)
+inline Square  scan_lsq (Bitboard bb)
 {
 
     /// ---> (X & -X) == X & (~X + 1) != (X ^ (X - 1))
@@ -243,7 +243,7 @@ inline Square  scan_lsb (Bitboard bb)
 
 }
 
-inline Square  scan_msb (Bitboard bb)
+inline Square  scan_msq (Bitboard bb)
 {
 
 #ifdef _64BIT
@@ -340,17 +340,17 @@ inline Square  scan_msb (Bitboard bb)
 
 #endif
 
-// scan_rel_lsb() overload finds least significant bit relative to the given color
-inline Square scan_rel_lsb (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsb (bb) : scan_msb (bb); }
+// scan_rel_lsq() finds least significant bit relative to the given color
+inline Square scan_rel_lsq         (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
 
-// frontmost_rel_sq() and backmost_rel_sq() find the square
+// scan_rel_frntmost_sq() and scan_rel_backmost_sq() find the square
 // corresponding to the most/least advanced bit relative to the given color.
-inline Square frontmost_rel_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_msb (bb) : scan_lsb (bb); }
-inline Square  backmost_rel_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsb (bb) : scan_msb (bb); }
+inline Square scan_rel_frntmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_msq (bb) : scan_lsq (bb); }
+inline Square scan_rel_backmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
 
-inline Square   pop_lsb (Bitboard &bb)
+inline Square pop_lsq (Bitboard &bb)
 {
-    Square s = scan_lsb (bb);
+    Square s = scan_lsq (bb);
     bb &= (bb - 1); // reset the LS1B
     return s;
 }

@@ -12,22 +12,22 @@ namespace BitBoard {
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const uint32_t MAX_MOVES_B = U32 (0x1480);
+        const uint32_t MAX_B_MOVES = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const uint32_t MAX_MOVES_R = U32 (0x19000);
+        const uint32_t MAX_R_MOVES = U32 (0x19000);
 
         //  64 = 0x040
-        const uint16_t PATTERN_B = 0x040;
+        const uint16_t B_PATTERN = 0x040;
         // 256 = 0x100
-        const uint16_t PATTERN_R = 0x100;
+        const uint16_t R_PATTERN = 0x100;
 
 
-        Bitboard BTable_bb[MAX_MOVES_B];
-        Bitboard RTable_bb[MAX_MOVES_R];
+        Bitboard BTable_bb[MAX_B_MOVES];
+        Bitboard RTable_bb[MAX_R_MOVES];
 
         const uint8_t BBits[SQ_NO] =
         {
@@ -52,8 +52,8 @@ namespace BitBoard {
             12, 11, 11, 11, 11, 11, 11, 12,
         };
 
-        uint32_t BRows[SQ_NO][6][PATTERN_B];
-        uint32_t RRows[SQ_NO][8][PATTERN_R];
+        uint32_t BRows[SQ_NO][6][B_PATTERN];
+        uint32_t RRows[SQ_NO][8][R_PATTERN];
 
         typedef uint32_t (*Indexer) (Square s, Bitboard occ);
 
@@ -75,30 +75,30 @@ namespace BitBoard {
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the bishop attack table.
 
-            //const uint32_t *rowB = BRows[s][0]; // &BRows[s][0][0];
-            const uint32_t (*brdB)[PATTERN_B] = BRows[s];
+            //const uint32_t *B_row = BRows[s][0]; // &BRows[s][0][0];
+            const uint32_t (*B_brd)[B_PATTERN] = BRows[s];
 
             const uint32_t index
-                //= (rowB + 0*PATTERN_B)[(mocc >>  8) & 0x3F]  // row 2
-                //| (rowB + 1*PATTERN_B)[(mocc >> 16) & 0x3F]  // row 3
-                //| (rowB + 2*PATTERN_B)[(mocc >> 24) & 0x3F]  // row 4
-                //| (rowB + 3*PATTERN_B)[(mocc >> 32) & 0x3F]  // row 5
-                //| (rowB + 4*PATTERN_B)[(mocc >> 40) & 0x3F]  // row 6
-                //| (rowB + 5*PATTERN_B)[(mocc >> 48) & 0x3F]; // row 7
+                //= (B_row + 0*B_PATTERN)[(mocc >>  8) & 0x3F]  // row 2
+                //| (B_row + 1*B_PATTERN)[(mocc >> 16) & 0x3F]  // row 3
+                //| (B_row + 2*B_PATTERN)[(mocc >> 24) & 0x3F]  // row 4
+                //| (B_row + 3*B_PATTERN)[(mocc >> 32) & 0x3F]  // row 5
+                //| (B_row + 4*B_PATTERN)[(mocc >> 40) & 0x3F]  // row 6
+                //| (B_row + 5*B_PATTERN)[(mocc >> 48) & 0x3F]; // row 7
 
-                //= (rowB + 0*PATTERN_B)[r[1]]  // row 2
-                //| (rowB + 1*PATTERN_B)[r[2]]  // row 3
-                //| (rowB + 2*PATTERN_B)[r[3]]  // row 4
-                //| (rowB + 3*PATTERN_B)[r[4]]  // row 5
-                //| (rowB + 4*PATTERN_B)[r[5]]  // row 6
-                //| (rowB + 5*PATTERN_B)[r[6]]; // row 7
+                //= (B_row + 0*B_PATTERN)[r[1]]  // row 2
+                //| (B_row + 1*B_PATTERN)[r[2]]  // row 3
+                //| (B_row + 2*B_PATTERN)[r[3]]  // row 4
+                //| (B_row + 3*B_PATTERN)[r[4]]  // row 5
+                //| (B_row + 4*B_PATTERN)[r[5]]  // row 6
+                //| (B_row + 5*B_PATTERN)[r[6]]; // row 7
 
-                = brdB[0][r[1]] // row 2
-                | brdB[1][r[2]] // row 3
-                | brdB[2][r[3]] // row 4
-                | brdB[3][r[4]] // row 5
-                | brdB[4][r[5]] // row 6
-                | brdB[5][r[6]];// row 7
+                = B_brd[0][r[1]] // row 2
+                | B_brd[1][r[2]] // row 3
+                | B_brd[2][r[3]] // row 4
+                | B_brd[3][r[4]] // row 5
+                | B_brd[4][r[5]] // row 6
+                | B_brd[5][r[6]];// row 7
 
             return index;
         }
@@ -115,36 +115,36 @@ namespace BitBoard {
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the rook attack table.
 
-            //const uint32_t *rowR = RRows[s][0]; // &RRows[s][0][0];
-            const uint32_t (*brdR)[PATTERN_R] = RRows[s];
+            //const uint32_t *R_row = RRows[s][0]; // &RRows[s][0][0];
+            const uint32_t (*R_brd)[R_PATTERN] = RRows[s];
 
             const uint32_t index
-                //= (rowR + 0*PATTERN_R)[(mocc >>  0) & 0xFF]  // row 1
-                //| (rowR + 1*PATTERN_R)[(mocc >>  8) & 0xFF]  // row 2
-                //| (rowR + 2*PATTERN_R)[(mocc >> 16) & 0xFF]  // row 3
-                //| (rowR + 3*PATTERN_R)[(mocc >> 24) & 0xFF]  // row 4
-                //| (rowR + 4*PATTERN_R)[(mocc >> 32) & 0xFF]  // row 5
-                //| (rowR + 5*PATTERN_R)[(mocc >> 40) & 0xFF]  // row 6
-                //| (rowR + 6*PATTERN_R)[(mocc >> 48) & 0xFF]  // row 7
-                //| (rowR + 7*PATTERN_R)[(mocc >> 56) & 0xFF]; // row 8
+                //= (R_row + 0*R_PATTERN)[(mocc >>  0) & 0xFF]  // row 1
+                //| (R_row + 1*R_PATTERN)[(mocc >>  8) & 0xFF]  // row 2
+                //| (R_row + 2*R_PATTERN)[(mocc >> 16) & 0xFF]  // row 3
+                //| (R_row + 3*R_PATTERN)[(mocc >> 24) & 0xFF]  // row 4
+                //| (R_row + 4*R_PATTERN)[(mocc >> 32) & 0xFF]  // row 5
+                //| (R_row + 5*R_PATTERN)[(mocc >> 40) & 0xFF]  // row 6
+                //| (R_row + 6*R_PATTERN)[(mocc >> 48) & 0xFF]  // row 7
+                //| (R_row + 7*R_PATTERN)[(mocc >> 56) & 0xFF]; // row 8
 
-                //= (rowR + 0*PATTERN_R)[r[0]]  // row 1
-                //| (rowR + 1*PATTERN_R)[r[1]]  // row 2
-                //| (rowR + 2*PATTERN_R)[r[2]]  // row 3
-                //| (rowR + 3*PATTERN_R)[r[3]]  // row 4
-                //| (rowR + 4*PATTERN_R)[r[4]]  // row 5
-                //| (rowR + 5*PATTERN_R)[r[5]]  // row 6
-                //| (rowR + 6*PATTERN_R)[r[6]]  // row 7
-                //| (rowR + 7*PATTERN_R)[r[7]]; // row 8
+                //= (R_row + 0*R_PATTERN)[r[0]]  // row 1
+                //| (R_row + 1*R_PATTERN)[r[1]]  // row 2
+                //| (R_row + 2*R_PATTERN)[r[2]]  // row 3
+                //| (R_row + 3*R_PATTERN)[r[3]]  // row 4
+                //| (R_row + 4*R_PATTERN)[r[4]]  // row 5
+                //| (R_row + 5*R_PATTERN)[r[5]]  // row 6
+                //| (R_row + 6*R_PATTERN)[r[6]]  // row 7
+                //| (R_row + 7*R_PATTERN)[r[7]]; // row 8
 
-                = brdR[0][r[0]] // row 1
-                | brdR[1][r[1]] // row 2
-                | brdR[2][r[2]] // row 3
-                | brdR[3][r[3]] // row 4
-                | brdR[4][r[4]] // row 5
-                | brdR[5][r[5]] // row 6
-                | brdR[6][r[6]] // row 7
-                | brdR[7][r[7]];// row 8
+                = R_brd[0][r[0]] // row 1
+                | R_brd[1][r[1]] // row 2
+                | R_brd[2][r[2]] // row 3
+                | R_brd[3][r[3]] // row 4
+                | R_brd[4][r[4]] // row 5
+                | R_brd[5][r[5]] // row 6
+                | R_brd[6][r[6]] // row 7
+                | R_brd[7][r[7]];// row 8
 
             return index;
         }
@@ -204,7 +204,7 @@ namespace BitBoard {
                     {
                         const uint16_t maskB = (mask >> (((row + 1) << 3) + 1)) & 0x3F;
                     
-                        for (uint16_t pattern = 0; pattern < PATTERN_B; ++pattern)
+                        for (uint16_t pattern = 0; pattern < B_PATTERN; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;
@@ -286,7 +286,7 @@ namespace BitBoard {
                     {
                         const uint16_t maskR = (mask >> (row << 3)) & 0xFF;
                     
-                        for (uint16_t pattern = 0; pattern < PATTERN_R; ++pattern)
+                        for (uint16_t pattern = 0; pattern < R_PATTERN; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;

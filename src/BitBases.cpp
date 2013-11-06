@@ -117,8 +117,8 @@ namespace BitBases {
             while (b)
             {
                 r |= (WHITE == C) ?
-                    db[index(C_, bk_sq, pop_lsb (b), p_sq)] :
-                    db[index(C_, pop_lsb (b), wk_sq, p_sq)];
+                    db[index(C_, bk_sq, pop_lsq (b), p_sq)] :
+                    db[index(C_, pop_lsq (b), wk_sq, p_sq)];
             }
 
             if ((WHITE == C) && (_rank (p_sq) < R_7))

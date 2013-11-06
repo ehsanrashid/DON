@@ -1010,12 +1010,12 @@ bool Position::pseudo_legal (Move m) const
             {
                 // Our move must be a blocking evasion of the checking piece or a capture of the checking en-passant pawn
                 if (!(chkrs & cap) &&
-                    !(betwen_sq_bb (scan_lsb (chkrs), king_sq (active)) & dst)) return false;
+                    !(betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) & dst)) return false;
             }
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((betwen_sq_bb (scan_lsb (chkrs), king_sq (active)) | chkrs) & dst)) return false;
+                if (!((betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) | chkrs) & dst)) return false;
             }
         }
         // In case of king moves under check we have to remove king so to catch
@@ -1389,7 +1389,7 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
 
     MoveList m_list;
-    while (pawns_ep) m_list.emplace_back (mk_move<ENPASSANT> (pop_lsb (pawns_ep), ep_sq));
+    while (pawns_ep) m_list.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
 
     // Check en-passant is legal for the position
 
@@ -1426,7 +1426,7 @@ Score Position::compute_psq_score() const
     Bitboard b = pieces ();
     while (b)
     {
-        Square s = pop_lsb (b);
+        Square s = pop_lsq (b);
         Piece  p = _piece_arr[s];
         score += psq[_color (p)][_ptype (p)][s];
     }
@@ -1653,7 +1653,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->castle_rights &= ~cr;
             while (b)
             {
-                posi_k ^= ZobGlob._.castle_right[0][pop_lsb (b)];
+                posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];
             }
         }
     }
@@ -1915,7 +1915,7 @@ void Position::flip ()
     Bitboard occ = pos.pieces ();
     while (occ)
     {
-        Square s = pop_lsb (occ);
+        Square s = pop_lsq (occ);
         Piece p = pos[s];
         if (PS_NO != p)
         {
@@ -2231,7 +2231,7 @@ Position::operator string () const
     Bitboard occ = pieces ();
     while (occ)
     {
-        Square s = pop_lsb (occ);
+        Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
         brd[3 + size_t (len_row * (7.5 - r)) + 4 * f] = to_char (_piece_arr[s]);

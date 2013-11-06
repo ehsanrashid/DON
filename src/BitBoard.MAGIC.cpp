@@ -14,17 +14,17 @@ namespace BitBoard {
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const uint32_t MAX_MOVES_B = U32 (0x1480);
+        const uint32_t MAX_B_MOVES = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const uint32_t MAX_MOVES_R = U32 (0x19000);
+        const uint32_t MAX_R_MOVES = U32 (0x19000);
 
 
-        Bitboard BTable_bb[MAX_MOVES_B];
-        Bitboard RTable_bb[MAX_MOVES_R];
+        Bitboard BTable_bb[MAX_B_MOVES];
+        Bitboard RTable_bb[MAX_R_MOVES];
 
         Bitboard*BAttack_bb[SQ_NO];
         Bitboard*RAttack_bb[SQ_NO];

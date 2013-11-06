@@ -26,7 +26,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     size_t total_entry  = (size_byte) / SIZE_TENTRY;
     //size_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
 
-    uint8_t bit_hash = scan_msb (total_entry);
+    uint8_t bit_hash = scan_msq (total_entry);
     ASSERT (bit_hash < MAX_BIT_HASH);
     if (bit_hash >= MAX_BIT_HASH)
     {

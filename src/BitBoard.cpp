@@ -637,7 +637,7 @@ namespace BitBoard {
 
         while (bb)
         {
-            Square s = pop_lsb (bb);
+            Square s = pop_lsq (bb);
             int8_t r = _rank (s);
             int8_t f = _file (s);
             sbb[2 + len_row * (8 - r) + 2 * f] = p;
@@ -661,7 +661,7 @@ namespace BitBoard {
 
         while (bb)
         {
-            Square s = pop_lsb (bb);
+            Square s = pop_lsq (bb);
             sq_list.emplace_back (s);
         }
 

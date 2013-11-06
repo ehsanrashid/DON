@@ -15,8 +15,8 @@ namespace {
     const int32_t NoPawnsSF[4] = { 6, 12, 32 };
 
     // Polynomial material balance parameters
-    const Value RedundantQueen = Value (320);
     const Value RedundantRook  = Value (554);
+    const Value RedundantQueen = Value (320);
 
     //                                            P      N      B      R      Q     BP
     const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -183,   105,    26,  1852, };
@@ -127,7 +127,7 @@ namespace Material {
     Entry* probe (const Position &pos, Table &table, Endgames &endgames)
     {
         Key key  = pos.matl_key ();
-        Entry* e = table[key];
+        Entry *e = table[key];
 
         // If e->key matches the position's material hash key, it means that we
         // have analysed this material configuration before, and we can simply
@@ -135,7 +135,7 @@ namespace Material {
         if (e->key == key) return e;
 
         std::memset (e, 0, sizeof (Entry));
-        e->key = key;
+        e->key           = key;
         e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
         e->_game_phase   = game_phase (pos);
 
@@ -177,11 +177,10 @@ namespace Material {
         //
         // We face problems when there are several conflicting applicable
         // scaling functions and we need to decide which one to use.
-        EndgameBase<ScaleFactor> *sf;
-
-        if (endgames.probe (key, sf))
+        EndgameBase<ScaleFactor> *eg_sf;
+        if (endgames.probe (key, eg_sf))
         {
-            e->scaling_func[sf->color ()] = sf;
+            e->scaling_func[eg_sf->color ()] = eg_sf;
             return e;
         }
 

@@ -409,7 +409,7 @@ namespace EndGame {
             //    // The bishop has the wrong color, and the defending king is on the
             //    // file of the pawn(s) or the adjacent file. Find the rank of the
             //    // frontmost pawn.
-            //    Square wp_sq = frontmost_rel_sq (_stong_side, pawns);
+            //    Square wp_sq = scan_rel_frntmost_sq (_stong_side, pawns);
             //
             //    // If the defending king has distance 1 to the promotion square or
             //    // is placed somewhere in front of the pawn, it's a draw.
@@ -434,7 +434,7 @@ namespace EndGame {
             && (pos.piece_count<PAWN>(_weak_side) >= 1))
         {
             // Get _weak_side pawn that is closest to home rank
-            Square bp_sq = backmost_rel_sq (_weak_side, pos.pieces (_weak_side, PAWN));
+            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces (_weak_side, PAWN));
 
             Square wk_sq = pos.king_sq (_stong_side);
             Square bk_sq = pos.king_sq (_weak_side);

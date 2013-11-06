@@ -160,7 +160,7 @@ void check_time ()
         //        Bitboard sm = sp.slavesMask;
         //        while (sm)
         //        {
-        //            Position* pos = Threads[pop_lsb(sm)]->activePosition;
+        //            Position* pos = Threads[pop_lsq(sm)]->activePosition;
         //            if (pos) nodes += pos->game_nodes();
         //        }
         //        sp.mutex.unlock();

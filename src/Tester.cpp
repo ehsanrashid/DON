@@ -67,8 +67,8 @@ namespace Tester {
             //ASSERT (pop_count<FULL> (U64 (0xAAAA)) == 0x08);
             //ASSERT (pop_count<FULL> (U64 (0xFFFF)) == 0x10);
 
-            //ASSERT (scan_msb (0x000F) == SQ_D1);
-            //ASSERT (scan_msb (0xFFFF) == SQ_H2);
+            //ASSERT (scan_msq (0x000F) == SQ_D1);
+            //ASSERT (scan_msq (0xFFFF) == SQ_H2);
 
             //ASSERT (CollapsedFILEsIndex (U64 (0x0000000000008143)) == 0xC3);
             //ASSERT (CollapsedFILEsIndex (U64 (0x1080000001000010)) == 0x91);

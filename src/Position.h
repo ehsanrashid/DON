@@ -660,7 +660,7 @@ inline Bitboard Position::blockers (Square s, Bitboard pinners) const
     Bitboard blockers = 0;
     while (pinners)
     {
-        Bitboard blocker = BitBoard::betwen_sq_bb (s, pop_lsb (pinners)) & occ;
+        Bitboard blocker = BitBoard::betwen_sq_bb (s, pop_lsq (pinners)) & occ;
         //if (blocker && !BitBoard::more_than_one (blocker) && (blocker & defenders))
         //{
         //    blockers |= blocker;

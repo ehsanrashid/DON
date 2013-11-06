@@ -61,7 +61,7 @@ AmbType ambiguity (Move m, const Position &pos)
     //Bitboard attackers = (pos.attacks_bb(pc, to) & pos.pieces (us, pt)) ^ from;
     //while (attackers)
     //{
-    //    Square sq = pop_lsb(&attackers);
+    //    Square sq = pop_lsq(&attackers);
     //    // Pinned pieces are not included in the possible sub-set
     //    if (!pos.pl_move_is_legal(make_move(sq, to), pos.pinned_pieces()))
     //        continue;
@@ -96,7 +96,7 @@ AmbType ambiguity (Move m, const Position &pos)
     Bitboard pinneds = pos.pinneds ();
     while (b)
     {
-        Move move = mk_move (pop_lsb (b), dst);
+        Move move = mk_move (pop_lsq (b), dst);
         if (!pos.legal (move, pinneds))
         {
             others -= sq_org (move);

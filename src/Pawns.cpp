@@ -129,7 +129,7 @@ namespace {
                 // backward by looking in the forward direction on the adjacent
                 // files, and picking the closest pawn there.
                 b = attack_span_pawn_bb(C, s) & (w_pawns | b_pawns);
-                b = attack_span_pawn_bb(C, s) & rank_bb (backmost_rel_sq(C, b));
+                b = attack_span_pawn_bb(C, s) & rank_bb (scan_rel_backmost_sq(C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
@@ -192,11 +192,11 @@ namespace Pawns {
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
             b = w_pawns & file_bb (f);
-            Rank w_rk = b ? rel_rank (C, backmost_rel_sq (C, b)) : R_1;
+            Rank w_rk = b ? rel_rank (C, scan_rel_backmost_sq (C, b)) : R_1;
             safety -= ShelterWeakness[w_rk];
 
             b  = b_pawns & file_bb (f);
-            Rank b_rk = b ? rel_rank (C, frontmost_rel_sq (C_, b)) : R_1;
+            Rank b_rk = b ? rel_rank (C, scan_rel_frntmost_sq (C_, b)) : R_1;
             safety -= StormDanger[w_rk == R_1 ? 0 : b_rk == w_rk + 1 ? 2 : 1][b_rk];
         }
 

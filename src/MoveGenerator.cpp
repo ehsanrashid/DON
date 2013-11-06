@@ -11,9 +11,9 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(m_list, org, moves)         while (moves) { m_list.emplace_back (mk_move<NORMAL> ((org), pop_lsb(moves))); }
+#define SERIALIZE(m_list, org, moves)         while (moves) { m_list.emplace_back (mk_move<NORMAL> ((org), pop_lsq(moves))); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define SERIALIZE_PAWNS(m_list, delta, moves) while (moves) { Square dst = pop_lsb (moves); m_list.emplace_back (mk_move<NORMAL> (dst - (delta), dst)); }
+#define SERIALIZE_PAWNS(m_list, delta, moves) while (moves) { Square dst = pop_lsq (moves); m_list.emplace_back (mk_move<NORMAL> (dst - (delta), dst)); }
 
     namespace {
 
@@ -268,7 +268,7 @@ namespace MoveGenerator {
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
                                 while (pawns_ep)
                                 {
-                                    m_list.emplace_back (mk_move<ENPASSANT> (pop_lsb (pawns_ep), ep_sq));
+                                    m_list.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
                                 }
                             }
                         }
@@ -314,7 +314,7 @@ namespace MoveGenerator {
                     Bitboard promotes = shift_del<D> (pawns_on_R7) & target;
                     while (promotes)
                     {
-                        Square dst = pop_lsb (promotes);
+                        Square dst = pop_lsq (promotes);
                         Square org = dst - D;
 
                         if ( (RELAX == G) || (EVASION == G) ||
@@ -449,7 +449,7 @@ namespace MoveGenerator {
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
-            Square org = pop_lsb (discovers);
+            Square org = pop_lsq (discovers);
             PType type = _ptype (pos[org]);
 
             Bitboard moves = U64 (0);
@@ -491,7 +491,7 @@ namespace MoveGenerator {
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
-            Square org = pop_lsb (discovers);
+            Square org = pop_lsq (discovers);
             PType type = _ptype (pos[org]);
 
             Bitboard moves = U64 (0);
@@ -556,7 +556,7 @@ namespace MoveGenerator {
         if ((1 == num_checkers) && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard target = checkers | betwen_sq_bb (scan_lsb (checkers), fk_sq);
+            Bitboard target = checkers | betwen_sq_bb (scan_lsq (checkers), fk_sq);
             switch (active)
             {
             case WHITE: generate_color<WHITE, EVASION> (m_list, pos, target); break;

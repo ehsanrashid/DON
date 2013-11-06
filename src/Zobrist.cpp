@@ -75,7 +75,7 @@ namespace Zobrist {
         //Bitboard pawns = pos[PAWN];
         //while (pawns)
         //{
-        //    Square s = pop_lsb (pawns);
+        //    Square s = pop_lsq (pawns);
         //    Color  c = _color (pos[s]);
         //    pawn_key ^= _.ps_sq[c][PAWN][s];
         //}
@@ -118,7 +118,7 @@ namespace Zobrist {
         //Bitboard occ = pos.pieces ();
         //while (occ)
         //{
-        //    Square s = pop_lsb (occ);
+        //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
         //    posi_key ^= _.ps_sq[_color (p)][_ptype (p)][s];
         //}
@@ -151,7 +151,7 @@ namespace Zobrist {
         Bitboard b = pos.castle_rights ();
         while (b)
         {
-            posi_key ^= _.castle_right[0][pop_lsb (b)];
+            posi_key ^= _.castle_right[0][pop_lsq (b)];
         }
 
         Square ep_sq = pos.en_passant ();
