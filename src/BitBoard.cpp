@@ -227,6 +227,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard _passer_span_pawn_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
 
     const Delta _deltas_pawn[CLR_NO][3] =
@@ -483,6 +484,9 @@ namespace BitBoard {
                         _betwen_sq_bb[s][d] += sq;
                         sq += delta;
                     }
+
+                    PType pt = (_attacks_type_bb[BSHP][s] & d) ? BSHP : ROOK;
+                    _lines_sq_bb[s][d] = (_attacks_type_bb[pt][s] & _attacks_type_bb[pt][d]) | s | d;
                 }
             }
 

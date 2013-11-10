@@ -61,6 +61,9 @@ namespace {
         // king is on g8 and there's a white knight on g5, this knight adds
         // 2 to kingAdjacentZoneAttacksCount[BLACK].
         int32_t kingAdjacentZoneAttacksCount[CLR_NO];
+
+        Bitboard pinnedPieces[CLR_NO];
+
     };
 
     // Evaluation grain size, must be a power of 2
@@ -402,6 +405,8 @@ namespace {
         const Color  C_ = ((WHITE == C) ? BLACK : WHITE);
         const Delta PULL = ((WHITE == C) ? DEL_S : DEL_N);
 
+        ei.pinnedPieces[C] = pos.pinneds (C);
+
         Bitboard b = ei.attackedBy[C_][KING] = pos.attacks_from<KING>(pos.king_sq (C_));
         ei.attackedBy[C][PAWN] = ei.pi->pawn_attacks(C);
 
@@ -455,10 +460,11 @@ namespace {
         Score score = SCORE_ZERO;
 
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Square fk_sq = pos.king_sq (C);
         const Square ek_sq = pos.king_sq (C_);
 
         ei.attackedBy[C][T] = 0;
-        
+
         const SquareList pl = pos.list<T>(C);
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
@@ -467,6 +473,11 @@ namespace {
                 BSHP == T ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                 ROOK == T ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
                 pos.attacks_from<T> (s);
+
+            if (ei.pinnedPieces[C] & s)
+            {
+                b &= _lines_sq_bb[fk_sq][s];
+            }
 
             ei.attackedBy[C][T] |= b;
 
@@ -482,9 +493,9 @@ namespace {
                 }
             }
 
-            int32_t mob = (QUEN != T) ?
-                pop_count<MAX15>(b & mobility_area) :
-                pop_count<FULL >(b & mobility_area);
+            int32_t mob = (QUEN != T)
+                ? pop_count<MAX15>(b & mobility_area)
+                : pop_count<FULL >(b & mobility_area);
 
             mobility[C] += MobilityBonus[T][mob];
 
@@ -558,17 +569,14 @@ namespace {
                 }
                 if (mob > 3 || ei.pi->semiopen (C, _file (s)))
                 {
-                    //continue;
                     return;
                 }
 
-                Square k_sq = pos.king_sq (C);
-
                 // Penalize rooks which are trapped inside a king. Penalize more if
                 // king has lost right to castle.
-                if (   ((_file (k_sq) < F_E) == (_file (s) < _file (k_sq)))
-                    && (_rank (k_sq) == _rank (s) || R_1 == rel_rank (C, k_sq))
-                    && !ei.pi->semiopen_on_side(C, _file (k_sq), _file (k_sq) < F_E))
+                if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                    && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                    && !ei.pi->semiopen_on_side(C, _file (fk_sq), _file (fk_sq) < F_E))
                 {
                     score -= (TrappedRook - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                 }

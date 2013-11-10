@@ -69,6 +69,7 @@ namespace BitBoard {
     extern Bitboard _front_squares_bb[CLR_NO][SQ_NO];
 
     extern Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
+    extern Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
     extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
 
@@ -388,17 +389,7 @@ namespace BitBoard {
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3)
     {
-        return
-            (
-            _square_bb[s1] |
-            _square_bb[s2] |
-            _square_bb[s3]
-        ) &
-            (
-            _betwen_sq_bb[s1][s2] |
-            _betwen_sq_bb[s2][s3] |
-            _betwen_sq_bb[s3][s1]
-        );
+        return _lines_sq_bb[s1][s2] & s3;
     }
 
 #pragma endregion

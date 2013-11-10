@@ -14,7 +14,6 @@ namespace Searcher {
 
     const uint16_t MAX_DEPTH = 64;
 
-
     const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
     const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
     const uint16_t MAX_THREAT = 90;
@@ -149,7 +148,6 @@ namespace Searcher {
         Depth reduction;
         Value static_eval;
         int32_t skip_null_move;
-        int32_t futility_move_count;
     };
 
 

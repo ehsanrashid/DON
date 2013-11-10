@@ -30,7 +30,6 @@ namespace {
     // Different node types, used as template parameter
     enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
-
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
 
