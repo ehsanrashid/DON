@@ -1049,9 +1049,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
                         if (SPNode)
                         {
-                            //splitPoint->mutex.lock();
-                            //if (best_value > splitPoint->bestValue)
-                            //    splitPoint->bestValue = bestValue;
+                            //split_point->mutex.lock();
+                            //if (best_value > split_point->best_value)
+                            //    split_point->best_value = best_value;
                         }
                         continue;
                     }
@@ -1065,13 +1065,6 @@ moves_loop: // When in check and at SPNode search starts from here
                     continue;
                 }
 
-                // We have not pruned the move that will be searched, but remember how
-                // far in the move list we are to be more aggressive in the child node.
-                ss->futility_move_count = move_count;
-            }
-            else
-            {
-                ss->futility_move_count = 0;
             }
 
             // Check for legality only before to do the move
@@ -1081,7 +1074,6 @@ moves_loop: // When in check and at SPNode search starts from here
                 continue;
             }
 
-            bool is_pv_move = PVNode && (move_count == 1);
             ss->current_move = move;
 
             if (!SPNode && !capture_or_promotion && quiet_count < 64)
@@ -1091,7 +1083,8 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Step 14. Make the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
-
+            
+            bool is_pv_move = PVNode && (move_count == 1);
             bool full_depth_search;
 
             // Step 15. Reduced depth search (LMR). If the move fails high will be
@@ -1139,7 +1132,8 @@ moves_loop: // When in check and at SPNode search starts from here
                 //if (SPNode) alpha = split_point->alpha;
 
                 value = new_depth < ONE_PLY ?
-                    gives_check ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                    gives_check
+                    ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                     : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                     : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
@@ -1150,7 +1144,8 @@ moves_loop: // When in check and at SPNode search starts from here
             if (PVNode && (is_pv_move || (value > alpha && (RootNode || value < beta))))
             {
                 value = new_depth < ONE_PLY ?
-                    gives_check ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                    gives_check
+                    ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                     : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                     : - search<PV>(pos, ss+1, -beta, -alpha, new_depth, false);
             }
@@ -1173,7 +1168,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // ran out of time. In this case, the return value of the search cannot
             // be trusted, and we don't update the best move and/or PV.
             if (  signals.stop
-                //|| thisThread->cutoff_occurred()
+                //|| thisThread->cutoff_occurred ()
                     )
             {
                 return value; // To avoid returning VALUE_INFINITE
@@ -1187,7 +1182,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (is_pv_move || value > alpha)
                 {
                     rm.curr_value = value;
-                    rm.extract_pv_from_tt(pos);
+                    rm.extract_pv_from_tt (pos);
 
                     // We record how often the best move has been changed in each
                     // iteration. This information is used for time management: When
@@ -1211,12 +1206,12 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (value > alpha)
                 {
                     best_move = move;
-                    //best_move = SPNode ? split_point->best_move = move : move;
+                    //SPNode ? split_point->best_move = move : move;
 
                     if (PVNode && value < beta) // Update alpha! Always alpha < beta
                     {
                         alpha = value;
-                        //alpha = SPNode ? split_point->alpha = value : value;
+                        //SPNode ? split_point->alpha = value : value;
                     }
                     else
                     {
@@ -1281,8 +1276,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Increase history value of the cut-off move and decrease all the other
             // played non-capture moves.
-            Value bonus = Value(int32_t(depth) * int32_t(depth));
+            Value bonus = Value (int32_t (pow (int32_t (depth), 2)));
             history.update (pos.moved_piece (best_move), sq_dst (best_move), bonus);
+
             for (int32_t i = 0; i < quiet_count - 1; ++i)
             {
                 Move m = quiets_searched[i];
@@ -1617,7 +1613,6 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Verify attackers are triggered by our move and not already existing
             if (UNLIKELY(xray) && (xray & ~pos.attacks_from<QUEN>(dst_m2))) return true;
-
         }
 
         // Don't prune safe moves which block the threat path
