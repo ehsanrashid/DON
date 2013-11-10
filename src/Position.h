@@ -361,8 +361,8 @@ public:
 
     Bitboard checkers (Color c) const;
 
-    Bitboard pinneds () const;
-    Bitboard check_discovers () const;
+    Bitboard pinneds (Color c) const;
+    Bitboard check_discovers (Color c) const;
 
 #pragma endregion
 
@@ -684,16 +684,16 @@ inline Bitboard Position::hidden_checkers (Square sq_king, Color c) const
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
-inline Bitboard Position::pinneds () const
+inline Bitboard Position::pinneds (Color c) const
 {
-    return hidden_checkers (king_sq (_active), ~_active);
+    return hidden_checkers (king_sq (c), ~c);
 }
 
 // Check discovers are candidate friend anti-sliders w.r.t piece behind it,
 // that give the discover check to enemy king when moved.
-inline Bitboard Position::check_discovers () const
+inline Bitboard Position::check_discovers (Color c) const
 {
-    return hidden_checkers (king_sq (~_active), _active);
+    return hidden_checkers (king_sq (~c), c);
 }
 
 #pragma endregion

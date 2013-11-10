@@ -80,8 +80,8 @@ StateInfo::operator string () const
 CheckInfo::CheckInfo (const Position &pos)
 {
     king_sq = pos.king_sq (~pos.active ());
-    pinneds = pos.pinneds ();
-    check_discovers = pos.check_discovers ();
+    pinneds = pos.pinneds (pos.active ());
+    check_discovers = pos.check_discovers (pos.active ());
 
     checking_bb[PAWN] = attacks_bb<PAWN> (~pos.active (), king_sq);
     checking_bb[NIHT] = attacks_bb<NIHT> (king_sq);
@@ -1033,7 +1033,7 @@ bool Position::legal (Move m, Bitboard pinned) const
 {
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
-    ASSERT (pinned == pinneds ());
+    ASSERT (pinned == pinneds (_active));
 
     //Position c_pos(pos);
     //if (c_pos.do_move(m))
@@ -1105,7 +1105,7 @@ bool Position::legal (Move m, Bitboard pinned) const
 }
 bool Position::legal (Move m) const
 {
-    return legal (m, pinneds ());
+    return legal (m, pinneds (_active));
 }
 // capture(m) tests move is capture
 bool Position::capture (Move m) const
@@ -1160,8 +1160,8 @@ bool Position::check (Move m, const CheckInfo &ci) const
 {
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
-    ASSERT (ci.check_discovers == check_discovers ());
-    //if (!legal (m, pinneds ())) return false;
+    ASSERT (ci.check_discovers == check_discovers (_active));
+    //if (!legal (m, pinneds (_active))) return false;
 
     Square org = sq_org (m);
     Square dst = sq_dst (m);

@@ -93,7 +93,7 @@ AmbType ambiguity (Move m, const Position &pos)
 
     Bitboard others, b;
     others = b = (pos.attacks_from (mp, dst) & pos.pieces (pos.active (), mpt)) - org;
-    Bitboard pinneds = pos.pinneds ();
+    Bitboard pinneds = pos.pinneds (pos.active ());
     while (b)
     {
         Move move = mk_move (pop_lsq (b), dst);

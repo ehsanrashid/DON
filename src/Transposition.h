@@ -17,10 +17,9 @@
 //  Depth        2
 //  Bound        1
 //  Gen          1
-////  Nodes          2
-//  Score        2
-//  eval value   2
-//  eval mrgin   2
+//  Nodes        2
+//  Value        2
+//  Eval Value   2
 // ----------------
 //  total        16 byte
 
@@ -36,10 +35,9 @@ private:
     int16_t  _depth;
     uint8_t  _bound;
     uint8_t  _gen;
-    //uint16_t  _nodes;
+    uint16_t  _nodes;
     int16_t _value
         , _eval_value
-        , _eval_mrgn
         ;
 
 public:
@@ -49,25 +47,22 @@ public:
     Depth   depth () const { return Depth (_depth); }
     Bound   bound () const { return Bound (_bound); }
     uint8_t   gen () const { return _gen; }
-    //uint16_t nodes () const { return uint16_t (_nodes); }
+    uint16_t nodes () const { return uint16_t (_nodes); }
     Value   value () const { return Value (_value); }
     Value eval_value () const { return Value (_eval_value); }
-    Value eval_mrgn  () const { return Value (_eval_mrgn); }
 
     void save (
         uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, 
-        //uint16_t nodes,
-        Value value, Value e_value, Value e_margn)
+        uint16_t nodes, Value value, Value e_value)
     {
         _key        = uint32_t (key);
         _move       = uint16_t (move);
         _depth      = uint16_t (depth);
         _bound      = uint8_t (bound);
         _gen        = uint8_t (gen);
-        //_nodes      = uint16_t (nodes);
+        _nodes      = uint16_t (nodes);
         _value      = uint16_t (value);
         _eval_value = uint16_t (e_value);
-        _eval_mrgn  = uint16_t (e_margn);
     }
 
     void gen (uint8_t gen)
@@ -208,10 +203,10 @@ public:
     }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value, Value e_margn);
+    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value);
 
     // retrieve() looks up the entry in the transposition table.
-    const TranspositionEntry* TranspositionTable::retrieve (Key key) const;
+    const TranspositionEntry* retrieve (Key key) const;
 
     double permill_full () const;
 

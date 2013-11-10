@@ -426,11 +426,11 @@ namespace Tester {
             //Test pinned position in pinned()
             fen = "8/8/8/8/4n3/1kb5/3R4/4K3 w - - 0 1";
             pos.setup (fen);
-            ASSERT (U64 (0x0000000000000800) == pos.pinneds ());
+            ASSERT (U64 (0x0000000000000800) == pos.pinneds (pos.active ()));
 
             fen = "8/1q6/8/1k3BR1/p1p4P/8/5K2/8 w - - 0 1";
             pos.setup (fen);
-            ASSERT (U64 (0x0000002000000000)==pos.check_discovers ());
+            ASSERT (U64 (0x0000002000000000) == pos.check_discovers (pos.active ()));
 
             cout << "Position done !!!" << endl;
         }

@@ -114,7 +114,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, const HistoryStats &h, PType
     capture_threshold = PieceValue[MG][pt];
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
 
-    if (tt_move && (!pos.capture (tt_move) || pos.see(tt_move) <= capture_threshold))
+    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
     {
         tt_move = MOVE_NONE;
     }
@@ -359,7 +359,7 @@ Move MovePicker::next_move<false>()
 
         case CAPTURES_S5:
             move = pick_best (cur++, end)->move;
-            if (move != tt_move && pos.see(move) > capture_threshold)
+            if (move != tt_move && pos.see (move) > capture_threshold)
             {
                 return move;
             }

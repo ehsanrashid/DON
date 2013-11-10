@@ -371,7 +371,7 @@ namespace MoveGenerator {
         inline void filter_illegal (MoveList &m_list, const Position &pos)
         {
             Square fk_sq     = pos.king_sq (pos.active ());
-            Bitboard pinneds = pos.pinneds ();
+            Bitboard pinneds = pos.pinneds (pos.active ());
 
             MoveList::iterator itr = m_list.begin ();
             while (itr != m_list.end ())

@@ -148,7 +148,6 @@ namespace Searcher {
         Move killers[2];
         Depth reduction;
         Value static_eval;
-        Value static_mrgn;
         int32_t skip_null_move;
         int32_t futility_move_count;
     };

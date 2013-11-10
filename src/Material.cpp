@@ -12,14 +12,11 @@ namespace {
     const Value EndgameLimit = Value (3998);
 
     // Scale factors used when one side has no more pawns
-    const int32_t NoPawnsSF[4] = { 6, 12, 32 };
+    const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
 
     // Polynomial material balance parameters
-    const Value RedundantRook  = Value (554);
-    const Value RedundantQueen = Value (320);
-
     //                                            P      N      B      R      Q     BP
-    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -183,   105,    26,  1852, };
+    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -183,   249,   -52,  1852, };
 
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
@@ -27,8 +24,8 @@ namespace {
         {   2,   0,   0,   0,   0,  39, }, // P
         { 271,  -4,   0,   0,   0,  35, }, // N
         { 105,   4,   0,   0,   0,   0, }, // B
-        {  -2,  46, 100,  56,   0, -27, }, // R
-        {  29,  83, 148,  -3, -25,  58, }, // Q
+        {  -2,  46, 100,-141,   0, -27, }, // R
+        {  29,  83, 148,-163,   0,  58, }, // Q
         {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
@@ -89,14 +86,8 @@ namespace {
 
         int32_t value = VALUE_ZERO;
 
-        // Redundancy of major pieces, formula based on Kaufman's paper
         // "The Evaluation of Material Imbalances in Chess"
-        if (piece_count[C][ROOK] > 0)
-        {
-            value -= RedundantRook  * (piece_count[C][ROOK] - 1)
-                +    RedundantQueen * (piece_count[C][QUEN]);
-        }
-
+        
         // Second-degree polynomial material imbalance by Tord Romstad
         for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
         {
@@ -113,6 +104,7 @@ namespace {
 
             value += pc * v;
         }
+
         return value;
     }
 
