@@ -111,7 +111,7 @@ namespace MoveGenerator {
             // Generates KING castling move
             static inline void generate_castling (MoveList &m_list, const Position &pos, Color clr, const CheckInfo *ci /*= NULL*/)
                 //template<GType G>
-                //template<CSide SIDE>
+                //template<CSide SIDE, bool CHESS960>
                 //void Generator<G, KING>::generate_castling (MoveList &m_list, const Position &pos, Color clr, const CheckInfo *ci)
             {
                 //static_assert ((EVASION != G) && (CHECK != G), "G must not be EVASION & CHECK");
@@ -129,8 +129,9 @@ namespace MoveGenerator {
                 Bitboard enemies = pos.pieces (~clr);
 
                 Delta step = CHESS960 ? 
-                    dst_king > org_rook ? DEL_W : DEL_E :
+                    dst_king < org_king ? DEL_W : DEL_E :
                     (CS_Q == SIDE) ? DEL_W : DEL_E;
+
                 for (Square s = org_king + step; s != dst_king; s += step)
                 {
                     if (pos.attackers_to (s) & enemies)
@@ -165,7 +166,9 @@ namespace MoveGenerator {
                     }
                     break;
 
-                default: m_list.emplace_back (m);    break;
+                default:
+                    m_list.emplace_back (m);
+                    break;
                 }
             }
 
@@ -280,6 +283,7 @@ namespace MoveGenerator {
                                 Bitboard pawns_ep = attacks_bb<PAWN>(C_, ep_sq) & pawns_on_R5;
                                 ASSERT (pawns_ep);
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
+
                                 while (pawns_ep)
                                 {
                                     m_list.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
@@ -288,6 +292,7 @@ namespace MoveGenerator {
                         }
                     }
                 }
+
                 // Promotions (queening and under-promotions)
                 if (pawns_on_R7)
                 {
@@ -541,36 +546,59 @@ namespace MoveGenerator {
         Color active = pos.active ();
         Color pasive = ~active;
         Bitboard checkers = pos.checkers ();
-        uint8_t num_checkers = pop_count<FULL> (checkers);
-        ASSERT (num_checkers != 0); // If any checker exists
+        ASSERT (checkers); // If any checker exists
 
         Square fk_sq     = pos.king_sq (active);
         Bitboard mocc    = pos.pieces () - fk_sq;
         Bitboard friends = pos.pieces (active);
         Bitboard enemies = pos.pieces (pasive);
 
-        // Generates evasions for king, capture and non-capture moves excluding friends
-        Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends;
+        //// Generates evasions for king, capture and non-capture moves excluding friends
+        //Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends;
+        //
+        //// Remove squares attacked by enemies, from the king evasions.
+        //// so to skip known illegal moves avoiding useless legality check later.
+        //for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
+        //{
+        //    Square sq = fk_sq + _deltas_type[KING][k];
+        //    if (_ok (sq))
+        //    {
+        //        if ((moves & sq) && (pos.attackers_to (sq, mocc) & enemies))
+        //        {
+        //            moves -= sq;
+        //        }
+        //    }
+        //}
 
-        // Remove squares attacked by enemies, from the king evasions.
-        // so to skip known illegal moves avoiding useless legality check later.
-        for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
+        Square check_sq;
+        Bitboard slid_attacks = 0;
+        int32_t checker_count = 0;
+        // Find squares attacked by slider checkers, we will remove them from the king
+        // evasions so to skip known illegal moves avoiding useless legality check later.
+        do
         {
-            Square sq = fk_sq + _deltas_type[KING][k];
-            if (_ok (sq))
+            ++checker_count;
+            check_sq = pop_lsq (checkers);
+
+            ASSERT (_color (pos[check_sq]) == pasive);
+
+            if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
-                if ((moves & sq) && (pos.attackers_to (sq, mocc) & enemies))
-                {
-                    moves -= sq;
-                }
+                slid_attacks |= _lines_sq_bb[check_sq][fk_sq] - check_sq;
             }
         }
+        while (checkers);
+
+        // Generate evasions for king, capture and non capture moves
+        Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends & ~slid_attacks;
 
         SERIALIZE (m_list, fk_sq, moves);
-        if ((1 == num_checkers) && pop_count<FULL> (friends) > 1)
+
+        // if Double check, then only a king move can save the day
+        if ((1 == checker_count) && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard target = checkers | betwen_sq_bb (scan_lsq (checkers), fk_sq);
+            Bitboard target = betwen_sq_bb (check_sq, fk_sq) + check_sq;
             switch (active)
             {
             case WHITE: generate_color<WHITE, EVASION> (m_list, pos, target); break;
@@ -587,7 +615,7 @@ namespace MoveGenerator {
     {
         MoveList m_list = pos.checkers () ?
             generate<EVASION> (pos) :
-            generate<RELAX> (pos);
+            generate<RELAX  > (pos);
 
         filter_illegal (m_list, pos);
 
