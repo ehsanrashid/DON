@@ -463,7 +463,7 @@ namespace {
                 // Reset aspiration window starting size
                 if (depth >= 5)
                 {
-                    delta = Value(16);
+                    delta = Value (16);
                     alpha = std::max (rootMoves[pv_idx].last_value - delta, -VALUE_INFINITE);
                     beta  = std::min (rootMoves[pv_idx].last_value + delta, +VALUE_INFINITE);
                 }
@@ -496,8 +496,7 @@ namespace {
 
                     // When failing high/low give some update (without cluttering
                     // the UI) before to research.
-                    if (  (best_value <= alpha || best_value >= beta)
-                        && Time::now () - searchTime > 3000)
+                    if ((alpha >= best_value || best_value >= beta) && Time::now () - searchTime > 3000)
                     {
                         atom () << uci_pv_info (pos, depth, alpha, beta) << endl;
                     }
@@ -1076,7 +1075,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     && pos.see_sign (move) < 0)
                 {
                     //if (SPNode) split_point->mutex.lock();
-                    
+
                     continue;
                 }
 

@@ -123,6 +123,7 @@ namespace {
     const Value Outpost[2][SQ_NO] =
     {
         // A     B     C     D     E     F     G     H
+        
         // KNIGHTS
         {V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
         V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -266,7 +267,7 @@ namespace {
 
     Value interpolate (const Score& score, Phase ph, ScaleFactor sf);
     Score apply_weight (Score score, Score w);
-    Score weight_option(const std::string &mg_opt, const std::string &eg_opt, Score internal_weight);
+    Score weight_option (const std::string &mg_opt, const std::string &eg_opt, Score internal_weight);
     double to_cp (Value value);
 
     // --------------------------------------------------
@@ -274,7 +275,7 @@ namespace {
     template<bool TRACE>
     Value do_evaluate       (const Position &pos)
     {
-        assert (!pos.checkers());
+        ASSERT (!pos.checkers());
         // Score is computed from the point of view of white.
         Score score;
 
@@ -340,7 +341,7 @@ namespace {
         }
 
         // Scale winning side if position is more drawish that what it appears
-        ScaleFactor sf = (eg_value(score) > VALUE_DRAW) ?
+        ScaleFactor sf = (eg_value (score) > VALUE_DRAW) ?
             ei.mi->scale_factor (pos, WHITE) : ei.mi->scale_factor (pos, BLACK);
 
         // If we don't already have an unusual scale factor, check for opposite
@@ -401,20 +402,20 @@ namespace {
     template<Color C>
     void init_eval_info     (const Position &pos, EvalInfo &ei)
     {
-        const Color  C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
         const Delta PULL = ((WHITE == C) ? DEL_S : DEL_N);
 
         ei.pinnedPieces[C] = pos.pinneds (C);
 
-        Bitboard b = ei.attackedBy[C_][KING] = pos.attacks_from<KING>(pos.king_sq (C_));
+        Bitboard attacks = ei.attackedBy[C_][KING] = pos.attacks_from<KING>(pos.king_sq (C_));
         ei.attackedBy[C][PAWN] = ei.pi->pawn_attacks(C);
 
         // Init king safety tables only if we are going to use them
         if (pos.piece_count<QUEN>(C) && pos.non_pawn_material (C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
         {
-            ei.kingRing[C_] = b | shift_del<PULL>(b);
-            b &= ei.attackedBy[C][PAWN];
-            ei.kingAttackersCount[C] = b ? pop_count<MAX15>(b) / 2 : 0;
+            ei.kingRing[C_] = attacks | shift_del<PULL>(attacks);
+            attacks &= ei.attackedBy[C][PAWN];
+            ei.kingAttackersCount[C] = attacks ? pop_count<MAX15>(attacks) / 2 : 0;
             ei.kingAdjacentZoneAttacksCount[C] = ei.kingAttackersWeight[C] = 0;
         }
         else
@@ -428,12 +429,18 @@ namespace {
     Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
     {
         //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
-        assert (BSHP == T || NIHT == T);
+        ASSERT (BSHP == T || NIHT == T);
 
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         // Initial bonus based on square
-        Value bonus = Outpost[T - NIHT][rel_sq (C, s)];
+        Value bonus;
+        switch (T)
+        {
+        case NIHT: bonus = Outpost[0][rel_sq (C, s)]; break;
+        case BSHP: bonus = Outpost[1][rel_sq (C, s)]; break;
+        default:   bonus = VALUE_ZERO;                break;
+        }
 
         // Increase bonus if supported by pawn, especially if the opponent has
         // no minor piece which can exchange the outpost piece.
@@ -449,6 +456,7 @@ namespace {
                 bonus += bonus / 2;
             }
         }
+        
         return mk_score (bonus, bonus);
     }
 
@@ -468,33 +476,33 @@ namespace {
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
-            Bitboard b =
-                BSHP == T ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
-                ROOK == T ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
+            Bitboard attacks =
+                (BSHP == T) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
+                (ROOK == T) ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
                 pos.attacks_from<T> (s);
 
             if (ei.pinnedPieces[C] & s)
             {
-                b &= _lines_sq_bb[fk_sq][s];
+                attacks &= _lines_sq_bb[fk_sq][s];
             }
 
-            ei.attackedBy[C][T] |= b;
+            ei.attackedBy[C][T] |= attacks;
 
-            if (b & ei.kingRing[C_])
+            if (attacks & ei.kingRing[C_])
             {
-                ++ei.kingAttackersCount[C];
+                ei.kingAttackersCount[C]++;
                 ei.kingAttackersWeight[C] += KingAttackWeights[T];
 
-                Bitboard bb = (b & ei.attackedBy[C_][KING]);
-                if (bb)
+                Bitboard attacks_king = (attacks & ei.attackedBy[C_][KING]);
+                if (attacks_king)
                 {
-                    ei.kingAdjacentZoneAttacksCount[C] += pop_count<MAX15>(bb);
+                    ei.kingAdjacentZoneAttacksCount[C] += pop_count<MAX15>(attacks_king);
                 }
             }
 
             int32_t mob = (QUEN != T)
-                ? pop_count<MAX15>(b & mobility_area)
-                : pop_count<FULL >(b & mobility_area);
+                ? pop_count<MAX15>(attacks & mobility_area)
+                : pop_count<FULL >(attacks & mobility_area);
 
             mobility[C] += MobilityBonus[T][mob];
 
@@ -669,40 +677,42 @@ namespace {
             int32_t attack_units =
                 std::min (20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
                 + 3 * (ei.kingAdjacentZoneAttacksCount[C_] + pop_count<MAX15>(undefended))
-                + KingExposed[rel_sq (C, k_sq)] - mg_value(score) / 32;
+                + KingExposed[rel_sq (C, k_sq)] - mg_value (score) / 32;
 
             // Analyse enemy's safe queen contact checks. First find undefended
             // squares around the king attacked by enemy queen...
-            Bitboard b = undefended & ei.attackedBy[C_][QUEN] & ~pos.pieces (C_);
-            if (b)
+            Bitboard undefended_attacked = undefended & ei.attackedBy[C_][QUEN] & ~pos.pieces (C_);
+            if (undefended_attacked)
             {
                 // ...then remove squares not supported by another enemy piece
-                b &=
+                undefended_attacked &=
                     (ei.attackedBy[C_][PAWN] | ei.attackedBy[C_][NIHT]
                 |    ei.attackedBy[C_][BSHP] | ei.attackedBy[C_][ROOK]);
 
-                if (b)
+                if (undefended_attacked)
                 {
                     attack_units += QueenContactCheck
-                        *   pop_count<MAX15>(b)
+                        *   pop_count<MAX15>(undefended_attacked)
                         *   (C_ == pos.active () ? 2 : 1);
                 }
             }
 
             // Analyse enemy's safe rook contact checks. First find undefended
             // squares around the king attacked by enemy rooks...
-            b = undefended & ei.attackedBy[C_][ROOK] & ~pos.pieces (C_);
+            undefended_attacked = undefended & ei.attackedBy[C_][ROOK] & ~pos.pieces (C_);
             // Consider only squares where the enemy rook gives check
-            b &= attacks_bb<ROOK>(k_sq);
-            if (b)
+            undefended_attacked &= attacks_bb<ROOK>(k_sq);
+            if (undefended_attacked)
             {
                 // ...then remove squares not supported by another enemy piece
-                b &= (ei.attackedBy[C_][PAWN] | ei.attackedBy[C_][NIHT] | ei.attackedBy[C_][BSHP] | ei.attackedBy[C_][QUEN]);
+                undefended_attacked &= 
+                    (ei.attackedBy[C_][PAWN] | ei.attackedBy[C_][NIHT]
+                |    ei.attackedBy[C_][BSHP] | ei.attackedBy[C_][QUEN]);
 
-                if (b)
+                if (undefended_attacked)
                 {
                     attack_units += RookContactCheck
-                        *   pop_count<MAX15>(b)
+                        *   pop_count<MAX15>(undefended_attacked)
                         *   (C_ == pos.active () ? 2 : 1);
                 }
             }
@@ -712,7 +722,7 @@ namespace {
 
             Bitboard b1 = pos.attacks_from<ROOK>(k_sq) & safe;
             Bitboard b2 = pos.attacks_from<BSHP>(k_sq) & safe;
-
+            Bitboard b;
             // Enemy queen safe checks
             b = (b1 | b2) & ei.attackedBy[C_][QUEN];
             if (b) attack_units += QueenCheck * pop_count<MAX15>(b);
@@ -807,13 +817,13 @@ namespace {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
         Score score = SCORE_ZERO;
 
-        Bitboard b = ei.pi->passed_pawns(C);
+        Bitboard b = ei.pi->passed_pawns (C);
 
         while (b)
         {
-            Square s = pop_lsq(b);
+            Square s = pop_lsq (b);
 
-            assert (pos.passed_pawn(C, s));
+            ASSERT (pos.passed_pawn (C, s));
 
             int32_t r = int32_t (rel_rank (C, s)) - int32_t (R_2);
             int32_t rr = r * (r - 1);
@@ -822,7 +832,7 @@ namespace {
             Value mg_bonus = Value (17 * rr);
             Value eg_bonus = Value (7 * (rr + r + 1));
 
-            if (rr)
+            if (0 != rr)
             {
                 Square block_sq = s + pawn_push (C);
 
@@ -838,7 +848,7 @@ namespace {
                 }
 
                 // If the pawn is free to advance, increase bonus
-                if (pos.empty(block_sq))
+                if (pos.empty (block_sq))
                 {
                     // squares to queen
                     Bitboard squares_queen = front_squares_bb (C, s);
@@ -885,7 +895,7 @@ namespace {
                     mg_bonus += Value (k * rr);
                     eg_bonus += Value (k * rr);
                 }
-            } // rr != 0
+            } // 0 != rr
 
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
@@ -941,13 +951,13 @@ namespace {
     // related to the possibility pawns are unstoppable.
     Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei)
     {
-        Bitboard b = ei.pi->passed_pawns(c) | ei.pi->candidate_pawns(c);
+        Bitboard pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
 
-        if (!b || pos.non_pawn_material (~c))
+        if (!pawns || pos.non_pawn_material (~c))
         {
             return SCORE_ZERO;
         }
-        return UnstoppablePawn * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, b)));
+        return UnstoppablePawn * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, pawns)));
     }
 
     // evaluate_space() computes the space evaluation for a given side. The
@@ -976,7 +986,7 @@ namespace {
         behind |= ((WHITE == C) ? behind >> 16 : behind << 16);
 
         // Since SpaceMask[C] is fully on our half of the board
-        assert (uint32_t(safe >> ((WHITE == C) ? 32 : 0)) == 0);
+        ASSERT (uint32_t (safe >> ((WHITE == C) ? 32 : 0)) == 0);
 
         // Count safe + (behind & safe) with a single pop_count
         return pop_count<FULL>(((WHITE == C) ? safe << 32 : safe >> 32) | (behind & safe));
@@ -986,24 +996,24 @@ namespace {
     // based on game phase. It also scales the return value by a ScaleFactor array.
     Value interpolate (const Score& score, Phase ph, ScaleFactor sf)
     {
-        assert (mg_value(score) > -VALUE_INFINITE && mg_value(score) < VALUE_INFINITE);
-        assert (eg_value(score) > -VALUE_INFINITE && eg_value(score) < VALUE_INFINITE);
-        assert (ph >= PHASE_ENDGAME && ph <= PHASE_MIDGAME);
+        ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
+        ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
+        ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-        int32_t e = (eg_value(score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
-        int32_t r = (mg_value(score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
+        int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
         return Value ((r / GrainSize) * GrainSize); // Sign independent
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
     Score apply_weight (Score score, Score w)
     {
-        return mk_score ((int32_t (mg_value(score)) * mg_value(w)) / 0x100, (int32_t (eg_value(score)) * eg_value(w)) / 0x100);
+        return mk_score ((int32_t (mg_value (score)) * mg_value (w)) / 0x100, (int32_t (eg_value (score)) * eg_value (w)) / 0x100);
     }
 
-    // weight_option() computes the value of an evaluation weight, by combining
+    // weight_option () computes the value of an evaluation weight, by combining
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
-    Score weight_option(const std::string &mg_opt, const std::string &eg_opt, Score internal_weight)
+    Score weight_option (const std::string &mg_opt, const std::string &eg_opt, Score internal_weight)
     {
         // Scale option value from 100 to 256
         int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
@@ -1030,19 +1040,19 @@ namespace {
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
                 stream << std::setw(20) << name << " |   ---   --- |   ---   --- | "
-                    << std::setw(6)  << to_cp (mg_value(w_score)) << " "
-                    << std::setw(6)  << to_cp (eg_value(w_score)) << " \n";
+                    << std::setw(6)  << to_cp (mg_value (w_score)) << " "
+                    << std::setw(6)  << to_cp (eg_value (w_score)) << " \n";
                 break;
 
             default:
                 stream << std::setw(20) << name << " | " << std::noshowpos
-                    << std::setw(5)  << to_cp (mg_value(w_score)) << " "
-                    << std::setw(5)  << to_cp (eg_value(w_score)) << " | "
-                    << std::setw(5)  << to_cp (mg_value(b_score)) << " "
-                    << std::setw(5)  << to_cp (eg_value(b_score)) << " | "
+                    << std::setw(5)  << to_cp (mg_value (w_score)) << " "
+                    << std::setw(5)  << to_cp (eg_value (w_score)) << " | "
+                    << std::setw(5)  << to_cp (mg_value (b_score)) << " "
+                    << std::setw(5)  << to_cp (eg_value (b_score)) << " | "
                     << std::showpos
-                    << std::setw(6)  << to_cp (mg_value(w_score - b_score)) << " "
-                    << std::setw(6)  << to_cp (eg_value(w_score - b_score)) << " \n";
+                    << std::setw(6)  << to_cp (mg_value (w_score - b_score)) << " "
+                    << std::setw(6)  << to_cp (eg_value (w_score - b_score)) << " \n";
             }
         }
 
@@ -1103,17 +1113,17 @@ namespace Evaluator {
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
     // and setup king tables.
-    void initialize()
+    void initialize ()
     {
-        Weights[Mobility]       = weight_option("Mobility (Midgame)",       "Mobility (Endgame)",       WeightsInternal[Mobility]);
-        Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-        Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)",   "Passed Pawns (Endgame)",   WeightsInternal[PassedPawns]);
-        Weights[Space]          = weight_option("Space",                    "Space",                    WeightsInternal[Space]);
-        Weights[KingDanger_C]   = weight_option("Cowardice",                "Cowardice",                WeightsInternal[KingDanger_C]);
-        Weights[KingDanger_C_]  = weight_option("Aggressiveness",           "Aggressiveness",           WeightsInternal[KingDanger_C_]);
+        Weights[Mobility]       = weight_option ("Mobility (Midgame)",       "Mobility (Endgame)",       WeightsInternal[Mobility]);
+        Weights[PawnStructure]  = weight_option ("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
+        Weights[PassedPawns]    = weight_option ("Passed Pawns (Midgame)",   "Passed Pawns (Endgame)",   WeightsInternal[PassedPawns]);
+        Weights[Space]          = weight_option ("Space",                    "Space",                    WeightsInternal[Space]);
+        Weights[KingDanger_C]   = weight_option ("Cowardice",                "Cowardice",                WeightsInternal[KingDanger_C]);
+        Weights[KingDanger_C_]  = weight_option ("Aggressiveness",           "Aggressiveness",           WeightsInternal[KingDanger_C_]);
 
         const int32_t MaxSlope = 30;
-        const int32_t Peak = 1280;
+        const int32_t Peak     = 1280;
 
         for (int32_t t = 0, i = 1; i < 100; ++i)
         {
@@ -1125,245 +1135,3 @@ namespace Evaluator {
     }
 
 } // namespace Eval
-
-
-/*
-static const int16_t _PieceSquareTable    [PT_NO][SQ_NO] =
-{
-/// PAWN
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,    0,   75,   75,    0,    0,    0,
-//0,    0,   15,   75,   75,   15,    0,    0,
-//0,    0,    0,   40,   40,    0,    0,    0,
-//0,    0,    0, -100, -100,    0,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-
-/// NIHT
-//-150, -120, -120, -120, -120, -120, -120, -150,
-//-120,   25,   25,   25,   25,   25,   25, -120,
-//-120,   25,   50,   50,   50,   50,   25, -120,
-//-120,   25,   50,  100,  100,   50,   25, -120,
-//-120,   25,   50,  100,  100,   50,   25, -120,
-//-120,   25,   50,   50,   50,   50,   25, -120,
-//-120,   25,   25,   25,   25,   25,   25, -120,
-//-150, -120, -120, -120, -120, -120, -120, -150,
-
-/// BSHP
-//-40,  -40,  -40,  -40,  -40,  -40,  -40,  -40,
-//-40,   20,   20,   20,   20,   20,   20,  -40,
-//-40,   20,   30,   30,   30,   30,   20,  -40,
-//-40,   20,   30,   45,   45,   30,   20,  -40,
-//-40,   20,   30,   45,   45,   30,   20,  -40,
-//-40,   20,   30,   30,   30,   30,   20,  -40,
-//-40,   20,   20,   20,   20,   20,   20,  -40,
-//-40,  -40,  -40,  -40,  -40,  -40,  -40,  -40,
-
-/// ROOK
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-//0,    0,   10,   15,   15,   10,    0,    0,
-
-/// QUEN
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,   75,   75,   75,   75,    0,    0,
-//0,    0,   75,  100,  100,   75,    0,    0,
-//0,    0,   75,  100,  100,   75,    0,    0,
-//0,    0,   75,   75,   75,   75,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-//0,    0,    0,    0,    0,    0,    0,    0,
-
-/// KING
-//-900, -900, -900, -900, -900, -900, -900, -900,
-//-900, -900, -900, -900, -900, -900, -900, -900,
-//-900, -900, -900, -900, -900, -900, -900, -900,
-//-900, -900, -900, -900, -900, -900, -900, -900,
-//-900, -900, -900, -900, -900, -900, -900, -900,
-//-700, -700, -700, -700, -700, -700, -700, -700,
-//-200, -200, -500, -500, -500, -500, -200, -200,
-//+200, +300, +300, -300, -300, +100, +400, +200,
-
-// ---
-
-// PAWN
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+20,   26,   26,   28,   28,   26,   26,   20,
-+12,   14,   16,   21,   21,   16,   14,   12,
-+ 8,   10,   12,   18,   18,   12,   10,    8,
-+ 4,    6,    8,   16,   16,    8,    6,    4,
-+ 2,    2,    4,    6,    6,    4,    2,    2,
-+ 0,    0,    0,   -4,   -4,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-
-// NIHT
--40,  -10,  - 5,  - 5,  - 5,  - 5,  -10,  -40,
-- 5,    5,    5,    5,    5,    5,    5,  - 5,
-- 5,    5,   10,   15,   15,   10,    5,  - 5,
-- 5,    5,   10,   15,   15,   10,    5,  - 5,
-- 5,    5,   10,   15,   15,   10,    5,  - 5,
-- 5,    5,    8,    8,    8,    8,    5,  - 5,
-- 5,    0,    5,    5,    5,    5,    0,  - 5,
--50,  -20,  -10,  -10,  -10,  -10,  -20,  -50,
-
-// BSHP
--40,  -20,  -15,  -15,  -15,  -15,  -20,  -40,
-+ 0,    5,    5,    5,    5,    5,    5,    0,
-+ 0,   10,   10,   18,   18,   10,   10,    0,
-+ 0,   10,   10,   18,   18,   10,   10,    0,
-+ 0,    5,   10,   18,   18,   10,    5,    0,
-+ 0,    0,    5,    5,    5,    5,    0,    0,
-+ 0,    5,    0,    0,    0,    0,    5,    0,
--50,  -20,  -10,  -20,  -20,  -10,  -20,  -50,
-
-// ROOK
-+10,   10,   10,   10,   10,   10,   10,   10,
-+ 5,    5,    5,   10,   10,    5,    5,    5,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-+ 0,    0,    5,   10,   10,    5,    0,    0,
-
-// QUEN
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,   10,   10,   10,   10,    0,    0,
-+ 0,    0,   10,   15,   15,   10,    0,    0,
-+ 0,    0,   10,   15,   15,   10,    0,    0,
-+ 0,    0,   10,   10,   10,   10,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-
-// KING
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+ 0,    0,    0,    0,    0,    0,    0,    0,
-+12,    8,    4,    0,    0,    4,    8,   12,
-+16,   12,    8,    4,    4,    8,   12,   16,
-+24,   20,   16,   12,   12,   16,   20,   24,
-+24,   24,   24,   16,   16,    6,   32,   32,
-
-};
-
-Score pieceSquareTable(const PType t, const Square s)
-{
-return (Score) _PieceSquareTable[t][s];
-}
-
-static const uint16_t PieceWeight [PT_NO] =
-{
-100,    // PAWN
-320,    // NIHT
-325,    // BSHP
-500,    // ROOK
-975,    // QUEN
-16383,  // KING
-};
-
-static Value evaluate_material   (const Position &pos);
-static Value evaluate_mobility   (const Position &pos);
-
-
-namespace Evaluator {
-
-Value evaluate (const Position &pos, Value &margin)
-{
-Value score = VALUE_DRAW;
-
-score   = evaluate_material (pos);
-
-if (VALUE_INFINITE == abs (int16_t (score))) return score;
-
-score  += evaluate_mobility (pos);
-
-//uint8_t pieces    [CLR_NO][PT_NO];
-//uint8_t piecesDiff[PT_NO];
-//uint8_t piecesSum [PT_NO];
-//for (PType t = PAWN; t <= KING; ++t)
-//{
-//    for (Color c = WHITE; c <= BLACK; ++c)
-//    {
-//        pieces[c][t] = pos.piece_count (c, t);
-//    }
-//    piecesDiff[t] = pieces[WHITE][t] - pieces[BLACK][t];
-//    piecesSum [t] = pieces[WHITE][t] + pieces[BLACK][t];
-//}
-//for (PType t = PAWN; t <= KING; ++t)
-//{
-//    //score += piecesDiff[t] / piecesSum [t];
-//}
-
-return score;
-}
-
-}
-
-static Value evaluate_material   (const Position &pos)
-{
-const Color active = pos.active ();
-const Color pasive =    ~active;
-
-size_t kingDiff = pos.piece_count(active, KING) - pos.piece_count(pasive, KING);
-if (kingDiff)
-{
-return (kingDiff > 0) ? VALUE_INFINITE : -VALUE_INFINITE;
-}
-
-size_t pieceValue   [CLR_NO]  = { 0, 0 };
-for (PType t = PAWN; t <= KING; ++t)
-{
-pieceValue[active]   += PieceWeight[t] * pos.piece_count(active, t);
-pieceValue[pasive]   += PieceWeight[t] * pos.piece_count(pasive, t);
-}
-
-return Value (pieceValue[active] - pieceValue[pasive]);
-//return (VALUE_INFINITE * (double) (pieceValue[active] - pieceValue[pasive])) / (double) (pieceValue[active] + pieceValue[pasive]);
-}
-
-static Value evaluate_mobility   (const Position &pos)
-{
-const Color active = pos.active ();
-const Color pasive =    ~active;
-
-uint16_t mobilityValue    [CLR_NO]  = { 0, 0 };
-
-Bitboard occ     = pos.pieces ();
-Bitboard actives = pos.pieces (active);
-Bitboard pasives = pos.pieces (pasive);
-
-for (PType t = PAWN; t <= KING; ++t)
-{
-const Piece a_piece         = active | t;
-const SquareList &a_orgs    = pos[a_piece];
-for (SquareList::const_iterator itr_s = a_orgs.begin(); itr_s != a_orgs.end(); ++itr_s)
-{
-const Square s  = *itr_s;
-const Bitboard moves = 0;//PieceMoves(a_piece, s, occ) & ~actives;
-mobilityValue[active] += (PieceWeight[t]) * pop_count<FULL> (moves);
-}
-
-const Piece p_piece         = pasive | t;
-const SquareList &p_orgs    = pos[p_piece];
-for (SquareList::const_iterator itr_s = p_orgs.begin(); itr_s != p_orgs.end(); ++itr_s)
-{
-const Square s  = *itr_s;
-const Bitboard moves = 0;//PieceMoves(p_piece, s, occ) & ~pasives;
-mobilityValue[pasive] += (PieceWeight[t]) * pop_count<FULL> (moves);
-}
-}
-
-return Value ((mobilityValue[active] - mobilityValue[pasive]) / 10);
-
-//return (VALUE_INFINITE * (mobilityValue[active] - mobilityValue[pasive])) / (mobilityValue[active] + mobilityValue[pasive]) / 10;
-
-}
-*/
