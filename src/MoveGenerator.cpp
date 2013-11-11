@@ -549,13 +549,13 @@ namespace MoveGenerator {
         ASSERT (checkers); // If any checker exists
 
         Square fk_sq     = pos.king_sq (active);
-        Bitboard mocc    = pos.pieces () - fk_sq;
         Bitboard friends = pos.pieces (active);
-        Bitboard enemies = pos.pieces (pasive);
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
         //Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends;
         //
+        //Bitboard enemies = pos.pieces (pasive);
+        //Bitboard mocc    = pos.pieces () - fk_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
         //for (uint32_t k = 0; _deltas_type[KING][k]; ++k)
