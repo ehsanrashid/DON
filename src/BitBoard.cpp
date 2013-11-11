@@ -468,22 +468,22 @@ namespace BitBoard {
             _attacks_type_bb[QUEN][s] = _attacks_type_bb[BSHP][s] | _attacks_type_bb[ROOK][s];
         }
 
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (Square d = SQ_A1; d <= SQ_H8; ++d)
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                if (_attacks_type_bb[QUEN][s] & d)
+                if (_attacks_type_bb[QUEN][s1] & s2)
                 {
-                    Delta delta = offset_sq (s, d);
-                    Square sq = s + delta;
-                    while (sq != d)
+                    Delta delta = offset_sq (s1, s2);
+                    Square sq = s1 + delta;
+                    while (sq != s2)
                     {
-                        _betwen_sq_bb[s][d] += sq;
+                        _betwen_sq_bb[s1][s2] += sq;
                         sq += delta;
                     }
 
-                    PType pt = (_attacks_type_bb[BSHP][s] & d) ? BSHP : ROOK;
-                    _lines_sq_bb[s][d] = (_attacks_type_bb[pt][s] & _attacks_type_bb[pt][d]) + s + d;
+                    PType pt = (_attacks_type_bb[BSHP][s1] & s2) ? BSHP : ROOK;
+                    _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
                 }
             }
         }

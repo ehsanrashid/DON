@@ -31,7 +31,7 @@ typedef std::set<ValMove>        ValMoveSet;
 extern void order (ValMoveList &vm_list, bool full = true);
 
 
-template<typename T>
+template<bool Gain, typename T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store both History and Gains type statistics.
 // History records how often different moves have been successful or unsuccessful during the
@@ -67,7 +67,11 @@ public:
 
     void update (Piece p, Square s, Value v)
     {
-        if (abs (_table[p][s] + v) < MaxValue)
+        if (Gain)
+        {
+            _table[p][s] = std::max(v, _table[p][s] - 1);
+        }
+        else if (abs (_table[p][s] + v) < MaxValue)
         {
             _table[p][s] += v;
         }
@@ -75,8 +79,9 @@ public:
 
 };
 
-typedef Stats<Value> HistoryStats;
-typedef Stats<std::pair<Move, Move> > CountermovesStats;
+typedef Stats< true, Value> GainsStats;
+typedef Stats<false, Value> HistoryStats;
+typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
 
 
 // MovePicker class is used to pick one pseudo legal move at a time from the

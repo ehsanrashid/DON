@@ -18,6 +18,7 @@
 
 using namespace Searcher;
 using namespace Evaluator;
+using namespace BitBoard;
 
 namespace {
 
@@ -55,6 +56,7 @@ namespace {
     double best_move_changes;
     Value draw_value[CLR_NO];
 
+    GainsStats gains;
     HistoryStats history;
     CountermovesStats counter_moves;
 
@@ -407,7 +409,7 @@ finish:
 
 namespace {
 
-        // iter_deep_loop () is the main iterative deepening loop. It calls search() repeatedly
+    // iter_deep_loop () is the main iterative deepening loop. It calls search() repeatedly
     // with increasing depth until the allocated thinking time has been consumed,
     // user stops the search, or the maximum search depth is reached.
     void iter_deep_loop (Position &pos)
@@ -415,8 +417,10 @@ namespace {
         Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
 
         std::memset (ss-2, 0, 5 * sizeof (Stack));
+        (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();
+        gains.clear ();
         history.clear();
         counter_moves.clear();
 
@@ -667,7 +671,7 @@ namespace {
 
         best_move = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
-        ss->ply = (ss-1)->ply + 1;
+        (ss)->ply = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
         (ss+1)->reduction = DEPTH_ZERO;
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -758,6 +762,16 @@ namespace {
         {
             eval_value = ss->static_eval = evaluate(pos);
             TT.store(posi_key, MOVE_NONE, DEPTH_NONE, UNKNOWN, VALUE_NONE, ss->static_eval);
+        }
+
+        if (   pos.cap_type() != PT_NO
+            &&  ss->static_eval != VALUE_NONE
+            && (ss-1)->static_eval != VALUE_NONE
+            && (move = (ss-1)->current_move) != MOVE_NULL
+            &&  _mtype (move) == NORMAL)
+        {
+            Square to = sq_dst (move);
+            gains.update (pos[to], to, -(ss-1)->static_eval - ss->static_eval);
         }
 
         // Step 6. Razoring (skipped when in check)
@@ -1015,7 +1029,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Update current move (this must be done after singular extension search)
             Depth new_depth = depth - ONE_PLY + ext;
 
-            // Step 13. Futility pruning (is omitted in PV nodes)
+            // Step 13. Pruning at shallow depth (exclude PV nodes)
             if (   !PVNode
                 && !capture_or_promotion
                 && !in_check
@@ -1040,7 +1054,8 @@ moves_loop: // When in check and at SPNode search starts from here
                 // Futility pruning: parent node
                 if (predicted_depth < 7 * ONE_PLY)
                 {
-                    Value futility_value = ss->static_eval + futility_margin(predicted_depth) + Value (128);
+                    Value futility_value = ss->static_eval + futility_margin(predicted_depth)
+                        + Value (128) + gains[pos.moved_piece (move)][sq_dst (move)];
 
                     if (futility_value <= alpha)
                     {
@@ -1061,6 +1076,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     && pos.see_sign (move) < 0)
                 {
                     //if (SPNode) split_point->mutex.lock();
+                    
                     continue;
                 }
 
@@ -1082,7 +1098,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Step 14. Make the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
-            
+
             bool is_pv_move = PVNode && (move_count == 1);
             bool full_depth_search;
 
@@ -1422,7 +1438,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 Value futility_value =  futility_base
                     + PieceValue[EG][pos[sq_dst (move)]]
-                    + (_mtype (move) == ENPASSANT ? VALUE_EG_PAWN : VALUE_ZERO);
+                + (_mtype (move) == ENPASSANT ? VALUE_EG_PAWN : VALUE_ZERO);
 
                 if (futility_value < beta)
                 {
@@ -1555,13 +1571,13 @@ moves_loop: // When in check and at SPNode search starts from here
         // We exclude the trivial case where a sliding piece does in two moves what
         // it could do in one move: eg. Ra1a2, Ra2a3.
         if (    dst_m2 == org_m1
-            || (dst_m1 == org_m2 && !BitBoard::sqrs_aligned (org_m1, org_m2, dst_m2)))
+            || (dst_m1 == org_m2 && !sqrs_aligned (org_m1, org_m2, dst_m2)))
         {
             return true;
         }
 
         // Second one moves through the square vacated by m1 one
-        if (BitBoard::betwen_sq_bb (org_m2, dst_m2) & org_m1) return true;
+        if (betwen_sq_bb (org_m2, dst_m2) & org_m1) return true;
 
         // Second's destination is defended by the m1 move's piece
         Bitboard m1att = pos.attacks_from(pos[dst_m1], dst_m1, pos.pieces () ^ org_m2);
@@ -1570,7 +1586,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // Second move gives a discovered check through the m1's checking piece
         if (m1att & pos.king_sq(pos.active ()))
         {
-            ASSERT (BitBoard::betwen_sq_bb (dst_m1, pos.king_sq(pos.active ())) & org_m2);
+            ASSERT (betwen_sq_bb (dst_m1, pos.king_sq(pos.active ())) & org_m2);
             return true;
         }
 
@@ -1586,8 +1602,8 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (_ok (m2));
 
         Square org_m1 = sq_org (m1);
-        Square org_m2 = sq_org (m2);
         Square dst_m1 = sq_dst (m1);
+        Square org_m2 = sq_org (m2);
         Square dst_m2 = sq_dst (m2);
 
         // Don't prune moves of the threatened piece
@@ -1602,20 +1618,20 @@ moves_loop: // When in check and at SPNode search starts from here
             Bitboard occ = pos.pieces () ^ org_m1 ^ dst_m1 ^ org_m2;
             Piece pc = pos[org_m1];
 
-            // The moved piece attacks the square 'tto' ?
-            if (pos.attacks_from(pc, dst_m1, occ) & dst_m2) return true;
+            // The moved piece attacks the square 'dst_m2' ?
+            if (pos.attacks_from (pc, dst_m1, occ) & dst_m2) return true;
 
             // Scan for possible X-ray attackers behind the moved piece
             Bitboard xray =
-                (BitBoard::attacks_bb<ROOK>(dst_m2, occ) & pos.pieces (_color(pc), QUEN, ROOK)) |
-                (BitBoard::attacks_bb<BSHP>(dst_m2, occ) & pos.pieces (_color(pc), QUEN, BSHP));
+                (attacks_bb<ROOK> (dst_m2, occ) & pos.pieces (_color(pc), QUEN, ROOK)) |
+                (attacks_bb<BSHP> (dst_m2, occ) & pos.pieces (_color(pc), QUEN, BSHP));
 
             // Verify attackers are triggered by our move and not already existing
-            if (UNLIKELY(xray) && (xray & ~pos.attacks_from<QUEN>(dst_m2))) return true;
+            if (UNLIKELY (xray) && (xray & ~pos.attacks_from<QUEN> (dst_m2))) return true;
         }
 
         // Don't prune safe moves which block the threat path
-        if ((BitBoard::betwen_sq_bb (org_m2, dst_m2) & dst_m1) && pos.see_sign (m1) >= 0)
+        if ((betwen_sq_bb (org_m2, dst_m2) & dst_m1) && pos.see_sign (m1) >= 0)
         {
             return true;
         }
