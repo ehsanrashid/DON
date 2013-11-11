@@ -73,7 +73,7 @@ namespace {
 
         Score pawn_score = SCORE_ZERO;
 
-        Bitboard w_pawns = pos.pieces (C, PAWN);
+        Bitboard w_pawns = pos.pieces (C , PAWN);
         Bitboard b_pawns = pos.pieces (C_, PAWN);
 
         e->_passed_pawns  [C] = e->_candidate_pawns[C] = 0;
@@ -90,7 +90,7 @@ namespace {
         {
             const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
 
-            assert(pos[s] == (C | PAWN));
+            ASSERT (pos[s] == (C | PAWN));
 
             File f = _file (s);
             Rank r = rel_rank (C, s);
@@ -99,15 +99,15 @@ namespace {
             e->_semiopen_files[C] &= ~(1 << f);
 
             // Our rank plus previous one. Used for chain detection
-            Bitboard b = rank_bb (s) | rank_bb (s - pawn_push(C));
+            Bitboard rr_bb = rank_bb (s) | rank_bb (s - pawn_push(C));
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
-            bool chain    =   w_pawns & adj_files_bb(f) & b;
-            bool isolated = !(w_pawns & adj_files_bb(f));
-            bool doubled  =   w_pawns & front_squares_bb(C, s);
-            bool opposed  =   b_pawns & front_squares_bb(C, s);
-            bool passed   = !(b_pawns & passer_span_pawn_bb(C, s));
+            bool chain    =   w_pawns & adj_files_bb (f) & rr_bb;
+            bool isolated = !(w_pawns & adj_files_bb (f));
+            bool doubled  =   w_pawns & front_squares_bb (C, s);
+            bool opposed  =   b_pawns & front_squares_bb (C, s);
+            bool passed   = !(b_pawns & passer_span_pawn_bb (C, s));
 
             bool backward;
             // Test for backward pawn.
@@ -122,6 +122,7 @@ namespace {
             }
             else
             {
+                Bitboard b;
                 // We now know that there are no friendly pawns beside or behind this
                 // pawn on adjacent files. We now check whether the pawn is
                 // backward by looking in the forward direction on the adjacent
@@ -131,18 +132,19 @@ namespace {
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
-                backward = (b | shift_del<PUSH>(b)) & b_pawns;
+                backward = (b | shift_del<PUSH> (b)) & b_pawns;
             }
 
-            assert(opposed | passed | (attack_span_pawn_bb (C, s) & b_pawns));
-
+            ASSERT (opposed | passed | (attack_span_pawn_bb (C, s) & b_pawns));
+            
             // A not passed pawn is a candidate to become passed, if it is free to
             // advance and if the number of friendly pawns beside or behind this
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
+            Bitboard adj_pawns;
             bool candidate =   !(opposed | passed | backward | isolated)
-                && (b = attack_span_pawn_bb (C_, s + pawn_push(C)) & w_pawns) != 0
-                &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & b_pawns);
+                && (adj_pawns = attack_span_pawn_bb (C_, s + pawn_push(C)) & w_pawns) != 0
+                &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & b_pawns);
 
             // Passed pawns will be properly scored in evaluation because we need
             // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -244,12 +246,13 @@ namespace Pawns {
 
     void initialize ()
     {
-        const int32_t chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const int32_t ChainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+
         for (Rank r = R_1; r < R_8; ++r)
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int32_t bonus = r * (r-1) * (r-2) + chainByFile[f] * (r/2 + 1);
+                int32_t bonus = r * (r-1) * (r-2) + ChainByFile[f] * (r/2 + 1);
                 ChainMember[f][r] = mk_score (bonus, bonus);
             }
         }
@@ -258,7 +261,7 @@ namespace Pawns {
     // probe() takes a position object as input, computes a Entry object, and returns
     // a pointer to it. The result is also stored in a hash table, so we don't have
     // to recompute everything when the same pawn structure occurs again.
-    Entry* probe(const Position &pos, Table &table)
+    Entry* probe (const Position &pos, Table &table)
     {
         Key key = pos.pawn_key();
         Entry *e = table[key];
