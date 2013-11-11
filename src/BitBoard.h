@@ -45,13 +45,11 @@ namespace BitBoard {
 
 #pragma region LOOKUPs
 
-    //namespace LookUp {
-
-    extern Delta _file_rank_dist[F_NO][R_NO];
+    extern Delta     _fr_dist[F_NO][R_NO];
     extern Delta _square_dist[SQ_NO][SQ_NO];
-    extern Delta _taxi_dist[SQ_NO][SQ_NO];
+    extern Delta   _taxi_dist[SQ_NO][SQ_NO];
 
-    extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
+    //extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
     extern const Delta _deltas_pawn[CLR_NO][3];
     extern const Delta _deltas_type[PT_NO][9];
@@ -79,9 +77,6 @@ namespace BitBoard {
     // attacks of the pieces
     extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
     extern Bitboard _attacks_type_bb[PT_NO][SQ_NO];
-    //}
-
-    //using namespace LookUp;
 
 #pragma endregion
 
@@ -217,12 +212,12 @@ namespace BitBoard {
     inline Delta file_dist (Square s1, Square s2)
     {
         //return abs(int8_t(_file(s1) - _file(s2)));
-        return _file_rank_dist[_file (s1)][_file (s2)];
+        return _fr_dist[_file (s1)][_file (s2)];
     }
     inline Delta rank_dist (Square s1, Square s2)
     {
         //return abs(int8_t(_rank(s1) - _rank(s2)));
-        return _file_rank_dist[_rank (s1)][_rank (s2)];
+        return _fr_dist[_rank (s1)][_rank (s2)];
     }
     inline Delta square_dist (Square s1, Square s2)
     {

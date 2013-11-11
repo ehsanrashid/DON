@@ -8,7 +8,7 @@ namespace BitBases {
 
     void init_kpk ();
 
-    bool probe_kpk (Color c, Square wk_sq, Square p_sq, Square bk_sq);
+    bool probe_kpk (Color c, Square wk_sq, Square wp_sq, Square bk_sq);
 
 }
 

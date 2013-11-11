@@ -102,7 +102,7 @@ namespace BitBoard {
 
             return index;
         }
-        
+
         template<>
         uint32_t attack_index<ROOK> (Square s, Bitboard occ)
         {
@@ -195,7 +195,7 @@ namespace BitBoard {
 
                     // Board edges are not considered in the relevant occupancies
                     const Bitboard edges = brd_edges_bb (s);
-                    const Bitboard moves = _attacks_type_bb[BSHP][s]; //attacks_sliding (s, _deltas_type[BSHP]);
+                    const Bitboard moves = _attacks_type_bb[BSHP][s];
 
                     const Bitboard mask = moves & ~edges;
 
@@ -203,16 +203,16 @@ namespace BitBoard {
                     for (uint8_t row = 0; row < 6; ++row)
                     {
                         const uint16_t maskB = (mask >> (((row + 1) << 3) + 1)) & 0x3F;
-                    
+
                         for (uint16_t pattern = 0; pattern < B_PATTERN; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;
-                        
+
                             for (uint8_t i = 0; i < 6; ++i)
                             {
                                 uint16_t m = (1 << i);
-                            
+
                                 if (maskB & m)
                                 {
                                     if (pattern & m)
@@ -277,7 +277,7 @@ namespace BitBoard {
 
                     // Board edges are not considered in the relevant occupancies
                     const Bitboard edges = brd_edges_bb (s);
-                    const Bitboard moves = _attacks_type_bb[ROOK][s]; //attacks_sliding (s, _deltas_type[ROOK]);
+                    const Bitboard moves = _attacks_type_bb[ROOK][s];
 
                     const Bitboard mask = moves & ~edges;
 
@@ -285,16 +285,16 @@ namespace BitBoard {
                     for (uint8_t row = 0; row < 8; ++row)
                     {
                         const uint16_t maskR = (mask >> (row << 3)) & 0xFF;
-                    
+
                         for (uint16_t pattern = 0; pattern < R_PATTERN; ++pattern)
                         {
                             uint32_t index = 0;
                             uint8_t  shift = shift_base;
-                        
+
                             for (uint8_t i = 0; i < 8; ++i)
                             {
                                 uint16_t m = (1 << i);
-                            
+
                                 if (maskR & m)
                                 {
                                     if (pattern & m)

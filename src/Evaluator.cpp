@@ -286,7 +286,7 @@ namespace {
 
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
-        score = pos.psq_score() + (WHITE == pos.active () ? Tempo : -Tempo);
+        score = pos.psq_score () + (WHITE == pos.active () ? Tempo : -Tempo);
 
         // Probe the material hash table
         //ei.mi = Material::probe (pos, th->materialTable, th->endgames);

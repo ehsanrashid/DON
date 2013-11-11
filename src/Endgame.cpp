@@ -79,7 +79,7 @@ namespace EndGame {
         // fen string could correspond to an illegal position.
         Key key (const std::string &code, Color c)
         {
-            ASSERT (code.length () > 0 && code.length () < 8);
+            ASSERT (code.length () > 0 && code.length () <= 8);
             ASSERT (code[0] == 'K');
 
             std::string sides[CLR_NO] =
@@ -89,9 +89,9 @@ namespace EndGame {
             };
 
             std::transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-
-            std::string fen =  sides[0] + char ('0' + 8 - code.length ())
-                + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
+            std::string empty = "" + char ('0' + 8 - code.length ());
+            if ("0" == empty) empty = "";
+            std::string fen =  sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
 
             //return Position(fen, false, NULL).matl_key ();
             return Position (fen).matl_key ();
@@ -135,8 +135,8 @@ namespace EndGame {
     template<EndgameType E>
     void Endgames::add (const std::string &code)
     {
-        map ((Endgame<E>*)0)[key (code, WHITE)] = new Endgame<E> (WHITE);
-        map ((Endgame<E>*)0)[key (code, BLACK)] = new Endgame<E> (BLACK);
+        map ((Endgame<E>*) 0)[key (code, WHITE)] = new Endgame<E> (WHITE);
+        map ((Endgame<E>*) 0)[key (code, BLACK)] = new Endgame<E> (BLACK);
     }
 
     template<>
@@ -179,7 +179,7 @@ namespace EndGame {
     Value Endgame<KBNK>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_KNIGHT + VALUE_MG_BISHOP, 0));
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO, 0));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
@@ -205,7 +205,7 @@ namespace EndGame {
     Value Endgame<KPK>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_ZERO, 1));
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO, 0));
 
         // Assume _stong_side is white and the pawn is on files A-D
         Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
@@ -231,7 +231,7 @@ namespace EndGame {
     Value Endgame<KRKP>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 1));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO   , 1));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
@@ -285,8 +285,8 @@ namespace EndGame {
     // The score is slightly bigger when the defending king is close to the edge.
     Value Endgame<KRKB>::operator() (const Position &pos) const
     {
-        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
-        assert (verify_material (pos, _weak_side, VALUE_MG_BISHOP, 0));
+        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         Value value = Value(PushToEdges[pos.king_sq (_weak_side)]);
         return (_stong_side == pos.active ()) ? value : -value;
@@ -298,8 +298,8 @@ namespace EndGame {
     // in KR vs KB, particularly if the king and the knight are far apart.
     Value Endgame<KRKN>::operator() (const Position &pos) const
     {
-        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
-        assert (verify_material (pos, _weak_side, VALUE_MG_KNIGHT, 0));
+        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT, 0));
 
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT>(_weak_side)[0];
@@ -314,7 +314,7 @@ namespace EndGame {
     Value Endgame<KQKP>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 1));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO    , 1));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
@@ -342,7 +342,7 @@ namespace EndGame {
     Value Endgame<KQKR>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
-        assert (verify_material (pos, _weak_side, VALUE_MG_ROOK, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_ROOK , 0));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
@@ -360,7 +360,7 @@ namespace EndGame {
     Value Endgame<KBBKN>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, 2 * VALUE_MG_BISHOP, 0));
-        assert (verify_material (pos, _weak_side, VALUE_MG_KNIGHT, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT    , 0));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
@@ -507,7 +507,7 @@ namespace EndGame {
     ScaleFactor Endgame<KRPKR>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 1));
-        assert (verify_material (pos, _weak_side,   VALUE_MG_ROOK, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_ROOK, 0));
 
         // Assume _stong_side is white and the pawn is on files A-D
         Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
@@ -612,8 +612,8 @@ namespace EndGame {
     // TODO::
     ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
     {
-        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 1));
-        assert (verify_material (pos, _weak_side, VALUE_MG_BISHOP, 0));
+        assert (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 1));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         // Test for a rook pawn
         if (pos.pieces (PAWN) & (FA_bb | FH_bb))
@@ -624,23 +624,21 @@ namespace EndGame {
             Rank r = rel_rank (_stong_side, wp_sq);
             Delta push = pawn_push (_stong_side);
 
-            // If the pawn is on the 5th rank and the pawn (currently) is on
-            // the same color square as the bishop then there is a chance of
-            // a fortress. Depending on the king position give a moderate
-            // reduction or a stronger one if the defending king is near the
-            // corner but not trapped there.
+            // If the pawn is on the 5th rank and the pawn (currently) is on the 
+            // same color square as the bishop then there is a chance of a fortress.
+            // Depending on the king position give a moderate reduction or a stronger one
+            // if the defending king is near the corner but not trapped there.
             if (r == R_5 && !opposite_colors (bb_sq, wp_sq))
             {
                 int32_t d = square_dist (wp_sq + 3 * push, bk_sq);
 
-                return (d <= 2 && !(d == 0 && bk_sq == pos.king_sq(_stong_side) + 2 * push)) ?
-                    ScaleFactor(24) : ScaleFactor(48);
+                return (d <= 2 && !(d == 0 && bk_sq == pos.king_sq(_stong_side) + 2 * push))
+                    ? ScaleFactor (24) : ScaleFactor (48);
             }
 
-            // When the pawn has moved to the 6th rank we can be fairly sure
-            // it's drawn if the bishop attacks the square in front of the
-            // pawn from a reasonable distance and the defending king is near
-            // the corner
+            // When the pawn has moved to the 6th rank we can be fairly sure it's drawn
+            // if the bishop attacks the square in front of the pawn from a reasonable distance
+            // and the defending king is near the corner
             if (   r == R_6
                 && square_dist (wp_sq + 2 * push, bk_sq) <= 1
                 && BitBoard::attacks_bb<BSHP> (bb_sq) & (wp_sq + push)
@@ -660,22 +658,22 @@ namespace EndGame {
     ScaleFactor Endgame<KRPPKRP>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_ROOK, 2));
-        assert (verify_material (pos, _weak_side,   VALUE_MG_ROOK, 1));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_ROOK, 1));
 
-        Square wpsq1 = pos.list<PAWN>(_stong_side)[0];
-        Square wpsq2 = pos.list<PAWN>(_stong_side)[1];
+        Square wp_sq1 = pos.list<PAWN>(_stong_side)[0];
+        Square wp_sq2 = pos.list<PAWN>(_stong_side)[1];
         Square bk_sq = pos.king_sq (_weak_side);
 
         // Does the stronger side have a passed pawn?
-        if (pos.passed_pawn (_stong_side, wpsq1) || pos.passed_pawn (_stong_side, wpsq2))
+        if (pos.passed_pawn (_stong_side, wp_sq1) || pos.passed_pawn (_stong_side, wp_sq2))
         {
             return SCALE_FACTOR_NONE;
         }
 
-        Rank r = std::max (rel_rank (_stong_side, wpsq1), rel_rank (_stong_side, wpsq2));
+        Rank r = std::max (rel_rank (_stong_side, wp_sq1), rel_rank (_stong_side, wp_sq2));
 
-        if (   file_dist (bk_sq, wpsq1) <= 1
-            && file_dist (bk_sq, wpsq2) <= 1
+        if (   file_dist (bk_sq, wp_sq1) <= 1
+            && file_dist (bk_sq, wp_sq2) <= 1
             && rel_rank (_stong_side, bk_sq) > r)
         {
             switch (r)
@@ -724,7 +722,7 @@ namespace EndGame {
     ScaleFactor Endgame<KBPKB>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
-        assert (verify_material (pos, _weak_side,   VALUE_MG_BISHOP, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         Square wp_sq = pos.list<PAWN>(_stong_side)[0];
         Square wb_sq = pos.list<BSHP>(_stong_side)[0];
@@ -776,7 +774,7 @@ namespace EndGame {
     ScaleFactor Endgame<KBPPKB>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 2));
-        assert (verify_material (pos, _weak_side,   VALUE_MG_BISHOP, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         Square wb_sq = pos.list<BSHP>(_stong_side)[0];
         Square bb_sq = pos.list<BSHP>(_weak_side)[0];
@@ -854,7 +852,7 @@ namespace EndGame {
     ScaleFactor Endgame<KBPKN>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
-        assert (verify_material (pos, _weak_side, VALUE_MG_KNIGHT, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT, 0));
 
         Square wp_sq = pos.list<PAWN>(_stong_side)[0];
         Square wb_sq = pos.list<BSHP>(_stong_side)[0];
@@ -878,7 +876,7 @@ namespace EndGame {
     ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
 
         // Assume _stong_side is white and the pawn is on files A-D
         Square wp_sq = normalize (pos, _stong_side, pos.list<PAWN>(_stong_side)[0]);
@@ -898,7 +896,7 @@ namespace EndGame {
     ScaleFactor Endgame<KNPKB>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
-        assert (verify_material (pos, _weak_side, VALUE_MG_BISHOP, 0));
+        assert (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         Square wp_sq = pos.list<PAWN>(_stong_side)[0];
         Square wb_sq = pos.list<BSHP>(_weak_side)[0];
@@ -919,7 +917,7 @@ namespace EndGame {
     ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _stong_side, VALUE_ZERO, 1));
-        assert (verify_material (pos, _weak_side,   VALUE_ZERO, 1));
+        assert (verify_material (pos,  _weak_side, VALUE_ZERO, 1));
 
         // Assume _stong_side is white and the pawn is on files A-D
         Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));

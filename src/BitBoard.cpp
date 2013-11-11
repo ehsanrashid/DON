@@ -4,7 +4,6 @@
 #include "BitCount.h"
 #include "BitScan.h"
 #include "xstring.h"
-#include "RKISS.h"
 
 namespace BitBoard {
 
@@ -56,14 +55,26 @@ namespace BitBoard {
 
 #pragma region LOOKUPs
 
-    //namespace LookUp {
-
-    Delta _file_rank_dist[F_NO][R_NO];
+    // FILE & RANK distance
+    Delta     _fr_dist[F_NO][R_NO];
     Delta _square_dist[SQ_NO][SQ_NO];
-    Delta _taxi_dist[SQ_NO][SQ_NO];
+    Delta   _taxi_dist[SQ_NO][SQ_NO];
 
-    uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
-
+    //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
+    const Delta _deltas_pawn[CLR_NO][3] =
+    {
+        { DEL_NW, DEL_NE },
+        { DEL_SE, DEL_SW },
+    };
+    const Delta _deltas_type[PT_NO][9] =
+    {
+        {},
+        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
+        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, },
+        { DEL_S, DEL_W, DEL_E, DEL_N },
+        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+    };
 
     // SQUARES
     CACHE_ALIGN(64) const Bitboard _square_bb[SQ_NO] =
@@ -229,23 +240,6 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
-
-    const Delta _deltas_pawn[CLR_NO][3] =
-    {
-        { DEL_NW, DEL_NE },
-        { DEL_SE, DEL_SW },
-    };
-    const Delta _deltas_type[PT_NO][9] =
-    {
-        {},
-        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
-        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, },
-        { DEL_S, DEL_W, DEL_E, DEL_N },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-    };
-    //}
-
 #pragma endregion
 
 #pragma region Attacks
@@ -356,7 +350,7 @@ namespace BitBoard {
             for (Rank r = R_1; r <= R_8; ++r)
             {
                 int8_t d = int8_t (f) - int8_t (r);
-                _file_rank_dist[f][r] = Delta (abs (d));
+                _fr_dist[f][r] = Delta (abs (d));
             }
         }
 
@@ -369,15 +363,15 @@ namespace BitBoard {
                 File f2 = _file (s2);
                 Rank r2 = _rank (s2);
 
-                Delta dFile = _file_rank_dist[f1][f2];
-                Delta dRank = _file_rank_dist[r1][r2];
+                Delta dFile = _fr_dist[f1][f2];
+                Delta dRank = _fr_dist[r1][r2];
 
                 _square_dist[s1][s2] = std::max (dFile, dRank);
                 _taxi_dist  [s1][s2] = (dFile + dRank);
 
                 if (s1 != s2)
                 {
-                    _dia_rings_bb[s1][_square_dist[s1][s2] - 1] |= s2;
+                    _dia_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
             }
         }
@@ -392,45 +386,45 @@ namespace BitBoard {
             }
         }
 
-        for (uint32_t occ = 0; occ <= _I8_MAX; ++occ)
-        {
-            for (File f = F_A; f <= F_H; ++f)
-            {
-                if (!occ || (_square_bb[f] & occ))
-                {
-                    _shift_gap[occ][f] = 0;
-                    continue;
-                }
-                // West Count
-                int8_t count_w = 8;
-                if (F_A < f) // west
-                {
-                    count_w = 1;
-                    File fw = File (f - 1);
-                    while (F_A != fw && !(_square_bb[fw] & occ))
-                    {
-                        //if (F_A == fw || (_square_bb[fw] & occ)) break;
-                        ++count_w;
-                        --fw;
-                    }
-                }
-                // East Count
-                int8_t count_e = 8;
-                if (F_H > f) // east
-                {
-                    count_e = 1;
-                    File fe = File (f + 1);
-                    while (F_H != fe && !(_square_bb[fe] & occ))
-                    {
-                        //if (F_H == fe || (_square_bb[fe] & occ)) break;
-                        ++count_e;
-                        ++fe;
-                    }
-                }
-
-                _shift_gap[occ][f] = std::min (count_w, count_e);
-            }
-        }
+        //for (uint32_t occ = 0; occ <= _I8_MAX; ++occ)
+        //{
+        //    for (File f = F_A; f <= F_H; ++f)
+        //    {
+        //        if (!occ || (_square_bb[f] & occ))
+        //        {
+        //            _shift_gap[occ][f] = 0;
+        //            continue;
+        //        }
+        //        // West Count
+        //        int8_t count_w = 8;
+        //        if (F_A < f) // west
+        //        {
+        //            count_w = 1;
+        //            File fw = File (f - 1);
+        //            while (F_A != fw && !(_square_bb[fw] & occ))
+        //            {
+        //                //if (F_A == fw || (_square_bb[fw] & occ)) break;
+        //                ++count_w;
+        //                --fw;
+        //            }
+        //        }
+        //        // East Count
+        //        int8_t count_e = 8;
+        //        if (F_H > f) // east
+        //        {
+        //            count_e = 1;
+        //            File fe = File (f + 1);
+        //            while (F_H != fe && !(_square_bb[fe] & occ))
+        //            {
+        //                //if (F_H == fe || (_square_bb[fe] & occ)) break;
+        //                ++count_e;
+        //                ++fe;
+        //            }
+        //        }
+        //
+        //        _shift_gap[occ][f] = std::min (count_w, count_e);
+        //    }
+        //}
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
@@ -447,32 +441,35 @@ namespace BitBoard {
                 }
             }
 
-            PType type;
+            PType pt;
 
-            type = NIHT;
-            for (uint32_t k = 0; _deltas_type[type][k]; ++k)
+            pt = NIHT;
+            for (uint32_t k = 0; _deltas_type[pt][k]; ++k)
             {
-                Square sq = s + _deltas_type[type][k];
+                Square sq = s + _deltas_type[pt][k];
                 if (_ok (sq) && _square_dist[s][sq] == 2)
                 {
-                    _attacks_type_bb[type][s] += sq;
+                    _attacks_type_bb[pt][s] += sq;
                 }
             }
 
-            type = KING;
-            for (uint32_t k = 0; _deltas_type[type][k]; ++k)
+            pt = KING;
+            for (uint32_t k = 0; _deltas_type[pt][k]; ++k)
             {
-                Square sq = s + _deltas_type[type][k];
+                Square sq = s + _deltas_type[pt][k];
                 if (_ok (sq) && _square_dist[s][sq] == 1)
                 {
-                    _attacks_type_bb[type][s] += sq;
+                    _attacks_type_bb[pt][s] += sq;
                 }
             }
 
             _attacks_type_bb[BSHP][s] = attacks_sliding (s, _deltas_type[BSHP]);
-            _attacks_type_bb[ROOK][s] = attacks_sliding (s, _deltas_type[ROOK]);;
+            _attacks_type_bb[ROOK][s] = attacks_sliding (s, _deltas_type[ROOK]);
             _attacks_type_bb[QUEN][s] = _attacks_type_bb[BSHP][s] | _attacks_type_bb[ROOK][s];
+        }
 
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        {
             for (Square d = SQ_A1; d <= SQ_H8; ++d)
             {
                 if (_attacks_type_bb[QUEN][s] & d)
@@ -486,10 +483,9 @@ namespace BitBoard {
                     }
 
                     PType pt = (_attacks_type_bb[BSHP][s] & d) ? BSHP : ROOK;
-                    _lines_sq_bb[s][d] = (_attacks_type_bb[pt][s] & _attacks_type_bb[pt][d]) | s | d;
+                    _lines_sq_bb[s][d] = (_attacks_type_bb[pt][s] & _attacks_type_bb[pt][d]) + s + d;
                 }
             }
-
         }
 
         initialize_sliding ();

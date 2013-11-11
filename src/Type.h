@@ -407,10 +407,8 @@ typedef enum Bound : uint8_t
 
     // Evaluation cache for lower bound
     EVAL_LOWER = 4,
-
     // Evaluation cache for upper bound
     EVAL_UPPER = 5,
-
     // Evaluation cache
     EVAL_EXACT  = 6,
 
@@ -490,10 +488,10 @@ inline Value eg_value (Score s)
 //inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 \
 //inline T& operator/= (T &d, int32_t i) { d = T (int32_t (d) / i); return d; }
 
-#define INC_DEC_OPERATORS(T)                                                             \
-    inline T  operator++ (T &d, int32_t) { T o = d; d = T (int32_t (d) + 1); return o; } \
-    inline T  operator-- (T &d, int32_t) { T o = d; d = T (int32_t (d) - 1); return o; } \
-    inline T& operator++ (T &d         ) { d = T (int32_t (d) + 1); return d; }          \
+#define INC_DEC_OPERATORS(T)                                                                \
+    inline T  operator++ (T &d, int32_t) { T o = d; d = T (int32_t (d) + 1); return o; }    \
+    inline T  operator-- (T &d, int32_t) { T o = d; d = T (int32_t (d) - 1); return o; }    \
+    inline T& operator++ (T &d         ) { d = T (int32_t (d) + 1); return d; }             \
     inline T& operator-- (T &d         ) { d = T (int32_t (d) - 1); return d; }
 
 
@@ -541,8 +539,6 @@ INC_DEC_OPERATORS (PType);
 // Move operator
 inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); return m; }
 inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); return m; }
-
-
 
 ARTHMAT_OPERATORS (Value);
 INC_DEC_OPERATORS (Value);

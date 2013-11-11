@@ -21,7 +21,7 @@ inline uint64_t system_time_msec ()
     return ((timebuf.time * 1000LL) + timebuf.millitm);
 }
 
-#else               // LINUX - UNIX
+#else           // LINUX - UNIX
 
 #   include <sys/time.h>
 
@@ -75,7 +75,6 @@ namespace Time {
         return stime.str ();
     }
 }
-
 
 template<typename charT, typename Traits>
 inline std::basic_ostream<charT, Traits>&

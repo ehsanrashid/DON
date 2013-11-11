@@ -138,8 +138,6 @@ namespace BitBoard {
                 // apply to the 64 or 32 bits word to get the index.
                 Bitboard moves = attacks_sliding (s, deltas);
 
-                //print (moves);
-
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
                 shift[s] =
@@ -153,13 +151,11 @@ namespace BitBoard {
                 // store the corresponding sliding attack bitboard in reference[].
                 uint32_t size   = 0;
                 Bitboard occ    = 0;
-
                 do
                 {
                     occupancy[size] = occ;
                     reference[size] = attacks_sliding (s, deltas, occ);
                     ++size;
-
                     occ = (occ - mask) & mask;
                 }
                 while (occ);

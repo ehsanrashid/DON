@@ -6,7 +6,6 @@
 #include "tiebuffer.h"
 #include "Time.h"
 
-
 // Singleton I/O logger class
 typedef class IOLogger sealed
 {
@@ -79,9 +78,8 @@ public:
 
 inline void log_io (bool on)
 {
-    on ?
-        IOLogger::instance ().start () :
-        IOLogger::instance ().stop () ;
+    on  ? IOLogger::instance ().start ()
+        : IOLogger::instance ().stop  ();
 }
 
 #endif

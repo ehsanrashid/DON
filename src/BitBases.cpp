@@ -8,6 +8,8 @@ namespace BitBases {
 
     namespace {
 
+        using namespace BitBoard;
+
         // The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
         const uint32_t MAX_INDEX = 2*24*64*64; // stm * p_sq * wk_sq * bk_sq = 196608
 
@@ -25,16 +27,16 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
         uint32_t index(Color c, Square bk_sq, Square wk_sq, Square p_sq)
         {
-            return wk_sq + (bk_sq << 6) + (c << 12) + (_file(p_sq) << 13) + ((R_7 - _rank (p_sq)) << 15);
+            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (p_sq) << 13) + ((int32_t (R_7) - int32_t (_rank (p_sq))) << 15);
         }
 
-        enum Result
+        typedef enum Result
         {
             INVALID = 0,
             UNKNOWN = 1,
             DRAW    = 2,
             WIN     = 4
-        };
+        } Result;
 
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
 
@@ -46,7 +48,7 @@ namespace BitBases {
             template<Color C>
             Result classify (const std::vector<KPKPosition>& db);
 
-            Color c;
+            Color active;
             Square bk_sq, wk_sq, p_sq;
             Result result;
 
@@ -58,41 +60,47 @@ namespace BitBases {
 
             Result classify (const std::vector<KPKPosition>& db)
             {
-                return (c == WHITE) ? classify<WHITE> (db) : classify<BLACK> (db);
+                return (WHITE == active) ? classify<WHITE> (db) : classify<BLACK> (db);
             }
 
         };
 
         KPKPosition::KPKPosition (uint32_t idx)
         {
-
-            wk_sq = Square((idx >>  0) & 0x3F);
-            bk_sq = Square((idx >>  6) & 0x3F);
-            c     = Color ((idx >> 12) & 0x01);
-            p_sq  = File  ((idx >> 13) & 0x03) | Rank (uint8_t (R_7) - (idx >> 15));
+            wk_sq   = Square((idx >>  0) & 0x3F);
+            bk_sq   = Square((idx >>  6) & 0x3F);
+            active  = Color ((idx >> 12) & 0x01);
+            p_sq    = File  ((idx >> 13) & 0x03) | Rank (int8_t (R_7) - (idx >> 15));
             result  = UNKNOWN;
 
-            //// Check if two pieces are on the same square or if a king can be captured
-            //if (   square_distance(wk_sq, bk_sq) <= 1 || wk_sq == p_sq || bk_sq == p_sq
-            //    || (us == WHITE && (StepAttacksBB[PAWN][p_sq] & bk_sq)))
-            //{
-            //    result = INVALID;
-            //}
-            //else if (us == WHITE)
-            //{
-            //    // Immediate win if pawn can be promoted without getting captured
-            //    if (   rank_of(p_sq) == RANK_7
-            //        && wk_sq != p_sq + DELTA_N
-            //        && (   square_distance(bk_sq, p_sq + DELTA_N) > 1
-            //        ||(StepAttacksBB[KING][wk_sq] & (p_sq + DELTA_N))))
-            //        result = WIN;
-            //}
-            //// Immediate draw if is stalemate or king captures undefended pawn
-            //else if (  !(StepAttacksBB[KING][bk_sq] & ~(StepAttacksBB[KING][wk_sq] | StepAttacksBB[PAWN][p_sq]))
-            //    || (StepAttacksBB[KING][bk_sq] & p_sq & ~StepAttacksBB[KING][wk_sq]))
-            //{
-            //    result = DRAW;
-            //}
+            // Check if two pieces are on the same square or if a king can be captured
+            if (   square_dist (wk_sq, bk_sq) <= 1 || wk_sq == p_sq || bk_sq == p_sq
+                || (WHITE == active && (_attacks_pawn_bb[WHITE][p_sq] & bk_sq)))
+            {
+                result = INVALID;
+            }
+            else
+            {
+                if (WHITE == active)
+                {
+                    // Immediate win if pawn can be promoted without getting captured
+                    if (   _rank (p_sq) == R_7
+                        && wk_sq != p_sq + DEL_N
+                        && (square_dist (bk_sq, p_sq + DEL_N) > 1 || (_attacks_type_bb[KING][wk_sq] & (p_sq + DEL_N))))
+                    {
+                        result = WIN;
+                    }
+                }
+                else
+                {
+                    // Immediate draw if is stalemate or king captures undefended pawn
+                    if (  !(_attacks_type_bb[KING][bk_sq] & ~(_attacks_type_bb[KING][wk_sq] | _attacks_pawn_bb[WHITE][p_sq]))
+                        || (_attacks_type_bb[KING][bk_sq] & p_sq & ~_attacks_type_bb[KING][wk_sq]))
+                    {
+                        result = DRAW;
+                    }
+                }
+            }
         }
 
         template<Color C>
@@ -113,12 +121,12 @@ namespace BitBases {
 
             Result r = INVALID;
 
-            Bitboard b = BitBoard::attacks_bb<KING> ((WHITE == C) ? wk_sq : bk_sq);
+            Bitboard b = attacks_bb<KING> ((WHITE == C) ? wk_sq : bk_sq);
             while (b)
             {
-                r |= (WHITE == C) ?
-                    db[index(C_, bk_sq, pop_lsq (b), p_sq)] :
-                    db[index(C_, pop_lsq (b), wk_sq, p_sq)];
+                r |= (WHITE == C)
+                    ? db[index(C_, bk_sq, pop_lsq (b), p_sq)]
+                    : db[index(C_, pop_lsq (b), wk_sq, p_sq)];
             }
 
             if ((WHITE == C) && (_rank (p_sq) < R_7))
@@ -133,9 +141,9 @@ namespace BitBases {
                 }
             }
 
-            return result = (WHITE == C) ?
-                (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW) :
-                (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
+            return result = (WHITE == C)
+                ? (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW)
+                : (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
         }
 
     }
@@ -151,17 +159,19 @@ namespace BitBases {
         {
             db.emplace_back (KPKPosition (idx));
         }
-        
-        bool repeat = true;
+
+        bool repeat;
         // Iterate through the positions until no more of the unknown positions can be
         // changed to either wins or draws (15 cycles needed).
-        while (repeat)
+        do
         {
+            repeat = false;
             for (idx = 0; idx < MAX_INDEX; ++idx)
             {
                 repeat |= ((UNKNOWN == db[idx]) && (UNKNOWN != db[idx].classify (db)));
             }
         }
+        while (repeat);
 
         // Map 32 results into one KPKBitbase[] entry
         for (idx = 0; idx < MAX_INDEX; ++idx)
@@ -173,11 +183,12 @@ namespace BitBases {
         }
     }
 
-    bool probe_kpk (Color c, Square wk_sq, Square p_sq, Square bk_sq)
+    bool probe_kpk (Color c, Square wk_sq, Square wp_sq, Square bk_sq)
     {
+        ASSERT (_file (wp_sq) <= F_D);
 
-
-        return false;
+        uint32_t idx = index (c, bk_sq, wk_sq, wp_sq);
+        return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));
     }
 
 }

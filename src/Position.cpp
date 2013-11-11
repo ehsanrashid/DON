@@ -744,7 +744,7 @@ int32_t Position::see_sign(Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][_ptype(moved_piece(m))] <= PieceValue[MG][_ptype(_piece_arr[sq_dst(m)])])
+    if (PieceValue[MG][_ptype (moved_piece (m))] <= PieceValue[MG][_ptype (_piece_arr[sq_dst (m)])])
     {
         return 1;
     }
@@ -848,7 +848,9 @@ bool Position::pseudo_legal (Move m) const
 
             if (R_1 != rel_rank (active, org) ||
                 R_1 != rel_rank (active, dst))
+            {
                 return false;
+            }
 
             if (castle_impeded (active)) return false;
             if (!can_castle (active)) return false;
@@ -1094,7 +1096,7 @@ bool Position::legal (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        Bitboard mocc = pieces () - org;// + dst;
+        Bitboard mocc = pieces () - org; // + dst;
         return !(attackers_to (dst, mocc) & pieces (pasive));
     }
 
@@ -1523,7 +1525,9 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
         cpt = _ptype (_piece_arr[cap]);
+        ASSERT (PAWN == cpt);
         break;
+
     case NORMAL:
         ASSERT (PAWN == (prom_type (m) - NIHT));
         if (PAWN == mpt)
@@ -1551,7 +1555,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         {
             _si->pawn_key ^= ZobGlob._.ps_sq[pasive][PAWN][cap];
         }
-        else // Update non-pawn material
+        else             // Update non-pawn material
         {
             _si->non_pawn_matl[pasive] -= PieceValue[MG][cpt];
         }
@@ -1565,11 +1569,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         _si->psq_score -= psq[pasive][cpt][cap];
 
         // Reset Rule-50 draw counter
-        if (_si->clock50) _si->clock50 = 0;
+        _si->clock50 = 0;
     }
     else
     {
-        _si->clock50++;
+        _si->clock50 = (PAWN == mpt) ? 0 : _si->clock50 + 1;
     }
 
     // Reset old en-passant
@@ -1590,6 +1594,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+            
+            ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
             castle_king_rook (org_king, dst_king, org_rook, dst_rook);
 
             //_si->psq_score += psq_delta(make_piece(_active, ROOK), org_rook, dst_rook);
@@ -1598,7 +1604,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
             _si->psq_score += psq[active][KING][dst_king] - psq[active][KING][org_king];
             _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
-
         }
         break;
     case PROMOTE:
@@ -1611,16 +1616,15 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->matl_key ^=
                 ZobGlob._.ps_sq[active][PAWN][piece_count (active, PAWN)] ^
                 ZobGlob._.ps_sq[active][ppt][piece_count (active, ppt) - 1];
+            
             _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org];
+            
             posi_k ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][ppt][dst];
 
             // Update incremental score
             _si->psq_score += psq[active][ppt][dst] - psq[active][PAWN][org];
             // Update material
             _si->non_pawn_matl[active] += PieceValue[MG][ppt];
-
-            // Reset Rule-50 draw counter
-            if (_si->clock50) _si->clock50 = 0;
         }
         break;
 
@@ -1634,8 +1638,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         {
             // Update pawns hash key
             _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][PAWN][dst];
-            // Reset Rule-50 draw counter
-            if (_si->clock50) _si->clock50 = 0;
         }
 
         _si->psq_score += psq[active][mpt][dst] - psq[active][mpt][org];
@@ -1698,8 +1700,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Handle pawn en-passant square setting
     if (PAWN == mpt)
     {
-        uint8_t iorg = org;
-        uint8_t idst = dst;
+        int8_t iorg = org;
+        int8_t idst = dst;
         if (16 == (idst ^ iorg))
         {
             Square ep_sq = Square ((idst + iorg) / 2);
@@ -1768,11 +1770,11 @@ void Position::undo_move ()
 
             ASSERT (prom == mpt);
             ASSERT (R_8 == rel_rank (active, dst));
-            ASSERT (prom >= NIHT && prom <= QUEN);
-            mpt = PAWN;
+            ASSERT (NIHT <= prom && prom <= QUEN);
             // Replace the promoted piece with the PAWN
             remove_piece (dst);
             place_piece (org, active, PAWN);
+            mpt = PAWN;
         }
         break;
     case CASTLE:
@@ -1791,11 +1793,10 @@ void Position::undo_move ()
     case ENPASSANT:
         {
             ASSERT (PAWN == mpt);
+            ASSERT (PAWN == cpt);
             ASSERT (R_5 == rel_rank (active, org));
             ASSERT (R_6 == rel_rank (active, dst));
             ASSERT (dst == _si->p_si->en_passant);
-            ASSERT (PAWN == cpt);
-
             //cpt = PAWN;
             cap += pawn_push (pasive);
 
