@@ -36,9 +36,8 @@ private:
     uint8_t  _bound;
     uint8_t  _gen;
     uint16_t  _nodes;
-    int16_t _value
-        , _eval_value
-        ;
+    int16_t _value;
+    int16_t _eval_value;
 
 public:
 
@@ -51,9 +50,7 @@ public:
     Value   value () const { return Value (_value); }
     Value eval_value () const { return Value (_eval_value); }
 
-    void save (
-        uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, 
-        uint16_t nodes, Value value, Value e_value)
+    void save (uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, uint16_t nodes, Value value, Value e_value)
     {
         _key        = uint32_t (key);
         _move       = uint16_t (move);

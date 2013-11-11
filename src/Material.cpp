@@ -21,24 +21,24 @@ namespace {
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
         // P    N    B    R    Q    BP
-        {   2,   0,   0,   0,   0,  39, }, // P
-        { 271,  -4,   0,   0,   0,  35, }, // N
+        {   2,   0,   0,   0,   0,   0, }, // P
+        { 271,  -4,   0,   0,   0,   0, }, // N
         { 105,   4,   0,   0,   0,   0, }, // B
-        {  -2,  46, 100,-141,   0, -27, }, // R
-        {  29,  83, 148,-163,   0,  58, }, // Q
-        {   0,   0,   0,   0,   0,   0, }, // BP
+        {  -2,  46, 100,-141,   0,   0, }, // R
+        {  29,  83, 148,-163,   0,   0, }, // Q
+        {  39,  35,   0, -27,  58,   0, }, // BP
     };
 
     const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
     {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
-        {   0,   0,   0,   0,   0,  37, }, // P
-        {  62,   0,   0,   0,   0,  10, }, // N
-        {  64,  39,   0,   0,   0,  57, }, // B     OUR PIECES
-        {  40,  23, -22,   0,   0,  50, }, // R
-        { 101,   3, 151, 171,   0, 106, }, // Q
-        {   0,   0,   0,   0,   0,   0, }, // BP
+        {   0,   0,   0,   0,   0,   0, }, // P
+        {  62,   0,   0,   0,   0,   0, }, // N
+        {  64,  39,   0,   0,   0,   0, }, // B     OUR PIECES
+        {  40,  23, -22,   0,   0,   0, }, // R
+        { 101,   3, 151, 171,   0,   0, }, // Q
+        {  37,  10,  57,  50, 106,   0, }, // BP
     };
 
     // Endgame evaluation and scaling functions accessed direcly and not through
@@ -235,10 +235,10 @@ namespace Material {
         // Compute the space weight
         if (w_npm + b_npm >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
-            int32_t minorPieceCount =  pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE)
+            int32_t minor_piece_count =  pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE)
                 + pos.piece_count<NIHT> (BLACK) + pos.piece_count<BSHP> (BLACK);
 
-            e->_space_weight = mk_score(minorPieceCount * minorPieceCount, 0);
+            e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
         }
 
         // Evaluate the material imbalance.
