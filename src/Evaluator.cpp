@@ -241,39 +241,38 @@ namespace {
 
     }
 
-    // Function prototypes
     template<bool TRACE>
-    Value do_evaluate(const Position &pos);
+    Value do_evaluate       (const Position &pos);
 
     template<Color C>
-    void init_eval_info(const Position &pos, EvalInfo &ei);
+    void init_eval_info     (const Position &pos, EvalInfo &ei);
 
     template<Color C, bool TRACE>
     Score evaluate_pieces_of_color(const Position &pos, EvalInfo &ei, Score mobility[]);
 
     template<Color C, bool TRACE>
-    Score evaluate_king(const Position &pos, const EvalInfo &ei);
+    Score evaluate_king     (const Position &pos, const EvalInfo &ei);
 
     template<Color C, bool TRACE>
-    Score evaluate_threats(const Position &pos, const EvalInfo &ei);
+    Score evaluate_threats  (const Position &pos, const EvalInfo &ei);
 
     template<Color C, bool TRACE>
     Score evaluate_passed_pawns(const Position &pos, const EvalInfo &ei);
 
     template<Color C>
-    int32_t evaluate_space(const Position &pos, const EvalInfo &ei);
+    int32_t evaluate_space  (const Position &pos, const EvalInfo &ei);
 
     Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei);
 
     Value interpolate (const Score& score, Phase ph, ScaleFactor sf);
     Score apply_weight (Score score, Score w);
-    Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internal_weight);
+    Score weight_option(const std::string &mg_opt, const std::string &eg_opt, Score internal_weight);
     double to_cp (Value value);
 
     // --------------------------------------------------
 
     template<bool TRACE>
-    Value do_evaluate(const Position &pos)
+    Value do_evaluate       (const Position &pos)
     {
         assert (!pos.checkers());
         // Score is computed from the point of view of white.
@@ -290,7 +289,7 @@ namespace {
 
         // Probe the material hash table
         //ei.mi = Material::probe (pos, th->materialTable, th->endgames);
-        score += ei.mi->material_value ();
+        score += ei.mi->material_score ();
 
         // If we have a specialized evaluation function for the current material
         // configuration, call it and return.
@@ -301,7 +300,7 @@ namespace {
 
         // Probe the pawn hash table
         //ei.pi = Pawns::probe(pos, th->pawnsTable);
-        score += apply_weight (ei.pi->pawns_value(), Weights[PawnStructure]);
+        score += apply_weight (ei.pi->pawn_score(), Weights[PawnStructure]);
 
         // Initialize attack and king safety bitboards
         init_eval_info<WHITE>(pos, ei);
@@ -372,9 +371,9 @@ namespace {
         // In case of tracing add all single evaluation contributions for both white and black
         if (TRACE)
         {
-            Tracing::add (PST, pos.psq_score());
-            Tracing::add (IMBALANCE, ei.mi->material_value());
-            Tracing::add (PAWN, ei.pi->pawns_value());
+            Tracing::add (PST, pos.psq_score ());
+            Tracing::add (IMBALANCE, ei.mi->material_score ());
+            Tracing::add (PAWN, ei.pi->pawn_score ());
             Score scr[CLR_NO] =
             {
                 ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei),
@@ -400,7 +399,7 @@ namespace {
     // init_eval_info() initializes king bitboards for given color adding
     // pawn attacks. To be done at the beginning of the evaluation.
     template<Color C>
-    void init_eval_info(const Position &pos, EvalInfo &ei)
+    void init_eval_info     (const Position &pos, EvalInfo &ei)
     {
         const Color  C_ = ((WHITE == C) ? BLACK : WHITE);
         const Delta PULL = ((WHITE == C) ? DEL_S : DEL_N);
@@ -426,7 +425,7 @@ namespace {
 
     // evaluate_outposts() evaluates bishop and knight outposts squares
     template<PType T, Color C>
-    Score evaluate_outposts(const Position &pos, EvalInfo &ei, Square s)
+    Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
     {
         //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
         assert (BSHP == T || NIHT == T);
@@ -455,7 +454,7 @@ namespace {
 
     // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
     template<PType T, Color C, bool TRACE>
-    Score evaluate_pieces(const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
+    Score evaluate_pieces   (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
     {
         Score score = SCORE_ZERO;
 
@@ -640,7 +639,7 @@ namespace {
 
     // evaluate_king<>() assigns bonuses and penalties to a king of a given color
     template<Color C, bool TRACE>
-    Score evaluate_king(const Position &pos, const EvalInfo &ei)
+    Score evaluate_king     (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
@@ -752,7 +751,7 @@ namespace {
     // evaluate_threats<>() assigns bonuses according to the type of attacking piece
     // and the type of attacked one.
     template<Color C, bool TRACE>
-    Score evaluate_threats(const Position &pos, const EvalInfo &ei)
+    Score evaluate_threats  (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
@@ -958,7 +957,7 @@ namespace {
     // twice. Finally, the space bonus is scaled by a weight taken from the
     // material hash table. The aim is to improve play on game opening.
     template<Color C>
-    int32_t evaluate_space(const Position &pos, const EvalInfo &ei)
+    int32_t evaluate_space  (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
@@ -996,7 +995,7 @@ namespace {
         return Value ((r / GrainSize) * GrainSize); // Sign independent
     }
 
-    // apply_weight () weights score 's' by score 'w' trying to prevent overflow
+    // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
     Score apply_weight (Score score, Score w)
     {
         return mk_score ((int32_t (mg_value(score)) * mg_value(w)) / 0x100, (int32_t (eg_value(score)) * eg_value(w)) / 0x100);
@@ -1004,21 +1003,19 @@ namespace {
 
     // weight_option() computes the value of an evaluation weight, by combining
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
-    Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internal_weight)
+    Score weight_option(const std::string &mg_opt, const std::string &eg_opt, Score internal_weight)
     {
         // Scale option value from 100 to 256
-        int16_t mg = int32_t (*(Options[mgOpt])) * 256 / 100;
-        int16_t eg = int32_t (*(Options[egOpt])) * 256 / 100;
+        int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
+        int16_t eg = int32_t (*(Options[eg_opt])) * 256 / 100;
 
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
-    double to_cp (Value value) { return double(value) / double(VALUE_MG_PAWN); }
-
+    double to_cp (Value value) { return double (value) / double (VALUE_MG_PAWN); }
 
     namespace Tracing {
 
-        // Tracing functions definitions
         void add (int32_t idx, Score w_score, Score b_score)
         {
             scores[WHITE][idx] = w_score;
@@ -1083,6 +1080,7 @@ namespace {
             return stream.str ();
         }
     }
+
 }
 
 namespace Evaluator {
@@ -1090,16 +1088,15 @@ namespace Evaluator {
     // evaluate() is the main evaluation function. It always computes two
     // values, an endgame score and a middle game score, and interpolates
     // between them based on the remaining material.
-    Value evaluate(const Position& pos)
+    Value evaluate  (const Position &pos)
     {
-        return do_evaluate<false>(pos);
+        return do_evaluate<false> (pos);
     }
-
 
     // trace() is like evaluate() but instead of a value returns a string suitable
     // to be print on stdout with the detailed descriptions and values of each
     // evaluation term. Used mainly for debugging.
-    std::string trace(const Position& pos)
+    std::string trace(const Position &pos)
     {
         return Tracing::do_trace(pos);
     }

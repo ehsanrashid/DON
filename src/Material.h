@@ -26,7 +26,7 @@ namespace Material {
         Score _space_weight;
         Phase _game_phase;
 
-        Score material_value()  const { return mk_score(value, value); }
+        Score material_score()  const { return mk_score(value, value); }
         Score space_weight()    const { return _space_weight; }
         Phase game_phase()      const { return _game_phase; }
 

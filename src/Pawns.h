@@ -17,20 +17,20 @@ namespace Pawns {
     struct Entry
     {
         Key key;
-        Score _pawn_value;
+        Score _pawn_score;
 
-        Bitboard _passed_pawns[CLR_NO];
+        Bitboard _pawn_attacks   [CLR_NO];
+        Bitboard _passed_pawns   [CLR_NO];
         Bitboard _candidate_pawns[CLR_NO];
-        Bitboard _pawn_attacks[CLR_NO];
         
-        Square  _king_sq[CLR_NO];
+        Square  _king_sq        [CLR_NO];
         int32_t _num_pawns_on_sq[CLR_NO][CLR_NO];
-        int32_t _min_dist_KP[CLR_NO];
-        int32_t _castle_rights[CLR_NO];
-        int32_t _semiopen_files[CLR_NO];
-        Score   _king_safety[CLR_NO];
+        int32_t _min_dist_KP    [CLR_NO];
+        int32_t _castle_rights  [CLR_NO];
+        int32_t _semiopen_files [CLR_NO];
+        Score   _king_safety    [CLR_NO];
 
-        Score    pawns_value()            const { return _pawn_value; }
+        Score    pawn_score()            const { return _pawn_score; }
         Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
         Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }
         Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
@@ -66,7 +66,7 @@ namespace Pawns {
 
     extern void initialize ();
 
-    extern Entry* probe(const Position &pos, Table &table);
+    extern Entry* probe (const Position &pos, Table &table);
 
 }
 

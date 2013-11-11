@@ -9,12 +9,10 @@ namespace {
 #define V Value
 #define S(mg, eg) mk_score(mg, eg)
 
-    // Doubled pawn penalty by opposed flag and file
-    const Score Doubled[CLR_NO][F_NO] = {
-        {S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-        S(23, 48), S(23, 48), S(20, 48), S(13, 43), },
-        {S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-        S(23, 48), S(23, 48), S(20, 48), S(13, 43), } };
+    // Doubled pawn penalty by file
+    const Score Doubled[F_NO] = {
+        S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+        S(23, 48), S(23, 48), S(20, 48), S(13, 43), };
 
     // Isolated pawn penalty by opposed flag and file
     const Score Isolated[CLR_NO][F_NO] = {
@@ -29,20 +27,6 @@ namespace {
         S(49, 46), S(49, 46), S(43, 46), S(30, 42), },
         {S(20, 28), S(29, 31), S(33, 31), S(33, 31),
         S(33, 31), S(33, 31), S(29, 31), S(20, 28), } };
-
-    // Pawn chain membership bonus by [file] and [rank]
-    //const Score ChainMember[F_NO][R_NO] = {
-    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
-    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
-    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
-    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
-  
-    // Pawn chain membership bonus by [file] and [rank] (initialized by formula)
-    Score ChainMember[F_NO][R_NO];
 
     // Candidate passed pawn bonus by [rank]
     const Score CandidatePassed[R_NO] = {
@@ -63,29 +47,43 @@ namespace {
     // in front of the king and no enemy pawn on the horizont.
     const Value MaxSafetyBonus = V(263);
 
+    // Pawn chain membership bonus by [file] and [rank]
+    //const Score ChainMember[F_NO][R_NO] = {
+    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
+    //    { S(0, 0), S(17, 0), S(19, 6), S(22, 11), S(33, 33), S(59, 118), S(127, 254) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
+    //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
+
+    // Pawn chain membership bonus by [file] and [rank] (initialized by formula)
+    Score ChainMember[F_NO][R_NO];
+
 #undef S
 #undef V
 
     template<Color C>
-    Score evaluate(const Position &pos, Pawns::Entry* e)
+    Score evaluate (const Position &pos, Pawns::Entry *e)
     {
         const Color  C_  = ((WHITE == C) ? BLACK  : WHITE);
         const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
         const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
-        Score pawn_value = SCORE_ZERO;
+        Score pawn_score = SCORE_ZERO;
 
-        Bitboard w_pawns = pos.pieces(C, PAWN);
-        Bitboard b_pawns = pos.pieces(C_, PAWN);
+        Bitboard w_pawns = pos.pieces (C, PAWN);
+        Bitboard b_pawns = pos.pieces (C_, PAWN);
 
-        e->_passed_pawns[C] = e->_candidate_pawns[C] = 0;
-        e->_king_sq[C] = SQ_NO;
+        e->_passed_pawns  [C] = e->_candidate_pawns[C] = 0;
+        e->_king_sq       [C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
-        e->_pawn_attacks[C] = shift_del<RCAP>(w_pawns) | shift_del<LCAP>(w_pawns);
+        e->_pawn_attacks  [C] = shift_del<RCAP>(w_pawns) | shift_del<LCAP>(w_pawns);
         e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & DR_SQ_bb);
         e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->_num_pawns_on_sq[C][BLACK];
 
-        const SquareList pl = pos.list<PAWN>(C);
+        const SquareList pl = pos.list<PAWN> (C);
 
         // Loop through all pawns of the current color and score each pawn
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
@@ -101,7 +99,7 @@ namespace {
             e->_semiopen_files[C] &= ~(1 << f);
 
             // Our rank plus previous one. Used for chain detection
-            Bitboard b = rank_bb(s) | rank_bb(s - pawn_push(C));
+            Bitboard b = rank_bb (s) | rank_bb (s - pawn_push(C));
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
@@ -117,7 +115,7 @@ namespace {
             // be backward. If there are friendly pawns behind on adjacent files
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | chain)
-                || (w_pawns & attack_span_pawn_bb(C_, s))
+                || (w_pawns & attack_span_pawn_bb (C_, s))
                 || (pos.attacks_from<PAWN>(C, s) & b_pawns))
             {
                 backward = false;
@@ -128,8 +126,8 @@ namespace {
                 // pawn on adjacent files. We now check whether the pawn is
                 // backward by looking in the forward direction on the adjacent
                 // files, and picking the closest pawn there.
-                b = attack_span_pawn_bb(C, s) & (w_pawns | b_pawns);
-                b = attack_span_pawn_bb(C, s) & rank_bb (scan_rel_backmost_sq(C, b));
+                b = attack_span_pawn_bb (C, s) & (w_pawns | b_pawns);
+                b = attack_span_pawn_bb (C, s) & rank_bb (scan_rel_backmost_sq (C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
@@ -138,13 +136,13 @@ namespace {
 
             assert(opposed | passed | (attack_span_pawn_bb (C, s) & b_pawns));
 
-            // A not passed pawn is a candidate to become passed if it is free to
+            // A not passed pawn is a candidate to become passed, if it is free to
             // advance and if the number of friendly pawns beside or behind this
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
             bool candidate =   !(opposed | passed | backward | isolated)
-                && (b = attack_span_pawn_bb(C_, s + pawn_push(C)) & w_pawns) != 0
-                &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn_bb(C, s) & b_pawns);
+                && (b = attack_span_pawn_bb (C_, s + pawn_push(C)) & w_pawns) != 0
+                &&  pop_count<MAX15>(b) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & b_pawns);
 
             // Passed pawns will be properly scored in evaluation because we need
             // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -152,23 +150,23 @@ namespace {
             if (passed && !doubled) e->_passed_pawns[C] |= s;
 
             // Score this pawn
-            if (isolated)   pawn_value -= Isolated[opposed][f];
+            if (doubled)    pawn_score -= Doubled[f];
 
-            if (doubled)    pawn_value -= Doubled[opposed][f];
+            if (isolated)   pawn_score -= Isolated[opposed][f];
 
-            if (backward)   pawn_value -= Backward[opposed][f];
+            if (backward)   pawn_score -= Backward[opposed][f];
 
-            if (chain)      pawn_value += ChainMember[f][r];
+            if (chain)      pawn_score += ChainMember[f][r];
 
             if (candidate)
             {
-                pawn_value += CandidatePassed[r];
+                pawn_score += CandidatePassed[r];
 
                 if (!doubled) e->_candidate_pawns[C] |= s;
             }
         });
 
-        return pawn_value;
+        return pawn_score;
     }
 
 } // namespace
@@ -183,9 +181,9 @@ namespace Pawns {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         Value safety = MaxSafetyBonus;
-        Bitboard b = pos.pieces(PAWN) & (front_ranks_bb(C, _rank(ksq)) | rank_bb(ksq));
-        Bitboard w_pawns = b & pos.pieces(C);
-        Bitboard b_pawns = b & pos.pieces(C_);
+        Bitboard b = pos.pieces (PAWN) & (front_ranks_bb(C, _rank(ksq)) | rank_bb (ksq));
+        Bitboard w_pawns = b & pos.pieces (C);
+        Bitboard b_pawns = b & pos.pieces (C_);
 
         File kf = std::max (F_B, std::min (F_G, _file (ksq)));
 
@@ -197,7 +195,7 @@ namespace Pawns {
 
             b  = b_pawns & file_bb (f);
             Rank b_rk = b ? rel_rank (C, scan_rel_frntmost_sq (C_, b)) : R_1;
-            safety -= StormDanger[w_rk == R_1 ? 0 : b_rk == w_rk + 1 ? 2 : 1][b_rk];
+            safety -= StormDanger[(w_rk == R_1) ? 0 : (b_rk == w_rk + 1) ? 2 : 1][b_rk];
         }
 
         return safety;
@@ -212,7 +210,7 @@ namespace Pawns {
         _castle_rights[C] = pos.can_castle(C);
         _min_dist_KP[C] = 0;
 
-        Bitboard pawns = pos.pieces(C, PAWN);
+        Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
             while (!(dia_rings_bb(ksq, _min_dist_KP[C]++) & pawns))
@@ -268,7 +266,7 @@ namespace Pawns {
         if (e->key == key) return e;
 
         e->key = key;
-        e->_pawn_value = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
+        e->_pawn_score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
         return e;
     }
 
