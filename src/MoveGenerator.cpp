@@ -92,18 +92,22 @@ namespace MoveGenerator {
                         {
                             if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
                             {
-                                generate_castling<CS_K> (m_list, pos, clr, ci);
+                                pos.chess960 () ?
+                                    generate_castling<CS_K,  true> (m_list, pos, clr, ci) :
+                                    generate_castling<CS_K, false> (m_list, pos, clr, ci);
                             }
                             if (!pos.castle_impeded (clr, CS_Q) && pos.can_castle (clr, CS_Q))
                             {
-                                generate_castling<CS_Q> (m_list, pos, clr, ci);
+                                pos.chess960 () ?
+                                    generate_castling<CS_Q,  true> (m_list, pos, clr, ci) :
+                                    generate_castling<CS_Q, false> (m_list, pos, clr, ci);
                             }
                         }
                     }
                 }
             }
 
-            template<CSide SIDE>
+            template<CSide SIDE, bool CHESS960>
             // Generates KING castling move
             static inline void generate_castling (MoveList &m_list, const Position &pos, Color clr, const CheckInfo *ci /*= NULL*/)
                 //template<GType G>
@@ -124,7 +128,9 @@ namespace MoveGenerator {
 
                 Bitboard enemies = pos.pieces (~clr);
 
-                Delta step = (CS_Q == SIDE) ? DEL_W : DEL_E;
+                Delta step = CHESS960 ? 
+                    dst_king > org_rook ? DEL_W : DEL_E :
+                    (CS_Q == SIDE) ? DEL_W : DEL_E;
                 for (Square s = org_king + step; s != dst_king; s += step)
                 {
                     if (pos.attackers_to (s) & enemies)
@@ -133,9 +139,17 @@ namespace MoveGenerator {
                     }
                 }
 
-                // Because we generate only legal castling moves we need to verify that
-                // when moving the castling rook we do not discover some hidden checker.
-                // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+                if (CHESS960)
+                {
+                    // Because we generate only legal castling moves we need to verify that
+                    // when moving the castling rook we do not discover some hidden checker.
+                    // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+                    if (pos.attackers_to(dst_king, pos.pieces () - org_rook) & pos.pieces (ROOK, QUEN) & enemies)
+                    {
+                        return;
+                    }
+                }
+
                 Move m = mk_move<CASTLE> (org_king, org_rook);
 
                 switch (G)
