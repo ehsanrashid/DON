@@ -45,14 +45,14 @@ namespace {
 
     int32_t move_importance (int32_t ply) { return MoveImportance[std::min (ply, 511)]; }
 
-    enum TimeType { OptimumTime, MaximumTime };
+    enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME };
 
     // remaining() calculate the time remaining
     template<TimeType T>
     int32_t remaining(int32_t my_time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
     {
-        const double TMaxRatio   = (OptimumTime == T ? 1 : MaxRatio);
-        const double TStealRatio = (OptimumTime == T ? 0 : StealRatio);
+        const double TMaxRatio   = (OPTIMUM_TIME == T ? 1 : MaxRatio);
+        const double TStealRatio = (OPTIMUM_TIME == T ? 0 : StealRatio);
 
         double curr_moves_importance   = double (move_importance (current_ply) * slow_mover) / 100;
         double other_moves_importance  = 0.0;
@@ -81,10 +81,10 @@ void TimeManager::initialize (const Searcher::Limits &limits, int32_t current_pl
 
     Time management is adjusted by following UCI parameters:
 
-    unstablePVExtraTime : Be prepared to always play at least this many moves
-    emergencyBaseTime   : Always attempt to keep at least this much time (in ms) at clock
-    emergencyMoveTime   : Plus attempt to keep at least this much time for each remaining emergency move
-    minThinkingTime     : No matter what, use at least this much thinking before doing the move
+    emergencyMoveHorizon : Be prepared to always play at least this many moves
+    emergencyBaseTime    : Always attempt to keep at least this much time (in ms) at clock
+    emergencyMoveTime    : Plus attempt to keep at least this much time for each remaining emergency move
+    minThinkingTime      : No matter what, use at least this much thinking before doing the move
     */
 
     // Read uci parameters
@@ -105,15 +105,15 @@ void TimeManager::initialize (const Searcher::Limits &limits, int32_t current_pl
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_my_time =  limits.game_clock[c].time
+        int32_t hyp_time =  limits.game_clock[c].time
             + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
             - emergency_base_time
             - emergency_move_time * std::min (hyp_moves_to_go, emergency_move_horizon);
 
-        hyp_my_time = std::max (hyp_my_time, 0);
+        hyp_time = std::max (hyp_time, 0);
 
-        int32_t opt_time = min_thinking_time + remaining<OptimumTime>(hyp_my_time, hyp_moves_to_go, current_ply, slow_mover);
-        int32_t max_time = min_thinking_time + remaining<MaximumTime>(hyp_my_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
 
         _optimum_search_time = std::min (_optimum_search_time, opt_time);
         _maximum_search_time = std::min (_maximum_search_time, max_time);

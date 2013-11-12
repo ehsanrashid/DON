@@ -99,7 +99,7 @@ namespace {
             e->_semiopen_files[C] &= ~(1 << f);
 
             // Our rank plus previous one. Used for chain detection
-            Bitboard rr_bb = rank_bb (s) | rank_bb (s - pawn_push(C));
+            Bitboard rr_bb = rank_bb (s) | rank_bb (s - PUSH);
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
@@ -143,7 +143,7 @@ namespace {
             // enemy pawns in the forward direction on the adjacent files.
             Bitboard adj_pawns;
             bool candidate =   !(opposed | passed | backward | isolated)
-                && (adj_pawns = attack_span_pawn_bb (C_, s + pawn_push(C)) & w_pawns) != 0
+                && (adj_pawns = attack_span_pawn_bb (C_, s + PUSH) & w_pawns) != 0
                 &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & b_pawns);
 
             // Passed pawns will be properly scored in evaluation because we need
