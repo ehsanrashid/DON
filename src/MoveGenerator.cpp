@@ -423,13 +423,12 @@ namespace MoveGenerator {
         MoveList m_list;
 
         Color active = pos.active ();
-        Color pasive = ~active;
 
         Bitboard target = U64 (0);
         //CheckInfo *ci = NULL;
         switch (G)
         {
-        case CAPTURE: target = pos.pieces (pasive);  break;
+        case CAPTURE: target = pos.pieces (~active); break;
 
         case QUIET  : target = pos.empties ();       break;
 
@@ -460,7 +459,6 @@ namespace MoveGenerator {
 
         MoveList m_list;
         Color active = pos.active ();
-        //Color pasive = ~active;
         Bitboard occ = pos.pieces ();
         Bitboard empty = ~occ;
 
@@ -502,7 +500,6 @@ namespace MoveGenerator {
         MoveList m_list;
 
         Color active = pos.active ();
-        Color pasive = ~active;
         Bitboard occ = pos.pieces ();
         Bitboard target = ~pos.pieces (active);
 
@@ -544,17 +541,21 @@ namespace MoveGenerator {
         MoveList m_list;
 
         Color active = pos.active ();
-        Color pasive = ~active;
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers); // If any checker exists
 
         Square fk_sq     = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
-
+        
+        Square check_sq;
+        int32_t checker_count = 0;
+        
         //// Generates evasions for king, capture and non-capture moves excluding friends
         //Bitboard moves = attacks_bb<KING> (fk_sq) & ~friends;
+        //check_sq = pop_lsq (checkers);
+        //checker_count = pop_count<MAX15>(checkers);
         //
-        //Bitboard enemies = pos.pieces (pasive);
+        //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - fk_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
@@ -570,9 +571,7 @@ namespace MoveGenerator {
         //    }
         //}
 
-        Square check_sq;
         Bitboard slid_attacks = 0;
-        int32_t checker_count = 0;
         // Find squares attacked by slider checkers, we will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         do
@@ -580,7 +579,7 @@ namespace MoveGenerator {
             ++checker_count;
             check_sq = pop_lsq (checkers);
 
-            ASSERT (_color (pos[check_sq]) == pasive);
+            ASSERT (_color (pos[check_sq]) == ~active);
 
             if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
