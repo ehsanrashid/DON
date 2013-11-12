@@ -16,7 +16,7 @@ namespace Pawns {
     // returns a pointer to an Entry object.
     struct Entry
     {
-        Key key;
+        Key _pawn_key;
         Score _pawn_score;
 
         Bitboard _pawn_attacks   [CLR_NO];

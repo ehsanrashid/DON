@@ -71,20 +71,22 @@ namespace {
         const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
         const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
-        Score pawn_score = SCORE_ZERO;
-
-        Bitboard w_pawns = pos.pieces (C , PAWN);
-        Bitboard b_pawns = pos.pieces (C_, PAWN);
+        Bitboard pawns[CLR_NO] =
+        {
+            pos.pieces (C , PAWN),
+            pos.pieces (C_, PAWN),
+        };
 
         e->_passed_pawns  [C] = e->_candidate_pawns[C] = 0;
         e->_king_sq       [C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
-        e->_pawn_attacks  [C] = shift_del<RCAP>(w_pawns) | shift_del<LCAP>(w_pawns);
-        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(w_pawns & DR_SQ_bb);
+        e->_pawn_attacks  [C] = shift_del<RCAP>(pawns[0]) | shift_del<LCAP>(pawns[0]);
+        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(pawns[0] & DR_SQ_bb);
         e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->_num_pawns_on_sq[C][BLACK];
 
-        const SquareList pl = pos.list<PAWN> (C);
+        Score pawn_score = SCORE_ZERO;
 
+        const SquareList pl = pos.list<PAWN> (C);
         // Loop through all pawns of the current color and score each pawn
         std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
@@ -103,11 +105,11 @@ namespace {
 
             // Flag the pawn as passed, isolated, doubled or member of a pawn
             // chain (but not the backward one).
-            bool chain    =   w_pawns & adj_files_bb (f) & rr_bb;
-            bool isolated = !(w_pawns & adj_files_bb (f));
-            bool doubled  =   w_pawns & front_squares_bb (C, s);
-            bool opposed  =   b_pawns & front_squares_bb (C, s);
-            bool passed   = !(b_pawns & passer_span_pawn_bb (C, s));
+            bool chain    =   pawns[0] & adj_files_bb (f) & rr_bb;
+            bool isolated = !(pawns[0] & adj_files_bb (f));
+            bool doubled  =   pawns[0] & front_squares_bb (C, s);
+            bool opposed  =   pawns[1] & front_squares_bb (C, s);
+            bool passed   = !(pawns[1] & passer_span_pawn_bb (C, s));
 
             bool backward;
             // Test for backward pawn.
@@ -115,8 +117,8 @@ namespace {
             // be backward. If there are friendly pawns behind on adjacent files
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | chain)
-                || (w_pawns & attack_span_pawn_bb (C_, s))
-                || (pos.attacks_from<PAWN>(C, s) & b_pawns))
+                || (pawns[0] & attack_span_pawn_bb (C_, s))
+                || (pos.attacks_from<PAWN>(C, s) & pawns[1]))
             {
                 backward = false;
             }
@@ -127,24 +129,24 @@ namespace {
                 // pawn on adjacent files. We now check whether the pawn is
                 // backward by looking in the forward direction on the adjacent
                 // files, and picking the closest pawn there.
-                b = attack_span_pawn_bb (C, s) & (w_pawns | b_pawns);
+                b = attack_span_pawn_bb (C, s) & (pawns[0] | pawns[1]);
                 b = attack_span_pawn_bb (C, s) & rank_bb (scan_rel_backmost_sq (C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
-                backward = (b | shift_del<PUSH> (b)) & b_pawns;
+                backward = (b | shift_del<PUSH> (b)) & pawns[1];
             }
 
-            ASSERT (opposed | passed | (attack_span_pawn_bb (C, s) & b_pawns));
-            
+            ASSERT (opposed | passed | (attack_span_pawn_bb (C, s) & pawns[1]));
+
             // A not passed pawn is a candidate to become passed, if it is free to
             // advance and if the number of friendly pawns beside or behind this
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
             Bitboard adj_pawns;
             bool candidate =   !(opposed | passed | backward | isolated)
-                && (adj_pawns = attack_span_pawn_bb (C_, s + PUSH) & w_pawns) != 0
-                &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & b_pawns);
+                && (adj_pawns = attack_span_pawn_bb (C_, s + PUSH) & pawns[0]) != 0
+                &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(attack_span_pawn_bb (C, s) & pawns[1]);
 
             // Passed pawns will be properly scored in evaluation because we need
             // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -178,25 +180,30 @@ namespace Pawns {
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
     template<Color C>
-    Value Entry::shelter_storm(const Position &pos, Square ksq)
+    Value Entry::shelter_storm(const Position &pos, Square k_sq)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        
+        Bitboard front_pawns = pos.pieces (PAWN) & (front_ranks_bb (C, _rank (k_sq)) | rank_bb (k_sq));
+        
+        Bitboard pawns[CLR_NO] =
+        {
+            front_pawns & pos.pieces (C ),
+            front_pawns & pos.pieces (C_),
+        };
 
         Value safety = MaxSafetyBonus;
-        Bitboard b = pos.pieces (PAWN) & (front_ranks_bb(C, _rank(ksq)) | rank_bb (ksq));
-        Bitboard w_pawns = b & pos.pieces (C);
-        Bitboard b_pawns = b & pos.pieces (C_);
 
-        File kf = std::max (F_B, std::min (F_G, _file (ksq)));
-
+        File kf = std::max (F_B, std::min (F_G, _file (k_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
-            b = w_pawns & file_bb (f);
-            Rank w_rk = b ? rel_rank (C, scan_rel_backmost_sq (C, b)) : R_1;
+            Bitboard fb_pawns;
+            fb_pawns = pawns[0] & file_bb (f);
+            Rank w_rk = fb_pawns ? rel_rank (C, scan_rel_backmost_sq (C, fb_pawns)) : R_1;
             safety -= ShelterWeakness[w_rk];
 
-            b  = b_pawns & file_bb (f);
-            Rank b_rk = b ? rel_rank (C, scan_rel_frntmost_sq (C_, b)) : R_1;
+            fb_pawns  = pawns[1] & file_bb (f);
+            Rank b_rk = fb_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, fb_pawns)) : R_1;
             safety -= StormDanger[(w_rk == R_1) ? 0 : (b_rk == w_rk + 1) ? 2 : 1][b_rk];
         }
 
@@ -206,25 +213,27 @@ namespace Pawns {
     // Entry::update_safety() calculates and caches a bonus for king safety. It is
     // called only when king square changes, about 20% of total king_safety() calls.
     template<Color C>
-    Score Entry::update_safety(const Position &pos, Square ksq)
+    Score Entry::update_safety(const Position &pos, Square k_sq)
     {
-        _king_sq[C] = ksq;
+        _king_sq[C] = k_sq;
         _castle_rights[C] = pos.can_castle(C);
         _min_dist_KP[C] = 0;
 
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
-            while (!(dia_rings_bb(ksq, _min_dist_KP[C]++) & pawns))
-            {}
+            while (!(dia_rings_bb(k_sq, _min_dist_KP[C]) & pawns))
+            {
+                _min_dist_KP[C]++;
+            }
         }
 
-        if (rel_rank(C, ksq) > R_4)
+        if (rel_rank(C, k_sq) > R_4)
         {
             return _king_safety[C] = mk_score(0, -16 * _min_dist_KP[C]);
         }
 
-        Value bonus = shelter_storm<C>(pos, ksq);
+        Value bonus = shelter_storm<C>(pos, k_sq);
 
         // If we can castle use the bonus after the castle if is bigger
         if (pos.can_castle(mk_castle_right(C, CS_K)))
@@ -236,23 +245,24 @@ namespace Pawns {
             bonus = std::max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
         }
 
-        return _king_safety[C] = mk_score(bonus, -16 * _min_dist_KP[C]);
+        return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);
     }
 
     // Explicit template instantiation
-    template Score Entry::update_safety<WHITE>(const Position &pos, Square ksq);
-    template Score Entry::update_safety<BLACK>(const Position &pos, Square ksq);
+    // -------------------------------
+    template Score Entry::update_safety<WHITE>(const Position &pos, Square k_sq);
+    template Score Entry::update_safety<BLACK>(const Position &pos, Square k_sq);
 
 
     void initialize ()
     {
-        const int32_t ChainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const int16_t ChainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
         for (Rank r = R_1; r < R_8; ++r)
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int32_t bonus = r * (r-1) * (r-2) + ChainByFile[f] * (r/2 + 1);
+                int16_t bonus = r * (r-1) * (r-2) + ChainByFile[f] * (r/2 + 1);
                 ChainMember[f][r] = mk_score (bonus, bonus);
             }
         }
@@ -263,16 +273,14 @@ namespace Pawns {
     // to recompute everything when the same pawn structure occurs again.
     Entry* probe (const Position &pos, Table &table)
     {
-        Key key = pos.pawn_key();
-        Entry *e = table[key];
+        Key pawn_key = pos.pawn_key ();
+        Entry *e = table[pawn_key];
 
-        if (e->key == key) return e;
+        if (e->_pawn_key == pawn_key) return e;
 
-        e->key = key;
+        e->_pawn_key = pawn_key;
         e->_pawn_score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
         return e;
     }
 
-
 } // namespace Pawns
-
