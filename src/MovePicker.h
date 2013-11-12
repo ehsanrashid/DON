@@ -33,11 +33,12 @@ extern void order (ValMoveList &vm_list, bool full = true);
 
 template<bool Gain, typename T>
 // The Stats struct stores moves statistics.
-// According to the template parameter the class can store both History and Gains type statistics.
+// According to the template parameter the class can store History, Gains and Countermoves.
 // History records how often different moves have been successful or unsuccessful during the
 // current search and is used for reduction and move ordering decisions.
 // Gains records the move's best evaluation gain from one ply to the next and is used
 // for pruning decisions.
+// Countermoves store the move that refute a previous one.
 // Entries are stored according only to moving piece and destination square,
 // in particular two moves with different origin but same destination and same piece will be considered identical.
 struct Stats
