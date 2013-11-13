@@ -326,6 +326,7 @@ public:
     bool     chess960  () const;
 
     uint64_t game_nodes () const;
+    void     game_nodes (uint64_t nodes);
 
     bool draw () const;
     bool ok (int8_t *failed_step = NULL) const;
@@ -588,6 +589,7 @@ inline bool     Position::chess960 ()  const { return _chess960; }
 
 // Nodes visited
 inline uint64_t Position::game_nodes () const { return _game_nodes; }
+inline void     Position::game_nodes (uint64_t nodes) { _game_nodes = nodes; }
 
 #pragma endregion
 

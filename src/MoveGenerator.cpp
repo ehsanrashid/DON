@@ -145,7 +145,7 @@ namespace MoveGenerator {
                     // Because we generate only legal castling moves we need to verify that
                     // when moving the castling rook we do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to(dst_king, pos.pieces () - org_rook) & pos.pieces (ROOK, QUEN) & enemies)
+                    if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (ROOK, QUEN) & enemies)
                     {
                         return;
                     }
@@ -462,7 +462,7 @@ namespace MoveGenerator {
         Bitboard occ = pos.pieces ();
         Bitboard empty = ~occ;
 
-        CheckInfo ci (pos);
+        CheckInfo ci = CheckInfo (pos);
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
@@ -503,7 +503,7 @@ namespace MoveGenerator {
         Bitboard occ = pos.pieces ();
         Bitboard target = ~pos.pieces (active);
 
-        CheckInfo ci (pos);
+        CheckInfo ci = CheckInfo (pos);
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {

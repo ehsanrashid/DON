@@ -1726,7 +1726,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 }
 void Position::do_move (Move m, StateInfo &si_n)
 {
-    CheckInfo ci (*this);
+    CheckInfo ci = CheckInfo (*this);
     do_move (m, si_n, check (m, ci) ? &ci : NULL);
 }
 // do_move() do the move from string (CAN)
