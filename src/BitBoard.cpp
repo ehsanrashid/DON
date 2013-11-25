@@ -56,7 +56,7 @@ namespace BitBoard {
 #pragma region LOOKUPs
 
     // FILE & RANK distance
-    Delta     _fr_dist[F_NO][R_NO];
+    Delta     _filerank_dist[F_NO][R_NO];
     Delta _square_dist[SQ_NO][SQ_NO];
     Delta   _taxi_dist[SQ_NO][SQ_NO];
 
@@ -350,7 +350,7 @@ namespace BitBoard {
             for (Rank r = R_1; r <= R_8; ++r)
             {
                 int8_t d = int8_t (f) - int8_t (r);
-                _fr_dist[f][r] = Delta (abs (d));
+                _filerank_dist[f][r] = Delta (abs (d));
             }
         }
 
@@ -363,8 +363,8 @@ namespace BitBoard {
                 File f2 = _file (s2);
                 Rank r2 = _rank (s2);
 
-                Delta dFile = _fr_dist[f1][f2];
-                Delta dRank = _fr_dist[r1][r2];
+                Delta dFile = _filerank_dist[f1][f2];
+                Delta dRank = _filerank_dist[r1][r2];
 
                 _square_dist[s1][s2] = std::max (dFile, dRank);
                 _taxi_dist  [s1][s2] = (dFile + dRank);
@@ -517,9 +517,8 @@ namespace BitBoard {
         for (Rank r = R_1; r <= R_8; ++r)
         {
             std::string sb = sbb.substr (r * 8, 8);
-
-            //// Invert
-            //rforeach (int8_t, 0, 1, n)
+            
+            //for (int8_t n = 1; n >= 0; --n)
             //{
             //    string nibble_s = sb.substr(n * 4, 4);
             //    if (empty(nibble_s)) break;
@@ -619,20 +618,24 @@ namespace BitBoard {
         //sbb.append ("\n");
 
         const std::string dots = " -----------------\n";
-        const std::string row = "|. . . . . . . .|\n";
+        const std::string row   = "|. . . . . . . .|\n";
         const size_t len_row = row.length () + 1;
+        
         sbb = dots;
+        
         for (Rank r = R_8; r >= R_1; --r)
         {
             sbb += to_char (r) + row;
         }
-        sbb += dots;
-        sbb += " ";
+        
+        sbb += dots + " ";
+
         for (File f = F_A; f <= F_H; ++f)
         {
             sbb += " ";
             sbb += to_char (f);
         }
+        
         sbb += "\n";
 
         while (bb)

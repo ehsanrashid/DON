@@ -305,27 +305,26 @@ std::string move_to_lan (Move m, Position &pos)
     return lan;
 }
 
-// uci_score() converts a value to a string suitable for use with the UCI
+// score_uci() converts a value to a string suitable for use with the UCI
 // protocol specifications:
 //
 // cp <x>     The score from the engine's point of view in centipawns.
 // mate <y>   Mate in y moves, not plies. If the engine is getting mated
 //            use negative values for y.
-std::string uci_score (Value v, Value alpha, Value beta)
+std::string score_uci (Value v, Value alpha, Value beta)
 {
-    std::stringstream s;
+    std::stringstream sscore;
 
     if (abs(v) < VALUE_MATES_IN_MAX_PLY)
     {
-        s << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
+        sscore << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {
-        s << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+        sscore << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
     }
-    s << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
-
-    return s.str();
+    sscore << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
+    return sscore.str();
 }
 
 namespace {
@@ -364,7 +363,9 @@ namespace {
         std::stringstream s;
 
         if (hours) s << hours << ':';
-        s << std::setfill('0') << std::setw(2) << minutes << ':' << std::setw(2) << seconds;
+        s << std::setfill('0') 
+            << std::setw(2) << minutes << ':' 
+            << std::setw(2) << seconds;
 
         return s.str();
     }
@@ -374,7 +375,7 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-std::string pretty_pv(Position& pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
+std::string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;

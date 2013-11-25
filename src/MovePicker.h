@@ -5,8 +5,8 @@
 #include <vector>
 #include <set>
 #include "Type.h"
-#include "MoveGenerator.h"
 #include "Searcher.h"
+#include "MoveGenerator.h"
 
 class Position;
 
@@ -95,7 +95,10 @@ class MovePicker
 {
 
 private:
+
     template<MoveGenerator::GType>
+    //value() assign a numerical move ordering score to each move in a move list.
+    //The moves with highest scores will be picked first.
     void value();
 
     void generate_next();

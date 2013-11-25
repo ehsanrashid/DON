@@ -2212,13 +2212,14 @@ string Position::fen (bool                  c960, bool full) const
 // string() return string representation of position
 Position::operator string () const
 {
-    std::ostringstream spos;
-    std::string brd;
+
+#pragma region Board
     const std::string dots = " +---+---+---+---+---+---+---+---+\n";
     const std::string row_1 = "| . |   | . |   | . |   | . |   |\n" + dots;
     const std::string row_2 = "|   | . |   | . |   | . |   | . |\n" + dots;
     const size_t len_row = row_1.length () + 1;
-    brd = dots;
+
+    std::string brd = dots;
     for (Rank r = R_8; r >= R_1; --r)
     {
         brd += to_char (r) + ((r % 2) ? row_1 : row_2);
@@ -2238,12 +2239,17 @@ Position::operator string () const
         brd[3 + size_t (len_row * (7.5 - r)) + 4 * f] = to_char (_piece_arr[s]);
     }
 
+#pragma endregion
+
+    std::ostringstream spos;
+
     spos
         << brd << endl
         << to_char (_active) << endl
         << ::to_string (castle_rights ()) << endl
         << ::to_string (en_passant ()) << endl
         << clock50 () << ' ' << game_move () << endl;
+
     return spos.str ();
 }
 

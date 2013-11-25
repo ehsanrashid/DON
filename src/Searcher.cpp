@@ -336,7 +336,7 @@ namespace Searcher {
             rootMoves.push_back (MOVE_NONE);
             atom ()
                 << "info depth 0 score "
-                << uci_score (rootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                << score_uci (rootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << endl;
 
             goto finish;
@@ -641,12 +641,13 @@ namespace {
 
 
         // Step 1. Initialize node
-        //Thread* thisThread = pos.this_thread();
+        //Thread* thread = pos.this_thread();
         bool in_check = pos.checkers ();
 
         const TranspositionEntry *tte;
-        Move  tt_move, excluded_move;
+        Move  tt_move, best_move, threat_move, excluded_move, move;
         Value tt_value;
+        int32_t move_count = 0, quiet_count = 0;
 
         if (SPNode)
         {
@@ -665,9 +666,6 @@ namespace {
 
         best_value = -VALUE_INFINITE;
 
-        int32_t move_count = 0, quiet_count = 0;
-        Move best_move, threat_move, move;
-
         best_move = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
         (ss)->ply = (ss-1)->ply + 1;
@@ -676,7 +674,7 @@ namespace {
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
         // Used to send sel_depth info to GUI
-        //if (PVNode && thisThread->maxPly < ss->ply) thisThread->maxPly = ss->ply;
+        //if (PVNode && thread->maxPly < ss->ply) thread->maxPly = ss->ply;
 
         if (!RootNode)
         {
@@ -762,7 +760,7 @@ namespace {
             eval_value = ss->static_eval = evaluate(pos);
             TT.store(posi_key, MOVE_NONE, DEPTH_NONE, UNKNOWN, VALUE_NONE, ss->static_eval);
         }
-
+        
         if (   pos.cap_type() != PT_NO
             &&  ss->static_eval != VALUE_NONE
             && (ss-1)->static_eval != VALUE_NONE
@@ -982,7 +980,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 signals.first_root_move = (move_count == 1);
 
-                //if (thisThread == Threads.main() && Time::now () - SearchTime > 3000)
+                //if (thread == Threads.main() && Time::now () - SearchTime > 3000)
                 {
                     atom ()
                         << "info depth " << depth / ONE_PLY
@@ -1182,7 +1180,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // ran out of time. In this case, the return value of the search cannot
             // be trusted, and we don't update the best move and/or PV.
             if (  signals.stop
-                //|| thisThread->cutoff_occurred ()
+                //|| thread->cutoff_occurred ()
                     )
             {
                 return value; // To avoid returning VALUE_INFINITE
@@ -1239,13 +1237,13 @@ moves_loop: // When in check and at SPNode search starts from here
             // Step 19. Check for splitting the search
             if (   !SPNode
                 //&&  depth >= Threads.minimumSplitDepth
-                    //&&  Threads.available_slave(thisThread)
-                        //&&  thisThread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD
+                    //&&  Threads.available_slave(thread)
+                        //&&  thread->splitPointsSize < MAX_SPLITPOINTS_PER_THREAD
                             )
             {
                 ASSERT (best_value < beta);
 
-                //thisThread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
+                //thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
                 //    depth, threat_move, move_count, &mp, N, cut_node);
 
                 if (best_value >= beta) break;
@@ -1709,15 +1707,15 @@ moves_loop: // When in check and at SPNode search starts from here
             // Not at first line
             if (spv.rdbuf ()->in_avail ()) spv << "\n";
 
-            spv << "info depth " << d
-                << " seldepth "  << sel_depth
-                << " score "     << (i == pv_idx ? uci_score (v, alpha, beta) : uci_score (v))
-                << " nodes "     << pos.game_nodes ()
-                << " nps "       << pos.game_nodes () * 1000 / elapsed
-                << " time "      << elapsed
-                << " multipv "   << i + 1
+            spv << "info"
+                << " depth "    << d
+                << " seldepth " << sel_depth
+                << " score "    << (i == pv_idx ? score_uci (v, alpha, beta) : score_uci (v))
+                << " nodes "    << pos.game_nodes ()
+                << " nps "      << pos.game_nodes () * 1000 / elapsed
+                << " time "     << elapsed
+                << " multipv "  << i + 1
                 << " pv";
-
             for (size_t j = 0; rootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
                 spv <<  " " << move_to_can(rootMoves[i].pv[j], pos.chess960 ());

@@ -9,6 +9,7 @@
 #include "Position.h"
 
 class PolyglotBook;
+struct SplitPoint;
 
 namespace Searcher {
 
@@ -135,12 +136,13 @@ namespace Searcher {
 
     };
 
+
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
-    struct Stack
+    typedef struct Stack
     {
-        //SplitPoint* split_point;
+        SplitPoint* split_point;
         int32_t ply;
         Move current_move;
         Move excluded_move;
@@ -148,7 +150,7 @@ namespace Searcher {
         Depth reduction;
         Value static_eval;
         int32_t skip_null_move;
-    };
+    } Stack;
 
 
     extern Limits                limits;
@@ -165,72 +167,6 @@ namespace Searcher {
 
     extern void think ();
 
-
-    //extern int32_t nThreads;
-    //extern int32_t maxThreadsPerNode;
-
-    ////typedef struct Node
-    ////{
-    ////    //Node* parent;
-    ////    //Node* children[maxThreads];
-    ////    Position pos;
-    ////
-    ////    //volatile bool _stopped;
-    ////    //volatile int32_t workers;
-    ////    //bool used;
-    ////    //int32_t threadNumber;
-    ////    //pthread_mutex_t mutex;
-    ////    //Variation pv;
-    ////    //int32_t nodes;
-    ////    //int32_t qNodes;
-    ////    //int32_t failHighs;
-    ////    //int32_t failHighFirsts;
-    ////    //int32_t transRefProbes;
-    ////    //int32_t transRefHits;
-    ////    //Move killer1[maxPly],killer2[maxPly];
-    ////    //Score pValue;
-    ////    //Score cValue;
-    ////    //Score alpha;
-    ////    //Score beta;
-    ////    //Depth depth;
-    ////    //int32_t ply;
-    ////    //Depth totalExtension;
-    ////    //Moves moves[maxPly];
-    ////    //int32_t nextMove[maxPly];
-    ////    //Move bestMove;
-    ////
-    ////} Node;
-    ////
-    ////
-    ////extern void Think(Node &rootNode);
-    ////
-    ////Score search(Node &node, Score alpha, Score beta, Depth depth, int32_t ply, bool nullMoveIsOK, int8_t totalExtension);
-
-    //extern void search(const Position &pos, Depth depth);
-
 }
-
-//inline std::ostream& operator<< (std::ostream &os, const Score &score)
-//{
-//    if (abs (int16_t (score)) < VALUE_INFINITE - 300)
-//    {
-//        os.setf (std::ios_base::fixed, std::ios_base::floatfield);
-//        os.setf (std::ios_base::right, std::ios_base::adjustfield);
-//        os << std::setiosflags (std::ios_base::showpos);
-//        os << std::setw (4) << std::setprecision (3) << (double) (score) / 1000;
-//        os.unsetf (std::ios_base::showpos);
-//    }
-//    else
-//    {
-//        os << ((score > 0) ? "+" : "-");
-//        int32_t value = VALUE_INFINITE - abs (int16_t (score));
-//        os << "MAT" << value;
-//        if (value < 10)
-//        {
-//            os << " ";
-//        }
-//    }
-//    return os;
-//}
 
 #endif // SEARCHER_H_

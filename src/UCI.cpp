@@ -15,10 +15,11 @@
 #include "Notation.h"
 #include "TriLogger.h"
 
-#include <thread>
 //#include "Thread.h"
 
 namespace UCI {
+
+    using namespace Searcher;
 
     typedef std::istringstream cmdstream;
 
@@ -179,7 +180,7 @@ namespace UCI {
         // and starts the search.
         void exe_go (cmdstream &cstm)
         {
-            Searcher::Limits limits;
+            Limits limits;
             string token;
 
             while (cstm.good () && (cstm >> token))
@@ -187,7 +188,6 @@ namespace UCI {
                 if (false);
                 else if (iequals (token, "searchmoves"))
                 {
-                    //limits.search_moves.clear ();
                     while (cstm.good () && (cstm >> token))
                     {
                         Move m = move_from_can (token, rootPos);
@@ -208,13 +208,12 @@ namespace UCI {
                 else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
 
-            //Threads.start_thinking(rootPos, setupStates, limits);
+            //Threads.start_thinking (rootPos, limits, setupStates);
         }
 
         void exe_ponderhit ()
         {
-            //Search::Signals.stop = true;
-            //Threads.main()->notify_one(); // Could be sleeping
+            limits.ponder = false;
         }
 
         void exe_debug (cmdstream &cstm)
@@ -244,7 +243,7 @@ namespace UCI {
 
         void exe_eval ()
         {
-            //atom () << Eval::trace (rootPos) << endl;
+            atom () << Evaluator::trace (rootPos) << endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -261,8 +260,9 @@ namespace UCI {
 
         void exe_stop ()
         {
-            //Search::Signals.stop = true;
-            //Threads.main_thread()->notify_one(); // Could be sleeping
+            signals.stop = true;
+            // Could be sleeping
+            //Threads.main ()->notify_one();
         }
 
         void exe_quit ()
@@ -309,11 +309,11 @@ namespace UCI {
                 else if (iequals (token, "ponderhit"))
                 {
                     // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                    // opponent has played. In case Signals.stopOnPonderhit stream set we are
+                    // opponent has played. In case signals.stop_on_ponderhit stream set we are
                     // waiting for 'ponderhit' to stop the search (for instance because we
                     // already ran out of time), otherwise we should continue searching but
                     // switching from pondering to normal search.
-                    false/*Search::Signals.stopOnPonderhit*/ ? exe_stop () : exe_ponderhit ();
+                    signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
                 }
                 else if (iequals (token, "debug"))      exe_debug (cstm);
                 else if (iequals (token, "print"))      exe_print ();
@@ -337,7 +337,8 @@ namespace UCI {
         }
         while (active && !iequals (cmd, "quit"));
 
-        //Threads.wait_for_think_finished(); // Cannot quit while search stream active
+        // Cannot quit while search stream active
+        //Threads.wait_for_think_finished (); 
     }
 
     void stop ()

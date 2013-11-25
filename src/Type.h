@@ -366,8 +366,8 @@ typedef enum Depth : int16_t
     ONE_MOVE            =    2,
 
     DEPTH_ZERO          =    0 * ONE_MOVE,
-    DEPTH_QS_CHECKS     =   -1 * ONE_MOVE,
-    DEPTH_QS_NO_CHECKS  =   -2 * ONE_MOVE,
+    DEPTH_QS_CHECKS     =    0 * ONE_MOVE,
+    DEPTH_QS_NO_CHECKS  =   -1 * ONE_MOVE,
     DEPTH_QS_RECAPTURES =   -5 * ONE_MOVE,
 
     DEPTH_NONE          = -128 * ONE_MOVE,

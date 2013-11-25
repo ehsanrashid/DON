@@ -1,6 +1,7 @@
 #include "MovePicker.h"
 
 #include "Position.h"
+//#include "Thread.h"
 
 using namespace MoveGenerator;
 
@@ -14,7 +15,7 @@ namespace {
         QSEARCH_1,   CAPTURES_S4,
         PROBCUT,     CAPTURES_S5,
         RECAPTURE,   CAPTURES_S6,
-        STOP
+        STOP,
     };
 
     // Our insertion sort, guaranteed to be stable, as is needed
@@ -122,8 +123,6 @@ MovePicker::MovePicker(const Position &p, Move ttm, const HistoryStats &h, PType
 }
 
 
-//score() assign a numerical move ordering score to each move in a move list.
-//The moves with highest scores will be picked first.
 template<>
 void MovePicker::value<CAPTURE>()
 {
@@ -286,11 +285,11 @@ void MovePicker::generate_next()
     }
 }
 
+template<>
 // next_move() is the most important method of the MovePicker class. It returns
 // a new pseudo legal move every time is called, until there are no more moves
 // left. It picks the move with the biggest score from a list of generated moves
 // taking care not returning the tt_move if has already been searched previously.
-template<>
 Move MovePicker::next_move<false>()
 {
     Move move;
@@ -390,13 +389,12 @@ Move MovePicker::next_move<false>()
     }
 }
 
-
+template<>
 // Version of next_move() to use at split point nodes where the move is grabbed
 // from the split point's shared MovePicker object. This function is not thread
 // safe so must be lock protected by the caller.
-template<>
 Move MovePicker::next_move<true>()
 {
-    //return ss->split_point->movePicker->next_move<false>();
+    //return ss->split_point->move_picker->next_move<false>();
     return MOVE_NONE;
 }

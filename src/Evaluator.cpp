@@ -357,7 +357,7 @@ namespace {
                 // Check for KBP vs KB with only a single pawn that is almost
                 // certainly a draw or at least two pawns.
                 bool one_pawn = (pos.piece_count<PAWN>(WHITE) + pos.piece_count<PAWN>(BLACK) == 1);
-                sf = one_pawn ? ScaleFactor(8) : ScaleFactor(32);
+                sf = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
             }
             else
             {

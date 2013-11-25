@@ -45,9 +45,9 @@ namespace BitBoard {
 
 #pragma region LOOKUPs
 
-    extern Delta     _fr_dist[F_NO][R_NO];
-    extern Delta _square_dist[SQ_NO][SQ_NO];
-    extern Delta   _taxi_dist[SQ_NO][SQ_NO];
+    extern Delta _filerank_dist[F_NO][R_NO];
+    extern Delta   _square_dist[SQ_NO][SQ_NO];
+    extern Delta     _taxi_dist[SQ_NO][SQ_NO];
 
     //extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
@@ -211,13 +211,13 @@ namespace BitBoard {
 
     inline Delta file_dist (Square s1, Square s2)
     {
-        //return abs(int8_t(_file(s1) - _file(s2)));
-        return _fr_dist[_file (s1)][_file (s2)];
+        //return abs (int8_t (_file (s1) - _file (s2)));
+        return _filerank_dist[_file (s1)][_file (s2)];
     }
     inline Delta rank_dist (Square s1, Square s2)
     {
-        //return abs(int8_t(_rank(s1) - _rank(s2)));
-        return _fr_dist[_rank (s1)][_rank (s2)];
+        //return abs (int8_t (_rank (s1) - _rank (s2)));
+        return _filerank_dist[_rank (s1)][_rank (s2)];
     }
     inline Delta square_dist (Square s1, Square s2)
     {
@@ -228,12 +228,12 @@ namespace BitBoard {
         return _taxi_dist[s1][s2];
     }
 
-    // Absolute Difference of rank & file
-    inline Delta rank_file_diff (Square s1, Square s2)
+    // Absolute difference of file & rank
+    inline Delta abs_file_rank_diff (Square s1, Square s2)
     {
-        int8_t rd = (s1 | 7) - (s2 | 7);
-        int8_t fd = (s1 & 7) - (s2 & 7);
-        return Delta (abs (rd) + abs (fd));
+        int8_t drank = (s1 | 7) - (s2 | 7);
+        int8_t dfile = (s1 & 7) - (s2 & 7);
+        return Delta (abs (drank) + abs (dfile));
     }
 
     inline Delta offset_sq (Square s1, Square s2)
@@ -278,10 +278,6 @@ namespace BitBoard {
     }
     inline Bitboard diag18_bb (Square s)
     {
-        //  int8_t diag = 0x00 + (FileIndex(s) << 3) - RankIndex(s);
-        //  uint8_t nort = -diag & (diag >> 31);
-        //  uint8_t sout = diag & (-diag >> 31);
-        //  return (D18_bb >> sout) << nort;
         return _diag18_bb[_diag18 (s)];
     }
 
@@ -291,10 +287,6 @@ namespace BitBoard {
     }
     inline Bitboard diag81_bb (Square s)
     {
-        //  int8_t diag = 0x38 - (FileIndex(s) << 3) - RankIndex(s);
-        //  uint8_t nort = -diag & (diag >> 31);
-        //  uint8_t sout = diag & (-diag >> 31);
-        //  return (Diag81Squares >> sout) << nort;
         return _diag81_bb[_diag81 (s)];
     }
 
@@ -323,7 +315,7 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Square s)
     {
         return _rank_bb[rel_rank (c, s)];
-        //rel_rank_bb (c, _rank(s));
+        //return rel_rank_bb (c, _rank (s));
     }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
