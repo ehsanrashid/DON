@@ -13,7 +13,6 @@ namespace std {
     // atomic_stream is a full expression stream accumulator for ostream <char>
     // It is thread safe stream for printing output.
 
-
     //typedef class atomic_stream sealed
     //{
     //
@@ -79,14 +78,14 @@ namespace std {
     //
     //    // define the custom endl for this stream.
     //    // note how it matches the `atomic_stream` function signature
-    //    static atomic_stream& endl (atomic_stream &atom)
+    //    static atomic_stream& endl (atomic_stream &ats)
     //    {
     //        // put a new line
-    //        atom._os_stm.put ('\n');
+    //        ats._os_stm.put ('\n');
     //        // do other stuff with the stream
     //        // std::cout, for example, will flush the stream
-    //        //atom << "Called MyStream::endl!" << std::endl;
-    //        return atom;
+    //        //ats << "Called MyStream::endl!" << std::endl;
+    //        return ats;
     //    }
     //
     //    // Write the whole shebang in one go & also flush
@@ -96,10 +95,10 @@ namespace std {
     //        return *this;
     //    }
     //
-    //} atom;
+    //} ats;
 
     //template<class T>
-    //std::atom& operator<< (std::atom &os, T& (*manip) (T &))
+    //std::ats& operator<< (std::ats &os, T& (*manip) (T &))
     //{
     //    //manip (os._os_stm);
     //    return os;
@@ -107,7 +106,7 @@ namespace std {
 
     //typedef std::ostream& (*ostream_manipulator)(std::ostream &);
     //template<>
-    //std::atom& operator<< (std::atom &os, ostream_manipulator pf)
+    //std::ats& operator<< (std::ats &os, ostream_manipulator pf)
     //{
     //    //os.operator<< <ostream_manipulator> (os, pf);
     //    return os;
@@ -148,10 +147,10 @@ namespace std {
             return *this;
         }
 
-    } atom;
+    } ats;
 
     // using a temporary instead of returning one from a function avoids any issues with copies
-    //atom (out_stm) << val1 << val2 << val3;
+    //ats (out_stm) << val1 << val2 << val3;
 
 }
 

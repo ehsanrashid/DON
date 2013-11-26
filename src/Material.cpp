@@ -124,12 +124,13 @@ namespace Material {
         // If e->key matches the position's material hash key, it means that we
         // have analysed this material configuration before, and we can simply
         // return the information we found the last time instead of recomputing it.
-        if (e->key == key) return e;
+        if (e->_key == key) return e;
 
         std::memset (e, 0, sizeof (Entry));
-        e->key           = key;
-        e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-        e->_game_phase   = game_phase (pos);
+        e->_key           = key;
+        e->_factor[WHITE] = SCALE_FACTOR_NORMAL;
+        e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
+        e->_game_phase    = game_phase (pos);
 
         // Let's look if we have a specialized evaluation function for this
         // particular material configuration. First we look for a fixed
@@ -224,12 +225,12 @@ namespace Material {
         // catches some trivial draws like KK, KBK and KNK
         if (!pos.piece_count<PAWN> (WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (WHITE), 2)]);
+            e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (WHITE), 2)]);
         }
 
         if (!pos.piece_count<PAWN> (BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
         {
-            e->factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (BLACK), 2)]);
+            e->_factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (BLACK), 2)]);
         }
 
         // Compute the space weight
@@ -254,7 +255,7 @@ namespace Material {
             },
         };
 
-        e->value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
+        e->_value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
         return e;
     }
 

@@ -18,15 +18,15 @@ namespace Material {
     // of 4, which will result in scores of absolute value less than one pawn.
     struct Entry
     {
-        Key key;
-        int16_t value;
-        uint8_t factor[CLR_NO];
-        EndGame::EndgameBase<Value>* evaluation_func;
-        EndGame::EndgameBase<ScaleFactor>* scaling_func[CLR_NO];
+        Key _key;
+        int16_t _value;
+        uint8_t _factor[CLR_NO];
         Score _space_weight;
         Phase _game_phase;
+        EndGame::EndgameBase<Value> *evaluation_func;
+        EndGame::EndgameBase<ScaleFactor> *scaling_func[CLR_NO];
 
-        Score material_score()  const { return mk_score(value, value); }
+        Score material_score()  const { return mk_score (_value, _value); }
         Score space_weight()    const { return _space_weight; }
         Phase game_phase()      const { return _game_phase; }
 
@@ -50,8 +50,8 @@ namespace Material {
     /// which checks for draws with rook pawns and wrong-colored bishops.
     inline ScaleFactor Entry::scale_factor (const Position &pos, Color c) const
     {
-        return (!scaling_func[c] || (*scaling_func[c])(pos) == SCALE_FACTOR_NONE) ?
-            ScaleFactor(factor[c]) : (*scaling_func[c])(pos);
+        return (!scaling_func[c] || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE) ?
+            ScaleFactor (_factor[c]) : (*scaling_func[c]) (pos);
     }
 
 }

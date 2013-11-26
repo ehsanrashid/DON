@@ -567,7 +567,6 @@
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
     <ClCompile Include="src\Game.cpp" />
-    <ClCompile Include="src\LeakDetector.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\MoveGenerator.cpp" />
@@ -603,7 +602,6 @@
     <ClInclude Include="src\functor.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\IOLogger.h" />
-    <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Material.h" />
@@ -628,7 +626,6 @@
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\TimeManager.h" />
-    <ClInclude Include="src\Timer.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\TriLogger.h" />

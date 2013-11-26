@@ -169,9 +169,6 @@ namespace UCI {
     extern void start (const string &args = "");
     extern void stop ();
 
-    // ---
-    extern void send_responce (const char format[], ...);
-
 }
 
 // Global string mapping of options

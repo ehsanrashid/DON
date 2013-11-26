@@ -24,7 +24,7 @@ namespace UCI {
     typedef std::istringstream cmdstream;
 
     using std::string;
-    using std::atom;
+    using std::ats;
     using std::endl;
 
     namespace {
@@ -43,7 +43,7 @@ namespace UCI {
 
         void exe_uci ()
         {
-            atom ()
+            ats ()
                 << Engine::info (true) << '\n' 
                 << (Options) << '\n'
                 << "uciok" << endl;
@@ -56,7 +56,7 @@ namespace UCI {
 
         void exe_isready ()
         {
-            atom () << "readyok" << endl;
+            ats () << "readyok" << endl;
         }
 
         void exe_setoption (cmdstream &cstm)
@@ -85,11 +85,11 @@ namespace UCI {
                 if (Options.count (name) > 0)
                 {
                     (*Options[name]) = value;
-                    //atom () << (*Options[name])();
+                    //ats () << (*Options[name])();
                 }
                 else
                 {
-                    //atom () << "WHAT??? No such option: \'" << name << "\'";
+                    //ats () << "WHAT??? No such option: \'" << name << "\'";
                 }
             }
         }
@@ -223,12 +223,12 @@ namespace UCI {
 
         void exe_print ()
         {
-            atom () << rootPos << endl;
+            ats () << rootPos << endl;
         }
 
         void exe_key ()
         {
-            atom () << std::hex << std::uppercase << std::setfill('0')
+            ats () << std::hex << std::uppercase << std::setfill('0')
                 << "fen: " << rootPos.fen () << '\n'
                 << "posi key: " << std::setw (16) << rootPos.posi_key () << '\n'
                 << "matl key: " << std::setw (16) << rootPos.matl_key () << '\n'
@@ -243,7 +243,7 @@ namespace UCI {
 
         void exe_eval ()
         {
-            atom () << Evaluator::trace (rootPos) << endl;
+            ats () << Evaluator::trace (rootPos) << endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -267,6 +267,7 @@ namespace UCI {
 
         void exe_quit ()
         {
+            stop ();
             //Search::stop ();
             //Trans::destroy ();
             //Thread::destroy ();
@@ -346,27 +347,27 @@ namespace UCI {
         active = false;
     }
 
-    void send_responce (const char format[], ...)
-    {
-        try
-        {
-            static char buf[1024];
-            size_t size  =   sizeof (buf);
-            size_t count = _countof (buf);
-            std::memset (buf, 0, size);
-            va_list args;
-            va_start (args, format);
-            int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
-            va_end (args);
-            if (copied != -1)
-            {
-                buf[copied] = '\0';
-                atom () << buf << endl;
-            }
-        }
-        catch (...)
-        {
-        }
-    }
+    //void send_responce (const char format[], ...)
+    //{
+    //    try
+    //    {
+    //        static char buf[1024];
+    //        size_t size  =   sizeof (buf);
+    //        size_t count = _countof (buf);
+    //        std::memset (buf, 0, size);
+    //        va_list args;
+    //        va_start (args, format);
+    //        int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
+    //        va_end (args);
+    //        if (copied != -1)
+    //        {
+    //            buf[copied] = '\0';
+    //            ats () << buf << endl;
+    //        }
+    //    }
+    //    catch (...)
+    //    {
+    //    }
+    //}
 
 }

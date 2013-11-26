@@ -194,14 +194,14 @@ namespace UCI {
         void on_clear_hash  (const Option &opt)
         {
             TT.clear ();
-            std::atom () << "info string hash cleared." << std::endl;
+            std::ats () << "info string hash cleared." << std::endl;
         }
 
         void on_resize_hash (const Option &opt)
         {
             uint32_t size_mb = int32_t (opt);
             TT.resize (size_mb);
-            std::atom () << "info string hash resized " << size_mb << " MB Hash..." << std::endl;
+            std::ats () << "info string hash resized " << size_mb << " MB Hash..." << std::endl;
         }
 
         void on_save_hash   (const Option &opt)
@@ -225,7 +225,7 @@ namespace UCI {
 
         void on_change_threads  (const Option &opt)
         {
-            std::atom () << "thread changed" << std::endl;
+            std::ats () << "thread changed" << std::endl;
         }
 
         void on_evaluation  (const Option& opt)

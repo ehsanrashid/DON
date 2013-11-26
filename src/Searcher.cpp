@@ -191,7 +191,7 @@ void check_time ()
 namespace Searcher {
 
     using namespace MoveGenerator;
-    using std::atom;
+    using std::ats;
     using std::endl;
 
     Limits                limits;
@@ -334,7 +334,7 @@ namespace Searcher {
         if (rootMoves.empty ())
         {
             rootMoves.push_back (MOVE_NONE);
-            atom ()
+            ats ()
                 << "info depth 0 score "
                 << score_uci (rootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << endl;
@@ -382,7 +382,7 @@ namespace Searcher {
 finish:
 
         // When search is stopped this info is not printed
-        atom ()
+        ats ()
             << "info nodes " << rootPos.game_nodes ()
             << " time " << Time::now () - searchTime + 1 << endl;
 
@@ -398,7 +398,7 @@ finish:
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        atom ()
+        ats ()
             << "bestmove " //<< move_to_uci(rootMoves[0].pv[0], rootPos.chess960 ())
             << " ponder "  //<< move_to_uci(rootMoves[0].pv[1], rootPos.chess960 ())
             << endl;
@@ -498,7 +498,7 @@ namespace {
                     // the UI) before to research.
                     if ((alpha >= best_value || best_value >= beta) && Time::now () - searchTime > 3000)
                     {
-                        atom () << uci_pv_info (pos, depth, alpha, beta) << endl;
+                        ats () << uci_pv_info (pos, depth, alpha, beta) << endl;
                     }
 
                     // In case of failing low/high increase aspiration window and
@@ -530,7 +530,7 @@ namespace {
 
                 if (pv_idx + 1 == pv_size || Time::now () - searchTime > 3000)
                 {
-                    atom () << uci_pv_info (pos, depth, alpha, beta) << endl;
+                    ats () << uci_pv_info (pos, depth, alpha, beta) << endl;
                 }
             }
 
@@ -982,7 +982,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 //if (thread == Threads.main() && Time::now () - SearchTime > 3000)
                 {
-                    atom ()
+                    ats ()
                         << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_can (move, pos.chess960 ())
                         << " currmovenumber " << move_count + pv_idx << endl;
