@@ -12,22 +12,24 @@
 
 namespace Engine {
 
+    using namespace std;
+
     namespace {
 
-        const ::std::string Engine    = "DON";
+        const string Engine    = "DON";
 
         // Version number. If Version is left empty, then compile date, in the
         // format DD-MM-YY, is shown in engine_info.
-        const ::std::string Version   = "1.0";
-        const ::std::string Author    = "Ehsan Rashid";
+        const string Version   = "1.0";
+        const string Author    = "Ehsan Rashid";
 
-        const ::std::string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+        const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
 
     }
 
-    ::std::string info (bool uci)
+    string info (bool uci)
     {
-        ::std::stringstream sinfo;
+        stringstream sinfo;
 
         if (uci) sinfo << "id name ";
         sinfo << Engine << ' ';
@@ -35,8 +37,8 @@ namespace Engine {
         if (Version.empty ())
         {
             // From compiler, format is "Sep 2 2013"
-            ::std::stringstream date (__DATE__);
-            ::std::string
+            stringstream date (__DATE__);
+            string
                 month,
                 day,
                 year;
@@ -46,10 +48,10 @@ namespace Engine {
                 >> day
                 >> year;
 
-            sinfo << ::std::setfill ('0')
-                << ::std::setw (2) << day << '-'
-                << ::std::setw (2) << (Months.find (month) / 4 + 1) << '-'
-                << ::std::setw (2) << year.substr (2);
+            sinfo << setfill ('0')
+                << setw (2) << day << '-'
+                << setw (2) << (Months.find (month) / 4 + 1) << '-'
+                << setw (2) << year.substr (2);
         }
         else
         {
@@ -83,11 +85,13 @@ namespace Engine {
         Pawns   ::initialize ();
         Position::initialize ();
 
-        ::std::cout << Engine::info () << ::std::endl;
+        cout << Engine::info () << endl;
 
 #ifdef _DEBUG
 
-        Tester::main_test ();
+        //Tester::main_test ();
+        Bitboard b = 232424;
+        BitBoard::print (b);
 
 #endif
 

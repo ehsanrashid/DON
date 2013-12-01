@@ -21,12 +21,12 @@ AmbType ambiguity (Move m, const Position &pos)
     Piece mp   = pos[org];
     PType mpt  = _ptype (mp);
 
-    //MoveList m_list = generate<LEGAL> (pos);
+    //MoveList mov_lst = generate<LEGAL> (pos);
     //uint8_t n = 0;
     //uint8_t f = 0;
     //uint8_t r = 0;
-    //MoveList::const_iterator itr = m_list.cbegin ();
-    //while (itr != m_list.cend ())
+    //MoveList::const_iterator itr = mov_lst.cbegin ();
+    //while (itr != mov_lst.cend ())
     //{
     //    Move mm = *itr;
     //    if (sq_org (mm) != org)
@@ -123,8 +123,8 @@ Move move_from_can (std::string &can, const Position &pos)
         }
     }
 
-    MoveList m_list = generate<LEGAL>(pos);
-    for (MoveList::const_iterator itr = m_list.cbegin (); itr != m_list.cend (); ++itr)
+    MoveList mov_lst = generate<LEGAL>(pos);
+    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
     {
         Move m = *itr;
         if (iequals (can, move_to_can (m, pos.chess960 ())))

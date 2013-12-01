@@ -152,9 +152,9 @@ inline std::basic_ostream<charT, Traits>&
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &m_list)
+    operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &mov_lst)
 {
-    std::for_each (m_list.cbegin (), m_list.cend (), [&os] (Move m) { os << m << std::endl; });
+    std::for_each (mov_lst.cbegin (), mov_lst.cend (), [&os] (Move m) { os << m << std::endl; });
     return os;
 }
 

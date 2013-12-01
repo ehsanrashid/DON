@@ -74,8 +74,6 @@ namespace {
 
     Score Weights[6];
 
-    //typedef Value V;
-
 #define V         Value
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -123,7 +121,7 @@ namespace {
     const Value Outpost[2][SQ_NO] =
     {
         // A     B     C     D     E     F     G     H
-        
+
         // KNIGHTS
         {V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
         V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -164,28 +162,29 @@ namespace {
         S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118), S(0, 0),
     };
 
-#undef S
-#undef V
 
-    const Score Tempo            = mk_score (24, 11);
-    const Score BishopPin        = mk_score (66, 11);
-    const Score RookOn7th        = mk_score (11, 20);
-    const Score QueenOn7th       = mk_score ( 3,  8);
-    const Score RookOnPawn       = mk_score (10, 28);
-    const Score QueenOnPawn      = mk_score ( 4, 20);
-    const Score RookOpenFile     = mk_score (43, 21);
-    const Score RookSemiopenFile = mk_score (19, 10);
-    const Score BishopPawns      = mk_score ( 8, 12);
-    const Score KnightPawns      = mk_score ( 8,  4);
-    const Score MinorBehindPawn  = mk_score (16,  0);
-    const Score UndefendedMinor  = mk_score (25, 10);
-    const Score TrappedRook      = mk_score (90,  0);
-    const Score UnstoppablePawn  = mk_score ( 0, 20);
+    const Score Tempo            = S(24, 11);
+    const Score BishopPin        = S(66, 11);
+    const Score RookOn7th        = S(11, 20);
+    const Score QueenOn7th       = S( 3,  8);
+    const Score RookOnPawn       = S(10, 28);
+    const Score QueenOnPawn      = S( 4, 20);
+    const Score RookOpenFile     = S(43, 21);
+    const Score RookSemiopenFile = S(19, 10);
+    const Score BishopPawns      = S( 8, 12);
+    const Score KnightPawns      = S( 8,  4);
+    const Score MinorBehindPawn  = S(16,  0);
+    const Score UndefendedMinor  = S(25, 10);
+    const Score TrappedRook      = S(90,  0);
+    const Score UnstoppablePawn  = S( 0, 20);
 
     // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
     // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
     // happen in Chess960 games.
-    const Score TrappedBishopA1H1 = mk_score (50, 50);
+    const Score TrappedBishopA1H1 = S(50, 50);
+
+#undef S
+#undef V
 
     // The SpaceMask[Color] contains the area of the board which is considered
     // by the space evaluation. In the middle game, each side is given a bonus
@@ -456,7 +455,7 @@ namespace {
                 bonus += bonus / 2;
             }
         }
-        
+
         return mk_score (bonus, bonus);
     }
 

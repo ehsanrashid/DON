@@ -1390,14 +1390,14 @@ bool Position::can_en_passant (Square ep_sq) const
     if (!pawns_ep) return false;
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
 
-    MoveList m_list;
-    while (pawns_ep) m_list.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
+    MoveList mov_lst;
+    while (pawns_ep) mov_lst.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
 
     // Check en-passant is legal for the position
 
     Square fk_sq = king_sq (active);
     Bitboard occ = pieces ();
-    for (MoveList::const_iterator itr = m_list.cbegin (); itr != m_list.cend (); ++itr)
+    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
     {
         Move m = *itr;
         Square org = sq_org (m);
@@ -1940,7 +1940,7 @@ void Position::flip ()
     _si->cap_type   = pos._si->cap_type;
     _si->clock50    = pos._si->clock50;
     _si->last_move  = MOVE_NONE;
-    _si->checkers   = flip_bb (pos._si->checkers);
+    _si->checkers   = flip_verti (pos._si->checkers);
     _active         = ~pos._active;
     _si->matl_key   = ZobGlob.compute_matl_key (*this);
     _si->pawn_key   = ZobGlob.compute_pawn_key (*this);

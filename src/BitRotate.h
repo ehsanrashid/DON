@@ -16,7 +16,7 @@ inline Bitboard rotate_L (Bitboard bb, int8_t k)
 }
 
 // Flip a bitboard vertically about the centre ranks.
-inline Bitboard flip_bb (Bitboard bb)
+inline Bitboard flip_verti (Bitboard bb)
 {
     //return ((bb << 0x38)                          ) |
     //       ((bb << 0x28) & U64(0x00FF000000000000)) |
@@ -37,7 +37,7 @@ inline Bitboard flip_bb (Bitboard bb)
     return bb;
 }
 // Mirror a bitboard horizontally about the center files.
-inline Bitboard mirror_bb (Bitboard bb)
+inline Bitboard mirror_hori (Bitboard bb)
 {
 
     Bitboard K1 = U64 (0x5555555555555555);
@@ -102,14 +102,14 @@ inline Bitboard flip_A8H1 (Bitboard bb)
 // Rotate a bitboard by 90 degrees clockwise.
 inline Bitboard rotate_90C (Bitboard bb)
 {
-    return flip_bb (flip_A1H8 (bb));
-    //return flip_A8H1 (flip_bb (bb));
+    return flip_verti (flip_A1H8 (bb));
+    //return flip_A8H1 (flip_verti (bb));
 }
 // Rotate a bitboard by 90 degrees anticlockwise.
 inline Bitboard rotate_90A (Bitboard bb)
 {
-    return flip_bb (flip_A8H1 (bb));
-    //return flip_A1H8 (flip_bb (bb));
+    return flip_verti (flip_A8H1 (bb));
+    //return flip_A1H8 (flip_verti (bb));
 }
 
 // Rotate a bitboard by 45 degrees clockwise.
@@ -155,7 +155,7 @@ inline Bitboard rotate_180 (Bitboard bb)
 // Flip, mirror or reverse a bitboard
 inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 {
-    for (intptr_t i = 3 * !uint8_t (mirror); i < 3 * (1 + uint8_t (flip)); ++i)
+    for (int8_t i = 3 * !uint8_t (mirror); i < 3 * (1 + uint8_t (flip)); ++i)
     {
         uint16_t s  = ((1) << i);
         Bitboard F  = (U64 (+1) << s);

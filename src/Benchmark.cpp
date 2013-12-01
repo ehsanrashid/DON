@@ -8,6 +8,8 @@
 #include "UCI.h"
 #include "TriLogger.h"
 
+using namespace std;
+
 namespace {
 
     const uint16_t NUM_FEN = 16;
@@ -34,7 +36,7 @@ namespace {
 
 }
 
-// benchmark() runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
+// benchmark () runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
 // There are five optional parameters:
 //  - transposition table size (default is 32 MB).
 //  - number of search threads that should be used (default is 1 thread).
@@ -44,19 +46,19 @@ namespace {
 //     * depth (default).
 //     * time in secs
 //     * number of nodes.
-void benchmark (std::istream &is, const Position &pos)
+void benchmark (istream &is, const Position &pos)
 {
-    std::string token;
-    std::vector<std::string> fens;
+    string token;
+    vector<string> fens;
 
     try
     {
         // Assign default values to missing arguments
-        std::string size_tt    = (is >> token) ? token : "32";
-        std::string threads    = (is >> token) ? token : "1";
-        std::string fn_fen     = (is >> token) ? token : "default";
-        std::string limit_val  = (is >> token) ? token : "12";
-        std::string limit_type = (is >> token) ? token : "depth";
+        string size_tt    = (is >> token) ? token : "32";
+        string threads    = (is >> token) ? token : "1";
+        string fn_fen     = (is >> token) ? token : "default";
+        string limit_val  = (is >> token) ? token : "12";
+        string limit_type = (is >> token) ? token : "depth";
 
         //Options["Hash"]    = size_tt;
         //Options["Threads"] = threads;
@@ -64,11 +66,11 @@ void benchmark (std::istream &is, const Position &pos)
         Searcher::Limits limits;
 
         if (false);
-        else if (iequals (limit_type, "time"))  limits.move_time = std::stoi (limit_val) * 1000; // movetime is in ms
-        else if (iequals (limit_type, "nodes")) limits.nodes     = std::stoi (limit_val);
-        else if (iequals (limit_type, "mate"))  limits.mate_in   = std::stoi (limit_val);
+        else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
+        else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
+        else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
         //if (iequals (limit_type, "depth"))
-        else                                    limits.depth     = std::stoi (limit_val);
+        else                                    limits.depth     = stoi (limit_val);
 
         if (false);
         else if (iequals (fn_fen, "default"))
@@ -81,8 +83,8 @@ void benchmark (std::istream &is, const Position &pos)
         }
         else
         {
-            std::string fen;
-            std::ifstream ifstm_fen (fn_fen);
+            string fen;
+            ifstream ifstm_fen (fn_fen);
 
             if (!ifstm_fen.is_open ())
             {
@@ -90,7 +92,7 @@ void benchmark (std::istream &is, const Position &pos)
                 return;
             }
 
-            while (std::getline (ifstm_fen, fen))
+            while (getline (ifstm_fen, fen))
             {
                 if (!fen.empty ())
                 {
