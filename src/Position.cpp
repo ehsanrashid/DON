@@ -372,45 +372,18 @@ bool Position::draw () const
     }
 
     // Draw by Threefold Repetition?
+    const StateInfo *sip = _si;
     int8_t ply = std::min (_si->null_ply, _si->clock50);
-
-    //if (4 <= ply)
-    //{
-    //    uint8_t i = 1;
-    //    const StateInfo *sip = _si;
-    //    while (0 <= ply && sip->p_si && sip->p_si->p_si)
-    //    {
-    //        sip = sip->p_si->p_si;
-    //        //if (sip->p_si && sip->p_si->p_si)
-    //        //{
-    //        //    sip = sip->p_si->p_si;
-    //        if ((sip->posi_key == _si->posi_key) && (++i >= 3)) return true;
-    //        //}
-    //        //else
-    //        //    break;
-    //        ply -= 2;
-    //    }
-    //}
-
-    if (4 <= ply)
+    while (ply >= 2)
     {
-        ply -= 4;
-        const StateInfo *sip = _si;
         if (sip->p_si && sip->p_si->p_si)
         {
             sip = sip->p_si->p_si;
-            while (0 <= ply)
-            {
-                if (sip->p_si && sip->p_si->p_si)
-                {
-                    sip = sip->p_si->p_si;
-                    // Draw after 1st repetition (2 same position)
-                    if (sip->posi_key == _si->posi_key) return true;
-                    ply -= 2;
-                }
-                else break;
-            }
+            if (sip->posi_key == _si->posi_key)
+                return true; // Draw at first repetition
+            ply -= 2;
         }
+        else break;
     }
 
     //// Draw by Stalemate?
@@ -425,7 +398,7 @@ bool Position::draw () const
 bool Position::ok (int8_t *failed_step) const
 {
     //cout << "ok ()" << endl;
-    int8_t step_dummy, *step = failed_step ? failed_step : &step_dummy;
+    int8_t dummy_step, *step = failed_step ? failed_step : &dummy_step;
 
     // What features of the position should be verified?
     const bool debug_all = true;
@@ -1594,7 +1567,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-            
+
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
             castle_king_rook (org_king, dst_king, org_rook, dst_rook);
 
@@ -1616,9 +1589,9 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->matl_key ^=
                 ZobGlob._.ps_sq[active][PAWN][piece_count (active, PAWN)] ^
                 ZobGlob._.ps_sq[active][ppt][piece_count (active, ppt) - 1];
-            
+
             _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org];
-            
+
             posi_k ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][ppt][dst];
 
             // Update incremental score

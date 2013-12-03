@@ -361,7 +361,7 @@ namespace MoveGenerator {
                         }
                         else
                         {
-                            (void) ci; // silence a warning under MSVC
+                            ci; // silence a warning under MSVC
                         }
                     }
                 }
@@ -425,7 +425,6 @@ namespace MoveGenerator {
         Color active = pos.active ();
 
         Bitboard target = U64 (0);
-        //CheckInfo *ci = NULL;
         switch (G)
         {
         case CAPTURE: target = pos.pieces (~active); break;
