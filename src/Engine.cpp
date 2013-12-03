@@ -89,9 +89,7 @@ namespace Engine {
 
 #ifdef _DEBUG
 
-        //Tester::main_test ();
-        Bitboard b = 232424;
-        BitBoard::print (b);
+        Tester::main_test ();
 
 #endif
 

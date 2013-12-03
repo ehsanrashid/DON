@@ -622,7 +622,7 @@ bool Position::ok (int8_t *failed_step) const
 // If the side who initiated the capturing sequence does the last capture,
 // he loses a tempo and if the result is below 'asymm_threshold'
 // the capturing sequence is considered bad.
-int32_t Position::see(Move m, int32_t asymm_threshold) const
+int32_t Position::see (Move m, int32_t asymm_threshold) const
 {
     ASSERT (_ok(m));
 
@@ -709,8 +709,7 @@ int32_t Position::see(Move m, int32_t asymm_threshold) const
     return swap_list[0];
 }
 
-
-int32_t Position::see_sign(Move m) const
+int32_t Position::see_sign (Move m) const
 {
     ASSERT (_ok(m));
 
@@ -1988,7 +1987,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             else if (PS_NO == p)
             {
                 uint32_t empty = 0;
-                for (; f <= F_H && PS_NO == _piece_arr[f | r]; ++f)
+                for (; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
                     ++empty;
                 ASSERT (1 <= empty && empty <= 8);
                 if (1 > empty || empty > 8) return false;
@@ -2097,7 +2096,7 @@ string Position::fen (bool                  c960, bool full) const
             else if (PS_NO == p)
             {
                 uint32_t empty = 0;
-                for (; f <= F_H && PS_NO == _piece_arr[f | r]; ++f)
+                for (; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
                     ++empty;
                 ASSERT (1 <= empty && empty <= 8);
                 if (1 > empty || empty > 8) return "";
