@@ -386,6 +386,7 @@ public:
     bool capture_or_promotion(Move m) const;
     bool check (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
+    
     bool passed_pawn_push (Move m) const;
     bool advanced_pawn_push (Move m) const;
 
@@ -739,6 +740,20 @@ inline bool Position::has_pair_bishops (Color c) const
         }
     }
     return false;
+}
+
+#pragma endregion
+
+#pragma region Move properties
+
+inline bool Position::passed_pawn_push (Move m) const
+{
+    return (PAWN == _ptype (moved_piece (m))) && passed_pawn(_active, sq_dst (m));
+}
+
+inline bool Position::advanced_pawn_push (Move m) const
+{
+    return (PAWN == _ptype (moved_piece (m))) && (R_4 < rel_rank (_active, sq_org (m)));
 }
 
 #pragma endregion

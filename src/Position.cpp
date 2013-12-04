@@ -1219,16 +1219,6 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     return !generate<EVASION> (pos).size ();
 }
 
-bool Position::passed_pawn_push (Move m) const
-{
-    return (PAWN == _ptype (moved_piece (m))) && passed_pawn(_active, sq_dst (m));
-}
-
-bool Position::advanced_pawn_push (Move m) const
-{
-    return (PAWN == _ptype (moved_piece (m))) && (R_4 < rel_rank (_active, sq_org (m)));
-}
-
 #pragma endregion
 
 #pragma region Basic methods
