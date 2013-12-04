@@ -113,12 +113,12 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
 
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
     {
-        if (!te->key () || te->key () == key32) // empty or overwrite old
+        if (!te->key () || te->key () == key32) // Empty or Old then overwrite
         {
             // Do not overwrite when new type is EVAL_LOWER
-            if (te->key () && EVAL_LOWER == bound) return;
+            //if (te->key () && BND_LOWER == bound) return;
 
-            // preserve any existing TT move
+            // Preserve any existing TT move
             if (MOVE_NONE == move) move = te->move ();
 
             re = te;
@@ -132,7 +132,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
 
         // implement replacement strategy
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
-        int8_t c2 = ((te->gen () == _generation) || (te->bound () == EXACT) ? -2 : 0);
+        int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
         int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
         //int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
 

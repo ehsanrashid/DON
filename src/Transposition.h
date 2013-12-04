@@ -166,7 +166,7 @@ public:
         if (_hash_table)
         {
             size_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
-            std::memset (_hash_table, 0, size_byte);
+            memset (_hash_table, 0, size_byte);
             _stored_entry    = 0;
             _generation     = 0;
         }

@@ -7,6 +7,8 @@
 
 namespace BitBoard {
 
+    using namespace std;
+
 #pragma region Constants
 
     const Bitboard FA_bb = U64 (0x0101010101010101);
@@ -366,7 +368,7 @@ namespace BitBoard {
                 Delta dFile = _filerank_dist[f1][f2];
                 Delta dRank = _filerank_dist[r1][r2];
 
-                _square_dist[s1][s2] = std::max (dFile, dRank);
+                _square_dist[s1][s2] = max (dFile, dRank);
                 _taxi_dist  [s1][s2] = (dFile + dRank);
 
                 if (s1 != s2)
@@ -422,7 +424,7 @@ namespace BitBoard {
         //            }
         //        }
         //
-        //        _shift_gap[occ][f] = std::min (count_w, count_e);
+        //        _shift_gap[occ][f] = min (count_w, count_e);
         //    }
         //}
 
@@ -500,12 +502,12 @@ namespace BitBoard {
         return _strtoui64 (s, NULL, radix);
     }
     // Convert a string to a Bitboard (uint64_t) using radix
-    Bitboard to_bitboard (const std::string &s, int32_t radix)
+    Bitboard to_bitboard (const string &s, int32_t radix)
     {
         return _strtoui64 (s.c_str (), NULL, radix);
     }
     // Convert bin string to hex string
-    std::string to_hex_str (std::string &sbb)
+    string to_hex_str (string &sbb)
     {
         remove_if (sbb, isspace);
 
@@ -513,11 +515,11 @@ namespace BitBoard {
         ASSERT (SQ_NO == length);
         if (SQ_NO != length) return "";
 
-        std::string shex = "0x";
+        string shex = "0x";
         for (Rank r = R_1; r <= R_8; ++r)
         {
-            std::string sb = sbb.substr (r * 8, 8);
-            
+            string sb = sbb.substr (r * 8, 8);
+
             //for (int8_t n = 1; n >= 0; --n)
             //{
             //    string nibble_s = sb.substr(n * 4, 4);
@@ -541,10 +543,10 @@ namespace BitBoard {
             //    else break;
             //}
 
-            std::reverse (sb);
+            reverse (sb);
 
             char buf[3];
-            std::memset (buf, 0, sizeof (buf));
+            memset (buf, 0, sizeof (buf));
             _snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
             //sprintf_s(buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
             shex += buf;
@@ -555,8 +557,8 @@ namespace BitBoard {
     // Convert x-bits of Bitboard to string
     void print_bit (Bitboard bb, uint8_t x, char p)
     {
-        //std::string sbit;
-        std::string sbit (x + (x-1) / CHAR_BIT, '.');
+        //string sbit;
+        string sbit (x + (x-1) / CHAR_BIT, '.');
 
         //size_t x = sizeof (bb) * CHAR_BIT; // if uint32_t
         uint64_t mask = U64 (1) << (x - 1);
@@ -575,13 +577,13 @@ namespace BitBoard {
 
             mask >>= 1;
         }
-        std::cout << sbit << " = " << bb;
+        cout << sbit << " = " << bb;
     }
 
     // Convert a Bitboard (uint64_t) to Bitboard (bin-string)
     void print_bin (Bitboard bb)
     {
-        std::string sbin;
+        string sbin;
         for (Rank r = R_8; r >= R_1; --r)
         {
             for (File f = F_A; f <= F_H; ++f)
@@ -590,17 +592,17 @@ namespace BitBoard {
             }
             sbin.append ("\n");
         }
-        std::cout << sbin;
+        cout << sbin;
     }
 
     // Print a Bitboard (uint64_t) to console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     void print (Bitboard bb, char p)
     {
-        std::string sbb;
+        string sbb;
 
-        //const std::string h_line = " -----------------";
-        //const std::string v_line = "|";
+        //const string h_line = " -----------------";
+        //const string v_line = "|";
         //sbb.append (h_line).append ("\n");
         //for (Rank r = R_8; r >= R_1; --r)
         //{
@@ -617,17 +619,17 @@ namespace BitBoard {
         //for (File f = F_A; f <= F_H; ++f) sbb.append (" ").append (1, to_char (f, false));
         //sbb.append ("\n");
 
-        const std::string dots = " -----------------\n";
-        const std::string row   = "|. . . . . . . .|\n";
+        const string dots = " -----------------\n";
+        const string row   = "|. . . . . . . .|\n";
         const size_t len_row = row.length () + 1;
-        
+
         sbb = dots;
-        
+
         for (Rank r = R_8; r >= R_1; --r)
         {
             sbb += to_char (r) + row;
         }
-        
+
         sbb += dots + " ";
 
         for (File f = F_A; f <= F_H; ++f)
@@ -635,7 +637,7 @@ namespace BitBoard {
             sbb += " ";
             sbb += to_char (f);
         }
-        
+
         sbb += "\n";
 
         while (bb)
@@ -646,7 +648,7 @@ namespace BitBoard {
             sbb[2 + len_row * (8 - r) + 2 * f] = p;
         }
 
-        std::cout << sbb;
+        cout << sbb;
     }
 
 #pragma endregion

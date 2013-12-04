@@ -4,6 +4,7 @@
 #include <regex>
 #include <iterator>
 
+using namespace std;
 
 Game::Game ()
     : _last_pos (FEN_N)
@@ -25,7 +26,7 @@ Game::Game (const          char *text)
         clear ();
     }
 }
-Game::Game (const std::string &text)
+Game::Game (const string &text)
 {
     Game game (int8_t (0));
     if (parse (game, text))
@@ -52,7 +53,7 @@ Game::Game (const std::string &text)
 void Game::add_tag (const Tag &tag)
 {
 }
-void Game::add_tag (const std::string &name, const std::string &value)
+void Game::add_tag (const string &name, const string &value)
 {
     //_map_tag[name] = value;
     //p = _map_tag.find (); if (p != _map_tag.end ())
@@ -86,7 +87,7 @@ bool Game::append_move (Move m)
     }
     return false;
 }
-bool Game::append_move (const std::string &smove)
+bool Game::append_move (const string &smove)
 {
     // TODO::
     return true;
@@ -101,7 +102,7 @@ bool Game::remove_move ()
     return true;
 }
 
-bool Game::setup (const std::string &fen, bool c960, bool full)
+bool Game::setup (const string &fen, bool c960, bool full)
 {
     return _last_pos.setup (fen, c960, full);
 }
@@ -120,7 +121,7 @@ void Game::reset ()
     {
         if (!remove_move ())
         {
-            //std::cout << "ERROR: Undo move " << _lst_move.back ();
+            //cout << "ERROR: Undo move " << _lst_move.back ();
             break;
         }
     }
@@ -131,18 +132,18 @@ void Game::reset ()
     }
 }
 
-std::string Game::pgn () const
+string Game::pgn () const
 {
-    std::ostringstream spgn;
+    ostringstream spgn;
     // pgn format
     print_tags (spgn);
 
     return spgn.str ();
 }
 
-Game::operator std::string ()  const
+Game::operator string ()  const
 {
-    std::ostringstream sgame;
+    ostringstream sgame;
     // tag list
     // starting fen
     // move list
@@ -152,7 +153,7 @@ Game::operator std::string ()  const
     return sgame.str ();
 }
 
-void Game::print_tags (std::ostream &ostream) const
+void Game::print_tags (ostream &ostream) const
 {
     for (size_t idx = 0; idx < _map_tag.size (); ++idx)
     {
@@ -162,7 +163,7 @@ void Game::print_tags (std::ostream &ostream) const
             const Tag &tag = itr->second;
             if (idx == tag.index)
             {
-                ostream << "[" << itr->first << " \"" << tag << "\"]" << std::endl;
+                ostream << "[" << itr->first << " \"" << tag << "\"]" << endl;
             }
             ++itr;
         }
@@ -186,7 +187,7 @@ bool Game::parse (Game &game, const        char *text)
     //    if (read != 2) break;
     //    c += n;
 
-    //    std::cout << name << " " << value << std::endl;
+    //    cout << name << " " << value << endl;
     //    //game.AddTag(name, value);
     //}
     //while ('\0' != *c);
@@ -237,7 +238,7 @@ bool Game::parse (Game &game, const        char *text)
 
     return is_ok;
 }
-bool Game::parse (Game &game, const std::string &text)
+bool Game::parse (Game &game, const string &text)
 {
     bool is_ok = false;
 
@@ -248,9 +249,9 @@ bool Game::parse (Game &game, const std::string &text)
         //"[Event \"Blitz 4m+2s\"]\n[Site \"?\"]\n";
         "1. e4 e5 2. Nf3 {a}  {b} Nc6 3. Bb5 a6 4...d5";
     //"11... Bxe3 12. Qxe3 Nxc3  13. Qxc3 {dfs} {sfsf} Qd7 14. Rad1 Nd8";
-    std::string seq (pat);
+    string seq (pat);
 
-    std::string reg_esp =
+    string reg_esp =
         /// tag
         //"(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
         ///move
@@ -264,12 +265,12 @@ bool Game::parse (Game &game, const std::string &text)
     // endMarker
     //\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
-    //std::cout << "Target sequence: " << std::endl << seq << std::endl;
-    //std::cout << "Regular expression: /" << reg_esp << "/" << std::endl;
-    //std::cout << "The following matches were found:" << std::endl;
+    //cout << "Target sequence: " << endl << seq << endl;
+    //cout << "Regular expression: /" << reg_esp << "/" << endl;
+    //cout << "The following matches were found:" << endl;
 
-    std::regex rgx (reg_esp);//, regex_constants::match_flag_type::match_continuous);
-    std::sregex_iterator begin (seq.begin (), seq.end (), rgx), end;
+    regex rgx (reg_esp);//, regex_constants::match_flag_type::match_continuous);
+    sregex_iterator begin (seq.begin (), seq.end (), rgx), end;
     //for (auto itr = begin; itr != end; ++itr)
     //{
     //    bool first = true;
@@ -280,15 +281,15 @@ bool Game::parse (Game &game, const std::string &text)
     //            first = false;
     //            continue;
     //        }
-    //        std::cout << x << "   ";
+    //        cout << x << "   ";
     //    }
-    //    std::cout << std::endl;
+    //    cout << endl;
     //}
 
-    //std::cout << "--------" << std::endl;
+    //cout << "--------" << endl;
 
-    //std::smatch match;
-    //while (std::regex_search(seq, match, rgx, regex_constants::match_flag_type::match_not_null))
+    //smatch match;
+    //while (regex_search(seq, match, rgx, regex_constants::match_flag_type::match_not_null))
     //{
     //    bool first = false;
     //    
@@ -300,9 +301,9 @@ bool Game::parse (Game &game, const std::string &text)
     //            first = false;
     //            continue;
     //        }
-    //        std::cout << x << "   ";
+    //        cout << x << "   ";
     //    }
-    //    std::cout << std::endl;
+    //    cout << endl;
     //    seq = match.suffix().str();
     //}
 

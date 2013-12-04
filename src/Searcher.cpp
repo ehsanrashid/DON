@@ -418,7 +418,7 @@ namespace {
     {
         Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
 
-        std::memset (ss-2, 0, 5 * sizeof (Stack));
+        memset (ss-2, 0, 5 * sizeof (Stack));
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();
@@ -715,9 +715,9 @@ namespace {
             && tte
             && tte->depth() >= depth
             && tt_value != VALUE_NONE // Only in case of TT access race
-            && (        PVNode ?  tte->bound() == EXACT
-            : tt_value >= beta ? (tte->bound() &  LOWER)
-            : (tte->bound() &  UPPER)))
+            && (        PVNode ?  tte->bound() == BND_EXACT
+            : tt_value >= beta ? (tte->bound() &  BND_LOWER)
+            : (tte->bound() &  BND_UPPER)))
         {
             TT.refresh(tte);
             ss->current_move = tt_move; // Can be MOVE_NONE
@@ -752,7 +752,7 @@ namespace {
             // Can tt_value be used as a better position evaluation?
             if (tt_value != VALUE_NONE)
             {
-                if (tte->bound() & (tt_value > eval_value ? LOWER : UPPER))
+                if (tte->bound() & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
                 {
                     eval_value = tt_value;
                 }
@@ -944,7 +944,7 @@ moves_loop: // When in check and at SPNode search starts from here
             &&  depth >= 8 * ONE_PLY
             &&  tt_move != MOVE_NONE
             && !excluded_move // Recursive singular search is not allowed
-            && (tte->bound() & LOWER)
+            && (tte->bound() & BND_LOWER)
             &&  tte->depth() >= depth - 3 * ONE_PLY;
 
         // Step 11. Loop through moves
@@ -1275,7 +1275,7 @@ moves_loop: // When in check and at SPNode search starts from here
             posi_key,
             best_move,
             depth, 
-            best_value >= beta  ? LOWER : PVNode && best_move ? EXACT : UPPER,
+            best_value >= beta  ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
             value_to_tt(best_value, ss->ply),
             ss->static_eval);
 
@@ -1359,9 +1359,9 @@ moves_loop: // When in check and at SPNode search starts from here
         if (   tte
             && tte->depth() >= tt_depth
             && tt_value != VALUE_NONE // Only in case of TT access race
-            && (        PVNode ?  tte->bound() == EXACT
-            : tt_value >= beta ? (tte->bound() &  LOWER)
-            : (tte->bound() &  UPPER)))
+            && (        PVNode ?  tte->bound() == BND_EXACT
+            : tt_value >= beta ? (tte->bound() &  BND_LOWER)
+            : (tte->bound() &  BND_UPPER)))
         {
             ss->current_move = tt_move; // Can be MOVE_NONE
             return tt_value;
@@ -1387,7 +1387,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
                 {
-                    if (tte->bound() & (tt_value > best_value ? LOWER : UPPER))
+                    if (tte->bound() & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                     {
                         best_value = tt_value;
                     }
@@ -1403,7 +1403,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 if (!tte)
                 {
-                    TT.store (pos.posi_key (), MOVE_NONE, DEPTH_NONE, LOWER, value_to_tt (best_value, ss->ply), ss->static_eval);
+                    TT.store (pos.posi_key (), MOVE_NONE, DEPTH_NONE, BND_LOWER, value_to_tt (best_value, ss->ply), ss->static_eval);
                 }
                 return best_value;
             }
@@ -1508,7 +1508,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     }
                     else // Fail high
                     {
-                        TT.store (posi_key, move, tt_depth, LOWER, value_to_tt(value, ss->ply), ss->static_eval);
+                        TT.store (posi_key, move, tt_depth, BND_LOWER, value_to_tt(value, ss->ply), ss->static_eval);
                         return value;
                     }
                 }
@@ -1526,7 +1526,7 @@ moves_loop: // When in check and at SPNode search starts from here
             posi_key,
             best_move,
             tt_depth,
-            PVNode && (best_value > old_alpha) ? EXACT : UPPER,
+            PVNode && (best_value > old_alpha) ? BND_EXACT : BND_UPPER,
             value_to_tt(best_value, ss->ply),
             ss->static_eval);
 

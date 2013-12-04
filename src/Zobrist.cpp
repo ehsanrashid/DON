@@ -83,7 +83,7 @@ namespace Zobrist {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             const SquareList &sq_list = pos.list<PAWN> (c);
-            std::for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
+            for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
             {
                 pawn_key ^= _.ps_sq[c][PAWN][s];
             });
@@ -128,7 +128,7 @@ namespace Zobrist {
             for (PType t = PAWN; t <= KING; ++t)
             {
                 const SquareList &sq_list = pos[c | t];
-                std::for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
+                for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
                 {
                     posi_key ^= _.ps_sq[c][t][s];
                 });
@@ -309,16 +309,16 @@ namespace Zobrist {
         return fen_key;
     }
     // Hash key of the FEN
-    Key Zob::compute_fen_key (const std::string &fen, bool c960) const
+    Key Zob::compute_fen_key (const string &fen, bool c960) const
     {
         if (fen.empty ()) return U64 (0);
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
 
-        std::istringstream sfen (fen);
+        istringstream sfen (fen);
         unsigned char ch;
 
-        sfen >> std::noskipws;
+        sfen >> noskipws;
         for (Rank r = R_8; r >= R_1; --r)
         {
             File f = F_A;
@@ -365,14 +365,14 @@ namespace Zobrist {
                 if (sfen.eof () || !sfen.good () || '/' != ch) return U64 (0);
             }
         }
-        sfen >> std::skipws >> ch;
+        sfen >> skipws >> ch;
         char active = ch;
         if (WHITE == to_color (active)) fen_key ^= _.mover_side;
 
-        sfen >> std::skipws >> ch;
+        sfen >> skipws >> ch;
         if ('-' != ch)
         {
-            sfen >> std::noskipws;
+            sfen >> noskipws;
 
             if (c960)
             {
@@ -423,14 +423,14 @@ namespace Zobrist {
             }
 
         }
-        sfen >> std::skipws >> ch;
+        sfen >> skipws >> ch;
         if ('-' != ch)
         {
             unsigned char ep_f = tolower (ch);
             if (!isalpha (ep_f)) return U64 (0);
             if ('a' > ep_f || ep_f > 'h') return U64 (0);
 
-            sfen >> std::noskipws >> ch;
+            sfen >> noskipws >> ch;
             unsigned char ep_r = ch;
             if (!isdigit (ep_r)) return U64 (0);
             if (('w' == active && '6' != ep_r) ||

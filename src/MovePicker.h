@@ -55,7 +55,7 @@ public:
 
     void clear ()
     {
-        std::memset (_table, 0, sizeof (_table));
+        memset (_table, 0, sizeof (_table));
     }
 
     void update (Piece p, Square s, Move m)

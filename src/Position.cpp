@@ -10,10 +10,7 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 
-using std::string;
-using std::cout;
-using std::endl;
-
+using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
@@ -93,7 +90,7 @@ CheckInfo::CheckInfo (const Position &pos)
 void CheckInfo::clear ()
 {
     //for (PType t = PAWN; t <= KING; ++t) checking_bb[t] = U64 (0);
-    std::fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
+    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
 
     king_sq         = SQ_NO;
     pinneds         = U64 (0);
@@ -249,11 +246,11 @@ void Position::initialize ()
 // so that why detach the state info pointer from the source one.
 Position& Position::operator= (const Position &pos)
 {
-    //std::memcpy(this, &pos, sizeof (Position));
+    //memcpy(this, &pos, sizeof (Position));
 
-    std::memcpy (_piece_arr, pos._piece_arr, sizeof (_piece_arr));
-    std::memcpy (_color_bb , pos._color_bb , sizeof (_color_bb));
-    std::memcpy (_types_bb , pos._types_bb , sizeof (_types_bb));
+    memcpy (_piece_arr, pos._piece_arr, sizeof (_piece_arr));
+    memcpy (_color_bb , pos._color_bb , sizeof (_color_bb));
+    memcpy (_types_bb , pos._types_bb , sizeof (_types_bb));
 
     for (Color c = WHITE; c <= BLACK; ++c)
     {
@@ -265,9 +262,9 @@ Position& Position::operator= (const Position &pos)
 
     _active = pos._active;
 
-    std::memcpy (_castle_rights, pos._castle_rights, sizeof (_castle_rights));
-    std::memcpy (_castle_rooks , pos._castle_rooks , sizeof (_castle_rooks));
-    std::memcpy (_castle_paths , pos._castle_paths , sizeof (_castle_paths));
+    memcpy (_castle_rights, pos._castle_rights, sizeof (_castle_rights));
+    memcpy (_castle_rooks , pos._castle_rooks , sizeof (_castle_rooks));
+    memcpy (_castle_paths , pos._castle_paths , sizeof (_castle_paths));
 
     _game_ply   = pos._game_ply;
     _chess960   = pos._chess960;
@@ -317,7 +314,7 @@ inline Piece Position::remove_piece (Square s)
     _types_bb[PT_NO] -= s;
 
     // Update piece list, remove piece at [s] index and shrink the list.
-    sq_list.erase (std::remove (sq_list.begin (), sq_list.end (), s), sq_list.end ());
+    sq_list.erase (remove (sq_list.begin (), sq_list.end (), s), sq_list.end ());
 
     return p;
 }
@@ -345,7 +342,7 @@ Piece Position::move_piece (Square s1, Square s2)
     _types_bb[PT_NO] += s2;
 
     SquareList &sq_list = _piece_list[mc][mt];
-    std::replace (sq_list.begin (), sq_list.end (), s1, s2);
+    replace (sq_list.begin (), sq_list.end (), s1, s2);
 
     return mp;
 }
@@ -373,7 +370,7 @@ bool Position::draw () const
 
     // Draw by Threefold Repetition?
     const StateInfo *sip = _si;
-    int8_t ply = std::min (_si->null_ply, _si->clock50);
+    int8_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
         if (sip->p_si && sip->p_si->p_si)
@@ -472,10 +469,10 @@ bool Position::ok (int8_t *failed_step) const
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
             if ((piece_count (c, PAWN) +
-                std::max (piece_count<NIHT> (c) - 2, 0) +
-                std::max (piece_count<BSHP> (c) - 2, 0) +
-                std::max (piece_count<ROOK> (c) - 2, 0) +
-                std::max (piece_count<QUEN> (c) - 1, 0)) > 8)
+                max (piece_count<NIHT> (c) - 2, 0) +
+                max (piece_count<BSHP> (c) - 2, 0) +
+                max (piece_count<ROOK> (c) - 2, 0) +
+                max (piece_count<QUEN> (c) - 1, 0)) > 8)
             {
                 return false; // Too many Promoted Piece of color
             }
@@ -490,8 +487,8 @@ bool Position::ok (int8_t *failed_step) const
                 };
 
                 if ((piece_count (c, PAWN) +
-                    std::max (bishop_count[WHITE] - 1, 0) +
-                    std::max (bishop_count[BLACK] - 1, 0)) > 8)
+                    max (bishop_count[WHITE] - 1, 0) +
+                    max (bishop_count[BLACK] - 1, 0)) > 8)
                 {
                     return false; // Too many Promoted BISHOP of color
                 }
@@ -594,7 +591,7 @@ bool Position::ok (int8_t *failed_step) const
 
     if (++(*step), debug_posi_key)
     {
-        //cout << std::hex << std::uppercase << posi_key () << endl;
+        //cout << hex << uppercase << posi_key () << endl;
         if (ZobGlob.compute_posi_key (*this) != posi_key ()) return false;
     }
 
@@ -703,7 +700,7 @@ int32_t Position::see (Move m, int32_t asymm_threshold) const
     // achievable score from the point of view of the side to move.
     while (--index)
     {
-        swap_list[index - 1] = std::min (-swap_list[index], swap_list[index - 1]);
+        swap_list[index - 1] = min (-swap_list[index], swap_list[index - 1]);
     }
 
     return swap_list[0];
@@ -1230,9 +1227,9 @@ void Position::clear ()
     //for (Color c = WHITE; c <= BLACK; ++c)  _color_bb[c] = U64 (0);
     //for (PType t = PAWN; t <= PT_NO; ++t)   _types_bb[t] = U64 (0);
 
-    std::fill_n (_piece_arr, sizeof (_piece_arr) / sizeof (*_piece_arr), PS_NO);
-    std::fill_n (_color_bb , sizeof (_color_bb)  / sizeof (*_color_bb) , 0);
-    std::fill_n (_types_bb , sizeof (_types_bb)  / sizeof (*_types_bb) , 0);
+    fill_n (_piece_arr, sizeof (_piece_arr) / sizeof (*_piece_arr), PS_NO);
+    fill_n (_color_bb , sizeof (_color_bb)  / sizeof (*_color_bb) , 0);
+    fill_n (_types_bb , sizeof (_types_bb)  / sizeof (*_types_bb) , 0);
 
     for (Color c = WHITE; c <= BLACK; ++c)
     {
@@ -1289,17 +1286,17 @@ void Position::clr_castles ()
     //    }
     //}
 
-    std::fill (
+    fill (
         _castle_rights[0] + 0,
         _castle_rights[0] + sizeof (_castle_rights) / sizeof (**_castle_rights),
         CR_NO);
 
-    std::fill (
+    fill (
         _castle_rooks[0] + 0,
         _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
         SQ_NO);
 
-    std::fill (
+    fill (
         _castle_paths[0] + 0,
         _castle_paths[0] + sizeof (_castle_paths) / sizeof (**_castle_paths),
         U64 (0));
@@ -1326,14 +1323,14 @@ void Position::set_castle (Color c, Square org_rook)
 
     _castle_rooks[c][cs] = org_rook;
 
-    for (Square s = std::min (org_rook, dst_rook); s <= std::max (org_rook, dst_rook); ++s)
+    for (Square s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
     {
         if (org_king != s && org_rook != s)
         {
             _castle_paths[c][cs] += s;
         }
     }
-    for (Square s = std::min (org_king, dst_king); s <= std::max (org_king, dst_king); ++s)
+    for (Square s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
     {
         if (org_king != s && org_rook != s)
         {
@@ -1438,7 +1435,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    std::memcpy (&si_n, _si, SIZE_COPY_SI);
+    memcpy (&si_n, _si, SIZE_COPY_SI);
 
     // switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;
@@ -1798,7 +1795,7 @@ void Position::do_null_move (StateInfo &si_n)
     if (_si->checkers)  return;
 
     // Full copy here
-    std::memcpy (&si_n, _si, sizeof (StateInfo));
+    memcpy (&si_n, _si, sizeof (StateInfo));
 
     // switch our state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;
@@ -1844,11 +1841,11 @@ void Position::flip ()
 {
 
     //string f, token;
-    //std::stringstream ss (fen ());
+    //stringstream ss (fen ());
 
     //for (Rank rank = R_8; rank >= R_1; --rank) // Piece placement
     //{
-    //    std::getline (ss, token, rank > R_1 ? '/' : ' ');
+    //    getline (ss, token, rank > R_1 ? '/' : ' ');
     //    f.insert (0, token + (f.empty () ? " " : "/"));
     //}
 
@@ -1858,12 +1855,12 @@ void Position::flip ()
     //ss >> token; // Castling availability
     //f += token;
     //f += ' ';
-    //std::transform (f.begin (), f.end (), f.begin (),
+    //transform (f.begin (), f.end (), f.begin (),
     //    [] (char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
 
     //ss >> token; // En passant square
     //f += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : "3"));
-    //std::getline (ss, token); // Half and full moves
+    //getline (ss, token); // Half and full moves
     //f += token;
 
     //setup (f, chess960 ());
@@ -1931,7 +1928,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     if (!ok ()) return false;
 
     char *ch = (char*) fen;
-    std::memset (ch, '\0', MAX_FEN);
+    memset (ch, '\0', MAX_FEN);
 
 #undef set_next
 
@@ -2075,7 +2072,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
 }
 string Position::fen (bool                  c960, bool full) const
 {
-    std::ostringstream sfen;
+    ostringstream sfen;
 
     for (Rank r = R_8; r >= R_1; --r)
     {
@@ -2180,12 +2177,12 @@ Position::operator string () const
 {
 
 #pragma region Board
-    const std::string dots = " +---+---+---+---+---+---+---+---+\n";
-    const std::string row_1 = "| . |   | . |   | . |   | . |   |\n" + dots;
-    const std::string row_2 = "|   | . |   | . |   | . |   | . |\n" + dots;
+    const string dots = " +---+---+---+---+---+---+---+---+\n";
+    const string row_1 = "| . |   | . |   | . |   | . |   |\n" + dots;
+    const string row_2 = "|   | . |   | . |   | . |   | . |\n" + dots;
     const size_t len_row = row_1.length () + 1;
 
-    std::string brd = dots;
+    string brd = dots;
     for (Rank r = R_8; r >= R_1; --r)
     {
         brd += to_char (r) + ((r % 2) ? row_1 : row_2);
@@ -2207,7 +2204,7 @@ Position::operator string () const
 
 #pragma endregion
 
-    std::ostringstream spos;
+    ostringstream spos;
 
     spos
         << brd << endl
@@ -2442,7 +2439,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
-    pos._game_ply = std::max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
+    pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->checkers = pos.checkers (pos._active);
     pos._si->matl_key = ZobGlob.compute_matl_key (pos);
@@ -2634,17 +2631,17 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     //// Convert from game_move starting from 1 to game_ply starting from 0,
     //// handle also common incorrect FEN with game_move = 0.
     //pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
-    //pos._game_ply = std::max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
+    //pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
 #pragma endregion
 
 #pragma region Input String Stream
 
-    std::istringstream sfen (fen);
+    istringstream sfen (fen);
     unsigned char ch;
 
     // Piece placement on Board
-    sfen >> std::noskipws;
+    sfen >> noskipws;
     for (Rank r = R_8; r >= R_1; --r)
     {
         File f = F_A;
@@ -2698,7 +2695,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     }
 
     // Active color
-    sfen >> std::skipws >> ch;
+    sfen >> skipws >> ch;
     pos._active = to_color (ch);
     if (CLR_NO == pos._active) return false;
 
@@ -2708,10 +2705,10 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    sfen >> std::skipws >> ch;
+    sfen >> skipws >> ch;
     if ('-' != ch)
     {
-        sfen >> std::noskipws;
+        sfen >> noskipws;
 
         if (c960)
         {
@@ -2766,7 +2763,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
         }
     }
     // En-passant square
-    sfen >> std::skipws >> ch;
+    sfen >> skipws >> ch;
     if ('-' != ch)
     {
         unsigned char ep_f = tolower (ch);
@@ -2775,7 +2772,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
         if (!isalpha (ep_f)) return false;
         if ('a' > ep_f || ep_f > 'h') return false;
 
-        sfen >> std::noskipws >> ch;
+        sfen >> noskipws >> ch;
         unsigned char ep_r = ch;
         ASSERT (isdigit (ep_r));
         ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
@@ -2793,12 +2790,12 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     int32_t clk50 = 0, g_move = 1;
     if (full)
     {
-        sfen >> std::skipws >> clk50 >> g_move;
+        sfen >> skipws >> clk50 >> g_move;
     }
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
-    pos._game_ply = std::max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
+    pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
 #pragma endregion
 

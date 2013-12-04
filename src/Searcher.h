@@ -62,7 +62,7 @@ namespace Searcher {
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
 
-        Limits() { std::memset (this, 0, sizeof (Limits)); }
+        Limits() { memset (this, 0, sizeof (Limits)); }
 
         bool use_time_management () const
         {
@@ -100,7 +100,7 @@ namespace Searcher {
         bool first_root_move;
         bool failed_low_at_root;
 
-        Signals() { std::memset (this, 0, sizeof (Signals)); }
+        Signals() { memset (this, 0, sizeof (Signals)); }
 
     } Signals;
 

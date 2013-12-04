@@ -383,7 +383,7 @@ typedef enum Bound : uint8_t
     // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
     // Since some of the search is cut off, What the actual evaluation of the position was?
     // It was atleast BETA or higher.
-    LOWER   = 1,
+    BND_LOWER   = 1,
 
     // UPPER (BETA) BOUND   - ALL
     // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
@@ -393,7 +393,7 @@ typedef enum Bound : uint8_t
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    UPPER   = 2,
+    BND_UPPER   = 2,
 
     // EXACT (-) BOUND      - PV
     // EXACT evaluation, when receive a definite evaluation,
@@ -403,14 +403,7 @@ typedef enum Bound : uint8_t
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    EXACT   = LOWER | UPPER,
-
-    // Evaluation cache for lower bound
-    EVAL_LOWER = 4,
-    // Evaluation cache for upper bound
-    EVAL_UPPER = 5,
-    // Evaluation cache
-    EVAL_EXACT  = 6,
+    BND_EXACT   = BND_LOWER | BND_UPPER,
 
 } Bound;
 
