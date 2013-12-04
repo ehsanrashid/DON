@@ -572,15 +572,6 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); 
 
 typedef std::vector<Move>   MoveList;
 
-
-CACHE_ALIGN(32)
-    const Value PieceValue[PHASE_NO][PT_NO] =
-{
-    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
-};
-
-
 inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
@@ -602,6 +593,5 @@ public:
     }
 
 };
-
 
 #endif

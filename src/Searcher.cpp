@@ -65,7 +65,7 @@ namespace {
     template <NodeType N>
     Value  search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
-    template <NodeType N, bool InCheck>
+    template <NodeType N, bool IN_CHECK>
     Value qsearch (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
@@ -760,7 +760,7 @@ namespace {
             eval_value = ss->static_eval = evaluate(pos);
             TT.store(posi_key, MOVE_NONE, DEPTH_NONE, UNKNOWN, VALUE_NONE, ss->static_eval);
         }
-        
+
         if (   pos.cap_type() != PT_NO
             &&  ss->static_eval != VALUE_NONE
             && (ss-1)->static_eval != VALUE_NONE
@@ -994,8 +994,10 @@ moves_loop: // When in check and at SPNode search starts from here
             bool gives_check          = pos.check (move, ci);
 
             bool dangerous =   gives_check
-                || pos.passed_pawn_push(move)
-                || _mtype (move) == CASTLE;
+                //|| pos.passed_pawn_push (move)
+                //|| _mtype (move) == CASTLE;
+                || _mtype (move) != NORMAL
+                || pos.advanced_pawn_push (move);
 
             // Step 12. Extend checks
             if (gives_check && pos.see_sign (move) >= 0) ext = ONE_PLY;
@@ -1311,13 +1313,13 @@ moves_loop: // When in check and at SPNode search starts from here
     // qsearch() is the quiescence search function, which is called by the main
     // search function when the remaining depth is zero (or, to be more precise,
     // less than ONE_PLY).
-    template <NodeType N, bool InCheck>
+    template <NodeType N, bool IN_CHECK>
     Value qsearch (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
     {
         const bool PVNode = (N == PV);
 
         ASSERT (N == PV || N == NonPV);
-        ASSERT (InCheck == !!pos.checkers ());
+        ASSERT (IN_CHECK == !!pos.checkers ());
         ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
@@ -1342,7 +1344,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // Decide whether or not to include checks, this fixes also the type of
         // TT entry depth that we are going to use. Note that in qsearch we use
         // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-        Depth tt_depth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+        Depth tt_depth = IN_CHECK || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
         Key posi_key = pos.posi_key ();
 
@@ -1366,7 +1368,7 @@ moves_loop: // When in check and at SPNode search starts from here
         Value futility_base;
 
         // Evaluate the position statically
-        if (InCheck)
+        if (IN_CHECK)
         {
             ss->static_eval = VALUE_NONE;
             best_value = futility_base = -VALUE_INFINITE;
@@ -1426,26 +1428,27 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Futility pruning
             if (   !PVNode
-                && !InCheck
+                && !IN_CHECK
                 && !gives_check
                 &&  move != tt_move
-                &&  _mtype (move) != PROMOTE
-                &&  futility_base > -VALUE_KNOWN_WIN
-                && !pos.passed_pawn_push(move))
+                //&&  _mtype (move) != PROMOTE
+                //&& !pos.passed_pawn_push (move)
+                && !pos.advanced_pawn_push (move)
+                &&  futility_base > -VALUE_KNOWN_WIN)
             {
-                Value futility_value =  futility_base
-                    + PieceValue[EG][pos[sq_dst (move)]]
-                + (_mtype (move) == ENPASSANT ? VALUE_EG_PAWN : VALUE_ZERO);
+                ASSERT (_mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
-                if (futility_value < beta)
+                Value futility_value = futility_base + PieceValue[EG][pos[sq_dst (move)]];
+
+                if (false);
+                else if (futility_value < beta)
                 {
                     best_value = std::max (best_value, futility_value);
                     continue;
                 }
-
                 // Prune moves with negative or equal SEE and also moves with positive
                 // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                if (   futility_base < beta
+                else if (   futility_base < beta
                     && pos.see (move, beta - futility_base) <= 0)
                 {
                     best_value = std::max (best_value, futility_base);
@@ -1454,14 +1457,14 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Detect non-capture evasions that are candidate to be pruned
-            bool evasion_prunable =    InCheck
+            bool evasion_prunable =    IN_CHECK
                 &&  best_value > VALUE_MATED_IN_MAX_PLY
                 && !pos.capture (move)
                 && !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
             if (   !PVNode
-                && (!InCheck || evasion_prunable)
+                && (!IN_CHECK || evasion_prunable)
                 &&  move != tt_move
                 &&  _mtype (move) != PROMOTE
                 &&  pos.see_sign (move) < 0)
@@ -1470,7 +1473,10 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Check for legality only before to do the move
-            if (!pos.legal (move, ci.pinneds)) continue;
+            if (!pos.legal (move, ci.pinneds))
+            {
+                continue;
+            }
 
             ss->current_move = move;
 
@@ -1509,7 +1515,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
         // All legal moves have been searched. A special case: If we're in check
         // and no legal moves were found, it is checkmate.
-        if (InCheck && best_value == -VALUE_INFINITE)
+        if (IN_CHECK && best_value == -VALUE_INFINITE)
         {
             return mated_in (ss->ply); // Plies to mate from the root
         }

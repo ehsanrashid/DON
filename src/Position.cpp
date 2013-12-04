@@ -1219,10 +1219,14 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     return !generate<EVASION> (pos).size ();
 }
 
-bool Position::passed_pawn_push(Move m) const
+bool Position::passed_pawn_push (Move m) const
 {
-    return _ptype (moved_piece(m)) == PAWN
-        && passed_pawn(_active, sq_dst (m));
+    return (PAWN == _ptype (moved_piece (m))) && passed_pawn(_active, sq_dst (m));
+}
+
+bool Position::advanced_pawn_push (Move m) const
+{
+    return (PAWN == _ptype (moved_piece (m))) && (R_4 < rel_rank (_active, sq_org (m)));
 }
 
 #pragma endregion
@@ -1987,7 +1991,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             else if (PS_NO == p)
             {
                 uint32_t empty = 0;
-                for (; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
+                for ( ; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
                     ++empty;
                 ASSERT (1 <= empty && empty <= 8);
                 if (1 > empty || empty > 8) return false;
@@ -2096,7 +2100,7 @@ string Position::fen (bool                  c960, bool full) const
             else if (PS_NO == p)
             {
                 uint32_t empty = 0;
-                for (; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
+                for ( ; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
                     ++empty;
                 ASSERT (1 <= empty && empty <= 8);
                 if (1 > empty || empty > 8) return "";

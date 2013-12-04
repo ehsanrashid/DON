@@ -147,6 +147,13 @@ public:
 
 #pragma region Position
 
+CACHE_ALIGN(32)
+    const Value PieceValue[PHASE_NO][PT_NO] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
+};
+
 #pragma pack (push, 4)
 
 // The position data structure. A position consists of the following data:
@@ -379,7 +386,8 @@ public:
     bool capture_or_promotion(Move m) const;
     bool check (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
-    bool passed_pawn_push(Move m) const;
+    bool passed_pawn_push (Move m) const;
+    bool advanced_pawn_push (Move m) const;
 
 #pragma endregion
 
