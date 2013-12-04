@@ -56,9 +56,9 @@ namespace {
     double best_move_changes;
     Value draw_value[CLR_NO];
 
-    GainsStats gains;
-    HistoryStats history;
-    CountermovesStats counter_moves;
+    GainsStats          gains;
+    HistoryStats        history;
+    CountermovesStats   counter_moves;
 
     void iter_deep_loop (Position &pos);
 
@@ -383,8 +383,10 @@ finish:
 
         // When search is stopped this info is not printed
         ats ()
-            << "info nodes " << rootPos.game_nodes ()
-            << " time " << Time::now () - searchTime + 1 << endl;
+            << "info"
+            << " nodes " << rootPos.game_nodes ()
+            << " time "  << Time::now () - searchTime + 1
+            << endl;
 
         // When we reach max depth we arrive here even without signals.stop is raised,
         // but if we are pondering or in infinite search, according to UCI protocol,
@@ -628,26 +630,27 @@ namespace {
         const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
         const bool RootNode = (N == Root || N == SplitPointRoot);
 
-        ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
+        ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth > DEPTH_ZERO);
 
         Value best_value;
+        Move  best_move;
 
+
+        //SplitPoint* split_point;
         StateInfo si;
 
+        const TranspositionEntry *tte;
+        Key posi_key;
+        Move  tt_move, threat_move, excluded_move, move;
+        Value tt_value;
+        int32_t move_count = 0, quiet_count = 0;
         Move quiets_searched[64];
-        //SplitPoint* split_point;
-
 
         // Step 1. Initialize node
         //Thread* thread = pos.this_thread();
         bool in_check = pos.checkers ();
-
-        const TranspositionEntry *tte;
-        Move  tt_move, best_move, threat_move, excluded_move, move;
-        Value tt_value;
-        int32_t move_count = 0, quiet_count = 0;
 
         if (SPNode)
         {
@@ -699,7 +702,7 @@ namespace {
         // We don't want the score of a partial search to overwrite a previous full search
         // TT value, so we use a different position key in case of an excluded move.
         excluded_move = ss->excluded_move;
-        Key posi_key = excluded_move ? pos.posi_key_exclusion() : pos.posi_key();
+        posi_key = excluded_move ? pos.posi_key_exclusion() : pos.posi_key();
         tte = TT.retrieve (posi_key);
         tt_move = RootNode ? rootMoves[pv_idx].pv[0] : tte ? tte->move() : MOVE_NONE;
         tt_value = tte ? value_fr_tt(tte->value(), ss->ply) : VALUE_NONE;
@@ -838,10 +841,8 @@ namespace {
                 {
                     null_value = beta;
                 }
-                if (depth < 12 * ONE_PLY)
-                {
-                    return null_value;
-                }
+
+                if (depth < 12 * ONE_PLY) return null_value;
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
@@ -886,8 +887,8 @@ namespace {
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
-            MovePicker mp (pos, tt_move, history, pos.cap_type());
-            CheckInfo  ci (pos);
+            MovePicker mp = MovePicker (pos, tt_move, history, pos.cap_type());
+            CheckInfo  ci = CheckInfo (pos);
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
             {
@@ -924,14 +925,14 @@ namespace {
 moves_loop: // When in check and at SPNode search starts from here
 
         Square prev_move_sq = sq_dst ((ss-1)->current_move);
-        Move countermoves[] = 
+        Move cm[] = 
         { 
             counter_moves[pos[prev_move_sq]][prev_move_sq].first,
             counter_moves[pos[prev_move_sq]][prev_move_sq].second
         };
 
-        MovePicker mp (pos, tt_move, depth, history, countermoves, ss);
-        CheckInfo  ci (pos);
+        MovePicker mp = MovePicker (pos, tt_move, depth, history, cm, ss);
+        CheckInfo  ci = CheckInfo (pos);
 
         Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
         bool improving =   ss->static_eval >= (ss-2)->static_eval
@@ -965,8 +966,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (SPNode)
             {
                 // Shared counter cannot be decremented later if move turns out to be illegal
-                if (!pos.legal (move, ci.pinneds))
-                    continue;
+                if (!pos.legal (move, ci.pinneds)) continue;
 
                 //move_count = ++split_point->move_count;
                 //split_point->mutex.unlock();
@@ -983,9 +983,11 @@ moves_loop: // When in check and at SPNode search starts from here
                 //if (thread == Threads.main() && Time::now () - SearchTime > 3000)
                 {
                     ats ()
-                        << "info depth " << depth / ONE_PLY
+                        << "info"
+                        << " depth " << depth / ONE_PLY
                         << " currmove " << move_to_can (move, pos.chess960 ())
-                        << " currmovenumber " << move_count + pv_idx << endl;
+                        << " currmovenumber " << move_count + pv_idx
+                        << endl;
                 }
             }
 
@@ -1121,7 +1123,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     ss->reduction += ONE_PLY / 2;
                 }
 
-                if (move == countermoves[0] || move == countermoves[1])
+                if (move == cm[0] || move == cm[1])
                 {
                     ss->reduction = std::max (DEPTH_ZERO, ss->reduction - ONE_PLY);
                 }
@@ -1214,18 +1216,18 @@ moves_loop: // When in check and at SPNode search starts from here
 
             if (value > best_value)
             {
+                //if (SPNode) split_point->best_value = value;
                 best_value = value;
-                //best_value = SPNode ? split_point->best_value = value : value;
 
                 if (value > alpha)
                 {
+                    //if (SPNode) split_point->best_move = move;
                     best_move = move;
-                    //SPNode ? split_point->best_move = move : move;
 
                     if (PVNode && value < beta) // Update alpha! Always alpha < beta
                     {
+                        //if (SPNode) split_point->alpha = value;
                         alpha = value;
-                        //SPNode ? split_point->alpha = value : value;
                     }
                     else
                     {
@@ -1277,7 +1279,7 @@ moves_loop: // When in check and at SPNode search starts from here
             value_to_tt(best_value, ss->ply),
             ss->static_eval);
 
-        // Quiet best move: update killers, history and countermoves
+        // Quiet best move: update killers, history and counter_moves
         if (    best_value >= beta
             && !pos.capture_or_promotion(best_move)
             && !in_check)
@@ -1415,8 +1417,8 @@ moves_loop: // When in check and at SPNode search starts from here
         // to search the moves. Because the depth is <= 0 here, only captures,
         // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
         // be generated.
-        MovePicker mp (pos, tt_move, depth, history, sq_dst ((ss-1)->current_move));
-        CheckInfo  ci (pos);
+        MovePicker mp = MovePicker (pos, tt_move, depth, history, sq_dst ((ss-1)->current_move));
+        CheckInfo  ci = CheckInfo (pos);
 
         Move move;
         // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -1443,7 +1445,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (false);
                 else if (futility_value < beta)
                 {
-                    best_value = std::max (best_value, futility_value);
+                    if (futility_value > best_value) best_value = futility_value;
                     continue;
                 }
                 // Prune moves with negative or equal SEE and also moves with positive
@@ -1451,7 +1453,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 else if (   futility_base < beta
                     && pos.see (move, beta - futility_base) <= 0)
                 {
-                    best_value = std::max (best_value, futility_base);
+                    if (futility_base > best_value) best_value = futility_base;
                     continue;
                 }
             }
