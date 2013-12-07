@@ -58,9 +58,9 @@ namespace BitBoard {
 #pragma region LOOKUPs
 
     // FILE & RANK distance
-    Delta     _filerank_dist[F_NO][R_NO];
-    Delta _square_dist[SQ_NO][SQ_NO];
-    Delta   _taxi_dist[SQ_NO][SQ_NO];
+    Delta _filerank_dist[F_NO][R_NO];
+    Delta   _square_dist[SQ_NO][SQ_NO];
+    Delta     _taxi_dist[SQ_NO][SQ_NO];
 
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
     const Delta _deltas_pawn[CLR_NO][3] =
@@ -113,7 +113,7 @@ namespace BitBoard {
 #undef S_2
     };
     // FILES
-    CACHE_ALIGN(64) const Bitboard _file_bb[F_NO] =
+    CACHE_ALIGN(64) const Bitboard   _file_bb[F_NO] =
     {
         FA_bb,
         FB_bb,
@@ -125,7 +125,7 @@ namespace BitBoard {
         FH_bb
     };
     // RANKS
-    CACHE_ALIGN(64) const Bitboard _rank_bb[R_NO] =
+    CACHE_ALIGN(64) const Bitboard   _rank_bb[R_NO] =
     {
         R1_bb,
         R2_bb,
@@ -317,32 +317,22 @@ namespace BitBoard {
         //    _square_bb[s] = U64(1) << s;
         //}
 
-        //_file_bb[F_A] = FA_bb;
-        //_rank_bb[R_1] = R1_bb;
-        //for (uint8_t i = 1; i < 8; ++i)
-        //{
-        //    _file_bb[i] = _file_bb[i - 1] << 1;
-        //    _rank_bb[i] = _rank_bb[i - 1] << 8;
-        //}
-
         //for (File f = F_A; f <= F_H; ++f)
         //{
-        //    _BB_ADJ_F[f] = 
-        //        (f > F_A ? _file_bb[f - 1] : 0) | 
-        //        (f < F_H ? _file_bb[f + 1] : 0);
-        //    _FileAdjFilesBB[f] = _file_bb[f] | _BB_ADJ_F[f];
+        //    _file_bb[f] = f > F_A ? _file_bb[f - 1] << 1 : FA_bb;
+        //}
+        //for (Rank r = R_1; r <= R_8; ++r)
+        //{
+        //    _rank_bb[r] = r > R_1 ? _rank_bb[r - 1] << 8 : R1_bb;
+        //}
+        //for (File f = F_A; f <= F_H; ++f)
+        //{
+        //    _adj_file_bb[f] = (f > F_A ? _file_bb[f - 1] : 0) | (f < F_H ? _file_bb[f + 1] : 0);
         //}
 
         //for (Rank r = R_1; r < R_8; ++r)
         //{
-        //    _BB_FRT_R[WHITE][r] = ~(_BB_FRT_R[BLACK][r + 1] = _BB_FRT_R[BLACK][r] | _rank_bb[r]);
-        //}
-
-        //_CountByte[0] = 0;
-        //for (uint8_t i = 1; ; ++i)
-        //{
-        //    _CountByte[i] = (i & 1) + _CountByte[i / 2];
-        //    if (_UI8_MAX == i) break;
+        //    _front_rank_bb[WHITE][r] = ~(_front_rank_bb[BLACK][r + 1] = _front_rank_bb[BLACK][r] | _rank_bb[r]);
         //}
 
 #pragma endregion
@@ -358,21 +348,21 @@ namespace BitBoard {
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            File f1 = _file (s1);
-            Rank r1 = _rank (s1);
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                File f2 = _file (s2);
-                Rank r2 = _rank (s2);
-
-                Delta dFile = _filerank_dist[f1][f2];
-                Delta dRank = _filerank_dist[r1][r2];
-
-                _square_dist[s1][s2] = max (dFile, dRank);
-                _taxi_dist  [s1][s2] = (dFile + dRank);
-
                 if (s1 != s2)
                 {
+                    File f1 = _file (s1);
+                    Rank r1 = _rank (s1);
+                    File f2 = _file (s2);
+                    Rank r2 = _rank (s2);
+
+                    Delta dFile = _filerank_dist[f1][f2];
+                    Delta dRank = _filerank_dist[r1][r2];
+
+                    _square_dist[s1][s2] = max (dFile, dRank);
+                    _taxi_dist  [s1][s2] = (dFile + dRank);
+
                     _dia_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
             }

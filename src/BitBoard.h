@@ -55,8 +55,8 @@ namespace BitBoard {
     extern const Delta _deltas_type[PT_NO][9];
 
     extern const Bitboard _square_bb[SQ_NO];
-    extern const Bitboard _file_bb[F_NO];
-    extern const Bitboard _rank_bb[R_NO];
+    extern const Bitboard   _file_bb[F_NO];
+    extern const Bitboard   _rank_bb[R_NO];
 
     extern const Bitboard _diag18_bb[D_NO];
     extern const Bitboard _diag81_bb[D_NO];

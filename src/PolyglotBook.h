@@ -14,7 +14,8 @@ class Position;
 #pragma warning (disable: 4250)
 
 // A Polyglot book is a series of entries of 16 bytes.
-// All integers are stored in big-endian format, with highest byte first (regardless of size).
+// All integers are stored in big-endian format,
+// with the highest byte first (regardless of size).
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
 typedef class PolyglotBook sealed
@@ -47,12 +48,6 @@ public:
         }
 
     } PolyglotEntry;
-
-    //typedef struct PolyglotHeader
-    //{
-    //    //PolyglotEntry p[6]; // 96
-    //} PolyglotHeader;
-
 
     static const uint8_t SIZE_PGENTRY   = sizeof (PolyglotEntry);
     static const uint8_t SIZE_PGHEADER  = 0*SIZE_PGENTRY;

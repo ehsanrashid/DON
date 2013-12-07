@@ -18,8 +18,8 @@ namespace Engine {
 
         const string Engine    = "DON";
 
-        // Version number. If Version is left empty, then compile date, in the
-        // format DD-MM-YY, is shown in engine_info.
+        // Version number.
+        // If Version is left empty, then compile date in the format DD-MM-YY.
         const string Version   = "1.0";
         const string Author    = "Ehsan Rashid";
 

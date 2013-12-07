@@ -83,24 +83,57 @@ void benchmark (istream &is, const Position &pos)
         }
         else
         {
-            string fen;
-            ifstream ifstm_fen (fn_fen);
+            ifstream fstm_fen (fn_fen);
 
-            if (!ifstm_fen.is_open ())
+            if (!fstm_fen.is_open ())
             {
                 TRI_LOG_MSG ("ERROR: Unable to open file ... \'" << fn_fen << "\'");
                 return;
             }
 
-            while (getline (ifstm_fen, fen))
+            string fen;
+            while (getline (fstm_fen, fen))
             {
                 if (!fen.empty ())
                 {
                     fens.emplace_back (fen);
                 }
             }
-            ifstm_fen.close ();
+            fstm_fen.close ();
         }
+
+        int64_t nodes = 0;
+        StateInfoStackPtr st;
+        Time::point elapsed = Time::now();
+
+        for (size_t i = 0; i < fens.size (); ++i)
+        {
+            Position pos = Position (fens[i], *(Options["UCI_Chess960"]));//, Threads.main());
+
+            cerr << "\nPosition: " << i + 1 << '/' << fens.size () << endl;
+
+            if (limit_type == "perft")
+            {
+                size_t cnt = Searcher::perft (pos, int32_t (limits.depth) * ONE_PLY);
+                cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << endl;
+                nodes += cnt;
+            }
+            else
+            {
+                //Threads.start_thinking(pos, limits, vector<Move>(), st);
+                //Threads.wait_for_think_finished();
+                nodes += Searcher::rootPos.game_nodes ();
+            }
+        }
+
+        elapsed = Time::point (Time::now() - elapsed + 1); // Ensure positivity to avoid a 'divide by zero'
+
+        cerr << "\n==========================="
+            << "\nTotal time (ms) : " << elapsed
+            << "\nNodes searched  : " << nodes
+            << "\nNodes/second    : " << 1000 * nodes / elapsed
+            << endl;
+
     }
     catch (...)
     {}

@@ -165,6 +165,7 @@ namespace Searcher {
 
     extern void initialize ();
 
+    extern size_t perft (Position &pos, Depth depth);
     extern void think ();
 
 }

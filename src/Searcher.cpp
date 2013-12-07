@@ -104,6 +104,24 @@ namespace {
     // Debug functions used mainly to collect run-time statistics
     uint64_t hits[2], means[2];
 
+    /// Search::perft() is our utility to verify move generation. All the leaf nodes
+    /// up to the given depth are generated and counted and the sum returned.
+    size_t perft(Position &pos, Depth depth)
+    {
+        size_t cnt = 0;
+        CheckInfo ci = CheckInfo (pos);
+        StateInfo st;
+        const bool leaf = (depth == ONE_MOVE);
+
+        //for (MoveList<LEGAL> it(pos); *it; ++it)
+        //{
+        //    pos.do_move(*it, st, ci, pos.gives_check(*it, ci));
+        //    cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
+        //    pos.undo_move(*it);
+        //}
+        return cnt;
+    }
+
     void dbg_hit_on  (bool b) { ++hits[0]; if (b) ++hits[1]; }
     void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
     void dbg_mean_of (int32_t v)  { ++means[0]; means[1] += v; }
@@ -323,6 +341,11 @@ namespace Searcher {
             FutilityMoveCounts[0][d] = int32_t (2.4 + 0.222 * pow (d +  0.0, 1.8));
             FutilityMoveCounts[1][d] = int32_t (3.0 +   0.3 * pow (d + 0.98, 1.8));
         }
+    }
+
+    size_t perft(Position &pos, Depth depth)
+    {
+        return 0;//depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
     }
 
     void think ()

@@ -1083,6 +1083,7 @@ bool Position::capture (Move m) const
 {
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
+
     MType mt = _mtype (m);
     switch (mt)
     {
@@ -1097,7 +1098,7 @@ bool Position::capture (Move m) const
     case PROMOTE:
         {
             Square dst = sq_dst (m);
-            Piece cp = _piece_arr[dst];
+            Piece cp   = _piece_arr[dst];
             return (~_active == _color (cp)) && (KING != _ptype (cp));
         }
         break;
@@ -1111,7 +1112,8 @@ bool Position::capture_or_promotion (Move m) const
     //ASSERT (pseudo_legal (m));
 
     //MType mt = _mtype (m);
-    //return (mt ? (CASTLE != mt) : !empty (sq_dst (m)));
+    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (sq_dst (m));
+    
     switch (_mtype (m))
     {
     case CASTLE:    return false; break;
@@ -1132,7 +1134,8 @@ bool Position::check (Move m, const CheckInfo &ci) const
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (ci.check_discovers == check_discovers (_active));
-    //if (!legal (m, pinneds (_active))) return false;
+    
+    //if (!legal (m)) return false;
 
     Square org = sq_org (m);
     Square dst = sq_dst (m);

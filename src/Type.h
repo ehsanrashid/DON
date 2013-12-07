@@ -430,17 +430,17 @@ typedef enum ScaleFactor : uint8_t
 
 inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
 
-/// Extracting the signed lower and upper 16 bits it not so trivial because
-/// according to the standard a simple cast to short is implementation defined
-/// and so is a right shift of a signed integer.
+// Extracting the signed lower and upper 16 bits it not so trivial because
+// according to the standard a simple cast to short is implementation defined
+// and so is a right shift of a signed integer.
 inline Value mg_value (Score s)
 {
     return Value (((uint32_t (s) + 0x8000) & ~0xFFFF) / 0x10000);
 }
 
-/// On Intel 64 bit we have a small speed regression with the standard conforming
-/// version, so use a faster code in this case that, although not 100% standard
-/// compliant it seems to work for Intel and MSVC.
+// On Intel 64 bit we have a small speed regression with the standard conforming version.
+// Therefore, in this case we use faster code that, although not 100%
+// standard compliant, seems to work for Intel and MSVC.
 #if defined(_WIN64) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
 inline Value eg_value (Score s)

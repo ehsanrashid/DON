@@ -21,8 +21,9 @@ template<BitCountType CNT>
 inline uint8_t pop_count (Bitboard bb);
 
 // Determine at compile time the best pop_count<> specialization 
-// according if platform is 32-bits or 64-bits,
-// to the maximum number of nonzero bits to count and if hardware popcnt instruction is available.
+// according if platform is 32 or 64 bit,
+// the maximum number of nonzero bits to count
+// and if hardware popcnt instruction is available.
 
 #ifdef POPCNT
 
@@ -53,8 +54,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #   else
 
-#       include <intrin.h> // MSVC popcnt and bsfq instrinsics
-// __popcnt64() & __popcnt()
+#       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
 template<>
 inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)

@@ -16,7 +16,7 @@ using namespace MoveGenerator;
 
 #pragma region PolyglotEntry Operators
 
-inline bool operator== (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator== (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return 
         (pe1.key == pe2.key) &&
@@ -24,12 +24,12 @@ inline bool operator== (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBo
         (pe1.weight == pe2.weight);
 }
 
-inline bool operator!= (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return !(pe1 == pe2);
 }
 
-inline bool operator> (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator> (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return 
         (pe1.key != pe2.key) ?
@@ -38,7 +38,7 @@ inline bool operator> (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBoo
     //(pe1.weight > pe2.weight);  // order by weight value
 }
 
-inline bool operator< (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator< (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return
         (pe1.key != pe2.key) ?
@@ -47,7 +47,7 @@ inline bool operator< (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBoo
     //(pe1.weight < pe2.weight);  // order by weight value
 }
 
-inline bool operator>= (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator>= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return
         (pe1.key != pe2.key) ?
@@ -56,7 +56,7 @@ inline bool operator>= (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBo
     //(pe1.weight >= pe2.weight);  // order by weight value
 }
 
-inline bool operator<= (const PolyglotBook::PolyglotEntry& pe1, const PolyglotBook::PolyglotEntry& pe2)
+inline bool operator<= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return
         (pe1.key != pe2.key) ?
@@ -302,9 +302,10 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         sum_weight += pe.weight;
 
         // Choose book move according to its score.
-        // If a move has a high score it has higher probability
-        // to be choosen than a move with lower score.
+        // If a move has a very high score it has a higher probability
+        // of being choosen than a move with a lower score.
         // Note that first entry is always chosen.
+
 
         //uint32_t rand = _rkiss.randX<uint32_t> ();
         //if ((sum_weight && rand % sum_weight < pe.weight) ||

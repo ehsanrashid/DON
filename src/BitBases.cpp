@@ -10,7 +10,7 @@ namespace BitBases {
 
         using namespace BitBoard;
 
-        // The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
+        // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const uint32_t MAX_INDEX = 2*24*64*64; // stm * p_sq * wk_sq * bk_sq = 196608
 
         // Each uint32_t stores results of 32 positions, one per bit
@@ -83,7 +83,7 @@ namespace BitBases {
             {
                 if (WHITE == active)
                 {
-                    // Immediate win if pawn can be promoted without getting captured
+                    // Immediate win if a pawn can be promoted without getting captured
                     if (   _rank (p_sq) == R_7
                         && wk_sq != p_sq + DEL_N
                         && (square_dist (bk_sq, p_sq + DEL_N) > 1 || (_attacks_type_bb[KING][wk_sq] & (p_sq + DEL_N))))
@@ -93,7 +93,7 @@ namespace BitBases {
                 }
                 else
                 {
-                    // Immediate draw if is stalemate or king captures undefended pawn
+                    // Immediate draw if is a stalemate or king captures undefended pawn
                     if (  !(_attacks_type_bb[KING][bk_sq] & ~(_attacks_type_bb[KING][wk_sq] | _attacks_pawn_bb[WHITE][p_sq]))
                         || (_attacks_type_bb[KING][bk_sq] & p_sq & ~_attacks_type_bb[KING][wk_sq]))
                     {
@@ -109,12 +109,12 @@ namespace BitBases {
 
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
-            // If all moves lead to positions classified as DRAW, the current position is classified DRAW
+            // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
             // otherwise the current position is classified as UNKNOWN.
             //
             // Black to Move:
             // If one move leads to a position classified as DRAW, the result of the current position is DRAW.
-            // If all moves lead to positions classified as WIN, the current position is classified WIN
+            // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
             const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -161,7 +161,7 @@ namespace BitBases {
         }
 
         bool repeat;
-        // Iterate through the positions until no more of the unknown positions can be
+        // Iterate through the positions until none of the unknown positions can be
         // changed to either wins or draws (15 cycles needed).
         do
         {
