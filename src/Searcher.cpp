@@ -74,7 +74,7 @@ namespace {
     bool  allows (const Position &pos, Move m1, Move m2);
     bool refutes (const Position &pos, Move m1, Move m2);
 
-    std::string uci_pv_info (const Position &pos, int16_t depth, Value alpha, Value beta);
+    std::string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta);
 
     struct Skill
     {
@@ -104,19 +104,19 @@ namespace {
     // Debug functions used mainly to collect run-time statistics
     uint64_t hits[2], means[2];
 
-    /// Search::perft() is our utility to verify move generation. All the leaf nodes
-    /// up to the given depth are generated and counted and the sum returned.
-    size_t perft(Position &pos, Depth depth)
+    // _perft() is our utility to verify move generation. All the leaf nodes
+    // up to the given depth are generated and counted and the sum returned.
+    size_t _perft (Position &pos, Depth depth)
     {
         size_t cnt = 0;
-        CheckInfo ci = CheckInfo (pos);
-        StateInfo st;
         const bool leaf = (depth == ONE_MOVE);
 
+        //CheckInfo ci = CheckInfo (pos);
+        //StateInfo st;
         //for (MoveList<LEGAL> it(pos); *it; ++it)
         //{
         //    pos.do_move(*it, st, ci, pos.gives_check(*it, ci));
-        //    cnt += leaf ? MoveList<LEGAL>(pos).size() : ::perft(pos, depth - ONE_PLY);
+        //    cnt += leaf ? generate<LEGAL>(pos).size() : _perft (pos, depth - ONE_PLY);
         //    pos.undo_move(*it);
         //}
         return cnt;
@@ -303,49 +303,9 @@ namespace Searcher {
 
 #pragma endregion
 
-    // initialize() is called during startup to initialize various lookup tables
-    void initialize ()
+    size_t perft (Position &pos, Depth depth)
     {
-        int32_t d;  // depth (ONE_PLY == 2)
-        int32_t hd; // half depth (ONE_PLY == 1)
-        int32_t mc; // moveCount
-
-        // Init reductions array
-        for (hd = 1; hd < 64; ++hd)
-        {
-            for (mc = 1; mc < 64; ++mc)
-            {
-                double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
-                double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] = int8_t (    pv_red >= 1.0 ? floor(    pv_red * int32_t (ONE_PLY)) : 0);
-                Reductions[0][1][hd][mc] = int8_t (non_pv_red >= 1.0 ? floor(non_pv_red * int32_t (ONE_PLY)) : 0);
-
-                Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
-                Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
-
-                if (false);
-                else if (Reductions[0][0][hd][mc] > 2 * ONE_PLY)
-                {
-                    Reductions[0][0][hd][mc] += ONE_PLY;
-                }
-                else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
-                {
-                    Reductions[0][0][hd][mc] += ONE_PLY / 2;
-                }
-            }
-        }
-
-        // Init futility move count array
-        for (d = 0; d < 32; ++d)
-        {
-            FutilityMoveCounts[0][d] = int32_t (2.4 + 0.222 * pow (d +  0.0, 1.8));
-            FutilityMoveCounts[1][d] = int32_t (3.0 +   0.3 * pow (d + 0.98, 1.8));
-        }
-    }
-
-    size_t perft(Position &pos, Depth depth)
-    {
-        return 0;//depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
+        return (depth > ONE_PLY) ? _perft (pos, depth) : generate<LEGAL>(pos).size();
     }
 
     void think ()
@@ -428,6 +388,46 @@ finish:
             << " ponder "  //<< move_to_uci(rootMoves[0].pv[1], rootPos.chess960 ())
             << endl;
 
+    }
+
+    // initialize() is called during startup to initialize various lookup tables
+    void initialize ()
+    {
+        int32_t d;  // depth (ONE_PLY == 2)
+        int32_t hd; // half depth (ONE_PLY == 1)
+        int32_t mc; // moveCount
+
+        // Init reductions array
+        for (hd = 1; hd < 64; ++hd)
+        {
+            for (mc = 1; mc < 64; ++mc)
+            {
+                double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
+                double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
+                Reductions[1][1][hd][mc] = int8_t (    pv_red >= 1.0 ? floor(    pv_red * int32_t (ONE_PLY)) : 0);
+                Reductions[0][1][hd][mc] = int8_t (non_pv_red >= 1.0 ? floor(non_pv_red * int32_t (ONE_PLY)) : 0);
+
+                Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
+                Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
+
+                if (false);
+                else if (Reductions[0][0][hd][mc] > 2 * ONE_PLY)
+                {
+                    Reductions[0][0][hd][mc] += ONE_PLY;
+                }
+                else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
+                {
+                    Reductions[0][0][hd][mc] += ONE_PLY / 2;
+                }
+            }
+        }
+
+        // Init futility move count array
+        for (d = 0; d < 32; ++d)
+        {
+            FutilityMoveCounts[0][d] = int32_t (2.4 + 0.222 * pow (d +  0.0, 1.8));
+            FutilityMoveCounts[1][d] = int32_t (3.0 +   0.3 * pow (d + 0.98, 1.8));
+        }
     }
 
 }
@@ -523,7 +523,7 @@ namespace {
                     // the UI) before to research.
                     if ((alpha >= best_value || best_value >= beta) && Time::now () - searchTime > 3000)
                     {
-                        ats () << uci_pv_info (pos, depth, alpha, beta) << endl;
+                        ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                     }
 
                     // In case of failing low/high increase aspiration window and
@@ -555,7 +555,7 @@ namespace {
 
                 if (pv_idx + 1 == pv_size || Time::now () - searchTime > 3000)
                 {
-                    ats () << uci_pv_info (pos, depth, alpha, beta) << endl;
+                    ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                 }
             }
 
@@ -1707,10 +1707,10 @@ moves_loop: // When in check and at SPNode search starts from here
         return move;
     }
 
-    // uci_pv_info() formats PV information according to UCI protocol. UCI requires
+    // pv_info_uci() formats PV information according to UCI protocol. UCI requires
     // to send all the PV lines also if are still to be searched and so refer to
     // the previous search score.
-    std::string uci_pv_info (const Position &pos, int16_t depth, Value alpha, Value beta)
+    std::string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
     {
         std::stringstream spv;
 
