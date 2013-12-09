@@ -209,16 +209,24 @@ namespace BitBoard {
 
 #pragma region Deltas
 
+    inline Delta file_dist (File f1, File f2)
+    {
+        return _filerank_dist[f1][f2];
+    }
     inline Delta file_dist (Square s1, Square s2)
     {
-        //return abs (int8_t (_file (s1) - _file (s2)));
         return _filerank_dist[_file (s1)][_file (s2)];
+    }
+
+    inline Delta rank_dist (Rank r1, Rank r2)
+    {
+        return _filerank_dist[r1][r2];
     }
     inline Delta rank_dist (Square s1, Square s2)
     {
-        //return abs (int8_t (_rank (s1) - _rank (s2)));
         return _filerank_dist[_rank (s1)][_rank (s2)];
     }
+
     inline Delta square_dist (Square s1, Square s2)
     {
         return _square_dist[s1][s2];
@@ -345,18 +353,18 @@ namespace BitBoard {
         return _betwen_sq_bb[s1][s2];
     }
 
-    /// attack_span_pawn_bb() takes a color and a square as input, and returns a bitboard
-    /// representing all squares that can be attacked by a pawn of the given color
-    /// when it moves along its file starting from the given square. Definition is:
-    /// PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
+    // attack_span_pawn_bb() takes a color and a square as input, and returns a bitboard
+    // representing all squares that can be attacked by a pawn of the given color
+    // when it moves along its file starting from the given square. Definition is:
+    // PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
     inline Bitboard attack_span_pawn_bb (Color c, Square s)
     {
         return _attack_span_pawn_bb[c][s];
     }
-    /// passer_span_pawn_bb() takes a color and a square as input, and returns a
-    /// bitboard mask which can be used to test if a pawn of the given color on
-    /// the given square is a passed pawn. Definition of the table is:
-    /// PassedPawnMask[c][s] = attack_span_pawn_bb(c, s) | forward_bb(c, s)
+    // passer_span_pawn_bb() takes a color and a square as input, and returns a
+    // bitboard mask which can be used to test if a pawn of the given color on
+    // the given square is a passed pawn. Definition of the table is:
+    // PassedPawnMask[c][s] = attack_span_pawn_bb(c, s) | forward_bb(c, s)
     inline Bitboard passer_span_pawn_bb (Color c, Square s)
     {
         return _passer_span_pawn_bb[c][s];

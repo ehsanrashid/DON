@@ -376,7 +376,7 @@ typedef enum Depth : int16_t
 
 typedef enum Bound : uint8_t
 {
-    UNKNOWN = 0,
+    BND_NONE    = 0,
 
     // LOWER (ALPHA) BOUND  - CUT
     // ALPHA evaluation, when exceed BETA the move is too good.
@@ -544,10 +544,10 @@ inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i);
 inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
 
 ARTHMAT_OPERATORS (Score);
-/// Only declared but not defined. We don't want to multiply two scores due to
-/// a very high risk of overflow. So user should explicitly convert to integer.
+// Only declared but not defined. We don't want to multiply two scores due to
+// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
-/// Division of a Score must be handled separately for each term
+// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, int32_t i)
 {
     return mk_score (mg_value (s) / i, eg_value (s) / i);

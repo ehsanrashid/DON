@@ -16,9 +16,11 @@
 #include "atomicstream.h"
 #include "Log.h"
 
+using namespace std;
+using namespace BitBoard;
+using namespace MoveGenerator;
 using namespace Searcher;
 using namespace Evaluator;
-using namespace BitBoard;
 
 namespace {
 
@@ -45,7 +47,7 @@ namespace {
     template<bool PVNode>
     inline Depth reduction (bool i, Depth d, int32_t mn)
     {
-        return Depth (Reductions[PVNode][i][std::min (int32_t (d) / ONE_MOVE, 63)][std::min (mn, 63)]);
+        return Depth (Reductions[PVNode][i][min (int32_t (d) / ONE_MOVE, 63)][min (mn, 63)]);
     }
 
     // Dynamic razoring margin based on depth
@@ -74,7 +76,7 @@ namespace {
     bool  allows (const Position &pos, Move m1, Move m2);
     bool refutes (const Position &pos, Move m1, Move m2);
 
-    std::string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta);
+    string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta);
 
     struct Skill
     {
@@ -90,7 +92,7 @@ namespace {
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                std::swap (rootMoves[0], *std::find (rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
+                swap (rootMoves[0], *find (rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
             }
         }
 
@@ -111,14 +113,16 @@ namespace {
         size_t cnt = 0;
         const bool leaf = (depth == ONE_MOVE);
 
-        //CheckInfo ci = CheckInfo (pos);
-        //StateInfo st;
-        //for (MoveList<LEGAL> it(pos); *it; ++it)
-        //{
-        //    pos.do_move(*it, st, ci, pos.gives_check(*it, ci));
-        //    cnt += leaf ? generate<LEGAL>(pos).size() : _perft (pos, depth - ONE_MOVE);
-        //    pos.undo_move(*it);
-        //}
+        CheckInfo ci = CheckInfo (pos);
+        StateInfo si = StateInfo ();
+        MoveList mov_lst = generate<LEGAL>(pos);
+        for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+        {
+            pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
+            cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
+            pos.undo_move ();
+        });
+
         return cnt;
     }
 
@@ -130,13 +134,13 @@ namespace {
     {
         if (hits[0])
         {
-            std::cerr << "Total " << hits[0] << " Hits " << hits[1]
-            << " hit rate (%) " << 100 * hits[1] / hits[0] << std::endl;
+            cerr << "Total " << hits[0] << " Hits " << hits[1]
+            << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
         }
         if (means[0])
         {
-            std::cerr << "Total " << means[0] << " Mean "
-                << double (means[1]) / double (means[0]) << std::endl;
+            cerr << "Total " << means[0] << " Mean "
+                << double (means[1]) / double (means[0]) << endl;
         }
     }
 
@@ -189,17 +193,15 @@ void check_time ()
     int64_t elapsed = now_time - searchTime;
 
     bool still_at_first_move = 
-        signals.first_root_move
-        && !signals.failed_low_at_root
-        &&  elapsed > time_mgr.available_time ();
+        signals.first_root_move     &&
+        !signals.failed_low_at_root &&
+        elapsed > time_mgr.available_time ();
 
-    bool no_more_time = 
-        (  elapsed > time_mgr.maximum_time () - 2 * TimerResolution)
-        || still_at_first_move;
+    bool no_more_time = (elapsed > time_mgr.maximum_time () - 2 * TimerResolution) || still_at_first_move;
 
-    if (   (limits.use_time_management () && no_more_time)
-        || (limits.move_time && elapsed >= limits.move_time)
-        || (limits.nodes && nodes >= limits.nodes))
+    if ((limits.use_time_management () && no_more_time)   ||
+        (limits.move_time && elapsed >= limits.move_time) ||
+        (limits.nodes && nodes >= limits.nodes))
     {
         signals.stop = true;
     }
@@ -208,14 +210,10 @@ void check_time ()
 
 namespace Searcher {
 
-    using namespace MoveGenerator;
-    using std::ats;
-    using std::endl;
-
     Limits                limits;
     volatile Signals      signals;
 
-    std::vector<RootMove> rootMoves;
+    vector<RootMove> rootMoves;
     Position              rootPos;
     Color                 rootColor;
     StateInfoStackPtr     setupStates;
@@ -283,7 +281,7 @@ namespace Searcher {
             // Don't overwrite correct entries
             if (!te || te->move() != pv[ply])
             {
-                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, UNKNOWN, VALUE_NONE, VALUE_NONE);
+                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, VALUE_NONE, VALUE_NONE);
             }
 
             //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));
@@ -327,11 +325,11 @@ namespace Searcher {
 
         if (*(Options["Own Book"]) && !limits.infinite && !limits.mate_in)
         {
-            if (!book.is_open ()) book.open (*(Options["Book File"]), std::ios_base::in);
+            if (!book.is_open ()) book.open (*(Options["Book File"]), ios_base::in);
             Move book_move = book.probe_move (rootPos, *(Options["Best Book Move"]));
-            if (book_move && std::count (rootMoves.begin (), rootMoves.end (), book_move))
+            if (book_move && count (rootMoves.begin (), rootMoves.end (), book_move))
             {
-                std::swap (rootMoves[0], *std::find (rootMoves.begin (), rootMoves.end (), book_move));
+                swap (rootMoves[0], *find (rootMoves.begin (), rootMoves.end (), book_move));
                 goto finish;
             }
         }
@@ -340,12 +338,12 @@ namespace Searcher {
         {
             int32_t cf = *(Options["Contempt Factor"]) * VALUE_MG_PAWN / 100; // From centipawns
             cf = cf * Material::game_phase(rootPos) / PHASE_MIDGAME; // Scale down with phase
-            //DrawValue[ rootColor] = VALUE_DRAW - Value(cf);
-            //DrawValue[~rootColor] = VALUE_DRAW + Value(cf);
+            //draw_value[ rootColor] = VALUE_DRAW - Value (cf);
+            //draw_value[~rootColor] = VALUE_DRAW + Value (cf);
         }
         else
         {
-            //DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
+            //draw_value[WHITE] = draw_value[BLACK] = VALUE_DRAW;
         }
 
         if (*(Options["Write Search Log"]))
@@ -393,14 +391,10 @@ finish:
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        int32_t d;  // depth (ONE_MOVE == 2)
-        int32_t hd; // half depth (ONE_MOVE == 1)
-        int32_t mc; // moveCount
-
         // Init reductions array
-        for (hd = 1; hd < 64; ++hd)
+        for (int32_t hd = 1; hd < 64; ++hd) // half depth
         {
-            for (mc = 1; mc < 64; ++mc)
+            for (int32_t mc = 1; mc < 64; ++mc) // move count
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
@@ -423,7 +417,7 @@ finish:
         }
 
         // Init futility move count array
-        for (d = 0; d < 32; ++d)
+        for (int32_t d = 0; d < 32; ++d) // depth
         {
             FutilityMoveCounts[0][d] = int32_t (2.4 + 0.222 * pow (d +  0.0, 1.8));
             FutilityMoveCounts[1][d] = int32_t (3.0 +   0.3 * pow (d + 0.98, 1.8));
@@ -449,8 +443,8 @@ namespace {
         history.clear();
         counter_moves.clear();
 
-        pv_size = int32_t (*(Options["MultiPV"]));
-        Skill skill (*(Options["Skill Level"]));
+        pv_size     = int32_t (*(Options["MultiPV"]));
+        Skill skill = Skill (*(Options["Skill Level"]));
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
         // that we will use behind the scenes to retrieve a set of possible moves.
@@ -459,7 +453,7 @@ namespace {
             pv_size = 4;
         }
 
-        pv_size = std::min (pv_size, rootMoves.size());
+        pv_size = min (pv_size, rootMoves.size());
 
         best_move_changes = 0.0;
 
@@ -489,8 +483,8 @@ namespace {
                 if (depth >= 5)
                 {
                     delta = Value (16);
-                    alpha = std::max (rootMoves[pv_idx].last_value - delta, -VALUE_INFINITE);
-                    beta  = std::min (rootMoves[pv_idx].last_value + delta, +VALUE_INFINITE);
+                    alpha = max (rootMoves[pv_idx].last_value - delta, -VALUE_INFINITE);
+                    beta  = min (rootMoves[pv_idx].last_value + delta, +VALUE_INFINITE);
                 }
 
                 // Start with a small aspiration window and, in case of fail high/low,
@@ -505,7 +499,7 @@ namespace {
                     // we want to keep the same order for all the moves but the new
                     // PV that goes to the front. Note that in case of MultiPV search
                     // the already searched PV lines are preserved.
-                    std::stable_sort(rootMoves.begin() + pv_idx, rootMoves.end());
+                    stable_sort(rootMoves.begin() + pv_idx, rootMoves.end());
 
                     // Write PV back to transposition table in case the relevant
                     // entries have been overwritten during the search.
@@ -531,14 +525,14 @@ namespace {
                     if (false);
                     else if (best_value <= alpha)
                     {
-                        alpha = std::max (best_value - delta, -VALUE_INFINITE);
+                        alpha = max (best_value - delta, -VALUE_INFINITE);
 
                         signals.failed_low_at_root  = true;
                         signals.stop_on_ponderhit   = false;
                     }
                     else if (best_value >= beta)
                     {
-                        beta = std::min (best_value + delta, +VALUE_INFINITE);
+                        beta = min (best_value + delta, +VALUE_INFINITE);
                     }
                     else
                     {
@@ -551,7 +545,7 @@ namespace {
                 }
 
                 // Sort the PV lines searched so far and update the GUI
-                std::stable_sort (rootMoves.begin(), rootMoves.begin() + pv_idx + 1);
+                stable_sort (rootMoves.begin(), rootMoves.begin() + pv_idx + 1);
 
                 if (pv_idx + 1 == pv_size || Time::now () - searchTime > 3000)
                 {
@@ -570,11 +564,11 @@ namespace {
                 RootMove& rm = rootMoves[0];
                 if (skill.move != MOVE_NONE)
                 {
-                    rm = *std::find (rootMoves.begin(), rootMoves.end(), skill.move);
+                    rm = *find (rootMoves.begin(), rootMoves.end(), skill.move);
                 }
                 Log log (*(Options["Search Log Filename"]));
                 log << pretty_pv (pos, depth, rm.curr_value, Time::now () - searchTime, rm.pv)
-                    << std::endl;
+                    << endl;
             }
 
             // Do we have found a "mate in x"?
@@ -660,16 +654,14 @@ namespace {
         Value best_value;
         Move  best_move;
 
-
         //SplitPoint* split_point;
-        StateInfo si;
-
         const TranspositionEntry *tte;
         Key posi_key;
         Move  tt_move, threat_move, excluded_move, move;
         Value tt_value;
         int32_t move_count = 0, quiet_count = 0;
         Move quiets_searched[64];
+        StateInfo si = StateInfo ();
 
         // Step 1. Initialize node
         //Thread* thread = pos.this_thread();
@@ -691,7 +683,6 @@ namespace {
         }
 
         best_value = -VALUE_INFINITE;
-
         best_move = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
         (ss)->ply = (ss-1)->ply + 1;
@@ -715,8 +706,8 @@ namespace {
             // further, we will never beat current alpha. Same logic but with reversed signs
             // applies also in the opposite condition of being mated instead of giving mate,
             // in this case return a fail-high score.
-            alpha = std::max (mated_in(ss->ply), alpha);
-            beta  = std::min (mates_in(ss->ply+1), beta);
+            alpha = max (mated_in(ss->ply), alpha);
+            beta  = min (mates_in(ss->ply+1), beta);
 
             if (alpha >= beta) return alpha;
         }
@@ -746,7 +737,7 @@ namespace {
             ss->current_move = tt_move; // Can be MOVE_NONE
 
             if (    tt_value >= beta
-                &&  tt_move
+                &&  tt_move != MOVE_NONE
                 && !pos.capture_or_promotion(tt_move)
                 &&  tt_move != ss->killers[0])
             {
@@ -784,7 +775,7 @@ namespace {
         else
         {
             eval_value = ss->static_eval = evaluate(pos);
-            TT.store(posi_key, MOVE_NONE, DEPTH_NONE, UNKNOWN, VALUE_NONE, ss->static_eval);
+            TT.store(posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, VALUE_NONE, ss->static_eval);
         }
 
         if (   pos.cap_type() != PT_NO
@@ -958,17 +949,19 @@ moves_loop: // When in check and at SPNode search starts from here
         CheckInfo  ci = CheckInfo (pos);
 
         Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
-        bool improving =   ss->static_eval >= (ss-2)->static_eval
-            || ss->static_eval == VALUE_NONE
-            ||(ss-2)->static_eval == VALUE_NONE;
+        bool improving = 
+            ss->static_eval >= (ss-2)->static_eval ||
+            ss->static_eval == VALUE_NONE          ||
+            (ss-2)->static_eval == VALUE_NONE;
 
-        bool singular_ext_node =   !RootNode
-            && !SPNode
-            &&  depth >= 8 * ONE_MOVE
-            &&  tt_move != MOVE_NONE
-            && !excluded_move // Recursive singular search is not allowed
-            && (tte->bound() & BND_LOWER)
-            &&  tte->depth() >= depth - 3 * ONE_MOVE;
+        bool singular_ext_node =
+            !RootNode            &&
+            !SPNode              &&
+            depth >= 8 * ONE_MOVE &&
+            tt_move != MOVE_NONE &&
+            !excluded_move       && // Recursive singular search is not allowed
+            (tte->bound() & BND_LOWER) &&
+            tte->depth() >= depth - 3 * ONE_MOVE;
 
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -981,7 +974,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // At root obey the "searchmoves" option and skip moves not listed in Root
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
-            if (RootNode && !std::count(rootMoves.begin() + pv_idx, rootMoves.end(), move))
+            if (RootNode && !count(rootMoves.begin() + pv_idx, rootMoves.end(), move))
             {
                 continue;
             }
@@ -990,7 +983,6 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 // Shared counter cannot be decremented later if move turns out to be illegal
                 if (!pos.legal (move, ci.pinneds)) continue;
-
                 //move_count = ++split_point->move_count;
                 //split_point->mutex.unlock();
             }
@@ -1083,7 +1075,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
                     if (futility_value <= alpha)
                     {
-                        best_value = std::max(best_value, futility_value);
+                        best_value = max(best_value, futility_value);
 
                         if (SPNode)
                         {
@@ -1148,14 +1140,21 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 if (move == cm[0] || move == cm[1])
                 {
-                    ss->reduction = std::max (DEPTH_ZERO, ss->reduction - ONE_MOVE);
+                    ss->reduction = max (DEPTH_ZERO, ss->reduction - ONE_MOVE);
                 }
 
-                Depth d = std::max (new_depth - ss->reduction, ONE_MOVE);
+                Depth d = max (new_depth - ss->reduction, ONE_MOVE);
 
                 //if (SPNode) alpha = split_point->alpha;
 
                 value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+                // Research at intermediate depth if reduction is very high
+                if (value > alpha && ss->reduction >= 4 * ONE_MOVE)
+                {
+                    Depth inter_depth = max (new_depth - 2 * ONE_MOVE, ONE_MOVE);
+                    value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                }
 
                 full_depth_search = (value > alpha && ss->reduction != DEPTH_ZERO);
                 ss->reduction = DEPTH_ZERO;
@@ -1215,7 +1214,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             if (RootNode)
             {
-                RootMove& rm = *std::find(rootMoves.begin(), rootMoves.end(), move);
+                RootMove& rm = *find(rootMoves.begin(), rootMoves.end(), move);
 
                 // PV move or new best move ?
                 if (is_pv_move || value > alpha)
@@ -1348,15 +1347,6 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
 
-        Value best_value;
-
-        Value old_alpha;
-
-        // To flag EXACT a node with eval_value above alpha and no available moves
-        if (PVNode) old_alpha = alpha;
-
-        Move best_move = ss->current_move = MOVE_NONE;
-
         ss->ply = (ss-1)->ply + 1;
 
         // Check for an instant draw or maximum ply reached
@@ -1364,6 +1354,14 @@ moves_loop: // When in check and at SPNode search starts from here
         {
             return draw_value[pos.active ()];
         }
+
+        Value best_value;
+        Value old_alpha;
+
+        // To flag EXACT a node with eval_value above alpha and no available moves
+        if (PVNode) old_alpha = alpha;
+
+        Move best_move = ss->current_move = MOVE_NONE;
 
         // Decide whether or not to include checks, this fixes also the type of
         // TT entry depth that we are going to use. Note that in search_quien we use
@@ -1676,7 +1674,7 @@ moves_loop: // When in check and at SPNode search starts from here
         move = MOVE_NONE;
 
         // rootMoves are already sorted by score in descending order
-        int32_t variance = std::min (rootMoves[0].curr_value - rootMoves[pv_size - 1].curr_value, VALUE_MG_PAWN);
+        int32_t variance = min (rootMoves[0].curr_value - rootMoves[pv_size - 1].curr_value, VALUE_MG_PAWN);
         int32_t weakness = 120 - 2 * level;
         int32_t max_v    = -VALUE_INFINITE;
 
@@ -1709,9 +1707,9 @@ moves_loop: // When in check and at SPNode search starts from here
     // pv_info_uci() formats PV information according to UCI protocol. UCI requires
     // to send all the PV lines also if are still to be searched and so refer to
     // the previous search score.
-    std::string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
+    string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
     {
-        std::stringstream spv;
+        stringstream spv;
 
         Time::point elapsed = Time::point (Time::now () - searchTime + 1);
 
@@ -1724,7 +1722,7 @@ moves_loop: // When in check and at SPNode search starts from here
         //    }
         //}
 
-        size_t uci_pv_size = std::min (size_t (int32_t (*(Options["MultiPV"]))), rootMoves.size());
+        size_t uci_pv_size = min (size_t (int32_t (*(Options["MultiPV"]))), rootMoves.size());
         for (size_t i = 0; i < uci_pv_size; ++i)
         {
             bool updated = (i <= pv_idx);

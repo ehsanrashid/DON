@@ -999,7 +999,7 @@ bool Position::pseudo_legal (Move m) const
 
     return true;
 }
-/// legal(m, pinned) tests whether a pseudo-legal move is legal
+// legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::legal (Move m, Bitboard pinned) const
 {
     ASSERT (_ok (m));
