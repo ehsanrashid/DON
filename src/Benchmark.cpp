@@ -9,6 +9,7 @@
 #include "TriLogger.h"
 
 using namespace std;
+using namespace Searcher;
 
 namespace {
 
@@ -59,11 +60,12 @@ void benchmark (istream &is, const Position &pos)
         string fn_fen     = (is >> token) ? token : "default";
         string limit_val  = (is >> token) ? token : "12";
         string limit_type = (is >> token) ? token : "depth";
+        
+        *Options["Hash"]    = size_tt;
+        *Options["Threads"] = threads;
 
-        //Options["Hash"]    = size_tt;
-        //Options["Threads"] = threads;
         TT.clear();
-        Searcher::Limits limits;
+        Limits limits;
 
         if (false);
         else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
@@ -103,7 +105,7 @@ void benchmark (istream &is, const Position &pos)
         }
 
         int64_t nodes = 0;
-        StateInfoStackPtr st;
+        StateInfoStackPtr states;
         Time::point elapsed = Time::now();
 
         for (size_t i = 0; i < fens.size (); ++i)
@@ -114,15 +116,15 @@ void benchmark (istream &is, const Position &pos)
 
             if (limit_type == "perft")
             {
-                size_t cnt = Searcher::perft (pos, int32_t (limits.depth) * ONE_PLY);
+                size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
                 cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << endl;
                 nodes += cnt;
             }
             else
             {
-                //Threads.start_thinking(pos, limits, vector<Move>(), st);
-                //Threads.wait_for_think_finished();
-                nodes += Searcher::rootPos.game_nodes ();
+                //Threads.start_thinking (pos, limits, states);
+                //Threads.wait_for_think_finished ();
+                nodes += rootPos.game_nodes ();
             }
         }
 

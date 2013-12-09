@@ -1,7 +1,6 @@
 #include "MovePicker.h"
 
 #include "Position.h"
-//#include "Thread.h"
 
 using namespace MoveGenerator;
 
@@ -34,8 +33,8 @@ namespace {
     }
 
     // Unary predicate used by std::partition to split positive scores from remaining
-    // ones so as to sort the two sets separately, with the second sort delayed.
-    inline bool has_positive_value(const ValMove &vm) { return vm.value > 0; }
+    // ones so to sort separately the two sets, and with the second sort delayed.
+    inline bool has_positive_value(const ValMove& vm) { return vm.value > 0; }
 
     // Picks and moves to the front the best move in the range [beg, end),
     // it is faster than sorting all the moves in advance when moves are few, as
@@ -244,7 +243,7 @@ void MovePicker::generate_next()
     case QUIETS_2_S1:
         cur = end;
         end = end_quiets;
-        if (depth >= 3 * ONE_PLY)
+        if (depth >= 3 * ONE_MOVE)
         {
             insertion_sort (cur, end);
         }
@@ -395,6 +394,5 @@ template<>
 // safe so must be lock protected by the caller.
 Move MovePicker::next_move<true>()
 {
-    //return ss->split_point->move_picker->next_move<false>();
-    return MOVE_NONE;
+    return MOVE_NONE; //ss->split_point->move_picker->next_move<false>();
 }

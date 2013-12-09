@@ -50,13 +50,14 @@ public:
     Value   value () const { return Value (_value); }
     Value eval_value () const { return Value (_eval_value); }
 
-    void save (uint32_t key, Move move, Depth depth, Bound bound, uint8_t gen, uint16_t nodes, Value value, Value e_value)
+    void save (uint32_t key, Move move, Depth depth, Bound bound,
+        uint8_t gen, uint16_t nodes, Value value, Value e_value)
     {
         _key        = uint32_t (key);
         _move       = uint16_t (move);
         _depth      = uint16_t (depth);
-        _bound      = uint8_t (bound);
-        _gen        = uint8_t (gen);
+        _bound      =  uint8_t (bound);
+        _gen        =  uint8_t (gen);
         _nodes      = uint16_t (nodes);
         _value      = uint16_t (value);
         _eval_value = uint16_t (e_value);
@@ -166,7 +167,7 @@ public:
         if (_hash_table)
         {
             size_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
-            memset (_hash_table, 0, size_byte);
+            std::memset (_hash_table, 0, size_byte);
             _stored_entry    = 0;
             _generation     = 0;
         }
