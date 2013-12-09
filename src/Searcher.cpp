@@ -45,7 +45,7 @@ namespace {
     template<bool PVNode>
     inline Depth reduction (bool i, Depth d, int32_t mn)
     {
-        return Depth (Reductions[PVNode][i][std::min (int32_t (d) / ONE_PLY, 63)][std::min (mn, 63)]);
+        return Depth (Reductions[PVNode][i][std::min (int32_t (d) / ONE_MOVE, 63)][std::min (mn, 63)]);
     }
 
     // Dynamic razoring margin based on depth
@@ -63,10 +63,10 @@ namespace {
     void iter_deep_loop (Position &pos);
 
     template <NodeType N>
-    Value  search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
+    Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
     template <NodeType N, bool IN_CHECK>
-    Value qsearch (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
+    Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
@@ -116,7 +116,7 @@ namespace {
         //for (MoveList<LEGAL> it(pos); *it; ++it)
         //{
         //    pos.do_move(*it, st, ci, pos.gives_check(*it, ci));
-        //    cnt += leaf ? generate<LEGAL>(pos).size() : _perft (pos, depth - ONE_PLY);
+        //    cnt += leaf ? generate<LEGAL>(pos).size() : _perft (pos, depth - ONE_MOVE);
         //    pos.undo_move(*it);
         //}
         return cnt;
@@ -305,7 +305,7 @@ namespace Searcher {
 
     size_t perft (Position &pos, Depth depth)
     {
-        return (depth > ONE_PLY) ? _perft (pos, depth) : generate<LEGAL>(pos).size();
+        return (depth > ONE_MOVE) ? _perft (pos, depth) : generate<LEGAL>(pos).size();
     }
 
     void think ()
@@ -393,8 +393,8 @@ finish:
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        int32_t d;  // depth (ONE_PLY == 2)
-        int32_t hd; // half depth (ONE_PLY == 1)
+        int32_t d;  // depth (ONE_MOVE == 2)
+        int32_t hd; // half depth (ONE_MOVE == 1)
         int32_t mc; // moveCount
 
         // Init reductions array
@@ -404,20 +404,20 @@ finish:
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] = int8_t (    pv_red >= 1.0 ? floor(    pv_red * int32_t (ONE_PLY)) : 0);
-                Reductions[0][1][hd][mc] = int8_t (non_pv_red >= 1.0 ? floor(non_pv_red * int32_t (ONE_PLY)) : 0);
+                Reductions[1][1][hd][mc] = int8_t (    pv_red >= 1.0 ? floor(    pv_red * int32_t (ONE_MOVE)) : 0);
+                Reductions[0][1][hd][mc] = int8_t (non_pv_red >= 1.0 ? floor(non_pv_red * int32_t (ONE_MOVE)) : 0);
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
 
                 if (false);
-                else if (Reductions[0][0][hd][mc] > 2 * ONE_PLY)
+                else if (Reductions[0][0][hd][mc] > 2 * ONE_MOVE)
                 {
-                    Reductions[0][0][hd][mc] += ONE_PLY;
+                    Reductions[0][0][hd][mc] += ONE_MOVE;
                 }
-                else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
+                else if (Reductions[0][0][hd][mc] > 1 * ONE_MOVE)
                 {
-                    Reductions[0][0][hd][mc] += ONE_PLY / 2;
+                    Reductions[0][0][hd][mc] += ONE_MOVE / 2;
                 }
             }
         }
@@ -497,7 +497,7 @@ namespace {
                 // research with bigger window until not failing high/low anymore.
                 while (true)
                 {
-                    best_value = search<Root>(pos, ss, alpha, beta, depth * int32_t (ONE_PLY), false);
+                    best_value = search<Root>(pos, ss, alpha, beta, depth * int32_t (ONE_MOVE), false);
 
                     // Bring to front the best move. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -616,7 +616,7 @@ namespace {
                     ss->skip_null_move = true;
                     ss->excluded_move  = rootMoves[0].pv[0];
 
-                    Value value = search<NonPV>(pos, ss, r_beta - 1, r_beta, (depth - 3) * int32_t (ONE_PLY), true);
+                    Value value = search<NonPV>(pos, ss, r_beta - 1, r_beta, (depth - 3) * int32_t (ONE_MOVE), true);
                     ss->skip_null_move = false;
                     ss->excluded_move  = MOVE_NONE;
 
@@ -640,14 +640,14 @@ namespace {
         }
     }
 
+    template <NodeType N>
     // search<>() is the main search function for both PV and non-PV nodes and for
     // normal and SplitPoint nodes. When called just after a split point the search
     // is simpler because we have already probed the hash table, done a null move
     // search, and searched the first move before splitting, we don't have to repeat
     // all this work again. We also don't need to store anything to the hash table
     // here: This is taken care of after we return from the split point.
-    template <NodeType N>
-    Value  search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
+    Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
     {
         const bool PVNode   = (N == PV || N == Root || N == SplitPointPV || N == SplitPointRoot);
         const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
@@ -799,14 +799,14 @@ namespace {
 
         // Step 6. Razoring (skipped when in check)
         if (   !PVNode
-            &&  depth < 4 * ONE_PLY
+            &&  depth < 4 * ONE_MOVE
             &&  eval_value + razor_margin (depth) < beta
             &&  tt_move == MOVE_NONE
             &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
             && !pos.has_pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
-            Value v = qsearch<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
+            Value v = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
             if (v < rbeta)
             {
                 // Logically we should return (v + razor_margin (depth)), but
@@ -820,7 +820,7 @@ namespace {
         // the score by more than futility_margin (depth) if we do a null move.
         if (   !PVNode
             && !ss->skip_null_move
-            &&  depth < 4 * ONE_PLY
+            &&  depth < 4 * ONE_MOVE
             &&  eval_value - futility_margin (depth) >= beta
             &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
             &&  abs(eval_value) < VALUE_KNOWN_WIN
@@ -832,7 +832,7 @@ namespace {
         // Step 8. Null move search with verification search (is omitted in PV nodes)
         if (   !PVNode
             && !ss->skip_null_move
-            &&  depth >= 2 * ONE_PLY
+            &&  depth >= 2 * ONE_MOVE
             &&  eval_value >= beta
             &&  abs(beta) < VALUE_MATES_IN_MAX_PLY
             &&  pos.non_pawn_material(pos.active ()))
@@ -840,17 +840,17 @@ namespace {
             ss->current_move = MOVE_NULL;
 
             // Null move dynamic reduction based on depth
-            Depth R = 3 * ONE_PLY + depth / 4;
+            Depth R = 3 * ONE_MOVE + depth / 4;
 
             // Null move dynamic reduction based on value
-            if (eval_value - VALUE_MG_PAWN > beta) R += ONE_PLY;
+            if (eval_value - VALUE_MG_PAWN > beta) R += ONE_MOVE;
 
             pos.do_null_move (si);
 
             (ss+1)->skip_null_move = true;
 
-            Value null_value = (depth-R < ONE_PLY)
-                ? -qsearch<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+            Value null_value = (depth-R < ONE_MOVE)
+                ? -search_quien<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                 : -search<NonPV>(pos, ss+1, -beta, -alpha, depth-R, !cut_node);
 
             (ss+1)->skip_null_move = false;
@@ -865,7 +865,7 @@ namespace {
                     null_value = beta;
                 }
 
-                if (depth < 12 * ONE_PLY) return null_value;
+                if (depth < 12 * ONE_MOVE) return null_value;
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
@@ -884,7 +884,7 @@ namespace {
                 // parent node, which will trigger a re-search with full depth).
                 threat_move = (ss+1)->current_move;
 
-                if (   depth < 5 * ONE_PLY
+                if (   depth < 5 * ONE_MOVE
                     && (ss-1)->reduction
                     && threat_move != MOVE_NONE
                     && allows (pos, (ss-1)->current_move, threat_move))
@@ -899,14 +899,14 @@ namespace {
         // and a reduced search returns a value much above beta, we can (almost) safely
         // prune the previous move.
         if (   !PVNode
-            &&  depth >= 5 * ONE_PLY
+            &&  depth >= 5 * ONE_MOVE
             && !ss->skip_null_move
             &&  abs(beta) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
-            Depth rdepth = depth - ONE_PLY - 3 * ONE_PLY;
+            Depth rdepth = depth - ONE_MOVE - 3 * ONE_MOVE;
 
-            ASSERT (rdepth >= ONE_PLY);
+            ASSERT (rdepth >= ONE_MOVE);
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
@@ -931,11 +931,11 @@ namespace {
         }
 
         // Step 10. Internal iterative deepening (skipped when in check)
-        if (   depth >= (PVNode ? 5 * ONE_PLY : 8 * ONE_PLY)
+        if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
             && tt_move == MOVE_NONE
             && (PVNode || ss->static_eval + Value(256) >= beta))
         {
-            Depth d = depth - 2 * ONE_PLY - (PVNode ? DEPTH_ZERO : depth / 4);
+            Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
             ss->skip_null_move = true;
             search<PVNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
@@ -964,11 +964,11 @@ moves_loop: // When in check and at SPNode search starts from here
 
         bool singular_ext_node =   !RootNode
             && !SPNode
-            &&  depth >= 8 * ONE_PLY
+            &&  depth >= 8 * ONE_MOVE
             &&  tt_move != MOVE_NONE
             && !excluded_move // Recursive singular search is not allowed
             && (tte->bound() & BND_LOWER)
-            &&  tte->depth() >= depth - 3 * ONE_PLY;
+            &&  tte->depth() >= depth - 3 * ONE_MOVE;
 
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1007,7 +1007,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 {
                     ats ()
                         << "info"
-                        << " depth " << depth / ONE_PLY
+                        << " depth " << depth / ONE_MOVE
                         << " currmove " << move_to_can (move, pos.chess960 ())
                         << " currmovenumber " << move_count + pv_idx
                         << endl;
@@ -1025,7 +1025,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 || pos.advanced_pawn_push (move);
 
             // Step 12. Extend checks
-            if (gives_check && pos.see_sign (move) >= 0) ext = ONE_PLY;
+            if (gives_check && pos.see_sign (move) >= 0) ext = ONE_MOVE;
 
             // Singular extension search. If all moves but one fail low on a search of
             // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
@@ -1047,11 +1047,11 @@ moves_loop: // When in check and at SPNode search starts from here
                 ss->skip_null_move = false;
                 ss->excluded_move = MOVE_NONE;
 
-                if (value < r_beta) ext = ONE_PLY;
+                if (value < r_beta) ext = ONE_MOVE;
             }
 
             // Update current move (this must be done after singular extension search)
-            Depth new_depth = depth - ONE_PLY + ext;
+            Depth new_depth = depth - ONE_MOVE + ext;
 
             // Step 13. Pruning at shallow depth (exclude PV nodes)
             if (   !PVNode
@@ -1062,7 +1062,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 &&  best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
-                if (   depth < 16 * ONE_PLY
+                if (   depth < 16 * ONE_MOVE
                     && move_count >= FutilityMoveCounts[improving][depth]
                 && (!threat_move || !refutes(pos, move, threat_move)))
                 {
@@ -1071,12 +1071,12 @@ moves_loop: // When in check and at SPNode search starts from here
                 }
 
                 // Value based pruning
-                // We illogically ignore reduction condition depth >= 3*ONE_PLY for predicted depth,
+                // We illogically ignore reduction condition depth >= 3*ONE_MOVE for predicted depth,
                 // but fixing this made program slightly weaker.
                 Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, move_count);
 
                 // Futility pruning: parent node
-                if (predicted_depth < 7 * ONE_PLY)
+                if (predicted_depth < 7 * ONE_MOVE)
                 {
                     Value futility_value = ss->static_eval + futility_margin(predicted_depth)
                         + Value (128) + gains[pos.moved_piece (move)][sq_dst (move)];
@@ -1096,7 +1096,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 }
 
                 // Prune moves with negative SEE at low depths
-                if (   predicted_depth < 4 * ONE_PLY
+                if (   predicted_depth < 4 * ONE_MOVE
                     && pos.see_sign (move) < 0)
                 {
                     //if (SPNode) split_point->mutex.lock();
@@ -1128,7 +1128,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Step 15. Reduced depth search (LMR). If the move fails high will be
             // re-searched at full depth.
-            if (    depth >= 3 * ONE_PLY
+            if (    depth >= 3 * ONE_MOVE
                 && !is_pv_move
                 && !capture_or_promotion
                 &&  tt_move        != move
@@ -1139,19 +1139,19 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 if (!PVNode && cut_node)
                 {
-                    ss->reduction += ONE_PLY;
+                    ss->reduction += ONE_MOVE;
                 }
                 else if (history[pos[sq_dst (move)]][sq_dst (move)] < 0)
                 {
-                    ss->reduction += ONE_PLY / 2;
+                    ss->reduction += ONE_MOVE / 2;
                 }
 
                 if (move == cm[0] || move == cm[1])
                 {
-                    ss->reduction = std::max (DEPTH_ZERO, ss->reduction - ONE_PLY);
+                    ss->reduction = std::max (DEPTH_ZERO, ss->reduction - ONE_MOVE);
                 }
 
-                Depth d = std::max (new_depth - ss->reduction, ONE_PLY);
+                Depth d = std::max (new_depth - ss->reduction, ONE_MOVE);
 
                 //if (SPNode) alpha = split_point->alpha;
 
@@ -1170,10 +1170,10 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 //if (SPNode) alpha = split_point->alpha;
 
-                value = new_depth < ONE_PLY ?
+                value = new_depth < ONE_MOVE ?
                     gives_check
-                    ? -qsearch<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                    : -qsearch<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                    ? -search_quien<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                    : -search_quien<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                     : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
@@ -1182,10 +1182,10 @@ moves_loop: // When in check and at SPNode search starts from here
             // parent node to fail low with value <= alpha and to try another move.
             if (PVNode && (is_pv_move || (value > alpha && (RootNode || value < beta))))
             {
-                value = new_depth < ONE_PLY ?
+                value = new_depth < ONE_MOVE ?
                     gives_check
-                    ? -qsearch<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                    : -qsearch<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                    ? -search_quien<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                    : -search_quien<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                     : - search<PV>(pos, ss+1, -beta, -alpha, new_depth, false);
             }
 
@@ -1334,12 +1334,11 @@ moves_loop: // When in check and at SPNode search starts from here
 
         return best_value;
     }
-
-    // qsearch() is the quiescence search function, which is called by the main
-    // search function when the remaining depth is zero (or, to be more precise,
-    // less than ONE_PLY).
+    
     template <NodeType N, bool IN_CHECK>
-    Value qsearch (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
+    // search_quien() is the quiescence search function, which is called by the main search function
+    // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
+    Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
     {
         const bool PVNode = (N == PV);
 
@@ -1367,7 +1366,7 @@ moves_loop: // When in check and at SPNode search starts from here
         }
 
         // Decide whether or not to include checks, this fixes also the type of
-        // TT entry depth that we are going to use. Note that in qsearch we use
+        // TT entry depth that we are going to use. Note that in search_quien we use
         // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
         Depth tt_depth = IN_CHECK || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
@@ -1510,8 +1509,8 @@ moves_loop: // When in check and at SPNode search starts from here
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
             Value value = gives_check
-                ? -qsearch<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_PLY)
-                : -qsearch<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_PLY);
+                ? -search_quien<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
+                : -search_quien<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 
             pos.undo_move ();
 

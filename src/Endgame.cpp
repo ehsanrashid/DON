@@ -460,7 +460,7 @@ namespace EndGame {
                 // squares of the blocking pawn and the strong king is not
                 // closer. (I think this rule only fails in practically
                 // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
-                // and positions where qsearch will immediately correct the
+                // and positions where search_quien will immediately correct the
                 // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
                 if (   (rel_rank (_stong_side, bk_sq) >= R_7)
                     && (bk_dist <= 2) && (bk_dist <= wk_dist))
