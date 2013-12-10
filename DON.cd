@@ -239,7 +239,7 @@
     <Position X="16.5" Y="8.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\LeakDetector.h</FileName>
+      <FileName>src\leakdetector.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Enum Name="File" Collapsed="true">
@@ -350,7 +350,7 @@
   <Enum Name="Bound" Collapsed="true">
     <Position X="13" Y="5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAEAAAAAABEAAAAQAAAAhAAAAAAAAAAAAAAAAAAAAQA=</HashCode>
+      <HashCode>AAAAAAAAAACAAAAAAAAAAEAAAAAAAAAAAAQAAACAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
