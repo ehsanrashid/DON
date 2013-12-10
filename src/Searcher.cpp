@@ -44,7 +44,7 @@ namespace {
     }
 
     // Reduction lookup tables (initialized at startup) and their access function
-    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][moveNumber]
+    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_number]
 
     template<bool PVNode>
     inline Depth reduction (bool i, Depth d, int32_t mn)
@@ -344,8 +344,8 @@ namespace Searcher {
 
         if (*(Options["Contempt Factor"]) && !*(Options["UCI_AnalyseMode"]))
         {
-            int32_t cf = *(Options["Contempt Factor"]) * VALUE_MG_PAWN / 100; // From centipawns
-            cf = cf * Material::game_phase(rootPos) / PHASE_MIDGAME; // Scale down with phase
+            int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+            cf = cf * Material::game_phase (rootPos) / PHASE_MIDGAME; // Scale down with phase
             draw_value[ rootColor] = VALUE_DRAW - Value (cf);
             draw_value[~rootColor] = VALUE_DRAW + Value (cf);
         }
@@ -390,8 +390,8 @@ finish:
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         ats ()
-            << "bestmove " //<< move_to_uci(rootMoves[0].pv[0], rootPos.chess960 ())
-            << " ponder "  //<< move_to_uci(rootMoves[0].pv[1], rootPos.chess960 ())
+            << "bestmove " << move_to_can (rootMoves[0].pv[0], rootPos.chess960 ())
+            << " ponder "  << move_to_can (rootMoves[0].pv[1], rootPos.chess960 ())
             << endl;
 
     }
@@ -452,7 +452,7 @@ namespace {
         counter_moves.clear();
 
         pv_size     = int32_t (*(Options["MultiPV"]));
-        Skill skill = Skill (int32_t (*(Options["Skill Level"])));
+        Skill skill = Skill (*(Options["Skill Level"]));
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
         // that we will use behind the scenes to retrieve a set of possible moves.
@@ -476,7 +476,7 @@ namespace {
 
             // Save last iteration's scores before first PV line is searched and all
             // the move scores but the (new) PV are set to -VALUE_INFINITE.
-            for (size_t i = 0; i < rootMoves.size(); ++i)
+            for (size_t i = 0; i < rootMoves.size (); ++i)
             {
                 rootMoves[i].last_value = rootMoves[i].curr_value;
             }
@@ -496,7 +496,7 @@ namespace {
                 // research with bigger window until not failing high/low anymore.
                 while (true)
                 {
-                    best_value = search<Root>(pos, ss, alpha, beta, depth * int32_t (ONE_MOVE), false);
+                    best_value = search<Root> (pos, ss, alpha, beta, depth * int32_t (ONE_MOVE), false);
 
                     // Bring to front the best move. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -504,7 +504,7 @@ namespace {
                     // we want to keep the same order for all the moves but the new
                     // PV that goes to the front. Note that in case of MultiPV search
                     // the already searched PV lines are preserved.
-                    stable_sort(rootMoves.begin() + pv_idx, rootMoves.end());
+                    stable_sort (rootMoves.begin () + pv_idx, rootMoves.end ());
 
                     // Write PV back to transposition table in case the relevant
                     // entries have been overwritten during the search.
@@ -550,7 +550,7 @@ namespace {
                 }
 
                 // Sort the PV lines searched so far and update the GUI
-                stable_sort (rootMoves.begin(), rootMoves.begin() + pv_idx + 1);
+                stable_sort (rootMoves.begin (), rootMoves.begin () + pv_idx + 1);
 
                 if (pv_idx + 1 == pv_size || Time::now () - searchTime > 3000)
                 {
@@ -569,7 +569,7 @@ namespace {
                 RootMove& rm = rootMoves[0];
                 if (skill.move != MOVE_NONE)
                 {
-                    rm = *find (rootMoves.begin(), rootMoves.end(), skill.move);
+                    rm = *find (rootMoves.begin (), rootMoves.end (), skill.move);
                 }
                 Log log (*(Options["Search Log Filename"]));
                 log << pretty_pv (pos, depth, rm.curr_value, Time::now () - searchTime, rm.pv)
@@ -609,7 +609,7 @@ namespace {
                     &&  best_move_changes <= DBL_EPSILON
                     &&  pv_size == 1
                     &&  best_value > VALUE_MATED_IN_MAX_PLY
-                    && (rootMoves.size() == 1 ||  Time::now () - searchTime > (time_mgr.available_time() * 20) / 100))
+                    && (rootMoves.size () == 1 ||  Time::now () - searchTime > (time_mgr.available_time() * 20) / 100))
                 {
                     Value r_beta = best_value - 2 * VALUE_MG_PAWN;
                     ss->skip_null_move = true;
@@ -1098,9 +1098,8 @@ moves_loop: // When in check and at SPNode search starts from here
 
                         if (SPNode)
                         {
-                            //split_point->mutex.lock();
-                            //if (best_value > split_point->best_value)
-                            //    split_point->best_value = best_value;
+                            //split_point->mutex.lock ();
+                            //if (best_value > split_point->best_value) split_point->best_value = best_value;
                         }
                         continue;
                     }
@@ -1111,7 +1110,6 @@ moves_loop: // When in check and at SPNode search starts from here
                     && pos.see_sign (move) < 0)
                 {
                     //if (SPNode) split_point->mutex.lock();
-
                     continue;
                 }
 
