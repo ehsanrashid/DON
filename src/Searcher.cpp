@@ -136,13 +136,15 @@ namespace {
     {
         if (hits[0])
         {
-            cerr << "Total " << hits[0] << " Hits " << hits[1]
-            << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
+            cerr
+                << "Total " << hits[0] << " Hits " << hits[1]
+                << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
         }
         if (means[0])
         {
-            cerr << "Total " << means[0] << " Mean "
-                << double (means[1]) / double (means[0]) << endl;
+            cerr 
+                << "Total " << means[0]
+                << " Mean " << double (means[1]) / double (means[0]) << endl;
         }
     }
 
@@ -212,15 +214,15 @@ void check_time ()
 
 namespace Searcher {
 
-    Limits                limits;
-    volatile Signals      signals;
+    Limits              limits;
+    volatile Signals    signals;
 
-    vector<RootMove> rootMoves;
-    Position              rootPos;
-    Color                 rootColor;
-    StateInfoStackPtr     setupStates;
+    vector<RootMove>    rootMoves;
+    Position            rootPos;
+    Color               rootColor;
+    StateInfoStackPtr   setupStates;
 
-    Time::point           searchTime;
+    Time::point         searchTime;
 
     // initialize the PRNG only once
     PolyglotBook book;
@@ -244,8 +246,10 @@ namespace Searcher {
         {
             pv.emplace_back (m);
 
-            //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));
-            //ASSERT (generate<LEGAL>(pos).contains (pv[ply]));
+#ifndef NDEBUG
+            MoveList mov_lst = generate<LEGAL>(pos);
+            ASSERT (find (mov_lst.cbegin (), mov_lst.cend (), pv[ply]) != mov_lst.cend ());
+#endif
 
             pos.do_move (pv[ply++], *si++);
             te = TT.retrieve (pos.posi_key ());
@@ -286,8 +290,10 @@ namespace Searcher {
                 TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, VALUE_NONE, VALUE_NONE);
             }
 
-            //ASSERT (MoveList<LEGAL>(pos).contains (pv[ply]));
-            //ASSERT (generate<LEGAL>(pos).contains (pv[ply]));
+#ifndef NDEBUG
+            MoveList mov_lst = generate<LEGAL>(pos);
+            ASSERT (find (mov_lst.cbegin (), mov_lst.cend (), pv[ply]) != mov_lst.cend ());
+#endif
 
             pos.do_move (pv[ply++], *si++);
         }
@@ -1348,7 +1354,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
         return best_value;
     }
-    
+
     template <NodeType N, bool IN_CHECK>
     // search_quien() is the quiescence search function, which is called by the main search function
     // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
