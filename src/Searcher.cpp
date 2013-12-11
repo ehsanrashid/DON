@@ -169,29 +169,29 @@ void check_time ()
 
     if (limits.nodes)
     {
-        //Threads.mutex.lock();
+        //Threads.mutex.lock ();
 
         nodes = rootPos.game_nodes ();
-
         //// Loop across all split points and sum accumulated SplitPoint nodes plus
         //// all the currently active positions nodes.
-        //for (size_t i = 0; i < Threads.size(); ++i)
+        //for (size_t i = 0; i < Threads.size (); ++i)
         //{
         //    for (int32_t j = 0; j < Threads[i]->splitPointsSize; ++j)
         //    {
-        //        SplitPoint& sp = Threads[i]->splitPoints[j];
-        //        sp.mutex.lock();
+        //        SplitPoint &sp = Threads[i]->splitPoints[j];
+        //        sp.mutex.lock ();
         //        nodes += sp.nodes;
         //        Bitboard sm = sp.slavesMask;
         //        while (sm)
         //        {
-        //            Position* pos = Threads[pop_lsq(sm)]->activePosition;
-        //            if (pos) nodes += pos->game_nodes();
+        //            Position* pos = Threads[pop_lsq (sm)]->activePosition;
+        //            if (pos) nodes += pos->game_nodes ();
         //        }
-        //        sp.mutex.unlock();
+        //        sp.mutex.unlock ();
         //    }
         //}
-        //Threads.mutex.unlock();
+        
+        //Threads.mutex.unlock ();
     }
 
     int64_t elapsed = now_time - searchTime;
@@ -365,7 +365,6 @@ namespace Searcher {
                 << " moves to go: " << limits.moves_to_go
                 << endl;
         }
-
 
 
 finish:
@@ -559,9 +558,9 @@ namespace {
             }
 
             // Do we need to pick now the sub-optimal best move ?
-            if (skill.enabled() && skill.time_to_pick(depth))
+            if (skill.enabled () && skill.time_to_pick (depth))
             {
-                skill.pick_move();
+                skill.pick_move ();
             }
 
             if (*(Options["Write Search Log"]))
@@ -712,7 +711,7 @@ namespace {
             // applies also in the opposite condition of being mated instead of giving mate,
             // in this case return a fail-high score.
             alpha = max (mated_in (ss->ply)  , alpha);
-            beta  = min (mates_in (ss->ply+1), beta);
+            beta  = min (mates_in (ss->ply +1), beta);
 
             if (alpha >= beta) return alpha;
         }
@@ -722,7 +721,7 @@ namespace {
         // TT value, so we use a different position key in case of an excluded move.
         excluded_move = ss->excluded_move;
         posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
-        te      = TT.retrieve (posi_key);
+        te       = TT.retrieve (posi_key);
         tt_move  = RootNode ? rootMoves[pv_idx].pv[0] : te ? te->move () : MOVE_NONE;
         tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
 
@@ -745,7 +744,6 @@ namespace {
             if (    tt_value >= beta
                 &&  tt_move != MOVE_NONE
                 && !pos.capture_or_promotion (tt_move)
-                //&&  tt_move != ss->killers[0]
                 && !in_check)
             {
                 if (ss->killers[0] != tt_move)
@@ -757,9 +755,10 @@ namespace {
                 Value bonus = Value (int32_t (depth) * int32_t (depth));
                 history.update (pos.moved_piece(tt_move), sq_dst (tt_move), bonus);
 
-                if (_ok((ss-1)->current_move))
+                Move prev_move = (ss-1)->current_move;
+                if (_ok(prev_move))
                 {
-                    Square prev_move_sq = sq_dst ((ss-1)->current_move);
+                    Square prev_move_sq = sq_dst (prev_move);
                     counter_moves.update (pos[prev_move_sq], prev_move_sq, tt_move);
                 }
             }
@@ -780,7 +779,7 @@ namespace {
             // Never assume anything on values stored in TT
             if (  (ss->static_eval = eval_value = te->eval_value ()) == VALUE_NONE)
             {
-                eval_value = ss->static_eval = evaluate(pos);
+                eval_value = ss->static_eval = evaluate (pos);
             }
             // Can tt_value be used as a better position evaluation?
             if (tt_value != VALUE_NONE)
@@ -793,7 +792,7 @@ namespace {
         }
         else
         {
-            eval_value = ss->static_eval = evaluate(pos);
+            eval_value = ss->static_eval = evaluate (pos);
             TT.store(posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, VALUE_NONE, ss->static_eval);
         }
 
@@ -911,7 +910,7 @@ namespace {
         if (   !PVNode
             && depth >= 5 * ONE_MOVE
             && !ss->skip_null_move
-            && abs(beta) < VALUE_MATES_IN_MAX_PLY)
+            && abs (beta) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
             Depth rdepth = depth - ONE_MOVE - 3 * ONE_MOVE;
@@ -974,13 +973,13 @@ moves_loop: // When in check and at SPNode search starts from here
             (ss-2)->static_eval == VALUE_NONE;
 
         bool singular_ext_node =
-            !RootNode            &&
-            !SPNode              &&
+            !RootNode             &&
+            !SPNode               &&
             depth >= 8 * ONE_MOVE &&
-            tt_move != MOVE_NONE &&
-            !excluded_move       && // Recursive singular search is not allowed
+            tt_move != MOVE_NONE  &&
+            !excluded_move        && // Recursive singular search is not allowed
             (te->bound() & BND_LOWER) &&
-            te->depth() >= depth - 3 * ONE_MOVE;
+            (te->depth() >= depth - 3 * ONE_MOVE);
 
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -993,7 +992,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // At root obey the "searchmoves" option and skip moves not listed in Root
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
-            if (RootNode && !count(rootMoves.begin () + pv_idx, rootMoves.end (), move))
+            if (RootNode && !count (rootMoves.begin () + pv_idx, rootMoves.end (), move))
             {
                 continue;
             }
@@ -1191,7 +1190,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     ? gives_check
                     ? -search_quien<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                     : -search_quien<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                    : - search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
+                    : -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
             // Only for PV nodes do a full PV search on the first move or after a fail
