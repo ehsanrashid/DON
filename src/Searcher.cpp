@@ -287,7 +287,7 @@ namespace Searcher {
             // Don't overwrite correct entries
             if (!te || te->move() != pv[ply])
             {
-                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, VALUE_NONE, VALUE_NONE);
+                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, VALUE_NONE);
             }
 
 #ifndef NDEBUG
@@ -773,11 +773,10 @@ namespace {
             ss->static_eval = eval_value = VALUE_NONE;
             goto moves_loop;
         }
-
         else if (te)
         {
             // Never assume anything on values stored in TT
-            if (  (ss->static_eval = eval_value = te->eval_value ()) == VALUE_NONE)
+            if ((ss->static_eval = eval_value = te->eval_value ()) == VALUE_NONE)
             {
                 eval_value = ss->static_eval = evaluate (pos);
             }
@@ -793,7 +792,7 @@ namespace {
         else
         {
             eval_value = ss->static_eval = evaluate (pos);
-            TT.store(posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, VALUE_NONE, ss->static_eval);
+            TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, ss->static_eval);
         }
 
         if (   pos.cap_type () != PT_NO
@@ -831,8 +830,8 @@ namespace {
             && !ss->skip_null_move
             && depth < 4 * ONE_MOVE
             && eval_value - futility_margin (depth) >= beta
-            && abs(beta) < VALUE_MATES_IN_MAX_PLY
-            && abs(eval_value) < VALUE_KNOWN_WIN
+            && abs (beta) < VALUE_MATES_IN_MAX_PLY
+            && abs (eval_value) < VALUE_KNOWN_WIN
             && pos.non_pawn_material (pos.active ()))
         {
             return eval_value - futility_margin (depth);
@@ -843,7 +842,7 @@ namespace {
             && !ss->skip_null_move
             && depth >= 2 * ONE_MOVE
             && eval_value >= beta
-            && abs(beta) < VALUE_MATES_IN_MAX_PLY
+            && abs (beta) < VALUE_MATES_IN_MAX_PLY
             && pos.non_pawn_material (pos.active ()))
         {
             ss->current_move = MOVE_NULL;
@@ -1046,7 +1045,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 &&  move == tt_move
                 && !ext
                 &&  pos.legal (move, ci.pinneds)
-                &&  abs(tt_value) < VALUE_KNOWN_WIN)
+                &&  abs (tt_value) < VALUE_KNOWN_WIN)
             {
                 ASSERT (tt_value != VALUE_NONE);
 
@@ -1316,6 +1315,7 @@ moves_loop: // When in check and at SPNode search starts from here
             best_move,
             depth, 
             best_value >= beta  ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
+            pos.game_nodes (),
             value_to_tt (best_value, ss->ply),
             ss->static_eval);
 
@@ -1441,7 +1441,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 if (!te)
                 {
-                    TT.store (pos.posi_key (), MOVE_NONE, DEPTH_NONE, BND_LOWER, value_to_tt (best_value, ss->ply), ss->static_eval);
+                    TT.store (pos.posi_key (), MOVE_NONE, DEPTH_NONE, BND_LOWER, pos.game_nodes (), value_to_tt (best_value, ss->ply), ss->static_eval);
                 }
                 return best_value;
             }
@@ -1543,7 +1543,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     }
                     else // Fail high
                     {
-                        TT.store (posi_key, move, tt_depth, BND_LOWER, value_to_tt(value, ss->ply), ss->static_eval);
+                        TT.store (posi_key, move, tt_depth, BND_LOWER, pos.game_nodes (), value_to_tt(value, ss->ply), ss->static_eval);
                         return value;
                     }
                 }
@@ -1562,6 +1562,7 @@ moves_loop: // When in check and at SPNode search starts from here
             best_move,
             tt_depth,
             PVNode && (best_value > old_alpha) ? BND_EXACT : BND_UPPER,
+            pos.game_nodes (),
             value_to_tt(best_value, ss->ply),
             ss->static_eval);
 

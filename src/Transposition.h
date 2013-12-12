@@ -41,13 +41,13 @@ private:
 
 public:
 
-    uint32_t  key () const { return uint32_t (_key); }
-    Move     move () const { return Move (_move); }
-    Depth   depth () const { return Depth (_depth); }
-    Bound   bound () const { return Bound (_bound); }
-    uint8_t   gen () const { return _gen; }
+    uint32_t  key ()  const { return uint32_t (_key); }
+    Move     move ()  const { return Move (_move); }
+    Depth   depth ()  const { return Depth (_depth); }
+    Bound   bound ()  const { return Bound (_bound); }
+    uint8_t   gen ()  const { return _gen; }
     uint16_t nodes () const { return uint16_t (_nodes); }
-    Value   value () const { return Value (_value); }
+    Value   value ()  const { return Value (_value); }
     Value eval_value () const { return Value (_eval_value); }
 
     void save (uint32_t key, Move move, Depth depth, Bound bound,
@@ -123,12 +123,12 @@ public:
     static const size_t DEF_SIZE_TT         = 128;
 
     // Minimum size for Transposition table in mega-byte
-    static const size_t MIN_SIZE_TT         = 4;
+    static const size_t SIZE_MIN_TT         = 4;
 
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> WIN64
     // 032768 MB = 032 GB   -> WIN32
-    static const size_t MAX_SIZE_TT         = (size_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
+    static const size_t SIZE_MAX_TT         = (size_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
 
     static const uint32_t SIZE_CACHE_LINE   = 0x40; // 64
 
@@ -201,7 +201,7 @@ public:
     }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value);
+    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value);
 
     // retrieve() looks up the entry in the transposition table.
     const TranspositionEntry* retrieve (Key key) const;

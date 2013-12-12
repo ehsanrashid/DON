@@ -10,11 +10,9 @@
 #include "Transposition.h"
 #include "PolyglotBook.h"
 #include "Searcher.h"
-//#include "Thread.h"
 
 #include "atomicstream.h"
 #include "iologger.h"
-
 
 // Global string mapping of options
 UCI::OptionMap Options;
@@ -285,8 +283,8 @@ namespace UCI {
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         = OptionPtr (new SpinOption (
             TranspositionTable::DEF_SIZE_TT,
-            TranspositionTable::MIN_SIZE_TT,
-            TranspositionTable::MAX_SIZE_TT,
+            TranspositionTable::SIZE_MIN_TT,
+            TranspositionTable::SIZE_MAX_TT,
             on_resize_hash));
 
         // Button to clear the Hash Memory.

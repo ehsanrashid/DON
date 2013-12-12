@@ -13,10 +13,10 @@ TranspositionTable TT;
 // each cluster consists of NUM_TENTRY_CLUSTER number of entry.
 void TranspositionTable::resize (uint32_t size_mb)
 {
-    //ASSERT (size_mb >= MIN_SIZE_TT);
-    //ASSERT (size_mb <= MAX_SIZE_TT);
-    if (size_mb < MIN_SIZE_TT) size_mb = MIN_SIZE_TT;
-    if (size_mb > MAX_SIZE_TT) size_mb = MAX_SIZE_TT;
+    //ASSERT (size_mb >= SIZE_MIN_TT);
+    //ASSERT (size_mb <= SIZE_MAX_TT);
+    if (size_mb < SIZE_MIN_TT) size_mb = SIZE_MIN_TT;
+    if (size_mb > SIZE_MAX_TT) size_mb = SIZE_MAX_TT;
     //{
     //    std::cerr << "ERROR: hash size too large " << size_mb << " MB..." << std::endl;
     //    return;
@@ -28,11 +28,8 @@ void TranspositionTable::resize (uint32_t size_mb)
 
     uint8_t bit_hash = scan_msq (total_entry);
     ASSERT (bit_hash < MAX_BIT_HASH);
-    if (bit_hash >= MAX_BIT_HASH)
-    {
-        bit_hash = MAX_BIT_HASH - 1;
-        //return;
-    }
+    if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
+
     total_entry     = size_t (1) << bit_hash;
     if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return;
 
@@ -43,7 +40,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
     _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
-    _stored_entry    = 0;
+    _stored_entry   = 0;
     _generation     = 0;
 }
 
@@ -103,7 +100,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value e_value)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value)
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
@@ -134,15 +131,15 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
         int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
-        //int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
+        int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
 
-        if ((c1 + c2 + c3) > 0)
+        if ((c1 + c2 + c3 + c4) > 0)
         {
             re = te;
         }
     }
 
-    re->save (key32, move, depth, bound, _generation, 0, value, e_value);
+    re->save (key32, move, depth, bound, _generation, nodes/1000, value, e_value);
     ++_stored_entry;
 }
 
@@ -151,7 +148,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
 const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 {
     uint32_t key32 = uint32_t (key >> 32);
-    const TranspositionEntry* te = get_cluster (key);
+    const TranspositionEntry *te = get_cluster (key);
     for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
     {
         if (te->key () == key32) return te;
