@@ -687,12 +687,12 @@ namespace {
         }
 
         best_value = -VALUE_INFINITE;
-        best_move = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
+        best_move  = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
         (ss)->ply = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
-        (ss+1)->reduction = DEPTH_ZERO;
-        (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
+        (ss+1)->reduction   = DEPTH_ZERO;
+        (ss+2)->killers[0]  = (ss+2)->killers[1] = MOVE_NONE;
 
         // Used to send sel_depth info to GUI
         //if (PVNode && thread->maxPly < ss->ply) thread->maxPly = ss->ply;
@@ -1729,7 +1729,7 @@ moves_loop: // When in check and at SPNode search starts from here
         Time::point elapsed = Time::point (Time::now () - searchTime + 1);
 
         int32_t sel_depth = 0;
-        //for (size_t i = 0; i < Threads.size(); ++i)
+        //for (size_t i = 0; i < Threads.size (); ++i)
         //{
         //    if (Threads[i]->maxPly > sel_depth)
         //    {
