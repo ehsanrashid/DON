@@ -10,27 +10,27 @@ namespace std {
 
     template<class Elem, class Traits>
     class basic_tie_buf sealed
-        : public std::basic_streambuf<Elem, Traits>
-        , public std::noncopyable
+        : public basic_streambuf<Elem, Traits>
+        , public noncopyable
     {
 
     private:
-        std::basic_streambuf<Elem, Traits> *_sbuf;
-        std::basic_ofstream <Elem, Traits> *_fstm;
+        basic_streambuf<Elem, Traits> *_sbuf;
+        basic_ofstream <Elem, Traits> *_fstm;
 
     public:
 
-        //typedef typename std::basic_streambuf<Elem, Traits>::int_type int_type;
+        //typedef typename basic_streambuf<Elem, Traits>::int_type int_type;
         typedef typename Traits::int_type                               int_type;
 
         basic_tie_buf (
-            std::basic_streambuf<Elem, Traits> *sbuf,
-            std::basic_ofstream <Elem, Traits> *fstm)
+            basic_streambuf<Elem, Traits> *sbuf,
+            basic_ofstream <Elem, Traits> *fstm)
             : _sbuf (sbuf)
             , _fstm (fstm)
         {}
 
-        std::basic_streambuf<Elem, Traits>* sbuf () const
+        basic_streambuf<Elem, Traits>* sbuf () const
         {
             return _sbuf;
         }
@@ -81,20 +81,20 @@ namespace std {
 
     };
 
-    typedef basic_tie_buf<char,    std::char_traits<char> >     tie_buf;
-    typedef basic_tie_buf<wchar_t, std::char_traits<wchar_t> >  tie_wbuf;
+    typedef basic_tie_buf<char,    char_traits<char> >     tie_buf;
+    typedef basic_tie_buf<wchar_t, char_traits<wchar_t> >  tie_wbuf;
 
 
-    //class TemporaryFilebuf : public std::filebuf
+    //class TemporaryFilebuf : public filebuf
     //{
-    //    std::ostream&   myStream;
-    //    std::streambuf* mySavedStreambuf;
+    //    ostream&   myStream;
+    //    streambuf* mySavedStreambuf;
     //
     //public:
     //    TemporaryFilebuf(
-    //        std::ostream& toBeChanged,
-    //        std::string const& filename )
-    //        : std::filebuf (filename.c_str (), std::ios_base::out)
+    //        ostream& toBeChanged,
+    //        string const& filename )
+    //        : filebuf (filename.c_str (), ios_base::out)
     //        , myStream (toBeChanged )
     //        , mySavedStreambuf (toBeChanged.rdbuf())
     //    {
