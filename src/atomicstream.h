@@ -19,16 +19,16 @@ namespace std {
     //
     //private:
     //    // output stream for atomic_stream
-    //    //std::shared_ptr<std::ostream>   _out_stm;
-    //    std::ostream     &_out_stm;
+    //    //shared_ptr<ostream>   _out_stm;
+    //    ostream     &_out_stm;
     //
-    //    // std::stringstream is not copyable, so copies are already forbidden
-    //    std::ostringstream _os_stm;
+    //    // stringstream is not copyable, so copies are already forbidden
+    //    ostringstream _os_stm;
     //
     //public:
     //
-    //    explicit atomic_stream (std::ostream &out_stm = std::cout)
-    //        //: _out_stm(std::shared_ptr<std::ostream> (&out_stm, std::unary_nullfunctor<std::ostream> ()))
+    //    explicit atomic_stream (ostream &out_stm = cout)
+    //        //: _out_stm(shared_ptr<ostream> (&out_stm, unary_nullfunctor<ostream> ()))
     //        : _out_stm (out_stm)
     //    {}
     //
@@ -52,12 +52,12 @@ namespace std {
     //    //    return *this;
     //    //}
     //
-    //    // this is the type of std::cout
-    //    //typedef std::basic_ostream<char, std::char_traits<char> > ostream;
-    //    // this is the function signature of std::endl
-    //    typedef std::ostream& (*ostream_manipulator) (std::ostream &);
+    //    // this is the type of cout
+    //    //typedef basic_ostream<char, char_traits<char> > ostream;
+    //    // this is the function signature of endl
+    //    typedef ostream& (*ostream_manipulator) (ostream &);
     //
-    //    // define an operator<< to take in std::endl
+    //    // define an operator<< to take in endl
     //    //template<>
     //    atomic_stream& operator<< (ostream_manipulator manip)
     //    {
@@ -84,30 +84,30 @@ namespace std {
     //        // put a new line
     //        ats._os_stm.put ('\n');
     //        // do other stuff with the stream
-    //        // std::cout, for example, will flush the stream
-    //        //ats << "Called MyStream::endl!" << std::endl;
+    //        // cout, for example, will flush the stream
+    //        //ats << "Called MyStream::endl!" << endl;
     //        return ats;
     //    }
     //
     //    // Write the whole shebang in one go & also flush
     //    atomic_stream& operator() ()
     //    {
-    //        _out_stm << _os_stm.rdbuf () << std::flush;
+    //        _out_stm << _os_stm.rdbuf () << flush;
     //        return *this;
     //    }
     //
     //} ats;
 
     //template<class T>
-    //std::ats& operator<< (std::ats &os, T& (*manip) (T &))
+    //ats& operator<< (ats &os, T& (*manip) (T &))
     //{
     //    //manip (os._os_stm);
     //    return os;
     //}
 
-    //typedef std::ostream& (*ostream_manipulator)(std::ostream &);
+    //typedef ostream& (*ostream_manipulator)(ostream &);
     //template<>
-    //std::ats& operator<< (std::ats &os, ostream_manipulator pf)
+    //ats& operator<< (ats &os, ostream_manipulator pf)
     //{
     //    //os.operator<< <ostream_manipulator> (os, pf);
     //    return os;
@@ -115,18 +115,18 @@ namespace std {
 
 
     typedef class atomic_stream sealed
-        : public std::ostringstream
-        , public std::noncopyable
+        : public ostringstream
+        , public noncopyable
     {
 
     private:
         // output stream for atomic_stream
-        std::ostream     &_out_stm;
+        ostream     &_out_stm;
 
     public:
 
-        explicit atomic_stream (std::ostream &out_stm = std::cout)
-            : std::ostringstream ()
+        explicit atomic_stream (ostream &out_stm = cout)
+            : ostringstream ()
             , _out_stm (out_stm)
         {}
 
@@ -140,7 +140,7 @@ namespace std {
         {
             {
                 // acquire lock
-                std::unique_lock<std::mutex> lock;
+                unique_lock<mutex> lock;
                 _out_stm << str () << std::flush;
                 clear ();
                 // release lock

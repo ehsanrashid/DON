@@ -11,14 +11,14 @@ namespace std {
     // Taken from boost/serialization/shared_ptr.hpp
 
     template<class T>
-    struct unary_nullfunctor : public std::unary_function<T *, void>
+    struct unary_nullfunctor : public unary_function<T *, void>
     {
         void operator() (const T *op) const
         {}
     };
 
     template<class T>
-    struct binary_nullfunctor : public std::binary_function<T *, T *, void>
+    struct binary_nullfunctor : public binary_function<T *, T *, void>
     {
         void operator() (const T *op1, const T *op2) const
         {}
@@ -26,7 +26,7 @@ namespace std {
 
 
     // char case-insensitive less comparator
-    struct   char_less_nocase_comparer : public std::binary_function<unsigned char, unsigned char, bool>
+    struct   char_less_nocase_comparer : public binary_function<unsigned char, unsigned char, bool>
     {
         bool operator() (unsigned char c1, unsigned char c2) const
         {
@@ -35,13 +35,13 @@ namespace std {
         }
     };
 
-    // std::string case-insensitive less comparator
-    struct string_less_nocase_comparer : public std::binary_function<std::string &, std::string &, bool>
+    // string case-insensitive less comparator
+    struct string_less_nocase_comparer : public binary_function<string &, string &, bool>
     {
-        bool operator() (const std::string &s1, const std::string &s2) const
+        bool operator() (const string &s1, const string &s2) const
         {
-            //std::string::const_iterator itr1 = s1.begin();
-            //std::string::const_iterator itr2 = s2.begin();
+            //string::const_iterator itr1 = s1.begin();
+            //string::const_iterator itr2 = s2.begin();
             //while (itr1 != s1.end() && itr2 != s2.end()
             //    && toupper(*itr1) == toupper(*itr2))
             //{
@@ -54,27 +54,27 @@ namespace std {
 
             //return stricmp(s1.c_str(), s2.c_str()) < 0;
 
-            return std::lexicographical_compare (s1.cbegin (), s1.cend (), s2.cbegin (), s2.cend (), char_less_nocase_comparer ());
+            return lexicographical_compare (s1.cbegin (), s1.cend (), s2.cbegin (), s2.cend (), char_less_nocase_comparer ());
         }
     };
 
     //// case-insensitive equal comparator for char
-    //struct   char_equal_nocase_comparer : public std::binary_function<unsigned char, unsigned char, bool>
+    //struct   char_equal_nocase_comparer : public binary_function<unsigned char, unsigned char, bool>
     //{
     //    bool operator() (unsigned char c1, unsigned char c2) const
     //    {
-    //        //return std::toupper(c1) == std::toupper(c2);
-    //        return std::tolower(c1) == std::tolower(c2);
+    //        //return toupper(c1) == toupper(c2);
+    //        return tolower(c1) == tolower(c2);
     //    }
     //};
 
-    //// case-insensitive equal comparator for std::string
-    //struct string_equal_nocase_comparer : public std::binary_function<std::string &, std::string &, bool>
+    //// case-insensitive equal comparator for string
+    //struct string_equal_nocase_comparer : public binary_function<string &, string &, bool>
     //{
-    //    bool operator() (const std::string &s1, const std::string &s2) const
+    //    bool operator() (const string &s1, const string &s2) const
     //    {
     //        return stricmp(s1.c_str(), s2.c_str()) == 0;
-    //        //return std::lexicographical_compare(s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(), char_equal_nocase_comparer());
+    //        //return lexicographical_compare(s1.cbegin(), s1.cend(), s2.cbegin(), s2.cend(), char_equal_nocase_comparer());
     //    }
     //};
 

@@ -21,17 +21,17 @@ namespace std {
         {}
 
         template<class charT, class Traits>
-        std::basic_ostream<charT, Traits>& operator() (std::basic_ostream<charT, Traits> &os) const
+        basic_ostream<charT, Traits>& operator() (basic_ostream<charT, Traits> &os) const
         {
-            os.setf (::std::ios_base::fixed, ::std::ios_base::floatfield);
+            os.setf (ios_base::fixed, ios_base::floatfield);
             os.width (_width);
             os.precision (_prec);
             return os;
         }
 
         template<class charT, class Traits>
-        friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const width_prec &wp)
+        friend basic_ostream<charT, Traits>&
+            operator<< (basic_ostream<charT, Traits> &os, const width_prec &wp)
         {
             return wp (os);
         }
@@ -50,20 +50,20 @@ namespace std {
 
     private:                      
         T _val;
-        std::basic_ostream<C>& (*_fp_manip) (std::basic_ostream<C>&, T);
+        basic_ostream<C>& (*_fp_manip) (basic_ostream<C>&, T);
 
     public:
-        manip_infra (std::basic_ostream<C>& (*fp_manip) (std::basic_ostream<C>&, T), T val)
+        manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
             : _fp_manip(fp_manip), _val(val)
         {}
 
-        void operator() (std::basic_ostream<C>& os) const
+        void operator() (basic_ostream<C>& os) const
         {
             // Invoke the function pointer with the stream and value
             _fp_manip(os, _val);
         }  
 
-        friend std::basic_ostream<C>& operator<< (std::basic_ostream<C> &os, const manip_infra<T, C> &manip)
+        friend basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
         {
             manip (os);
             return os;
@@ -71,7 +71,7 @@ namespace std {
     };
 
     //template<class T, class C>
-    //inline std::basic_ostream<C>& operator<< (std::basic_ostream<C> &os, const manip_infra<T, C> &manip)
+    //inline basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
     //{
     //    manip (os);
     //    return os;
@@ -79,7 +79,7 @@ namespace std {
 
 
     // Helper function that is ultimately called by the ManipInfra class
-    inline ::std::ostream& set_width (::std::ostream &os, int n)
+    inline ostream& set_width (ostream &os, int n)
     {
         os.width (n);
         return (os);
@@ -92,7 +92,7 @@ namespace std {
     }
 
     // Another helper that takes a char argument
-    inline ::std::ostream& set_fill (::std::ostream &os, char c)
+    inline ostream& set_fill (ostream &os, char c)
     {
         os.fill (c);
         return (os);
