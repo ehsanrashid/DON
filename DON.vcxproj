@@ -35,7 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>stockDON</ProjectName>
+    <ProjectName>DON</ProjectName>
     <ProjectGuid>{563ABBEF-C72E-4C61-BC8D-F98BA06D115D}</ProjectGuid>
     <RootNamespace>Cryptic</RootNamespace>
     <SccProjectName>
