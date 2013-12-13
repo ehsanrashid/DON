@@ -128,8 +128,7 @@ namespace Material {
 
         memset (e, 0, sizeof (Entry));
         e->_key           = key;
-        e->_factor[WHITE] = SCALE_FACTOR_NORMAL;
-        e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
+        e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
         e->_game_phase    = game_phase (pos);
 
         // Let's look if we have a specialized evaluation function for this
@@ -248,13 +247,13 @@ namespace Material {
         const int32_t piece_count[CLR_NO][PT_NO] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
-            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.has_pair_bishops (WHITE), //pos.piece_count<BSHP> (WHITE) > 1
+            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.piece_count<BSHP> (WHITE) > 1
             },
             {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
-            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.has_pair_bishops (BLACK), //pos.piece_count<BSHP> (BLACK) > 1,
+            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.piece_count<BSHP> (BLACK) > 1,
             },
         };
-        
+
         e->_value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
         return e;
     }

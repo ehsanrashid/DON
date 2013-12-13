@@ -6,8 +6,6 @@
 
 namespace BitBases {
 
-    using namespace std;
-
     namespace {
 
         using namespace BitBoard;
@@ -48,7 +46,7 @@ namespace BitBases {
         private:
 
             template<Color C>
-            Result classify (const vector<KPKPosition>& db);
+            Result classify (const std::vector<KPKPosition>& db);
 
             Color active;
             Square bk_sq, wk_sq, p_sq;
@@ -60,7 +58,7 @@ namespace BitBases {
 
             operator Result() const { return result; }
 
-            Result classify (const vector<KPKPosition>& db)
+            Result classify (const std::vector<KPKPosition>& db)
             {
                 return (WHITE == active) ? classify<WHITE> (db) : classify<BLACK> (db);
             }
@@ -106,7 +104,7 @@ namespace BitBases {
         }
 
         template<Color C>
-        Result KPKPosition::classify (const vector<KPKPosition>& db)
+        Result KPKPosition::classify (const std::vector<KPKPosition>& db)
         {
 
             // White to Move:
@@ -128,7 +126,7 @@ namespace BitBases {
             {
                 r |= (WHITE == C)
                     ? db[index(C_, bk_sq, pop_lsq (b), p_sq)]
-                : db[index(C_, pop_lsq (b), wk_sq, p_sq)];
+                    : db[index(C_, pop_lsq (b), wk_sq, p_sq)];
             }
 
             if ((WHITE == C) && (_rank (p_sq) < R_7))
@@ -152,7 +150,7 @@ namespace BitBases {
 
     void init_kpk ()
     {
-        vector<KPKPosition> db;
+        std::vector<KPKPosition> db;
         db.reserve (MAX_INDEX);
 
         uint32_t idx;

@@ -13,6 +13,7 @@ namespace std {
     // atomic_stream is a full expression stream accumulator for ostream <char>
     // It is thread safe stream for printing output.
 
+
     //typedef class atomic_stream sealed
     //{
     //

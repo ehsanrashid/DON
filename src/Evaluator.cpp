@@ -11,6 +11,7 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Searcher.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -237,7 +238,7 @@ namespace {
 
         void add (int32_t idx, Score term_w, Score term_b = SCORE_ZERO);
         void row (const char name[], int32_t idx);
-        string do_trace (const Position &pos);
+        std::string do_trace (const Position &pos);
 
     }
 
@@ -266,7 +267,7 @@ namespace {
 
     Value interpolate (const Score& score, Phase ph, ScaleFactor sf);
     Score apply_weight (Score score, Score w);
-    Score weight_option (const string &mg_opt, const string &eg_opt, Score internal_weight);
+    Score weight_option (const std::string &mg_opt, const std::string &eg_opt, Score internal_weight);
     double to_cp (Value value);
 
     // --------------------------------------------------
@@ -281,14 +282,14 @@ namespace {
         EvalInfo ei;
         Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
 
-        //Thread* th = pos.this_thread();
+        Thread* thread = NULL; //pos.this_thread();
 
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
         score = pos.psq_score () + (WHITE == pos.active () ? Tempo : -Tempo);
 
         // Probe the material hash table
-        //ei.mi = Material::probe (pos, th->materialTable, th->endgames);
+        ei.mi = Material::probe (pos, thread->material_table, thread->endgames);
         score += ei.mi->material_score ();
 
         // If we have a specialized evaluation function for the current material
@@ -299,7 +300,7 @@ namespace {
         }
 
         // Probe the pawn hash table
-        //ei.pi = Pawns::probe(pos, th->pawnsTable);
+        ei.pi = Pawns::probe (pos, thread->pawns_table);
         score += apply_weight (ei.pi->pawn_score(), Weights[PawnStructure]);
 
         // Initialize attack and king safety bitboards
@@ -386,10 +387,10 @@ namespace {
                 //<< "\nUncertainty margin:"
                 //<< " White: " << to_cp (margins[WHITE]) << "-"
                 //<< " Black: " << to_cp (margins[BLACK]) << "\n"
-                << "Scaling: " << noshowpos
-                << setw(6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
-                << setw(6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
-                << setw(6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                << "Scaling: " << std::noshowpos
+                << std::setw(6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
+                << std::setw(6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
+                << std::setw(6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
                 << "Total evaluation: " << to_cp (value);
         }
 
@@ -472,7 +473,7 @@ namespace {
         ei.attackedBy[C][T] = 0;
 
         const SquareList pl = pos.list<T>(C);
-        for_each (pl.cbegin (), pl.cend (), [&] (Square s)
+        std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard attacks =
@@ -529,7 +530,7 @@ namespace {
             // Penalty for knight when there are few enemy pawns
             if (NIHT == T)
             {
-                score -= KnightPawns * max (5 - pos.piece_count<PAWN>(C_), 0);
+                score -= KnightPawns * std::max (5 - pos.piece_count<PAWN>(C_), 0);
             }
 
             if (BSHP == T || NIHT == T)
@@ -674,7 +675,7 @@ namespace {
             // attacked and undefended squares around our king, the square of the
             // king, and the quality of the pawn shelter.
             int32_t attack_units =
-                min (20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
+                std::min (20, (ei.kingAttackersCount[C_] * ei.kingAttackersWeight[C_]) / 2)
                 + 3 * (ei.kingAdjacentZoneAttacksCount[C_] + pop_count<MAX15>(undefended))
                 + KingExposed[rel_sq (C, k_sq)] - mg_value (score) / 32;
 
@@ -739,7 +740,7 @@ namespace {
             if (b) attack_units += KnightCheck * pop_count<MAX15>(b);
 
             // To index KingDanger[] attack_units must be in [0, 99] range
-            attack_units = min (max (0, attack_units), 99);
+            attack_units = std::min (std::max (0, attack_units), 99);
 
             // Finally, extract the king danger score from the KingDanger[]
             // array and subtract the score from evaluation. Set also margins[]
@@ -1012,7 +1013,7 @@ namespace {
 
     // weight_option () computes the value of an evaluation weight, by combining
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
-    Score weight_option (const string &mg_opt, const string &eg_opt, Score internal_weight)
+    Score weight_option (const std::string &mg_opt, const std::string &eg_opt, Score internal_weight)
     {
         // Scale option value from 100 to 256
         int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
@@ -1038,35 +1039,35 @@ namespace {
             switch (idx)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
-                stream << setw(20) << name << " |   ---   --- |   ---   --- | "
-                    << setw(6)  << to_cp (mg_value (w_score)) << " "
-                    << setw(6)  << to_cp (eg_value (w_score)) << " \n";
+                stream << std::setw(20) << name << " |   ---   --- |   ---   --- | "
+                    << std::setw(6)  << to_cp (mg_value (w_score)) << " "
+                    << std::setw(6)  << to_cp (eg_value (w_score)) << " \n";
                 break;
 
             default:
-                stream << setw(20) << name << " | " << noshowpos
-                    << setw(5)  << to_cp (mg_value (w_score)) << " "
-                    << setw(5)  << to_cp (eg_value (w_score)) << " | "
-                    << setw(5)  << to_cp (mg_value (b_score)) << " "
-                    << setw(5)  << to_cp (eg_value (b_score)) << " | "
-                    << showpos
-                    << setw(6)  << to_cp (mg_value (w_score - b_score)) << " "
-                    << setw(6)  << to_cp (eg_value (w_score - b_score)) << " \n";
+                stream << std::setw(20) << name << " | " << std::noshowpos
+                    << std::setw(5)  << to_cp (mg_value (w_score)) << " "
+                    << std::setw(5)  << to_cp (eg_value (w_score)) << " | "
+                    << std::setw(5)  << to_cp (mg_value (b_score)) << " "
+                    << std::setw(5)  << to_cp (eg_value (b_score)) << " | "
+                    << std::showpos
+                    << std::setw(6)  << to_cp (mg_value (w_score - b_score)) << " "
+                    << std::setw(6)  << to_cp (eg_value (w_score - b_score)) << " \n";
             }
         }
 
-        string do_trace (const Position &pos)
+        std::string do_trace (const Position &pos)
         {
             stream.str ("");
-            stream << showpoint << showpos << fixed << setprecision(2);
+            stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
             memset (scores, 0, 2 * (TOTAL + 1) * sizeof (Score));
 
             do_evaluate<true>(pos);
 
-            string totals = stream.str ();
+            std::string totals = stream.str ();
             stream.str ("");
 
-            stream << setw(21) << "Eval term |    White    |    Black    |     Total     \n"
+            stream << std::setw(21) << "Eval term |    White    |    Black    |     Total     \n"
                 <<          "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                 <<          "---------------------+-------------+-------------+---------------\n";
 
@@ -1105,7 +1106,7 @@ namespace Evaluator {
     // trace() is like evaluate() but instead of a value returns a string suitable
     // to be print on stdout with the detailed descriptions and values of each
     // evaluation term. Used mainly for debugging.
-    string trace(const Position &pos)
+    std::string trace(const Position &pos)
     {
         return Tracing::do_trace(pos);
     }
@@ -1126,7 +1127,7 @@ namespace Evaluator {
 
         for (int32_t t = 0, i = 1; i < 100; ++i)
         {
-            t = min (Peak, min (int32_t (0.4 * i * i), t + MaxSlope));
+            t = std::min (Peak, std::min (int32_t (0.4 * i * i), t + MaxSlope));
 
             KingDanger[1][i] = apply_weight (mk_score (t, 0), Weights[KingDanger_C]);
             KingDanger[0][i] = apply_weight (mk_score (t, 0), Weights[KingDanger_C_]);

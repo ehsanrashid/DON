@@ -7,7 +7,6 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
-using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
@@ -113,7 +112,7 @@ AmbType ambiguity (Move m, const Position &pos)
 
 // move_from_can(can, pos) takes a position and a string representing a move in
 // simple coordinate algebraic notation and returns an equivalent legal move if any.
-Move move_from_can (string &can, const Position &pos)
+Move move_from_can (std::string &can, const Position &pos)
 {
     if (5 == can.length ())
     {
@@ -136,12 +135,12 @@ Move move_from_can (string &can, const Position &pos)
     return MOVE_NONE;
 }
 
-Move move_from_san (string &san, const Position &pos)
+Move move_from_san (std::string &san, const Position &pos)
 {
     return MOVE_NONE;
 }
 
-Move move_from_lan (string &lan, const Position &pos)
+Move move_from_lan (std::string &lan, const Position &pos)
 {
     return MOVE_NONE;
 }
@@ -151,7 +150,7 @@ Move move_from_lan (string &lan, const Position &pos)
 //  - e1g1 notation in normal chess mode,
 //  - e1h1 notation in chess960 mode.
 // Internally castle moves are always coded as "king captures rook".
-string move_to_can (Move m, bool c960)
+std::string move_to_can (Move m, bool c960)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
@@ -160,19 +159,19 @@ string move_to_can (Move m, bool c960)
     Square dst = sq_dst (m);
     MType mt   = _mtype (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
-    string can = to_string (org) + to_string (dst);
+    std::string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
     return can;
 }
 
 // move_to_san(m, pos) takes a position and a legal move as input
 // and returns its short algebraic notation representation.
-string move_to_san (Move m, Position &pos)
+std::string move_to_san (Move m, Position &pos)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
     ASSERT (pos.legal (m));
-    string san;
+    std::string san;
     Square org = sq_org (m);
     Square dst = sq_dst (m);
     Piece mp   = pos[org];
@@ -298,9 +297,9 @@ string move_to_san (Move m, Position &pos)
 
 // move_to_lan(m, pos) takes a position and a legal move as input
 // and returns its long algebraic notation representation.
-string move_to_lan (Move m, Position &pos)
+std::string move_to_lan (Move m, Position &pos)
 {
-    string lan;
+    std::string lan;
 
 
     return lan;
@@ -312,9 +311,9 @@ string move_to_lan (Move m, Position &pos)
 // cp <x>     The score from the engine's point of view in centipawns.
 // mate <y>   Mate in y moves, not plies. If the engine is getting mated
 //            use negative values for y.
-string score_uci (Value v, Value alpha, Value beta)
+std::string score_uci (Value v, Value alpha, Value beta)
 {
-    stringstream sscore;
+    std::stringstream sscore;
 
     if (abs(v) < VALUE_MATES_IN_MAX_PLY)
     {
@@ -331,9 +330,9 @@ string score_uci (Value v, Value alpha, Value beta)
 namespace {
 
     // score to string
-    string score_to_string (Value v)
+    std::string to_string (Value v)
     {
-        stringstream s;
+        std::stringstream s;
 
         if (false);
         else if (v >= VALUE_MATES_IN_MAX_PLY)
@@ -346,13 +345,13 @@ namespace {
         }
         else
         {
-            s << setprecision(2) << fixed << showpos << double(v) / VALUE_MG_PAWN;
+            s << std::setprecision(2) << std::fixed << std::showpos << double(v) / VALUE_MG_PAWN;
         }
         return s.str();
     }
 
     // time to string
-    string time_to_string(int64_t msecs)
+    std::string to_string(int64_t msecs)
     {
         const int MSecMinute = 1000 * 60;
         const int MSecHour   = 1000 * 60 * 60;
@@ -361,12 +360,12 @@ namespace {
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;
         int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
 
-        stringstream s;
+        std::stringstream s;
 
         if (hours) s << hours << ':';
-        s << setfill('0') 
-            << setw(2) << minutes << ':' 
-            << setw(2) << seconds;
+        s << std::setfill('0') 
+            << std::setw(2) << minutes << ':' 
+            << std::setw(2) << seconds;
 
         return s.str();
     }
@@ -376,37 +375,37 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
+std::string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
     
-    stringstream spv;
+    std::stringstream spv;
 
-    spv << setw(2) << depth
-        << setw(8) << score_to_string (value)
-        << setw(8) << time_to_string (msecs);
+    spv << std::setw(2) << depth
+        << std::setw(8) << to_string (value)
+        << std::setw(8) << to_string (msecs);
 
     if (pos.game_nodes () < M)
     {
-        spv << setw(8) << pos.game_nodes () / 1 << "  ";
+        spv << std::setw(8) << pos.game_nodes () / 1 << "  ";
     }
     else if (pos.game_nodes () < K * M)
     {
-        spv << setw(7) << pos.game_nodes () / K << "K  ";
+        spv << std::setw(7) << pos.game_nodes () / K << "K  ";
     }
     else
     {
-        spv << setw(7) << pos.game_nodes () / M << "M  ";
+        spv << std::setw(7) << pos.game_nodes () / M << "M  ";
     }
 
-    string padding = string (spv.str().length(), ' ');
+    std::string padding = std::string (spv.str().length(), ' ');
     size_t length = padding.length();
     StateInfoStack st;
 
-    for_each (pv.cbegin (), pv.cend (), [&] (Move m)
+    std::for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
-        string san = move_to_san (m, pos);
+        std::string san = move_to_san (m, pos);
 
         if (length + san.length() > 80)
         {
@@ -422,7 +421,7 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     });
 
-    for_each (pv.crbegin (), pv.crend (), [&] (Move m)
+    std::for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
         pos.undo_move ();
     });

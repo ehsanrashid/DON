@@ -3,9 +3,10 @@
 #define TYPE_H_
 
 #include <cctype>
-#include "Platform.h"
 #include <climits>
 #include <vector>
+
+#include "Platform.h"
 
 #pragma region LIMITS
 #ifndef   _I8_MIN
@@ -68,9 +69,9 @@ const uint16_t MAX_MOVES    = 192;
 const uint16_t MAX_PLY      = 100;
 const uint16_t MAX_PLY_6    = MAX_PLY + 6;
 
-const uint8_t MAX_THREADS                 = 64;
-const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
-const uint8_t MAX_SPLIT_DEPTH             = 99;
+//const uint8_t MAX_THREADS                 = 64;
+//const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
+//const uint8_t MAX_SPLIT_DEPTH             = 99;
 
 #pragma warning (push)
 #pragma warning (disable: 4341)
@@ -438,9 +439,9 @@ inline Value mg_value (Score s)
     return Value (((uint32_t (s) + 0x8000) & ~0xFFFF) / 0x10000);
 }
 
-// On Intel 64 bit we have a small speed regression with the standard conforming version.
-// Therefore, in this case we use faster code that, although not 100%
-// standard compliant, seems to work for Intel and MSVC.
+// On Intel 64 bit we have a small speed regression with the standard conforming
+// version, so use a faster code in this case that, although not 100% standard
+// compliant it seems to work for Intel and MSVC.
 #if defined(_WIN64) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
 inline Value eg_value (Score s)
@@ -544,10 +545,10 @@ inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i);
 inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
 
 ARTHMAT_OPERATORS (Score);
-// Only declared but not defined. We don't want to multiply two scores due to
-// a very high risk of overflow. So user should explicitly convert to integer.
+/// Only declared but not defined. We don't want to multiply two scores due to
+/// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
-// Division of a Score must be handled separately for each term
+/// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, int32_t i)
 {
     return mk_score (mg_value (s) / i, eg_value (s) / i);

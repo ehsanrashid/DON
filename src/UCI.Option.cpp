@@ -10,9 +10,11 @@
 #include "Transposition.h"
 #include "PolyglotBook.h"
 #include "Searcher.h"
+#include "Thread.h"
 
 #include "atomicstream.h"
 #include "iologger.h"
+
 
 // Global string mapping of options
 UCI::OptionMap Options;

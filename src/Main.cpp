@@ -239,7 +239,8 @@ int main (int argc, const char* const argv[])
 
     Engine::stop ();
 
-    //atexit (report_leak);
+    //atexit ((void (__cdecl *)()) (report_leak));
+    atexit (report_leak);
     system ("PAUSE");
     return EXIT_SUCCESS;
 }

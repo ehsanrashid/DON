@@ -15,7 +15,7 @@
 #include "Notation.h"
 #include "TriLogger.h"
 
-//#include "Thread.h"
+#include "Thread.h"
 
 namespace UCI {
 
@@ -208,7 +208,7 @@ namespace UCI {
                 else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
 
-            //Threads.start_thinking (rootPos, limits, setupStates);
+            Threads.start_thinking (rootPos, limits, setupStates);
         }
 
         void exe_ponderhit ()
@@ -261,13 +261,11 @@ namespace UCI {
         void exe_stop ()
         {
             signals.stop = true;
-            // Could be sleeping
-            //Threads.main ()->notify_one();
+            Threads.main ()->notify_one(); // Could be sleeping
         }
 
         void exe_quit ()
         {
-            stop ();
             //Search::stop ();
             //Trans::destroy ();
             //Thread::destroy ();
@@ -338,8 +336,7 @@ namespace UCI {
         }
         while (active && !iequals (cmd, "quit"));
 
-        // Cannot quit while search stream active
-        //Threads.wait_for_think_finished (); 
+        Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
 
     void stop ()
@@ -347,27 +344,27 @@ namespace UCI {
         active = false;
     }
 
-    //void send_responce (const char format[], ...)
-    //{
-    //    try
-    //    {
-    //        static char buf[1024];
-    //        size_t size  =   sizeof (buf);
-    //        size_t count = _countof (buf);
-    //        memset (buf, 0, size);
-    //        va_list args;
-    //        va_start (args, format);
-    //        int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
-    //        va_end (args);
-    //        if (copied != -1)
-    //        {
-    //            buf[copied] = '\0';
-    //            ats () << buf << endl;
-    //        }
-    //    }
-    //    catch (...)
-    //    {
-    //    }
-    //}
+    void send_responce (const char format[], ...)
+    {
+        try
+        {
+            static char buf[1024];
+            size_t size  =   sizeof (buf);
+            size_t count = _countof (buf);
+            memset (buf, 0, size);
+            va_list args;
+            va_start (args, format);
+            int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
+            va_end (args);
+            if (copied != -1)
+            {
+                buf[copied] = '\0';
+                ats () << buf << endl;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
 
 }

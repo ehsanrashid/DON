@@ -11,7 +11,7 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(mov_lst, org, moves)         while (moves) { mov_lst.emplace_back (mk_move<NORMAL> ((org), pop_lsq(moves))); }
+#define SERIALIZE(mov_lst, org, moves)         while (moves) { mov_lst.emplace_back (mk_move<NORMAL> ((org), pop_lsq (moves))); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
 #define SERIALIZE_PAWNS(mov_lst, delta, moves) while (moves) { Square dst = pop_lsq (moves); mov_lst.emplace_back (mk_move<NORMAL> (dst - (delta), dst)); }
 
@@ -361,7 +361,7 @@ namespace MoveGenerator {
                         }
                         else
                         {
-                            ci; // silence a warning under MSVC
+                            (void) ci; // silence a warning under MSVC
                         }
                     }
                 }
@@ -373,7 +373,7 @@ namespace MoveGenerator {
 
         template<Color C, GType G>
         // Generates all pseudo-legal moves of color for target.
-        inline void generate_color (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
+        inline void generate_moves (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
         {
             Generator<G, PAWN>::generate<C> (mov_lst, pos, target, ci);
             Generator<G, NIHT>::generate (mov_lst, pos, C, target, ci);
@@ -425,6 +425,7 @@ namespace MoveGenerator {
         Color active = pos.active ();
 
         Bitboard target = U64 (0);
+        //CheckInfo *ci = NULL;
         switch (G)
         {
         case CAPTURE: target = pos.pieces (~active); break;
@@ -436,8 +437,8 @@ namespace MoveGenerator {
 
         switch (active)
         {
-        case WHITE: generate_color<WHITE, G> (mov_lst, pos, target); break;
-        case BLACK: generate_color<BLACK, G> (mov_lst, pos, target); break;
+        case WHITE: generate_moves<WHITE, G> (mov_lst, pos, target); break;
+        case BLACK: generate_moves<BLACK, G> (mov_lst, pos, target); break;
         }
 
         return mov_lst;
@@ -485,8 +486,8 @@ namespace MoveGenerator {
 
         switch (active)
         {
-        case WHITE: generate_color<WHITE, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
-        case BLACK: generate_color<BLACK, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
+        case WHITE: generate_moves<WHITE, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
+        case BLACK: generate_moves<BLACK, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
         }
 
         return mov_lst;
@@ -526,8 +527,8 @@ namespace MoveGenerator {
 
         switch (active)
         {
-        case WHITE: generate_color<WHITE, CHECK> (mov_lst, pos, target, &ci); break;
-        case BLACK: generate_color<BLACK, CHECK> (mov_lst, pos, target, &ci); break;
+        case WHITE: generate_moves<WHITE, CHECK> (mov_lst, pos, target, &ci); break;
+        case BLACK: generate_moves<BLACK, CHECK> (mov_lst, pos, target, &ci); break;
         }
 
         return mov_lst;
@@ -599,8 +600,8 @@ namespace MoveGenerator {
             Bitboard target = betwen_sq_bb (check_sq, fk_sq) + check_sq;
             switch (active)
             {
-            case WHITE: generate_color<WHITE, EVASION> (mov_lst, pos, target); break;
-            case BLACK: generate_color<BLACK, EVASION> (mov_lst, pos, target); break;
+            case WHITE: generate_moves<WHITE, EVASION> (mov_lst, pos, target); break;
+            case BLACK: generate_moves<BLACK, EVASION> (mov_lst, pos, target); break;
             }
         }
 

@@ -7,6 +7,7 @@
 #include "Transposition.h"
 #include "UCI.h"
 #include "TriLogger.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace Searcher;
@@ -122,8 +123,8 @@ void benchmark (istream &is, const Position &pos)
             }
             else
             {
-                //Threads.start_thinking (pos, limits, states);
-                //Threads.wait_for_think_finished ();
+                Threads.start_thinking (pos, limits, states);
+                Threads.wait_for_think_finished ();
                 nodes += rootPos.game_nodes ();
             }
         }

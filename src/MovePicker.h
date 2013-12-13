@@ -31,7 +31,7 @@ typedef std::set<ValMove>        ValMoveSet;
 extern void order (ValMoveList &vm_list, bool full = true);
 
 
-template<bool GAIN, class T>
+template<bool Gain, typename T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store History, Gains and Countermoves.
 // History records how often different moves have been successful or unsuccessful during the
@@ -68,9 +68,9 @@ public:
 
     void update (Piece p, Square s, Value v)
     {
-        if (GAIN)
+        if (Gain)
         {
-            _table[p][s] = std::max (v, _table[p][s] - 1);
+            _table[p][s] = std::max(v, _table[p][s] - 1);
         }
         else if (abs (_table[p][s] + v) < MaxValue)
         {
@@ -97,11 +97,11 @@ class MovePicker
 private:
 
     template<MoveGenerator::GType>
-    // value() assign a numerical move ordering score to each move in a move list.
-    // The moves with highest scores will be picked first.
-    void value ();
+    //value() assign a numerical move ordering score to each move in a move list.
+    //The moves with highest scores will be picked first.
+    void value();
 
-    void generate_next ();
+    void generate_next();
 
     const Position     &pos;
     const HistoryStats &history;
@@ -130,7 +130,7 @@ public:
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Move*, Searcher::Stack*);
 
     template<bool SpNode>
-    Move next_move ();
+    Move next_move();
 
 };
 
