@@ -92,7 +92,7 @@ struct ConditionVariable
 
     void wait(Mutex& m) { cond_wait(c, m.l); }
     void wait_for(Mutex& m, int32_t ms) { timed_wait(c, m.l, ms); }
-    void notify_one() { cond_signal(c); }
+    void notify_one () { cond_signal(c); }
 
 private:
     WaitCondition c;
@@ -109,7 +109,6 @@ struct SplitPoint
     Depth   depth;
     Value   beta;
     int32_t node_type;
-    Move    threat_move;
     bool    cut_node;
 
     // Const pointers to shared data
@@ -141,7 +140,7 @@ struct ThreadBase
         : exit(false) {}
     virtual ~ThreadBase() {}
     virtual void idle_loop() = 0;
-    void notify_one();
+    void notify_one ();
     void wait_for(volatile const bool& b);
 };
 
@@ -170,8 +169,8 @@ struct Thread
     bool available_to(const Thread* master) const;
 
     template <bool FAKE>
-    void split(Position &pos, const Searcher::Stack* ss, Value alpha, Value beta, Value* best_value, Move* best_move,
-        Depth depth, Move threat_move, int32_t move_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
+    void split (Position &pos, const Searcher::Stack* ss, Value alpha, Value beta, Value* best_value, Move* best_move,
+        Depth depth, int32_t move_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
 
 };
 

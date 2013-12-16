@@ -76,9 +76,6 @@ namespace {
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    bool  allows (const Position &pos, Move m1, Move m2);
-    bool refutes (const Position &pos, Move m1, Move m2);
-
     string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta);
 
     struct Skill
@@ -662,7 +659,7 @@ namespace {
         SplitPoint *split_point;
         const TranspositionEntry *te;
         Key posi_key;
-        Move  tt_move, threat_move, excluded_move, move;
+        Move  tt_move, excluded_move, move;
         Value tt_value;
         int32_t move_count = 0, quiet_count = 0;
         Move quiets_searched[64];
@@ -677,7 +674,6 @@ namespace {
         {
             split_point = ss->split_point;
             best_move   = split_point->best_move;
-            threat_move = split_point->threat_move;
             best_value  = split_point->best_value;
             te      = NULL;
             tt_move  = excluded_move = MOVE_NONE;
@@ -689,7 +685,7 @@ namespace {
         }
 
         best_value = -VALUE_INFINITE;
-        best_move  = threat_move = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
+        best_move  = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
         (ss)->ply = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
@@ -884,24 +880,6 @@ namespace {
 
                 if (v >= beta) return null_value;
             }
-            else
-            {
-                // The null move failed low, which means that we may be faced with
-                // some kind of threat. If the previous move was reduced, check if
-                // the move that refuted the null move was somehow connected to the
-                // move which was reduced. If a connection is found, return a fail
-                // low score (which will cause the reduced move to fail high in the
-                // parent node, which will trigger a re-search with full depth).
-                threat_move = (ss+1)->current_move;
-
-                if (   depth < 5 * ONE_MOVE
-                    && (ss-1)->reduction
-                    && threat_move != MOVE_NONE
-                    && allows (pos, (ss-1)->current_move, threat_move))
-                {
-                    return alpha;
-                }
-            }
         }
 
         // Step 9. ProbCut (skipped when in check)
@@ -1073,9 +1051,8 @@ moves_loop: // When in check and at SPNode search starts from here
                 &&  best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
-                if (   depth < 16 * ONE_MOVE
-                    && move_count >= FutilityMoveCounts[improving][depth]
-                && (!threat_move || !refutes (pos, move, threat_move)))
+                if (depth < 16 * ONE_MOVE &&
+                    move_count >= FutilityMoveCounts[improving][depth])
                 {
                     if (SPNode) split_point->mutex.lock ();
                     continue;
@@ -1286,7 +1263,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 ASSERT (best_value < beta);
 
                 thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
-                    depth, threat_move, move_count, &mp, N, cut_node);
+                    depth, move_count, &mp, N, cut_node);
 
                 if (best_value >= beta) break;
             }
@@ -1592,93 +1569,6 @@ moves_loop: // When in check and at SPNode search starts from here
             v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
     }
 
-    // allows() tests whether the 'm1' move at previous ply somehow makes the
-    // 'm2' move possible, for instance if the moving piece is the same in both moves.
-    // Normally the m2 move is the threat (the best move returned from a null search that fails low).
-    bool  allows (const Position &pos, Move m1, Move m2)
-    {
-        ASSERT (_ok (m1));
-        ASSERT (_ok (m2));
-        ASSERT (_color(pos[sq_org(m2)]) == ~pos.active ());
-        ASSERT (_mtype(m1) == CASTLE || _color(pos[sq_dst(m1)]) == ~pos.active ());
-
-        Square org_m1 = sq_org(m1);
-        Square org_m2 = sq_org(m2);
-        Square dst_m1 = sq_dst(m1);
-        Square dst_m2 = sq_dst(m2);
-
-        // The piece is the same or m2's destination was vacated by the m1 move
-        // We exclude the trivial case where a sliding piece does in two moves what
-        // it could do in one move: eg. Ra1a2, Ra2a3.
-        if (    dst_m2 == org_m1
-            || (dst_m1 == org_m2 && !sqrs_aligned (org_m1, org_m2, dst_m2)))
-        {
-            return true;
-        }
-
-        // Second one moves through the square vacated by m1 one
-        if (betwen_sq_bb (org_m2, dst_m2) & org_m1) return true;
-
-        // Second's destination is defended by the m1 move's piece
-        Bitboard m1att = pos.attacks_from(pos[dst_m1], dst_m1, pos.pieces () ^ org_m2);
-        if (m1att & dst_m2) return true;
-
-        // Second move gives a discovered check through the m1's checking piece
-        if (m1att & pos.king_sq(pos.active ()))
-        {
-            ASSERT (betwen_sq_bb (dst_m1, pos.king_sq(pos.active ())) & org_m2);
-            return true;
-        }
-
-        return false;
-    }
-
-    // refutes() tests whether a 'm1' move is able to defend against a 'm2' opponent's move.
-    // In this case 'm1' will not be pruned. Normally the 'm2' move is the threat
-    // (the best move returned from a null search that fails low).
-    bool refutes (const Position &pos, Move m1, Move m2)
-    {
-        ASSERT (_ok (m1));
-        ASSERT (_ok (m2));
-
-        Square org_m1 = sq_org (m1);
-        Square dst_m1 = sq_dst (m1);
-        Square org_m2 = sq_org (m2);
-        Square dst_m2 = sq_dst (m2);
-
-        // Don't prune moves of the threatened piece
-        if (org_m1 == dst_m2) return true;
-
-        // If the threatened piece has value less than or equal to the value of the
-        // threat piece, don't prune moves which defend it.
-        if (    pos.capture (m2)
-            && (PieceValue[MG][_ptype (pos[org_m2])] >= PieceValue[MG][_ptype (pos[dst_m2])] || _ptype (pos[org_m2]) == KING))
-        {
-            // Update occupancy as if the piece and the threat are moving
-            Bitboard occ = pos.pieces () ^ org_m1 ^ dst_m1 ^ org_m2;
-            Piece pc = pos[org_m1];
-
-            // The moved piece attacks the square 'dst_m2' ?
-            if (pos.attacks_from (pc, dst_m1, occ) & dst_m2) return true;
-
-            // Scan for possible X-ray attackers behind the moved piece
-            Bitboard xray =
-                (attacks_bb<ROOK> (dst_m2, occ) & pos.pieces (_color(pc), QUEN, ROOK)) |
-                (attacks_bb<BSHP> (dst_m2, occ) & pos.pieces (_color(pc), QUEN, BSHP));
-
-            // Verify attackers are triggered by our move and not already existing
-            if (UNLIKELY (xray) && (xray & ~pos.attacks_from<QUEN> (dst_m2))) return true;
-        }
-
-        // Don't prune safe moves which block the threat path
-        if ((betwen_sq_bb (org_m2, dst_m2) & dst_m1) && pos.see_sign (m1) >= 0)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
     // When playing with strength handicap choose best move among the MultiPV set
     // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move Skill::pick_move ()
@@ -1791,7 +1681,7 @@ void Thread::idle_loop ()
                 return;
             }
 
-            // Grab the lock to avoid races with Thread::notify_one()
+            // Grab the lock to avoid races with Thread::notify_one ()
             mutex.lock ();
 
             // If we are master and all slaves have finished then exit idle_loop
@@ -1803,7 +1693,7 @@ void Thread::idle_loop ()
 
             // Do sleep after retesting sleep conditions under lock protection, in
             // particular we need to avoid a deadlock in case a master thread has,
-            // in the meanwhile, allocated us and sent the notify_one() call before
+            // in the meanwhile, allocated us and sent the notify_one () call before
             // we had the chance to grab the lock.
             if (!searching && !exit) sleep_condition.wait(mutex);
 

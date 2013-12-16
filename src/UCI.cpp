@@ -261,7 +261,7 @@ namespace UCI {
         void exe_stop ()
         {
             signals.stop = true;
-            Threads.main ()->notify_one(); // Could be sleeping
+            Threads.main ()->notify_one (); // Could be sleeping
         }
 
         void exe_quit ()
