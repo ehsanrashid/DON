@@ -147,13 +147,10 @@ namespace {
 
     // Threat[attacking][attacked] contains bonuses according to which piece
     // type attacks which one.
-    const Score Threat[PT_NO][PT_NO] =
+    const Score Threat[][PT_NO] =
     {
-        {},
-        { S(0, 0), S( 7, 39), S( 0,  0), S(24, 49), S(41,100), S(41,100) }, // NIHT
-        { S(0, 0), S( 7, 39), S(24, 49), S( 0,  0), S(41,100), S(41,100) }, // BSHP
-        { S(0, 0), S( 0, 22), S(15, 49), S(15, 49), S( 0,  0), S(24, 49) }, // ROOK
-        { S(0, 0), S(15, 39), S(15, 39), S(15, 39), S(15, 39), S( 0,  0) }  // QUEN
+        { S(0, 0), S( 7, 39), S(24, 49), S(24, 49), S(41,100), S(41,100) }, // Minor
+        { S(0, 0), S(15, 39), S(15, 45), S(15, 45), S(15, 45), S(24, 49) }, // Major
     };
 
     // ThreatenedByPawn[PType] contains a penalty according to which piece
@@ -786,20 +783,12 @@ namespace {
         // considered because are already handled in king evaluation.
         if (weak_enemies)
         {
-            for (PType pt1 = NIHT; pt1 < KING; ++pt1)
-            {
-                Bitboard b = ei.attackedBy[C][pt1] & weak_enemies;
-                if (b)
-                {
-                    for (PType pt2 = PAWN; pt2 < KING; ++pt2)
-                    {
-                        if (b & pos.pieces (pt2))
-                        {
-                            score += Threat[pt1][pt2];
-                        }
-                    }
-                }
-            }
+            Bitboard b;
+            b = weak_enemies & (ei.attackedBy[C][NIHT] | ei.attackedBy[C][BSHP]);
+            if (b) score += Threat[0][_ptype (pos[scan_lsq (b)])];
+
+            b = weak_enemies & (ei.attackedBy[C][ROOK] | ei.attackedBy[C][QUEN]);
+            if (b) score += Threat[1][_ptype (pos[scan_lsq (b)])];
         }
 
         if (TRACE)
