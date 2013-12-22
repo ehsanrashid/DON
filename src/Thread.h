@@ -250,4 +250,6 @@ inline void timed_wait(WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec
 
 extern ThreadPool Threads;
 
+extern void prefetch (char *addr);
+
 #endif // THREAD_H_

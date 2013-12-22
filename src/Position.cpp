@@ -8,7 +8,9 @@
 #include "BitCount.h"
 #include "BitRotate.h"
 #include "MoveGenerator.h"
+#include "Transposition.h"
 #include "Notation.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -26,13 +28,13 @@ bool _ok (const   char *fen, bool c960, bool full)
     ASSERT (fen);
     if (!fen)   return false;
     Position pos (int8_t (0));
-    return Position::parse (pos, fen, c960, full) && pos.ok ();
+    return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
     Position pos (int8_t (0));
-    return Position::parse (pos, fen, c960, full) && pos.ok ();
+    return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 
 #pragma endregion
@@ -268,6 +270,7 @@ Position& Position::operator= (const Position &pos)
 
     _game_ply   = pos._game_ply;
     _chess960   = pos._chess960;
+    _thread     = pos._thread;
 
     _sb     = *(pos._si);
     _link_ptr ();
@@ -1113,7 +1116,7 @@ bool Position::capture_or_promotion (Move m) const
 
     //MType mt = _mtype (m);
     //return (NORMAL != mt) ? (CASTLE != mt) : !empty (sq_dst (m));
-    
+
     switch (_mtype (m))
     {
     case CASTLE:    return false; break;
@@ -1134,7 +1137,7 @@ bool Position::check (Move m, const CheckInfo &ci) const
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (ci.check_discovers == check_discovers (_active));
-    
+
     //if (!legal (m)) return false;
 
     Square org = sq_org (m);
@@ -1247,26 +1250,26 @@ void Position::clear ()
     _active     = CLR_NO;
     _game_ply   = 1;
     _game_nodes = 0;
-    //_chess960   = false;
+    _chess960   = false;
+    _thread     = NULL;
 
     _link_ptr ();
-
 }
 // setup() sets the fen on the position
-bool Position::setup (const   char *fen, bool c960, bool full)
+bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 {
     Position pos (int8_t (0));
-    if (parse (pos, fen, c960, full) && pos.ok ())
+    if (parse (pos, fen, thread, c960, full) && pos.ok ())
     {
         *this = pos;
         return true;
     }
     return false;
 }
-bool Position::setup (const string &fen, bool c960, bool full)
+bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
 {
     Position pos (int8_t (0));
-    if (parse (pos, fen, c960, full) && pos.ok ())
+    if (parse (pos, fen, thread, c960, full) && pos.ok ())
     {
         *this = pos;
         return true;
@@ -1531,6 +1534,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         // Update Hash key of position
         posi_k ^= ZobGlob._.ps_sq[pasive][cpt][cap];
 
+        prefetch ((char*) _thread->material_table[_si->matl_key]);
+
         // Update incremental scores
         _si->psq_score -= psq[pasive][cpt][cap];
 
@@ -1542,7 +1547,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         _si->clock50 = (PAWN == mpt) ? 0 : _si->clock50 + 1;
     }
 
-    // Reset old en-passant
+    // Reset old en-passant square
     if (SQ_NO != _si->en_passant)
     {
         posi_k ^= ZobGlob._.en_passant[_file (_si->en_passant)];
@@ -1677,6 +1682,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
                 posi_k ^= ZobGlob._.en_passant[_file (ep_sq)];
             }
         }
+
+        prefetch((char*) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Update the key with the final value
@@ -1812,7 +1819,7 @@ void Position::do_null_move (StateInfo &si_n)
 
     _si->posi_key ^= ZobGlob._.mover_side;
 
-    //prefetch((char*) TT.first_entry(_si->key));
+    prefetch((char *) TT.get_cluster (_si->posi_key));
 
     _si->clock50++;
     _si->null_ply = 0;
@@ -2251,7 +2258,7 @@ Position::operator string () const
 //
 //6) Fullmove number. The number of the full move.
 //It starts at 1, and is incremented after Black's move.
-bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
+bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
     ASSERT (fen);
     if (!fen)   return false;
@@ -2453,10 +2460,11 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material(BLACK);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
+    pos._thread       = thread;
 
     return true;
 }
-bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
+bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
     if (fen.empty ()) return false;
 
@@ -2811,6 +2819,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material(BLACK);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
+    pos._thread       = thread;
 
     return true;
 }

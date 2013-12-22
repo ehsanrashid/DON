@@ -355,3 +355,31 @@ void ThreadPool::wait_for_think_finished ()
     while (t->thinking) sleep_condition.wait (t->mutex);
     t->mutex.unlock ();
 }
+
+
+/// prefetch() preloads the given address in L1/L2 cache. This is a non-blocking
+/// function that doesn't stall the CPU waiting for data to be loaded from memory,
+/// which can be quite slow.
+#ifdef NO_PREFETCH
+
+void prefetch (char *addr) {}
+
+#else
+
+void prefetch (char *addr)
+{
+
+#  if defined(__INTEL_COMPILER)
+    // This hack prevents prefetches from being optimized away by
+    // Intel compiler. Both MSVC and gcc seem not be affected by this.
+    __asm__ ("");
+#  endif
+
+#  if defined(__INTEL_COMPILER) || defined(_MSC_VER)
+    _mm_prefetch (addr, _MM_HINT_T0);
+#  else
+    __builtin_prefetch (addr);
+#  endif
+}
+
+#endif

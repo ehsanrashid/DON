@@ -14,6 +14,7 @@
 #include "Zobrist.h"
 
 class Position;
+struct Thread;
 
 #pragma region FEN
 
@@ -208,6 +209,8 @@ private:
 
     uint64_t _game_nodes;
 
+    Thread  *_thread;
+
 #pragma endregion
 
     inline void _link_ptr () { _si = &_sb; }
@@ -219,15 +222,16 @@ public:
 #pragma region Constructors
 
     Position () { clear (); }
-    Position (const        char *fen, bool c960 = false, bool full = true)
+    Position (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true)
     {
-        if (!setup (fen, c960, full)) clear ();
+        if (!setup (fen, thread, c960, full)) clear ();
     }
-    Position (const std::string &fen, bool c960 = false, bool full = true)
+    Position (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true)
     {
-        if (!setup (fen, c960, full)) clear ();
+        if (!setup (fen, thread, c960, full)) clear ();
     }
-    Position (const Position &pos) { *this = pos; }
+    Position (const Position &pos, Thread *thread = NULL) { *this = pos; _thread = thread; }
+    //Position (const Position &pos) { *this = pos; }
     explicit Position (int8_t dummy) {}
 
     //~Position ()
@@ -335,6 +339,8 @@ public:
     uint64_t game_nodes () const;
     void     game_nodes (uint64_t nodes);
 
+    Thread* thread     () const;
+
     bool draw () const;
     bool ok (int8_t *failed_step = NULL) const;
 
@@ -410,8 +416,8 @@ public:
     Piece remove_piece (Square s);
     Piece   move_piece (Square s1, Square s2);
 
-    bool setup (const        char *fen, bool c960 = false, bool full = true);
-    bool setup (const std::string &fen, bool c960 = false, bool full = true);
+    bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
 
 private:
     void clr_castles ();
@@ -453,8 +459,8 @@ public:
 
     operator std::string () const;
 
-    static bool parse (Position &pos, const        char *fen, bool c960 = false, bool full = true);
-    static bool parse (Position &pos, const std::string &fen, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
 
 #pragma endregion
 
@@ -599,6 +605,8 @@ inline bool     Position::chess960 ()  const { return _chess960; }
 // Nodes visited
 inline uint64_t Position::game_nodes () const { return _game_nodes; }
 inline void     Position::game_nodes (uint64_t nodes) { _game_nodes = nodes; }
+
+inline Thread* Position::thread () const { return _thread; }
 
 #pragma endregion
 

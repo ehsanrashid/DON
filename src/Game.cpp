@@ -103,7 +103,7 @@ bool Game::remove_move ()
 
 bool Game::setup (const std::string &fen, bool c960, bool full)
 {
-    return _last_pos.setup (fen, c960, full);
+    return _last_pos.setup (fen, NULL, c960, full);
 }
 
 void Game::clear ()

@@ -409,7 +409,7 @@ namespace Tester {
             // =========
 
             fen = "rkbnrnqb/pppppppp/8/8/8/8/PPPPPPPP/RKBNRNQB w EAea - 0 1";
-            Position::parse (pos, fen, true);
+            Position::parse (pos, fen, NULL, true);
             pos.fen (buf, true);
 
             ASSERT (equals (buf, fen));
@@ -456,7 +456,7 @@ namespace Tester {
             ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen));
 
             fen = FEN_X;
-            Position::parse (pos, fen, true);
+            Position::parse (pos, fen, NULL, true);
 
             ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
             ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));

@@ -145,7 +145,7 @@ namespace UCI {
             }
             else return;
 
-            rootPos.setup (fen, *(Options["UCI_Chess960"]));
+            rootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
 
             if (iequals (token, "moves"))
             {
@@ -281,7 +281,7 @@ namespace UCI {
     {
         init_options ();
 
-        rootPos.setup (FEN_N, *(Options["UCI_Chess960"]));
+        rootPos.setup (FEN_N, Threads.main (), *(Options["UCI_Chess960"]));
 
         active = args.empty ();
         string cmd = args;
