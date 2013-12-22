@@ -344,27 +344,27 @@ namespace UCI {
         active = false;
     }
 
-    void send_responce (const char format[], ...)
-    {
-        try
-        {
-            static char buf[1024];
-            size_t size  =   sizeof (buf);
-            size_t count = _countof (buf);
-            memset (buf, 0, size);
-            va_list args;
-            va_start (args, format);
-            int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
-            va_end (args);
-            if (copied != -1)
-            {
-                buf[copied] = '\0';
-                ats () << buf << endl;
-            }
-        }
-        catch (...)
-        {
-        }
-    }
+    //void send_responce (const char format[], ...)
+    //{
+    //    try
+    //    {
+    //        static char buf[1024];
+    //        size_t size  =   sizeof (buf);
+    //        size_t count = _countof (buf);
+    //        memset (buf, 0, size);
+    //        va_list args;
+    //        va_start (args, format);
+    //        int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
+    //        va_end (args);
+    //        if (copied != -1)
+    //        {
+    //            buf[copied] = '\0';
+    //            ats () << buf << endl;
+    //        }
+    //    }
+    //    catch (...)
+    //    {
+    //    }
+    //}
 
 }

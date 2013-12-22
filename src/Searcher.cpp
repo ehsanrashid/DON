@@ -992,7 +992,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 signals.first_root_move = (move_count == 1);
 
-                if (thread == Threads.main() && Time::now () - searchTime > 3000)
+                if (thread == Threads.main () && Time::now () - searchTime > 3000)
                 {
                     ats ()
                         << "info"

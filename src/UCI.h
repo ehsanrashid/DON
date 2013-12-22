@@ -148,7 +148,6 @@ namespace UCI {
     inline ::std::basic_ostream<charT, Traits>&
         operator<< (::std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
-
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator itr = options.cbegin (); itr != options.cend (); ++itr)
@@ -168,9 +167,6 @@ namespace UCI {
 
     extern void start (const string &args = "");
     extern void stop ();
-
-    // ---
-    extern void send_responce (const char format[], ...);
 
 }
 
