@@ -154,16 +154,17 @@ struct Thread
 {
     SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
     Material::Table material_table;
-    Pawns::Table pawns_table;
-    EndGame::Endgames endgames;
+    Pawns   ::Table pawns_table;
+    EndGame ::Endgames endgames;
     Position *active_pos;
     size_t idx;
     int32_t max_ply;
     SplitPoint *volatile active_split_point;
-    volatile int32_t split_points_size;
-    volatile bool searching;
+    volatile int32_t     split_points_size;
+    volatile bool        searching;
 
-    Thread();
+    Thread ();
+
     virtual void idle_loop();
     bool cutoff_occurred() const;
     bool available_to(const Thread* master) const;
@@ -212,19 +213,19 @@ struct ThreadPool
     size_t max_threads_per_split_point;
     Mutex mutex;
     ConditionVariable sleep_condition;
-    TimerThread* timer;
+    TimerThread *timer;
 
     void init(); // No c'tor and d'tor, threads rely on globals that should
     void exit(); // be initialized and valid during the whole thread lifetime.
 
-    MainThread* main()
+    MainThread* main ()
     {
         return static_cast<MainThread*>((*this)[0]);
     }
 
     void read_uci_options();
     
-    Thread* available_slave(const Thread *master) const;
+    Thread* available_slave (const Thread *master) const;
 
     void start_thinking (const Position &pos, const Searcher::Limits &limit, StateInfoStackPtr &states);
   
@@ -233,7 +234,7 @@ struct ThreadPool
 
 // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
 // conversion from milliseconds to struct timespec, as used by pthreads.
-inline void timed_wait(WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
+inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
 {
 #ifdef _WIN32
     int32_t tm = msec;

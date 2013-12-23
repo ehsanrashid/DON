@@ -78,7 +78,6 @@ bool Thread::cutoff_occurred() const
     {
         if (sp->cutoff) return true;
     }
-
     return false;
 }
 
@@ -202,7 +201,7 @@ void ThreadPool::read_uci_options ()
 
 // slave_available() tries to find an idle thread which is available as a slave
 // for the thread 'master'.
-Thread* ThreadPool::available_slave (const Thread* master) const
+Thread* ThreadPool::available_slave (const Thread *master) const
 {
     for (const_iterator itr = begin (); itr != end (); ++itr)
     {
@@ -319,7 +318,7 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
 {
     wait_for_think_finished();
 
-    searchTime = Time::now(); // As early as possible
+    searchTime = Time::now (); // As early as possible
 
     signals.stop_on_ponderhit = signals.first_root_move = false;
     signals.stop = signals.failed_low_at_root = false;
@@ -343,17 +342,17 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
         }
     });
 
-    main()->thinking = true;
-    main()->notify_one (); // Starts main thread
+    main ()->thinking = true;
+    main ()->notify_one (); // Starts main thread
 }
 
 // wait_for_think_finished() waits for main thread to go to sleep then returns
 void ThreadPool::wait_for_think_finished ()
 {
-    MainThread* t = main();
-    t->mutex.lock ();
-    while (t->thinking) sleep_condition.wait (t->mutex);
-    t->mutex.unlock ();
+    MainThread *main_th = main ();
+    main_th->mutex.lock ();
+    while (main_th->thinking) sleep_condition.wait (main_th->mutex);
+    main_th->mutex.unlock ();
 }
 
 
@@ -369,17 +368,23 @@ void prefetch (char *addr) {}
 void prefetch (char *addr)
 {
 
-#  if defined(__INTEL_COMPILER)
-    // This hack prevents prefetches from being optimized away by
-    // Intel compiler. Both MSVC and gcc seem not be affected by this.
-    __asm__ ("");
-#  endif
+#   if defined(__INTEL_COMPILER)
+    {
+        // This hack prevents prefetches from being optimized away by
+        // Intel compiler. Both MSVC and gcc seem not be affected by this.
+        __asm__ ("");
+    }
+#   endif
 
-#  if defined(__INTEL_COMPILER) || defined(_MSC_VER)
-    _mm_prefetch (addr, _MM_HINT_T0);
-#  else
-    __builtin_prefetch (addr);
-#  endif
+#   if defined(__INTEL_COMPILER) || defined(_MSC_VER)
+    {
+        _mm_prefetch (addr, _MM_HINT_T0);
+    }
+#   else
+    {
+        __builtin_prefetch (addr);
+    }
+#   endif
 }
 
 #endif

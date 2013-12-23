@@ -34,10 +34,10 @@ namespace Searcher {
             inc   = 0;
         }
 
-        GameClock (int32_t t, int32_t i)
+        GameClock (int32_t tm, int32_t in)
         {
-            time  = t;
-            inc   = i;
+            time  = tm;
+            inc   = in;
         }
 
     } GameClock;
@@ -70,20 +70,17 @@ namespace Searcher {
         }
 
         // Determines how much time it should search
-        int32_t time_to_search ()
-        {
-            //int32_t cpuTime = board->turn == WHITE ? wTime : bTime;
-            //int32_t humanTime = board->turn == WHITE ? bTime : wTime;
-
-            //int32_t cpuInc = board->turn == WHITE ? wInc : bInc;
-
-            //if (moves_to_go > 0)
-            //{
-            //  return cpuTime / moves_to_go + cpuInc / 2 + (cpuTime - humanTime) / 2;
-            //}
-
-            //return cpuTime / 30 + cpuInc / 2;
-        }
+        //int32_t time_to_search ()
+        //{
+        //    int32_t cpu_time = board->turn == WHITE ? wTime : bTime;
+        //    int32_t human_time = board->turn == WHITE ? bTime : wTime;
+        //    int32_t cpu_inc = board->turn == WHITE ? wInc : bInc;
+        //    if (moves_to_go > 0)
+        //    {
+        //      return cpu_time / moves_to_go + cpu_inc / 2 + (cpu_time - human_time) / 2;
+        //    }
+        //    return cpu_time / 30 + cpu_inc / 2;
+        //}
 
     } Limits;
 
@@ -119,7 +116,7 @@ namespace Searcher {
 
         MoveList pv;
 
-        RootMove(Move m)
+        RootMove (Move m)
             : curr_value(-VALUE_INFINITE)
             , last_value(-VALUE_INFINITE)
         {

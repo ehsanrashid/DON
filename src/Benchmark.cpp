@@ -57,13 +57,13 @@ void benchmark (istream &is, const Position &pos)
     {
         // Assign default values to missing arguments
         string size_tt    = (is >> token) ? token : "32";
-        string threads    = (is >> token) ? token : "1";
+        string num_threads= (is >> token) ? token : "1";
         string fn_fen     = (is >> token) ? token : "default";
         string limit_val  = (is >> token) ? token : "12";
         string limit_type = (is >> token) ? token : "depth";
         
         *Options["Hash"]    = size_tt;
-        *Options["Threads"] = threads;
+        *Options["Threads"] = num_threads;
 
         TT.clear();
         Limits limits;
@@ -142,4 +142,3 @@ void benchmark (istream &is, const Position &pos)
     {}
 
 }
-
