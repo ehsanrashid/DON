@@ -54,7 +54,7 @@ namespace UCI {
 
         } ButtonOption;
 
-        typedef class CheckOption : public Option
+        typedef class  CheckOption : public Option
         {
         public:
             bool default;
@@ -68,7 +68,7 @@ namespace UCI {
             Option& operator= (char   *v);
             Option& operator= (string &v);
 
-        } CheckOption;
+        }  CheckOption;
 
         typedef class StringOption : public Option
         {
@@ -86,12 +86,12 @@ namespace UCI {
 
         } StringOption;
 
-        typedef class SpinOption : public Option
+        typedef class   SpinOption : public Option
         {
         public:
             int32_t default;
             int32_t value;
-            int32_t min, max;
+            int32_t min_value, max_value;
 
             SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
 
@@ -101,9 +101,9 @@ namespace UCI {
             Option& operator= (char   *v);
             Option& operator= (string &v);
 
-        } SpinOption;
+        }   SpinOption;
 
-        typedef class ComboOption : public Option
+        typedef class  ComboOption : public Option
         {
         public:
             // value;
@@ -115,7 +115,7 @@ namespace UCI {
             Option& operator= (char   *v);
             Option& operator= (string &v);
 
-        } ComboOption;
+        }  ComboOption;
 
 
         template<class charT, class Traits>

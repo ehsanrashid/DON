@@ -19,6 +19,8 @@ UCI::OptionMap Options;
 
 namespace UCI {
 
+    using namespace std;
+
     namespace OptionType {
 
         Option::Option (const OnChange on_change)
@@ -121,14 +123,14 @@ namespace UCI {
             : Option (on_change)
         {
             default = value = val;
-            min = min_val;
-            max = max_val;
+            min_value = min_val;
+            max_value = max_val;
         }
         string SpinOption::operator() () const
         {
-            return string ("type spin default ") + std::to_string (default) +
-                string (" min ") + std::to_string (min) +
-                string (" max ") + std::to_string (max);
+            return string ("type spin default ") + to_string (default) +
+                string (" min ") + to_string (min_value) +
+                string (" max ") + to_string (max_value);
         }
         SpinOption::operator int32_t () const
         {
@@ -138,8 +140,8 @@ namespace UCI {
         {
             if (whitespace (v)) return *this;
             int32_t val = to_int (v);
-            val = std::min (std::max (val, min), max);
-            //if (min < val && val < max)
+            val = min (max (val, min_value), max_value);
+            //if (min_value < val && val < max_value)
             {
                 if (value != val)
                 {
@@ -152,9 +154,9 @@ namespace UCI {
         Option& SpinOption::operator= (string &v)
         {
             if (whitespace (v)) return *this;
-            int32_t val = std::stoi (v);
-            val = std::min (std::max (val, min), max);
-            //if (min < val && val < max)
+            int32_t val = stoi (v);
+            val = min (max (val, min_value), max_value);
+            //if (min_value < val && val < max_value)
             {
                 if (value != val)
                 {
@@ -192,26 +194,26 @@ namespace UCI {
         void on_clear_hash  (const Option &opt)
         {
             TT.clear ();
-            std::ats () << "info string hash cleared." << std::endl;
+            ats () << "info string hash cleared." << endl;
         }
 
         void on_resize_hash (const Option &opt)
         {
             uint32_t size_mb = int32_t (opt);
             TT.resize (size_mb);
-            std::ats () << "info string hash resized " << size_mb << " MB Hash..." << std::endl;
+            ats () << "info string hash resized " << size_mb << " MB Hash..." << endl;
         }
 
         void on_save_hash   (const Option &opt)
         {
-            //ofstream ofstm ("hash.dat", ::std::ios_base::out | ::std::ios_base::binary);
+            //ofstream ofstm ("hash.dat", ios_base::out | ios_base::binary);
             //ofstm << tt;
             //ofstm.close ();
         }
 
         void on_load_hash   (const Option &opt)
         {
-            //ifstream ifstm ("hash.dat", ::std::ios_base::in | ::std::ios_base::binary);
+            //ifstream ifstm ("hash.dat", ios_base::in | ios_base::binary);
             //ifstm >> tt;
             //ifstm.close ();
         }
@@ -223,7 +225,7 @@ namespace UCI {
 
         void on_change_threads  (const Option &opt)
         {
-            std::ats () << "thread changed" << std::endl;
+            ats () << "thread changed" << endl;
         }
 
         void on_evaluation  (const Option& opt)
@@ -246,7 +248,7 @@ namespace UCI {
     {
 
 #pragma region old
-        //int16_t cpu   = std::min (cpu_count (), MAX_THREADS);
+        //int16_t cpu   = min (cpu_count (), MAX_THREADS);
         // max split depth
         //int16_t max_spl_depth = cpu < 8 ? 4 : 7;
 
@@ -327,7 +329,7 @@ namespace UCI {
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
         // The size of the file will be identical to the size of the hash memory, so this operation could take a while.
         // This feature can be used to interrupt and restart a deep analysis at any time.
-        Options["Save Hash File"]               = OptionPtr (new ButtonOption (on_save_hash));
+        Options["Save Hash"]                    = OptionPtr (new ButtonOption (on_save_hash));
 
         // Load a previously saved hash file from disk.
         // Use the Load Hash File button after loading the game or position, but before starting the analysis.
@@ -335,7 +337,7 @@ namespace UCI {
         // The size of the hash memory will automatically be set to the size of the saved file.
         // Please make sure to check the Never Clear Hash option,
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Load Hash File"]               = OptionPtr (new ButtonOption (on_load_hash));
+        Options["Load Hash"]                    = OptionPtr (new ButtonOption (on_load_hash));
 
 #pragma endregion
 
@@ -499,13 +501,13 @@ namespace UCI {
 
         Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
-        //std::cout << int32_t (*(Options["Hash"]));
+        //cout << int32_t (*(Options["Hash"]));
 
-        //std::cout << (*Options["hash"])();
+        //cout << (*Options["hash"])();
         //*Options["Clear Hash"]  = string("");
         //*Options["Hash"]        = string("128");
 
-        //::std::cout << Options;
+        //cout << Options;
     }
 
     void clear_options ()
