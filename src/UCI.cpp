@@ -14,18 +14,14 @@
 #include "Benchmark.h"
 #include "Notation.h"
 #include "TriLogger.h"
-
 #include "Thread.h"
 
 namespace UCI {
 
+    using namespace std;
     using namespace Searcher;
 
-    typedef std::istringstream cmdstream;
-
-    using std::string;
-    using std::ats;
-    using std::endl;
+    typedef istringstream cmdstream;
 
     namespace {
 
@@ -228,12 +224,12 @@ namespace UCI {
 
         void exe_key ()
         {
-            ats () << std::hex << std::uppercase << std::setfill('0')
+            ats () << hex << uppercase << setfill('0')
                 << "fen: " << rootPos.fen () << '\n'
-                << "posi key: " << std::setw (16) << rootPos.posi_key () << '\n'
-                << "matl key: " << std::setw (16) << rootPos.matl_key () << '\n'
-                << "pawn key: " << std::setw (16) << rootPos.pawn_key ()
-                << std::dec << endl;
+                << "posi key: " << setw (16) << rootPos.posi_key () << '\n'
+                << "matl key: " << setw (16) << rootPos.matl_key () << '\n'
+                << "pawn key: " << setw (16) << rootPos.pawn_key ()
+                << dec << endl;
         }
 
         void exe_flip ()
@@ -252,7 +248,7 @@ namespace UCI {
             // Read perft depth
             if (cstm.good () && (cstm >> token))
             {
-                std::stringstream ss;
+                stringstream ss;
                 ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
                 benchmark (ss, rootPos);
             }
@@ -289,13 +285,13 @@ namespace UCI {
         do
         {
             // Block here waiting for input
-            if (active && !std::getline (std::cin, cmd, '\n')) cmd = "quit";
-            if (std::whitespace (cmd)) continue;
+            if (active && !getline (cin, cmd, '\n')) cmd = "quit";
+            if (whitespace (cmd)) continue;
             
             try
             {
                 cmdstream cstm (cmd);
-                cstm >> std::skipws >> token;
+                cstm >> skipws >> token;
 
                 if (false);
                 else if (iequals (token, "uci"))        exe_uci ();
@@ -327,9 +323,8 @@ namespace UCI {
                 {
                     TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
                 }
-            
             }
-            catch (std::exception &exp)
+            catch (exception &exp)
             {
                 TRI_LOG_MSG (exp.what ());
             }
