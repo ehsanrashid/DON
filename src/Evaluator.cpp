@@ -235,10 +235,10 @@ namespace {
     namespace Tracing {
 
         Score scores[CLR_NO][TOTAL + 1];
-        std::stringstream stream;
+        stringstream stream;
 
-        void add (int32_t idx, Score term_w, Score term_b = SCORE_ZERO);
-        void row (const char name[], int32_t idx);
+        void add (int32_t idx, Score w_score, Score b_score = SCORE_ZERO);
+        void format_row (const char name[], int32_t idx);
         string do_trace (const Position &pos);
 
     }
@@ -416,7 +416,7 @@ namespace {
         {
             ei.king_ring[C_] = attacks | shift_del<PULL>(attacks);
             attacks &= ei.attacked_by[C][PAWN];
-            ei.king_attackers_count[C] = attacks ? pop_count<MAX15>(attacks) / 2 : 0;
+            ei.king_attackers_count[C] = attacks ? pop_count<MAX15>(attacks) : 0;
             ei.king_adjacent_zone_attacks_count[C] = ei.king_attackers_weight[C] = 0;
         }
         else
@@ -658,8 +658,8 @@ namespace {
         Score score = ei.pi->king_safety<C>(pos, k_sq);
 
         // Main king safety evaluation
-        if (   ei.king_attackers_count[C_] >= 2
-            && ei.king_adjacent_zone_attacks_count[C_])
+        if (   ei.king_attackers_count[C_] //>= 2 && ei.king_adjacent_zone_attacks_count[C_]
+            )
         {
             // Find the attacked squares around the king which has no defenders
             // apart from the king itself
@@ -1021,20 +1021,22 @@ namespace {
             scores[BLACK][idx] = b_score;
         }
 
-        void row (const char name[], int32_t idx)
+        void format_row (const char name[], int32_t idx)
         {
             Score w_score = scores[WHITE][idx];
             Score b_score = scores[BLACK][idx];
             switch (idx)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
-                stream << setw(20) << name << " |   ---   --- |   ---   --- | "
+                stream
+                    << setw(20) << name << " |   ---   --- |   ---   --- | "
                     << setw(6)  << to_cp (mg_value (w_score)) << " "
                     << setw(6)  << to_cp (eg_value (w_score)) << " \n";
                 break;
 
             default:
-                stream << setw(20) << name << " | " << noshowpos
+                stream
+                    << setw(20) << name << " | " << noshowpos
                     << setw(5)  << to_cp (mg_value (w_score)) << " "
                     << setw(5)  << to_cp (eg_value (w_score)) << " | "
                     << setw(5)  << to_cp (mg_value (b_score)) << " "
@@ -1060,20 +1062,20 @@ namespace {
                 <<          "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                 <<          "---------------------+-------------+-------------+---------------\n";
 
-            row ("Material, PST, Tempo", PST);
-            row ("Material imbalance",   IMBALANCE);
-            row ("Pawns",                PAWN);
-            row ("Knights",              NIHT);
-            row ("Bishops",              BSHP);
-            row ("Rooks",                ROOK);
-            row ("Queens",               QUEN);
-            row ("Mobility",             MOBILITY);
-            row ("King safety",          KING);
-            row ("Threats",              THREAT);
-            row ("Passed pawns",         PASSED);
-            row ("Space",                SPACE);
+            format_row ("Material, PST, Tempo", PST);
+            format_row ("Material imbalance",   IMBALANCE);
+            format_row ("Pawns",                PAWN);
+            format_row ("Knights",              NIHT);
+            format_row ("Bishops",              BSHP);
+            format_row ("Rooks",                ROOK);
+            format_row ("Queens",               QUEN);
+            format_row ("Mobility",             MOBILITY);
+            format_row ("King safety",          KING);
+            format_row ("Threats",              THREAT);
+            format_row ("Passed pawns",         PASSED);
+            format_row ("Space",                SPACE);
             stream <<       "---------------------+-------------+-------------+---------------\n";
-            row ("Total",                TOTAL);
+            format_row ("Total",                TOTAL);
             stream << totals;
 
             return stream.str ();
