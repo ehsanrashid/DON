@@ -61,7 +61,7 @@ namespace EndGame {
 
         virtual Color color () const = 0;
 
-        virtual T operator () (const Position &pos) const = 0;
+        virtual T operator() (const Position &pos) const = 0;
 
     };
 
