@@ -80,8 +80,7 @@ namespace UCI {
 
                 if (Options.count (name) > 0)
                 {
-                    (*Options[name]) = value;
-                    //ats () << (*Options[name])();
+                    *Options[name] = value;
                 }
                 else
                 {
@@ -119,7 +118,6 @@ namespace UCI {
             string token;
             // consume "startpos" or "fen" token
             if (!(cstm >> token)) return;
-
             string fen;
             // consume "moves" token if any
             if (iequals (token, "startpos"))
@@ -262,6 +260,7 @@ namespace UCI {
 
         void exe_quit ()
         {
+            stop ();
             //Search::stop ();
             //Trans::destroy ();
             //Thread::destroy ();
