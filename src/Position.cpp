@@ -230,15 +230,13 @@ void Position::initialize ()
 {
     for (PType pt = PAWN; pt <= KING; ++pt)
     {
-        //PieceValue[MG][mk_piece(BLACK, pt)] = PieceValue[MG][pt];
-        //PieceValue[EG][mk_piece(BLACK, pt)] = PieceValue[EG][pt];
-
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            psq[WHITE][pt][ s] = +(score + PSQT[pt][s]);
-            psq[BLACK][pt][~s] = -(score + PSQT[pt][s]);
+            Score psq_score = score + PSQT[pt][s];
+            psq[WHITE][pt][ s] = +psq_score;
+            psq[BLACK][pt][~s] = -psq_score;
         }
     }
 }
@@ -1002,7 +1000,7 @@ bool Position::pseudo_legal (Move m) const
 
     return true;
 }
-/// legal(m, pinned) tests whether a pseudo-legal move is legal
+// legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::legal (Move m, Bitboard pinned) const
 {
     ASSERT (_ok (m));
