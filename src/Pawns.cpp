@@ -2,6 +2,7 @@
 #include "BitCount.h"
 #include "Position.h"
 
+using namespace std;
 using namespace BitBoard;
 
 namespace {
@@ -88,7 +89,7 @@ namespace {
 
         const SquareList pl = pos.list<PAWN> (C);
         // Loop through all pawns of the current color and score each pawn
-        std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
+        for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
 
@@ -194,7 +195,7 @@ namespace Pawns {
 
         Value safety = MaxSafetyBonus;
 
-        File kf = std::max (F_B, std::min (F_G, _file (k_sq)));
+        File kf = max (F_B, min (F_G, _file (k_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
             Bitboard fb_pawns;
@@ -238,11 +239,11 @@ namespace Pawns {
         // If we can castle use the bonus after the castle if is bigger
         if (pos.can_castle(mk_castle_right(C, CS_K)))
         {
-            bonus = std::max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
         }
         if (pos.can_castle(mk_castle_right(C, CS_Q)))
         {
-            bonus = std::max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
         }
 
         return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);

@@ -11,9 +11,7 @@
 
 namespace Tester {
 
-    using ::std::string;
-    using ::std::cout;
-    using ::std::endl;
+    using namespace std;
 
     namespace {
 

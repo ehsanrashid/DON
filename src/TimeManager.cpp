@@ -5,6 +5,8 @@
 
 #include "UCI.h"
 
+using namespace std;
+
 namespace {
 
     const int32_t MoveHorizon   = 50;   // Plan time management at most this many moves ahead
@@ -43,7 +45,7 @@ namespace {
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2, 2, 2, 2,
         2, 1, 1, 1, 1, 1, 1, 1 };
 
-    int32_t move_importance (int32_t ply) { return MoveImportance[std::min (ply, 511)]; }
+    int32_t move_importance (int32_t ply) { return MoveImportance[min (ply, 511)]; }
 
     enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME };
 
@@ -65,7 +67,7 @@ namespace {
         double time_ratio1 = (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
         double time_ratio2 = (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
 
-        return int32_t (floor (my_time * std::min (time_ratio1, time_ratio2)));
+        return int32_t (floor (my_time * min (time_ratio1, time_ratio2)));
     }
 }
 
@@ -101,26 +103,26 @@ void TimeManager::initialize (const Searcher::Limits &limits, int32_t current_pl
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
     for (int32_t hyp_moves_to_go = 1;
-        hyp_moves_to_go <= (limits.moves_to_go ? std::min (int32_t (limits.moves_to_go), MoveHorizon) : MoveHorizon);
+        hyp_moves_to_go <= (limits.moves_to_go ? min (int32_t (limits.moves_to_go), MoveHorizon) : MoveHorizon);
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
         int32_t hyp_time =  limits.game_clock[c].time
             + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
             - emergency_base_time
-            - emergency_move_time * std::min (hyp_moves_to_go, emergency_move_horizon);
+            - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
 
-        hyp_time = std::max (hyp_time, 0);
+        hyp_time = max (hyp_time, 0);
 
         int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
         int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
 
-        _optimum_search_time = std::min (_optimum_search_time, opt_time);
-        _maximum_search_time = std::min (_maximum_search_time, max_time);
+        _optimum_search_time = min (_optimum_search_time, opt_time);
+        _maximum_search_time = min (_maximum_search_time, max_time);
     }
 
     if (bool (*(Options["Ponder"]))) _optimum_search_time += _optimum_search_time / 4;
 
     // Make sure that _optimum_search_time is not over absolute _maximum_search_time
-    _optimum_search_time = std::min (_optimum_search_time, _maximum_search_time);
+    _optimum_search_time = min (_optimum_search_time, _maximum_search_time);
 }

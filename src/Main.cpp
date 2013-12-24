@@ -39,12 +39,12 @@ namespace {
     }
 
 
-    std::string string_args (size_t argc, const char* const argv[])
+    string string_args (size_t argc, const char* const argv[])
     {
-        std::string args;
+        string args;
         for (size_t i = 1; i < argc; ++i)
         {
-            args += args.empty () ? std::string (argv[i]) : " " + std::string (argv[i]);
+            args += args.empty () ? string (argv[i]) : " " + string (argv[i]);
         }
         return args;
     }
@@ -57,23 +57,23 @@ namespace {
         //setvbuf (stdout, buffer, (buffer) ? _IOFBF : _IONBF, size_buf); // _IOLBF breaks on Windows!
 
         //cout.unsetf(ios_base::dec);
-        //std::cout.setf (std::ios_base::boolalpha);
-        std::cout.setf (
-            //    std::ios_base::showpos |
-            //    std::ios_base::boolalpha |
-            std::ios_base::hex |
-            //    std::ios_base::uppercase |
-            //    std::ios_base::fixed |
-            //    //std::ios_base::showpoint |
-            std::ios_base::unitbuf);
-        std::cout.precision (2);
+        //cout.setf (ios_base::boolalpha);
+        cout.setf (
+            //    ios_base::showpos |
+            //    ios_base::boolalpha |
+            ios_base::hex |
+            //    ios_base::uppercase |
+            //    ios_base::fixed |
+            //    //ios_base::showpoint |
+            ios_base::unitbuf);
+        cout.precision (2);
     }
 
     void print_fill_hex (Key key)
     {
-        std::cout.width (16);
-        std::cout.fill ('0');
-        std::cout << key << std::endl;
+        cout.width (16);
+        cout.fill ('0');
+        cout << key << endl;
     }
 
     //char *low_stack, *high_stack;
@@ -98,7 +98,7 @@ int main (int argc, const char* const argv[])
 {
 
 
-    //std::string args = string_args (argc, argv);
+    //string args = string_args (argc, argv);
 
     //deepest_stack_path_function ();
 
@@ -110,10 +110,10 @@ int main (int argc, const char* const argv[])
 
     Engine::start ();
     //int arg = 101;
-    //std::timer t1 (1000, true, test1);
+    //timer t1 (1000, true, test1);
 
 
-    //std::timer later_test2(1000, false, &test2, 101);
+    //timer later_test2(1000, false, &test2, 101);
 
     //Position pos;
     //Value v;
@@ -124,9 +124,9 @@ int main (int argc, const char* const argv[])
     //log_io (false);
 
     //initialize_IO        ();
-    //std::cout.setf (ios_base::boolalpha);
-    //std::cout.unsetf (ios_base::dec);
-    //std::cout.setf (ios_base::hex | ios_base::uppercase);
+    //cout.setf (ios_base::boolalpha);
+    //cout.unsetf (ios_base::dec);
+    //cout.setf (ios_base::hex | ios_base::uppercase);
 
 
     //PolyglotBook pg ("Book.bin", ios_base::in);
@@ -234,7 +234,7 @@ int main (int argc, const char* const argv[])
     //cout << ml;
     //cout << move_to_can (m) << endl;
 
-    //std::string sm = "e2e4";
+    //string sm = "e2e4";
     //cout << (int) move_from_can (sm, pos) << endl;
 
     Engine::stop ();
