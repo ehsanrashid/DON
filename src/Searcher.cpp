@@ -666,8 +666,7 @@ namespace {
         StateInfo si = StateInfo ();
 
         // Step 1. Initialize node
-        // TODO::
-        Thread* thread = NULL; //pos.this_thread();
+        Thread *thread = pos.thread();
         bool in_check  = pos.checkers ();
 
         if (SPNode)

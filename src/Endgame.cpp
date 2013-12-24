@@ -6,6 +6,7 @@
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
+using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
@@ -77,21 +78,21 @@ namespace EndGame {
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
         // and then let a Position object to do the work for us. Note that the
         // fen string could correspond to an illegal position.
-        Key key (const std::string &code, Color c)
+        Key key (const string &code, Color c)
         {
             ASSERT (code.length () > 0 && code.length () <= 8);
             ASSERT (code[0] == 'K');
 
-            std::string sides[CLR_NO] =
+            string sides[CLR_NO] =
             {
                 code.substr (   code.find('K', 1)), // Weak
                 code.substr (0, code.find('K', 1)), // Strong
             };
 
-            std::transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-            std::string empty = "" + char ('0' + 8 - code.length ());
+            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
+            string empty = "" + char ('0' + 8 - code.length ());
             if ("0" == empty) empty = "";
-            std::string fen =  sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
+            string fen =  sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
 
             //return Position(fen, false, NULL).matl_key ();
             return Position (fen).matl_key ();
@@ -133,7 +134,7 @@ namespace EndGame {
     }
 
     template<EndgameType E>
-    void Endgames::add (const std::string &code)
+    void Endgames::add (const string &code)
     {
         map ((Endgame<E>*) 0)[key (code, WHITE)] = new Endgame<E> (WHITE);
         map ((Endgame<E>*) 0)[key (code, BLACK)] = new Endgame<E> (BLACK);
@@ -670,7 +671,7 @@ namespace EndGame {
             return SCALE_FACTOR_NONE;
         }
 
-        Rank r = std::max (rel_rank (_stong_side, wp_sq1), rel_rank (_stong_side, wp_sq2));
+        Rank r = max (rel_rank (_stong_side, wp_sq1), rel_rank (_stong_side, wp_sq2));
 
         if (   file_dist (bk_sq, wp_sq1) <= 1
             && file_dist (bk_sq, wp_sq2) <= 1

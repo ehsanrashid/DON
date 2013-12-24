@@ -1,8 +1,9 @@
 #include "Material.h"
-#include <algorithm>  // For std::min
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 
+using namespace std;
 using namespace EndGame;
 
 namespace {
@@ -87,7 +88,7 @@ namespace {
         int32_t value = VALUE_ZERO;
 
         // "The Evaluation of Material Imbalances in Chess"
-        
+
         // Second-degree polynomial material imbalance by Tord Romstad
         for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
         {
@@ -224,12 +225,12 @@ namespace Material {
         // catches some trivial draws like KK, KBK and KNK
         if (!pos.piece_count<PAWN> (WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
-            e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (WHITE), 2)]);
+            e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)]);
         }
 
         if (!pos.piece_count<PAWN> (BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
         {
-            e->_factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[std::min (pos.piece_count<BSHP> (BLACK), 2)]);
+            e->_factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)]);
         }
 
         // Compute the space weight

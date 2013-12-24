@@ -5,6 +5,8 @@
 #include "BitScan.h"
 #include "Engine.h"
 
+using namespace std;
+
 // Global Transposition Table
 TranspositionTable TT;
 
@@ -18,7 +20,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     if (size_mb < SIZE_MIN_TT) size_mb = SIZE_MIN_TT;
     if (size_mb > SIZE_MAX_TT) size_mb = SIZE_MAX_TT;
     //{
-    //    std::cerr << "ERROR: hash size too large " << size_mb << " MB..." << std::endl;
+    //    cerr << "ERROR: hash size too large " << size_mb << " MB..." << endl;
     //    return;
     //}
 
@@ -62,13 +64,13 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
     // Then checking for error returned by malloc, if it returns NULL then 
     // aligned_malloc will fail and return NULL or exit().
 
-    uint32_t offset = std::max<uint32_t> (alignment, sizeof (void *));
+    uint32_t offset = max<uint32_t> (alignment, sizeof (void *));
         //(alignment - 1) + sizeof (void *);
 
     void *mem = calloc (size + offset, 1);
     if (!mem)
     {
-        std::cerr << "ERROR: hash failed to allocate " << size << " byte..." << std::endl;
+        cerr << "ERROR: hash failed to allocate " << size << " byte..." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 

@@ -167,10 +167,10 @@ namespace {
 
     const Score RookOn7thBonus         = S(11, 20);
     const Score QueenOn7thBonus        = S( 3,  8);
-    
+
     const Score RookOnPawnBonus        = S(10, 28);
     const Score QueenOnPawnBonus       = S( 4, 20);
-    
+
     const Score RookOpenFileBonus      = S(43, 21);
     const Score RookSemiopenFileBonus  = S(19, 10);
 
@@ -233,17 +233,6 @@ namespace {
     // scores, indexed by color and by a calculated integer number.
     Score KingDanger[CLR_NO][128];
 
-    namespace Tracing {
-
-        Score scores[CLR_NO][TOTAL + 1];
-        std::stringstream stream;
-
-        void add (int32_t idx, Score term_w, Score term_b = SCORE_ZERO);
-        void row (const char name[], int32_t idx);
-        string do_trace (const Position &pos);
-
-    }
-
     template<bool TRACE>
     Value do_evaluate       (const Position &pos);
 
@@ -251,7 +240,7 @@ namespace {
     void init_eval_info     (const Position &pos, EvalInfo &ei);
 
     template<Color C, bool TRACE>
-    Score evaluate_pieces_of_color(const Position &pos, EvalInfo &ei, Score mobility[]);
+    Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[]);
 
     template<Color C, bool TRACE>
     Score evaluate_king     (const Position &pos, const EvalInfo &ei);
@@ -260,17 +249,28 @@ namespace {
     Score evaluate_threats  (const Position &pos, const EvalInfo &ei);
 
     template<Color C, bool TRACE>
-    Score evaluate_passed_pawns(const Position &pos, const EvalInfo &ei);
+    Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei);
 
     template<Color C>
     int32_t evaluate_space  (const Position &pos, const EvalInfo &ei);
 
-    Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei);
+    Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei);
 
-    Value interpolate (const Score& score, Phase ph, ScaleFactor sf);
+    Value interpolate (const Score &score, Phase ph, ScaleFactor sf);
     Score apply_weight (Score score, Score w);
     Score weight_option (const string &mg_opt, const string &eg_opt, Score internal_weight);
     double to_cp (Value value);
+
+    namespace Tracing {
+
+        Score scores[CLR_NO][TOTAL + 1];
+        stringstream stream;
+
+        void add (int32_t idx, Score term_w, Score term_b = SCORE_ZERO);
+        void row (const char name[], int32_t idx);
+        string do_trace (const Position &pos);
+
+    }
 
     // --------------------------------------------------
 
@@ -284,7 +284,7 @@ namespace {
         EvalInfo ei;
         Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
 
-        Thread* thread = NULL; //pos.this_thread();
+        Thread *thread = pos.thread();
 
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
@@ -310,8 +310,8 @@ namespace {
         init_eval_info<BLACK>(pos, ei);
 
         // Evaluate pieces and mobility
-        score += evaluate_pieces_of_color<WHITE, TRACE>(pos, ei, mobility)
-            -    evaluate_pieces_of_color<BLACK, TRACE>(pos, ei, mobility);
+        score += evaluate_pieces<WHITE, TRACE>(pos, ei, mobility)
+            -    evaluate_pieces<BLACK, TRACE>(pos, ei, mobility);
 
         score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
@@ -399,9 +399,9 @@ namespace {
         return (WHITE == pos.active ()) ? value : -value;
     }
 
+    template<Color C>
     // init_eval_info() initializes king bitboards for given color adding
     // pawn attacks. To be done at the beginning of the evaluation.
-    template<Color C>
     void init_eval_info     (const Position &pos, EvalInfo &ei)
     {
         const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -426,8 +426,8 @@ namespace {
         }
     }
 
-    // evaluate_outposts() evaluates bishop and knight outposts squares
     template<PType T, Color C>
+    // evaluate_outposts() evaluates bishop and knight outposts squares
     Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
     {
         //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
@@ -462,9 +462,9 @@ namespace {
         return mk_score (bonus, bonus);
     }
 
-    // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
     template<PType T, Color C, bool TRACE>
-    Score evaluate_pieces   (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
+    // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
+    Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
     {
         Score score = SCORE_ZERO;
 
@@ -618,10 +618,9 @@ namespace {
         return score;
     }
 
-    // evaluate_pieces_of_color<>() assigns bonuses and penalties to all the
-    // pieces of a given color.
     template<Color C, bool TRACE>
-    Score evaluate_pieces_of_color(const Position &pos, EvalInfo &ei, Score mobility[])
+    // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
+    Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
@@ -629,10 +628,10 @@ namespace {
         const Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
         Score score =
-            evaluate_pieces<NIHT, C, TRACE>(pos, ei, mobility, mobility_area);
-        +   evaluate_pieces<BSHP, C, TRACE>(pos, ei, mobility, mobility_area);
-        +   evaluate_pieces<ROOK, C, TRACE>(pos, ei, mobility, mobility_area);
-        +   evaluate_pieces<QUEN, C, TRACE>(pos, ei, mobility, mobility_area);
+            evaluate_ptype<NIHT, C, TRACE>(pos, ei, mobility, mobility_area);
+        +   evaluate_ptype<BSHP, C, TRACE>(pos, ei, mobility, mobility_area);
+        +   evaluate_ptype<ROOK, C, TRACE>(pos, ei, mobility, mobility_area);
+        +   evaluate_ptype<QUEN, C, TRACE>(pos, ei, mobility, mobility_area);
 
         // Sum up all attacked squares
         ei.attacked_by[C][PT_NO] = 
@@ -647,8 +646,8 @@ namespace {
         return score;
     }
 
-    // evaluate_king<>() assigns bonuses and penalties to a king of a given color
     template<Color C, bool TRACE>
+    // evaluate_king<>() assigns bonuses and penalties to a king of a given color
     Score evaluate_king     (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -659,8 +658,7 @@ namespace {
         Score score = ei.pi->king_safety<C>(pos, k_sq);
 
         // Main king safety evaluation
-        if (   ei.king_attackers_count[C_] >= 2
-            && ei.king_adjacent_zone_attacks_count[C_])
+        if (ei.king_attackers_count[C_])
         {
             // Find the attacked squares around the king which has no defenders
             // apart from the king itself
@@ -724,7 +722,7 @@ namespace {
 
             Bitboard   rook_check = pos.attacks_from<ROOK>(k_sq) & safe_sq;
             Bitboard bishop_check = pos.attacks_from<BSHP>(k_sq) & safe_sq;
-            
+
             Bitboard safe_check;
             // Enemy queen safe checks
             safe_check = (rook_check | bishop_check) & ei.attacked_by[C_][QUEN];
@@ -761,9 +759,9 @@ namespace {
         return score;
     }
 
+    template<Color C, bool TRACE>
     // evaluate_threats<>() assigns bonuses according to the type of attacking piece
     // and the type of attacked one.
-    template<Color C, bool TRACE>
     Score evaluate_threats  (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -801,8 +799,8 @@ namespace {
         return score;
     }
 
-    // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
     template<Color C, bool TRACE>
+    // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
     Score evaluate_passed_pawns(const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -950,13 +948,13 @@ namespace {
         return UnstoppablePawnBonus * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, unstoppable_pawns)));
     }
 
+    template<Color C>
     // evaluate_space() computes the space evaluation for a given side. The
     // space evaluation is a simple bonus based on the number of safe squares
     // available for minor pieces on the central four files on ranks 2--4. Safe
     // squares one, two or three squares behind a friendly pawn are counted
     // twice. Finally, the space bonus is scaled by a weight taken from the
     // material hash table. The aim is to improve play on game opening.
-    template<Color C>
     int32_t evaluate_space  (const Position &pos, const EvalInfo &ei)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
@@ -984,7 +982,7 @@ namespace {
 
     // interpolate () interpolates between a middle game and an endgame score,
     // based on game phase. It also scales the return value by a ScaleFactor array.
-    Value interpolate (const Score& score, Phase ph, ScaleFactor sf)
+    Value interpolate (const Score &score, Phase ph, ScaleFactor sf)
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);

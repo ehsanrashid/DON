@@ -21,6 +21,8 @@
 
 namespace TrivialLogger {
 
+    using namespace std;
+
     namespace implementation {
 
         typedef class TriLoggerImpl sealed
@@ -31,10 +33,10 @@ namespace TrivialLogger {
             static bool _is_active;
 
             // auto pointer helps manage resources;
-            static ::std::unique_ptr<::std::ostream> _outstream_ptr;
+            static unique_ptr<ostream> _outstream_ptr;
 
             // pointer to the output stream of the logger
-            static ::std::ostream *_outstream;
+            static ostream *_outstream;
 
         } TriLoggerImpl;
 
@@ -45,8 +47,8 @@ namespace TrivialLogger {
     }
 
 
-    ::std::unique_ptr<implementation::TriLoggerImpl> 
-        TriLogger::_tl_impl (::std::unique_ptr<implementation::TriLoggerImpl> (new implementation::TriLoggerImpl ()));
+    unique_ptr<implementation::TriLoggerImpl> 
+        TriLogger::_tl_impl (unique_ptr<implementation::TriLoggerImpl> (new implementation::TriLoggerImpl ()));
 
 
     TriLogger::TriLogger ()
@@ -71,7 +73,7 @@ namespace TrivialLogger {
         _tl_impl->_is_active = active;
     }
 
-    ::std::ostream*& TriLogger::ostream_ptr ()
+    ostream*& TriLogger::ostream_ptr ()
     {
         return _tl_impl->_outstream;
     }
@@ -79,37 +81,37 @@ namespace TrivialLogger {
 #   if defined(OTLOG)
 
     // set auto pointer to the null stream
-    // reason: ::std::cout can not be created in runtime, so
+    // reason: cout can not be created in runtime, so
     // the auto pointer has nothing to do with its resources
-    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::TriLoggerImpl::_outstream = &std::cout;
+    unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
+        unique_ptr<ostream> (new null_stream ());
+    ostream *implementation::TriLoggerImpl::_outstream = &cout;
 
     void implementation::init_tri_logger_impl ()
     { 
         if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
         }
-        implementation::TriLoggerImpl::_outstream = &std::cout;
+        implementation::TriLoggerImpl::_outstream = &cout;
     }
 
 #   elif defined (ETLOG)
 
     // set auto pointer to the null stream
-    // reason: ::std::cerr can not be created in runtime, so
+    // reason: cerr can not be created in runtime, so
     // the auto pointer has nothing to do with its resources
-    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::TriLoggerImpl::_outstream = &std::cerr;
+    unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
+        unique_ptr<ostream> (new null_stream ());
+    ostream *implementation::TriLoggerImpl::_outstream = &cerr;
 
     void implementation::init_tri_logger_impl ()
     { 
         if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
         }
-        implementation::TriLoggerImpl::_outstream = &std::cerr;
+        implementation::TriLoggerImpl::_outstream = &cerr;
     }
 
 
@@ -127,8 +129,8 @@ namespace TrivialLogger {
 
     namespace implementation {
 
-        /// Function calculates length of C string
-        /// It can be used with wide characters
+        // Function calculates length of C string
+        // It can be used with wide characters
         template < typename Char_type >
         size_t const str_len (const Char_type s[])
         {
@@ -141,10 +143,10 @@ namespace TrivialLogger {
             return length;
         }
 
-        /// Function paste rhs C string to the lhs C string.
-        /// lhs should be long enough for that operation.
-        /// Additionally coping is stared from the point which
-        /// points lhs.
+        // Function paste rhs C string to the lhs C string.
+        // lhs should be long enough for that operation.
+        // Additionally coping is stared from the point which
+        // points lhs.
         template < typename Char_type >
         size_t const str_cat (Char_type *&lhs, const Char_type *rhs)
         {
@@ -159,12 +161,12 @@ namespace TrivialLogger {
             return length;
         }
 
-        /// Function copy rhs C string in to the lhs.
-        /// It do not check size of target C string
-        /// It starts to copy from the beginning of the C string,
-        /// but it begins put characters at the point where lhs points,
-        /// so there can be a problem when lhs points on the end of lhs
-        /// C string.
+        // Function copy rhs C string in to the lhs.
+        // It do not check size of target C string
+        // It starts to copy from the beginning of the C string,
+        // but it begins put characters at the point where lhs points,
+        // so there can be a problem when lhs points on the end of lhs
+        // C string.
         template < typename Char_type >
         size_t const str_cpy (Char_type *&lhs, const Char_type *rhs)
         {
@@ -180,11 +182,11 @@ namespace TrivialLogger {
             return length + 1;
         }
 
-        /// Function converts existing file name to the file name
-        /// which has no non-printable signs and 
-        /// at the end is added extension.
-        /// The space sign in file name is converted to the underscore.
-        /// Lengths of C strings has to be proper.
+        // Function converts existing file name to the file name
+        // which has no non-printable signs and 
+        // at the end is added extension.
+        // The space sign in file name is converted to the underscore.
+        // Lengths of C strings has to be proper.
         template<typename Char_type>
         const size_t
             create_filename (
@@ -201,7 +203,7 @@ namespace TrivialLogger {
                 {
                     // check if characters have grapnical
                     // reprasentation
-                    if (0 != ::isgraph (unsigned char (*fn_log)))
+                    if (0 != isgraph (unsigned char (*fn_log)))
                     {
                         *filename = *fn_log;
                         ++filename;
@@ -262,16 +264,16 @@ namespace TrivialLogger {
 #       undef MAX
 
     // new file is opened and its destruction is managed by unique_ptr
-    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        ::std::unique_ptr<::std::ostream> (new ::std::ofstream (filename, ::std::ios_base::out | ::std::ios_base::app));
+    unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
+        unique_ptr<ostream> (new ofstream (filename, ios_base::out | ios_base::app));
     // set pointer output stream
-    ::std::ostream *implementation::TriLoggerImpl::_outstream = _outstream_ptr.get ();
+    ostream *implementation::TriLoggerImpl::_outstream = _outstream_ptr.get ();
 
     void implementation::init_tri_logger_impl ()
     { 
         if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::ofstream (filename, ::std::ios_base::out | ::std::ios_base::app));
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ofstream (filename, ios_base::out | ios_base::app));
             // set pointer output stream
             implementation::TriLoggerImpl::_outstream =
                 implementation::TriLoggerImpl::_outstream_ptr.get ();
@@ -284,16 +286,16 @@ namespace TrivialLogger {
 
 #   else
 
-    ::std::unique_ptr<::std::ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        ::std::unique_ptr<::std::ostream> (new ::std::null_stream ());
-    ::std::ostream *implementation::TriLoggerImpl::_outstream =
+    unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
+        unique_ptr<ostream> (new null_stream ());
+    ostream *implementation::TriLoggerImpl::_outstream =
         implementation::TriLoggerImpl::_outstream_ptr.get ();
 
     void implementation::init_tri_logger_impl ()
     {
         if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ::std::null_stream ());
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
             implementation::TriLoggerImpl::_outstream =
                 implementation::TriLoggerImpl::_outstream_ptr.get ();
         }
@@ -301,7 +303,7 @@ namespace TrivialLogger {
 
 #   endif
 
-    ::std::unique_ptr<TriLogger> implementation::tl_ptr (new TriLogger ());
+    unique_ptr<TriLogger> implementation::tl_ptr (new TriLogger ());
 
     TriLogger& instance ()
     {

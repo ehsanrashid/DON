@@ -1534,7 +1534,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         // Update Hash key of position
         posi_k ^= ZobGlob._.ps_sq[pasive][cpt][cap];
 
-        prefetch ((char*) _thread->material_table[_si->matl_key]);
+        if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
 
         // Update incremental scores
         _si->psq_score -= psq[pasive][cpt][cap];
@@ -1683,7 +1683,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             }
         }
 
-        prefetch((char*) _thread->pawns_table[_si->pawn_key]);
+        if (_thread) prefetch ((char*) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Update the key with the final value
@@ -1819,7 +1819,7 @@ void Position::do_null_move (StateInfo &si_n)
 
     _si->posi_key ^= ZobGlob._.mover_side;
 
-    prefetch((char *) TT.get_cluster (_si->posi_key));
+    prefetch ((char *) TT.get_cluster (_si->posi_key));
 
     _si->clock50++;
     _si->null_ply = 0;

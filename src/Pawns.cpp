@@ -2,6 +2,7 @@
 #include "BitCount.h"
 #include "Position.h"
 
+using namespace std;
 using namespace BitBoard;
 
 namespace {
@@ -88,7 +89,7 @@ namespace {
 
         const SquareList pl = pos.list<PAWN> (C);
         // Loop through all pawns of the current color and score each pawn
-        std::for_each (pl.cbegin (), pl.cend (), [&] (Square s)
+        for_each (pl.cbegin (), pl.cend (), [&] (Square s)
         {
             const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
 
@@ -177,10 +178,10 @@ namespace {
 
 namespace Pawns {
 
+    template<Color C>
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
-    template<Color C>
-    Value Entry::shelter_storm(const Position &pos, Square k_sq)
+    Value Entry::shelter_storm (const Position &pos, Square k_sq)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
         
@@ -194,7 +195,7 @@ namespace Pawns {
 
         Value safety = MaxSafetyBonus;
 
-        File kf = std::max (F_B, std::min (F_G, _file (k_sq)));
+        File kf = max (F_B, min (F_G, _file (k_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
             Bitboard fb_pawns;
@@ -210,10 +211,10 @@ namespace Pawns {
         return safety;
     }
 
+    template<Color C>
     // Entry::update_safety() calculates and caches a bonus for king safety. It is
     // called only when king square changes, about 20% of total king_safety() calls.
-    template<Color C>
-    Score Entry::update_safety(const Position &pos, Square k_sq)
+    Score Entry::update_safety (const Position &pos, Square k_sq)
     {
         _king_sq[C] = k_sq;
         _castle_rights[C] = pos.can_castle(C);
@@ -238,11 +239,11 @@ namespace Pawns {
         // If we can castle use the bonus after the castle if is bigger
         if (pos.can_castle(mk_castle_right(C, CS_K)))
         {
-            bonus = std::max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
         }
         if (pos.can_castle(mk_castle_right(C, CS_Q)))
         {
-            bonus = std::max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
         }
 
         return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);
