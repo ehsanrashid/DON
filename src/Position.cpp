@@ -274,7 +274,6 @@ Position& Position::operator= (const Position &pos)
 
     _game_nodes = 0;
 
-    //ASSERT (ok ());
     return *this;
 }
 
@@ -1391,10 +1390,10 @@ bool Position::can_en_passant (File   ep_f) const
 Score Position::compute_psq_score() const
 {
     Score score = SCORE_ZERO;
-    Bitboard b = pieces ();
-    while (b)
+    Bitboard occ = pieces ();
+    while (occ)
     {
-        Square s = pop_lsq (b);
+        Square s = pop_lsq (occ);
         Piece  p = _piece_arr[s];
         score += psq[_color (p)][_ptype (p)][s];
     }
@@ -1410,7 +1409,7 @@ Value Position::compute_non_pawn_material(Color c) const
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += piece_count(c, pt) * PieceValue[MG][pt];
+        value += piece_count (c, pt) * PieceValue[MG][pt];
     }
     return value;
 }
@@ -1845,13 +1844,13 @@ void Position::flip ()
 
     //string f, token;
     //stringstream ss (fen ());
-
+    //
     //for (Rank rank = R_8; rank >= R_1; --rank) // Piece placement
     //{
     //    getline (ss, token, rank > R_1 ? '/' : ' ');
     //    f.insert (0, token + (f.empty () ? " " : "/"));
     //}
-
+    //
     //ss >> token; // Active color
     //f += (token == "w" ? "B" : "W"); // Will be lowercased later
     //f += ' ';
@@ -1860,15 +1859,15 @@ void Position::flip ()
     //f += ' ';
     //transform (f.begin (), f.end (), f.begin (),
     //    [] (char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
-
+    //
     //ss >> token; // En passant square
     //f += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : "3"));
     //getline (ss, token); // Half and full moves
     //f += token;
-
+    //
     //setup (f, chess960 ());
 
-    Position pos (*this);
+    Position pos = Position (*this);
     clear ();
 
     //for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -2219,38 +2218,41 @@ Position::operator string () const
     return spos.str ();
 }
 
-//A FEN string defines a particular position using only the ASCII character set.
+// A FEN string defines a particular position using only the ASCII character set.
 //
-//A FEN string contains six fields separated by a space. The fields are:
+// A FEN string contains six fields separated by a space. The fields are:
 //
-//1) Piece placement (from white's perspective).
-//Each rank is described, starting with rank 8 and ending with rank 1;
-//within each rank, the contents of each square are described from file A through file H.
-//Following the Standard Algebraic Notation (SAN),
-//each piece is identified by a single letter taken from the standard English names.
-//White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
-//Blank squares are noted using digits 1 through 8 (the number of blank squares),
-//and "/" separates ranks.
+// 1) Piece placement (from white's perspective).
+// Each rank is described, starting with rank 8 and ending with rank 1;
+// within each rank, the contents of each square are described from file A through file H.
+// Following the Standard Algebraic Notation (SAN),
+// each piece is identified by a single letter taken from the standard English names.
+// White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
+// Blank squares are noted using digits 1 through 8 (the number of blank squares),
+// and "/" separates ranks.
 //
-//2) Active color. "w" means white, "b" means black - moves next,.
+// 2) Active color. "w" means white, "b" means black - moves next,.
 //
-//3) Castling availability. If neither side can castle, this is "-". 
-//Otherwise, this has one or more letters:
-//"K" (White can castle  Kingside),
-//"Q" (White can castle Queenside),
-//"k" (Black can castle  Kingside),
-//"q" (Black can castle Queenside).
+// 3) Castling availability. If neither side can castle, this is "-". 
+// Otherwise, this has one or more letters:
+// "K" (White can castle  Kingside),
+// "Q" (White can castle Queenside),
+// "k" (Black can castle  Kingside),
+// "q" (Black can castle Queenside).
 //
-//4) En passant target square (in algebraic notation).
-//If there's no en passant target square, this is "-".
-//If a pawn has just made a 2-square move, this is the position "behind" the pawn.
-//This is recorded regardless of whether there is a pawn in position to make an en passant capture.
+// 4) En passant target square (in algebraic notation).
+// If there's no en passant target square, this is "-".
+// If a pawn has just made a 2-square move, this is the position "behind" the pawn.
+// This is recorded regardless of whether there is a pawn in position to make an en passant capture.
 //
-//5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
-//This is used to determine if a draw can be claimed under the fifty-move rule.
+// 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
+// This is used to determine if a draw can be claimed under the fifty-move rule.
 //
-//6) Fullmove number. The number of the full move.
-//It starts at 1, and is incremented after Black's move.
+// 6) Fullmove number. The number of the full move.
+// It starts at 1, and is incremented after Black's move.
+
+#undef SKIP_WHITESPACE
+#define SKIP_WHITESPACE()  while (isspace ((unsigned char) (*fen))) ++fen
 bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 {
     ASSERT (fen);
@@ -2260,10 +2262,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 
     unsigned char ch;
 
-#undef skip_whitespace
 #undef get_next
-
-#define skip_whitespace()  while (isspace ((unsigned char) (*fen))) ++fen
 
 #define get_next()         ch = (unsigned char) (*fen++)
 
@@ -2319,13 +2318,13 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
         }
     }
 
-    skip_whitespace ();
+    SKIP_WHITESPACE ();
     // Active color
     get_next ();
     pos._active = to_color (ch);
     if (CLR_NO == pos._active) return false;
 
-    skip_whitespace ();
+    SKIP_WHITESPACE ();
     // Castling rights availability
     // Compatible with 3 standards:
     // 1-Normal FEN standard,
@@ -2388,7 +2387,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
         }
     }
 
-    skip_whitespace ();
+    SKIP_WHITESPACE ();
     // En-passant square
     get_next ();
     if ('-' != ch)
@@ -2436,7 +2435,6 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
         if (ch) return false; // NOTE: extra characters
     }
 
-#undef skip_whitespace
 #undef get_next
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
@@ -2456,6 +2454,8 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 
     return true;
 }
+#undef SKIP_WHITESPACE
+
 bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;

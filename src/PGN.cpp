@@ -120,6 +120,16 @@ void PGN::_build_indexes ()
     }
 }
 
+#undef SKIP_WHITESPACE
+#undef CHECK_INCOMPLETE
+
+#define SKIP_WHITESPACE() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
+
+#define CHECK_INCOMPLETE() do { if (!c) {    \
+    cerr << "ERROR: incomplete game";        \
+    pgn_state = PGN_ERR; goto done;          \
+} } while (false)
+
 void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
 {
     ASSERT (buf);
@@ -128,21 +138,11 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
     size_t offset = 0;
     //size_t last_offset = offset;
 
-#undef check_incomplete
-#undef skip_whitespace
-
-#define skip_whitespace() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
-
-#define check_incomplete() do { if (!c) { \
-    cerr << "ERROR: incomplete game";     \
-    pgn_state = PGN_ERR; goto done;       \
-    } } while (false)
-
     while (offset < length)
     {
         unsigned char c;
 
-        skip_whitespace ();
+        SKIP_WHITESPACE ();
 
         if (!c)
         {
@@ -180,16 +180,16 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
             case  ';':
                 while ('\n' != c)
                 {
-                    skip_whitespace ();
-                    check_incomplete ();
+                    SKIP_WHITESPACE ();
+                    CHECK_INCOMPLETE ();
                 }
                 pgn_state = PGN_MOV_LST;
                 break;
             case  '%':
                 while ('\n' != c)
                 {
-                    skip_whitespace ();
-                    check_incomplete ();
+                    SKIP_WHITESPACE ();
+                    CHECK_INCOMPLETE ();
                 }
                 pgn_state = PGN_MOV_LST;
                 break;
@@ -216,8 +216,8 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
         case PGN_TAG_BEG:
             while (']' != c)
             {
-                skip_whitespace ();
-                check_incomplete ();
+                SKIP_WHITESPACE ();
+                CHECK_INCOMPLETE ();
             }
             pgn_state = PGN_TAG_END;
             break;
@@ -253,15 +253,15 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
             case  ';':
                 while ('\n' != c)
                 {
-                    skip_whitespace ();
-                    check_incomplete ();
+                    SKIP_WHITESPACE ();
+                    CHECK_INCOMPLETE ();
                 }
                 break;
             case  '%':
                 while ('\n' != c)
                 {
-                    skip_whitespace ();
-                    check_incomplete ();
+                    SKIP_WHITESPACE ();
+                    CHECK_INCOMPLETE ();
                 }
                 break;
             default:
@@ -286,8 +286,8 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
             case  ';':
                 while ('\n' != c)
                 {
-                    skip_whitespace ();
-                    check_incomplete ();
+                    SKIP_WHITESPACE ();
+                    CHECK_INCOMPLETE ();
                 }
                 pgn_state = PGN_MOV_NEW;
                 break;
@@ -298,8 +298,8 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
         case PGN_MOV_COM:
             while ('}' != c)
             {
-                skip_whitespace ();
-                check_incomplete ();
+                SKIP_WHITESPACE ();
+                CHECK_INCOMPLETE ();
             }
             pgn_state = PGN_MOV_LST;
             break;
@@ -363,13 +363,12 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
         }
     }
 
-#undef check_incomplete
-#undef skip_whitespace
-
 done:
     pos += offset;
-
 }
+
+#undef SKIP_WHITESPACE
+#undef CHECK_INCOMPLETE
 
 void PGN::_add_index (uint64_t pos)
 {
