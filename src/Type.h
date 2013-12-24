@@ -537,8 +537,8 @@ inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); retur
 ARTHMAT_OPERATORS (Value);
 INC_DEC_OPERATORS (Value);
 // Added operators for adding integers to a Value
-//inline Value operator+ (Value v, int32_t i) { return Value (int32_t (v) + i); }
-//inline Value operator- (Value v, int32_t i) { return Value (int32_t (v) - i); }
+//inline Value  operator+  (Value v, int32_t i) { return Value (int32_t (v) + i); }
+//inline Value  operator-  (Value v, int32_t i) { return Value (int32_t (v) - i); }
 inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
 inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
 inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }

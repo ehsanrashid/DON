@@ -79,6 +79,8 @@ namespace Engine {
 
         sinfo << Author;
 
+        sinfo << endl;
+
         return sinfo.str ();
     }
 
@@ -99,6 +101,7 @@ namespace Engine {
         TT.resize (int32_t (*(Options["Hash"])));
 
         cout << Engine::info () << endl;
+        //cout << sizeof (TranspositionEntry);
 
 #ifdef _DEBUG
 

@@ -50,7 +50,7 @@ inline bool     _ok (Piece p)
 inline PType p_type (Piece p)
 {
     PType pt;
-    switch (p & 0x07)
+    switch (p & W_QUEN)
     {
     case W_PAWN: pt = PAWN; break;
     case W_KING: pt = KING; break;
@@ -64,7 +64,7 @@ inline PType p_type (Piece p)
 }
 inline Color p_color (Piece p)
 {
-    return Color ((p >> 3) & 1);
+    return Color ((p >> 3) & BLACK);
 }
 
 inline Piece operator~ (Piece p)

@@ -136,13 +136,13 @@ namespace {
         {
             cerr
                 << "Total " << hits[0] << " Hits " << hits[1]
-                << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
+            << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
         }
         if (means[0])
         {
             cerr 
                 << "Total " << means[0]
-                << " Mean " << double (means[1]) / double (means[0]) << endl;
+            << " Mean " << double (means[1]) / double (means[0]) << endl;
         }
     }
 
@@ -318,6 +318,9 @@ namespace Searcher {
 
         time_mgr.initialize (limits, rootPos.game_ply (), rootColor);
 
+        bool write_search_log = *(Options["Write Search Log"]);
+        string fn_search_log  = *(Options["Search Log File"]);
+
         if (rootMoves.empty ())
         {
             rootMoves.push_back (MOVE_NONE);
@@ -352,9 +355,10 @@ namespace Searcher {
             draw_value[WHITE] = draw_value[BLACK] = VALUE_DRAW;
         }
 
-        if (*(Options["Write Search Log"]))
+        if (write_search_log)
         {
-            Log log (*(Options["Search Log File"]));
+            Log log (fn_search_log);
+
             log << "Searching: "    << rootPos.fen() << '\n'
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
@@ -364,6 +368,36 @@ namespace Searcher {
                 << endl;
         }
 
+        // Reset the threads, still sleeping: will wake up at split time
+        for (size_t i = 0; i < Threads.size (); ++i)
+        {
+            Threads[i]->max_ply = 0;
+        }
+
+        Threads.sleep_while_idle = *(Options["Idle Threads Sleep"]);
+        Threads.timer->run = true;
+        Threads.timer->notify_one(); // Wake up the recurring timer
+
+        iter_deep_loop (rootPos); // Let's start searching !
+
+        Threads.timer->run = false; // Stop the timer
+        Threads.sleep_while_idle = true; // Send idle threads to sleep
+
+        if (write_search_log)
+        {
+            Time::point elapsed = Time::point (Time::now() - searchTime + 1);
+
+            Log log (fn_search_log);
+
+            log << "Nodes: "          << rootPos.game_nodes ()
+                << "\nNodes/second: " << rootPos.game_nodes () * 1000 / elapsed
+                << "\nBest move: "    << move_to_san (rootMoves[0].pv[0], rootPos);
+
+            StateInfo si;
+            rootPos.do_move (rootMoves[0].pv[0], si);
+            log << "\nPonder move: " << move_to_san(rootMoves[0].pv[1], rootPos) << endl;
+            rootPos.undo_move ();
+        }
 
 finish:
 
@@ -382,7 +416,7 @@ finish:
         if (!signals.stop && (limits.ponder || limits.infinite))
         {
             signals.stop_on_ponderhit = true;
-            //rootPos.this_thread()->wait_for(signals.stop);
+            rootPos.thread ()->wait_for (signals.stop);
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position

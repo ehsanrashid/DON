@@ -138,7 +138,7 @@ void MainThread::idle_loop()
 
         searching = true;
 
-        Searcher::think();
+        Searcher::think ();
 
         ASSERT (searching);
 
@@ -316,7 +316,7 @@ template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*
 // so to start a new search, then returns immediately.
 void ThreadPool::start_thinking (const Position &pos, const Limits &search_limits, StateInfoStackPtr &states)
 {
-    wait_for_think_finished();
+    wait_for_think_finished ();
 
     searchTime = Time::now (); // As early as possible
 

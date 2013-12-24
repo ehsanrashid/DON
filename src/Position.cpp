@@ -275,7 +275,6 @@ Position& Position::operator= (const Position &pos)
 
     _game_nodes = 0;
 
-    //ASSERT (ok ());
     return *this;
 }
 
@@ -395,7 +394,6 @@ bool Position::draw () const
 // Position consistency test, for debugging
 bool Position::ok (int8_t *failed_step) const
 {
-    //cout << "ok ()" << endl;
     int8_t dummy_step, *step = failed_step ? failed_step : &dummy_step;
 
     // What features of the position should be verified?
@@ -422,12 +420,14 @@ bool Position::ok (int8_t *failed_step) const
     const bool debug_non_pawn_material = debug_all || false;
 
     *step = 0;
-
+    // step 1
     if (++(*step), !_ok (_active)) return false;
-
+    // step 2
     if (++(*step), W_KING != _piece_arr[king_sq (WHITE)]) return false;
+    // step 3
     if (++(*step), B_KING != _piece_arr[king_sq (BLACK)]) return false;
-
+    
+    // step 4
     if (++(*step), debug_king_count)
     {
         uint8_t king_count[CLR_NO] = {};
@@ -443,6 +443,7 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
+    // step 5
     if (++(*step), debug_piece_count)
     {
         if (pop_count<FULL> (pieces ()) > 32) return false;
@@ -458,6 +459,7 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
+    // step 6
     if (++(*step), debug_bitboards)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -525,6 +527,7 @@ bool Position::ok (int8_t *failed_step) const
         if ((pieces (PAWN) & (R1_bb | R8_bb))) return false;
     }
 
+    // step 7
     if (++(*step), debug_piece_list)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -540,17 +543,19 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
-
+    // step 8
     if (++(*step), debug_king_capture)
     {
         if (checkers (~_active)) return false;
     }
 
+    // step 9
     if (++(*step), debug_checker_count)
     {
         if (pop_count<FULL>(checkers ()) > 2) return false;
     }
 
+    // step 10
     if (++(*step), debug_castle_rights)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -567,6 +572,7 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
+    // step 11
     if (++(*step), debug_en_passant)
     {
         Square ep_sq = _si->en_passant;
@@ -576,31 +582,37 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
+    // step 12
     if (++(*step), debug_clock50)
     {
         if (clock50 () > 100) return false;
     }
 
+    // step 13
     if (++(*step), debug_matl_key)
     {
         if (ZobGlob.compute_matl_key (*this) != matl_key ()) return false;
     }
+    // step 14
     if (++(*step), debug_pawn_key)
     {
         if (ZobGlob.compute_pawn_key (*this) != pawn_key ()) return false;
     }
 
+    // step 15
     if (++(*step), debug_posi_key)
     {
         //cout << hex << uppercase << posi_key () << endl;
         if (ZobGlob.compute_posi_key (*this) != posi_key ()) return false;
     }
 
+    // step 16
     if (++(*step), debug_incremental_eval)
     {
         if (_si->psq_score != compute_psq_score ()) return false;
     }
 
+    // step 17
     if (++(*step), debug_non_pawn_material)
     {
         if (   _si->non_pawn_matl[WHITE] != compute_non_pawn_material(WHITE)
@@ -1791,7 +1803,12 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si = _si->p_si;
 
-    ASSERT (ok ());
+    int8_t failed_step;
+    ASSERT (ok (&failed_step));
+    if (failed_step)
+    {
+        TRI_LOG_MSG (int32_t (failed_step));
+    }
 }
 
 // do_null_move() do the null-move
@@ -1917,8 +1934,8 @@ void Position::flip ()
     _si->pawn_key   = ZobGlob.compute_pawn_key (*this);
     _si->posi_key   = ZobGlob.compute_posi_key (*this);
     _si->psq_score  = compute_psq_score ();
-    _si->non_pawn_matl[WHITE] = compute_non_pawn_material(WHITE);
-    _si->non_pawn_matl[BLACK] = compute_non_pawn_material(BLACK);
+    _si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
+    _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
     _game_ply       = pos._game_ply;
     _chess960       = pos._chess960;
     _game_nodes     = 0; //pos._game_nodes;
@@ -2455,8 +2472,8 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
     pos._si->posi_key = ZobGlob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
-    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material(WHITE);
-    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material(BLACK);
+    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
+    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
     pos._thread       = thread;
@@ -2816,8 +2833,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
     pos._si->posi_key = ZobGlob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
-    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material(WHITE);
-    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material(BLACK);
+    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
+    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
     pos._thread       = thread;

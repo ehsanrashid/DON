@@ -5,7 +5,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "Type.h"
-//#include "LeakDetector.h"
+#include "LeakDetector.h"
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
@@ -24,8 +24,8 @@
 //  total        16 byte
 
 //#pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
-#pragma pack (push, 2)
-typedef struct TranspositionEntry sealed
+//#pragma pack (push, 2)
+typedef struct TranspositionEntry
 {
 
 private:
@@ -70,21 +70,21 @@ public:
 
 } TranspositionEntry;
 
-#pragma pack (pop)
+//#pragma pack (pop)
 
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of NUM_TENTRY_CLUSTER number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a SIZE_CACHE_LINE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
-typedef class TranspositionTable sealed
+typedef class TranspositionTable
 {
 
 private:
 
     TranspositionEntry *_hash_table;
-    uint64_t            _hash_mask;
-    uint64_t            _stored_entry;
+    uint32_t            _hash_mask;
+    uint32_t            _stored_entry;
     uint8_t             _generation;
 
     void aligned_memory_alloc (size_t size, uint32_t alignment);
@@ -113,14 +113,15 @@ public:
 
     // Max power of hash for cluster
 #ifdef _64BIT
-    static const uint8_t MAX_BIT_HASH       = 0x24; // 36
+    //static const uint8_t MAX_BIT_HASH       = 0x24; // 36
+    static const uint8_t MAX_BIT_HASH       = 0x20; // 32
 #else
     static const uint8_t MAX_BIT_HASH       = 0x20; // 32
 #endif
 
 
-    // Minimum size for Transposition table in mega-byte
-    static const size_t DEF_SIZE_TT         = 128;
+    // Default size for Transposition table in mega-byte
+    static const size_t DEF_SIZE_TT         = 32;
 
     // Minimum size for Transposition table in mega-byte
     static const size_t SIZE_MIN_TT         = 4;
@@ -195,9 +196,9 @@ public:
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    TranspositionEntry* get_cluster (Key key) const
+    TranspositionEntry* get_cluster (const Key key) const
     {
-        return _hash_table + (key & _hash_mask);
+        return _hash_table + (uint32_t (key) & _hash_mask);
     }
 
     // store() writes a new entry in the transposition table.

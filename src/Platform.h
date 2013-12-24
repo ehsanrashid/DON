@@ -4,12 +4,12 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-#define POPCNT
+//#define POPCNT
 //#define __INTEL_COMPILER
 
 #define BSFQ
 
-//#define TRI_LOGGER
+#define TRI_LOGGER
 
 //#define CLEANTLOG
 //#define OTLOG

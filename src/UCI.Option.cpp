@@ -376,8 +376,8 @@ namespace UCI {
         Options["Split Depth"]                  = OptionPtr (new SpinOption (10, 8, MAX_SPLIT_DEPTH, on_change_threads));
 
         Options["Threads per Split Point"]      = OptionPtr (new SpinOption (5, 4, MAX_SPLITPOINTS_PER_THREAD, on_change_threads));
-        Options["Use Sleeping Threads"]         = OptionPtr (new CheckOption (true));
 
+        Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 
 #pragma endregion
 

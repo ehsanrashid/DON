@@ -40,8 +40,8 @@ namespace UCI {
         void exe_uci ()
         {
             ats ()
-                << Engine::info (true) << '\n' 
-                << (Options) << '\n'
+                << Engine::info (true) 
+                << Options
                 << "uciok" << endl;
         }
 
@@ -264,8 +264,6 @@ namespace UCI {
 
     void start (const string &args)
     {
-        init_options ();
-
         rootPos.setup (FEN_N, Threads.main (), *(Options["UCI_Chess960"]));
 
         active = args.empty ();

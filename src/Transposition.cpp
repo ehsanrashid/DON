@@ -2,6 +2,7 @@
 
 #include <iostream>
 //#include <cmath>
+
 #include "BitScan.h"
 #include "Engine.h"
 
@@ -25,14 +26,14 @@ void TranspositionTable::resize (uint32_t size_mb)
     //}
 
     size_t size_byte    = size_t (size_mb) << 20;
-    size_t total_entry  = (size_byte) / SIZE_TENTRY;
-    //size_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
+    uint32_t total_entry  = (size_byte) / SIZE_TENTRY;
+    //uint32_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
 
     uint8_t bit_hash = scan_msq (total_entry);
     ASSERT (bit_hash < MAX_BIT_HASH);
     if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
 
-    total_entry     = size_t (1) << bit_hash;
+    total_entry     = uint32_t (1) << bit_hash;
     if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return;
 
     erase ();
@@ -64,8 +65,9 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
     // Then checking for error returned by malloc, if it returns NULL then 
     // aligned_malloc will fail and return NULL or exit().
 
-    uint32_t offset = max<uint32_t> (alignment, sizeof (void *));
+    uint32_t offset = 
         //(alignment - 1) + sizeof (void *);
+        max<uint32_t> (alignment, sizeof (void *));
 
     void *mem = calloc (size + offset, 1);
     if (!mem)
@@ -78,7 +80,7 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
     
-    _hash_table = static_cast<TranspositionEntry*> (*ptr);
+    _hash_table = (TranspositionEntry*) (ptr);
 
     ASSERT (0 == (size & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
@@ -133,7 +135,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
         int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
-        int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
+        int8_t c4 = 0;//((te->nodes () < re->nodes ()) ? +1 : 0);
 
         if ((c1 + c2 + c3 + c4) > 0)
         {
@@ -165,7 +167,7 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 // hash, are using <x>%. of the state of full.
 double TranspositionTable::permill_full () const
 {
-    uint64_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
+    uint32_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
 
     //return (0 != total_entry) ?
     //    //(1 - exp (_stored_entry * log (1.0 - 1.0/total_entry))) * 1000 :
