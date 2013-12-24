@@ -5,6 +5,7 @@
 
 namespace MoveGenerator {
 
+    using namespace std;
     using namespace BitBoard;
 
 #undef SERIALIZE
@@ -35,7 +36,7 @@ namespace MoveGenerator {
 
                 Bitboard occ = pos.pieces ();
                 const SquareList pl = pos.list<T>(c);
-                std::for_each (pl.cbegin (), pl.cend (), [&] (Square org)
+                for_each (pl.cbegin (), pl.cend (), [&] (Square org)
                 {
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
@@ -361,7 +362,7 @@ namespace MoveGenerator {
                         }
                         else
                         {
-                            (void) ci; // silence a warning under MSVC
+                            ci; // silence a warning under MSVC
                         }
                     }
                 }
@@ -425,7 +426,6 @@ namespace MoveGenerator {
         Color active = pos.active ();
 
         Bitboard target = U64 (0);
-        //CheckInfo *ci = NULL;
         switch (G)
         {
         case CAPTURE: target = pos.pieces (~active); break;

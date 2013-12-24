@@ -3,6 +3,7 @@
 #include "Position.h"
 #include "Thread.h"
 
+using namespace std;
 using namespace MoveGenerator;
 
 namespace {
@@ -42,7 +43,7 @@ namespace {
     // normally are the possible captures.
     inline ValMove* pick_best (ValMove *beg, ValMove *end)
     {
-        std::swap (*beg, *std::max_element (beg, end));
+        swap (*beg, *max_element (beg, end));
         return beg;
     }
 }
@@ -52,7 +53,7 @@ namespace {
 // moves to return (in the quiescence search, for instance, we only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
-MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Searcher::Stack* s)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Searcher::Stack* s)
     : pos(p), history(h), depth(d)
 {
     ASSERT (d > DEPTH_ZERO);
@@ -68,7 +69,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats 
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
     : pos(p), history(h), cur(moves), end(moves)
 {
     ASSERT (d <= DEPTH_ZERO);
@@ -85,7 +86,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats 
     {
         stage = QSEARCH_1;
 
-        // Skip TT move if is not a capture or a promotion, this avoids qsearch
+        // Skip TT move if is not a capture or a promotion, this avoids search_quien
         // tree explosion due to a possible perpetual check or similar rare cases
         // when TT table is full.
         if (ttm && !pos.capture_or_promotion (ttm))
@@ -104,7 +105,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats 
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position &p, Move ttm, const HistoryStats &h, PType pt)
+MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
     : pos(p), history(h), cur(moves), end(moves)
 {
     ASSERT (!pos.checkers ());
@@ -139,7 +140,7 @@ void MovePicker::value<CAPTURE>()
     // badCaptures[] array, but instead of doing it now we delay till when
     // the move has been picked up in pick_move_from_list(), this way we save
     // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
-    for (ValMove* itr = moves; itr != end; ++itr)
+    for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
 
@@ -193,8 +194,8 @@ void MovePicker::value<EVASION>()
     }
 }
 
-// generate_next() generates, scores and sorts the next bunch of moves, when
-// there are no more moves to try for the current phase.
+// generate_next() generates, scores and sorts the next bunch of moves,
+// when there are no more moves to try for the current phase.
 void MovePicker::generate_next()
 {
     cur = moves;
@@ -210,6 +211,7 @@ void MovePicker::generate_next()
         //end = generate<CAPTURE>(pos, moves);
         value<CAPTURE>();
         return;
+        break;
 
     case KILLERS_S1:
         cur = killers;
@@ -217,7 +219,8 @@ void MovePicker::generate_next()
 
         killers[0].move = ss->killers[0];
         killers[1].move = ss->killers[1];
-        killers[2].move = killers[3].move = MOVE_NONE;
+        killers[2].move = MOVE_NONE;
+        killers[3].move = MOVE_NONE;
 
         // Be sure counter_moves are different from killers
         for (int32_t i = 0; i < 2; ++i)
@@ -233,13 +236,15 @@ void MovePicker::generate_next()
         }
 
         return;
+        break;
 
     case QUIETS_1_S1:
         //end_quiets = end = generate<QUIET>(pos, moves);
         value<QUIET>();
-        end = std::partition (cur, end, has_positive_value);
+        end = partition (cur, end, has_positive_value);
         insertion_sort (cur, end);
         return;
+        break;
 
     case QUIETS_2_S1:
         cur = end;
@@ -248,8 +253,8 @@ void MovePicker::generate_next()
         {
             insertion_sort (cur, end);
         }
-
         return;
+        break;
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
@@ -264,10 +269,12 @@ void MovePicker::generate_next()
             value<EVASION>();
         }
         return;
+        break;
 
     case QUIET_CHECKS_S3:
         //end = generate<QUIET_CHECK>(pos, moves);
         return;
+        break;
 
     case EVASIONS:
     case QSEARCH_0:
@@ -279,6 +286,7 @@ void MovePicker::generate_next()
     case STOP:
         end = cur + 1; // Avoid another next_phase() call
         return;
+        break;
 
     default:
         ASSERT (false);
@@ -311,6 +319,7 @@ Move MovePicker::next_move<false>()
         case PROBCUT:
             ++cur;
             return tt_move;
+            break;
 
         case CAPTURES_S1:
             move = pick_best (cur++, end)->move;
@@ -382,6 +391,7 @@ Move MovePicker::next_move<false>()
 
         case STOP:
             return MOVE_NONE;
+            break;
 
         default:
             ASSERT (false);
