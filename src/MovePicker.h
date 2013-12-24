@@ -115,11 +115,12 @@ private:
     Square              recapture_sq;
     int32_t             capture_threshold;
     int32_t             stage;
+    
+    ValMove             moves[MAX_MOVES];
     ValMove            *cur;
     ValMove            *end;
     ValMove            *end_quiets;
     ValMove            *end_bad_captures;
-    ValMove             moves[MAX_MOVES];
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
@@ -133,7 +134,5 @@ public:
     Move next_move ();
 
 };
-
-
 
 #endif

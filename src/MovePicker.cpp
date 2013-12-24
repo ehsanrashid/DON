@@ -2,6 +2,7 @@
 
 #include "Position.h"
 
+using namespace std;
 using namespace MoveGenerator;
 
 namespace {
@@ -41,7 +42,7 @@ namespace {
     // normally are the possible captures.
     inline ValMove* pick_best (ValMove *beg, ValMove *end)
     {
-        std::swap (*beg, *std::max_element (beg, end));
+        swap (*beg, *max_element (beg, end));
         return beg;
     }
 }
@@ -51,7 +52,7 @@ namespace {
 // moves to return (in the quiescence search, for instance, we only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
-MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Searcher::Stack* s)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Searcher::Stack* s)
     : pos(p), history(h), depth(d)
 {
     ASSERT (d > DEPTH_ZERO);
@@ -67,7 +68,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats 
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
     : pos(p), history(h), cur(moves), end(moves)
 {
     ASSERT (d <= DEPTH_ZERO);
@@ -103,7 +104,7 @@ MovePicker::MovePicker(const Position &p, Move ttm, Depth d, const HistoryStats 
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker(const Position &p, Move ttm, const HistoryStats &h, PType pt)
+MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
     : pos(p), history(h), cur(moves), end(moves)
 {
     ASSERT (!pos.checkers ());
@@ -192,8 +193,8 @@ void MovePicker::value<EVASION>()
     }
 }
 
-// generate_next() generates, scores and sorts the next bunch of moves, when
-// there are no more moves to try for the current phase.
+// generate_next() generates, scores and sorts the next bunch of moves,
+// when there are no more moves to try for the current phase.
 void MovePicker::generate_next()
 {
     cur = moves;
@@ -239,7 +240,7 @@ void MovePicker::generate_next()
     case QUIETS_1_S1:
         //end_quiets = end = generate<QUIET>(pos, moves);
         value<QUIET>();
-        end = std::partition (cur, end, has_positive_value);
+        end = partition (cur, end, has_positive_value);
         insertion_sort (cur, end);
         return;
         break;

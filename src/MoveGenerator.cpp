@@ -5,6 +5,7 @@
 
 namespace MoveGenerator {
 
+    using namespace std;
     using namespace BitBoard;
 
 #undef SERIALIZE
@@ -35,7 +36,7 @@ namespace MoveGenerator {
 
                 Bitboard occ = pos.pieces ();
                 const SquareList pl = pos.list<T>(c);
-                std::for_each (pl.cbegin (), pl.cend (), [&] (Square org)
+                for_each (pl.cbegin (), pl.cend (), [&] (Square org)
                 {
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
