@@ -47,7 +47,7 @@ inline bool     _ok (Piece p)
     //    (B_PAWN <= p && p <= B_QUEN);
     return (p & 0x3) && !(p & ~0xF);
 }
-inline PType _ptype (Piece p)
+inline PType p_type (Piece p)
 {
     PType pt;
     switch (p & 0x07)
@@ -62,14 +62,14 @@ inline PType _ptype (Piece p)
     }
     return pt;
 }
-inline Color _color (Piece p)
+inline Color p_color (Piece p)
 {
     return Color ((p >> 3) & 1);
 }
 
 inline Piece operator~ (Piece p)
 {
-    //return (~_color(p) | _ptype(p));
+    //return (~p_color(p) | p_type(p));
     return Piece (p ^ (BLACK << 3));
 }
 

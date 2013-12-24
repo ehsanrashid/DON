@@ -355,7 +355,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
     {
         Move m = *itr;
-        //if ((m ^ _mtype (m)) == move)
+        //if ((m ^ m_type (m)) == move)
         if ((m & 0x3FFF) == move)
         {
             return m;

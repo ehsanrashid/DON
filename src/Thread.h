@@ -215,8 +215,10 @@ struct ThreadPool
     ConditionVariable sleep_condition;
     TimerThread *timer;
 
-    void init(); // No c'tor and d'tor, threads rely on globals that should
-    void exit(); // be initialized and valid during the whole thread lifetime.
+    // No c'tor and d'tor, threads rely on globals that should
+    // be initialized and valid during the whole thread lifetime.
+    void initialize (); 
+    void deinitialize (); 
 
     MainThread* main ()
     {

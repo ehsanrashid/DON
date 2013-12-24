@@ -3,10 +3,15 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+
 #include "BitBoard.h"
-#include "Zobrist.h"
+#include "BitBases.h"
 #include "Pawns.h"
-#include "Position.h"
+#include "Material.h"
+#include "Evaluator.h"
+#include "Searcher.h"
+#include "Transposition.h"
+#include "Thread.h"
 #include "UCI.h"
 #include "Tester.h"
 
@@ -80,27 +85,36 @@ namespace Engine {
     void start ()
     {
 
-        BitBoard::initialize ();
-        Zobrist ::initialize ();
-        Pawns   ::initialize ();
-        Position::initialize ();
+        UCI::init_options();
+        BitBoard ::initialize ();
+        Zobrist  ::initialize ();
+        Position ::initialize ();
+        BitBases ::initialize ();
+        Pawns    ::initialize ();
+
+        Searcher ::initialize ();
+        Evaluator::initialize ();
+        
+        Threads.initialize ();
+        TT.resize (int32_t (*(Options["Hash"])));
 
         cout << Engine::info () << endl;
 
 #ifdef _DEBUG
 
-        Tester::main_test ();
+        //Tester::main_test ();
 
 #endif
 
-        //UCI::start ();
+        UCI::start ();
 
-
+        Threads.deinitialize ();
     }
 
     void stop ()
     {
         UCI::stop ();
+        Threads.deinitialize ();
     }
 
     void exit (int32_t exit_code)

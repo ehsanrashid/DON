@@ -150,7 +150,7 @@ void MainThread::idle_loop()
 // go immediately to sleep due to 'sleep_while_idle' set to true. We cannot use
 // a c'tor becuase Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
-void ThreadPool::init ()
+void ThreadPool::initialize ()
 {
     sleep_while_idle = true;
     timer = new_thread<TimerThread> ();
@@ -159,7 +159,7 @@ void ThreadPool::init ()
 }
 
 // exit() cleanly terminates the threads before the program exits
-void ThreadPool::exit ()
+void ThreadPool::deinitialize ()
 {
     delete_thread (timer); // As first because check_time() accesses threads data
 
@@ -175,23 +175,23 @@ void ThreadPool::exit ()
 // threads, with included pawns and material tables, if only few are used.
 void ThreadPool::read_uci_options ()
 {
-    max_threads_per_split_point = int32_t (*(Options["Max Threads per Split Point"]));
-    min_split_depth             = int32_t (*(Options["Min Split Depth"])) * ONE_MOVE;
-    size_t requested            = int32_t (*(Options["Threads"]));
-
-    ASSERT (requested > 0);
+    max_threads_per_split_point = int32_t (*(Options["Threads per Split Point"]));
+    min_split_depth             = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
+    int32_t num_threads         = int32_t (*(Options["Threads"]));
+    
+    ASSERT (num_threads > 0);
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
     // automatically. Anyhow the min_split_depth should never be under 4 plies.
     min_split_depth = !min_split_depth ?
-        (requested < 8 ? 4 : 7) * ONE_MOVE : max(4 * ONE_MOVE, min_split_depth);
+        (num_threads < 8 ? 4 : 7) * ONE_MOVE : max(4 * ONE_MOVE, min_split_depth);
 
-    while (size () < requested)
+    while (size () < num_threads)
     {
         push_back (new_thread<Thread> ());
     }
 
-    while (size () > requested)
+    while (size () > num_threads)
     {
         delete_thread (back ());
         pop_back ();

@@ -1,8 +1,9 @@
 #include "BitBases.h"
+
+#include <vector>
+#include "Square.h"
 #include "BitBoard.h"
 #include "BitScan.h"
-#include "Square.h"
-#include <vector>
 
 namespace BitBases {
 
@@ -149,7 +150,7 @@ namespace BitBases {
         }
     }
 
-    void init_kpk ()
+    void initialize ()
     {
         vector<KPKPosition> db;
         db.reserve (MAX_INDEX);

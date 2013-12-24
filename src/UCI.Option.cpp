@@ -442,6 +442,19 @@ namespace UCI {
         // If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it’s White or Black to move.
         Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
 
+        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+
+        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+
+        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+
+        Options["Aggressiveness"]               = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, min 5, max 50.
         //
@@ -461,6 +474,14 @@ namespace UCI {
         // If you know that a position is "mate in X", you can use X or a value slightly larger than X in the Mate Search option.
         // This will prevent Houdini from going too deep in variations that don't lead to mate in the required number of moves.
         Options["Mate Search"]                  = OptionPtr (new SpinOption (0, 0, 99));
+
+        Options["Skill Level"]                  = OptionPtr (new SpinOption (20, 0, 20));
+
+        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption (40, 0, 50));
+        Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60, 0, 30000));
+        Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30, 0, 5000));
+        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20, 0, 5000));
+        Options["Slow Mover"]                   = OptionPtr (new SpinOption (70, 10, 1000));
 
         // Activate Fischer Random Chess a.k.a. Chess960 games.
         // Default false.
@@ -483,12 +504,6 @@ namespace UCI {
         // The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
 
-        //Options["Skill Level"]                  = &SpinOption(20, 0, 20);
-        //Options["Emergency Move Horizon"]       = &SpinOption(40, 0, 50);
-        //Options["Emergency Base Time"]        = &SpinOption(200, 0, 30000);
-        //Options["Emergency Move Time"]        = &SpinOption(70, 0, 5000);
-        //Options["Minimum Thinking Time"]      = &SpinOption(20, 0, 5000);
-        //Options["Slow Mover"]                 = &SpinOption(100, 10, 1000);
 
 #pragma endregion
 

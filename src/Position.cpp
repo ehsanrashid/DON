@@ -293,14 +293,14 @@ void Position::place_piece (Square s, Color c, PType t)
 }
 void Position::place_piece (Square s, Piece p)
 {
-    place_piece (s, _color (p), _ptype (p));
+    place_piece (s, p_color (p), p_type (p));
 }
 inline Piece Position::remove_piece (Square s)
 {
     Piece p = _piece_arr[s];
     ASSERT (PS_NO != p);
-    Color c = _color (p);
-    PType t = _ptype (p);
+    Color c = p_color (p);
+    PType t = p_type (p);
 
     SquareList &sq_list  = _piece_list[c][t];
     uint8_t ps_count    = sq_list.size ();
@@ -328,8 +328,8 @@ Piece Position::move_piece (Square s1, Square s2)
     //if (!_ok (mp)) return PS_NO;
     //if (PS_NO != _piece_arr[s2]) return PS_NO;
 
-    Color mc = _color (mp);
-    PType mt = _ptype (mp);
+    Color mc = p_color (mp);
+    PType mt = p_type (mp);
 
     _piece_arr[s1] = PS_NO;
     _piece_arr[s2] = mp;
@@ -434,7 +434,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Piece p = _piece_arr[s];
-            if (KING == _ptype (p)) ++king_count[_color (p)];
+            if (KING == p_type (p)) ++king_count[p_color (p)];
         }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
@@ -624,16 +624,16 @@ int32_t Position::see (Move m, int32_t asymm_threshold) const
 {
     ASSERT (_ok(m));
 
-    Square org = sq_org(m);
-    Square dst = sq_dst(m);
+    Square org = org_sq(m);
+    Square dst = dst_sq(m);
 
-    Color stm = _color (_piece_arr[org]);
+    Color stm = p_color (_piece_arr[org]);
     int32_t swap_list[32], index = 1;
-    swap_list[0] = PieceValue[MG][_ptype (_piece_arr[dst])];
+    swap_list[0] = PieceValue[MG][p_type (_piece_arr[dst])];
 
     Bitboard occupied = pieces () - org;
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     // Castle moves are implemented as king capturing the rook so cannot be
     // handled correctly. Simply return 0 that is always the correct value
     // unless in the rare case the rook ends up under attack.
@@ -660,7 +660,7 @@ int32_t Position::see (Move m, int32_t asymm_threshold) const
     // destination square, where the sides alternately capture, and always
     // capture with the least valuable piece. After each capture, we look for
     // new X-ray attacks from behind the capturing piece.
-    PType cpt = _ptype (_piece_arr[org]);
+    PType cpt = p_type (_piece_arr[org]);
 
     do
     {
@@ -714,7 +714,7 @@ int32_t Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][_ptype (moved_piece (m))] <= PieceValue[MG][_ptype (_piece_arr[sq_dst (m)])])
+    if (PieceValue[MG][p_type (moved_piece (m))] <= PieceValue[MG][p_type (_piece_arr[dst_sq (m)])])
     {
         return 1;
     }
@@ -731,7 +731,7 @@ Piece Position::moved_piece (Move m) const
 {
     ASSERT (_ok (m));
     if (!_ok (m)) return PS_NO;
-    return _piece_arr[sq_org (m)];
+    return _piece_arr[org_sq (m)];
 }
 // captured_piece() return piece captured by moving piece
 Piece Position::captured_piece (Move m) const
@@ -739,15 +739,15 @@ Piece Position::captured_piece (Move m) const
     ASSERT (_ok (m));
     if (!_ok (m)) return PS_NO;
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
     Color pasive = ~_active;
     Piece mp =  _piece_arr[org];
-    PType mpt = _ptype (mp);
+    PType mpt = p_type (mp);
 
     Square cap = dst;
 
-    switch (_mtype (m))
+    switch (m_type (m))
     {
     case CASTLE:   return PS_NO; break;
 
@@ -790,23 +790,23 @@ Piece Position::captured_piece (Move m) const
 bool Position::pseudo_legal (Move m) const
 {
     if (!_ok (m)) return false;
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Color active = _active;
     Color pasive = ~active;
 
     Piece mp = _piece_arr[org];
-    PType mpt = _ptype (mp);
+    PType mpt = p_type (mp);
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if ((PS_NO == mp) || (active != _color (mp)) || (PT_NO == mpt)) return false;
+    if ((PS_NO == mp) || (active != p_color (mp)) || (PT_NO == mpt)) return false;
 
     Square cap = dst;
     PType cpt;
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
 
     switch (mt)
     {
@@ -866,13 +866,13 @@ bool Position::pseudo_legal (Move m) const
             if (R_7 != rel_rank (active, org)) return false;
             if (R_8 != rel_rank (active, dst)) return false;
         }
-        cpt = _ptype (_piece_arr[cap]);
+        cpt = p_type (_piece_arr[cap]);
         break;
 
     case NORMAL:
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
-        cpt = _ptype (_piece_arr[cap]);
+        cpt = p_type (_piece_arr[cap]);
         break;
     }
 
@@ -927,7 +927,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_SW:
             // Capture. The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (PT_NO == cpt || active == _color (_piece_arr[cap])) return false;
+            if (PT_NO == cpt || active == p_color (_piece_arr[cap])) return false;
             // cap and org files must be one del apart, avoids a7h5
             if (1 != file_dist (cap, org)) return false;
             break;
@@ -1022,18 +1022,18 @@ bool Position::legal (Move m, Bitboard pinned) const
 
     Color active = _active;
     Color pasive = ~active;
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Piece mp = _piece_arr[org];
-    Color mpc = _color (mp);
-    PType mpt = _ptype (mp);
+    Color mpc = p_color (mp);
+    PType mpt = p_type (mp);
     ASSERT ((active == mpc) && (PT_NO != mpt));
 
     Square fk_sq = king_sq (active);
     ASSERT ((active | KING) == _piece_arr[fk_sq]);
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     switch (mt)
     {
     case CASTLE:
@@ -1085,7 +1085,7 @@ bool Position::capture (Move m) const
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     switch (mt)
     {
     case CASTLE:
@@ -1098,9 +1098,9 @@ bool Position::capture (Move m) const
     case NORMAL:
     case PROMOTE:
         {
-            Square dst = sq_dst (m);
+            Square dst = dst_sq (m);
             Piece cp   = _piece_arr[dst];
-            return (~_active == _color (cp)) && (KING != _ptype (cp));
+            return (~_active == p_color (cp)) && (KING != p_type (cp));
         }
         break;
     }
@@ -1112,19 +1112,19 @@ bool Position::capture_or_promotion (Move m) const
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
 
-    //MType mt = _mtype (m);
-    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (sq_dst (m));
+    //MType mt = m_type (m);
+    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
 
-    switch (_mtype (m))
+    switch (m_type (m))
     {
     case CASTLE:    return false; break;
     case PROMOTE:   return true;  break;
     case ENPASSANT: return (SQ_NO != _si->en_passant); break;
     case NORMAL:
         {
-            Square dst  = sq_dst (m);
+            Square dst  = dst_sq (m);
             Piece cp    = _piece_arr[dst];
-            return (PS_NO != cp) && (~_active == _color (cp)) && (KING != _ptype (cp));
+            return (PS_NO != cp) && (~_active == p_color (cp)) && (KING != p_type (cp));
         }
     }
     return false;
@@ -1138,12 +1138,12 @@ bool Position::check (Move m, const CheckInfo &ci) const
 
     //if (!legal (m)) return false;
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Piece mp = _piece_arr[org];
-    Color mpc = _color (mp);
-    PType mpt = _ptype (mp);
+    Color mpc = p_color (mp);
+    PType mpt = p_type (mp);
 
     // Direct check ?
     if (ci.checking_bb[mpt] & dst) return true;
@@ -1163,7 +1163,7 @@ bool Position::check (Move m, const CheckInfo &ci) const
         }
     }
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
@@ -1367,8 +1367,8 @@ bool Position::can_en_passant (Square ep_sq) const
     for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
     {
         Move m = *itr;
-        Square org = sq_org (m);
-        Square dst = sq_dst (m);
+        Square org = org_sq (m);
+        Square dst = dst_sq (m);
         Bitboard mocc = occ - org - cap + dst;
         if (!(
             (attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasive, QUEN, ROOK)) |
@@ -1397,7 +1397,7 @@ Score Position::compute_psq_score() const
     {
         Square s = pop_lsq (occ);
         Piece  p = _piece_arr[s];
-        score += psq[_color (p)][_ptype (p)][s];
+        score += psq[p_color (p)][p_type (p)][s];
     }
     return score;
 }
@@ -1445,26 +1445,26 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     si_n.p_si = _si;
     _si = &si_n;
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Color active = _active;
     Color pasive = ~active;
 
     Piece mp    = _piece_arr[org];
-    PType mpt   = _ptype (mp);
+    PType mpt   = p_type (mp);
 
     ASSERT ((PS_NO != mp) &&
-        (active == _color (mp)) &&
+        (active == p_color (mp)) &&
         (PT_NO != mpt));
     ASSERT ((PS_NO == _piece_arr[dst]) ||
-        (pasive == _color (_piece_arr[dst])) ||
-        (CASTLE == _mtype (m)));
+        (pasive == p_color (_piece_arr[dst])) ||
+        (CASTLE == m_type (m)));
 
     Square cap  = dst;
     PType cpt   = PT_NO;
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     // Pick capture piece and check validation
     switch (mt)
     {
@@ -1491,7 +1491,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (PAWN == mpt);        // Moving type must be PAWN
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
-        cpt = _ptype (_piece_arr[cap]);
+        cpt = p_type (_piece_arr[cap]);
         ASSERT (PAWN == cpt);
         break;
 
@@ -1503,7 +1503,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             ASSERT (0 == del_f || 1 == del_f);
             if (0 == del_f) break;
         }
-        cpt = _ptype (_piece_arr[cap]);
+        cpt = p_type (_piece_arr[cap]);
         break;
     }
 
@@ -1697,7 +1697,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 }
 void Position::do_move (Move m, StateInfo &si_n)
 {
-    CheckInfo ci = CheckInfo (*this);
+    CheckInfo ci (*this);
     do_move (m, si_n, check (m, ci) ? &ci : NULL);
 }
 // do_move() do the move from string (CAN)
@@ -1715,16 +1715,16 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Color pasive = _active;
     Color active = _active = ~_active; // switch
 
     Piece mp =  _piece_arr[dst];
-    PType mpt = _ptype (mp);
+    PType mpt = p_type (mp);
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     ASSERT (PS_NO == _piece_arr[org] || CASTLE == mt);
 
     PType cpt = _si->cap_type;
@@ -1873,7 +1873,7 @@ void Position::flip ()
     //
     //setup (f, chess960 ());
 
-    Position pos = Position (*this);
+    Position pos (*this);
     clear ();
 
     //for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -2217,9 +2217,10 @@ Position::operator string () const
     spos
         << brd << endl
         << to_char (_active) << endl
-        << ::to_string (castle_rights ()) << endl
-        << ::to_string (en_passant ()) << endl
-        << clock50 () << ' ' << game_move () << endl;
+        << to_string (castle_rights ()) << endl
+        << to_string (en_passant ()) << endl
+        << clock50 () << ' '
+        << game_move () << endl;
 
     return spos.str ();
 }
@@ -2259,7 +2260,8 @@ Position::operator string () const
 
 #undef SKIP_WHITESPACE
 #define SKIP_WHITESPACE()  while (isspace ((unsigned char) (*fen))) ++fen
-bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
+
+bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
     ASSERT (fen);
     if (!fen)   return false;
@@ -2351,7 +2353,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
                 if ('A' <= sym && sym <= 'H')
                 {
                     rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != _ptype (pos[rook])) return false;
+                    if (ROOK != p_type (pos[rook])) return false;
                     pos.set_castle (c, rook);
                 }
                 else
@@ -2375,15 +2377,15 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
                 {
                 case 'K':
                     rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _ptype (pos[rook]))) --rook;
+                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
                     break;
                 case 'Q':
                     rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
+                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
                     break;
                 default: return false;
                 }
-                if (ROOK != _ptype (pos[rook])) return false;
+                if (ROOK != p_type (pos[rook])) return false;
                 pos.set_castle (c, rook);
 
                 get_next ();
@@ -2463,7 +2465,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 }
 #undef SKIP_WHITESPACE
 
-bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
+bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
     if (fen.empty ()) return false;
 
@@ -2518,9 +2520,9 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     //            Piece p = to_piece (ch);
     //            if (PS_NO == p) return false;
     //            pos.place_piece (s, p);   // put the piece on Board
-    //            if (KING == _ptype (p))
+    //            if (KING == p_type (p))
     //            {
-    //                Color c = _color (p);
+    //                Color c = p_color (p);
     //                if (1 != pos[p].size ()) return false;
     //            }
     //            ++f;
@@ -2536,7 +2538,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     //ASSERT (1 == sp_fen[1].length ());
     //if (1 != sp_fen[1].length ()) return false;
     //// Active Color
-    //pos._active = _color (sp_fen[1][0]);
+    //pos._active = p_color (sp_fen[1][0]);
     //if (CLR_NO == pos._active) return false;
     //
     //ASSERT (4 >= sp_fen[2].length ());
@@ -2564,7 +2566,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     //            if ('A' <= sym && sym <= 'H')
     //            {
     //                rook = (_file (sym) | rel_rank (c, R_1));
-    //                if (ROOK != _ptype (pos[rook])) return false;
+    //                if (ROOK != p_type (pos[rook])) return false;
     //                pos.set_castle (c, rook);
     //            }
     //            else
@@ -2586,15 +2588,15 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
     //            {
     //            case 'K':
     //                rook = rel_sq (c, SQ_H1);
-    //                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _ptype (pos[rook]))) --rook;
+    //                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
     //                break;
     //            case 'Q':
     //                rook = rel_sq (c, SQ_A1);
-    //                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
+    //                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
     //                break;
     //            default: return false;
     //            }
-    //            if (ROOK != _ptype (pos[rook])) return false;
+    //            if (ROOK != p_type (pos[rook])) return false;
     //            pos.set_castle (c, rook);
     //        }
     //#pragma endregion
@@ -2731,7 +2733,7 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
                 if ('A' <= sym && sym <= 'H')
                 {
                     rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != _ptype (pos[rook])) return false;
+                    if (ROOK != p_type (pos[rook])) return false;
                     pos.set_castle (c, rook);
                 }
                 else
@@ -2755,15 +2757,15 @@ bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
                 {
                 case 'K':
                     rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _ptype (pos[rook]))) --rook;
+                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
                     break;
                 case 'Q':
                     rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
+                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
                     break;
                 default: return false;
                 }
-                if (ROOK != _ptype (pos[rook])) return false;
+                if (ROOK != p_type (pos[rook])) return false;
                 pos.set_castle (c, rook);
 
                 sfen >> ch;

@@ -4,13 +4,14 @@
 #include "Thread.h"
 
 using namespace std;
+using namespace Searcher;
 using namespace MoveGenerator;
 
 namespace {
 
-    enum Stages
+    enum Stages : uint8_t
     {
-        MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
+        RELAXS, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS,    EVASIONS_S2,
         QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
         QSEARCH_1,   CAPTURES_S4,
@@ -36,7 +37,7 @@ namespace {
 
     // Unary predicate used by std::partition to split positive scores from remaining
     // ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool has_positive_value(const ValMove& vm) { return vm.value > 0; }
+    inline bool has_positive_value (const ValMove &vm) { return vm.value > 0; }
 
     // Picks and moves to the front the best move in the range [beg, end),
     // it is faster than sorting all the moves in advance when moves are few, as
@@ -53,7 +54,7 @@ namespace {
 // moves to return (in the quiescence search, for instance, we only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Searcher::Stack* s)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Stack *s)
     : pos(p), history(h), depth(d)
 {
     ASSERT (d > DEPTH_ZERO);
@@ -63,7 +64,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     counter_moves = cm;
     ss = s;
 
-    stage = pos.checkers () ? EVASION : MAIN_SEARCH;
+    stage = pos.checkers () ? EVASIONS : RELAXS;
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
@@ -76,7 +77,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 
     if (pos.checkers ())
     {
-        stage = EVASION;
+        stage = EVASIONS;
     }
     else if (d > DEPTH_QS_NO_CHECKS)
     {
@@ -114,15 +115,14 @@ MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PTyp
 
     // In ProbCut we generate only captures better than parent's captured piece
     capture_threshold = PieceValue[MG][pt];
-    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
 
+    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
     {
         tt_move = MOVE_NONE;
     }
     end += (tt_move != MOVE_NONE);
 }
-
 
 template<>
 void MovePicker::value<CAPTURE>()
@@ -144,9 +144,9 @@ void MovePicker::value<CAPTURE>()
     {
         Move m = itr->move;
 
-        itr->value = PieceValue[MG][_ptype (pos[sq_dst (m)])] - _ptype (pos.moved_piece (m));
+        itr->value = PieceValue[MG][p_type (pos[dst_sq (m)])] - p_type (pos.moved_piece (m));
 
-        switch (_mtype (m))
+        switch (m_type (m))
         {
         case PROMOTE:
             itr->value += PieceValue[MG][prom_type(m)] - PieceValue[MG][PAWN];
@@ -164,7 +164,7 @@ void MovePicker::value<QUIET>()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = history[pos.moved_piece (m)][sq_dst (m)];
+        itr->value = history[pos.moved_piece (m)][dst_sq (m)];
     }
 }
 
@@ -177,29 +177,42 @@ void MovePicker::value<EVASION>()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        int32_t see_value;
-        if ((see_value = pos.see_sign (m)) < 0)
+        int32_t see_value = pos.see_sign (m);
+        if (see_value < 0)
         {
-            itr->value = see_value - HistoryStats::MaxValue; // At the bottom
+            itr->value = see_value - MaxValue; // At the bottom
         }
         else if (pos.capture (m))
         {
-            itr->value =  PieceValue[MG][_ptype (pos[sq_dst (m)])]
-            - _ptype (pos.moved_piece (m)) + HistoryStats::MaxValue;
+            itr->value =  PieceValue[MG][p_type (pos[dst_sq (m)])]
+            - p_type (pos.moved_piece (m)) + MaxValue;
         }
         else
         {
-            itr->value = history[pos.moved_piece (m)][sq_dst (m)];
+            itr->value = history[pos.moved_piece (m)][dst_sq (m)];
         }
     }
 }
 
-// generate_next() generates, scores and sorts the next bunch of moves,
+template<GType GT>
+void MovePicker::generate_moves ()
+{
+    MoveList mov_lst = generate<GT>(pos);
+    uint16_t index = 0;
+    end = moves;
+    for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    {
+        moves[index].move = m;
+        ++index;
+        ++end;
+    });
+}
+
+// generate_next () generates, scores and sorts the next bunch of moves,
 // when there are no more moves to try for the current phase.
-void MovePicker::generate_next()
+void MovePicker::generate_next ()
 {
     cur = moves;
-
     switch (++stage)
     {
 
@@ -208,7 +221,7 @@ void MovePicker::generate_next()
     case CAPTURES_S4:
     case CAPTURES_S5:
     case CAPTURES_S6:
-        //end = generate<CAPTURE>(pos, moves);
+        generate_moves<CAPTURE>();
         value<CAPTURE>();
         return;
         break;
@@ -239,7 +252,8 @@ void MovePicker::generate_next()
         break;
 
     case QUIETS_1_S1:
-        //end_quiets = end = generate<QUIET>(pos, moves);
+        generate_moves<QUIET>();
+        end_quiets = end;
         value<QUIET>();
         end = partition (cur, end, has_positive_value);
         insertion_sort (cur, end);
@@ -263,7 +277,8 @@ void MovePicker::generate_next()
         return;
 
     case EVASIONS_S2:
-        //end = generate<EVASION>(pos, moves);
+        generate_moves<EVASION>();
+
         if (end > moves + 1)
         {
             value<EVASION>();
@@ -272,7 +287,8 @@ void MovePicker::generate_next()
         break;
 
     case QUIET_CHECKS_S3:
-        //end = generate<QUIET_CHECK>(pos, moves);
+        generate_moves<QUIET_CHECK>();
+
         return;
         break;
 
@@ -306,13 +322,13 @@ Move MovePicker::next_move<false>()
     {
         while (cur == end)
         {
-            generate_next();
+            generate_next ();
         }
 
         switch (stage)
         {
 
-        case MAIN_SEARCH:
+        case RELAXS:
         case EVASIONS:
         case QSEARCH_0:
         case QSEARCH_1:
@@ -375,7 +391,7 @@ Move MovePicker::next_move<false>()
 
         case CAPTURES_S6:
             move = pick_best (cur++, end)->move;
-            if (sq_dst (move) == recapture_sq)
+            if (dst_sq (move) == recapture_sq)
             {
                 return move;
             }

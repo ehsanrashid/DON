@@ -148,7 +148,7 @@ inline Diag _diag81 (Square s)
 {
     return Diag ((s >> 3) + (s & 0x07));     // R + F
 }
-inline Color _color (Square s)
+inline Color p_color (Square s)
 {
     return Color (!((s ^ (s >> 3)) & BLACK));
 }

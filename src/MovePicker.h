@@ -31,6 +31,8 @@ typedef std::set<ValMove>        ValMoveSet;
 extern void order (ValMoveList &vm_list, bool full = true);
 
 
+const Value MaxValue = Value (2000);
+
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store History, Gains and Countermoves.
@@ -48,7 +50,6 @@ private:
     T _table[PT_NO][SQ_NO];
 
 public:
-    static const Value MaxValue = Value (2000);
 
     const T* operator[] (Piece p) const { return &_table[p][0]; }
     //const T& operator[] (Piece p) const { return  _table[p][0]; }
@@ -101,6 +102,9 @@ private:
     // The moves with highest scores will be picked first.
     void value ();
 
+    template<MoveGenerator::GType>
+    void generate_moves ();
+    
     void generate_next ();
 
     const Position     &pos;
@@ -114,8 +118,8 @@ private:
     ValMove             killers[4];
     Square              recapture_sq;
     int32_t             capture_threshold;
-    int32_t             stage;
-    
+    uint8_t             stage;
+
     ValMove             moves[MAX_MOVES];
     ValMove            *cur;
     ValMove            *end;

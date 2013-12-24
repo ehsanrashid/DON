@@ -10,30 +10,32 @@
 #include "BitBoard.h"
 #include "Notation.h"
 
-inline Square sq_org (Move m)
+inline Square org_sq (Move m)
 {
     return Square ((m >> 6) & 0x3F);
 }
-inline Square sq_dst (Move m)
+inline Square dst_sq (Move m)
 {
     return Square ((m >> 0) & 0x3F);
 }
-// promote type
+
+// Promote type
 inline PType prom_type (Move m)
 {
     return PType (((m >> 12) & 0x03) + NIHT);
 }
-inline MType _mtype (Move m)
+// Move type
+inline MType m_type (Move m)
 {
     return MType (PROMOTE & m);
 }
 
-inline void sq_org (Move &m, Square org)
+inline void org_sq (Move &m, Square org)
 {
     m &= 0xF03F;
     m |= (org << 6);
 }
-inline void sq_dst (Move &m, Square dst)
+inline void dst_sq (Move &m, Square dst)
 {
     m &= 0xFFC0;
     m |= (dst << 0);
@@ -44,7 +46,7 @@ inline void prom_type (Move &m, PType pt)
     m |= (PROMOTE | ((pt - NIHT) & 0x03) << 12);
 }
 
-inline void _mtype (Move &m, MType mt)
+inline void m_type (Move &m, MType mt)
 {
     m &= ~PROMOTE;
     m |= mt;
@@ -53,8 +55,8 @@ inline void _mtype (Move &m, MType mt)
 inline Move operator~ (Move m)
 {
     Move mm = m;
-    sq_org (mm, ~sq_org (m));
-    sq_dst (mm, ~sq_dst (m));
+    org_sq (mm, ~org_sq (m));
+    dst_sq (mm, ~dst_sq (m));
     return mm;
 }
 
@@ -93,15 +95,13 @@ inline bool _ok (Move m)
 {
     if (MOVE_NONE == m) return false;
     if (MOVE_NULL == m) return false;
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
     if (org == dst) return false;
 
     uint8_t del_f = BitBoard::file_dist (org, dst);
     uint8_t del_r = BitBoard::rank_dist (org, dst);
-    if (del_f == del_r) return true;
-    if (0 == del_f || 0 == del_r) return true;
-    if (5 == del_f*del_f + del_r*del_r) return true;
+    if (del_f == del_r || 0 == del_f || 0 == del_r || 5 == del_f*del_f + del_r*del_r) return true;
     return false;
 }
 
@@ -111,11 +111,11 @@ inline bool _ok (Move m)
 //    if (MOVE_NULL == m) return "(0000)";
 //    if (!_ok (m)) return "(xxxx)";
 //
-//    Square org = sq_org (m);
-//    Square dst = sq_dst (m);
+//    Square org = org_sq (m);
+//    Square dst = dst_sq (m);
 //    if (!c960)
 //    {
-//        if (CASTLE == _mtype (m))
+//        if (CASTLE == m_type (m))
 //        {
 //            dst = (dst > org ? F_G : F_C) | _rank (org);
 //        }
@@ -123,7 +123,7 @@ inline bool _ok (Move m)
 //
 //    std::string smove = to_string (org) + to_string (dst);
 //    //ASSERT (4 == smove.length ());
-//    MType mt = _mtype (m);
+//    MType mt = m_type (m);
 //    switch (mt)
 //    {
 //    case PROMOTE:
@@ -158,7 +158,6 @@ inline std::basic_ostream<charT, Traits>&
     return os;
 }
 
-
 //typedef std::stack <Move>   MoveStack;
 
 //template<class charT, class Traits>
@@ -174,6 +173,4 @@ inline std::basic_ostream<charT, Traits>&
 //    return os;
 //}
 
-
 #endif
-

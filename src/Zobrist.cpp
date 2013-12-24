@@ -76,7 +76,7 @@ namespace Zobrist {
         //while (pawns)
         //{
         //    Square s = pop_lsq (pawns);
-        //    Color  c = _color (pos[s]);
+        //    Color  c = p_color (pos[s]);
         //    pawn_key ^= _.ps_sq[c][PAWN][s];
         //}
 
@@ -99,7 +99,7 @@ namespace Zobrist {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    Piece p = pos[s];
-        //    posi_key ^= _.ps_sq[_color (p)][_ptype (p)][s];
+        //    posi_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
         //}
 
         //for (Color c = WHITE; c <= BLACK; ++c)
@@ -120,7 +120,7 @@ namespace Zobrist {
         //{
         //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
-        //    posi_key ^= _.ps_sq[_color (p)][_ptype (p)][s];
+        //    posi_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
         //}
 
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -206,9 +206,9 @@ namespace Zobrist {
                     // piece
                     Piece p = to_piece (ch);
                     if (PS_NO == p) return U64 (0);
-                    if (KING == _ptype (p))  king[_color (p)] = f;
+                    if (KING == p_type (p))  king[p_color (p)] = f;
 
-                    fen_key ^= _.ps_sq[_color (p)][_ptype (p)][s];
+                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
 
                     ++f;
                 }
@@ -348,9 +348,9 @@ namespace Zobrist {
                     // piece
                     Piece p = to_piece (ch);
                     if (PS_NO == p) return U64 (0);
-                    if (KING == _ptype (p))  king[_color (p)] = f;
+                    if (KING == p_type (p))  king[p_color (p)] = f;
 
-                    fen_key ^= _.ps_sq[_color (p)][_ptype (p)][s];
+                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
 
                     ++f;
                 }

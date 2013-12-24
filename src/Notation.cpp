@@ -17,10 +17,10 @@ AmbType ambiguity (Move m, const Position &pos)
 {
     ASSERT (pos.legal (m));
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
     Piece mp   = pos[org];
-    PType mpt  = _ptype (mp);
+    PType mpt  = p_type (mp);
 
     //MoveList mov_lst = generate<LEGAL> (pos);
     //uint8_t n = 0;
@@ -30,16 +30,16 @@ AmbType ambiguity (Move m, const Position &pos)
     //while (itr != mov_lst.cend ())
     //{
     //    Move mm = *itr;
-    //    if (sq_org (mm) != org)
+    //    if (org_sq (mm) != org)
     //    {
-    //        if (pos[sq_org (mm)] == mp && sq_dst (mm) == dst)
+    //        if (pos[org_sq (mm)] == mp && dst_sq (mm) == dst)
     //        {
     //            ++n;
-    //            if (_file (sq_org (mm)) == _file (org))
+    //            if (_file (org_sq (mm)) == _file (org))
     //            {
     //                ++f;
     //            }
-    //            if (_rank (sq_org (mm)) == _rank (org))
+    //            if (_rank (org_sq (mm)) == _rank (org))
     //            {
     //                ++r;
     //            }
@@ -100,7 +100,7 @@ AmbType ambiguity (Move m, const Position &pos)
         Move move = mk_move (pop_lsq (b), dst);
         if (!pos.legal (move, pinneds))
         {
-            others -= sq_org (move);
+            others -= org_sq (move);
         }
     }
 
@@ -156,9 +156,9 @@ string move_to_can (Move m, bool c960)
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
     if (!_ok (m))      return "(xxxx)";
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
-    MType mt   = _mtype (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    MType mt   = m_type (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
@@ -173,10 +173,10 @@ string move_to_san (Move m, Position &pos)
     if (MOVE_NULL == m) return "(null)";
     ASSERT (pos.legal (m));
     string san;
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
     Piece mp   = pos[org];
-    PType mpt  = _ptype (mp);
+    PType mpt  = p_type (mp);
 
     //    switch (mpt)
     //    {
@@ -190,7 +190,7 @@ string move_to_san (Move m, Position &pos)
     //
     //        san += to_string (dst);
     //
-    //        if (PROMOTE == _mtype (m))
+    //        if (PROMOTE == m_type (m))
     //        {
     //            switch (prom_type (m))
     //            {
@@ -204,7 +204,7 @@ string move_to_san (Move m, Position &pos)
     //        goto move_marker;
     //
     //    case KING:
-    //        if (CASTLE == _mtype (m))
+    //        if (CASTLE == m_type (m))
     //        {
     //            CSide cs = ((WHITE == pos.active ()) ?
     //                (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
@@ -253,7 +253,7 @@ string move_to_san (Move m, Position &pos)
     //        san += (legalmove ? '+' : '#');
     //    }
 
-    MType mt = _mtype (m);
+    MType mt = m_type (m);
     switch (mt)
     {
     case CASTLE:
@@ -400,26 +400,25 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
         spv << setw(7) << pos.game_nodes () / M << "M  ";
     }
 
-    string padding = string (spv.str().length(), ' ');
-    size_t length = padding.length();
-    StateInfoStack st;
+    string padding = string (spv.str ().length (), ' ');
+    size_t length = padding.length ();
+    StateInfoStack states;
 
     for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
         string san = move_to_san (m, pos);
 
-        if (length + san.length() > 80)
+        if (length + san.length () > 80)
         {
             spv << "\n" + padding;
-            length = padding.length();
+            length = padding.length ();
         }
 
         spv << san << ' ';
-        length += san.length() + 1;
+        length += san.length () + 1;
 
-        st.push (StateInfo());
-        pos.do_move (m, st.top ());
-
+        states.push (StateInfo ());
+        pos.do_move (m, states.top ());
     });
 
     for_each (pv.crbegin (), pv.crend (), [&] (Move m)

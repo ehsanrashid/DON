@@ -397,7 +397,7 @@ namespace MoveGenerator {
             while (itr != mov_lst.end ())
             {
                 Move m = *itr;
-                if (((sq_org (m) == fk_sq) || pinneds || (ENPASSANT == _mtype (m))) &&
+                if (((org_sq (m) == fk_sq) || pinneds || (ENPASSANT == m_type (m))) &&
                     !pos.legal (m, pinneds))
                 {
                     itr = mov_lst.erase (itr);
@@ -462,12 +462,12 @@ namespace MoveGenerator {
         Bitboard occ = pos.pieces ();
         Bitboard empty = ~occ;
 
-        CheckInfo ci = CheckInfo (pos);
+        CheckInfo ci (pos);
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType type = _ptype (pos[org]);
+            PType type = p_type (pos[org]);
 
             Bitboard moves = U64 (0);
             switch (type)
@@ -503,12 +503,12 @@ namespace MoveGenerator {
         Bitboard occ = pos.pieces ();
         Bitboard target = ~pos.pieces (active);
 
-        CheckInfo ci = CheckInfo (pos);
+        CheckInfo ci (pos);
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType type = _ptype (pos[org]);
+            PType type = p_type (pos[org]);
 
             Bitboard moves = U64 (0);
             switch (type)
@@ -579,9 +579,9 @@ namespace MoveGenerator {
             ++checker_count;
             check_sq = pop_lsq (checkers);
 
-            ASSERT (_color (pos[check_sq]) == ~active);
+            ASSERT (p_color (pos[check_sq]) == ~active);
 
-            if (_ptype (pos[check_sq]) > NIHT) // A slider
+            if (p_type (pos[check_sq]) > NIHT) // A slider
             {
                 slid_attacks |= _lines_sq_bb[check_sq][fk_sq] - check_sq;
             }

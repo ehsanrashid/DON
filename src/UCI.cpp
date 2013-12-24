@@ -26,7 +26,7 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position            rootPos = Position (int8_t (0));
+        Position            rootPos(int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
@@ -258,16 +258,6 @@ namespace UCI {
             Threads.main ()->notify_one (); // Could be sleeping
         }
 
-        void exe_quit ()
-        {
-            stop ();
-            //Search::stop ();
-            //Trans::destroy ();
-            //Thread::destroy ();
-            //Book::close ();
-            //GTB::close ();
-        }
-
 #pragma endregion
 
     }
@@ -286,7 +276,7 @@ namespace UCI {
             // Block here waiting for input
             if (active && !getline (cin, cmd, '\n')) cmd = "quit";
             if (whitespace (cmd)) continue;
-            
+
             try
             {
                 cmdstream cstm (cmd);
@@ -316,8 +306,8 @@ namespace UCI {
                 else if (iequals (token, "eval"))       exe_eval ();
                 else if (iequals (token, "perft"))      exe_perft (cstm);
                 else if (iequals (token, "bench"))      benchmark (cstm, rootPos);
-                else if (iequals (token, "quit")
-                    || iequals (token, "stop"))         exe_stop ();
+                else if (iequals (token, "stop")
+                    ||   iequals (token, "quit"))       exe_stop ();
                 else
                 {
                     TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");

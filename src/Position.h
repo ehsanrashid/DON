@@ -493,7 +493,7 @@ inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); 
 inline const Piece      Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline const Bitboard   Position::operator[] (Color  c) const { return _color_bb[c]; }
 inline const Bitboard   Position::operator[] (PType  t) const { return _types_bb[t]; }
-inline const SquareList Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
+inline const SquareList Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
 inline Square Position::king_sq (Color c) const
 {
@@ -507,7 +507,7 @@ inline Bitboard Position::pieces (PType t1, PType t2) const { return pieces (t1)
 inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return pieces (c) & pieces (t1, t2); }
 inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
 inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
-//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
 
 template<PType T>
 inline int32_t Position::piece_count (Color c) const { return _piece_list[c][T].size (); }
@@ -521,7 +521,7 @@ inline int32_t Position::piece_count (Color c) const
 }   
 inline int32_t Position::piece_count ()                 const { return piece_count (WHITE) + piece_count (BLACK); }
 inline int32_t Position::piece_count (Color c, PType t) const { return _piece_list[c][t].size (); }
-//inline int32_t Position::piece_count (Piece p) const { return _piece_list[_color (p)][_ptype (p)].size (); }
+//inline int32_t Position::piece_count (Piece p) const { return _piece_list[p_color (p)][p_type (p)].size (); }
 //inline int32_t Position::piece_count (PType t) const { return piece_count (WHITE, t) + piece_count (BLACK, t); }
 
 template<PType T>
@@ -756,12 +756,12 @@ inline bool Position::has_pair_bishops (Color c) const
 
 inline bool Position::passed_pawn_push (Move m) const
 {
-    return (PAWN == _ptype (moved_piece (m))) && passed_pawn(_active, sq_dst (m));
+    return (PAWN == p_type (moved_piece (m))) && passed_pawn(_active, dst_sq (m));
 }
 
 inline bool Position::advanced_pawn_push (Move m) const
 {
-    return (PAWN == _ptype (moved_piece (m))) && (R_4 < rel_rank (_active, sq_org (m)));
+    return (PAWN == p_type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
 #pragma endregion

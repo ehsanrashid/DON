@@ -113,8 +113,8 @@ namespace {
         size_t cnt = 0;
         const bool leaf = (depth == ONE_MOVE);
 
-        CheckInfo ci = CheckInfo (pos);
-        StateInfo si = StateInfo ();
+        CheckInfo ci (pos);
+        StateInfo si;
         MoveList mov_lst = generate<LEGAL>(pos);
         for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
         {
@@ -657,17 +657,17 @@ namespace {
         Move  best_move;
 
         SplitPoint *split_point;
-        const TranspositionEntry *te;
         Key posi_key;
+        const TranspositionEntry *te;
         Move  tt_move, excluded_move, move;
         Value tt_value;
-        int32_t move_count = 0, quiet_count = 0;
         Move quiets_searched[64];
-        StateInfo si = StateInfo ();
+        StateInfo si;
 
         // Step 1. Initialize node
         Thread *thread = pos.thread();
         bool in_check  = pos.checkers ();
+        int32_t move_count = 0, quiet_count = 0;
 
         if (SPNode)
         {
@@ -750,12 +750,12 @@ namespace {
                 }
 
                 Value bonus = Value (int32_t (depth) * int32_t (depth));
-                history.update (pos.moved_piece(tt_move), sq_dst (tt_move), bonus);
+                history.update (pos.moved_piece(tt_move), dst_sq (tt_move), bonus);
 
                 Move prev_move = (ss-1)->current_move;
                 if (_ok(prev_move))
                 {
-                    Square prev_move_sq = sq_dst (prev_move);
+                    Square prev_move_sq = dst_sq (prev_move);
                     counter_moves.update (pos[prev_move_sq], prev_move_sq, tt_move);
                 }
             }
@@ -796,9 +796,9 @@ namespace {
             && ss->static_eval != VALUE_NONE
             && (ss-1)->static_eval != VALUE_NONE
             && (move = (ss-1)->current_move) != MOVE_NULL
-            &&  _mtype (move) == NORMAL)
+            &&  m_type (move) == NORMAL)
         {
-            Square to = sq_dst (move);
+            Square to = dst_sq (move);
             gains.update (pos[to], to, -(ss-1)->static_eval - ss->static_eval);
         }
 
@@ -897,8 +897,8 @@ namespace {
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
-            MovePicker mp = MovePicker (pos, tt_move, history, pos.cap_type());
-            CheckInfo  ci = CheckInfo (pos);
+            MovePicker mp (pos, tt_move, history, pos.cap_type());
+            CheckInfo  ci (pos);
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
             {
@@ -934,15 +934,15 @@ namespace {
 
 moves_loop: // When in check and at SPNode search starts from here
 
-        Square prev_move_sq = sq_dst ((ss-1)->current_move);
+        Square prev_move_sq = dst_sq ((ss-1)->current_move);
         Move cm[CLR_NO] = 
         {
             counter_moves[pos[prev_move_sq]][prev_move_sq].first,
             counter_moves[pos[prev_move_sq]][prev_move_sq].second
         };
 
-        MovePicker mp = MovePicker (pos, tt_move, depth, history, cm, ss);
-        CheckInfo  ci = CheckInfo (pos);
+        MovePicker mp (pos, tt_move, depth, history, cm, ss);
+        CheckInfo  ci (pos);
 
         Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
         bool improving = 
@@ -1008,8 +1008,8 @@ moves_loop: // When in check and at SPNode search starts from here
 
             bool dangerous =   gives_check
                 //|| pos.passed_pawn_push (move)
-                //|| _mtype (move) == CASTLE;
-                || _mtype (move) != NORMAL
+                //|| m_type (move) == CASTLE;
+                || m_type (move) != NORMAL
                 || pos.advanced_pawn_push (move);
 
             // Step 12. Extend checks
@@ -1066,7 +1066,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (predicted_depth < 7 * ONE_MOVE)
                 {
                     Value futility_value = ss->static_eval + futility_margin (predicted_depth)
-                        + Value (128) + gains[pos.moved_piece (move)][sq_dst (move)];
+                        + Value (128) + gains[pos.moved_piece (move)][dst_sq (move)];
 
                     if (futility_value <= alpha)
                     {
@@ -1100,9 +1100,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
             ss->current_move = move;
 
-            if (!SPNode && !capture_or_promotion && quiet_count < 64)
+            if (!SPNode && !capture_or_promotion)
             {
-                quiets_searched[quiet_count++] = move;
+                if (quiet_count < 64) quiets_searched[quiet_count++] = move;
             }
 
             // Step 14. Make the move
@@ -1126,7 +1126,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 {
                     ss->reduction += ONE_MOVE;
                 }
-                else if (history[pos[sq_dst (move)]][sq_dst (move)] < 0)
+                else if (history[pos[dst_sq (move)]][dst_sq (move)] < 0)
                 {
                     ss->reduction += ONE_MOVE / 2;
                 }
@@ -1261,8 +1261,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (best_value < beta);
 
-                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move,
-                    depth, move_count, &mp, N, cut_node);
+                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move, depth, move_count, &mp, N, cut_node);
 
                 if (best_value >= beta) break;
             }
@@ -1307,13 +1306,13 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Increase history value of the cut-off move and decrease all the other
             // played non-capture moves.
-            Value bonus = Value (int32_t (pow (int32_t (depth), 2)));
-            history.update (pos.moved_piece (best_move), sq_dst (best_move), bonus);
+            Value bonus = Value (int32_t (depth) * int32_t (depth));
+            history.update (pos.moved_piece (best_move), dst_sq (best_move), bonus);
 
             for (int32_t i = 0; i < quiet_count - 1; ++i)
             {
                 move = quiets_searched[i];
-                history.update (pos.moved_piece (move), sq_dst (move), -bonus);
+                history.update (pos.moved_piece (move), dst_sq (move), -bonus);
             }
 
             if (_ok ((ss-1)->current_move))
@@ -1430,8 +1429,8 @@ moves_loop: // When in check and at SPNode search starts from here
         // to search the moves. Because the depth is <= 0 here, only captures,
         // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
         // be generated.
-        MovePicker mp = MovePicker (pos, tt_move, depth, history, sq_dst ((ss-1)->current_move));
-        CheckInfo  ci = CheckInfo (pos);
+        MovePicker mp (pos, tt_move, depth, history, dst_sq ((ss-1)->current_move));
+        CheckInfo  ci (pos);
 
         Move move;
         // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -1446,14 +1445,14 @@ moves_loop: // When in check and at SPNode search starts from here
                 && !IN_CHECK
                 && !gives_check
                 &&  move != tt_move
-                //&&  _mtype (move) != PROMOTE
+                //&&  m_type (move) != PROMOTE
                 //&& !pos.passed_pawn_push (move)
                 && !pos.advanced_pawn_push (move)
                 &&  futility_base > -VALUE_KNOWN_WIN)
             {
-                ASSERT (_mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
+                ASSERT (m_type (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
-                Value futility_value = futility_base + PieceValue[EG][pos[sq_dst (move)]];
+                Value futility_value = futility_base + PieceValue[EG][pos[dst_sq (move)]];
 
                 if (false);
                 else if (futility_value < beta)
@@ -1481,7 +1480,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (   !PVNode
                 && (!IN_CHECK || evasion_prunable)
                 &&  move != tt_move
-                &&  _mtype (move) != PROMOTE
+                &&  m_type (move) != PROMOTE
                 &&  pos.see_sign (move) < 0)
             {
                 continue;
@@ -1492,7 +1491,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             ss->current_move = move;
 
-            StateInfo si = StateInfo ();
+            StateInfo si;
             // Make and search the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
@@ -1648,6 +1647,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " time "     << elapsed
                 << " multipv "  << i + 1
                 << " pv";
+
             for (size_t j = 0; rootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
                 spv <<  " " << move_to_can (rootMoves[i].pv[j], pos.chess960 ());
@@ -1694,7 +1694,7 @@ void Thread::idle_loop ()
             // particular we need to avoid a deadlock in case a master thread has,
             // in the meanwhile, allocated us and sent the notify_one () call before
             // we had the chance to grab the lock.
-            if (!searching && !exit) sleep_condition.wait(mutex);
+            if (!searching && !exit) sleep_condition.wait (mutex);
 
             mutex.unlock ();
         }
@@ -1713,7 +1713,7 @@ void Thread::idle_loop ()
             Threads.mutex.unlock ();
 
             Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
-            Position pos(*sp->pos, this);
+            Position pos (*sp->pos, this);
 
             memcpy (ss-2, sp->ss-2, 5 * sizeof(Stack));
             ss->split_point = sp;
