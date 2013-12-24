@@ -228,15 +228,13 @@ void Position::initialize ()
 {
     for (PType pt = PAWN; pt <= KING; ++pt)
     {
-        //PieceValue[MG][mk_piece(BLACK, pt)] = PieceValue[MG][pt];
-        //PieceValue[EG][mk_piece(BLACK, pt)] = PieceValue[EG][pt];
-
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            psq[WHITE][pt][ s] = +(score + PSQT[pt][s]);
-            psq[BLACK][pt][~s] = -(score + PSQT[pt][s]);
+            Score psq_score = score + PSQT[pt][s];
+            psq[WHITE][pt][ s] = +psq_score;
+            psq[BLACK][pt][~s] = -psq_score;
         }
     }
 }
@@ -1112,7 +1110,7 @@ bool Position::capture_or_promotion (Move m) const
 
     //MType mt = _mtype (m);
     //return (NORMAL != mt) ? (CASTLE != mt) : !empty (sq_dst (m));
-    
+
     switch (_mtype (m))
     {
     case CASTLE:    return false; break;
@@ -1133,7 +1131,7 @@ bool Position::check (Move m, const CheckInfo &ci) const
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (ci.check_discovers == check_discovers (_active));
-    
+
     //if (!legal (m)) return false;
 
     Square org = sq_org (m);
@@ -1246,10 +1244,9 @@ void Position::clear ()
     _active     = CLR_NO;
     _game_ply   = 1;
     _game_nodes = 0;
-    //_chess960   = false;
+    _chess960   = false;
 
     _link_ptr ();
-
 }
 // setup() sets the fen on the position
 bool Position::setup (const   char *fen, bool c960, bool full)
@@ -1530,6 +1527,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         // Update Hash key of position
         posi_k ^= ZobGlob._.ps_sq[pasive][cpt][cap];
 
+        //if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
+
         // Update incremental scores
         _si->psq_score -= psq[pasive][cpt][cap];
 
@@ -1541,7 +1540,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         _si->clock50 = (PAWN == mpt) ? 0 : _si->clock50 + 1;
     }
 
-    // Reset old en-passant
+    // Reset old en-passant square
     if (SQ_NO != _si->en_passant)
     {
         posi_k ^= ZobGlob._.en_passant[_file (_si->en_passant)];
@@ -1676,6 +1675,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
                 posi_k ^= ZobGlob._.en_passant[_file (ep_sq)];
             }
         }
+
+        //if (_thread) prefetch ((char*) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Update the key with the final value
@@ -2253,6 +2254,7 @@ Position::operator string () const
 
 #undef SKIP_WHITESPACE
 #define SKIP_WHITESPACE()  while (isspace ((unsigned char) (*fen))) ++fen
+
 bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 {
     ASSERT (fen);
@@ -2454,6 +2456,7 @@ bool Position::parse (Position &pos, const   char *fen, bool c960, bool full)
 
     return true;
 }
+
 #undef SKIP_WHITESPACE
 
 bool Position::parse (Position &pos, const string &fen, bool c960, bool full)
