@@ -279,6 +279,7 @@ string move_to_san (Move m, Position &pos)
             default:       ASSERT (false);               break;
             }
         }
+
         if (pos.capture (m)) san += 'x';
         san += to_string (dst);
         if (PROMOTE == mt && PAWN == mpt) san += "=" + to_char (prom_type (m));
@@ -315,18 +316,19 @@ string move_to_lan (Move m, Position &pos)
 //            use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
-    stringstream sscore;
+    stringstream ss;
 
     if (abs(v) < VALUE_MATES_IN_MAX_PLY)
     {
-        sscore << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
+        ss << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {
-        sscore << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+        ss << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
     }
-    sscore << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
-    return sscore.str();
+    ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+    
+    return ss.str ();
 }
 
 namespace {
@@ -334,22 +336,22 @@ namespace {
     // value to string
     string value_to_string (Value v)
     {
-        stringstream s;
+        stringstream ss;
 
         if (false);
         else if (v >= VALUE_MATES_IN_MAX_PLY)
         {
-            s <<  "#" << (VALUE_MATE - v + 1) / 2;
+            ss <<  "#" << (VALUE_MATE - v + 1) / 2;
         }
         else if (v <= VALUE_MATED_IN_MAX_PLY)
         {
-            s << "-#" << (VALUE_MATE + v) / 2;
+            ss << "-#" << (VALUE_MATE + v) / 2;
         }
         else
         {
-            s << setprecision(2) << fixed << showpos << double(v) / VALUE_MG_PAWN;
+            ss << setprecision(2) << fixed << showpos << double(v) / VALUE_MG_PAWN;
         }
-        return s.str();
+        return ss.str ();
     }
 
     // time to string
@@ -362,14 +364,14 @@ namespace {
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;
         int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
 
-        stringstream s;
+        stringstream ss;
 
-        if (hours) s << hours << ':';
-        s << setfill('0') 
+        if (hours) ss << hours << ':';
+        ss << setfill('0') 
             << setw(2) << minutes << ':' 
             << setw(2) << seconds;
 
-        return s.str();
+        return ss.str ();
     }
 
 }

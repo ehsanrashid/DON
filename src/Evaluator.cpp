@@ -283,7 +283,7 @@ namespace {
         EvalInfo ei;
         Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
 
-        Thread *thread = pos.thread();
+        Thread *thread = pos.thread ();
 
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
@@ -477,9 +477,6 @@ namespace {
         Square s;
         while ((s = *pl++) != SQ_NO)
         {
-            // TODO:: Remove if check
-            if (s < 0) continue;
-
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard attacks =
                 (BSHP == PT) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :

@@ -285,7 +285,7 @@ Piece Position::  move_piece (Square s1, Square s2)
     if (s1 == s2) return _piece_arr[s1];
 
     Piece p = _piece_arr[s1];
-    //if (!_ok (p)) return PS_NO;
+    if (!_ok (p)) return PS_NO;
     //if (PS_NO != _piece_arr[s2]) return PS_NO;
 
     Color c = p_color (p);
@@ -302,7 +302,15 @@ Piece Position::  move_piece (Square s1, Square s2)
     _types_bb[pt]    += s2;
     _types_bb[PT_NO] += s2;
 
+    // _piece_index[s1] is not updated and becomes stale. This works as long
+    // as _piece_index[] is accessed just by known occupied squares.
+    //if (_piece_index[s1] > 64)
+    //{
+    //    TRI_LOG_MSG (s1);
+    //    ASSERT (false);
+    //}
     _piece_index[s2] = _piece_index[s1];
+    _piece_index[s1] = 0;
     _piece_list[c][pt][_piece_index[s2]] = s2;
 
     return p;
@@ -1743,7 +1751,7 @@ void Position::do_null_move (StateInfo &si_n)
 
     // switch our state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;
-    _si = &si_n;
+    _si       = &si_n;
 
     if (SQ_NO != _si->en_passant)
     {

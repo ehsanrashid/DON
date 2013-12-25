@@ -37,7 +37,7 @@ namespace {
 
     // Unary predicate used by std::partition to split positive scores from remaining
     // ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool has_positive_value (const ValMove &vm) { return vm.value > 0; }
+    inline bool positive_value (const ValMove &vm) { return vm.value > 0; }
 
     // Picks and moves to the front the best move in the range [beg, end),
     // it is faster than sorting all the moves in advance when moves are few, as
@@ -199,13 +199,13 @@ void MovePicker::generate_moves ()
 {
     MoveList mov_lst = generate<GT>(pos);
     uint16_t index = 0;
-    end = moves;
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
         moves[index].move = m;
         ++index;
-        ++end;
     });
+    moves[index].move = MOVE_NONE;
+    end = moves + index;
 }
 
 // generate_next () generates, scores and sorts the next bunch of moves,
@@ -255,7 +255,7 @@ void MovePicker::generate_next ()
         generate_moves<QUIET>();
         end_quiets = end;
         value<QUIET>();
-        end = partition (cur, end, has_positive_value);
+        end = partition (cur, end, positive_value);
         insertion_sort (cur, end);
         return;
         break;
@@ -278,11 +278,7 @@ void MovePicker::generate_next ()
 
     case EVASIONS_S2:
         generate_moves<EVASION>();
-
-        if (end > moves + 1)
-        {
-            value<EVASION>();
-        }
+        if (end > moves + 1) value<EVASION>();
         return;
         break;
 

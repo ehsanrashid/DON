@@ -486,7 +486,7 @@ namespace Tester {
         {
             string fen;
             Position pos (int8_t (0));
-            StateInfo states[200], *si; 
+            StateInfo states[50], *si; 
             Move m;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -565,9 +565,29 @@ namespace Tester {
                 pos.do_move (m, *si++);
                 m = mk_move (SQ_D7, SQ_A4);
                 pos.do_move (m, *si++);
+                m = mk_move (SQ_A3, SQ_A4);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_A5, SQ_C4);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E3, SQ_C5);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E8, SQ_C7);
+                pos.do_move (m, *si++);
 
                 //cout << pos;
 
+                pos.undo_move ();
+                pos.undo_move ();
+
+                m = mk_move (SQ_E2, SQ_C2);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E8, SQ_C7);
+                pos.do_move (m, *si++);
+
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
                 pos.undo_move ();
                 pos.undo_move ();
                 pos.undo_move ();

@@ -103,8 +103,8 @@ namespace Engine {
         cout << Engine::info () << endl;
 
 #ifdef _DEBUG
-        Tester::main_test ();
-        return;
+        //Tester::main_test ();
+        //return;
 #endif
 
         UCI::start ();
