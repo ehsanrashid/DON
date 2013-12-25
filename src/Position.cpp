@@ -173,49 +173,27 @@ namespace {
 
 #undef S
 
-    //// Returns true if the rank contains 8 elements (that is, a combination of
-    //// pieces and empty spaces). Assumes string contains valid chess pieces and
-    //// the digits 1..8.
-    //bool verify_rank (const string &rank)
-    //{
-    //    uint32_t count = 0;
-    //    for (uint32_t i = 0; i < rank.length(); ++i)
-    //    {
-    //        char ch = rank[i]; 
-    //        if ('1' <= ch && ch <= '8')
-    //        {
-    //            count += (ch - '0');
-    //        }
-    //        else
-    //        {
-    //            ++count;
-    //        }
-    //    }
-    //    return (8 == count);
-    //}
-
-
     // min_attacker() is an helper function used by see() to locate the least
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
-    template<int32_t T> F_INLINE
+    template<int32_t PT> F_INLINE
         PType min_attacker(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
-        Bitboard b = stm_attackers & bb[T];
-        if (!b) return min_attacker<T+1>(bb, dst, stm_attackers, occupied, attackers);
+        Bitboard b = stm_attackers & bb[PT];
+        if (!b) return min_attacker<PT+1>(bb, dst, stm_attackers, occupied, attackers);
 
         occupied -= (b & ~(b - 1));
 
-        if (T == PAWN || T == BSHP || T == QUEN)
+        if (PT == PAWN || PT == BSHP || PT == QUEN)
         {
             attackers |= attacks_bb<BSHP>(dst, occupied) & (bb[BSHP] | bb[QUEN]);
         }
-        if (T == ROOK || T == QUEN)
+        if (PT == ROOK || PT == QUEN)
         {
             attackers |= attacks_bb<ROOK>(dst, occupied) & (bb[ROOK] | bb[QUEN]);
         }
         attackers &= occupied; // After X-ray that may add already processed pieces
-        return PType (T);
+        return PType (PT);
     }
 
     template<> F_INLINE
@@ -246,33 +224,10 @@ void Position::initialize ()
 // so that why detach the state info pointer from the source one.
 Position& Position::operator= (const Position &pos)
 {
-    //memcpy(this, &pos, sizeof (Position));
+    memcpy (this, &pos, sizeof (Position));
 
-    memcpy (_piece_arr, pos._piece_arr, sizeof (_piece_arr));
-    memcpy (_color_bb , pos._color_bb , sizeof (_color_bb));
-    memcpy (_types_bb , pos._types_bb , sizeof (_types_bb));
-
-    for (Color c = WHITE; c <= BLACK; ++c)
-    {
-        for (PType t = PAWN; t <= KING; ++t)
-        {
-            _piece_list[c][t] = pos._piece_list[c][t];
-        }
-    }
-
-    _active = pos._active;
-
-    memcpy (_castle_rights, pos._castle_rights, sizeof (_castle_rights));
-    memcpy (_castle_rooks , pos._castle_rooks , sizeof (_castle_rooks));
-    memcpy (_castle_paths , pos._castle_paths , sizeof (_castle_paths));
-
-    _game_ply   = pos._game_ply;
-    _chess960   = pos._chess960;
-    _thread     = pos._thread;
-
-    _sb     = *(pos._si);
-    _link_ptr ();
-
+    _sb = *_si;
+    _si = &_sb;
     _game_nodes = 0;
 
     return *this;
@@ -280,15 +235,17 @@ Position& Position::operator= (const Position &pos)
 
 #pragma region Basic methods
 
-void Position::place_piece (Square s, Color c, PType t)
+void Position::place_piece (Square s, Color c, PType pt)
 {
     //if (PS_NO != _piece_arr[s]) return;
-    _piece_arr[s] = c | t;
+    _piece_arr[s] = (c | pt);
     _color_bb[c] += s;
-    _types_bb[t] += s;
+    _types_bb[pt] += s;
     _types_bb[PT_NO] += s;
+    _piece_count[c][PT_NO]++;
     // Update piece list, put piece at [s] index
-    _piece_list[c][t].emplace_back (s);
+    _piece_index[s] = _piece_count[c][pt]++;
+    _piece_list[c][pt][_piece_index[s]] = s;
 }
 void Position::place_piece (Square s, Piece p)
 {
@@ -298,23 +255,24 @@ inline Piece Position::remove_piece (Square s)
 {
     Piece p = _piece_arr[s];
     ASSERT (PS_NO != p);
+
     Color c = p_color (p);
-    PType t = p_type (p);
-
-    SquareList &sq_list  = _piece_list[c][t];
-    uint8_t ps_count    = sq_list.size ();
-
+    PType pt = p_type (p);
+    int32_t ps_count = _piece_count[c][pt];
     ASSERT (0 < ps_count);
     if (0 >= ps_count) return PS_NO;
 
     _piece_arr[s] = PS_NO;
-
     _color_bb[c] -= s;
-    _types_bb[t] -= s;
+    _types_bb[pt] -= s;
     _types_bb[PT_NO] -= s;
+    _piece_count[c][PT_NO]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.
-    sq_list.erase (remove (sq_list.begin (), sq_list.end (), s), sq_list.end ());
+    Square last_sq = _piece_list[c][pt][--_piece_count[c][pt]];
+    _piece_index[last_sq] = _piece_index[s];
+    _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
 
     return p;
 }
@@ -323,28 +281,28 @@ Piece Position::move_piece (Square s1, Square s2)
 {
     if (s1 == s2) return _piece_arr[s1];
 
-    Piece mp = _piece_arr[s1];
-    //if (!_ok (mp)) return PS_NO;
+    Piece p = _piece_arr[s1];
+    //if (!_ok (p)) return PS_NO;
     //if (PS_NO != _piece_arr[s2]) return PS_NO;
 
-    Color mc = p_color (mp);
-    PType mt = p_type (mp);
+    Color c = p_color (p);
+    PType pt = p_type (p);
 
     _piece_arr[s1] = PS_NO;
-    _piece_arr[s2] = mp;
+    _piece_arr[s2] = p;
 
-    _color_bb[mc] -= s1;
-    _types_bb[mt] -= s1;
+    _color_bb[c] -= s1;
+    _types_bb[pt] -= s1;
     _types_bb[PT_NO] -= s1;
 
-    _color_bb[mc] += s2;
-    _types_bb[mt] += s2;
+    _color_bb[c] += s2;
+    _types_bb[pt] += s2;
     _types_bb[PT_NO] += s2;
 
-    SquareList &sq_list = _piece_list[mc][mt];
-    replace (sq_list.begin (), sq_list.end (), s1, s2);
+    _piece_index[s2] = _piece_index[s1];
+    _piece_list[c][pt][_piece_index[s2]] = s2;
 
-    return mp;
+    return p;
 }
 
 #pragma endregion
@@ -426,7 +384,7 @@ bool Position::ok (int8_t *failed_step) const
     if (++(*step), W_KING != _piece_arr[king_sq (WHITE)]) return false;
     // step 3
     if (++(*step), B_KING != _piece_arr[king_sq (BLACK)]) return false;
-    
+
     // step 4
     if (++(*step), debug_king_count)
     {
@@ -439,7 +397,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (piece_count<KING> (c) != pop_count<FULL> (pieces (c, KING))) return false;
+            if (_piece_count[c][KING] != pop_count<FULL> (pieces (c, KING))) return false;
         }
     }
 
@@ -452,9 +410,9 @@ bool Position::ok (int8_t *failed_step) const
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType t = PAWN; t <= KING; ++t)
+            for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                if (piece_count (c, t) != pop_count<FULL> (pieces (c, t))) return false;
+                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt))) return false;
             }
         }
     }
@@ -471,16 +429,16 @@ bool Position::ok (int8_t *failed_step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if ((piece_count (c, PAWN) +
-                max (piece_count<NIHT> (c) - 2, 0) +
-                max (piece_count<BSHP> (c) - 2, 0) +
-                max (piece_count<ROOK> (c) - 2, 0) +
-                max (piece_count<QUEN> (c) - 1, 0)) > 8)
+            if ((_piece_count[c][PAWN] +
+                max (_piece_count[c][NIHT] - 2, 0) +
+                max (_piece_count[c][BSHP] - 2, 0) +
+                max (_piece_count[c][ROOK] - 2, 0) +
+                max (_piece_count[c][QUEN] - 1, 0)) > 8)
             {
                 return false; // Too many Promoted Piece of color
             }
 
-            if (piece_count (c, BSHP) > 1)
+            if (_piece_count[c][BSHP] > 1)
             {
                 Bitboard bishops = colors & pieces (BSHP);
                 uint8_t bishop_count[CLR_NO] =
@@ -489,7 +447,7 @@ bool Position::ok (int8_t *failed_step) const
                     pop_count<FULL> (DR_SQ_bb & bishops),
                 };
 
-                if ((piece_count (c, PAWN) +
+                if ((_piece_count[c][PAWN] +
                     max (bishop_count[WHITE] - 1, 0) +
                     max (bishop_count[BLACK] - 1, 0)) > 8)
                 {
@@ -511,11 +469,11 @@ bool Position::ok (int8_t *failed_step) const
         if ((pieces (WHITE) ^ pieces (BLACK)) != occ) return false;
 
         // The intersection of separate piece type must be empty
-        for (PType t1 = PAWN; t1 <= KING; ++t1)
+        for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
         {
-            for (PType t2 = PAWN; t2 <= KING; ++t2)
+            for (PType pt2 = PAWN; pt2 <= KING; ++pt2)
             {
-                if (t1 != t2 && (pieces (t1) & pieces (t2))) return false;
+                if (pt1 != pt2 && (pieces (pt1) & pieces (pt2))) return false;
             }
         }
 
@@ -532,12 +490,12 @@ bool Position::ok (int8_t *failed_step) const
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType t = PAWN; t <= KING; ++t)
+            for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                Piece p = (c | t);
-                for (int32_t pc = 0; pc < piece_count (c, t); ++pc)
+                for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
-                    if (_piece_arr[_piece_list[c][t][pc]] != p) return false;
+                    if (_piece_arr[_piece_list[c][pt][i]] != (c | pt)) return false;
+                    if (_piece_index[_piece_list[c][pt][i]] != i) return false;
                 }
             }
         }
@@ -615,8 +573,8 @@ bool Position::ok (int8_t *failed_step) const
     // step 17
     if (++(*step), debug_non_pawn_material)
     {
-        if (   _si->non_pawn_matl[WHITE] != compute_non_pawn_material(WHITE)
-            || _si->non_pawn_matl[BLACK] != compute_non_pawn_material(BLACK))
+        if (   _si->non_pawn_matl[WHITE] != compute_non_pawn_material (WHITE)
+            || _si->non_pawn_matl[BLACK] != compute_non_pawn_material (BLACK))
         {
             return false;
         }
@@ -1238,32 +1196,25 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
+    memset (this, 0, sizeof (Position));
 
-    //for (Square s = SQ_A1; s <= SQ_H8; ++s) _piece_arr[s] = PS_NO;
-    //for (Color c = WHITE; c <= BLACK; ++c)  _color_bb[c] = U64 (0);
-    //for (PType t = PAWN; t <= PT_NO; ++t)   _types_bb[t] = U64 (0);
-
-    fill_n (_piece_arr, sizeof (_piece_arr) / sizeof (*_piece_arr), PS_NO);
-    fill_n (_color_bb , sizeof (_color_bb)  / sizeof (*_color_bb) , 0);
-    fill_n (_types_bb , sizeof (_types_bb)  / sizeof (*_types_bb) , 0);
-
-    for (Color c = WHITE; c <= BLACK; ++c)
+    for (int i = 0; i < PT_NO; ++i)
     {
-        for (PType t = PAWN; t <= KING; ++t)
+        for (int j = 0; j < 16; ++j)
         {
-            _piece_list[c][t].clear ();
+            _piece_list[WHITE][i][j] = _piece_list[BLACK][i][j] = SQ_NO;
         }
     }
+    //fill (
+    //    _castle_rooks[0] + 0,
+    //    _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
+    //    SQ_NO);
+    //
+    //_game_ply   = 1;
 
-    _sb.clear ();
-    clr_castles ();
-    _active     = CLR_NO;
-    _game_ply   = 1;
-    _game_nodes = 0;
-    _chess960   = false;
-    _thread     = NULL;
-
-    _link_ptr ();
+    _sb.en_passant = SQ_NO;
+    _sb.cap_type   = PT_NO;
+    _si = &_sb;
 }
 // setup() sets the fen on the position
 bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
@@ -1286,38 +1237,7 @@ bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
     }
     return false;
 }
-// clr_castles() clear the castle info
-void Position::clr_castles ()
-{
-    //for (Color c = WHITE; c <= BLACK; ++c)
-    //{
-    //    for (File f = F_A; f <= F_H; ++f)
-    //    {
-    //        _castle_rights[c][f]  = CR_NO;
-    //    }
-    //    for (CSide cs = CS_K; cs <= CS_Q; ++cs)
-    //    {
-    //        _castle_rooks [c][cs] = SQ_NO;
-    //        _castle_paths [c][cs] = U64 (0);
-    //    }
-    //}
 
-    fill (
-        _castle_rights[0] + 0,
-        _castle_rights[0] + sizeof (_castle_rights) / sizeof (**_castle_rights),
-        CR_NO);
-
-    fill (
-        _castle_rooks[0] + 0,
-        _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
-        SQ_NO);
-
-    fill (
-        _castle_paths[0] + 0,
-        _castle_paths[0] + sizeof (_castle_paths) / sizeof (**_castle_paths),
-        U64 (0));
-
-}
 // set_castle() set the castling for the particular color & rook
 void Position::set_castle (Color c, Square org_rook)
 {
@@ -1397,11 +1317,11 @@ bool Position::can_en_passant (File   ep_f) const
     return can_en_passant (ep_f | rel_rank (_active, R_6));
 }
 
-// compute_psq_score() computes the incremental scores for the middle
+// compute_psq_score () computes the incremental scores for the middle
 // game and the endgame. These functions are used to initialize the incremental
 // scores when a new position is set up, and to verify that the scores are correctly
 // updated by do_move and undo_move when the program is running in debug mode.
-Score Position::compute_psq_score() const
+Score Position::compute_psq_score () const
 {
     Score score = SCORE_ZERO;
     Bitboard occ = pieces ();
@@ -1414,16 +1334,16 @@ Score Position::compute_psq_score() const
     return score;
 }
 
-// compute_non_pawn_material() computes the total non-pawn middle
+// compute_non_pawn_material () computes the total non-pawn middle
 // game material value for the given side. Material values are updated
 // incrementally during the search, this function is only used while
 // initializing a new Position object.
-Value Position::compute_non_pawn_material(Color c) const
+Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += piece_count (c, pt) * PieceValue[MG][pt];
+        value += _piece_count[c][pt] * PieceValue[MG][pt];
     }
     return value;
 }

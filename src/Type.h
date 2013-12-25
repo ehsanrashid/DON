@@ -233,6 +233,7 @@ typedef enum PType : int8_t
     QUEN   = 4, // 100 - QUEEN
     KING   = 5, // 101 - KING
     PT_NO  = 6, // 110 - PT_NO
+    PT_ALL = 7,
 
 } PType;
 // Piece needs 4 bits to be stored

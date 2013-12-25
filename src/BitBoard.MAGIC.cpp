@@ -118,7 +118,6 @@ namespace BitBoard {
             { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
 #endif
 
-
             Bitboard occupancy[MAX_MOVES];
             Bitboard reference[MAX_MOVES];
 
@@ -205,8 +204,6 @@ namespace BitBoard {
 
             }
         }
-
     }
-
 
 }

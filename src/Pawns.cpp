@@ -87,9 +87,10 @@ namespace {
 
         Score pawn_score = SCORE_ZERO;
 
-        const SquareList pl = pos.list<PAWN> (C);
+        const Square *pl = pos.list<PAWN> (C);
+        Square s;
         // Loop through all pawns of the current color and score each pawn
-        for_each (pl.cbegin (), pl.cend (), [&] (Square s)
+        while ((s = *pl++) != SQ_NO)
         {
             const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
 
@@ -169,7 +170,7 @@ namespace {
 
                 if (!doubled) e->_candidate_pawns[C] |= s;
             }
-        });
+        }
 
         return pawn_score;
     }

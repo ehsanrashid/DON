@@ -101,12 +101,10 @@ namespace Engine {
         TT.resize (int32_t (*(Options["Hash"])));
 
         cout << Engine::info () << endl;
-        //cout << sizeof (TranspositionEntry);
 
 #ifdef _DEBUG
-
         //Tester::main_test ();
-
+        //return;
 #endif
 
         UCI::start ();

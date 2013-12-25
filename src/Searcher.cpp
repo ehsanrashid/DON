@@ -842,7 +842,7 @@ namespace {
             && eval_value + razor_margin (depth) < beta
             && tt_move == MOVE_NONE
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
-            && !pos.has_pawn_on_7thR (pos.active ()))
+            && !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
             Value v = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);

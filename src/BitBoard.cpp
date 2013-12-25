@@ -270,8 +270,8 @@ namespace BitBoard {
     // PAWN attacks
     Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
 
-    template<PType T>
-    Bitboard attacks_bb (Square s) { return _attacks_type_bb[T][s]; }
+    template<PType PT>
+    Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
     // --------------------------------
     // explicit template instantiations
     template Bitboard attacks_bb<NIHT> (Square s);

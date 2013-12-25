@@ -35,8 +35,9 @@ namespace MoveGenerator {
                 static_assert ((KING != T) && (PAWN != T), "T must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
-                const SquareList pl = pos.list<T>(c);
-                for_each (pl.cbegin (), pl.cend (), [&] (Square org)
+                const Square *pl = pos.list<T>(c);
+                Square org;
+                while ((org = *pl++) != SQ_NO)
                 {
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
@@ -61,7 +62,7 @@ namespace MoveGenerator {
                     }
 
                     SERIALIZE (mov_lst, org, moves);
-                });
+                }
             }
 
         };

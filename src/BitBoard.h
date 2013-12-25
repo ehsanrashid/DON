@@ -466,7 +466,7 @@ namespace BitBoard {
 
     template<PType T>
     // Attacks of the PType with occupancy
-    extern inline Bitboard attacks_bb (Square s, Bitboard occ);
+    extern Bitboard attacks_bb (Square s, Bitboard occ);
 
     extern inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ);
 

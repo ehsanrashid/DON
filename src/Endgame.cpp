@@ -166,7 +166,7 @@ namespace EndGame {
 
         if (   pos.piece_count<QUEN>(_stong_side)
             || pos.piece_count<ROOK>(_stong_side)
-            || pos.has_pair_bishops (_stong_side))
+            || pos.bishops_pair (_stong_side))
         {
             value += VALUE_KNOWN_WIN;
         }

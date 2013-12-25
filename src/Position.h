@@ -183,11 +183,13 @@ private:
 
 #pragma region Fields
     // Board for storing pieces.
-    Piece    _piece_arr[SQ_NO];             // [Square]
-    Bitboard _color_bb[CLR_NO];             // [Color]
-    Bitboard _types_bb[1 + PT_NO];          // [PType] + 1 -> (ALL)
+    Piece    _piece_arr[SQ_NO];
+    Bitboard _color_bb[CLR_NO];
+    Bitboard _types_bb[PT_ALL];
 
-    SquareList _piece_list[CLR_NO][PT_NO];  // [Color][PType]<vector>
+    Square  _piece_list [CLR_NO][PT_NO][16];
+    int32_t _piece_count[CLR_NO][PT_ALL];
+    int32_t _piece_index[SQ_NO];
 
     // Object for base status information
     StateInfo  _sb;
@@ -212,8 +214,6 @@ private:
     Thread  *_thread;
 
 #pragma endregion
-
-    inline void _link_ptr () { _si = &_sb; }
 
 public:
 
@@ -254,7 +254,7 @@ public:
     const Piece operator[] (Square s) const;
     const Bitboard operator[] (Color c) const;
     const Bitboard operator[] (PType t) const;
-    const SquareList operator[] (Piece p) const;
+    const Square*  operator[] (Piece p) const;
 
     Square king_sq (Color c) const;
 
@@ -267,9 +267,9 @@ public:
     Bitboard empties () const;
     //Bitboard pieces (Piece p) const;
 
-    template<PType T>
+    template<PType PT>
     int32_t piece_count (Color c) const;
-    template<PType T>
+    template<PType PT>
     int32_t piece_count () const;
     int32_t piece_count (Color c) const;
     int32_t piece_count () const;
@@ -277,8 +277,8 @@ public:
     //int32_t piece_count (Piece p) const;
     //int32_t piece_count (PType t) const;
 
-    template<PType T>
-    const SquareList list (Color c) const;
+    template<PType PT>
+    const Square* list (Color c) const;
 
 #pragma endregion
 
@@ -358,10 +358,10 @@ private:
 
 public:
 
-    template<PType T>
+    template<PType PT>
     // Attacks of the PAWN (Color) from the square
     Bitboard attacks_from (Color c, Square s) const;
-    template<PType T>
+    template<PType PT>
     // Attacks of the PTYPE from the square
     Bitboard attacks_from (Square s) const;
 
@@ -392,7 +392,7 @@ public:
     bool capture_or_promotion(Move m) const;
     bool check (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
-    
+
     bool passed_pawn_push (Move m) const;
     bool advanced_pawn_push (Move m) const;
 
@@ -401,26 +401,16 @@ public:
 #pragma region Piece specific properties
 
     bool passed_pawn (Color c, Square s) const;
-    bool has_pawn_on_7thR (Color c) const;
-    bool has_opposite_bishops () const;
-    bool has_pair_bishops (Color c) const;
+    bool pawn_on_7thR (Color c) const;
+    bool opposite_bishops () const;
+    bool bishops_pair (Color c) const;
 
 #pragma endregion
 
 #pragma region Basic methods
 
-    void clear ();
-
-    void   place_piece (Square s, Color c, PType t);
-    void   place_piece (Square s, Piece p);
-    Piece remove_piece (Square s);
-    Piece   move_piece (Square s1, Square s2);
-
-    bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
-    bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
-
 private:
-    void clr_castles ();
+
     void set_castle (Color c, Square org_rook);
 
     bool can_en_passant (Square ep_sq) const;
@@ -428,10 +418,20 @@ private:
 
 public:
 
+    void clear ();
+
+    void   place_piece (Square s, Color c, PType pt);
+    void   place_piece (Square s, Piece p);
+    Piece remove_piece (Square s);
+    Piece   move_piece (Square s1, Square s2);
+
+    bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+
     void flip ();
 
-    Score compute_psq_score() const;
-    Value compute_non_pawn_material(Color c) const;
+    Score compute_psq_score () const;
+    Value compute_non_pawn_material (Color c) const;
 
 #pragma region Do/Undo Move
 
@@ -490,15 +490,12 @@ public:
 
 inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); }
 
-inline const Piece      Position::operator[] (Square s) const { return _piece_arr[s]; }
-inline const Bitboard   Position::operator[] (Color  c) const { return _color_bb[c]; }
-inline const Bitboard   Position::operator[] (PType  t) const { return _types_bb[t]; }
-inline const SquareList Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
+inline const Piece    Position::operator[] (Square s) const { return _piece_arr[s]; }
+inline const Bitboard Position::operator[] (Color  c) const { return _color_bb[c]; }
+inline const Bitboard Position::operator[] (PType  t) const { return _types_bb[t]; }
+inline const Square*  Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
-inline Square Position::king_sq (Color c) const
-{
-    return _piece_list[c][KING][0];
-}
+inline Square Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces (Color c) const { return _color_bb[c]; }
 inline Bitboard Position::pieces (PType t) const { return _types_bb[t]; }
@@ -509,23 +506,16 @@ inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
 inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
 
-template<PType T>
-inline int32_t Position::piece_count (Color c) const { return _piece_list[c][T].size (); }
-template<PType T>
-inline int32_t Position::piece_count ()        const { return piece_count<T> (WHITE) + piece_count<T> (BLACK); }
-inline int32_t Position::piece_count (Color c) const
-{
-    return
-        piece_count<PAWN> (c) + piece_count<NIHT> (c) + piece_count<BSHP> (c) +
-        piece_count<ROOK> (c) + piece_count<QUEN> (c) + piece_count<KING> (c);
-}   
-inline int32_t Position::piece_count ()                 const { return piece_count (WHITE) + piece_count (BLACK); }
-inline int32_t Position::piece_count (Color c, PType t) const { return _piece_list[c][t].size (); }
-//inline int32_t Position::piece_count (Piece p) const { return _piece_list[p_color (p)][p_type (p)].size (); }
-//inline int32_t Position::piece_count (PType t) const { return piece_count (WHITE, t) + piece_count (BLACK, t); }
+template<PType PT>
+inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
+template<PType PT>
+inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
+inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT_NO]; }
+inline int32_t Position::piece_count ()                 const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
+inline int32_t Position::piece_count (Color c, PType t) const { return _piece_count[c][t]; }
 
-template<PType T>
-inline const SquareList Position::list (Color c) const { return _piece_list[c][T]; }
+template<PType PT>
+inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
 
 #pragma endregion
 
@@ -618,11 +608,11 @@ inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
 {
     return BitBoard::attacks_bb<PAWN> (c, s);
 }
-template<PType T>
+template<PType PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
-    switch (T)
+    switch (PT)
     {
     case PAWN:
         return BitBoard::attacks_bb<PAWN> (_active, s);
@@ -632,7 +622,7 @@ inline Bitboard Position::attacks_from (Square s) const
     case ROOK:
     case QUEN:
     case KING:
-        return BitBoard::attacks_bb<T> (s);
+        return BitBoard::attacks_bb<PT> (s);
         break;
     }
     return 0;
@@ -724,27 +714,27 @@ inline bool Position::passed_pawn (Color c, Square s) const
     return !(pieces (~c, PAWN) & BitBoard::passer_span_pawn_bb (c, s));
 }
 
-inline bool Position::has_pawn_on_7thR (Color c) const
+inline bool Position::pawn_on_7thR (Color c) const
 {
     return pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the opposite sides have opposite bishops
-inline bool Position::has_opposite_bishops () const
+inline bool Position::opposite_bishops () const
 {
     return
-        (piece_count<BSHP> (WHITE) == 1) &&
-        (piece_count<BSHP> (BLACK) == 1) &&
-        opposite_colors(list<BSHP>(WHITE)[0], list<BSHP>(BLACK)[0]);
+        (_piece_count[WHITE][BSHP] == 1) &&
+        (_piece_count[BLACK][BSHP] == 1) &&
+        opposite_colors(_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
 }
 // check the side has pair of opposite color bishops
-inline bool Position::has_pair_bishops (Color c) const
+inline bool Position::bishops_pair (Color c) const
 {
-    int32_t bishop_count = piece_count<BSHP>(c);
+    int32_t bishop_count = _piece_count[c][BSHP];
     if (bishop_count >= 2)
     {
         for (int32_t pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors(list<BSHP>(c)[pc], list<BSHP>(c)[pc+1])) return true;
+            if (opposite_colors(_piece_list[c][BSHP][pc], _piece_list[c][BSHP][pc+1])) return true;
         }
     }
     return false;

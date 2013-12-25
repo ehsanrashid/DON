@@ -72,21 +72,21 @@ namespace Zobrist {
     {
         Key pawn_key = U64 (0);
 
-        //Bitboard pawns = pos[PAWN];
-        //while (pawns)
+        //for (Color c = WHITE; c <= BLACK; ++c)
         //{
-        //    Square s = pop_lsq (pawns);
-        //    Color  c = p_color (pos[s]);
-        //    pawn_key ^= _.ps_sq[c][PAWN][s];
+        //    const Square *pl = pos.list<PAWN> (c);
+        //    Square s;
+        //    while ((s = *pl++) != SQ_NO)
+        //    {
+        //        pawn_key ^= _.ps_sq[c][PAWN][s];
+        //    }
         //}
 
-        for (Color c = WHITE; c <= BLACK; ++c)
+        Bitboard pawns = pos.pieces (PAWN);
+        while (pawns)
         {
-            const SquareList &sq_list = pos.list<PAWN> (c);
-            for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
-            {
-                pawn_key ^= _.ps_sq[c][PAWN][s];
-            });
+            Square s = pop_lsq (pawns);
+            pawn_key ^= _.ps_sq[p_color (pos[s])][PAWN][s];
         }
 
         return pawn_key;
@@ -127,11 +127,12 @@ namespace Zobrist {
         {
             for (PType t = PAWN; t <= KING; ++t)
             {
-                const SquareList &sq_list = pos[c | t];
-                for_each (sq_list.cbegin (), sq_list.cend (), [&] (Square s)
+                const Square *pl = pos[(c | t)];
+                Square s;
+                while ((s = *pl++) != SQ_NO)
                 {
                     posi_key ^= _.ps_sq[c][t][s];
-                });
+                }
             }
         }
 

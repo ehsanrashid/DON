@@ -33,10 +33,9 @@ namespace {
         Material::Entry *mi;
         Pawns   ::Entry *pi;
 
-        // attacked_by[color][piece type] is a bitboard representing all squares
-        // attacked by a given color and piece type, attacked_by[color][PT_NO]
-        // contains all squares attacked by the given color.
-        Bitboard attacked_by[CLR_NO][1 + PT_NO];
+        // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
+        // attacked_by[color][PT_NO] contains all squares attacked by the given color.
+        Bitboard attacked_by[CLR_NO][PT_ALL];
 
         // king_ring[color] is the zone around the king which is considered
         // by the king safety evaluation. This consists of the squares directly
@@ -349,7 +348,7 @@ namespace {
         // If we don't already have an unusual scale factor, check for opposite
         // colored bishop endgames, and use a lower scale for those.
         if (   ei.mi->game_phase () < PHASE_MIDGAME
-            && pos.has_opposite_bishops ()
+            && pos.opposite_bishops ()
             && sf == SCALE_FACTOR_NORMAL)
         {
             // Only the two bishops ?
@@ -474,8 +473,9 @@ namespace {
 
         ei.attacked_by[C][T] = 0;
 
-        const SquareList pl = pos.list<T>(C);
-        for_each (pl.cbegin (), pl.cend (), [&] (Square s)
+        const Square *pl = pos.list<T>(C);
+        Square s;
+        while ((s = *pl++) != SQ_NO)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard attacks =
@@ -578,7 +578,7 @@ namespace {
                 }
                 if (mob > 3 || ei.pi->semiopen (C, _file (s)))
                 {
-                    return;
+                    continue;
                 }
 
                 // Penalize rooks which are trapped inside a king. Penalize more if
@@ -608,7 +608,7 @@ namespace {
                         TrappedBishopA1H1 * 2 : TrappedBishopA1H1;
                 }
             }
-        });
+        }
 
         if (TRACE)
         {
