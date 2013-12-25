@@ -425,18 +425,18 @@ namespace {
         }
     }
 
-    template<PType T, Color C>
+    template<PType PT, Color C>
     // evaluate_outposts() evaluates bishop and knight outposts squares
     Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
     {
-        //static_assert (BSHP == T || NIHT == T, "T must be BISHOP or KNIGHT");
-        ASSERT (BSHP == T || NIHT == T);
+        //static_assert (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
+        ASSERT (BSHP == PT || NIHT == PT);
 
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         // Initial bonus based on square
         Value bonus;
-        switch (T)
+        switch (PT)
         {
         case NIHT: bonus = OutpostBonus[0][rel_sq (C, s)]; break;
         case BSHP: bonus = OutpostBonus[1][rel_sq (C, s)]; break;
@@ -461,7 +461,7 @@ namespace {
         return mk_score (bonus, bonus);
     }
 
-    template<PType T, Color C, bool TRACE>
+    template<PType PT, Color C, bool TRACE>
     // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
     Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
     {
@@ -471,29 +471,29 @@ namespace {
         const Square fk_sq = pos.king_sq (C);
         const Square ek_sq = pos.king_sq (C_);
 
-        ei.attacked_by[C][T] = 0;
+        ei.attacked_by[C][PT] = 0;
 
-        const Square *pl = pos.list<T>(C);
+        const Square *pl = pos.piece_list<PT>(C);
         Square s;
         while ((s = *pl++) != SQ_NO)
         {
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard attacks =
-                (BSHP == T) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
-                (ROOK == T) ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
-                pos.attacks_from<T> (s);
+                (BSHP == PT) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
+                (ROOK == PT) ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
+                pos.attacks_from<PT> (s);
 
             if (ei.pinned_pieces[C] & s)
             {
                 attacks &= _lines_sq_bb[fk_sq][s];
             }
 
-            ei.attacked_by[C][T] |= attacks;
+            ei.attacked_by[C][PT] |= attacks;
 
             if (attacks & ei.king_ring[C_])
             {
                 ei.king_attackers_count[C]++;
-                ei.king_attackers_weight[C] += KingAttackWeights[T];
+                ei.king_attackers_weight[C] += KingAttackWeights[PT];
 
                 Bitboard attacks_king = (attacks & ei.attacked_by[C_][KING]);
                 if (attacks_king)
@@ -502,21 +502,21 @@ namespace {
                 }
             }
 
-            int32_t mob = (QUEN != T)
+            int32_t mob = (QUEN != PT)
                 ? pop_count<MAX15>(attacks & mobility_area)
                 : pop_count<FULL >(attacks & mobility_area);
 
-            mobility[C] += MobilityBonus[T][mob];
+            mobility[C] += MobilityBonus[PT][mob];
 
             // Decrease score if we are attacked by an enemy pawn. Remaining part
             // of threat evaluation must be done later when we have full attack info.
             if (ei.attacked_by[C_][PAWN] & s)
             {
-                score -= ThreatenedByPawnPenalty[T];
+                score -= ThreatenedByPawnPenalty[PT];
             }
             // Otherwise give a bonus if we are a bishop and can pin a piece or can
             // give a discovered check through an x-ray attack.
-            else if (    BSHP == T
+            else if (    BSHP == PT
                 && (attacks_bb<BSHP>(ek_sq) & s)
                 && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
             {
@@ -524,23 +524,23 @@ namespace {
             }
 
             // Penalty for bishop with same coloured pawns
-            if (BSHP == T)
+            if (BSHP == PT)
             {
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares(C, s);
             }
 
             // Penalty for knight when there are few enemy pawns
-            if (NIHT == T)
+            if (NIHT == PT)
             {
                 score -= KnightPawnsPenalty * max (5 - pos.piece_count<PAWN>(C_), 0);
             }
 
-            if (BSHP == T || NIHT == T)
+            if (BSHP == PT || NIHT == PT)
             {
                 // Bishop and knight outposts squares
                 if (!(pos.pieces (C_, PAWN) & attack_span_pawn_bb (C, s)))
                 {
-                    score += evaluate_outposts<T, C>(pos, ei, s);
+                    score += evaluate_outposts<PT, C>(pos, ei, s);
                 }
                 // Bishop or knight behind a pawn
                 if (    rel_rank (C, s) < R_5
@@ -550,26 +550,30 @@ namespace {
                 }
             }
 
-            if (  (ROOK == T || QUEN == T)
+            if (  (ROOK == PT || QUEN == PT)
                 && R_5 <= rel_rank (C, s))
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
                 if (   R_7 == rel_rank (C, s)
                     && R_8 == rel_rank (C, ek_sq))
                 {
-                    score += (ROOK == T) ? RookOn7thBonus : QueenOn7thBonus;
+                    switch (PT)
+                    {
+                    case ROOK: score += RookOn7thBonus;  break;
+                    case QUEN: score += QueenOn7thBonus; break;
+                    }
                 }
 
                 // Major piece attacking enemy pawns on the same rank/file
                 Bitboard pawns = pos.pieces (C_, PAWN) & attacks_bb<ROOK>(s);
                 if (pawns)
                 {
-                    score += int32_t (pop_count<MAX15>(pawns)) * ((ROOK == T) ? RookOnPawnBonus : QueenOnPawnBonus);
+                    score += int32_t (pop_count<MAX15>(pawns)) * ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus);
                 }
             }
 
             // Special extra evaluation for rooks
-            if (ROOK == T)
+            if (ROOK == PT)
             {
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))
@@ -594,7 +598,7 @@ namespace {
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
             // pawn diagonally in front of it is a very serious problem, especially
             // when that pawn is also blocked.
-            if (   BSHP == T
+            if (   BSHP == PT
                 && pos.chess960 ()
                 && (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
             {
@@ -612,7 +616,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][T] = score;
+            Tracing::scores[C][PT] = score;
         }
 
         return score;

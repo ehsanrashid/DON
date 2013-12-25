@@ -87,7 +87,7 @@ namespace {
 
         Score pawn_score = SCORE_ZERO;
 
-        const Square *pl = pos.list<PAWN> (C);
+        const Square *pl = pos.piece_list<PAWN> (C);
         Square s;
         // Loop through all pawns of the current color and score each pawn
         while ((s = *pl++) != SQ_NO)

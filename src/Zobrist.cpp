@@ -72,22 +72,23 @@ namespace Zobrist {
     {
         Key pawn_key = U64 (0);
 
-        //for (Color c = WHITE; c <= BLACK; ++c)
+        //Bitboard pawns = pos.pieces (PAWN);
+        //while (pawns)
         //{
-        //    const Square *pl = pos.list<PAWN> (c);
-        //    Square s;
-        //    while ((s = *pl++) != SQ_NO)
-        //    {
-        //        pawn_key ^= _.ps_sq[c][PAWN][s];
-        //    }
+        //    Square s = pop_lsq (pawns);
+        //    pawn_key ^= _.ps_sq[p_color (pos[s])][PAWN][s];
         //}
 
-        Bitboard pawns = pos.pieces (PAWN);
-        while (pawns)
+        for (Color c = WHITE; c <= BLACK; ++c)
         {
-            Square s = pop_lsq (pawns);
-            pawn_key ^= _.ps_sq[p_color (pos[s])][PAWN][s];
+            const Square *pl = pos.piece_list<PAWN> (c);
+            Square s;
+            while ((s = *pl++) != SQ_NO)
+            {
+                pawn_key ^= _.ps_sq[c][PAWN][s];
+            }
         }
+
 
         return pawn_key;
     }

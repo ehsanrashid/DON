@@ -40,10 +40,10 @@ namespace BitBoard {
 
         typedef uint16_t (*Indexer) (Square s, Bitboard occ);
 
-        template<PType T>
+        template<PType PT>
         // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
-        // and returns a bitboard representing all squares attacked by T (BISHOP or ROOK) on the given square.
+        // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
         uint16_t attack_index (Square s, Bitboard occ);
 
         template<>

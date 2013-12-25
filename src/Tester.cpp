@@ -35,7 +35,7 @@ namespace Tester {
             ASSERT (CR_B == ~CR_W);
             ASSERT (CR_W == ~CR_B);
 
-            cout << "Type done !!!" << endl;
+            cout << "Type     ...done !!!" << endl;
         }
 
         void test_bitboard ()
@@ -109,7 +109,8 @@ namespace Tester {
             ////assert(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
             ////assert(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
             ////assert(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
-
+            
+            cout << "Bitboard ...done !!!" << endl;
         }
 
         void test_attacks ()
@@ -214,7 +215,7 @@ namespace Tester {
 
             ASSERT (pop_count<FULL> (attacks) == count);
 
-            cout << "Attacks done !!!" << endl;
+            cout << "Attacks  ...done !!!" << endl;
         }
 
         void test_fen ()
@@ -412,7 +413,7 @@ namespace Tester {
 
             ASSERT (equals (buf, fen));
 
-            cout << "FEN done !!!" << endl;
+            cout << "FEN      ...done !!!" << endl;
 
         }
 
@@ -430,7 +431,7 @@ namespace Tester {
             pos.setup (fen);
             ASSERT (U64 (0x0000002000000000) == pos.check_discovers (pos.active ()));
 
-            cout << "Position done !!!" << endl;
+            cout << "Position ...done !!!" << endl;
         }
 
         // Test polyglot zobrist
@@ -478,7 +479,7 @@ namespace Tester {
             ASSERT (U64 (0xE230E747697ABB10) == ZobPG.compute_posi_key (pos));
             ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.compute_fen_key (fen));
 
-            cout << "Zobrist done !!!" << endl;
+            cout << "Zobrist  ...done !!!" << endl;
         }
 
         void test_move ()
@@ -593,13 +594,13 @@ namespace Tester {
 
             }
 
-            cout << "Move done !!!" << endl;
+            cout << "Move     ...done !!!" << endl;
         }
 
         void test_uci ()
         {
 
-            cout << "UCI done !!!" << endl;
+            cout << "UCI      ...done !!!" << endl;
         }
 
     }
@@ -607,9 +608,9 @@ namespace Tester {
 
     void main_test ()
     {
-        test_type ();
+        //test_type ();
 
-        test_bitboard ();
+        //test_bitboard ();
 
         test_attacks ();
 
@@ -621,6 +622,6 @@ namespace Tester {
 
         test_move ();
 
-        test_uci ();
+        //test_uci ();
     }
 }

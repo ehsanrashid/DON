@@ -278,7 +278,7 @@ public:
     //int32_t piece_count (PType t) const;
 
     template<PType PT>
-    const Square* list (Color c) const;
+    const Square* piece_list (Color c) const;
 
 #pragma endregion
 
@@ -515,7 +515,7 @@ inline int32_t Position::piece_count ()                 const { return _piece_co
 inline int32_t Position::piece_count (Color c, PType t) const { return _piece_count[c][t]; }
 
 template<PType PT>
-inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
+inline const Square* Position::piece_list (Color c) const { return _piece_list[c][PT]; }
 
 #pragma endregion
 

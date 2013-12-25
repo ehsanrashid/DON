@@ -20,7 +20,7 @@ namespace MoveGenerator {
 
 #pragma region Move Generators
 
-        template<GType G, PType T>
+        template<GType G, PType PT>
         // Move Generator for PIECE
         struct Generator
         {
@@ -28,14 +28,14 @@ namespace MoveGenerator {
         public:
             // Generates piece common move
             static inline void generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci = NULL)
-                //template<GType G, PType T>
-                //inline void Generator<G, T>::generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
+                //template<GType G, PType PT>
+                //inline void Generator<G, PT>::generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
             {
-                //ASSERT ((KING != T) && (PAWN != T));
-                static_assert ((KING != T) && (PAWN != T), "T must not be KING & PAWN");
+                //ASSERT ((KING != PT) && (PAWN != PT));
+                static_assert ((KING != PT) && (PAWN != PT), "PT must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
-                const Square *pl = pos.list<T>(c);
+                const Square *pl = pos.piece_list<PT>(c);
                 Square org;
                 while ((org = *pl++) != SQ_NO)
                 {
@@ -43,22 +43,22 @@ namespace MoveGenerator {
                     {
                         if (ci)
                         {
-                            if ((BSHP == T) || (ROOK == T) || (QUEN == T) &&
-                                !(attacks_bb<T> (org) & target & ci->checking_bb[T]))
+                            if ((BSHP == PT) || (ROOK == PT) || (QUEN == PT) &&
+                                !(attacks_bb<PT> (org) & target & ci->checking_bb[PT]))
                             {
-                                return;
+                                continue;
                             }
                             if (UNLIKELY (ci->check_discovers) && (ci->check_discovers & org))
                             {
-                                return;
+                                continue;
                             }
                         }
                     }
 
-                    Bitboard moves = attacks_bb<T> (org, occ) & target;
+                    Bitboard moves = attacks_bb<PT> (org, occ) & target;
                     if ((CHECK == G) || (QUIET_CHECK == G))
                     {
-                        if (ci) moves &= ci->checking_bb[T];
+                        if (ci) moves &= ci->checking_bb[PT];
                     }
 
                     SERIALIZE (mov_lst, org, moves);

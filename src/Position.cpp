@@ -246,7 +246,6 @@ void Position::place_piece (Square s, Color c, PType pt)
     // Update piece list, put piece at [s] index
     _piece_index[s] = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
-    //ASSERT (_piece_list[c][pt][_piece_index[s]] >= 0);
 }
 void Position::place_piece (Square s, Piece p)
 {
@@ -279,7 +278,6 @@ inline Piece Position::remove_piece (Square s)
     _piece_index[last_sq] = _piece_index[s];
     _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
-    //ASSERT (_piece_list[c][pt][_piece_index[last_sq]] >= 0);
     return p;
 }
 
@@ -297,12 +295,12 @@ Piece Position::move_piece (Square s1, Square s2)
     _piece_arr[s1] = PS_NO;
     _piece_arr[s2] = p;
 
-    _color_bb[c] -= s1;
-    _types_bb[pt] -= s1;
+    _color_bb[c]     -= s1;
+    _types_bb[pt]    -= s1;
     _types_bb[PT_NO] -= s1;
 
-    _color_bb[c] += s2;
-    _types_bb[pt] += s2;
+    _color_bb[c]     += s2;
+    _types_bb[pt]    += s2;
     _types_bb[PT_NO] += s2;
 
     _piece_index[s2] = _piece_index[s1];
@@ -1192,7 +1190,8 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     if (!check (m, ci)) return false;
 
     Position pos = *this;
-    pos.do_move (m, StateInfo ());
+    StateInfo si;
+    pos.do_move (m, si);
     return !generate<EVASION> (pos).size ();
 }
 
@@ -1653,7 +1652,7 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
-    int8_t failed_step;
+    //int8_t failed_step;
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
@@ -1736,6 +1735,7 @@ void Position::undo_move ()
     //{
     //    TRI_LOG_MSG (int32_t (failed_step));
     //}
+    ASSERT (ok ());
 }
 
 // do_null_move() do the null-move

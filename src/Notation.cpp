@@ -288,7 +288,8 @@ string move_to_san (Move m, Position &pos)
     // Move marker for check & checkmate
     if (pos.check (m, CheckInfo (pos)))
     {
-        pos.do_move (m, StateInfo());
+        StateInfo si;
+        pos.do_move (m, si);
         san += (generate<EVASION> (pos).size () ? "+" : "#");
         pos.undo_move ();
     }

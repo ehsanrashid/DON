@@ -456,15 +456,15 @@ namespace BitBoard {
 
     extern Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = 0);
 
-    template<PType T>
+    template<PType PT>
     // Attacks of the PAWN
     extern inline Bitboard attacks_bb (Color c, Square s);
 
-    template<PType T>
+    template<PType PT>
     // Attacks of the PType
     extern inline Bitboard attacks_bb (Square s);
 
-    template<PType T>
+    template<PType PT>
     // Attacks of the PType with occupancy
     extern Bitboard attacks_bb (Square s, Bitboard occ);
 

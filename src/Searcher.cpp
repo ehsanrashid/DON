@@ -993,8 +993,6 @@ moves_loop: // When in check and at SPNode search starts from here
             (te->bound() & BND_LOWER) &&
             (te->depth() >= depth - 3 * ONE_MOVE);
 
-        ASSERT (pos.ok ());
-
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = mp.next_move<SPNode>()) != MOVE_NONE)
@@ -1140,8 +1138,6 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 if (quiet_count < 64) quiets_searched[quiet_count++] = move;
             }
-
-            ASSERT (pos.ok ());
 
             // Step 14. Make the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
