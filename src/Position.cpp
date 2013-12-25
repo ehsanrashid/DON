@@ -235,7 +235,7 @@ Position& Position::operator= (const Position &pos)
 
 #pragma region Basic methods
 
-void Position::place_piece (Square s, Color c, PType pt)
+void  Position::place_piece (Square s, Color c, PType pt)
 {
     //if (PS_NO != _piece_arr[s]) return;
     _piece_arr[s] = (c | pt);
@@ -247,11 +247,11 @@ void Position::place_piece (Square s, Color c, PType pt)
     _piece_index[s] = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
 }
-void Position::place_piece (Square s, Piece p)
+void  Position::place_piece (Square s, Piece p)
 {
     place_piece (s, p_color (p), p_type (p));
 }
-inline Piece Position::remove_piece (Square s)
+Piece Position::remove_piece (Square s)
 {
     // WARNING: This is not a reversible operation. If we remove a piece in
     // do_move() and then replace it in undo_move() we will put it at the end of
@@ -272,16 +272,15 @@ inline Piece Position::remove_piece (Square s)
     _types_bb[pt]    -= s;
     _types_bb[PT_NO] -= s;
     _piece_count[c][PT_NO]--;
-
+    _piece_count[c][pt]--;
     // Update piece list, remove piece at [s] index and shrink the list.
-    Square last_sq = _piece_list[c][pt][--_piece_count[c][pt]];
+    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     _piece_index[last_sq] = _piece_index[s];
     _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
-    _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
+    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
     return p;
 }
-
-Piece Position::move_piece (Square s1, Square s2)
+Piece Position::  move_piece (Square s1, Square s2)
 {
     if (s1 == s2) return _piece_arr[s1];
 
@@ -1652,8 +1651,6 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
-    //int8_t failed_step;
-
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
@@ -1730,11 +1727,6 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si = _si->p_si;
 
-    //ASSERT (ok (&failed_step));
-    //if (failed_step)
-    //{
-    //    TRI_LOG_MSG (int32_t (failed_step));
-    //}
     ASSERT (ok ());
 }
 

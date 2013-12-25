@@ -75,10 +75,11 @@ void Game::add_tag (const string &name, const string &value)
 
 bool Game::append_move (Move m)
 {
-    // todo :: check legal move
+    // TODO:: check legal move
     if (_last_pos.legal(m))
     {
-        _stk_state.push (StateInfo ());
+        StateInfo si;
+        _stk_state.push (si);
         //_lst_move.emplace_back (m);
 
         _last_pos.do_move (m, _stk_state.top ());
@@ -242,7 +243,7 @@ bool Game::parse (Game &game, const string &text)
 {
     bool is_ok = false;
 
-    // todo::
+    // TODO::
 
     ////string seq("[Event \"Blitz 4m+2s\"]\n[Site \"?\"]\n[Date \"2001.12.05\"]\n[Round \"4\"]\n[White \"Deep Fritz 13\"]\n[Black \"aquil, muzaffar\"]\n[Result \"1/2-1/2\"]\n[ECO \"C80\"]\n[WhiteElo \"2839\"]\n[BlackElo \"2808\"]\n[PlyCount \"37\"]\n");
     char *pat =

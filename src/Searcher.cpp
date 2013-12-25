@@ -114,10 +114,10 @@ namespace {
         const bool leaf = (depth == ONE_MOVE);
 
         CheckInfo ci (pos);
-        StateInfo si;
         MoveList mov_lst = generate<LEGAL>(pos);
         for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
         {
+            StateInfo si;
             pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
             cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
@@ -541,7 +541,7 @@ namespace {
                     // entries have been overwritten during the search.
                     for (size_t i = 0; i <= pv_idx; ++i)
                     {
-                        rootMoves[i].insert_pv_into_tt(pos);
+                        rootMoves[i].insert_pv_into_tt (pos);
                     }
 
                     // If search has been stopped break immediately. Sorting and
@@ -1678,7 +1678,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " score "    << (i == pv_idx ? score_uci (v, alpha, beta) : score_uci (v))
                 << " nodes "    << pos.game_nodes ()
                 << " nps "      << pos.game_nodes () * 1000 / elapsed
-                << " time "     << elapsed
+                << " time "     << uint64_t (elapsed)
                 << " multipv "  << i + 1
                 << " pv";
 

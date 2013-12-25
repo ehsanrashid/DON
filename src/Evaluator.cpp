@@ -477,6 +477,9 @@ namespace {
         Square s;
         while ((s = *pl++) != SQ_NO)
         {
+            // TODO:: Remove if check
+            if (s < 0) continue;
+
             // Find attacked squares, including x-ray attacks for bishops and rooks
             Bitboard attacks =
                 (BSHP == PT) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :

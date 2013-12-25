@@ -109,7 +109,7 @@ namespace Tester {
             ////assert(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
             ////assert(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
             ////assert(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
-            
+
             cout << "Bitboard ...done !!!" << endl;
         }
 
@@ -486,72 +486,59 @@ namespace Tester {
         {
             string fen;
             Position pos (int8_t (0));
-            StateInfoStack stk_si;
-
+            StateInfo states[200], *si; 
             Move m;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             pos.setup (fen);
+            si = states;
 
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
+            ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             m =  mk_move (SQ_E2, SQ_E4);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
 
             m =  mk_move (SQ_D7, SQ_D5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
 
             m = mk_move (SQ_E4, SQ_E5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
 
             m = mk_move (SQ_F7, SQ_F5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
 
             m = mk_move (SQ_E1, SQ_E2);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
 
             m = mk_move (SQ_E8, SQ_F7);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
 
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
+            ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
+            ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
+            ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
+            ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
+            ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
+            ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             // castling do/undo
             ////"rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
+            //si = states;
             //m = mk_move<CASTLE> (SQ_E1, SQ_H1);
-            //stk_si.push (StateInfo ());
-            //pos.do_move (m, stk_si.top ());
+            //pos.do_move (m, *si++);
             //m = mk_move<CASTLE> (SQ_E8, SQ_H8);
-            //stk_si.push (StateInfo ());
-            //pos.do_move (m, stk_si.top ());
+            //pos.do_move (m, *si++);
             //pos.undo_move ();
             //pos.undo_move ();
 
@@ -560,38 +547,37 @@ namespace Tester {
 
             for (uint32_t i = 0; i < 50; ++i)
             {
+                si = states;
+
                 m = mk_move (SQ_F2, SQ_F4);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_A5, SQ_B3);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_A1, SQ_A3);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_B3, SQ_A5);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_G3, SQ_F5);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_G8, SQ_H8);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_D3, SQ_B1);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_D7, SQ_A4);
+                pos.do_move (m, *si++);
+
+                //cout << pos;
 
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
+                pos.undo_move ();
+                pos.undo_move ();
 
+                //cout << pos;
             }
 
             cout << "Move     ...done !!!" << endl;

@@ -54,6 +54,8 @@ namespace MoveGenerator {
                             }
                         }
                     }
+                    // TODO:: Remove if check
+                    if (org < 0) continue;
 
                     Bitboard moves = attacks_bb<PT> (org, occ) & target;
                     if ((CHECK == G) || (QUIET_CHECK == G))
