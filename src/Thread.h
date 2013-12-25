@@ -123,7 +123,7 @@ struct SplitPoint
     volatile Value      best_value;
     volatile Move       best_move;
     volatile int32_t    move_count;
-    volatile bool       cutoff;
+    volatile bool       cut_off;
 };
 
 

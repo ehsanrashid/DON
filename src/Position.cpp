@@ -239,13 +239,14 @@ void Position::place_piece (Square s, Color c, PType pt)
 {
     //if (PS_NO != _piece_arr[s]) return;
     _piece_arr[s] = (c | pt);
-    _color_bb[c] += s;
-    _types_bb[pt] += s;
+    _color_bb[c]     += s;
+    _types_bb[pt]    += s;
     _types_bb[PT_NO] += s;
     _piece_count[c][PT_NO]++;
     // Update piece list, put piece at [s] index
     _piece_index[s] = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
+    //ASSERT (_piece_list[c][pt][_piece_index[s]] >= 0);
 }
 void Position::place_piece (Square s, Piece p)
 {
@@ -253,6 +254,11 @@ void Position::place_piece (Square s, Piece p)
 }
 inline Piece Position::remove_piece (Square s)
 {
+    // WARNING: This is not a reversible operation. If we remove a piece in
+    // do_move() and then replace it in undo_move() we will put it at the end of
+    // the list and not in its original place, it means index[] and pieceList[]
+    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
+
     Piece p = _piece_arr[s];
     ASSERT (PS_NO != p);
 
@@ -263,8 +269,8 @@ inline Piece Position::remove_piece (Square s)
     if (0 >= ps_count) return PS_NO;
 
     _piece_arr[s] = PS_NO;
-    _color_bb[c] -= s;
-    _types_bb[pt] -= s;
+    _color_bb[c]     -= s;
+    _types_bb[pt]    -= s;
     _types_bb[PT_NO] -= s;
     _piece_count[c][PT_NO]--;
 
@@ -273,7 +279,7 @@ inline Piece Position::remove_piece (Square s)
     _piece_index[last_sq] = _piece_index[s];
     _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
-
+    //ASSERT (_piece_list[c][pt][_piece_index[last_sq]] >= 0);
     return p;
 }
 
@@ -1647,6 +1653,8 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
+    int8_t failed_step;
+
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
@@ -1723,12 +1731,11 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si = _si->p_si;
 
-    int8_t failed_step;
-    ASSERT (ok (&failed_step));
-    if (failed_step)
-    {
-        TRI_LOG_MSG (int32_t (failed_step));
-    }
+    //ASSERT (ok (&failed_step));
+    //if (failed_step)
+    //{
+    //    TRI_LOG_MSG (int32_t (failed_step));
+    //}
 }
 
 // do_null_move() do the null-move

@@ -986,7 +986,8 @@ namespace {
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-        ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
+        // TODO::
+        //ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;

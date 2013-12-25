@@ -74,9 +74,9 @@ Thread::Thread() /* : splitPoints() */  // Value-initialization bug in MSVC
 // current active split point, or in some ancestor of the split point.
 bool Thread::cutoff_occurred() const
 {
-    for (SplitPoint *sp = active_split_point; sp; sp = sp->parent_split_point)
+    for (SplitPoint *sp = active_split_point; sp != NULL; sp = sp->parent_split_point)
     {
-        if (sp->cutoff) return true;
+        if (sp->cut_off) return true;
     }
     return false;
 }
@@ -248,7 +248,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
     sp.move_count   = move_count;
     sp.pos          = &pos;
     sp.nodes        = 0;
-    sp.cutoff       = false;
+    sp.cut_off      = false;
     sp.ss           = ss;
 
     // Try to allocate available threads and ask them to start searching setting
