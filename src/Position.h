@@ -710,7 +710,7 @@ inline Bitboard Position::check_discovers (Color c) const
 
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(pieces (~c, PAWN) & BitBoard::passer_span_pawn_bb (c, s));
+    return !(pieces (~c, PAWN) & BitBoard::passer_pawn_span_bb (c, s));
 }
 
 inline bool Position::pawn_on_7thR (Color c) const

@@ -54,6 +54,9 @@ namespace BitBoard {
     extern const Delta _deltas_pawn[CLR_NO][3];
     extern const Delta _deltas_type[PT_NO][9];
 
+    extern const int8_t _center_dist[SQ_NO]; 
+    extern const int8_t _manhattan_center_dist[SQ_NO];
+
     extern const Bitboard _square_bb[SQ_NO];
     extern const Bitboard   _file_bb[F_NO];
     extern const Bitboard   _rank_bb[R_NO];
@@ -71,8 +74,8 @@ namespace BitBoard {
 
     extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
 
-    extern Bitboard _attack_span_pawn_bb[CLR_NO][SQ_NO];
-    extern Bitboard _passer_span_pawn_bb[CLR_NO][SQ_NO];
+    extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
+    extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
     // attacks of the pieces
     extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
@@ -249,6 +252,50 @@ namespace BitBoard {
         return (s2 - s1) / square_dist (s1, s2);
     }
 
+    // ----------------------------------------------------
+
+    //inline int8_t center_dist (Square s)
+    //{
+    //    //return _center_dist[s];
+    //
+    //    const Bitboard bit0 = U64 (0xFF81BDA5A5BD81FF);
+    //    const Bitboard bit1 = U64 (0xFFFFC3C3C3C3FFFF);
+    //    return 2 * ((bit1 >> s) & 1) + ((bit0 >> s) & 1); 
+    //}
+
+    ///**
+    //* manhattan_center_dist
+    //* @author Gerd Isenberg
+    //* @param s = square 0...63
+    //* @return Manhattan Center Distance
+    //*/
+    //inline int8_t manhattan_center_dist (Square s)
+    //{
+    //    int8_t f = _file (s);
+    //    int8_t r = _rank (s);
+    //    f ^= (f-4) >> 8;
+    //    r ^= (r-4) >> 8;
+    //    return (f + r) & 7;
+    //}
+
+    ///**
+    //* manhattan_dist_bishop_sq_closest_corner
+    //*   for KBNK purpose
+    //* @author Gerd Isenberg
+    //* @param bs bishop square (to determine its square color)
+    //* @param s opponent king square (0..63)
+    //* @return manhattanDistance to the closest corner square
+    //*         of the bishop square color
+    //*/
+    //inline int8_t manhattan_dist_bishop_sq_closest_corner(Square bs, Square s)
+    //{
+    //    int8_t b = -1879048192*bs >> 31; // 0 | -1 to mirror
+    //    int8_t k;
+    //    k = (s>>3) + ((s^b) & 7);        // rank + (mirrored) file
+    //    k = (15 * (k>>3) ^ k) - (k>>3);  // if (k > 7) k = 14 - k
+    //    return k;
+    //}
+
 #pragma endregion
 
 #pragma region Masks
@@ -353,25 +400,25 @@ namespace BitBoard {
         return _betwen_sq_bb[s1][s2];
     }
 
-    // attack_span_pawn_bb() takes a color and a square as input, and returns a bitboard
+    // pawn_attack_span_bb() takes a color and a square as input, and returns a bitboard
     // representing all squares that can be attacked by a pawn of the given color
     // when it moves along its file starting from the given square. Definition is:
     // PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
-    inline Bitboard attack_span_pawn_bb (Color c, Square s)
+    inline Bitboard pawn_attack_span_bb (Color c, Square s)
     {
-        return _attack_span_pawn_bb[c][s];
+        return _pawn_attack_span_bb[c][s];
     }
-    // passer_span_pawn_bb() takes a color and a square as input, and returns a
+    // passer_pawn_span_bb() takes a color and a square as input, and returns a
     // bitboard mask which can be used to test if a pawn of the given color on
     // the given square is a passed pawn. Definition of the table is:
-    // PassedPawnMask[c][s] = attack_span_pawn_bb(c, s) | forward_bb(c, s)
-    inline Bitboard passer_span_pawn_bb (Color c, Square s)
+    // PassedPawnMask[c][s] = pawn_attack_span_bb(c, s) | forward_bb(c, s)
+    inline Bitboard passer_pawn_span_bb (Color c, Square s)
     {
-        return _passer_span_pawn_bb[c][s];
+        return _passer_pawn_span_bb[c][s];
     }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color(Square s)
+    inline Bitboard squares_of_color (Square s)
     {
         return (DR_SQ_bb & s) ? DR_SQ_bb : LT_SQ_bb;
     }
@@ -488,7 +535,6 @@ namespace BitBoard {
 #pragma endregion
 
     extern inline SquareList squares (Bitboard  bb);
-
 }
 
 #endif

@@ -57,6 +57,8 @@ namespace BitBoard {
 
 #pragma region LOOKUPs
 
+
+
     // FILE & RANK distance
     Delta _filerank_dist[F_NO][R_NO];
     Delta   _square_dist[SQ_NO][SQ_NO];
@@ -77,6 +79,30 @@ namespace BitBoard {
         { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
         { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
     };
+
+    //const int8_t _center_dist[SQ_NO] = 
+    //{
+    //    3, 3, 3, 3, 3, 3, 3, 3,
+    //    3, 2, 2, 2, 2, 2, 2, 3,
+    //    3, 2, 1, 1, 1, 1, 2, 3,
+    //    3, 2, 1, 0, 0, 1, 2, 3,
+    //    3, 2, 1, 0, 0, 1, 2, 3,
+    //    3, 2, 1, 1, 1, 1, 2, 3,
+    //    3, 2, 2, 2, 2, 2, 2, 3,
+    //    3, 3, 3, 3, 3, 3, 3, 3,
+    //};
+
+    //const int8_t _manhattan_center_dist[SQ_NO] =
+    //{
+    //    6, 5, 4, 3, 3, 4, 5, 6,
+    //    5, 4, 3, 2, 2, 3, 4, 5,
+    //    4, 3, 2, 1, 1, 2, 3, 4,
+    //    3, 2, 1, 0, 0, 1, 2, 3,
+    //    3, 2, 1, 0, 0, 1, 2, 3,
+    //    4, 3, 2, 1, 1, 2, 3, 4,
+    //    5, 4, 3, 2, 2, 3, 4, 5,
+    //    6, 5, 4, 3, 3, 4, 5, 6,
+    //};
 
     // SQUARES
     CACHE_ALIGN(64) const Bitboard _square_bb[SQ_NO] =
@@ -234,10 +260,10 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard _attacks_type_bb[PT_NO][SQ_NO];
 
     // Span of the attacks of pawn
-    CACHE_ALIGN(64) Bitboard _attack_span_pawn_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard _passer_span_pawn_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
@@ -373,8 +399,8 @@ namespace BitBoard {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 _front_squares_bb   [c][s] = _front_rank_bb[c][_rank (s)] & _file_bb[_file (s)];
-                _attack_span_pawn_bb[c][s] = _front_rank_bb[c][_rank (s)] & _adj_file_bb[_file (s)];
-                _passer_span_pawn_bb[c][s] = _front_squares_bb[c][s] | _attack_span_pawn_bb[c][s];
+                _pawn_attack_span_bb[c][s] = _front_rank_bb[c][_rank (s)] & _adj_file_bb[_file (s)];
+                _passer_pawn_span_bb[c][s] = _front_squares_bb[c][s] | _pawn_attack_span_bb[c][s];
             }
         }
 

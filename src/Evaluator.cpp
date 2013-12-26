@@ -538,7 +538,7 @@ namespace {
             if (BSHP == PT || NIHT == PT)
             {
                 // Bishop and knight outposts squares
-                if (!(pos.pieces (C_, PAWN) & attack_span_pawn_bb (C, s)))
+                if (!(pos.pieces (C_, PAWN) & pawn_attack_span_bb (C, s)))
                 {
                     score += evaluate_outposts<PT, C>(pos, ei, s);
                 }
