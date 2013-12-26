@@ -1669,7 +1669,7 @@ moves_loop: // When in check and at SPNode search starts from here
             Value   v = updated ? rootMoves[i].curr_value : rootMoves[i].last_value;
 
             // Not at first line
-            if (spv.rdbuf ()->in_avail ()) spv << "\n";
+            if (spv.rdbuf ()->in_avail ()) spv << '\n';
 
             spv << "info"
                 << " depth "    << d
@@ -1680,10 +1680,9 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " time "     << elapsed
                 << " multipv "  << i + 1
                 << " pv";
-
             for (size_t j = 0; rootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
-                spv <<  " " << move_to_can (rootMoves[i].pv[j], pos.chess960 ());
+                spv << ' ' << move_to_can (rootMoves[i].pv[j], pos.chess960 ());
             }
         }
 

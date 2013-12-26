@@ -104,7 +104,9 @@ namespace Engine {
 
 #ifdef _DEBUG
         //Tester::main_test ();
-        //return;
+        Bitboard b = 2345;
+        BitBoard::print (b);
+        return;
 #endif
 
         UCI::start ();

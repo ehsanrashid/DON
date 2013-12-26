@@ -1,4 +1,4 @@
-#include "BitBoard.h"
+﻿#include "BitBoard.h"
 
 #include <iostream>
 #include "BitCount.h"
@@ -635,26 +635,27 @@ namespace BitBoard {
         //for (File f = F_A; f <= F_H; ++f) sbb.append (" ").append (1, to_char (f, false));
         //sbb.append ("\n");
 
-        const string dots = " -----------------\n";
+        //const string dots = " <--------------->\n";
         const string row   = "|. . . . . . . .|\n";
         const size_t len_row = row.length () + 1;
 
-        sbb = dots;
+        sbb = " /---------------\\\n";//dots;
 
         for (Rank r = R_8; r >= R_1; --r)
         {
             sbb += to_char (r) + row;
         }
 
-        sbb += dots + " ";
+        sbb += " \\---------------/\n";//dots;
+        sbb += ' ';
 
         for (File f = F_A; f <= F_H; ++f)
         {
-            sbb += " ";
+            sbb += ' ';
             sbb += to_char (f);
         }
 
-        sbb += "\n";
+        sbb += '\n';
 
         while (bb)
         {

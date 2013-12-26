@@ -1798,7 +1798,7 @@ void Position::flip ()
     //for (Rank rank = R_8; rank >= R_1; --rank) // Piece placement
     //{
     //    getline (ss, token, rank > R_1 ? '/' : ' ');
-    //    f.insert (0, token + (f.empty () ? " " : "/"));
+    //    f.insert (0, token + (f.empty () ? ' ' : '/'));
     //}
     //
     //ss >> token; // Active color
