@@ -24,14 +24,10 @@ typedef struct ValMove
 
 } ValMove;
 
+//typedef std::vector<ValMove>     ValMoveList;
+//typedef std::set   <ValMove>     ValMoveSet;
 
-typedef std::vector<ValMove>     ValMoveList;
-typedef std::set<ValMove>        ValMoveSet;
-
-extern void order (ValMoveList &vm_list, bool full = true);
-
-
-const Value MaxValue = Value (2000);
+extern const Value MaxValue;
 
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.

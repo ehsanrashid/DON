@@ -128,8 +128,8 @@ inline Square   _Square (char f, char r)
 }
 inline bool _ok (Square s)
 {
-    //return (SQ_A1 <= s && s <= SQ_H8);
-    return !(s & 0xC0);
+    return (SQ_A1 <= s && s <= SQ_H8);
+    //return !(s & 0xC0);
 }
 inline File _file (Square s)
 {
@@ -142,11 +142,11 @@ inline Rank _rank (Square s)
 }
 inline Diag _diag18 (Square s)
 {
-    return Diag ((s >> 3) - (s & 0x07) + 7); // R - F + 7
+    return Diag ((s >> 3) - (s & 7) + 7); // R - F + 7
 }
 inline Diag _diag81 (Square s)
 {
-    return Diag ((s >> 3) + (s & 0x07));     // R + F
+    return Diag ((s >> 3) + (s & 7));     // R + F
 }
 inline Color p_color (Square s)
 {

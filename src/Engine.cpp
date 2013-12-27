@@ -103,10 +103,10 @@ namespace Engine {
         cout << Engine::info () << endl;
 
 #ifdef _DEBUG
-        Tester::main_test ();
+        //Tester::main_test ();
         //Bitboard b = 2345;
         //BitBoard::print (b);
-        return;
+        //return;
 #endif
 
         UCI::start ();

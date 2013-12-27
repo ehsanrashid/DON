@@ -7,6 +7,8 @@ using namespace std;
 using namespace Searcher;
 using namespace MoveGenerator;
 
+const Value MaxValue = Value (2000);
+
 namespace {
 
     enum Stages : uint8_t
@@ -197,8 +199,8 @@ void MovePicker::value<EVASION>()
 template<GType GT>
 void MovePicker::generate_moves ()
 {
-    MoveList mov_lst = generate<GT>(pos);
     uint16_t index = 0;
+    MoveList mov_lst = generate<GT>(pos);
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
         moves[index].move = m;

@@ -56,7 +56,7 @@ namespace {
     // Dynamic razoring margin based on depth
     inline Value razor_margin (Depth d) { return Value(512 + 16 * int32_t (d)); }
 
-    size_t pv_size, pv_idx;
+    int32_t pv_size, pv_idx;
     TimeManager time_mgr;
     double best_move_changes;
     Value draw_value[CLR_NO];
@@ -128,21 +128,22 @@ namespace {
 
     void dbg_hit_on  (bool b) { ++hits[0]; if (b) ++hits[1]; }
     void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
-    void dbg_mean_of (int32_t v)  { ++means[0]; means[1] += v; }
+    void dbg_mean_of (int32_t v) { ++means[0]; means[1] += v; }
 
     void dbg_print()
     {
         if (hits[0])
         {
             cerr
-                << "Total " << hits[0] << " Hits " << hits[1]
-            << " hit rate (%) " << 100 * hits[1] / hits[0] << endl;
+                << "Total " << hits[0]
+                << " Hits " << hits[1]
+                << " Hit-rate (%) " << (100 * hits[1] / hits[0]) << endl;
         }
         if (means[0])
         {
             cerr 
                 << "Total " << means[0]
-            << " Mean " << double (means[1]) / double (means[0]) << endl;
+                << " Mean " << double (means[1]) / double (means[0]) << endl;
         }
     }
 
@@ -153,13 +154,13 @@ namespace {
 // available time and so stop the search.
 void check_time ()
 {
-    static Time::point last_info_time = Time::now ();
+    static Time::point last_time = Time::now ();
     int64_t nodes = 0;
 
     Time::point now_time = Time::now ();
-    if (now_time - last_info_time >= 1000)
+    if (now_time - last_time >= 1000)
     {
-        last_info_time = now_time;
+        last_time = now_time;
         dbg_print ();
     }
 
@@ -207,7 +208,6 @@ void check_time ()
     {
         signals.stop = true;
     }
-
 }
 
 namespace Searcher {
@@ -384,7 +384,7 @@ namespace Searcher {
 
         if (write_search_log)
         {
-            Time::point elapsed = Time::point (Time::now() - searchTime + 1);
+            uint64_t elapsed = Time::now () - searchTime + 1;
 
             Log log (fn_search_log);
 
@@ -480,8 +480,8 @@ namespace {
         history.clear();
         counter_moves.clear();
 
-        pv_size     = int32_t (*(Options["MultiPV"]));
-        Skill skill = Skill (*(Options["Skill Level"]));
+        pv_size = *(Options["MultiPV"]);
+        Skill skill (*(Options["Skill Level"]));
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
         // that we will use behind the scenes to retrieve a set of possible moves.
@@ -505,7 +505,7 @@ namespace {
 
             // Save last iteration's scores before first PV line is searched and all
             // the move scores but the (new) PV are set to -VALUE_INFINITE.
-            for (size_t i = 0; i < rootMoves.size (); ++i)
+            for (int32_t i = 0; i < rootMoves.size (); ++i)
             {
                 rootMoves[i].last_value = rootMoves[i].curr_value;
             }
@@ -581,7 +581,7 @@ namespace {
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (rootMoves.begin (), rootMoves.begin () + pv_idx + 1);
 
-                if (pv_idx + 1 == pv_size || Time::now () - searchTime > 3000)
+                if (pv_idx + 1 == pv_size || (Time::now () - searchTime) > 3000)
                 {
                     ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                 }
@@ -615,7 +615,7 @@ namespace {
             }
 
             // Do we have time for the next iteration? Can we stop searching now?
-            if (limits.use_time_management() && !signals.stop && !signals.stop_on_ponderhit)
+            if (limits.use_time_management () && !signals.stop && !signals.stop_on_ponderhit)
             {
                 bool stop = false; // Local variable, not the volatile signals.stop
 
@@ -628,7 +628,7 @@ namespace {
                 // Stop search if most of available time is already consumed. We
                 // probably don't have enough time to search the first move at the
                 // next iteration anyway.
-                if (Time::now () - searchTime > (time_mgr.available_time() * 62) / 100)
+                if ((Time::now () - searchTime) > (time_mgr.available_time () * 62) / 100)
                 {
                     stop = true;
                 }
@@ -639,7 +639,8 @@ namespace {
                     &&  best_move_changes <= DBL_EPSILON
                     &&  pv_size == 1
                     &&  best_value > VALUE_MATED_IN_MAX_PLY
-                    && (rootMoves.size () == 1 || (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
+                    && (rootMoves.size () == 1
+                    || (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
                 {
                     Value r_beta = best_value - 2 * VALUE_MG_PAWN;
 
@@ -835,8 +836,8 @@ namespace {
             && (move = (ss-1)->current_move) != MOVE_NULL
             &&  m_type (move) == NORMAL)
         {
-            Square to = dst_sq (move);
-            gains.update (pos[to], to, -(ss-1)->static_eval - ss->static_eval);
+            Square dst = dst_sq (move);
+            gains.update (pos[dst], dst, -(ss-1)->static_eval - ss->static_eval);
         }
 
         // Step 6. Razoring (skipped when in check)
@@ -848,12 +849,12 @@ namespace {
             && !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
-            Value v = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
-            if (v < rbeta)
+            Value value = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
+            if (value < rbeta)
             {
-                // Logically we should return (v + razor_margin (depth)), but
+                // Logically we should return (value + razor_margin (depth)), but
                 // surprisingly this did slightly weaker in tests.
-                return v;
+                return value;
             }
         }
 
@@ -973,6 +974,8 @@ namespace {
 moves_loop: // When in check and at SPNode search starts from here
 
         Square prev_move_sq = dst_sq ((ss-1)->current_move);
+        ASSERT (_ok (prev_move_sq));
+
         Move cm[CLR_NO] = 
         {
             counter_moves[pos[prev_move_sq]][prev_move_sq].first,
@@ -1029,7 +1032,8 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 signals.first_root_move = (move_count == 1);
 
-                if (thread == Threads.main () && Time::now () - searchTime > 3000)
+                if (thread == Threads.main () && 
+                    (Time::now () - searchTime) > 3000)
                 {
                     ats ()
                         << "info"
@@ -1398,9 +1402,12 @@ moves_loop: // When in check and at SPNode search starts from here
 
         // Transposition table lookup
         const TranspositionEntry *te;
-        te    = TT.retrieve (posi_key);
-        Move  tt_move  = te ? te->move() : MOVE_NONE;
-        Value tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
+        Move  tt_move;
+        Value tt_value;
+
+        te       = TT.retrieve (posi_key);
+        tt_move  = te ? te->move() : MOVE_NONE;
+        tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
 
         if (   te
             && te->depth() >= tt_depth
@@ -1426,14 +1433,14 @@ moves_loop: // When in check and at SPNode search starts from here
             if (te)
             {
                 // Never assume anything on values stored in TT
-                Value v = te->eval_value ();
-                if (VALUE_NONE == v) v = evaluate (pos);
-                ss->static_eval = best_value = v;
+                Value value = te->eval_value ();
+                if (VALUE_NONE == value) value = evaluate (pos);
+                ss->static_eval = best_value = value;
 
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
                 {
-                    if (te->bound() & (tt_value > best_value ? BND_LOWER : BND_UPPER))
+                    if (te->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                     {
                         best_value = tt_value;
                     }
@@ -1572,7 +1579,7 @@ moves_loop: // When in check and at SPNode search starts from here
             tt_depth,
             PVNode && (best_value > old_alpha) ? BND_EXACT : BND_UPPER,
             pos.game_nodes (),
-            value_to_tt(best_value, ss->ply),
+            value_to_tt (best_value, ss->ply),
             ss->static_eval);
 
         ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1775,7 +1782,7 @@ void Thread::idle_loop ()
 
             ASSERT (searching);
 
-            searching = false;
+            searching  = false;
             active_pos = NULL;
             sp->slaves_mask &= ~(1ULL << idx);
             sp->nodes += pos.game_nodes ();
