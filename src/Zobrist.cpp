@@ -20,11 +20,11 @@ namespace Zobrist {
 
         //for (Color c = WHITE; c <= BLACK; ++c)
         //{
-        //    for (PType t = PAWN; t <= KING; ++t)
+        //    for (PType pt = PAWN; pt <= KING; ++pt)
         //    {
         //        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //        {
-        //            _.ps_sq[c][t][s] = rkiss.rand64();
+        //            _.ps_sq[c][pt][s] = rkiss.rand64();
         //        }
         //    }
         //}
@@ -56,11 +56,11 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType t = PAWN; t <= QUEN; ++t)
+            for (PType pt = PAWN; pt <= QUEN; ++pt)
             {
-                for (int32_t pc = 0; pc < pos.piece_count (c, t); ++pc)
+                for (int32_t pc = 0; pc < pos.piece_count (c, pt); ++pc)
                 {
-                    matl_key ^= _.ps_sq[c][t][pc];
+                    matl_key ^= _.ps_sq[c][pt][pc];
                 }
             }
         }
@@ -105,13 +105,13 @@ namespace Zobrist {
 
         //for (Color c = WHITE; c <= BLACK; ++c)
         //{
-        //    for (PType t = PAWN; t <= KING; ++t)
+        //    for (PType pt = PAWN; pt <= KING; ++pt)
         //    {
-        //        SquareList sq_list = square_list (pos[c] & pos[t]);
-        //        for (int32_t pc = 0; pc < sq_list.size (); ++pc)
+        //        SquareList sq_lst = squares (pos[c] & pos[pt]);
+        //        for (int32_t pc = 0; pc < sq_lst.size (); ++pc)
         //        {
-        //            Square s = sq_list[pc];
-        //            posi_key ^= _.ps_sq[c][t][s];
+        //            Square s = sq_lst[pc];
+        //            posi_key ^= _.ps_sq[c][pt][s];
         //        }
         //    }
         //}
@@ -126,13 +126,13 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType t = PAWN; t <= KING; ++t)
+            for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                const Square *pl = pos[(c | t)];
+                const Square *pl = pos[(c | pt)];
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
-                    posi_key ^= _.ps_sq[c][t][s];
+                    posi_key ^= _.ps_sq[c][pt][s];
                 }
             }
         }
@@ -185,12 +185,9 @@ namespace Zobrist {
             File f = F_A;
             while (f <= F_H)
             {
-                Square s = (f | r);
                 ch = *fen++;
                 if (!ch) return U64 (0);
-                if (false)
-                {
-                }
+                if (false);
                 else if (isdigit (ch))
                 {
                     // empty square(s)
@@ -210,7 +207,7 @@ namespace Zobrist {
                     if (PS_NO == p) return U64 (0);
                     if (KING == p_type (p))  king[p_color (p)] = f;
 
-                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
+                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][(f | r)];
 
                     ++f;
                 }
@@ -326,13 +323,10 @@ namespace Zobrist {
             File f = F_A;
             while (f <= F_H)
             {
-                Square s = (f | r);
                 sfen >> ch;
                 if (sfen.eof () || !sfen.good () || !ch) return U64 (0);
 
-                if (false)
-                {
-                }
+                if (false);
                 else if (isdigit (ch))
                 {
                     // empty square(s)
@@ -352,7 +346,7 @@ namespace Zobrist {
                     if (PS_NO == p) return U64 (0);
                     if (KING == p_type (p))  king[p_color (p)] = f;
 
-                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][s];
+                    fen_key ^= _.ps_sq[p_color (p)][p_type (p)][(f | r)];
 
                     ++f;
                 }

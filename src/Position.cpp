@@ -91,7 +91,7 @@ CheckInfo::CheckInfo (const Position &pos)
 }
 void CheckInfo::clear ()
 {
-    //for (PType t = PAWN; t <= KING; ++t) checking_bb[t] = U64 (0);
+    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
     fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
 
     king_sq         = SQ_NO;
@@ -509,7 +509,7 @@ bool Position::ok (int8_t *failed_step) const
         }
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            if (_piece_index[s] > 16)
+            if (_piece_index[s] >= 16)
                 return false;
         }
     }
@@ -1438,7 +1438,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
         ct = p_type (_piece_arr[cap]);
-        ASSERT (PAWN == ct);
+        ASSERT (PAWN != ct);
         break;
 
     case NORMAL:
@@ -1905,9 +1905,9 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         //        Square s = _Square(f, r);
         //        if (colors & s)
         //        {
-        //            for (PType t = PAWN; t <= KING; ++t)
+        //            for (PType pt = PAWN; pt <= KING; ++pt)
         //            {
-        //                Bitboard types = pieces (t);
+        //                Bitboard types = pieces (pt);
         //                if (types & s)
         //                {
         //                    empty = false;
@@ -1917,7 +1917,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         //                        set_next ('0' + empty);
         //                        empty = 0;
         //                    }
-        //                    set_next (to_string(c, t));
+        //                    set_next (to_string(c, pt));
         //                    break;
         //                }
         //            }

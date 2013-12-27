@@ -50,7 +50,7 @@ inline bool     _ok (Piece p)
 inline PType p_type (Piece p)
 {
     PType pt;
-    switch (p & W_QUEN)
+    switch (int8_t (p & W_QUEN))
     {
     case W_PAWN: pt = PAWN; break;
     case W_KING: pt = KING; break;

@@ -250,35 +250,35 @@ public:
 
 #pragma region Board properties
 
-    bool empty (Square s) const;
-    Piece    operator[] (Square s) const;
-    Bitboard operator[] (Color c) const;
-    Bitboard operator[] (PType t) const;
-    const Square* operator[] (Piece p) const;
+    bool empty (Square s)               const;
+    Piece    operator[] (Square s)      const;
+    Bitboard operator[] (Color  c)      const;
+    Bitboard operator[] (PType pt)      const;
+    const Square* operator[] (Piece p)  const;
 
-    Square king_sq (Color c) const;
+    Square king_sq (Color c)            const;
 
-    Bitboard pieces (Color c) const;
-    Bitboard pieces (PType t) const;
-    Bitboard pieces (Color c, PType t) const;
-    Bitboard pieces (PType t1, PType t2) const;
-    Bitboard pieces (Color c, PType t1, PType t2) const;
+    Bitboard pieces (Color c)           const;
+    Bitboard pieces (PType pt)          const;
+    Bitboard pieces (Color c, PType pt) const;
+    Bitboard pieces (PType pt1, PType pt2) const;
+    Bitboard pieces (Color c, PType pt1, PType pt2) const;
     Bitboard pieces () const;
     Bitboard empties () const;
     //Bitboard pieces (Piece p) const;
 
     template<PType PT>
-    int32_t piece_count (Color c) const;
+    int32_t piece_count (Color c)       const;
     template<PType PT>
-    int32_t piece_count () const;
-    int32_t piece_count (Color c) const;
-    int32_t piece_count () const;
-    int32_t piece_count (Color c, PType t) const;
+    int32_t piece_count ()              const;
+    int32_t piece_count (Color c)       const;
+    int32_t piece_count ()              const;
+    int32_t piece_count (Color c, PType pt) const;
     //int32_t piece_count (Piece p) const;
-    //int32_t piece_count (PType t) const;
+    //int32_t piece_count (PType pt) const;
 
     template<PType PT>
-    const Square* piece_list (Color c) const;
+    const Square* piece_list (Color c)  const;
 
 #pragma endregion
 
@@ -331,17 +331,17 @@ public:
 
 #pragma endregion
 
-    Color    active    () const;
-    uint16_t game_ply  () const;
-    uint16_t game_move () const;
-    bool     chess960  () const;
+    Color    active    ()               const;
+    uint16_t game_ply  ()               const;
+    uint16_t game_move ()               const;
+    bool     chess960  ()               const;
 
-    uint64_t game_nodes () const;
+    uint64_t game_nodes ()              const;
     void     game_nodes (uint64_t nodes);
 
-    Thread* thread     () const;
+    Thread* thread     ()               const;
 
-    bool draw () const;
+    bool draw ()                        const;
     bool ok (int8_t *failed_step = NULL) const;
 
     // Static exchange evaluation
@@ -382,19 +382,19 @@ public:
 
 #pragma region Move properties
 
-    Piece    moved_piece (Move m) const;
-    Piece captured_piece (Move m) const;
+    Piece    moved_piece (Move m)               const;
+    Piece captured_piece (Move m)               const;
 
-    bool pseudo_legal (Move m) const;
+    bool pseudo_legal (Move m)                  const;
     bool        legal (Move m, Bitboard pinned) const;
-    bool        legal (Move m) const;
-    bool capture      (Move m) const;
-    bool capture_or_promotion (Move m) const;
+    bool        legal (Move m)                  const;
+    bool capture      (Move m)                  const;
+    bool capture_or_promotion (Move m)          const;
     bool check     (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
 
-    bool   passed_pawn_push (Move m) const;
-    bool advanced_pawn_push (Move m) const;
+    bool   passed_pawn_push (Move m)            const;
+    bool advanced_pawn_push (Move m)            const;
 
 #pragma endregion
 
@@ -492,16 +492,16 @@ inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); 
 
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c]; }
-inline Bitboard      Position::operator[] (PType  t) const { return _types_bb[t]; }
+inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
-inline Square Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
+inline Square   Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces (Color c) const { return _color_bb[c]; }
-inline Bitboard Position::pieces (PType t) const { return _types_bb[t]; }
-inline Bitboard Position::pieces (Color c, PType t) const { return _color_bb[c] & _types_bb[t]; }
-inline Bitboard Position::pieces (PType t1, PType t2) const { return _types_bb[t1] | _types_bb[t2]; }
-inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _color_bb[c] & (_types_bb[t1] | _types_bb[t2]); }
+inline Bitboard Position::pieces (Color  c) const { return _color_bb[c]; }
+inline Bitboard Position::pieces (PType pt) const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c, PType pt)    const { return _color_bb[c] & _types_bb[pt]; }
+inline Bitboard Position::pieces (PType pt1, PType pt2) const { return _types_bb[pt1] | _types_bb[pt2]; }
+inline Bitboard Position::pieces (Color c, PType pt1, PType pt2) const { return _color_bb[c] & (_types_bb[pt1] | _types_bb[pt2]); }
 inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
 inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
@@ -511,8 +511,9 @@ inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT
 template<PType PT>
 inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
 inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT_NO]; }
-inline int32_t Position::piece_count ()                 const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
-inline int32_t Position::piece_count (Color c, PType t) const { return _piece_count[c][t]; }
+inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
+inline int32_t Position::piece_count (Color c, PType pt) const { return _piece_count[c][pt]; }
+
 template<PType PT>
 inline const Square* Position::piece_list (Color c) const { return _piece_list[c][PT]; }
 
