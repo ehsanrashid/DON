@@ -178,7 +178,7 @@ namespace {
         // to file distance between left and right outermost pawns.
         if (pos.piece_count<PAWN>(C) > 1)
         {
-            Bitboard b = ~e->_semiopen_files[C] & 0xFF;
+            Bitboard b = e->_semiopen_files[C] ^ 0xFF;
             pawn_score += PawnsFileSpan * int32_t (scan_msq (b) - scan_lsq (b));
         }
 
@@ -242,17 +242,17 @@ namespace Pawns {
 
         if (rel_rank(C, k_sq) > R_4)
         {
-            return _king_safety[C] = mk_score(0, -16 * _min_dist_KP[C]);
+            return _king_safety[C] = mk_score (0, -16 * _min_dist_KP[C]);
         }
 
         Value bonus = shelter_storm<C>(pos, k_sq);
 
         // If we can castle use the bonus after the castle if is bigger
-        if (pos.can_castle(mk_castle_right(C, CS_K)))
+        if (pos.can_castle (mk_castle_right (C, CS_K)))
         {
             bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
         }
-        if (pos.can_castle(mk_castle_right(C, CS_Q)))
+        if (pos.can_castle (mk_castle_right (C, CS_Q)))
         {
             bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
         }

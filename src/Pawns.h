@@ -24,13 +24,13 @@ namespace Pawns {
         Bitboard _candidate_pawns[CLR_NO];
         
         Square  _king_sq        [CLR_NO];
-        int32_t _num_pawns_on_sq[CLR_NO][CLR_NO];
-        int32_t _min_dist_KP    [CLR_NO];
-        int32_t _castle_rights  [CLR_NO];
-        int32_t _semiopen_files [CLR_NO];
+        uint8_t _num_pawns_on_sq[CLR_NO][CLR_NO];
+        uint8_t _min_dist_KP    [CLR_NO];
+        uint8_t _castle_rights  [CLR_NO];
+        uint8_t _semiopen_files [CLR_NO];
         Score   _king_safety    [CLR_NO];
 
-        Score    pawn_score()            const { return _pawn_score; }
+        Score    pawn_score()             const { return _pawn_score; }
         Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
         Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }
         Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
@@ -38,27 +38,27 @@ namespace Pawns {
         {
             return _num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)];
         }
-        int32_t  semiopen        (Color c, File f) const
+        uint8_t  semiopen        (Color c, File f) const
         {
             return _semiopen_files[c] & (1 << f);
         }
-        int32_t  semiopen_on_side(Color c, File f, bool left) const
+        uint8_t  semiopen_on_side(Color c, File f, bool left) const
         {
             return _semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
         template<Color C>
-        Score king_safety(const Position &pos, Square ksq)
+        Score king_safety(const Position &pos, Square k_sq)
         {
-            return (_king_sq[C] == ksq && _castle_rights[C] == pos.can_castle(C)) ?
-                _king_safety[C] : update_safety<C>(pos, ksq);
+            return (_king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
+                ? _king_safety[C] : update_safety<C>(pos, k_sq);
         }
 
         template<Color C>
-        Score update_safety(const Position &pos, Square ksq);
+        Score update_safety(const Position &pos, Square k_sq);
 
         template<Color C>
-        Value shelter_storm(const Position &pos, Square ksq);
+        Value shelter_storm(const Position &pos, Square k_sq);
 
     };
 
