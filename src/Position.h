@@ -382,18 +382,18 @@ public:
 
 #pragma region Move properties
 
-    Piece moved_piece (Move m) const;
+    Piece    moved_piece (Move m) const;
     Piece captured_piece (Move m) const;
 
     bool pseudo_legal (Move m) const;
-    bool legal (Move m, Bitboard pinned) const;
-    bool legal (Move m) const;
-    bool capture (Move m) const;
-    bool capture_or_promotion(Move m) const;
-    bool check (Move m, const CheckInfo &ci) const;
+    bool        legal (Move m, Bitboard pinned) const;
+    bool        legal (Move m) const;
+    bool capture      (Move m) const;
+    bool capture_or_promotion (Move m) const;
+    bool check     (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
 
-    bool passed_pawn_push (Move m) const;
+    bool   passed_pawn_push (Move m) const;
     bool advanced_pawn_push (Move m) const;
 
 #pragma endregion
@@ -490,18 +490,18 @@ public:
 
 inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); }
 
-inline Piece    Position::operator[] (Square s) const { return _piece_arr[s]; }
-inline Bitboard Position::operator[] (Color  c) const { return _color_bb[c]; }
-inline Bitboard Position::operator[] (PType  t) const { return _types_bb[t]; }
+inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
+inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c]; }
+inline Bitboard      Position::operator[] (PType  t) const { return _types_bb[t]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
 inline Square Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces (Color c) const { return _color_bb[c]; }
 inline Bitboard Position::pieces (PType t) const { return _types_bb[t]; }
-inline Bitboard Position::pieces (Color c, PType t) const { return pieces (c) & pieces (t); }
-inline Bitboard Position::pieces (PType t1, PType t2) const { return pieces (t1) | pieces (t2); }
-inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return pieces (c) & pieces (t1, t2); }
+inline Bitboard Position::pieces (Color c, PType t) const { return _color_bb[c] & _types_bb[t]; }
+inline Bitboard Position::pieces (PType t1, PType t2) const { return _types_bb[t1] | _types_bb[t2]; }
+inline Bitboard Position::pieces (Color c, PType t1, PType t2) const { return _color_bb[c] & (_types_bb[t1] | _types_bb[t2]); }
 inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
 inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
@@ -521,32 +521,32 @@ inline const Square* Position::piece_list (Color c) const { return _piece_list[c
 #pragma region StateInfo properties
 
 // Castling rights for both side
-inline CRight Position::castle_rights () const { return _si->castle_rights; }
+inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
-inline Square Position::en_passant () const { return _si->en_passant; }
+inline Square   Position::en_passant    () const { return _si->en_passant; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline uint16_t Position::clock50 () const { return _si->clock50; }
+inline uint16_t Position::clock50       () const { return _si->clock50; }
 //
-inline Move Position::last_move () const { return _si->last_move; }
+inline Move     Position::last_move     () const { return _si->last_move; }
 //
-inline PType Position::cap_type () const { return _si->cap_type; }
+inline PType    Position::cap_type      () const { return _si->cap_type; }
 //
-inline Piece Position::cap_piece () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
+inline Piece    Position::cap_piece     () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
 //
-inline Bitboard Position::checkers () const { return _si->checkers; }
+inline Bitboard Position::checkers      () const { return _si->checkers; }
 //
-inline Key Position::matl_key () const { return _si->matl_key; }
+inline Key      Position::matl_key      () const { return _si->matl_key; }
 //
-inline Key Position::pawn_key () const { return _si->pawn_key; }
+inline Key      Position::pawn_key      () const { return _si->pawn_key; }
 //
-inline Key Position::posi_key () const { return _si->posi_key; }
+inline Key      Position::posi_key      () const { return _si->posi_key; }
 //
-inline Key Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
+inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
 
-inline Score Position::psq_score () const { return _si->psq_score; }
+inline Score    Position::psq_score     () const { return _si->psq_score; }
 
-inline Value Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
 //inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
 
@@ -581,21 +581,21 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 #pragma endregion
 
 // Color of the side on move
-inline Color    Position::active ()    const { return _active; }
+inline Color    Position::active    () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
-// game_ply  = std::max (2 * (game_move - 1), 0) + (BLACK == Active)
-inline uint16_t Position::game_ply ()  const { return _game_ply; }
+// game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
+inline uint16_t Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
-// game_move = std::max ((game_ply - (BLACK == Active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return std::max<uint16_t> ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+// game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
+inline uint16_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
-inline bool     Position::chess960 ()  const { return _chess960; }
+inline bool     Position::chess960  () const { return _chess960; }
 
 // Nodes visited
-inline uint64_t Position::game_nodes () const { return _game_nodes; }
-inline void     Position::game_nodes (uint64_t nodes) { _game_nodes = nodes; }
+inline uint64_t Position::game_nodes() const { return _game_nodes; }
+inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
-inline Thread* Position::thread () const { return _thread; }
+inline Thread*  Position::thread    () const { return _thread; }
 
 #pragma endregion
 
@@ -651,28 +651,24 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
 {
-    return attackers_to (s, pieces ());
+    return attackers_to (s, _types_bb[PT_NO]);
 }
 
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (king_sq (c)) & pieces (~c);
+    return attackers_to (king_sq (c)) & _color_bb[~c];
 }
 
 // Blockers are lonely defenders of the attacks on square by the attackers
 inline Bitboard Position::blockers (Square s, Bitboard pinners) const
 {
-    Bitboard occ = pieces ();
-    Bitboard defenders = pieces (_active);
-    Bitboard blockers = 0;
+    Bitboard occ       = _types_bb[PT_NO];
+    Bitboard defenders = _color_bb[_active];
+    Bitboard blockers  = 0;
     while (pinners)
     {
         Bitboard blocker = BitBoard::betwen_sq_bb (s, pop_lsq (pinners)) & occ;
-        //if (blocker && !BitBoard::more_than_one (blocker) && (blocker & defenders))
-        //{
-        //    blockers |= blocker;
-        //}
         if (!BitBoard::more_than_one (blocker))
         {
             blockers |= (blocker & defenders);
@@ -743,11 +739,10 @@ inline bool Position::bishops_pair (Color c) const
 
 #pragma region Move properties
 
-inline bool Position::passed_pawn_push (Move m) const
+inline bool Position::  passed_pawn_push (Move m) const
 {
     return (PAWN == p_type (moved_piece (m))) && passed_pawn(_active, dst_sq (m));
 }
-
 inline bool Position::advanced_pawn_push (Move m) const
 {
     return (PAWN == p_type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
@@ -758,7 +753,7 @@ inline bool Position::advanced_pawn_push (Move m) const
 #pragma endregion
 
 
-typedef std::stack<StateInfo>             StateInfoStack;
+typedef std::stack     <StateInfo>        StateInfoStack;
 typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
 
 

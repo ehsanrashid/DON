@@ -76,7 +76,7 @@ void Game::add_tag (const string &name, const string &value)
 bool Game::append_move (Move m)
 {
     // TODO:: check legal move
-    if (_last_pos.legal(m))
+    if (_last_pos.legal (m))
     {
         StateInfo si;
         _stk_state.push (si);

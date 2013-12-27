@@ -460,14 +460,14 @@ inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, b
     return list;
 }
 
-inline int to_int (const char s[])
+inline int   to_int (const char s[])
 {
     assert (s);
     if (!s)     return 0;
 
     return atoi (s);
 }
-inline long to_long (const char s[])
+inline long  to_long (const char s[])
 {
     assert (s);
     if (!s)     return 0L;
@@ -479,7 +479,7 @@ inline long to_long (const char s[])
     assert (LONG_MIN > l && l < LONG_MAX);
     return l;
 }
-inline char* to_str(int i, char s[], int radix = 10)
+inline char* to_str (int i, char s[], int radix = 10)
 {
     assert (s);
     if (!s)     return NULL;

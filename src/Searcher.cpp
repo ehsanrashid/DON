@@ -697,7 +697,7 @@ namespace {
             excluded_move,
             move;
         Value tt_value;
-        
+
         Move quiets_searched[64];
 
         // Step 1. Initialize node
@@ -891,9 +891,10 @@ namespace {
 
             (ss+1)->skip_null_move = true;
 
-            Value null_value = (depth-R < ONE_MOVE)
+            Value null_value = 
+                (depth-R < ONE_MOVE)
                 ? -search_quien<NonPV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : -search<NonPV>(pos, ss+1, -beta, -alpha, depth-R, !cut_node);
+                : -search      <NonPV>       (pos, ss+1, -beta, -alpha, depth-R, !cut_node);
 
             (ss+1)->skip_null_move = false;
 
@@ -957,7 +958,7 @@ namespace {
         // Step 10. Internal iterative deepening (skipped when in check)
         if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
             && tt_move == MOVE_NONE
-            && (PVNode || ss->static_eval + Value(256) >= beta))
+            && (PVNode || ss->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
@@ -1197,10 +1198,10 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 value = 
                     new_depth < ONE_MOVE
-                    ? gives_check
+                    ? (gives_check
                     ? -search_quien<NonPV,  true>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                    : -search_quien<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                    : -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
+                    : -search_quien<NonPV, false>(pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
+                    : -search      <NonPV>       (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
             // Only for PV nodes do a full PV search on the first move or after a fail
@@ -1210,10 +1211,10 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 value =
                     new_depth < ONE_MOVE
-                    ? gives_check
+                    ? (gives_check
                     ? -search_quien<PV,  true>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                    : -search_quien<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                    : -search<PV>(pos, ss+1, -beta, -alpha, new_depth, false);
+                    : -search_quien<PV, false>(pos, ss+1, -beta, -alpha, DEPTH_ZERO))
+                    : -search      <PV>       (pos, ss+1, -beta, -alpha, new_depth, false);
             }
 
             // Step 17. Undo move
@@ -1528,7 +1529,8 @@ moves_loop: // When in check and at SPNode search starts from here
             // Make and search the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
-            Value value = gives_check
+            Value value = 
+                gives_check
                 ? -search_quien<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
                 : -search_quien<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 

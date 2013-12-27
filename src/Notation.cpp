@@ -357,8 +357,8 @@ namespace {
     // time to string
     string time_to_string (int64_t msecs)
     {
-        const int MSecMinute = 1000 * 60;
-        const int MSecHour   = 1000 * 60 * 60;
+        const int32_t MSecMinute = 1000 * 60;
+        const int32_t MSecHour   = 1000 * 60 * 60;
 
         int64_t hours   =   msecs / MSecHour;
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;

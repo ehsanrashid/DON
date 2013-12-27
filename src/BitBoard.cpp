@@ -635,18 +635,17 @@ namespace BitBoard {
         //for (File f = F_A; f <= F_H; ++f) sbb.append (" ").append (1, to_char (f, false));
         //sbb.append ("\n");
 
-        //const string dots = " <--------------->\n";
         const string row   = "|. . . . . . . .|\n";
-        const size_t len_row = row.length () + 1;
-
-        sbb = " /---------------\\\n";//dots;
+        const size_t row_len = row.length () + 1;
+        //" <--------------->\n"
+        sbb = " /---------------\\\n";
 
         for (Rank r = R_8; r >= R_1; --r)
         {
             sbb += to_char (r) + row;
         }
 
-        sbb += " \\---------------/\n";//dots;
+        sbb += " \\---------------/\n";
         sbb += ' ';
 
         for (File f = F_A; f <= F_H; ++f)
@@ -662,7 +661,7 @@ namespace BitBoard {
             Square s = pop_lsq (bb);
             int8_t r = _rank (s);
             int8_t f = _file (s);
-            sbb[2 + len_row * (8 - r) + 2 * f] = p;
+            sbb[2 + row_len * (8 - r) + 2 * f] = p;
         }
 
         cout << sbb;
