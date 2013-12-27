@@ -294,13 +294,16 @@ Piece Position::  move_piece (Square s1, Square s2)
     _piece_arr[s1] = PS_NO;
     _piece_arr[s2] = p;
 
-    _color_bb[c]     -= s1;
-    _types_bb[pt]    -= s1;
-    _types_bb[PT_NO] -= s1;
-
-    _color_bb[c]     += s2;
-    _types_bb[pt]    += s2;
-    _types_bb[PT_NO] += s2;
+    //_color_bb[c]     -= s1;
+    //_types_bb[pt]    -= s1;
+    //_types_bb[PT_NO] -= s1;
+    //_color_bb[c]     += s2;
+    //_types_bb[pt]    += s2;
+    //_types_bb[PT_NO] += s2;
+    Bitboard bb = _square_bb[s1] ^ _square_bb[s2];
+    _color_bb[c]     ^= bb;
+    _types_bb[pt]    ^= bb;
+    _types_bb[PT_NO] ^= bb;
 
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.
@@ -1358,7 +1361,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += _piece_count[c][pt] * PieceValue[MG][pt];
+        value += piece_count(c, pt) * PieceValue[MG][pt];
     }
     return value;
 }
@@ -1513,7 +1516,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
             castle_king_rook (org_king, dst_king, org_rook, dst_rook);
 
-            //_si->psq_score += psq_delta(make_piece(_active, ROOK), org_rook, dst_rook);
             posi_k ^= ZobGlob._.ps_sq[_active][KING][org_king] ^ ZobGlob._.ps_sq[_active][KING][dst_king];
             posi_k ^= ZobGlob._.ps_sq[_active][ROOK][org_rook] ^ ZobGlob._.ps_sq[_active][ROOK][dst_rook];
 
@@ -1547,7 +1549,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     case NORMAL:
 
         move_piece (org, dst);
-        posi_k ^= ZobGlob._.ps_sq[active][pt][org] ^ ZobGlob._.ps_sq[active][pt][dst];
 
         if (PAWN == pt)
         {
@@ -1555,6 +1556,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][PAWN][dst];
         }
 
+        posi_k ^= ZobGlob._.ps_sq[active][pt][org] ^ ZobGlob._.ps_sq[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
 
         break;

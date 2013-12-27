@@ -188,8 +188,8 @@ private:
     Bitboard _types_bb[PT_ALL];
 
     Square  _piece_list [CLR_NO][PT_NO][16];
-    int32_t _piece_count[CLR_NO][PT_ALL];
-    int32_t _piece_index[SQ_NO];
+    uint8_t _piece_count[CLR_NO][PT_ALL];
+    uint8_t _piece_index[SQ_NO];
 
     // Object for base status information
     StateInfo  _sb;
