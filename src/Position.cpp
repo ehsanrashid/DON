@@ -717,6 +717,7 @@ Piece Position::   moved_piece (Move m) const
 {
     ASSERT (_ok (m));
     if (!_ok (m)) return PS_NO;
+
     return _piece_arr[org_sq (m)];
 }
 // captured_piece() return piece captured by moving piece
@@ -728,8 +729,8 @@ Piece Position::captured_piece (Move m) const
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Color pasive = ~_active;
-    Piece mp =  _piece_arr[org];
-    PType mpt = p_type (mp);
+    Piece p =  _piece_arr[org];
+    PType pt = p_type (p);
 
     Square cap = dst;
 
@@ -738,7 +739,7 @@ Piece Position::captured_piece (Move m) const
     case CASTLE:   return PS_NO; break;
 
     case ENPASSANT:
-        if (PAWN == mpt)
+        if (PAWN == pt)
         {
             cap += ((WHITE == _active) ? DEL_S : DEL_N);
 
@@ -750,13 +751,13 @@ Piece Position::captured_piece (Move m) const
         break;
 
     case PROMOTE:
-        if (PAWN != mpt) return PS_NO;
+        if (PAWN != pt) return PS_NO;
         if (R_7 != rel_rank (_active, org)) return PS_NO;
         if (R_8 != rel_rank (_active, dst)) return PS_NO;
 
         // NOTE: no break
     case NORMAL:
-        if (PAWN == mpt)
+        if (PAWN == pt)
         {
             // check not pawn push and can capture
             if (file_dist (dst, org) != 1) return PS_NO;
