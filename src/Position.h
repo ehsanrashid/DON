@@ -345,8 +345,8 @@ public:
     bool ok (int8_t *failed_step = NULL) const;
 
     // Static exchange evaluation
-    int32_t see(Move m, int32_t asymm_threshold = 0) const;
-    int32_t see_sign(Move m) const;
+    int32_t see      (Move m) const;
+    int32_t see_sign (Move m) const;
 
 #pragma endregion
 

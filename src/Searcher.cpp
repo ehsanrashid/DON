@@ -1499,14 +1499,15 @@ moves_loop: // When in check and at SPNode search starts from here
                 else if (futility_value < beta)
                 {
                     if (futility_value > best_value) best_value = futility_value;
+
                     continue;
                 }
                 // Prune moves with negative or equal SEE and also moves with positive
                 // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                else if (   futility_base < beta
-                    && pos.see (move, beta - futility_base) <= 0)
+                else if (futility_base < beta && pos.see (move) <= 0)
                 {
                     if (futility_base > best_value) best_value = futility_base;
+                    
                     continue;
                 }
             }

@@ -606,7 +606,7 @@ bool Position::ok (int8_t *failed_step) const
 // If the side who initiated the capturing sequence does the last capture,
 // he loses a tempo and if the result is below 'asymm_threshold'
 // the capturing sequence is considered bad.
-int32_t Position::see (Move m, int32_t asymm_threshold) const
+int32_t Position::see (Move m) const
 {
     ASSERT (_ok(m));
 
@@ -670,18 +670,18 @@ int32_t Position::see (Move m, int32_t asymm_threshold) const
     }
     while (stm_attackers);
 
-    // If we are doing asymmetric SEE evaluation and the same side does the first
-    // and the last capture, he loses a tempo and gain must be at least worth
-    // 'asymm_threshold', otherwise we replace the score with a very low value,
-    // before negamaxing.
-    if (asymm_threshold)
-    {
-        for (int32_t i = 0; i < index; i += 2)
-        {
-            if (swap_list[i] < asymm_threshold)
-                swap_list[i] = -VALUE_MG_QUEEN * 16;
-        }
-    }
+    //// If we are doing asymmetric SEE evaluation and the same side does the first
+    //// and the last capture, he loses a tempo and gain must be at least worth
+    //// 'asymm_threshold', otherwise we replace the score with a very low value,
+    //// before negamaxing.
+    //if (asymm_threshold)
+    //{
+    //    for (int32_t i = 0; i < index; i += 2)
+    //    {
+    //        if (swap_list[i] < asymm_threshold)
+    //            swap_list[i] = -VALUE_MG_QUEEN * 16;
+    //    }
+    //}
 
     // Having built the swap list, we negamax through it to find the best
     // achievable score from the point of view of the side to move.
