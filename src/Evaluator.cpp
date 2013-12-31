@@ -162,7 +162,7 @@ namespace {
 
 
     const Score TempoBonus             = S(24, 11);
-    const Score BishopPinBonus         = S(66, 11);
+    //const Score BishopPinBonus         = S(66, 11);
 
     const Score RookOn7thBonus         = S(11, 20);
     const Score QueenOn7thBonus        = S( 3,  8);
@@ -214,19 +214,19 @@ namespace {
     const int32_t RookContactCheck  = 16;
     const int32_t QueenContactCheck = 24;
 
-    // KingExposed[Square] contains penalties based on the position of the
-    // defending king, indexed by king's square (from white's point of view).
-    const int32_t KingExposed[SQ_NO] =
-    {
-        2,  0,  2,  5,  5,  2,  0,  2,
-        2,  2,  4,  8,  8,  4,  2,  2,
-        7, 10, 12, 12, 12, 12, 10,  7,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15
-    };
+    //// KingExposed[Square] contains penalties based on the position of the
+    //// defending king, indexed by king's square (from white's point of view).
+    //const int32_t KingExposed[SQ_NO] =
+    //{
+    //    2,  0,  2,  5,  5,  2,  0,  2,
+    //    2,  2,  4,  8,  8,  4,  2,  2,
+    //    7, 10, 12, 12, 12, 12, 10,  7,
+    //    15, 15, 15, 15, 15, 15, 15, 15,
+    //    15, 15, 15, 15, 15, 15, 15, 15,
+    //    15, 15, 15, 15, 15, 15, 15, 15,
+    //    15, 15, 15, 15, 15, 15, 15, 15,
+    //    15, 15, 15, 15, 15, 15, 15, 15
+    //};
 
     // KingDanger[Color][attack_units] contains the actual king danger weighted
     // scores, indexed by color and by a calculated integer number.
@@ -514,14 +514,14 @@ namespace {
             {
                 score -= ThreatenedByPawnPenalty[PT];
             }
-            // Otherwise give a bonus if we are a bishop and can pin a piece or can
-            // give a discovered check through an x-ray attack.
-            else if (    BSHP == PT
-                && (attacks_bb<BSHP>(ek_sq) & s)
-                && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-            {
-                score += BishopPinBonus;
-            }
+            //// Otherwise give a bonus if we are a bishop and can pin a piece or can
+            //// give a discovered check through an x-ray attack.
+            //else if (    BSHP == PT
+            //    && (attacks_bb<BSHP>(ek_sq) & s)
+            //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+            //{
+            //    score += BishopPinBonus;
+            //}
 
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
@@ -676,12 +676,12 @@ namespace {
             // Initialize the 'attack_units' variable, which is used later on as an
             // index to the KingDanger[] array. The initial value is based on the
             // number and types of the enemy's attacking pieces, the number of
-            // attacked and undefended squares around our king, the square of the
-            // king, and the quality of the pawn shelter.
+            // attacked and undefended squares around our king, and the quality of
+            // the pawn shelter (current 'score' value).
             int32_t attack_units =
                 min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
                 + 3 * (ei.king_adjacent_zone_attacks_count[C_] + pop_count<MAX15>(undefended))
-                + KingExposed[rel_sq (C, k_sq)] - mg_value (score) / 32;
+                - mg_value (score) / 32;
 
             // Analyse enemy's safe queen contact checks. First find undefended
             // squares around the king attacked by enemy queen...
