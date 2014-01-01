@@ -70,9 +70,7 @@ namespace Engine {
 #endif
 
 #ifdef POPCNT
-
         sinfo << " SSE4.2";
-
 #endif
 
         sinfo << ((uci) ? "\nid author " : " by ");
@@ -112,6 +110,7 @@ namespace Engine {
         UCI::start ();
 
         Threads.deinitialize ();
+        UCI::clear_options ();
     }
 
     void stop ()
@@ -120,10 +119,10 @@ namespace Engine {
         Threads.deinitialize ();
     }
 
-    void exit (int32_t exit_code)
+    void exit (int32_t code)
     {
         stop ();
-        ::exit (exit_code);
+        ::exit (code);
     }
 
 

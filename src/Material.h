@@ -16,7 +16,7 @@ namespace Material {
     // The scale factors are used to scale the evaluation score up or down.
     // For instance, in KRB vs KR endgames, the score is scaled down by a factor
     // of 4, which will result in scores of absolute value less than one pawn.
-    struct Entry
+    typedef struct Entry
     {
         Key _key;
         int16_t _value;
@@ -35,7 +35,7 @@ namespace Material {
 
         ScaleFactor scale_factor (const Position &pos, Color c) const;
 
-    };
+    } Entry;
 
     // Entry::scale_factor takes a position and a color as input, and
     // returns a scale factor for the given color. We have to provide the
@@ -49,9 +49,11 @@ namespace Material {
             ScaleFactor (_factor[c]) : (*scaling_func[c]) (pos);
     }
 
+
     typedef HashTable<Entry, 8192> Table;
 
     Entry* probe (const Position &pos, Table &table, EndGame::Endgames &endgames);
+    
     Phase game_phase (const Position &pos);
 
 }

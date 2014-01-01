@@ -147,7 +147,7 @@ namespace {
             // pawn on adjacent files is higher or equal than the number of
             // enemy pawns in the forward direction on the adjacent files.
             Bitboard adj_pawns;
-            bool candidate =   !(opposed | passed | backward | isolated)
+            bool candidate_passed = !(opposed | passed | backward | isolated)
                 && (adj_pawns = pawn_attack_span_bb (C_, s + PUSH) & pawns[0]) != 0
                 &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(pawn_attack_span_bb (C, s) & pawns[1]);
 
@@ -165,7 +165,7 @@ namespace {
 
             if (connected)  pawn_score += Connected[f][r];
 
-            if (candidate)
+            if (candidate_passed)
             {
                 pawn_score += CandidatePassed[r];
 
@@ -267,13 +267,13 @@ namespace Pawns {
 
     void initialize ()
     {
-        const int16_t BonusesByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const int16_t FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
         for (Rank r = R_1; r < R_8; ++r)
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int16_t bonus = r * (r-1) * (r-2) + BonusesByFile[f] * (r/2 + 1);
+                int16_t bonus = r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
                 Connected[f][r] = mk_score (bonus, bonus);
             }
         }

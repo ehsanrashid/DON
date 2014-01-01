@@ -13,7 +13,7 @@ namespace Engine {
 
     extern void stop ();
 
-    extern void exit (int32_t exit_code);
+    extern void exit (int32_t code);
 
 }
 
