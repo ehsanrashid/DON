@@ -51,8 +51,8 @@ namespace {
     // in front of the king and no enemy pawn on the horizont.
     const Value MaxSafetyBonus = V(263);
 
-    // Pawn chain membership bonus by [file] and [rank]
-    //const Score ChainMember[F_NO][R_NO] = {
+    // Connected pawn bonus by [file] and [rank]
+    //const Score Connected[F_NO][R_NO] = {
     //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) },
     //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
     //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
@@ -62,8 +62,8 @@ namespace {
     //    { S(0, 0), S(16, 0), S(18, 5), S(20, 10), S(30, 30), S(54, 108), S(120, 240) },
     //    { S(0, 0), S(14, 0), S(16, 4), S(18,  9), S(28, 28), S(52, 104), S(118, 236) }, };
 
-    // Pawn chain membership bonus by [file] and [rank] (initialized by formula)
-    Score ChainMember[F_NO][R_NO];
+    // Connected pawn bonus by [file] and [rank] (initialized by formula)
+    Score Connected[F_NO][R_NO];
 
 #undef S
 #undef V
@@ -104,12 +104,11 @@ namespace {
             // This file cannot be semi-open
             e->_semiopen_files[C] &= ~(1 << f);
 
-            // Our rank plus previous one. Used for chain detection
+            // Our rank plus previous one, for connected pawn detection
             Bitboard rr_bb = rank_bb (s) | rank_bb (s - PUSH);
 
-            // Flag the pawn as passed, isolated, doubled or member of a pawn
-            // chain (but not the backward one).
-            bool chain    =   pawns[0] & adj_files_bb (f) & rr_bb;
+            // Flag the pawn as passed, isolated, doubled or connected (but not the backward one).
+            bool connected=   pawns[0] & adj_files_bb (f) & rr_bb;
             bool isolated = !(pawns[0] & adj_files_bb (f));
             bool doubled  =   pawns[0] & front_squares_bb (C, s);
             bool opposed  =   pawns[1] & front_squares_bb (C, s);
@@ -117,10 +116,10 @@ namespace {
 
             bool backward;
             // Test for backward pawn.
-            // If the pawn is passed, isolated, or member of a pawn chain it cannot be backward.
+            // If the pawn is passed, isolated, or connected it cannot be backward.
             // If there are friendly pawns behind on adjacent files
             // or if can capture an enemy pawn it cannot be backward either.
-            if (   (passed | isolated | chain)
+            if (   (passed | isolated | connected)
                 || (pawns[0] & pawn_attack_span_bb (C_, s))
                 || (pos.attacks_from<PAWN>(C, s) & pawns[1]))
             {
@@ -164,7 +163,7 @@ namespace {
 
             if (backward)   pawn_score -= Backward[opposed][f];
 
-            if (chain)      pawn_score += ChainMember[f][r];
+            if (connected)  pawn_score += Connected[f][r];
 
             if (candidate)
             {
@@ -268,14 +267,14 @@ namespace Pawns {
 
     void initialize ()
     {
-        const int16_t ChainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const int16_t BonusesByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
         for (Rank r = R_1; r < R_8; ++r)
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int16_t bonus = r * (r-1) * (r-2) + ChainByFile[f] * (r/2 + 1);
-                ChainMember[f][r] = mk_score (bonus, bonus);
+                int16_t bonus = r * (r-1) * (r-2) + BonusesByFile[f] * (r/2 + 1);
+                Connected[f][r] = mk_score (bonus, bonus);
             }
         }
     }

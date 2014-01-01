@@ -13,11 +13,9 @@ namespace {
     const double  MaxRatio      = 7.0;  // When in trouble, we can step over reserved time with this ratio
     const double  StealRatio    = 0.33; // However we must not steal time from remaining moves over this ratio
 
-    const double xscale     = 9.3;
-    const double xshift     = 59.8;
-    const double yscale     = 7780;
-    const double yshift     = 1e-3; // Larger than 0. Ensures a non-zero importance
-    const double skewfactor = 0.172;
+    const double Scale          = 9.3;
+    const double Shift          = 59.8;
+    const double SkewFactor     = 0.172;
 
     //// MoveImportance[] is based on naive statistical analysis of "how many games are still undecided
     //// after n half-moves". Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -54,7 +52,9 @@ namespace {
     {
         //return MoveImportance[min (ply, 511)];
 
-        return yscale / pow((1 + exp((ply - xshift) / xscale)), skewfactor) + yshift;
+        //return 1 / pow ((1 + exp((ply - Shift) / Scale)), SkewFactor) + 1e-3; // Ensure non-zero
+        
+        return pow ((1 + exp((ply - Shift) / Scale)), -SkewFactor);
     }
 
 
@@ -67,7 +67,7 @@ namespace {
         const double TMaxRatio   = (OPTIMUM_TIME == T ? 1 : MaxRatio);
         const double TStealRatio = (OPTIMUM_TIME == T ? 0 : StealRatio);
 
-        double curr_moves_importance   = (move_importance (current_ply) * slow_mover) / 100;
+        double  curr_moves_importance  = (move_importance (current_ply) * slow_mover) / 100;
         double other_moves_importance  = 0.0;
 
         for (int32_t i = 1; i < moves_to_go; ++i)

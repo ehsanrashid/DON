@@ -602,11 +602,7 @@ bool Position::ok (int8_t *failed_step) const
 
 // see() is a static exchange evaluator:
 // It tries to estimate the material gain or loss resulting from a move.
-// Parameter 'asymm_threshold' takes tempi into account.
-// If the side who initiated the capturing sequence does the last capture,
-// he loses a tempo and if the result is below 'asymm_threshold'
-// the capturing sequence is considered bad.
-int32_t Position::see (Move m) const
+int32_t Position::see      (Move m) const
 {
     ASSERT (_ok(m));
 
@@ -619,16 +615,19 @@ int32_t Position::see (Move m) const
 
     Bitboard occupied = pieces () - org;
 
-    MType mt = m_type (m);
-    // Castle moves are implemented as king capturing the rook so cannot be
-    // handled correctly. Simply return 0 that is always the correct value
-    // unless in the rare case the rook ends up under attack.
-    if (mt == CASTLE) return 0;
-
-    if (mt == ENPASSANT)
+    switch (m_type (m))
     {
+        // Castle moves are implemented as king capturing the rook so cannot be
+        // handled correctly. Simply return 0 that is always the correct value
+        // unless in the rare case the rook ends up under attack.
+    case CASTLE:
+        return 0;
+        break;
+
+    case ENPASSANT:
         occupied -= dst - pawn_push (stm); // Remove the captured pawn
         swap_list[0] = PieceValue[MG][PAWN];
+        break;
     }
 
     // Find all attackers to the destination square, with the moving piece
@@ -646,23 +645,23 @@ int32_t Position::see (Move m) const
     // destination square, where the sides alternately capture, and always
     // capture with the least valuable piece. After each capture, we look for
     // new X-ray attacks from behind the capturing piece.
-    PType cpt = p_type (_piece_arr[org]);
+    PType ct = p_type (_piece_arr[org]);
 
     do
     {
         ASSERT (index < 32);
 
         // Add the new entry to the swap list
-        swap_list[index] = -swap_list[index - 1] + PieceValue[MG][cpt];
+        swap_list[index] = -swap_list[index - 1] + PieceValue[MG][ct];
         ++index;
 
         // Locate and remove the next least valuable attacker
-        cpt = min_attacker<PAWN>(_types_bb, dst, stm_attackers, occupied, attackers);
+        ct = min_attacker<PAWN>(_types_bb, dst, stm_attackers, occupied, attackers);
         stm = ~stm;
         stm_attackers = attackers & pieces (stm);
 
         // Stop before processing a king capture
-        if (cpt == KING && stm_attackers)
+        if (ct == KING && stm_attackers)
         {
             swap_list[index++] = VALUE_MG_QUEEN * 16;
             break;
@@ -1675,14 +1674,14 @@ void Position::undo_move ()
     Color pasive = _active;
     Color active = _active = ~_active; // switch
 
-    Piece mp  = _piece_arr[dst];
-    PType mpt = p_type (mp);
+    Piece p  = _piece_arr[dst];
+    PType pt = p_type (p);
 
     MType mt = m_type (m);
     ASSERT (PS_NO == _piece_arr[org] || CASTLE == mt);
 
-    PType cpt = _si->cap_type;
-    ASSERT (KING != cpt);
+    PType ct = _si->cap_type;
+    ASSERT (KING != ct);
 
     Square cap = dst;
 
@@ -1693,19 +1692,19 @@ void Position::undo_move ()
         {
             PType prom = prom_type (m);
 
-            ASSERT (prom == mpt);
+            ASSERT (prom == pt);
             ASSERT (R_8 == rel_rank (active, dst));
             ASSERT (NIHT <= prom && prom <= QUEN);
             // Replace the promoted piece with the PAWN
             remove_piece (dst);
             place_piece (org, active, PAWN);
-            mpt = PAWN;
+            pt = PAWN;
         }
         break;
     case CASTLE:
         {
-            mpt = KING;
-            cpt = PT_NO;
+            pt = KING;
+            ct = PT_NO;
 
             bool king_side = (dst > org);
             Square org_king = org;
@@ -1717,12 +1716,12 @@ void Position::undo_move ()
         break;
     case ENPASSANT:
         {
-            ASSERT (PAWN == mpt);
-            ASSERT (PAWN == cpt);
+            ASSERT (PAWN == pt);
+            ASSERT (PAWN == ct);
             ASSERT (R_5 == rel_rank (active, org));
             ASSERT (R_6 == rel_rank (active, dst));
             ASSERT (dst == _si->p_si->en_passant);
-            //cpt = PAWN;
+            //ct = PAWN;
             cap += pawn_push (pasive);
 
             ASSERT (PS_NO == _piece_arr[cap]);
@@ -1736,9 +1735,9 @@ void Position::undo_move ()
     }
 
     // If there was any capture piece
-    if (PT_NO != cpt)
+    if (PT_NO != ct)
     {
-        place_piece (cap, pasive, cpt); // Restore the captured piece
+        place_piece (cap, pasive, ct); // Restore the captured piece
     }
 
     --_game_ply;
