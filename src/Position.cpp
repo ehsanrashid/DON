@@ -237,8 +237,10 @@ Position& Position::operator= (const Position &pos)
 
 void  Position::place_piece (Square s, Color c, PType pt)
 {
+    ASSERT (PS_NO == _piece_arr[s]);
     //if (PS_NO != _piece_arr[s]) return;
-    _piece_arr[s] = (c | pt);
+
+    _piece_arr[s]     = (c | pt);
     _color_bb[c]     += s;
     _types_bb[pt]    += s;
     _types_bb[PT_NO] += s;
@@ -267,7 +269,7 @@ Piece Position::remove_piece (Square s)
     ASSERT (0 < ps_count);
     if (0 >= ps_count) return PS_NO;
 
-    _piece_arr[s] = PS_NO;
+    _piece_arr[s]     = PS_NO;
     _color_bb[c]     -= s;
     _types_bb[pt]    -= s;
     _types_bb[PT_NO] -= s;
@@ -286,6 +288,8 @@ Piece Position::  move_piece (Square s1, Square s2)
 
     Piece p = _piece_arr[s1];
     if (!_ok (p)) return PS_NO;
+    
+    ASSERT (PS_NO == _piece_arr[s2]);
     //if (PS_NO != _piece_arr[s2]) return PS_NO;
 
     Color c = p_color (p);
@@ -308,8 +312,8 @@ Piece Position::  move_piece (Square s1, Square s2)
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.
     _piece_index[s2] = _piece_index[s1];
-    //_piece_index[s1] = 0;
     _piece_list[c][pt][_piece_index[s2]] = s2;
+    //_piece_index[s1] = 0;
 
     return p;
 }
