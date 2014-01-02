@@ -236,8 +236,7 @@ namespace Material {
         // Compute the space weight
         if (w_npm + b_npm >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
-            int32_t minor_piece_count =  pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE)
-                + pos.piece_count<NIHT> (BLACK) + pos.piece_count<BSHP> (BLACK);
+            int32_t minor_piece_count = pos.piece_count<NIHT> () + pos.piece_count<BSHP> ();
 
             e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
         }

@@ -570,8 +570,8 @@ typedef std::vector<Move>   MoveList;
 inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
-template<class Entry, int SIZE>
-class HashTable sealed
+template<class Entry, int32_t SIZE>
+struct HashTable
 {
 
 private:
@@ -584,7 +584,7 @@ public:
 
     Entry* operator[] (Key k)
     {
-        return &_table[uint32_t (k) & (SIZE - 1)];
+        return &_table[(uint32_t) (k) & (SIZE - 1)];
     }
 
 };

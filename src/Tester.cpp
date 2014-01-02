@@ -628,6 +628,6 @@ namespace Tester {
 
         test_move ();
 
-        //test_uci ();
+        test_uci ();
     }
 }

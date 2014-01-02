@@ -61,7 +61,8 @@ void ThreadBase::wait_for(volatile const bool &b)
 
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
-Thread::Thread() /* : splitPoints() */  // Value-initialization bug in MSVC
+Thread::Thread() /* : split_points() */  // Value-initialization bug in MSVC
+    : split_points ()
 {
     searching = false;
     max_ply = split_points_size = 0;
@@ -97,7 +98,7 @@ bool Thread::available_to(const Thread *master) const
 
     // No split points means that the thread is available as a slave for any
     // other thread otherwise apply the "helpful master" concept if possible.
-    return !size || (splitPoints[size - 1].slaves_mask & (1ULL << master->idx));
+    return !size || (split_points[size - 1].slaves_mask & (1ULL << master->idx));
 }
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
@@ -233,7 +234,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
     ASSERT (split_points_size < MAX_SPLITPOINTS_PER_THREAD);
 
     // Pick the next available split point from the split point stack
-    SplitPoint &sp = splitPoints[split_points_size];
+    SplitPoint &sp = split_points[split_points_size];
     sp.master_thread = this;
     sp.parent_split_point = active_split_point;
     sp.slaves_mask  = 1ULL << idx;

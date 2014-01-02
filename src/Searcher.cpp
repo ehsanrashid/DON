@@ -178,7 +178,7 @@ void check_time ()
         {
             for (int32_t j = 0; j < Threads[i]->split_points_size; ++j)
             {
-                SplitPoint &sp = Threads[i]->splitPoints[j];
+                SplitPoint &sp = Threads[i]->split_points[j];
                 sp.mutex.lock ();
                 nodes += sp.nodes;
                 Bitboard sm = sp.slaves_mask;

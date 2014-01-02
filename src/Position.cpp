@@ -308,7 +308,7 @@ Piece Position::  move_piece (Square s1, Square s2)
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.
     _piece_index[s2] = _piece_index[s1];
-    _piece_index[s1] = 0;
+    //_piece_index[s1] = 0;
     _piece_list[c][pt][_piece_index[s2]] = s2;
 
     return p;
@@ -1392,8 +1392,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     memcpy (&si_n, _si, SIZE_COPY_STATE);
 
     // switch state pointer to point to the new, ready to be updated, state.
-    si_n.p_si = _si;
-    _si = &si_n;
+    si_n.p_si    = _si;
+    _si          = &si_n;
 
     Color active = _active;
     Color pasive = ~active;
@@ -1424,11 +1424,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         break;
 
     case ENPASSANT:
-        ASSERT (PAWN == pt);               // Moving type must be pawn
+        ASSERT (PAWN == pt);                // Moving type must be pawn
         ASSERT (dst == _si->en_passant);    // Destination must be en-passant
         ASSERT (R_5 == rel_rank (active, org));
         ASSERT (R_6 == rel_rank (active, dst));
-        ASSERT (PS_NO == _piece_arr[cap]);      // Capture Square must be empty
+        ASSERT (PS_NO == _piece_arr[cap]);  // Capture Square must be empty
 
         cap += pawn_push (pasive);
         //ASSERT (!(pieces (pasive, PAWN) & cap));
@@ -1523,6 +1523,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
         }
         break;
+
     case PROMOTE:
         {
             PType ppt = prom_type (m);
@@ -1786,8 +1787,8 @@ void Position::undo_null_move ()
     if (!(_si->p_si))   return;
     if (_si->checkers)  return;
 
-    _si = _si->p_si;
-    _active = ~_active;
+    _si         = _si->p_si;
+    _active     = ~_active;
 
     ASSERT (ok ());
 }

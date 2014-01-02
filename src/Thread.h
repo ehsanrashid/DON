@@ -152,7 +152,7 @@ struct ThreadBase
 struct Thread
     : public ThreadBase
 {
-    SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
+    SplitPoint split_points[MAX_SPLITPOINTS_PER_THREAD];
     Material::Table material_table;
     Pawns   ::Table pawns_table;
     EndGame ::Endgames endgames;
