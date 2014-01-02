@@ -15,6 +15,9 @@
 #include "UCI.h"
 #include "Tester.h"
 
+#include "MoveGenerator.h"
+using namespace MoveGenerator;
+
 namespace Engine {
 
     using namespace std;
@@ -94,7 +97,7 @@ namespace Engine {
 
         Searcher ::initialize ();
         Evaluator::initialize ();
-        
+
         Threads.initialize ();
         TT.resize (int32_t (*(Options["Hash"])));
 
@@ -102,8 +105,15 @@ namespace Engine {
 
 #ifdef _DEBUG
         //Tester::main_test ();
-        //Bitboard b = 2345;
-        //BitBoard::print (b);
+        //const char *fen;
+        //Position pos (int8_t (0));
+
+        //fen = "r3k2r/pp1pp1pp/1n3pb1/8/1P6/8/2P1BPPP/R1B1K2R w KQkq - 0 1";
+        //Position::parse (pos, fen);
+        //MoveList mov_lst = generate<CAPTURE>(pos);
+        //cout << pos;
+        //cout << mov_lst;
+        //system ("pause");
         //return;
 #endif
 

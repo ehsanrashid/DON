@@ -293,9 +293,8 @@ Piece Position::  move_piece (Square s1, Square s2)
     Piece p = _piece_arr[s1];
     if (!_ok (p)) return PS_NO;
 
-    ASSERT (PS_NO == _piece_arr[s2]);
-    if (PS_NO != _piece_arr[s2])
-        return PS_NO;
+    //ASSERT (PS_NO == _piece_arr[s2]);
+    //if (PS_NO != _piece_arr[s2]) return PS_NO;
 
     Color c = p_color (p);
     PType pt = p_type (p);
@@ -1651,7 +1650,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
-    TRI_LOG_MSG (">" + move_to_can(m, _chess960));
+    //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)
@@ -1669,12 +1668,7 @@ void Position::do_move (string &can, StateInfo &si_n)
 void Position::undo_move ()
 {
     ASSERT (_si->p_si);
-    if (!(_si->p_si)) return;
-
-    if (!_ok (_piece_list[0][2][0]))
-    {
-        int x = 0;
-    }
+    if (_si->p_si == NULL) return;
 
     Move m = _si->last_move;
     ASSERT (_ok (m));
@@ -1756,7 +1750,7 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si     = _si->p_si;
 
-    TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
+    //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 

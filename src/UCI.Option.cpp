@@ -9,6 +9,7 @@
 
 #include "Transposition.h"
 #include "PolyglotBook.h"
+#include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
 
@@ -226,12 +227,12 @@ namespace UCI {
 
         void on_change_threads  (const Option &opt)
         {
-            ats () << "thread changed" << endl;
+            Threads.read_uci_options ();
         }
 
         void on_evaluation  (const Option& opt)
         {
-
+            Evaluator::initialize ();
         }
 
         void on_log_io      (const Option &opt)
