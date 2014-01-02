@@ -187,9 +187,9 @@ private:
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[PT_ALL];
 
-    Square  _piece_list [CLR_NO][PT_NO][16];
-    uint8_t _piece_count[CLR_NO][PT_ALL];
-    uint8_t _piece_index[SQ_NO];
+    Square   _piece_list [CLR_NO][PT_NO][16];
+    uint8_t  _piece_count[CLR_NO][PT_ALL];
+    uint8_t  _piece_index[SQ_NO];
 
     // Object for base status information
     StateInfo  _sb;
@@ -555,12 +555,12 @@ inline Value    Position::non_pawn_material (Color c) const { return _si->non_pa
 
 #pragma region Castling properties
 
-inline CRight Position::can_castle (CRight cr) const { return ::can_castle (castle_rights (), cr); }
-inline CRight Position::can_castle (Color   c) const { return ::can_castle (castle_rights (), c); }
-inline CRight Position::can_castle (Color   c, CSide cs) const { return ::can_castle (castle_rights (), c, cs); }
+inline CRight Position::can_castle (CRight cr) const { return ::can_castle (_si->castle_rights, cr); }
+inline CRight Position::can_castle (Color   c) const { return ::can_castle (_si->castle_rights, c); }
+inline CRight Position::can_castle (Color   c, CSide cs) const { return ::can_castle (_si->castle_rights, c, cs); }
 
 inline CRight Position::castle_right (Color c, File   f) const { return _castle_rights[c][f]; }
-inline CRight Position::castle_right (Color c, Square s) const { return (R_1 == rel_rank (c, s)) ? castle_right (c, _file (s)) : CR_NO; }
+inline CRight Position::castle_right (Color c, Square s) const { return (R_1 == rel_rank (c, s)) ? _castle_rights[c][_file (s)] : CR_NO; }
 
 inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_rooks[c][cs]; }
 

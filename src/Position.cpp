@@ -238,8 +238,12 @@ Position& Position::operator= (const Position &pos)
 void  Position::place_piece (Square s, Color c, PType pt)
 {
     ASSERT (PS_NO == _piece_arr[s]);
-    //if (PS_NO != _piece_arr[s]) return;
-
+    if (PS_NO != _piece_arr[s])
+    {
+        // TODO:: remove
+        cout << *this;
+        return;
+    }
     _piece_arr[s]     = (c | pt);
     _color_bb[c]     += s;
     _types_bb[pt]    += s;
@@ -288,9 +292,10 @@ Piece Position::  move_piece (Square s1, Square s2)
 
     Piece p = _piece_arr[s1];
     if (!_ok (p)) return PS_NO;
-    
+
     ASSERT (PS_NO == _piece_arr[s2]);
-    //if (PS_NO != _piece_arr[s2]) return PS_NO;
+    if (PS_NO != _piece_arr[s2])
+        return PS_NO;
 
     Color c = p_color (p);
     PType pt = p_type (p);
@@ -1646,6 +1651,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
+    TRI_LOG_MSG (">" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)
@@ -1693,6 +1699,19 @@ void Position::undo_move ()
     // undo move according to move type
     switch (mt)
     {
+    case CASTLE:
+        {
+            bool king_side = (dst > org);
+            Square org_king = org;
+            Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+            castle_king_rook (dst_king, org_king, dst_rook, org_rook);
+            pt = KING;
+            ct = PT_NO;
+        }
+        break;
+
     case PROMOTE:
         {
             PType prom = prom_type (m);
@@ -1706,19 +1725,7 @@ void Position::undo_move ()
             pt = PAWN;
         }
         break;
-    case CASTLE:
-        {
-            pt = KING;
-            ct = PT_NO;
 
-            bool king_side = (dst > org);
-            Square org_king = org;
-            Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
-            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-            castle_king_rook (dst_king, org_king, dst_rook, org_rook);
-        }
-        break;
     case ENPASSANT:
         {
             ASSERT (PAWN == pt);
@@ -1726,8 +1733,8 @@ void Position::undo_move ()
             ASSERT (R_5 == rel_rank (active, org));
             ASSERT (R_6 == rel_rank (active, dst));
             ASSERT (dst == _si->p_si->en_passant);
-            //ct = PAWN;
-            cap += pawn_push (pasive);
+            ct = PAWN;
+            cap -= pawn_push (active);
 
             ASSERT (PS_NO == _piece_arr[cap]);
         }
@@ -1747,8 +1754,9 @@ void Position::undo_move ()
 
     --_game_ply;
     // Finally point our state pointer back to the previous state
-    _si = _si->p_si;
+    _si     = _si->p_si;
 
+    TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 
@@ -1773,13 +1781,13 @@ void Position::do_null_move (StateInfo &si_n)
         _si->en_passant = SQ_NO;
     }
 
+    _active = ~_active;
     _si->posi_key ^= ZobGlob._.mover_side;
 
     prefetch ((char *) TT.get_cluster (_si->posi_key));
 
     _si->clock50++;
     _si->null_ply = 0;
-    _active       = ~_active;
 
     ASSERT (ok ());
 }
@@ -1790,9 +1798,10 @@ void Position::undo_null_move ()
     ASSERT (!_si->checkers);
     if (!(_si->p_si))   return;
     if (_si->checkers)  return;
+    
+    _active = ~_active;
 
-    _si         = _si->p_si;
-    _active     = ~_active;
+    _si     = _si->p_si;
 
     ASSERT (ok ());
 }

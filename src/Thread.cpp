@@ -19,7 +19,7 @@ namespace {
 
     // start_routine() is the C function which is called when a new thread
     // is launched. It is a wrapper to the virtual function idle_loop().
-    extern "C" { long start_routine(ThreadBase* th) { th->idle_loop(); return 0; } }
+    extern "C" { long start_routine (ThreadBase *th) { th->idle_loop (); return 0; } }
 
 
     // Helpers to launch a thread after creation and joining before delete. Must be
@@ -28,12 +28,12 @@ namespace {
     template<typename T>
     T* new_thread()
     {
-        T* th = new T();
+        T *th = new T ();
         thread_create (th->handle, start_routine, th); // Will go to sleep
         return th;
     }
 
-    void delete_thread (ThreadBase* th)
+    void delete_thread (ThreadBase *th)
     {
         th->exit = true; // Search must be already finished
         th->notify_one ();
@@ -52,7 +52,7 @@ void ThreadBase::notify_one ()
 }
 
 // ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
-void ThreadBase::wait_for(volatile const bool &b)
+void ThreadBase::wait_for (volatile const bool &b)
 {
     mutex.lock ();
     while (!b) sleep_condition.wait (mutex);
@@ -61,7 +61,7 @@ void ThreadBase::wait_for(volatile const bool &b)
 
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
-Thread::Thread() /* : split_points() */  // Value-initialization bug in MSVC
+Thread::Thread () /* : split_points() */  // Value-initialization bug in MSVC
     : split_points ()
 {
     searching = false;
@@ -88,7 +88,7 @@ bool Thread::cutoff_occurred() const
 // the master of some split point, it is only available as a slave to the slaves
 // which are busy searching the split point at the top of slaves split point
 // stack (the "helpful master concept" in YBWC terminology).
-bool Thread::available_to(const Thread *master) const
+bool Thread::available_to (const Thread *master) const
 {
     if (searching) return false;
 
@@ -103,7 +103,7 @@ bool Thread::available_to(const Thread *master) const
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
 // and then calls check_time(). If msec is 0 thread sleeps until is woken up.
-void TimerThread::idle_loop()
+void TimerThread::idle_loop ()
 {
     while (!exit)
     {
@@ -119,7 +119,7 @@ void TimerThread::idle_loop()
 
 // MainThread::idle_loop() is where the main thread is parked waiting to be started
 // when there is a new search. Main thread will launch all the slave threads.
-void MainThread::idle_loop()
+void MainThread::idle_loop ()
 {
     while (true)
     {
@@ -185,7 +185,7 @@ void ThreadPool::read_uci_options ()
     // Value 0 has a special meaning: We determine the optimal minimum split depth
     // automatically. Anyhow the min_split_depth should never be under 4 plies.
     min_split_depth = !min_split_depth ?
-        (num_threads < 8 ? 4 : 7) * ONE_MOVE : max(4 * ONE_MOVE, min_split_depth);
+        (num_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, min_split_depth);
 
     while (size () < num_threads)
     {
@@ -300,7 +300,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
     searching = true;
     --split_points_size;
     active_split_point = sp.parent_split_point;
-    active_pos = &pos;
+    active_pos  = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
     *best_move  = sp.best_move;
     *best_value = sp.best_value;
@@ -326,7 +326,7 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
 
     rootMoves.clear();
     rootPos = pos;
-    limits = search_limits;
+    limits  = search_limits;
     if (states.get ()) // If we don't set a new position, preserve current state
     {
         setupStates = move (states); // Ownership transfer here
