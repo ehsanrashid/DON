@@ -105,7 +105,6 @@ namespace {
 
             value += pc * v;
         }
-
         return value;
     }
 

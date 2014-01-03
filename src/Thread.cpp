@@ -235,6 +235,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
 
     // Pick the next available split point from the split point stack
     SplitPoint &sp = split_points[split_points_size];
+
     sp.master_thread = this;
     sp.parent_split_point = active_split_point;
     sp.slaves_mask  = 1ULL << idx;
@@ -283,7 +284,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
         sp.mutex.unlock ();
         Threads.mutex.unlock ();
 
-        //Thread::idle_loop(); // Force a call to base class idle_loop()
+        Thread::idle_loop(); // Force a call to base class idle_loop()
 
         // In helpful master concept a master can help only a sub-tree of its split
         // point, and because here is all finished is not possible master is booked.

@@ -1387,6 +1387,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
         Value best_value;
         Value old_alpha;
+        StateInfo si;
 
         // To flag EXACT a node with eval_value above alpha and no available moves
         if (PVNode) old_alpha = alpha;
@@ -1533,7 +1534,6 @@ moves_loop: // When in check and at SPNode search starts from here
 
             ss->current_move = move;
 
-            StateInfo si;
             // Make and search the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
@@ -1757,7 +1757,7 @@ void Thread::idle_loop ()
             Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
             Position pos (*sp->pos, this);
 
-            memcpy (ss-2, sp->ss-2, 5 * sizeof(Stack));
+            memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
             ss->split_point = sp;
 
             sp->mutex.lock ();
