@@ -240,11 +240,9 @@ void  Position::place_piece (Square s, Color c, PType pt)
     ASSERT (PS_NO == _piece_arr[s]);
     if (PS_NO != _piece_arr[s])
     {
-        // TODO:: remove
-        cout << *this;
         return;
     }
-    _piece_arr[s]     = (c | pt);
+    _piece_arr[s]    = (c | pt);
     _color_bb[c]     += s;
     _types_bb[pt]    += s;
     _types_bb[PT_NO] += s;
@@ -282,6 +280,7 @@ Piece Position::remove_piece (Square s)
     // Update piece list, remove piece at [s] index and shrink the list.
     Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     _piece_index[last_sq] = _piece_index[s];
+    if (s != last_sq) _piece_index[s] = -1;
     _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
     return p;
@@ -293,8 +292,11 @@ Piece Position::  move_piece (Square s1, Square s2)
     Piece p = _piece_arr[s1];
     if (!_ok (p)) return PS_NO;
 
-    //ASSERT (PS_NO == _piece_arr[s2]);
-    //if (PS_NO != _piece_arr[s2]) return PS_NO;
+    ASSERT (PS_NO == _piece_arr[s2]);
+    if (PS_NO != _piece_arr[s2])
+    {
+        return PS_NO;
+    }
 
     Color c = p_color (p);
     PType pt = p_type (p);
@@ -316,8 +318,8 @@ Piece Position::  move_piece (Square s1, Square s2)
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.
     _piece_index[s2] = _piece_index[s1];
+    _piece_index[s1] = -1;
     _piece_list[c][pt][_piece_index[s2]] = s2;
-    //_piece_index[s1] = 0;
 
     return p;
 }
@@ -421,15 +423,26 @@ bool Position::ok (int8_t *failed_step) const
     // step 5
     if (++(*step), debug_piece_count)
     {
-        if (pop_count<FULL> (pieces ()) > 32) return false;
-        if (piece_count () > 32) return false;
-        if (piece_count () != pop_count<FULL> (pieces ())) return false;
-
+        if (pop_count<FULL> (pieces ()) > 32)
+        {
+            return false;
+        }
+        if (piece_count () > 32)
+        {
+            return false;
+        }
+        if (piece_count () != pop_count<FULL> (pieces ()))
+        {
+            return false;
+        }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt))) return false;
+                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt)))
+                {
+                    return false;
+                }
             }
         }
     }
@@ -512,16 +525,27 @@ bool Position::ok (int8_t *failed_step) const
                 for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (!_ok (_piece_list[c][pt][i]))
+                    {
                         return false;
-                    if (_piece_arr[_piece_list[c][pt][i]] != (c | pt)) return false;
-                    if (_piece_index[_piece_list[c][pt][i]] != i) return false;
+                    }
+                    if (_piece_arr[_piece_list[c][pt][i]] != (c | pt))
+                    {
+                        // TODO:: problem bug
+                        return false;
+                    }
+                    if (_piece_index[_piece_list[c][pt][i]] != i)
+                    {
+                        return false;
+                    }
                 }
             }
         }
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             if (_piece_index[s] >= 16)
+            {
                 return false;
+            }
         }
     }
 
@@ -1231,6 +1255,11 @@ void Position::clear ()
             _piece_list[WHITE][i][j] = _piece_list[BLACK][i][j] = SQ_NO;
         }
     }
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        _piece_index[s] = -1;
+    }
+
     //fill (
     //    _castle_rooks[0] + 0,
     //    _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
@@ -1650,8 +1679,16 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
+    // TODO::
     //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
-    ASSERT (ok ());
+    //ASSERT (ok ());
+    int8_t failed_step;
+    ASSERT (ok (&failed_step));
+    if (failed_step)
+    {
+        //TRI_LOG_MSG (int32_t (failed_step));
+    }
+
 }
 void Position::do_move (Move m, StateInfo &si_n)
 {
@@ -1750,8 +1787,17 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si     = _si->p_si;
 
+    // TODO::
     //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
-    ASSERT (ok ());
+    //ASSERT (ok ());
+
+    int8_t failed_step;
+    ASSERT (ok (&failed_step));
+    if (failed_step)
+    {
+        //TRI_LOG_MSG (int32_t (failed_step));
+    }
+
 }
 
 // do_null_move() do the null-move
@@ -1792,7 +1838,7 @@ void Position::undo_null_move ()
     ASSERT (!_si->checkers);
     if (!(_si->p_si))   return;
     if (_si->checkers)  return;
-    
+
     _active = ~_active;
 
     _si     = _si->p_si;

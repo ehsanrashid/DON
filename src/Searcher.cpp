@@ -358,7 +358,8 @@ namespace Searcher {
         {
             Log log (fn_search_log);
 
-            log << "Searching: "    << rootPos.fen () << '\n'
+            log << "---------\n"
+                << "Searching: "    << rootPos.fen () << '\n'
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
                 << " time: "        << limits.game_clock[rootColor].time
@@ -606,7 +607,7 @@ namespace {
                     << endl;
             }
 
-            // Do we have found a "mate in x"?
+            // Have found a "mate in x"?
             if (   limits.mate_in
                 && best_value >= VALUE_MATES_IN_MAX_PLY
                 && VALUE_MATE - best_value <= 2 * limits.mate_in)
@@ -704,8 +705,7 @@ namespace {
         // Step 1. Initialize node
         Thread *thread = pos.thread ();
         bool in_check  = pos.checkers ();
-        int32_t  move_count = 0;
-        int32_t quiet_count = 0;
+        int32_t  move_count, quiet_count;
 
         if (SPNode)
         {
@@ -721,6 +721,7 @@ namespace {
             goto moves_loop;
         }
 
+        move_count = quiet_count = 0;
         best_value = -VALUE_INFINITE;
         best_move  = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
 
@@ -766,11 +767,11 @@ namespace {
         // we should also update RootMoveList to avoid bogus output.
         if (   !RootNode
             && te
-            && te->depth() >= depth
+            && te->depth () >= depth
             && tt_value != VALUE_NONE // Only in case of TT access race
             && (        PVNode ?  te->bound() == BND_EXACT
             : tt_value >= beta ? (te->bound() &  BND_LOWER)
-            : (te->bound() & BND_UPPER)))
+            /**/               : (te->bound () & BND_UPPER)))
         {
             TT.refresh (te);
             ss->current_move = tt_move; // Can be MOVE_NONE
@@ -1120,8 +1121,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 }
 
                 // Prune moves with negative SEE at low depths
-                if (   predicted_depth < 4 * ONE_MOVE
-                    && pos.see_sign (move) < 0)
+                if (predicted_depth < 4 * ONE_MOVE && pos.see_sign (move) < 0)
                 {
                     if (SPNode) split_point->mutex.lock ();
                     continue;
@@ -1136,6 +1136,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 continue;
             }
 
+            bool is_pv_move = PVNode && (move_count == 1);
             ss->current_move = move;
 
             if (!SPNode && !capture_or_promotion)
@@ -1146,7 +1147,6 @@ moves_loop: // When in check and at SPNode search starts from here
             // Step 14. Make the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
-            bool is_pv_move = PVNode && (move_count == 1);
             bool full_depth_search;
 
             // Step 15. Reduced depth search (LMR). If the move fails high will be
