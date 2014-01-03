@@ -12,7 +12,7 @@ inline bool   _ok (File f)
 }
 inline File operator~ (File f)
 {
-    return File (f ^ 0x07); // Mirror
+    return File (f ^ int32_t (F_H)); // Mirror
 }
 inline File to_file (char f)
 {
@@ -22,7 +22,7 @@ inline File to_file (char f)
 }
 inline char to_char (File f, bool lower = true)
 {
-    return char (f - F_A) + (lower ? 'a' : 'A');
+    return char (f - int32_t (F_A)) + (lower ? 'a' : 'A');
 }
 
 
@@ -41,7 +41,7 @@ inline bool   _ok (Rank r)
 }
 inline Rank operator~ (Rank r)
 {
-    return Rank (r ^ 0x07); // Flip
+    return Rank (r ^ int32_t (R_8)); // Flip
 }
 inline Rank to_rank (char r)
 {
@@ -50,7 +50,7 @@ inline Rank to_rank (char r)
 }
 inline char to_char (Rank r)
 {
-    return char (r - R_1) + '1';
+    return char (r - int32_t (R_1)) + '1';
 }
 
 template<class charT, class Traits>
@@ -154,11 +154,11 @@ inline Color p_color (Square s)
 }
 inline Square operator~  (Square s)
 {
-    return Square (s ^ 0x38);  // FLIP   => SQ_A1 -> SQ_A8
+    return Square (s ^ int32_t (SQ_A8));  // FLIP   => SQ_A1 -> SQ_A8
 }
 inline Square operator!  (Square s)
 {
-    return Square (s ^ 0x07);  // MIRROR => SQ_A1 -> SQ_H1
+    return Square (s ^ int32_t (SQ_H1));  // MIRROR => SQ_A1 -> SQ_H1
 }
 inline Rank   rel_rank  (Color c, Rank r)
 {
@@ -170,7 +170,7 @@ inline Rank   rel_rank  (Color c, Square s)
 }
 inline Square rel_sq    (Color c, Square s)
 {
-    return Square (s ^ (c * 0x38));
+    return Square (s ^ (c * int32_t (SQ_A8)));
 }
 inline bool opposite_colors (Square s1, Square s2)
 {

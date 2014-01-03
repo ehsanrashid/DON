@@ -127,9 +127,9 @@ namespace BitBases {
             Bitboard b = attacks_bb<KING> ((WHITE == C) ? wk_sq : bk_sq);
             while (b)
             {
-                r |= (WHITE == C)
-                    ? db[index(C_, bk_sq, pop_lsq (b), p_sq)]
-                : db[index(C_, pop_lsq (b), wk_sq, p_sq)];
+                r |= (WHITE == C) ?
+                    db[index(C_, bk_sq, pop_lsq (b), p_sq)] :
+                    db[index(C_, pop_lsq (b), wk_sq, p_sq)];
             }
 
             if ((WHITE == C) && (_rank (p_sq) < R_7))

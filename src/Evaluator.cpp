@@ -96,24 +96,24 @@ namespace {
     {
         {},
         // Knights
-        {S(-35,-30), S(-22,-20), S(-9,-10), S( 3,  0), S(15, 10),
-        S(27, 20), S( 37, 28), S( 42, 31), S(44, 33)
+        {S(-35,-30), S(-22,-20), S(- 9,-10), S(  3,  0), S( 15, 10),
+        S( 27, 20), S( 37, 28), S( 42, 31), S( 44, 33)
         },
         // Bishops
-        {S(-22,-27), S( -8,-13), S( 6,  1), S(20, 15), S(34, 29), S(48, 43), S( 60, 55),
-        S( 68, 63), S(74, 68), S(77, 72), S(80, 75), S(82, 77), S( 84, 79), S( 86, 81)
+        {S(-22,-27), S(- 8,-13), S(  6,  1), S( 20, 15), S( 34, 29), S( 48, 43), S( 60, 55),
+        S( 68, 63), S( 74, 68), S( 77, 72), S( 80, 75), S( 82, 77), S( 84, 79), S( 86, 81)
         },
         // Rooks
-        {S(-17,-33), S(-11,-16), S(-5,  0), S( 1, 16), S( 7, 32), S(13, 48),
-        S( 18, 64), S( 22, 80), S(26, 96), S(29,109), S(31,115), S(33,119),
-        S( 35,122), S( 36,123), S(37,124),
+        {S(-17,-33), S(-11,-16), S(- 5,  0), S(  1, 16), S(  7, 32), S( 13, 48),
+        S( 18, 64), S( 22, 80), S( 26, 96), S( 29,109), S( 31,115), S( 33,119),
+        S( 35,122), S( 36,123), S( 37,124),
         },
         // Queens
-        {S(-12,-20), S( -8,-13), S(-5, -7), S(-2, -1), S( 1,  5), S( 4, 11),
-        S(  7, 17), S( 10, 23), S(13, 29), S(16, 34), S(18, 38), S(20, 40),
-        S( 22, 41), S( 23, 41), S(24, 41), S(25, 41), S(25, 41), S(25, 41),
-        S( 25, 41), S( 25, 41), S(25, 41), S(25, 41), S(25, 41), S(25, 41),
-        S( 25, 41), S( 25, 41), S(25, 41), S(25, 41)
+        {S(-12,-20), S(- 8,-13), S(- 5, -7), S(- 2,- 1), S( 1,  5), S(  4, 11),
+        S(  7, 17), S( 10, 23), S( 13, 29), S( 16, 34), S( 18, 38), S( 20, 40),
+        S( 22, 41), S( 23, 41), S( 24, 41), S( 25, 41), S( 25, 41), S( 25, 41),
+        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41),
+        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41)
         },
     };
 
@@ -149,41 +149,41 @@ namespace {
     // type attacks which one.
     const Score ThreatBonus[][PT_NO] =
     {
-        { S(0, 0), S( 7, 39), S(24, 49), S(24, 49), S(41,100), S(41,100) }, // Minor
-        { S(0, 0), S(15, 39), S(15, 45), S(15, 45), S(15, 45), S(24, 49) }, // Major
+        { S(  0,  0), S(  7, 39), S( 24, 49), S( 24, 49), S( 41,100), S( 41,100) }, // Minor
+        { S(  0,  0), S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49) }, // Major
     };
 
     // ThreatenedByPawnPenalty[PType] contains a penalty according to which piece
     // type is attacked by an enemy pawn.
     const Score ThreatenedByPawnPenalty[PT_NO] =
     {
-        S(0, 0), S(56, 70), S(56, 70), S(76, 99), S(86, 118), S(0, 0),
+        S(  0,  0), S( 56, 70), S( 56, 70), S( 76, 99), S( 86, 118), S(  0,  0),
     };
 
 
-    const Score TempoBonus             = S(24, 11);
-    //const Score BishopPinBonus         = S(66, 11);
+    const Score TempoBonus             = S( 24, 11);
+    //const Score BishopPinBonus         = S( 66, 11);
 
-    const Score RookOn7thBonus         = S(11, 20);
-    const Score QueenOn7thBonus        = S( 3,  8);
+    const Score RookOn7thBonus         = S( 11, 20);
+    const Score QueenOn7thBonus        = S(  3,  8);
 
-    const Score RookOnPawnBonus        = S(10, 28);
-    const Score QueenOnPawnBonus       = S( 4, 20);
+    const Score RookOnPawnBonus        = S( 10, 28);
+    const Score QueenOnPawnBonus       = S(  4, 20);
 
-    const Score RookOpenFileBonus      = S(43, 21);
-    const Score RookSemiopenFileBonus  = S(19, 10);
+    const Score RookOpenFileBonus      = S( 43, 21);
+    const Score RookSemiopenFileBonus  = S( 19, 10);
 
-    const Score BishopPawnsPenalty     = S( 8, 12);
-    const Score KnightPawnsPenalty     = S( 8,  4);
-    const Score MinorBehindPawnBonus   = S(16,  0);
-    const Score UndefendedMinorPenalty = S(25, 10);
-    const Score TrappedRookPenalty     = S(90,  0);
-    const Score UnstoppablePawnBonus   = S( 0, 20);
+    const Score BishopPawnsPenalty     = S(  8, 12);
+    const Score KnightPawnsPenalty     = S(  8,  4);
+    const Score MinorBehindPawnBonus   = S( 16,  0);
+    const Score UndefendedMinorPenalty = S( 25, 10);
+    const Score TrappedRookPenalty     = S( 90,  0);
+    const Score UnstoppablePawnBonus   = S(  0, 20);
 
     // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
     // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
     // happen in Chess960 games.
-    const Score TrappedBishopA1H1 = S(50, 50);
+    const Score TrappedBishopA1H1 = S( 50, 50);
 
 #undef S
 #undef V
@@ -207,9 +207,9 @@ namespace {
     const int32_t KingAttackWeights[PT_NO] = { 0, 2, 2, 3, 5, 0, };
 
     // Bonuses for enemy's safe checks
-    const int32_t KnightCheck       = 3;
-    const int32_t BishopCheck       = 2;
-    const int32_t RookCheck         = 8;
+    const int32_t KnightCheck       =  3;
+    const int32_t BishopCheck       =  2;
+    const int32_t RookCheck         =  8;
     const int32_t QueenCheck        = 12;
     const int32_t RookContactCheck  = 16;
     const int32_t QueenContactCheck = 24;
@@ -279,8 +279,6 @@ namespace {
         ASSERT (!pos.checkers());
         // Score is computed from the point of view of white.
         Score score;
-
-        EvalInfo ei;
         Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
 
         Thread *thread = pos.thread ();
@@ -288,7 +286,8 @@ namespace {
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
         score = pos.psq_score () + (WHITE == pos.active () ? TempoBonus : -TempoBonus);
-
+        
+        EvalInfo ei;
         // Probe the material hash table
         ei.mi = Material::probe (pos, thread->material_table, thread->endgames);
         score += ei.mi->material_score ();
@@ -351,7 +350,8 @@ namespace {
             && pos.opposite_bishops ()
             && sf == SCALE_FACTOR_NORMAL)
         {
-            // Only the two bishops ?
+            // Ignoring any pawns, do both sides only have a single bishop and no
+            // other pieces?
             if (   pos.non_pawn_material (WHITE) == VALUE_MG_BISHOP
                 && pos.non_pawn_material (BLACK) == VALUE_MG_BISHOP)
             {
@@ -385,7 +385,8 @@ namespace {
             Tracing::add (SPACE, apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
             Tracing::add (TOTAL, score);
             Tracing::stream
-                //<< "\nUncertainty margin:"
+                << "-------\n"
+                //<< "Uncertainty margin:"
                 //<< " White: " << to_cp (margins[WHITE]) << "-"
                 //<< " Black: " << to_cp (margins[BLACK]) << "\n"
                 << "Scaling: " << noshowpos
@@ -559,7 +560,7 @@ namespace {
                 {
                     switch (PT)
                     {
-                    case ROOK: score += RookOn7thBonus;  break;
+                    case ROOK: score +=  RookOn7thBonus; break;
                     case QUEN: score += QueenOn7thBonus; break;
                     }
                 }
@@ -585,8 +586,8 @@ namespace {
                     continue;
                 }
 
-                // Penalize rooks which are trapped inside a king. Penalize more if
-                // king has lost right to castle.
+                // Penalize rooks which are trapped by a king. Penalize more if the
+                // king has lost its castling capability.
                 if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
                     && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
                     && !ei.pi->semiopen_on_side(C, _file (fk_sq), _file (fk_sq) < F_E))
@@ -823,7 +824,7 @@ namespace {
 
             // Base bonus based on rank
             Value mg_bonus = Value (17 * rr);
-            Value eg_bonus = Value (7 * (rr + r + 1));
+            Value eg_bonus = Value ( 7 * (rr + r + 1));
 
             if (0 != rr)
             {

@@ -13,7 +13,7 @@ namespace {
 
     enum Stages : uint8_t
     {
-        RELAXS, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
+        MAIN_STAGE, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS,    EVASIONS_S2,
         QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
         QSEARCH_1,   CAPTURES_S4,
@@ -66,7 +66,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     counter_moves = cm;
     ss = s;
 
-    stage = pos.checkers () ? EVASIONS : RELAXS;
+    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
@@ -326,7 +326,7 @@ Move MovePicker::next_move<false>()
         switch (stage)
         {
 
-        case RELAXS:
+        case MAIN_STAGE:
         case EVASIONS:
         case QSEARCH_0:
         case QSEARCH_1:

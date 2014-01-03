@@ -68,7 +68,7 @@ inline DWORD* dwWin9xKludge() { static DWORD dw; return &dw; }
 
 #endif
 
-void timed_wait(WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
+extern void timed_wait(WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
 
 
 struct Mutex
@@ -220,10 +220,7 @@ struct ThreadPool
     void initialize (); 
     void deinitialize (); 
 
-    MainThread* main ()
-    {
-        return static_cast<MainThread*>((*this)[0]);
-    }
+    MainThread* main () { return static_cast<MainThread*>((*this)[0]); }
 
     void read_uci_options();
     
@@ -248,7 +245,7 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
     ts.tv_nsec = (ms % 1000) * 1000000LL;
 #endif
 
-    cond_timedwait(sleep_cond, sleep_lock, tm);
+    cond_timedwait (sleep_cond, sleep_lock, tm);
 }
 
 extern ThreadPool Threads;

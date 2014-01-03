@@ -281,7 +281,7 @@ Piece Position::remove_piece (Square s)
     Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     _piece_index[last_sq] = _piece_index[s];
     if (s != last_sq) _piece_index[s] = -1;
-    _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
     return p;
 }
