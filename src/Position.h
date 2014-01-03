@@ -42,7 +42,7 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma region State Information
 
-#pragma pack (push, 4)
+//#pragma pack (push, 4)
 
 // StateInfo stores information to restore Position object to its previous state when retracting a move.
 // Whenever a move is made on the board (do_move), a StateInfo object must be passed as a parameter.
@@ -110,13 +110,13 @@ public:
 
 } StateInfo;
 
-#pragma pack (pop)
+//#pragma pack (pop)
 
 #pragma endregion
 
 #pragma region Check Inforamtion
 
-#pragma pack (push, 4)
+//#pragma pack (push, 4)
 
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
@@ -142,7 +142,7 @@ public:
 
 } CheckInfo;
 
-#pragma pack (pop)
+//#pragma pack (pop)
 
 #pragma endregion
 
@@ -155,7 +155,7 @@ CACHE_ALIGN(32)
     { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
 };
 
-#pragma pack (push, 4)
+//#pragma pack (push, 4)
 
 // The position data structure. A position consists of the following data:
 //
@@ -176,7 +176,7 @@ CACHE_ALIGN(32)
 //    used to implement the Chess960 castling rules.
 //  - Nodes visited during search.
 //  - Chess 960 info
-typedef class Position sealed
+typedef class Position
 {
 
 private:
@@ -482,7 +482,7 @@ public:
 
 } Position;
 
-#pragma pack (pop)
+//#pragma pack (pop)
 
 #pragma region Basic properties
 

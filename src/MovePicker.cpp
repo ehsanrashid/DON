@@ -201,11 +201,18 @@ void MovePicker::generate_moves ()
 {
     uint16_t index = 0;
     MoveList mov_lst = generate<GT>(pos);
-    for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    //for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    //{
+    //    moves[index].move = m;
+    //    ++index;
+    //});
+    MoveList::const_iterator itr = mov_lst.cbegin ();
+    while (itr != mov_lst.cend ())
     {
-        moves[index].move = m;
+        moves[index].move = *itr;
         ++index;
-    });
+        ++itr;
+    }
     moves[index].move = MOVE_NONE;
     end = moves + index;
 }

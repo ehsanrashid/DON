@@ -1682,13 +1682,13 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // TODO::
     //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
     //ASSERT (ok ());
-    int8_t failed_step;
-    ASSERT (ok (&failed_step));
-    if (failed_step)
-    {
-        //TRI_LOG_MSG (int32_t (failed_step));
-    }
 
+    //int8_t failed_step;
+    //ASSERT (ok (&failed_step));
+    //if (failed_step)
+    //{
+    //    //TRI_LOG_MSG (int32_t (failed_step));
+    //}
 }
 void Position::do_move (Move m, StateInfo &si_n)
 {
@@ -1791,13 +1791,12 @@ void Position::undo_move ()
     //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
     //ASSERT (ok ());
 
-    int8_t failed_step;
-    ASSERT (ok (&failed_step));
-    if (failed_step)
-    {
-        //TRI_LOG_MSG (int32_t (failed_step));
-    }
-
+    //int8_t failed_step;
+    //ASSERT (ok (&failed_step));
+    //if (failed_step)
+    //{
+    //    //TRI_LOG_MSG (int32_t (failed_step));
+    //}
 }
 
 // do_null_move() do the null-move

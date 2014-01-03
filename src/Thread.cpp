@@ -179,7 +179,7 @@ void ThreadPool::read_uci_options ()
     max_threads_per_split_point = int32_t (*(Options["Threads per Split Point"]));
     min_split_depth             = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
     int32_t num_threads         = int32_t (*(Options["Threads"]));
-    
+
     ASSERT (num_threads > 0);
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
@@ -322,8 +322,10 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
 
     searchTime = Time::now (); // As early as possible
 
-    signals.stop_on_ponderhit = signals.first_root_move = false;
-    signals.stop = signals.failed_low_at_root = false;
+    signals.stop_on_ponderhit = false;
+    signals.first_root_move = false;
+    signals.stop = false;
+    signals.failed_low_at_root = false;
 
     rootMoves.clear();
     rootPos = pos;

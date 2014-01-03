@@ -85,26 +85,23 @@ namespace Engine {
         return sinfo.str ();
     }
 
-    void start ()
+    void start (const std::string &args)
     {
+        cout << Engine::info () << endl;
 
         UCI::init_options();
         BitBoard ::initialize ();
         Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
-        Pawns    ::initialize ();
-
         Searcher ::initialize ();
+        Pawns    ::initialize ();
         Evaluator::initialize ();
-
         Threads.initialize ();
         TT.resize (int32_t (*(Options["Hash"])));
 
-        cout << Engine::info () << endl;
-
 #ifdef _DEBUG
-        //Tester::main_test ();
+        Tester::main_test ();
         //const char *fen;
         //Position pos (int8_t (0));
 
@@ -117,7 +114,7 @@ namespace Engine {
         //return;
 #endif
 
-        UCI::start ();
+        UCI::start (args);
 
         Threads.deinitialize ();
         UCI::clear_options ();

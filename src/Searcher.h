@@ -8,6 +8,8 @@
 #include "Move.h"
 #include "Position.h"
 
+#pragma warning (disable: 4805)
+
 class PolyglotBook;
 struct SplitPoint;
 
@@ -66,7 +68,7 @@ namespace Searcher {
 
         bool use_time_management () const
         {
-            return !(infinite || mate_in || move_time || depth || nodes);
+            return !(infinite | mate_in | move_time | depth | nodes);
         }
 
         // Determines how much time it should search
@@ -125,8 +127,8 @@ namespace Searcher {
         }
 
         // Ascending Sort
-        bool operator< (const RootMove &rm) const { return curr_value > rm.curr_value; }
-        bool operator== (const Move &m) const { return m == pv[0]; }
+        bool operator<  (const RootMove &rm) const { return (curr_value > rm.curr_value); }
+        bool operator== (const Move &m) const { return (m == pv[0]); }
 
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
@@ -139,14 +141,14 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     typedef struct Stack
     {
-        SplitPoint* split_point;
-        int32_t ply;
-        Move current_move;
-        Move excluded_move;
-        Move killers[2];
-        Depth reduction;
-        Value static_eval;
-        int32_t skip_null_move;
+        SplitPoint *split_point;
+        int32_t     ply;
+        Move        current_move;
+        Move        excluded_move;
+        Move        killers[2];
+        Depth       reduction;
+        Value       static_eval;
+        int32_t     skip_null_move;
     } Stack;
 
 

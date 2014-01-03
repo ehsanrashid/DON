@@ -56,7 +56,7 @@ namespace {
     // Dynamic razoring margin based on depth
     inline Value razor_margin (Depth d) { return Value(512 + 16 * int32_t (d)); }
 
-    int32_t pv_size, pv_idx;
+    uint32_t pv_size, pv_idx;
     TimeManager time_mgr;
     double best_move_changes;
     Value draw_value[CLR_NO];
@@ -96,10 +96,10 @@ namespace {
             }
         }
 
-        bool enabled ()                  const { return level < 20; }
-        bool time_to_pick(int16_t depth) const { return depth == (1 + level); }
+        bool enabled ()                   const { return level < 20; }
+        bool time_to_pick (int16_t depth) const { return depth == (1 + level); }
 
-        Move pick_move();
+        Move pick_move ();
 
     };
 
@@ -112,17 +112,23 @@ namespace {
     {
         size_t cnt = 0;
         const bool leaf = (depth == ONE_MOVE);
-
+        StateInfo si;
         CheckInfo ci (pos);
         MoveList mov_lst = generate<LEGAL>(pos);
-        for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+        //for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+        //{
+        //    pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
+        //    cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
+        //    pos.undo_move ();
+        //});
+        MoveList::const_iterator itr = mov_lst.cbegin ();
+        while (itr != mov_lst.cend ())
         {
-            StateInfo si;
+            Move m = *itr;
             pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
             cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
-        });
-
+        }
         return cnt;
     }
 
@@ -134,16 +140,14 @@ namespace {
     {
         if (hits[0])
         {
-            cerr
-                << "Total " << hits[0]
-                << " Hits " << hits[1]
-                << " Hit-rate (%) " << (100 * hits[1] / hits[0]) << endl;
+            cerr << "Total " << hits[0]
+            << " Hits " << hits[1]
+            << " Hit-rate (%) " << (100 * hits[1] / hits[0]) << endl;
         }
         if (means[0])
         {
-            cerr 
-                << "Total " << means[0]
-                << " Mean " << double (means[1]) / double (means[0]) << endl;
+            cerr << "Total " << means[0]
+            << " Mean " << double (means[1]) / double (means[0]) << endl;
         }
     }
 
@@ -395,7 +399,7 @@ namespace Searcher {
 
             StateInfo si;
             rootPos.do_move (rootMoves[0].pv[0], si);
-            log << "Ponder move: " << move_to_san(rootMoves[0].pv[1], rootPos) << endl;
+            log << "Ponder move: " << move_to_san (rootMoves[0].pv[1], rootPos) << endl;
             rootPos.undo_move ();
         }
 
@@ -481,7 +485,7 @@ namespace {
         history.clear();
         counter_moves.clear();
 
-        pv_size = *(Options["MultiPV"]);
+        pv_size = int32_t (*(Options["MultiPV"]));
         Skill skill (*(Options["Skill Level"]));
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
@@ -538,7 +542,7 @@ namespace {
 
                     // Write PV back to transposition table in case the relevant
                     // entries have been overwritten during the search.
-                    for (size_t i = 0; i <= pv_idx; ++i)
+                    for (uint32_t i = 0; i <= pv_idx; ++i)
                     {
                         rootMoves[i].insert_pv_into_tt (pos);
                     }
@@ -643,15 +647,15 @@ namespace {
                     && (rootMoves.size () == 1
                     || (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
                 {
-                    Value r_beta = best_value - 2 * VALUE_MG_PAWN;
+                    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
 
                     ss->excluded_move  = rootMoves[0].pv[0];
                     ss->skip_null_move = true;
-                    Value value = search<NonPV>(pos, ss, r_beta - 1, r_beta, (depth - 3) * int32_t (ONE_MOVE), true);
+                    Value value = search<NonPV>(pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
                     ss->skip_null_move = false;
                     ss->excluded_move  = MOVE_NONE;
 
-                    if (value < r_beta) stop = true;
+                    if (value < rbeta) stop = true;
                 }
 
                 if (stop)
@@ -724,11 +728,10 @@ namespace {
         move_count = quiet_count = 0;
         best_value = -VALUE_INFINITE;
         best_move  = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
-
-        (ss)->ply = (ss-1)->ply + 1;
+        (ss)->ply  = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
-        (ss+1)->reduction   = DEPTH_ZERO;
-        (ss+2)->killers[0]  = (ss+2)->killers[1] = MOVE_NONE;
+        (ss+1)->reduction      = DEPTH_ZERO;
+        (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
 
         // Used to send sel_depth info to GUI
         if (PVNode && thread->max_ply < ss->ply) thread->max_ply = ss->ply;
@@ -769,8 +772,8 @@ namespace {
             && te
             && te->depth () >= depth
             && tt_value != VALUE_NONE // Only in case of TT access race
-            && (        PVNode ?  te->bound() == BND_EXACT
-            : tt_value >= beta ? (te->bound() &  BND_LOWER)
+            && (        PVNode ?  te->bound () == BND_EXACT
+            : tt_value >= beta ? (te->bound () &  BND_LOWER)
             /**/               : (te->bound () & BND_UPPER)))
         {
             TT.refresh (te);
@@ -1067,14 +1070,14 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (tt_value != VALUE_NONE);
 
-                Value r_beta = tt_value - int32_t (depth);
+                Value rbeta = tt_value - int32_t (depth);
                 ss->excluded_move = move;
                 ss->skip_null_move = true;
-                value = search<NonPV>(pos, ss, r_beta - 1, r_beta, depth / 2, cut_node);
+                value = search<NonPV>(pos, ss, rbeta - 1, rbeta, depth / 2, cut_node);
                 ss->skip_null_move = false;
                 ss->excluded_move = MOVE_NONE;
 
-                if (value < r_beta) ext = ONE_MOVE;
+                if (value < rbeta) ext = ONE_MOVE;
             }
 
             // Update current move (this must be done after singular extension search)
@@ -1136,7 +1139,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 continue;
             }
 
-            bool is_pv_move = PVNode && (move_count == 1);
+            bool move_pv = PVNode && (move_count == 1);
             ss->current_move = move;
 
             if (!SPNode && !capture_or_promotion)
@@ -1149,10 +1152,10 @@ moves_loop: // When in check and at SPNode search starts from here
 
             bool full_depth_search;
 
-            // Step 15. Reduced depth search (LMR). If the move fails high will be
-            // re-searched at full depth.
+            // Step 15. Reduced depth search (LMR).
+            // If the move fails high will be re-searched at full depth.
             if (    depth >= 3 * ONE_MOVE
-                && !is_pv_move
+                && !move_pv
                 && !capture_or_promotion
                 &&  tt_move        != move
                 &&  ss->killers[0] != move
@@ -1192,7 +1195,7 @@ moves_loop: // When in check and at SPNode search starts from here
             }
             else
             {
-                full_depth_search = !is_pv_move;
+                full_depth_search = !move_pv;
             }
 
             // Step 16. Full depth search, when LMR is skipped or fails high
@@ -1211,7 +1214,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Only for PV nodes do a full PV search on the first move or after a fail
             // high, in the latter case search only if value < beta, otherwise let the
             // parent node to fail low with value <= alpha and to try another move.
-            if (PVNode && (is_pv_move || (value > alpha && (RootNode || value < beta))))
+            if (PVNode && (move_pv || (value > alpha && (RootNode || value < beta))))
             {
                 value =
                     new_depth < ONE_MOVE
@@ -1248,7 +1251,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 RootMove &rm = *find (rootMoves.begin (), rootMoves.end (), move);
 
                 // PV move or new best move ?
-                if (is_pv_move || value > alpha)
+                if (move_pv || value > alpha)
                 {
                     rm.curr_value = value;
                     rm.extract_pv_from_tt (pos);
@@ -1256,7 +1259,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     // We record how often the best move has been changed in each
                     // iteration. This information is used for time management: When
                     // the best move changes frequently, we allocate some more time.
-                    if (!is_pv_move) ++best_move_changes;
+                    if (!move_pv) ++best_move_changes;
                 }
                 else
                 {
@@ -1508,7 +1511,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 else if (futility_base < beta && pos.see (move) <= 0)
                 {
                     if (futility_base > best_value) best_value = futility_base;
-                    
+
                     continue;
                 }
             }
@@ -1668,8 +1671,8 @@ moves_loop: // When in check and at SPNode search starts from here
             }
         }
 
-        int32_t pv_size = min<int32_t> (*(Options["MultiPV"]), rootMoves.size ());
-        for (int32_t i = 0; i < pv_size; ++i)
+        uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), rootMoves.size ());
+        for (uint32_t i = 0; i < pv_size; ++i)
         {
             bool updated = (i <= pv_idx);
 

@@ -9,13 +9,13 @@ using namespace std;
 
 namespace {
 
-    const int32_t MoveHorizon   = 50;   // Plan time management at most this many moves ahead
-    const double  MaxRatio      = 7.0;  // When in trouble, we can step over reserved time with this ratio
-    const double  StealRatio    = 0.33; // However we must not steal time from remaining moves over this ratio
+    const int32_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
+    const double  MaxRatio      =  7.0;  // When in trouble, we can step over reserved time with this ratio
+    const double  StealRatio    =  0.33; // However we must not steal time from remaining moves over this ratio
 
-    const double Scale          = 9.3;
+    const double Scale          =  9.3;
     const double Shift          = 59.8;
-    const double SkewFactor     = 0.172;
+    const double SkewFactor     =  0.172;
 
     //// MoveImportance[] is based on naive statistical analysis of "how many games are still undecided
     //// after n half-moves". Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -48,15 +48,16 @@ namespace {
     //    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2, 2, 2, 2,
     //    2, 1, 1, 1, 1, 1, 1, 1 };
 
+    // move_importance() is a skew-logistic function based on naive statistical
+    // analysis of "how many games are still undecided after n half-moves".
+    // Game is considered "undecided" as long as neither side has >275cp advantage.
+    // Data was extracted from CCRL game database with some simple filtering criteria.
     double move_importance (int32_t ply)
     {
         //return MoveImportance[min (ply, 511)];
 
-        //return 1 / pow ((1 + exp((ply - Shift) / Scale)), SkewFactor) + 1e-3; // Ensure non-zero
-        
-        return pow ((1 + exp((ply - Shift) / Scale)), -SkewFactor);
+        return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor);
     }
-
 
     typedef enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME } TimeType;
 
@@ -118,12 +119,13 @@ void TimeManager::initialize (const Searcher::Limits &limits, int32_t current_pl
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_time =  limits.game_clock[c].time
+        int32_t hyp_time =  
+            limits.game_clock[c].time
             + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
             - emergency_base_time
             - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
 
-        hyp_time = max (hyp_time, 0);
+        if (hyp_time < 0) hyp_time = 0;
 
         int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
         int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
