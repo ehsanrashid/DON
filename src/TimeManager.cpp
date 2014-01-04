@@ -7,6 +7,7 @@
 #include "UCI.h"
 
 using namespace std;
+using namespace Searcher;
 
 namespace {
 
@@ -66,8 +67,8 @@ namespace {
     template<TimeType TT>
     int32_t remaining (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
     {
-        const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
-        const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);
+        //const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
+        //const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);
 
         double  curr_moves_importance = (move_importance (current_ply) * slow_mover) / 100;
         double other_moves_importance = 0.0;
@@ -77,14 +78,27 @@ namespace {
             other_moves_importance += move_importance (current_ply + 2 * i);
         }
 
-        double time_ratio1 = (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
-        double time_ratio2 = (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
+        double time_ratio1; //= (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
+        double time_ratio2; //= (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
+
+        switch (TT)
+        {
+        case OPTIMUM_TIME:
+            time_ratio1 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
+            time_ratio2 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
+            break;
+
+        case MAXIMUM_TIME:
+            time_ratio1 = (MaxRatio * curr_moves_importance) / (MaxRatio * curr_moves_importance + other_moves_importance);
+            time_ratio2 = (curr_moves_importance + StealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
+            break;
+        }
 
         return int32_t (floor (time * min (time_ratio1, time_ratio2)));
     }
 }
 
-void TimeManager::initialize (const Searcher::Limits &limits, int32_t current_ply, Color c)
+void TimeManager::initialize (const Limits &limits, int32_t current_ply, Color c)
 {
     /*
     We support four different kind of time controls:

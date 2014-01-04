@@ -397,20 +397,26 @@ namespace MoveGenerator {
             Square org_king  = pos.king_sq (pos.active ());
             Bitboard pinneds = pos.pinneds (pos.active ());
 
-            MoveList::iterator itr = mov_lst.begin ();
-            while (itr != mov_lst.end ())
+            //MoveList::iterator itr = mov_lst.begin ();
+            //while (itr != mov_lst.end ())
+            //{
+            //    Move m = *itr;
+            //    if (((org_sq (m) == org_king) || pinneds || (ENPASSANT == m_type (m))) &&
+            //        !pos.legal (m, pinneds))
+            //    {
+            //        itr = mov_lst.erase (itr);
+            //    }
+            //    else
+            //    {
+            //        ++itr;
+            //    }
+            //}
+
+            mov_lst.erase (
+                remove_if (mov_lst.begin (), mov_lst.end (), [&] (Move m)
             {
-                Move m = *itr;
-                if (((org_sq (m) == org_king) || pinneds || (ENPASSANT == m_type (m))) &&
-                    !pos.legal (m, pinneds))
-                {
-                    itr = mov_lst.erase (itr);
-                }
-                else
-                {
-                    ++itr;
-                }
-            }
+                return ((org_sq (m) == org_king) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds); 
+            }), mov_lst.end ());
         }
 
     }
@@ -551,10 +557,10 @@ namespace MoveGenerator {
 
         Square org_king  = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
-        
+
         Square check_sq;
         int32_t checker_count = 0;
-        
+
         //// Generates evasions for king, capture and non-capture moves excluding friends
         //Bitboard moves = attacks_bb<KING> (org_king) & ~friends;
         //check_sq = pop_lsq (checkers);
