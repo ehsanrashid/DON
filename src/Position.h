@@ -79,7 +79,7 @@ public:
     Square en_passant;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint8_t
+    uint32_t
         clock50,
         null_ply;
 
@@ -290,7 +290,7 @@ public:
     Square en_passant () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint16_t clock50 () const;
+    uint32_t clock50 () const;
     //
     Move last_move () const;
     //
@@ -527,7 +527,7 @@ inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 inline Square   Position::en_passant    () const { return _si->en_passant; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline uint16_t Position::clock50       () const { return _si->clock50; }
+inline uint32_t Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //
@@ -566,7 +566,7 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[PT_NO];
     switch (cs)
     {
     case CS_K:
@@ -635,7 +635,7 @@ inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s) const
 {
-    return attacks_from (p, s, pieces ());
+    return attacks_from (p, s, _types_bb[PT_NO]);
 }
 
 // Attackers to the square on given occ

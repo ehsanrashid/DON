@@ -214,7 +214,7 @@ void MovePicker::generate_moves ()
         ++itr;
     }
 
-    moves[index].move = MOVE_NONE;
+    //moves[index].move = MOVE_NONE;
     end = moves + index;
 }
 
@@ -330,7 +330,6 @@ Move MovePicker::next_move<false>()
         {
             generate_next ();
         }
-
         switch (stage)
         {
 

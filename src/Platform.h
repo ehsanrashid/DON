@@ -10,7 +10,7 @@
 #define BSFQ
 #define NO_PREFETCH
 
-#define TRI_LOGGER
+//#define TRI_LOGGER
 
 //#define CLEANTLOG
 //#define OTLOG

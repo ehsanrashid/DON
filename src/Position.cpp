@@ -43,7 +43,8 @@ bool _ok (const string &fen, bool c960, bool full)
 
 // do_move() copy current state info up to 'posi_key' excluded to the new one.
 // calculate the quad words (64bits) needed to be copied.
-static const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key); // / sizeof (uint32_t);// + 1;
+//const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key); // / sizeof (uint32_t);// + 1;
+const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) / sizeof (uint64_t) + 1;
 
 void StateInfo::clear ()
 {
@@ -79,7 +80,7 @@ StateInfo::operator string () const
 CheckInfo::CheckInfo (const Position &pos)
 {
     king_sq = pos.king_sq (~pos.active ());
-    pinneds = pos.pinneds (pos.active ());
+    pinneds = pos.pinneds ( pos.active ());
     check_discovers = pos.check_discovers (pos.active ());
 
     checking_bb[PAWN] = attacks_bb<PAWN> (~pos.active (), king_sq);
@@ -347,7 +348,7 @@ bool Position::draw () const
 
     // Draw by Threefold Repetition?
     const StateInfo *sip = _si;
-    int8_t ply = min (_si->null_ply, _si->clock50);
+    int32_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
         if (sip->p_si && sip->p_si->p_si)
@@ -423,7 +424,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 5
     if (++(*step), debug_piece_count)
     {
-        if (pop_count<FULL> (pieces ()) > 32)
+        if (pop_count<FULL> (_types_bb[PT_NO]) > 32)
         {
             return false;
         }
@@ -431,7 +432,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             return false;
         }
-        if (piece_count () != pop_count<FULL> (pieces ()))
+        if (piece_count () != pop_count<FULL> (_types_bb[PT_NO]))
         {
             return false;
         }
@@ -493,7 +494,7 @@ bool Position::ok (int8_t *failed_step) const
         // The intersection of the white and black pieces must be empty
         if (pieces (WHITE) & pieces (BLACK)) return false;
 
-        Bitboard occ = pieces ();
+        Bitboard occ = _types_bb[PT_NO];
         // The union of the white and black pieces must be equal to occupied squares
         if ((pieces (WHITE) | pieces (BLACK)) != occ) return false;
         if ((pieces (WHITE) ^ pieces (BLACK)) != occ) return false;
@@ -645,7 +646,7 @@ int32_t Position::see      (Move m) const
     int32_t swap_list[32], index = 1;
     swap_list[0] = PieceValue[MG][p_type (_piece_arr[dst])];
 
-    Bitboard occupied = pieces () - org;
+    Bitboard occupied = _types_bb[PT_NO] - org;
 
     switch (m_type (m))
     {
@@ -1012,7 +1013,7 @@ bool Position::pseudo_legal (Move m) const
         // as invalid moves like B1A1 when opposite queen is on C1.
         else
         {
-            if (attackers_to (dst, pieces () - org) & pieces (pasive)) return false;
+            if (attackers_to (dst, _types_bb[PT_NO] - org) & pieces (pasive)) return false;
         }
     }
 
@@ -1070,7 +1071,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
             ASSERT (PS_NO == _piece_arr[dst]);
             ASSERT ((pasive | PAWN) == _piece_arr[cap]);
 
-            Bitboard mocc = pieces () - org - cap + dst;
+            Bitboard mocc = _types_bb[PT_NO] - org - cap + dst;
 
             // if any attacker then in check & not legal
             return !(
@@ -1085,7 +1086,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        Bitboard mocc = pieces () - org; // + dst;
+        Bitboard mocc = _types_bb[PT_NO] - org; // + dst;
         return !(attackers_to (dst, mocc) & pieces (pasive));
     }
 
@@ -1153,6 +1154,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
 {
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
+    ASSERT (p_color (moved_piece(m)) == _active);
     ASSERT (ci.check_discovers == check_discovers (_active));
 
     //if (!legal (m)) return false;
@@ -1176,9 +1178,11 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         if (ci.check_discovers & org)
         {
             //  need to verify also direction for pawn and king moves
-            if (((PAWN != pt) && (KING != pt)) ||
+            if (//((PAWN != pt) && (KING != pt)) ||
                 !sqrs_aligned (org, dst, king_sq (pasive)))
+            {
                 return true;
+            }
         }
     }
 
@@ -1187,7 +1191,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     if (NORMAL == mt) return false;
 
     Square ek_sq = king_sq (pasive);
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[PT_NO];
     switch (mt)
     {
     case CASTLE:
@@ -1350,7 +1354,7 @@ bool Position::can_en_passant (Square ep_sq) const
     // Check en-passant is legal for the position
 
     Square fk_sq = king_sq (active);
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[PT_NO];
     for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
     {
         Move m = *itr;
@@ -1378,8 +1382,8 @@ bool Position::can_en_passant (File   ep_f) const
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    Score score = SCORE_ZERO;
-    Bitboard occ = pieces ();
+    Score score  = SCORE_ZERO;
+    Bitboard occ = _types_bb[PT_NO];
     while (occ)
     {
         Square s = pop_lsq (occ);
@@ -1398,7 +1402,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += piece_count(c, pt) * PieceValue[MG][pt];
+        value += int32_t (_piece_count[c][pt]) * PieceValue[MG][pt];
     }
     return value;
 }
@@ -1426,7 +1430,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si_n, _si, SIZE_COPY_STATE);
+    //memcpy (&si_n, _si, SIZE_COPY_STATE);
+    std::memcpy(&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
 
     // switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;
@@ -1513,12 +1518,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
         }
 
-        // Update Hash key of material situation
-        _si->matl_key ^= ZobGlob._.ps_sq[pasive][ct][piece_count (pasive, ct)];
+        // Update Hash key of material situation and prefetch access to material_table
+        _si->matl_key ^= ZobGlob._.ps_sq[pasive][ct][_piece_count[pasive][ct]];
+        if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
+
         // Update Hash key of position
         posi_k ^= ZobGlob._.ps_sq[pasive][ct][cap];
-
-        if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
 
         // Update incremental scores
         _si->psq_score -= psq[pasive][ct][cap];
@@ -1569,8 +1574,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             place_piece (dst, active, ppt);
 
             _si->matl_key ^=
-                ZobGlob._.ps_sq[active][PAWN][piece_count (active, PAWN)] ^
-                ZobGlob._.ps_sq[active][ppt][piece_count (active, ppt) - 1];
+                ZobGlob._.ps_sq[active][PAWN][_piece_count[active][PAWN]] ^
+                ZobGlob._.ps_sq[active][ppt][_piece_count[active][ppt] - 1];
 
             _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org];
 
@@ -1890,7 +1895,7 @@ void Position::flip ()
     //        place_piece (~s, ~p);
     //    }
     //}
-    Bitboard occ = pos.pieces ();
+    Bitboard occ = pos._types_bb[PT_NO];
     while (occ)
     {
         Square s = pop_lsq (occ);
@@ -2208,7 +2213,7 @@ Position::operator string () const
         board += to_char (f, false);
     }
 
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[PT_NO];
     while (occ)
     {
         Square s = pop_lsq (occ);
@@ -2328,7 +2333,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         {
             for (Color c = WHITE; c <= BLACK; ++c)
             {
-                if (1 != pos.piece_count<KING> (c)) return false;
+                if (1 != pos._piece_count[c][KING]) return false;
             }
         }
     }
@@ -2708,7 +2713,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             for (Color c = WHITE; c <= BLACK; ++c)
             {
-                if (1 != pos.piece_count<KING> (c)) return false;
+                if (1 != pos._piece_count[c][KING]) return false;
             }
         }
     }

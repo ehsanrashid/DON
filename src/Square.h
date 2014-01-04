@@ -67,7 +67,7 @@ inline bool _ok (Color c)
 }
 inline Color operator~ (Color c)
 {
-    return Color (c ^ BLACK); // FLIP
+    return Color (c ^ int32_t (BLACK)); // FLIP
 }
 inline Color to_color (char c)
 {
@@ -133,20 +133,20 @@ inline bool _ok (Square s)
 }
 inline File _file (Square s)
 {
-    return File (s & 7);
+    return File (s & int32_t (SQ_H1));
 }
 inline Rank _rank (Square s)
 {
-    //return (Rank) ((s >> 3) & 7);
+    //return (Rank) ((s >> 3) & int32_t (SQ_H1));
     return Rank (s >> 3);
 }
 inline Diag _diag18 (Square s)
 {
-    return Diag ((s >> 3) - (s & 7) + 7); // R - F + 7
+    return Diag ((s >> 3) - (s & int32_t (SQ_H1)) + int32_t (SQ_H1)); // R - F + 7
 }
 inline Diag _diag81 (Square s)
 {
-    return Diag ((s >> 3) + (s & 7));     // R + F
+    return Diag ((s >> 3) + (s & int32_t (SQ_H1)));     // R + F
 }
 inline Color p_color (Square s)
 {
@@ -162,7 +162,7 @@ inline Square operator!  (Square s)
 }
 inline Rank   rel_rank  (Color c, Rank r)
 {
-    return Rank (r ^ (c * 0x07));
+    return Rank (r ^ (c * int32_t (SQ_H1)));
 }
 inline Rank   rel_rank  (Color c, Square s)
 {
@@ -175,7 +175,7 @@ inline Square rel_sq    (Color c, Square s)
 inline bool opposite_colors (Square s1, Square s2)
 {
     uint8_t s = uint8_t (s1) ^ uint8_t (s2);
-    return ((s >> 3) ^ s) & 1;
+    return ((s >> 3) ^ s) & int32_t (BLACK);
 }
 
 inline std::string to_string (Square s)
@@ -189,7 +189,6 @@ inline std::string to_string (Square s)
     return "-";
 }
 
-
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, Square s)
@@ -197,7 +196,6 @@ inline std::basic_ostream<charT, Traits>&
     os << to_string (s);
     return os;
 }
-
 
 inline Delta pawn_push (Color c)
 {
@@ -212,7 +210,6 @@ inline Delta pawn_push (Color c)
 typedef std::vector<Square> SquareList;
 //typedef std::list  <Square> SquareList;
 
-
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_list)
@@ -220,6 +217,5 @@ inline std::basic_ostream<charT, Traits>&
     std::for_each (sq_list.cbegin (), sq_list.cend (), [&os] (Square s) { os << s << std::endl; });
     return os;
 }
-
 
 #endif

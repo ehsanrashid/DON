@@ -252,7 +252,7 @@ namespace BitBoard {
                     //}
 
                     uint32_t index = 0;
-                    Bitboard occ = 0;
+                    Bitboard occ = U64 (0);
                     do
                     {
                         BTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[BSHP], occ);
@@ -317,7 +317,7 @@ namespace BitBoard {
                     //uint32_t size = (1 << b);
                     //for (uint32_t index = 0; index < size; ++index)
                     //{
-                    //    Bitboard occ = 0;
+                    //    Bitboard occ = U64 (0);
                     //
                     //    uint32_t i = index;
                     //    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
@@ -335,7 +335,7 @@ namespace BitBoard {
                     //}
 
                     uint32_t index = 0;
-                    Bitboard occ = 0;
+                    Bitboard occ = U64 (0);
                     do
                     {
                         RTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[ROOK], occ);

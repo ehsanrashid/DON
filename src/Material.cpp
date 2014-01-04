@@ -222,14 +222,22 @@ namespace Material {
 
         // No pawns makes it difficult to win, even with a material advantage. This
         // catches some trivial draws like KK, KBK and KNK
-        if (!pos.piece_count<PAWN> (WHITE) && w_npm - b_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (WHITE) == 0 && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
             e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)]);
         }
-
-        if (!pos.piece_count<PAWN> (BLACK) && b_npm - w_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (BLACK) == 0 && b_npm - w_npm <= VALUE_MG_BISHOP)
         {
             e->_factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)]);
+        }
+
+        if (pos.piece_count<PAWN> (WHITE) == 1 && w_npm - b_npm <= VALUE_MG_BISHOP)
+        {
+            e->_factor[WHITE] = uint8_t (SCALE_FACTOR_ONEPAWN);
+        }
+        if (pos.piece_count<PAWN> (BLACK) == 1 && b_npm - w_npm <= VALUE_MG_BISHOP)
+        {
+            e->_factor[BLACK] = uint8_t (SCALE_FACTOR_ONEPAWN);
         }
 
         // Compute the space weight

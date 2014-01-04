@@ -1441,7 +1441,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 // Never assume anything on values stored in TT
                 Value value = te->eval_value ();
                 if (VALUE_NONE == value) value = evaluate (pos);
-                ss->static_eval = best_value = value;
+                best_value = ss->static_eval = value;
 
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
@@ -1454,7 +1454,7 @@ moves_loop: // When in check and at SPNode search starts from here
             }
             else
             {
-                ss->static_eval = best_value = evaluate (pos);
+                best_value = ss->static_eval = evaluate (pos);
             }
 
             // Stand pat. Return immediately if static value is at least beta

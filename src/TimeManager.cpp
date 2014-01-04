@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cfloat>
 
 #include "UCI.h"
 
@@ -56,7 +57,7 @@ namespace {
     {
         //return MoveImportance[min (ply, 511)];
 
-        return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor);
+        return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
 
     typedef enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME } TimeType;

@@ -348,7 +348,7 @@ namespace {
         // colored bishop endgames, and use a lower scale for those.
         if (   ei.mi->game_phase () < PHASE_MIDGAME
             && pos.opposite_bishops ()
-            && sf == SCALE_FACTOR_NORMAL)
+            && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
         {
             // Ignoring any pawns, do both sides only have a single bishop and no
             // other pieces?
@@ -364,7 +364,7 @@ namespace {
             {
                 // Endgame with opposite-colored bishops, but also other pieces. Still
                 // a bit drawish, but not as drawish as with only the two bishops.
-                sf = ScaleFactor (50);
+                sf = ScaleFactor (50 * sf / SCALE_FACTOR_NORMAL);
             }
         }
 
@@ -472,7 +472,7 @@ namespace {
         const Square fk_sq = pos.king_sq (C);
         const Square ek_sq = pos.king_sq (C_);
 
-        ei.attacked_by[C][PT] = 0;
+        ei.attacked_by[C][PT] = U64 (0);
 
         const Square *pl = pos.piece_list<PT>(C);
         Square s;
