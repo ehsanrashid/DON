@@ -154,7 +154,8 @@ namespace UCI {
                         TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
-                    setupStates->push (StateInfo ());
+                    StateInfo si;
+                    setupStates->push (si);
                     rootPos.do_move (m, setupStates->top ());
                 }
             }

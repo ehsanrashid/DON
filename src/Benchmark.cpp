@@ -127,7 +127,8 @@ void benchmark (istream &is, const Position &pos)
         {
             Position pos (fens[i], Threads.main (), *(Options["UCI_Chess960"]));
 
-            cerr << "\nPosition: " << i + 1 << '/' << fens.size () << endl;
+            cerr << "\n--------------\n" 
+                <<"Position: " << (i + 1) << '/' << fens.size () << endl;
 
             if (limit_type == "perft")
             {

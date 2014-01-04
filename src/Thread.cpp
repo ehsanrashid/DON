@@ -204,7 +204,7 @@ void ThreadPool::read_uci_options ()
 // for the thread 'master'.
 Thread* ThreadPool::available_slave (const Thread *master) const
 {
-    for (const_iterator itr = begin (); itr != end (); ++itr)
+    for (const_iterator itr = cbegin (); itr != cend (); ++itr)
     {
         if ((*itr)->available_to (master))
         {

@@ -101,7 +101,7 @@ namespace Engine {
         TT.resize (int32_t (*(Options["Hash"])));
 
 #ifdef _DEBUG
-        Tester::main_test ();
+        //Tester::main_test ();
         //const char *fen;
         //Position pos (int8_t (0));
 

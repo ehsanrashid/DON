@@ -404,11 +404,13 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
     }
 
     string padding = string (spv.str ().length (), ' ');
-    size_t length = padding.length ();
+    size_t length  = padding.length ();
     StateInfoStack states;
 
     for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
+        if (!_ok (m)) return;
+
         string san = move_to_san (m, pos);
 
         if (length + san.length () > 80)
@@ -426,7 +428,7 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
-        pos.undo_move ();
+        if (_ok (m)) pos.undo_move ();
     });
 
     return spv.str();

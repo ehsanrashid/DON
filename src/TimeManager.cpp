@@ -62,14 +62,14 @@ namespace {
     typedef enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME } TimeType;
 
     // remaining() calculate the time remaining
-    template<TimeType T>
-    int32_t remaining(int32_t my_time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
+    template<TimeType TT>
+    int32_t remaining (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
     {
-        const double TMaxRatio   = (OPTIMUM_TIME == T ? 1 : MaxRatio);
-        const double TStealRatio = (OPTIMUM_TIME == T ? 0 : StealRatio);
+        const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
+        const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);
 
-        double  curr_moves_importance  = (move_importance (current_ply) * slow_mover) / 100;
-        double other_moves_importance  = 0.0;
+        double  curr_moves_importance = (move_importance (current_ply) * slow_mover) / 100;
+        double other_moves_importance = 0.0;
 
         for (int32_t i = 1; i < moves_to_go; ++i)
         {
@@ -79,7 +79,7 @@ namespace {
         double time_ratio1 = (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
         double time_ratio2 = (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
 
-        return int32_t (floor (my_time * min (time_ratio1, time_ratio2)));
+        return int32_t (floor (time * min (time_ratio1, time_ratio2)));
     }
 }
 

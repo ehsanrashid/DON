@@ -265,7 +265,7 @@ Piece Position::remove_piece (Square s)
     Piece p = _piece_arr[s];
     ASSERT (PS_NO != p);
 
-    Color c = p_color (p);
+    Color c  = p_color (p);
     PType pt = p_type (p);
     int32_t ps_count = _piece_count[c][pt];
     ASSERT (0 < ps_count);
@@ -760,7 +760,7 @@ Piece Position::captured_piece (Move m) const
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Color pasive = ~_active;
-    Piece p =  _piece_arr[org];
+    Piece p  = _piece_arr[org];
     PType pt = p_type (p);
 
     Square cap = dst;
@@ -814,7 +814,7 @@ bool Position::pseudo_legal (Move m) const
     Color active = _active;
     Color pasive = ~active;
 
-    Piece p = _piece_arr[org];
+    Piece p  = _piece_arr[org];
     PType pt = p_type (p);
 
     // If the org square is not occupied by a piece belonging to the side to move,
@@ -1160,7 +1160,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
-    Piece p = _piece_arr[org];
+    Piece p  = _piece_arr[org];
     Color pc = p_color (p);
     PType pt = p_type  (p);
 
@@ -1248,11 +1248,11 @@ void Position::clear ()
 {
     memset (this, 0, sizeof (Position));
 
-    for (int32_t i = 0; i < PT_NO; ++i)
+    for (PType pt = PAWN; pt <= KING; ++pt)
     {
         for (int32_t j = 0; j < 16; ++j)
         {
-            _piece_list[WHITE][i][j] = _piece_list[BLACK][i][j] = SQ_NO;
+            _piece_list[WHITE][pt][j] = _piece_list[BLACK][pt][j] = SQ_NO;
         }
     }
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -1894,7 +1894,7 @@ void Position::flip ()
     while (occ)
     {
         Square s = pop_lsq (occ);
-        Piece p = pos[s];
+        Piece p  = pos[s];
         if (PS_NO != p)
         {
             place_piece (~s, ~p);
@@ -1985,7 +1985,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         while (f <= F_H)
         {
             Square s = f | r;
-            Piece p = _piece_arr[s];
+            Piece p  = _piece_arr[s];
             ASSERT (PS_NO == p || _ok (p));
 
             if (false);
@@ -2094,7 +2094,7 @@ string Position::fen (bool                  c960, bool full) const
         while (f <= F_H)
         {
             Square s = f | r;
-            Piece p = _piece_arr[s];
+            Piece p  = _piece_arr[s];
             ASSERT (PS_NO == p || _ok (p));
 
             if (false);

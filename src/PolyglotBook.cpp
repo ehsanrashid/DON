@@ -391,15 +391,15 @@ string PolyglotBook::read_entries (const Position &pos)
         sum_weight += pe.weight;
     }
 
-    ostringstream sread;
-    for_each (pe_list.cbegin (), pe_list.cend (), [&sread, &sum_weight] (PolyglotEntry pe)
+    ostringstream ss;
+    for_each (pe_list.cbegin (), pe_list.cend (), [&ss, &sum_weight] (PolyglotEntry pe)
     {
-        sread << setfill ('0')
+        ss  << setfill ('0')
             << pe << " prob: " << right << fixed << width_prec (6, 2)
             << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0) << endl;
     });
 
-    return sread.str ();
+    return ss.str ();
 }
 
 void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)

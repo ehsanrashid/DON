@@ -614,9 +614,9 @@ namespace Tester {
 
     void main_test ()
     {
-        //test_type ();
+        test_type ();
 
-        //test_bitboard ();
+        test_bitboard ();
 
         test_attacks ();
 

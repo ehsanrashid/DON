@@ -112,6 +112,7 @@ namespace {
     {
         size_t cnt = 0;
         const bool leaf = (depth == ONE_MOVE);
+
         StateInfo si;
         CheckInfo ci (pos);
         MoveList mov_lst = generate<LEGAL>(pos);
@@ -128,6 +129,7 @@ namespace {
             pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
             cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
+            ++itr;
         }
         return cnt;
     }

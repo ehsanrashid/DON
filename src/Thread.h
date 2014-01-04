@@ -159,7 +159,7 @@ struct Thread
     Position *active_pos;
     size_t idx;
     int32_t max_ply;
-    SplitPoint *volatile active_split_point;
+    SplitPoint* volatile active_split_point;
     volatile int32_t     split_points_size;
     volatile bool        searching;
 

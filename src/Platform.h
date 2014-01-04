@@ -8,7 +8,7 @@
 //#define __INTEL_COMPILER
 
 #define BSFQ
-//#define NO_PREFETCH
+#define NO_PREFETCH
 
 #define TRI_LOGGER
 

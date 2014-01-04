@@ -213,6 +213,7 @@ void MovePicker::generate_moves ()
         ++index;
         ++itr;
     }
+
     moves[index].move = MOVE_NONE;
     end = moves + index;
 }
