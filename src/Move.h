@@ -12,17 +12,17 @@
 
 inline Square org_sq (Move m)
 {
-    return Square ((m >> 6) & 0x3F);
+    return Square ((m >> 6) & SQ_H8);
 }
 inline Square dst_sq (Move m)
 {
-    return Square ((m >> 0) & 0x3F);
+    return Square ((m >> 0) & SQ_H8);
 }
 
 // Promote type
 inline PType prom_type (Move m)
 {
-    return PType (((m >> 12) & 0x03) + NIHT);
+    return PType (((m >> 12) & ROOK) + NIHT);
 }
 // Move type
 inline MType m_type (Move m)
@@ -43,7 +43,7 @@ inline void dst_sq (Move &m, Square dst)
 inline void prom_type (Move &m, PType pt)
 {
     m &= 0x0FFF;
-    m |= (PROMOTE | ((pt - NIHT) & 0x03) << 12);
+    m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
 }
 
 inline void m_type (Move &m, MType mt)

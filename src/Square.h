@@ -12,7 +12,7 @@ inline bool   _ok (File f)
 }
 inline File operator~ (File f)
 {
-    return File (f ^ int32_t (F_H)); // Mirror
+    return File (f ^ F_H); // Mirror
 }
 inline File to_file (char f)
 {
@@ -22,7 +22,7 @@ inline File to_file (char f)
 }
 inline char to_char (File f, bool lower = true)
 {
-    return char (f - int32_t (F_A)) + (lower ? 'a' : 'A');
+    return char (f - F_A) + (lower ? 'a' : 'A');
 }
 
 
@@ -41,7 +41,7 @@ inline bool   _ok (Rank r)
 }
 inline Rank operator~ (Rank r)
 {
-    return Rank (r ^ int32_t (R_8)); // Flip
+    return Rank (r ^ R_8); // Flip
 }
 inline Rank to_rank (char r)
 {
@@ -50,7 +50,7 @@ inline Rank to_rank (char r)
 }
 inline char to_char (Rank r)
 {
-    return char (r - int32_t (R_1)) + '1';
+    return char (r - R_1) + '1';
 }
 
 template<class charT, class Traits>
@@ -67,7 +67,7 @@ inline bool _ok (Color c)
 }
 inline Color operator~ (Color c)
 {
-    return Color (c ^ int32_t (BLACK)); // FLIP
+    return Color (c ^ BLACK); // FLIP
 }
 inline Color to_color (char c)
 {
@@ -133,20 +133,20 @@ inline bool _ok (Square s)
 }
 inline File _file (Square s)
 {
-    return File (s & int32_t (SQ_H1));
+    return File (s & SQ_H1);
 }
 inline Rank _rank (Square s)
 {
-    //return (Rank) ((s >> 3) & int32_t (SQ_H1));
+    //return (Rank) ((s >> 3) & SQ_H1);
     return Rank (s >> 3);
 }
 inline Diag _diag18 (Square s)
 {
-    return Diag ((s >> 3) - (s & int32_t (SQ_H1)) + int32_t (SQ_H1)); // R - F + 7
+    return Diag ((s >> 3) - (s & SQ_H1) + SQ_H1); // R - F + 7
 }
 inline Diag _diag81 (Square s)
 {
-    return Diag ((s >> 3) + (s & int32_t (SQ_H1)));     // R + F
+    return Diag ((s >> 3) + (s & SQ_H1));     // R + F
 }
 inline Color p_color (Square s)
 {
@@ -154,15 +154,15 @@ inline Color p_color (Square s)
 }
 inline Square operator~  (Square s)
 {
-    return Square (s ^ int32_t (SQ_A8));  // FLIP   => SQ_A1 -> SQ_A8
+    return Square (s ^ SQ_A8);  // FLIP   => SQ_A1 -> SQ_A8
 }
 inline Square operator!  (Square s)
 {
-    return Square (s ^ int32_t (SQ_H1));  // MIRROR => SQ_A1 -> SQ_H1
+    return Square (s ^ SQ_H1);  // MIRROR => SQ_A1 -> SQ_H1
 }
 inline Rank   rel_rank  (Color c, Rank r)
 {
-    return Rank (r ^ (c * int32_t (SQ_H1)));
+    return Rank (r ^ (c * SQ_H1));
 }
 inline Rank   rel_rank  (Color c, Square s)
 {
@@ -170,12 +170,12 @@ inline Rank   rel_rank  (Color c, Square s)
 }
 inline Square rel_sq    (Color c, Square s)
 {
-    return Square (s ^ (c * int32_t (SQ_A8)));
+    return Square (s ^ (c * SQ_A8));
 }
 inline bool opposite_colors (Square s1, Square s2)
 {
-    uint8_t s = uint8_t (s1) ^ uint8_t (s2);
-    return ((s >> 3) ^ s) & int32_t (BLACK);
+    int8_t s = int8_t (s1) ^ int8_t (s2);
+    return ((s >> 3) ^ s) & BLACK;
 }
 
 inline std::string to_string (Square s)
