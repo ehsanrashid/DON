@@ -391,7 +391,7 @@ namespace Searcher {
 
         if (write_search_log)
         {
-            uint64_t elapsed = Time::now () - searchTime + 1;
+            uint64_t elapsed = (Time::now () - searchTime + 1);
 
             Log log (fn_search_log);
 
@@ -411,7 +411,7 @@ finish:
         ats ()
             << "info"
             << " nodes " << rootPos.game_nodes ()
-            << " time "  << Time::now () - searchTime + 1
+            << " time "  << (Time::now () - searchTime + 1)
             << endl;
 
         // When we reach max depth we arrive here even without signals.stop is raised,
@@ -464,7 +464,7 @@ finish:
         for (int32_t d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
             FutilityMoveCounts[0][d] = int32_t (2.4 + 0.222 * pow (d + 0.00, 1.8));
-            FutilityMoveCounts[1][d] = int32_t (3.0 +   0.3 * pow (d + 0.98, 1.8));
+            FutilityMoveCounts[1][d] = int32_t (3.0 + 0.300 * pow (d + 0.98, 1.8));
         }
     }
 
@@ -556,7 +556,8 @@ namespace {
 
                     // When failing high/low give some update (without cluttering
                     // the UI) before to research.
-                    if ((alpha >= best_value || best_value >= beta) && Time::now () - searchTime > 3000)
+                    if ((alpha >= best_value || best_value >= beta) &&
+                        (Time::now () - searchTime) > 3000)
                     {
                         ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                     }
@@ -582,7 +583,7 @@ namespace {
 
                     delta += delta / 2;
 
-                    ASSERT (alpha >= -VALUE_INFINITE && beta <= +VALUE_INFINITE);
+                    ASSERT (-VALUE_INFINITE <= alpha && beta <= +VALUE_INFINITE);
                 }
 
                 // Sort the PV lines searched so far and update the GUI
@@ -603,7 +604,7 @@ namespace {
             if (*(Options["Write Search Log"]))
             {
                 RootMove &rm = rootMoves[0];
-                if (skill.move != MOVE_NONE)
+                if (MOVE_NONE != skill.move)
                 {
                     rm = *find (rootMoves.begin (), rootMoves.end (), skill.move);
                 }
@@ -627,7 +628,7 @@ namespace {
                 bool stop = false; // Local variable, not the volatile signals.stop
 
                 // Take in account some extra time if the best move has changed
-                if (depth > 4 && depth < 50 &&  pv_size == 1)
+                if (4 < depth && depth < 50 &&  1 == pv_size)
                 {
                     time_mgr.pv_instability (best_move_changes);
                 }
@@ -694,24 +695,25 @@ namespace {
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth > DEPTH_ZERO);
 
-        Value best_value;
-        Move  best_move;
-        StateInfo si;
+        Value       best_value;
+        Move        best_move;
+        StateInfo   si;
 
         SplitPoint *split_point;
-        Key posi_key;
+        Key         posi_key;
         const TranspositionEntry *te;
-        Move tt_move,
-            excluded_move,
-            move;
-        Value tt_value;
+        Move        tt_move;
+        Move        excluded_move;
+        Move        move;
+        Value       tt_value;
+        int32_t     move_count;
+        int32_t     quiet_count;
 
         Move quiets_searched[64];
 
         // Step 1. Initialize node
-        Thread *thread = pos.thread ();
-        bool in_check  = pos.checkers ();
-        int32_t  move_count, quiet_count;
+        Thread *thread      = pos.thread ();
+        bool    in_check    = pos.checkers ();
 
         if (SPNode)
         {
@@ -727,10 +729,11 @@ namespace {
             goto moves_loop;
         }
 
-        move_count = quiet_count = 0;
-        best_value = -VALUE_INFINITE;
-        best_move  = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
-        (ss)->ply  = (ss-1)->ply + 1;
+        move_count  = 0;
+        quiet_count = 0;
+        best_value  = -VALUE_INFINITE;
+        best_move   = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
+        (ss)->ply   = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
         (ss+1)->reduction      = DEPTH_ZERO;
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -843,7 +846,7 @@ namespace {
             &&  m_type (move) == NORMAL)
         {
             Square dst = dst_sq (move);
-            gains.update (pos[dst], dst, -(ss-1)->static_eval - ss->static_eval);
+            gains.update (pos[dst], dst, -((ss-1)->static_eval + ss->static_eval));
         }
 
         // Step 6. Razoring (skipped when in check)
@@ -1319,7 +1322,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // harmless because return value is discarded anyhow in the parent nodes.
         // If we are in a singular extension search then return a fail low score.
         // A split node has at least one move, the one tried before to be splitted.
-        if (!move_count)
+        if (0 == move_count)
         {
             return excluded_move ? alpha : in_check ? mated_in (ss->ply) : draw_value[pos.active ()];
         }
@@ -1519,10 +1522,10 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Detect non-capture evasions that are candidate to be pruned
-            bool evasion_prunable =    IN_CHECK
-                &&  best_value > VALUE_MATED_IN_MAX_PLY
-                && !pos.capture (move)
-                && !pos.can_castle (pos.active ());
+            bool evasion_prunable = IN_CHECK &&
+                best_value > VALUE_MATED_IN_MAX_PLY &&
+                !pos.capture (move) &&
+                !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
             if (   !PVNode
@@ -1620,14 +1623,14 @@ moves_loop: // When in check and at SPNode search starts from here
     Move Skill::pick_move ()
     {
         static RKISS rk;
+        // PRNG sequence should be not deterministic
         for (int32_t i = Time::now () % 50; i > 0; --i) rk.rand64 ();
-
-        move = MOVE_NONE;
 
         // rootMoves are already sorted by score in descending order
         int32_t variance = min (rootMoves[0].curr_value - rootMoves[pv_size - 1].curr_value, VALUE_MG_PAWN);
         int32_t weakness = 120 - 2 * level;
         int32_t max_v    = -VALUE_INFINITE;
+        move = MOVE_NONE;
 
         // Choose best move. For each move score we add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
@@ -1662,7 +1665,8 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         stringstream spv;
 
-        uint64_t elapsed = Time::now () - searchTime + 1;
+        uint64_t elapsed = (Time::now () - searchTime + 1);
+        uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), rootMoves.size ());
 
         int32_t sel_depth = 0;
         for (int32_t i = 0; i < Threads.size (); ++i)
@@ -1672,8 +1676,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 sel_depth = Threads[i]->max_ply;
             }
         }
-
-        uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), rootMoves.size ());
+        
         for (uint32_t i = 0; i < pv_size; ++i)
         {
             bool updated = (i <= pv_idx);
@@ -1773,17 +1776,10 @@ void Thread::idle_loop ()
 
             switch (sp->node_type)
             {
-            case Root:
-                search<SplitPointRoot>  (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node);
-                break;
-            case PV:
-                search<SplitPointPV>    (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node);
-                break;
-            case NonPV:
-                search<SplitPointNonPV> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node);
-                break;
-            default:
-                ASSERT (false);
+            case Root : search<SplitPointRoot>  (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+            case PV   : search<SplitPointPV>    (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+            case NonPV: search<SplitPointNonPV> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+            default   : ASSERT (false); break;
             }
 
             ASSERT (searching);

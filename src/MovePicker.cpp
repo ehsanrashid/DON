@@ -126,6 +126,10 @@ MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PTyp
     end += (tt_move != MOVE_NONE);
 }
 
+
+// value() assign a numerical move ordering score to each move in a move list.
+// The moves with highest scores will be picked first.
+
 template<>
 void MovePicker::value<CAPTURE>()
 {
@@ -416,6 +420,7 @@ Move MovePicker::next_move<false>()
 
         default:
             ASSERT (false);
+            break;
         }
     }
 }

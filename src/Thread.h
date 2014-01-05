@@ -9,13 +9,15 @@
 #include "Position.h"
 #include "Searcher.h"
 
-const int32_t MAX_THREADS = 64; // Because SplitPoint::slaves_mask is a uint64_t
+// Because SplitPoint::slaves_mask is a uint64_t
+const int32_t MAX_THREADS                = 64;
 const int32_t MAX_SPLITPOINTS_PER_THREAD = 8;
 const uint8_t MAX_SPLIT_DEPTH            = 99;
 
 #ifndef _WIN32 // Linux - Unix
 
 #   include <pthread.h>
+
 typedef pthread_mutex_t Lock;
 typedef pthread_cond_t WaitCondition;
 typedef pthread_t NativeHandle;
@@ -35,14 +37,13 @@ typedef void*(*pt_start_fn)(void*);
 
 #else // Windows and MinGW
 
-#ifndef NOMINMAX
+#   undef NOMINMAX
 #   define NOMINMAX // disable macros min() and max()
-#endif
 
 #   define WIN32_LEAN_AND_MEAN
 #   include <windows.h>
 #   undef WIN32_LEAN_AND_MEAN
-#undef NOMINMAX
+#   undef NOMINMAX
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
@@ -52,32 +53,32 @@ typedef HANDLE WaitCondition;
 typedef HANDLE NativeHandle;
 
 // On Windows 95 and 98 parameter lpThreadId my not be null
-inline DWORD* dwWin9xKludge() { static DWORD dw; return &dw; }
+inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 
-#  define lock_init(x)      InitializeCriticalSection(&(x))
-#  define lock_grab(x)      EnterCriticalSection(&(x))
-#  define lock_release(x)   LeaveCriticalSection(&(x))
-#  define lock_destroy(x)   DeleteCriticalSection(&(x))
-#  define cond_init(x)      { x = CreateEvent(0, FALSE, FALSE, 0); }
-#  define cond_destroy(x)   CloseHandle(x)
-#  define cond_signal(x)    SetEvent(x)
-#  define cond_wait(x,y)    { lock_release(y); WaitForSingleObject(x, INFINITE); lock_grab(y); }
-#  define cond_timedwait(x,y,z) { lock_release(y); WaitForSingleObject(x,z); lock_grab(y); }
-#  define thread_create(x,f,t)  (x = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)f,t,0,dwWin9xKludge()))
-#  define thread_join(x)    { WaitForSingleObject(x, INFINITE); CloseHandle(x); }
+#   define lock_init(x)          InitializeCriticalSection (&(x))
+#   define lock_grab(x)          EnterCriticalSection (&(x))
+#   define lock_release(x)       LeaveCriticalSection (&(x))
+#   define lock_destroy(x)       DeleteCriticalSection (&(x))
+#   define cond_init(x)          { x = CreateEvent (0, FALSE, FALSE, 0); }
+#   define cond_destroy(x)       CloseHandle (x)
+#   define cond_signal(x)        SetEvent (x)
+#   define cond_wait(x,y)        { lock_release (y); WaitForSingleObject (x, INFINITE); lock_grab (y); }
+#   define cond_timedwait(x,y,z) { lock_release (y); WaitForSingleObject (x, z); lock_grab (y); }
+#   define thread_create(x,f,t)  (x = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE)f, t, 0, dwWin9xKludge ()))
+#   define thread_join(x)        { WaitForSingleObject (x, INFINITE); CloseHandle (x); }
 
 #endif
 
-extern void timed_wait(WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
+extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
 
 
 struct Mutex
 {
-    Mutex()     { lock_init(l); }
-    ~Mutex()    { lock_destroy(l); }
+    Mutex()         { lock_init (l); }
+    ~Mutex()        { lock_destroy (l); }
 
-    void lock()     { lock_grab(l); }
-    void unlock()   { lock_release(l); }
+    void lock()     { lock_grab (l); }
+    void unlock()   { lock_release (l); }
 
 private:
     friend struct ConditionVariable;
@@ -103,47 +104,47 @@ struct Thread;
 struct SplitPoint
 {
     // Const data after split point has been setup
-    const Position *pos;
-    const Searcher::Stack* ss;
-    Thread* master_thread;
-    Depth   depth;
-    Value   beta;
-    int32_t node_type;
-    bool    cut_node;
+    const Position         *pos;
+    const Searcher::Stack  *ss;
+    Thread                 *master_thread;
+    Depth                   depth;
+    Value                   beta;
+    int32_t                 node_type;
+    bool                    cut_node;
 
     // Const pointers to shared data
-    MovePicker *move_picker;
-    SplitPoint *parent_split_point;
+    MovePicker             *move_picker;
+    SplitPoint             *parent_split_point;
 
     // Shared data
-    Mutex mutex;
-    volatile uint64_t   slaves_mask;
-    volatile int64_t    nodes;
-    volatile Value      alpha;
-    volatile Value      best_value;
-    volatile Move       best_move;
-    volatile int32_t    move_count;
-    volatile bool       cut_off;
+    Mutex                   mutex;
+    volatile uint64_t       slaves_mask;
+    volatile int64_t        nodes;
+    volatile Value          alpha;
+    volatile Value          best_value;
+    volatile Move           best_move;
+    volatile int32_t        move_count;
+    volatile bool           cut_off;
 };
-
 
 // ThreadBase struct is the base of the hierarchy from where we derive all the
 // specialized thread classes.
 struct ThreadBase
 {
-    Mutex mutex;
-    ConditionVariable sleep_condition;
-    NativeHandle handle;
-    volatile bool exit;
+    Mutex               mutex;
+    ConditionVariable   sleep_condition;
+    NativeHandle        handle;
+    volatile bool       exit;
 
     ThreadBase()
         : exit(false) {}
     virtual ~ThreadBase() {}
-    virtual void idle_loop() = 0;
-    void notify_one ();
-    void wait_for(volatile const bool& b);
-};
 
+    virtual void idle_loop() = 0;
+    
+    void notify_one ();
+    void wait_for (volatile const bool &b);
+};
 
 // Thread struct keeps together all the thread related stuff like locks, state
 // and especially split points. We also use per-thread pawn and material hash
@@ -152,13 +153,13 @@ struct ThreadBase
 struct Thread
     : public ThreadBase
 {
-    SplitPoint split_points[MAX_SPLITPOINTS_PER_THREAD];
-    Material::Table material_table;
-    Pawns   ::Table pawns_table;
-    EndGame ::Endgames endgames;
-    Position *active_pos;
-    size_t idx;
-    int32_t max_ply;
+    SplitPoint           split_points[MAX_SPLITPOINTS_PER_THREAD];
+    Material::Table      material_table;
+    Pawns   ::Table      pawns_table;
+    EndGame ::Endgames   endgames;
+    Position            *active_pos;
+    size_t               idx;
+    int32_t              max_ply;
     SplitPoint* volatile active_split_point;
     volatile int32_t     split_points_size;
     volatile bool        searching;
@@ -175,7 +176,6 @@ struct Thread
 
 };
 
-
 // MainThread and TimerThread are derived classes used to characterize the two
 // special threads: the main one and the recurring timer.
 struct MainThread
@@ -186,7 +186,7 @@ struct MainThread
     MainThread()
         : thinking(true) {} // Avoid a race with start_thinking()
 
-    virtual void idle_loop();
+    virtual void idle_loop ();
 };
 
 struct TimerThread
@@ -201,19 +201,18 @@ struct TimerThread
     virtual void idle_loop();
 };
 
-
 // ThreadPool struct handles all the threads related stuff like init, starting,
 // parking and, the most important, launching a slave thread at a split point.
 // All the access to shared thread data is done through this class.
 struct ThreadPool
     : public std::vector<Thread*>
 {
-    bool sleep_while_idle;
-    Depth min_split_depth;
-    size_t max_threads_per_split_point;
-    Mutex mutex;
-    ConditionVariable sleep_condition;
-    TimerThread *timer;
+    bool                sleep_while_idle;
+    Depth               min_split_depth;
+    size_t              max_threads_per_split_point;
+    Mutex               mutex;
+    ConditionVariable   sleep_condition;
+    TimerThread        *timer;
 
     // No c'tor and d'tor, threads rely on globals that should
     // be initialized and valid during the whole thread lifetime.

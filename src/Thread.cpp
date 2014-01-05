@@ -21,11 +21,10 @@ namespace {
     // is launched. It is a wrapper to the virtual function idle_loop().
     extern "C" { long start_routine (ThreadBase *th) { th->idle_loop (); return 0; } }
 
-
     // Helpers to launch a thread after creation and joining before delete. Must be
     // outside Thread c'tor and d'tor because object shall be fully initialized
     // when start_routine (and hence virtual idle_loop) is called and when joining.
-    template<typename T>
+    template<class T>
     T* new_thread()
     {
         T *th = new T ();
@@ -332,7 +331,8 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
     limits  = search_limits;
     if (states.get ()) // If we don't set a new position, preserve current state
     {
-        setupStates = move (states); // Ownership transfer here
+        //setupStates = move (states); // Ownership transfer here
+        setupStates = states; // Ownership transfer here
         ASSERT (!states.get ());
     }
 

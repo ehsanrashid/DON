@@ -165,7 +165,7 @@ namespace Zobrist {
     }
 
     // Hash key of the FEN
-    Key Zob::compute_fen_key (const        char *fen, bool c960) const
+    Key Zob::compute_fen_key (const   char *fen, bool c960) const
     {
         ASSERT (fen);
         if (!fen)   return U64 (0);

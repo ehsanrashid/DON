@@ -227,105 +227,12 @@ Position& Position::operator= (const Position &pos)
 {
     memcpy (this, &pos, sizeof (Position));
 
-    _sb = *_si;
-    _si = &_sb;
+    _sb         = *_si;
+    _si         = &_sb;
     _game_nodes = 0;
 
     return *this;
 }
-
-#pragma region Basic methods
-
-void  Position::place_piece (Square s, Color c, PType pt)
-{
-    ASSERT (PS_NO == _piece_arr[s]);
-    if (PS_NO != _piece_arr[s])
-    {
-        return;
-    }
-    _piece_arr[s]    = (c | pt);
-    _color_bb[c]     += s;
-    _types_bb[pt]    += s;
-    _types_bb[PT_NO] += s;
-    _piece_count[c][PT_NO]++;
-    // Update piece list, put piece at [s] index
-    _piece_index[s] = _piece_count[c][pt]++;
-    _piece_list[c][pt][_piece_index[s]] = s;
-}
-void  Position::place_piece (Square s, Piece p)
-{
-    place_piece (s, p_color (p), p_type (p));
-}
-Piece Position::remove_piece (Square s)
-{
-    // WARNING: This is not a reversible operation. If we remove a piece in
-    // do_move() and then replace it in undo_move() we will put it at the end of
-    // the list and not in its original place, it means index[] and pieceList[]
-    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
-
-    Piece p = _piece_arr[s];
-    ASSERT (PS_NO != p);
-
-    Color c  = p_color (p);
-    PType pt = p_type (p);
-    int32_t ps_count = _piece_count[c][pt];
-    ASSERT (0 < ps_count);
-    if (0 >= ps_count) return PS_NO;
-
-    _piece_arr[s]     = PS_NO;
-    _color_bb[c]     -= s;
-    _types_bb[pt]    -= s;
-    _types_bb[PT_NO] -= s;
-    _piece_count[c][PT_NO]--;
-    _piece_count[c][pt]--;
-    // Update piece list, remove piece at [s] index and shrink the list.
-    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
-    _piece_index[last_sq] = _piece_index[s];
-    if (s != last_sq) _piece_index[s] = -1;
-    if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
-    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
-    return p;
-}
-Piece Position::  move_piece (Square s1, Square s2)
-{
-    if (s1 == s2) return _piece_arr[s1];
-
-    Piece p = _piece_arr[s1];
-    if (!_ok (p)) return PS_NO;
-
-    ASSERT (PS_NO == _piece_arr[s2]);
-    if (PS_NO != _piece_arr[s2])
-    {
-        return PS_NO;
-    }
-
-    Color c = p_color (p);
-    PType pt = p_type (p);
-
-    _piece_arr[s1] = PS_NO;
-    _piece_arr[s2] = p;
-
-    //_color_bb[c]     -= s1;
-    //_types_bb[pt]    -= s1;
-    //_types_bb[PT_NO] -= s1;
-    //_color_bb[c]     += s2;
-    //_types_bb[pt]    += s2;
-    //_types_bb[PT_NO] += s2;
-    Bitboard bb = _square_bb[s1] ^ _square_bb[s2];
-    _color_bb[c]     ^= bb;
-    _types_bb[pt]    ^= bb;
-    _types_bb[PT_NO] ^= bb;
-
-    // _piece_index[s1] is not updated and becomes stale. This works as long
-    // as _piece_index[] is accessed just by known occupied squares.
-    _piece_index[s2] = _piece_index[s1];
-    _piece_index[s1] = -1;
-    _piece_list[c][pt][_piece_index[s2]] = s2;
-
-    return p;
-}
-
-#pragma endregion
 
 #pragma region Basic properties
 
@@ -1247,6 +1154,96 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 #pragma endregion
 
 #pragma region Basic methods
+
+void  Position:: place_piece (Square s, Color c, PType pt)
+{
+    ASSERT (PS_NO == _piece_arr[s]);
+    if (PS_NO != _piece_arr[s])
+    {
+        return;
+    }
+    _piece_arr[s]    = (c | pt);
+    _color_bb[c]     += s;
+    _types_bb[pt]    += s;
+    _types_bb[PT_NO] += s;
+    _piece_count[c][PT_NO]++;
+    // Update piece list, put piece at [s] index
+    _piece_index[s] = _piece_count[c][pt]++;
+    _piece_list[c][pt][_piece_index[s]] = s;
+}
+void  Position:: place_piece (Square s, Piece p)
+{
+    place_piece (s, p_color (p), p_type (p));
+}
+Piece Position::remove_piece (Square s)
+{
+    // WARNING: This is not a reversible operation. If we remove a piece in
+    // do_move() and then replace it in undo_move() we will put it at the end of
+    // the list and not in its original place, it means index[] and pieceList[]
+    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
+
+    Piece p = _piece_arr[s];
+    ASSERT (PS_NO != p);
+    if (PS_NO == p) return p;
+    Color c  = p_color (p);
+    PType pt = p_type (p);
+    int32_t ps_count = _piece_count[c][pt];
+    ASSERT (0 < ps_count);
+    if (0 >= ps_count) return PS_NO;
+
+    _piece_arr[s]     = PS_NO;
+    _color_bb[c]     -= s;
+    _types_bb[pt]    -= s;
+    _types_bb[PT_NO] -= s;
+    _piece_count[c][PT_NO]--;
+    _piece_count[c][pt]--;
+    // Update piece list, remove piece at [s] index and shrink the list.
+    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
+    _piece_index[last_sq] = _piece_index[s];
+    if (s != last_sq) _piece_index[s] = -1;
+    if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
+    return p;
+}
+Piece Position::  move_piece (Square s1, Square s2)
+{
+    if (s1 == s2) return _piece_arr[s1];
+
+    Piece p = _piece_arr[s1];
+    if (!_ok (p)) return PS_NO;
+
+    ASSERT (PS_NO == _piece_arr[s2]);
+    if (PS_NO != _piece_arr[s2])
+    {
+        return PS_NO;
+    }
+
+    Color c = p_color (p);
+    PType pt = p_type (p);
+
+    _piece_arr[s1] = PS_NO;
+    _piece_arr[s2] = p;
+
+    //_color_bb[c]     -= s1;
+    //_types_bb[pt]    -= s1;
+    //_types_bb[PT_NO] -= s1;
+    //_color_bb[c]     += s2;
+    //_types_bb[pt]    += s2;
+    //_types_bb[PT_NO] += s2;
+    Bitboard bb = _square_bb[s1] ^ _square_bb[s2];
+    _color_bb[c]     ^= bb;
+    _types_bb[pt]    ^= bb;
+    _types_bb[PT_NO] ^= bb;
+
+    // _piece_index[s1] is not updated and becomes stale. This works as long
+    // as _piece_index[] is accessed just by known occupied squares.
+    _piece_index[s2] = _piece_index[s1];
+    _piece_index[s1] = -1;
+    _piece_list[c][pt][_piece_index[s2]] = s2;
+
+    return p;
+}
+
 // clear() clear the position
 void Position::clear ()
 {
@@ -1431,7 +1428,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
     //memcpy (&si_n, _si, SIZE_COPY_STATE);
-    std::memcpy(&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
+    memcpy (&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
 
     // switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;
@@ -1455,7 +1452,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Square cap = dst;
     PType  ct  = PT_NO;
 
-    MType mt = m_type (m);
+    MType mt   = m_type (m);
     // Pick capture piece and check validation
     switch (mt)
     {
@@ -1686,7 +1683,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // TODO::
     //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
-    //ASSERT (ok ());
+    ASSERT (ok ());
 
     //int8_t failed_step;
     //ASSERT (ok (&failed_step));
@@ -1710,7 +1707,7 @@ void Position::do_move (string &can, StateInfo &si_n)
 void Position::undo_move ()
 {
     ASSERT (_si->p_si);
-    if (_si->p_si == NULL) return;
+    if (NULL == _si->p_si) return;
 
     Move m = _si->last_move;
     ASSERT (_ok (m));
@@ -1794,7 +1791,7 @@ void Position::undo_move ()
 
     // TODO::
     //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
-    //ASSERT (ok ());
+    ASSERT (ok ());
 
     //int8_t failed_step;
     //ASSERT (ok (&failed_step));
@@ -1809,8 +1806,8 @@ void Position::do_null_move (StateInfo &si_n)
 {
     ASSERT (&si_n != _si);
     ASSERT (!_si->checkers);
-    if (&si_n == _si)   return;
-    if (_si->checkers)  return;
+    //if (&si_n == _si)   return;
+    //if (_si->checkers)  return;
 
     // Full copy here
     memcpy (&si_n, _si, sizeof (StateInfo));
@@ -1840,8 +1837,8 @@ void Position::undo_null_move ()
 {
     ASSERT (_si->p_si);
     ASSERT (!_si->checkers);
-    if (!(_si->p_si))   return;
-    if (_si->checkers)  return;
+    //if (!(_si->p_si))   return;
+    //if (_si->checkers)  return;
 
     _active = ~_active;
 

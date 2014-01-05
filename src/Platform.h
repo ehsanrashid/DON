@@ -10,20 +10,15 @@
 #define BSFQ
 #define NO_PREFETCH
 
-//#define TRI_LOGGER
+#define TRI_LOGGER
 
 //#define CLEANTLOG
 //#define OTLOG
 //#define ETLOG
 #define FTLOG   log_eng
 
-
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-#ifndef NOMINMAX
-#   define NOMINMAX // disable macros min() and max()
-#endif
 
 // Disable some silly and noisy warning from MSVC compiler
 #pragma warning (disable: 4127) // Conditional expression is constant

@@ -69,10 +69,6 @@ const uint16_t MAX_MOVES    = 192;
 const uint16_t MAX_PLY      = 100;
 const uint16_t MAX_PLY_6    = MAX_PLY + 6;
 
-//const uint8_t MAX_THREADS                 = 64;
-//const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
-//const uint8_t MAX_SPLIT_DEPTH             = 99;
-
 #pragma warning (push)
 #pragma warning (disable: 4341)
 
@@ -236,6 +232,7 @@ typedef enum PType : int8_t
     PT_ALL = PT_NO + 1,
 
 } PType;
+
 // Piece needs 4 bits to be stored
 // bit 0-2: TYPE of piece
 // bit   3: COLOR of piece
@@ -322,7 +319,6 @@ typedef enum Move : uint16_t
     //MOVE_B_CK = 0xCF3E,
 
 } Move;
-
 
 typedef enum Value : int16_t
 {

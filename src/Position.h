@@ -182,6 +182,7 @@ typedef class Position
 private:
 
 #pragma region Fields
+
     // Board for storing pieces.
     Piece    _piece_arr[SQ_NO];
     Bitboard _color_bb[CLR_NO];
@@ -644,10 +645,10 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return
         (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces (BLACK, PAWN)) |
         (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces (WHITE, PAWN)) |
-        (BitBoard::attacks_bb<NIHT> (s)      & pieces (NIHT)) |
-        (BitBoard::attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN)) |
-        (BitBoard::attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN)) |
-        (BitBoard::attacks_bb<KING> (s)      & pieces (KING));
+        (BitBoard::attacks_bb<NIHT> (s)        & pieces (NIHT)) |
+        (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN)) |
+        (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN)) |
+        (BitBoard::attacks_bb<KING> (s)        & pieces (KING));
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
@@ -742,7 +743,7 @@ inline bool Position::bishops_pair (Color c) const
 
 inline bool Position::  passed_pawn_push (Move m) const
 {
-    return (PAWN == p_type (moved_piece (m))) && passed_pawn(_active, dst_sq (m));
+    return (PAWN == p_type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
 }
 inline bool Position::advanced_pawn_push (Move m) const
 {
@@ -753,9 +754,8 @@ inline bool Position::advanced_pawn_push (Move m) const
 
 #pragma endregion
 
-
-typedef std::stack     <StateInfo>        StateInfoStack;
-typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
-
+typedef std::stack     <StateInfo>          StateInfoStack;
+//typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;
 
 #endif
