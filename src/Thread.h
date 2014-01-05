@@ -74,26 +74,27 @@ extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 
 struct Mutex
 {
+private:
+    friend struct ConditionVariable;
+
+    Lock l;
+
+public:
     Mutex()         { lock_init (l); }
     ~Mutex()        { lock_destroy (l); }
 
     void lock()     { lock_grab (l); }
     void unlock()   { lock_release (l); }
-
-private:
-    friend struct ConditionVariable;
-
-    Lock l;
 };
 
 struct ConditionVariable
 {
-    ConditionVariable() { cond_init(c); }
-    ~ConditionVariable() { cond_destroy(c); }
+    ConditionVariable()     { cond_init (c); }
+    ~ConditionVariable()    { cond_destroy (c); }
 
-    void wait(Mutex& m) { cond_wait(c, m.l); }
-    void wait_for(Mutex& m, int32_t ms) { timed_wait(c, m.l, ms); }
-    void notify_one () { cond_signal(c); }
+    void wait(Mutex &m)     { cond_wait (c, m.l); }
+    void wait_for(Mutex &m, int32_t ms) { timed_wait (c, m.l, ms); }
+    void notify_one ()      { cond_signal (c); }
 
 private:
     WaitCondition c;

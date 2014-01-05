@@ -313,7 +313,6 @@ public:
     Value non_pawn_material (Color c) const;
     //Value pawn_material (Color c) const;
 
-
     Score psq_score () const;
 
 #pragma endregion
@@ -333,8 +332,8 @@ public:
 #pragma endregion
 
     Color    active    ()               const;
-    uint16_t game_ply  ()               const;
-    uint16_t game_move ()               const;
+    uint32_t game_ply  ()               const;
+    uint32_t game_move ()               const;
     bool     chess960  ()               const;
 
     uint64_t game_nodes ()              const;
@@ -586,10 +585,10 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 inline Color    Position::active    () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-inline uint16_t Position::game_ply  () const { return _game_ply; }
+inline uint32_t Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline uint32_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
 inline bool     Position::chess960  () const { return _chess960; }
 

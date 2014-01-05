@@ -499,7 +499,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 12
     if (++(*step), debug_clock50)
     {
-        if (clock50 () > 100) return false;
+        if (_si->clock50 > 100) return false;
     }
 
     // step 13
@@ -682,7 +682,7 @@ Piece Position::captured_piece (Move m) const
         {
             cap += ((WHITE == _active) ? DEL_S : DEL_N);
 
-            Bitboard captures = attacks_bb<PAWN> (pasive, en_passant ()) & pieces (_active, PAWN);
+            Bitboard captures = attacks_bb<PAWN> (pasive, _si->en_passant) & pieces (_active, PAWN);
 
             return (captures) ? _piece_arr[cap] : PS_NO;
         }
@@ -775,7 +775,7 @@ bool Position::pseudo_legal (Move m) const
     case ENPASSANT:
         {
             if (PAWN != pt) return false;
-            if (en_passant () != dst) return false;
+            if (_si->en_passant != dst) return false;
             if (R_5 != rel_rank (active, org)) return false;
             if (R_6 != rel_rank (active, dst)) return false;
             if (!empty (dst)) return false;
@@ -972,7 +972,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
         {
             Square cap = dst + pawn_push (pasive);
 
-            ASSERT (dst == en_passant ());
+            ASSERT (dst == _si->en_passant);
             ASSERT ((active | PAWN) == _piece_arr[org]);
             ASSERT ((pasive | PAWN) == _piece_arr[cap]);
             ASSERT (PS_NO == _piece_arr[dst]);
@@ -1841,7 +1841,6 @@ void Position::undo_null_move ()
     //if (_si->checkers)  return;
 
     _active = ~_active;
-
     _si     = _si->p_si;
 
     ASSERT (ok ());
@@ -2017,7 +2016,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     set_next (' ');
     if (can_castle (CR_A))
     {
-        if (chess960 () || c960)
+        if (_chess960 || c960)
         {
 #pragma region X-FEN
             if (can_castle (WHITE))
@@ -2053,7 +2052,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         set_next ('-');
     }
     set_next (' ');
-    Square ep_sq = en_passant ();
+    Square ep_sq = _si->en_passant;
     if (SQ_NO != ep_sq)
     {
         ASSERT (_ok (ep_sq));
@@ -2071,8 +2070,8 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         try
         {
             int32_t write =
-                //_snprintf (ch, MAX_FEN - (ch - fen) - 1, "%u %u", clock50 (), game_move ());
-                _snprintf_s (ch, MAX_FEN - (ch - fen) - 1, 8, "%u %u", clock50 (), game_move ());
+                //_snprintf (ch, MAX_FEN - (ch - fen) - 1, "%u %u", _si->clock50, game_move ());
+                _snprintf_s (ch, MAX_FEN - (ch - fen) - 1, 8, "%u %u", _si->clock50, game_move ());
             ch += write;
         }
         catch (...)
@@ -2165,7 +2164,7 @@ string Position::fen (bool                  c960, bool full) const
         sfen << '-';
     }
     sfen << ' ';
-    Square ep_sq = en_passant ();
+    Square ep_sq = _si->en_passant;
     if (SQ_NO != ep_sq)
     {
         ASSERT (_ok (ep_sq));
@@ -2179,9 +2178,9 @@ string Position::fen (bool                  c960, bool full) const
     if (full)
     {
         sfen << ' ';
-        sfen << uint32_t (clock50 ());
+        sfen << _si->clock50;
         sfen << ' ';
-        sfen << uint32_t (game_move ());
+        sfen << game_move ();
     }
     sfen << '\0';
 
