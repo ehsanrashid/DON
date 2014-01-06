@@ -148,12 +148,7 @@ public:
 
 #pragma region Position
 
-CACHE_ALIGN(32)
-    const Value PieceValue[PHASE_NO][PT_NO] =
-{
-    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
-};
+extern const Value PieceValue[PHASE_NO][PT_NO];
 
 //#pragma pack (push, 4)
 
@@ -402,8 +397,8 @@ public:
 
     bool passed_pawn (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
-    bool opposite_bishops () const;
     bool bishops_pair (Color c) const;
+    bool opposite_bishops ()    const;
 
 #pragma endregion
 
@@ -714,14 +709,6 @@ inline bool Position::pawn_on_7thR (Color c) const
 {
     return pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
 }
-// check the opposite sides have opposite bishops
-inline bool Position::opposite_bishops () const
-{
-    return
-        (_piece_count[WHITE][BSHP] == 1) &&
-        (_piece_count[BLACK][BSHP] == 1) &&
-        opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
-}
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
@@ -734,6 +721,14 @@ inline bool Position::bishops_pair (Color c) const
         }
     }
     return false;
+}
+// check the opposite sides have opposite bishops
+inline bool Position::opposite_bishops () const
+{
+    return
+        (_piece_count[WHITE][BSHP] == 1) &&
+        (_piece_count[BLACK][BSHP] == 1) &&
+        opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
 }
 
 #pragma endregion

@@ -104,10 +104,16 @@ void CheckInfo::clear ()
 
 #pragma region Position
 
+const Value PieceValue[PHASE_NO][PT_NO] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
+};
+
 namespace {
 
-    CACHE_ALIGN(64)
-        Score psq[CLR_NO][PT_NO][SQ_NO];
+    //CACHE_ALIGN(64)
+    Score psq[CLR_NO][PT_NO][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -564,7 +570,7 @@ int32_t Position::see      (Move m) const
         break;
 
     case ENPASSANT:
-        occupied -= dst - pawn_push (stm); // Remove the captured pawn
+        occupied -= (dst - pawn_push (stm)); // Remove the captured pawn
         swap_list[0] = PieceValue[MG][PAWN];
         break;
     }
@@ -1145,8 +1151,7 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     if (!check (m, ci)) return false;
 
     Position pos = *this;
-    StateInfo si;
-    pos.do_move (m, si);
+    pos.do_move (m, StateInfo ());
     return !generate<EVASION> (pos).size ();
 }
 
@@ -1877,7 +1882,7 @@ void Position::flip ()
     //        place_piece (~s, ~p);
     //    }
     //}
-    Bitboard occ = pos._types_bb[PT_NO];
+    Bitboard occ    = pos._types_bb[PT_NO];
     while (occ)
     {
         Square s = pop_lsq (occ);
@@ -1895,7 +1900,7 @@ void Position::flip ()
 
     _si->castle_rights = ~pos._si->castle_rights;
 
-    Square ep_sq = pos._si->en_passant;
+    Square ep_sq    = pos._si->en_passant;
     if (SQ_NO != ep_sq)
     {
         _si->en_passant = ~ep_sq;
@@ -2253,7 +2258,7 @@ Position::operator string () const
 // It starts at 1, and is incremented after Black's move.
 
 #undef SKIP_WHITESPACE
-#define SKIP_WHITESPACE()  while (isspace ((unsigned char) (*fen))) ++fen
+#define SKIP_WHITESPACE()  while (isspace (uint8_t (*fen))) ++fen
 
 bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
@@ -2262,11 +2267,11 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
     pos.clear ();
 
-    unsigned char ch;
+    uint8_t ch;
 
 #undef get_next
 
-#define get_next()         ch = (unsigned char) (*fen++)
+#define get_next()         ch = uint8_t (*fen++)
 
     // Piece placement on Board
     for (Rank r = R_8; r >= R_1; --r)
@@ -2394,13 +2399,13 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     get_next ();
     if ('-' != ch)
     {
-        unsigned char ep_f = tolower (ch);
+        uint8_t ep_f = tolower (ch);
         ASSERT (isalpha (ep_f));
         ASSERT ('a' <= ep_f && ep_f <= 'h');
         if (!isalpha (ep_f)) return false;
         if ('a' > ep_f || ep_f > 'h') return false;
 
-        unsigned char ep_r = get_next ();
+        uint8_t ep_r = get_next ();
         ASSERT (isdigit (ep_r));
         ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
 
@@ -2604,14 +2609,14 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     //const string &en_pas_s = sp_fen[3];
     //if ('-' != en_pas_s[0])
     //{
-    //    unsigned char ep_f = tolower (en_pas_s[0]);
+    //    uint8_t ep_f = tolower (en_pas_s[0]);
     //    ASSERT (isalpha (ep_f));
     //    ASSERT ('a' <= ep_f && ep_f <= 'h');
     //
     //    if (!isalpha (ep_f)) return false;
     //    if ('a' > ep_f || ep_f > 'h') return false;
     //
-    //    unsigned char ep_r = en_pas_s[1];
+    //    uint8_t ep_r = en_pas_s[1];
     //    ASSERT (isdigit (ep_r));
     //    ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
     //
@@ -2644,7 +2649,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 #pragma region Input String Stream
 
     istringstream sfen (fen);
-    unsigned char ch;
+    uint8_t ch;
 
     // Piece placement on Board
     sfen >> noskipws;
@@ -2772,14 +2777,14 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     sfen >> skipws >> ch;
     if ('-' != ch)
     {
-        unsigned char ep_f = tolower (ch);
+        uint8_t ep_f = tolower (ch);
         ASSERT (isalpha (ep_f));
         ASSERT ('a' <= ep_f && ep_f <= 'h');
         if (!isalpha (ep_f)) return false;
         if ('a' > ep_f || ep_f > 'h') return false;
 
         sfen >> noskipws >> ch;
-        unsigned char ep_r = ch;
+        uint8_t ep_r = ch;
         ASSERT (isdigit (ep_r));
         ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
 

@@ -69,18 +69,18 @@ namespace {
 
     void iter_deep_loop (Position &pos);
 
-    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count);
+    void update_stats   (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count);
 
     template <NodeType N>
-    Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
+    Value search        (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
     template <NodeType N, bool IN_CHECK>
-    Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
+    Value search_quien  (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta);
+    string pv_info_uci  (const Position &pos, int16_t depth, Value alpha, Value beta);
 
     struct Skill
     {
@@ -1388,9 +1388,9 @@ moves_loop: // When in check and at SPNode search starts from here
             return draw_value[pos.active ()];
         }
 
-        Value best_value;
-        Value old_alpha;
-        StateInfo si;
+        Value       best_value;
+        Value       old_alpha;
+        StateInfo   si;
 
         // To flag EXACT a node with eval_value above alpha and no available moves
         if (PVNode) old_alpha = alpha;

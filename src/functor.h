@@ -78,7 +78,6 @@ namespace std {
     //    }
     //};
 
-
 }
 
 #endif

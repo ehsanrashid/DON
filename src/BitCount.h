@@ -262,7 +262,7 @@ inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //}
 
 
-//static unsigned char wordbits[65536] = { bitcounts of ints between 0 and 65535 };
+//static uint8_t wordbits[65536] = { bitcounts of ints between 0 and 65535 };
 //inline uint8_t pop_count (uint32_t w)
 //{
 //    return( wordbits[w & 0xFFFF] + wordbits[w >> 0x10] );

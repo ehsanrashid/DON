@@ -19,8 +19,8 @@ AmbType ambiguity (Move m, const Position &pos)
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    Piece mp   = pos[org];
-    PType mpt  = p_type (mp);
+    Piece p   = pos[org];
+    PType pt  = p_type (p);
 
     //MoveList mov_lst = generate<LEGAL> (pos);
     //uint8_t n = 0;
@@ -32,7 +32,7 @@ AmbType ambiguity (Move m, const Position &pos)
     //    Move mm = *itr;
     //    if (org_sq (mm) != org)
     //    {
-    //        if (pos[org_sq (mm)] == mp && dst_sq (mm) == dst)
+    //        if (pos[org_sq (mm)] == p && dst_sq (mm) == dst)
     //        {
     //            ++n;
     //            if (_file (org_sq (mm)) == _file (org))
@@ -78,7 +78,7 @@ AmbType ambiguity (Move m, const Position &pos)
     //Bitboard occ = pos.pieces ();
     ////Bitboard friends = pos.pieces (pos.active ());
     //Bitboard ambiguous = pos.pieces (pos.active ()) & ~pos.pinneds () - org;
-    //switch (mpt)
+    //switch (pt)
     //{
     //case PAWN:
     //case KING: return AMB_NONE; break;
@@ -93,7 +93,7 @@ AmbType ambiguity (Move m, const Position &pos)
     //return AMB_SQR;
 
     Bitboard others, b;
-    others = b = (pos.attacks_from (mp, dst) & pos.pieces (pos.active (), mpt)) - org;
+    others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
     Bitboard pinneds = pos.pinneds (pos.active ());
     while (b)
     {
@@ -118,7 +118,7 @@ Move move_from_can (string &can, const Position &pos)
     if (5 == can.length ())
     {
         // promotion piece in lowercase
-        if (isupper ((unsigned char) can[4]))
+        if (isupper (uint8_t (can[4])))
         {
             can[4] = char (tolower (can[4]));
         }
@@ -175,10 +175,10 @@ string move_to_san (Move m, Position &pos)
     string san;
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    Piece mp   = pos[org];
-    PType mpt  = p_type (mp);
+    Piece p   = pos[org];
+    PType pt  = p_type (p);
 
-    //    switch (mpt)
+    //    switch (pt)
     //    {
     //    case PAWN:
     //        san = "";
@@ -220,7 +220,7 @@ string move_to_san (Move m, Position &pos)
     //        // NOTE: no break
     //    default:
     //        // piece notation
-    //        san = to_char (mpt);
+    //        san = to_char (pt);
     //
     //        break;
     //    }
@@ -261,14 +261,14 @@ string move_to_san (Move m, Position &pos)
         break;
 
     default:
-        if (PAWN == mpt)
+        if (PAWN == pt)
         {
             if (pos.capture (m)) san = to_char (_file (org));
         }
         else
         {
-            san = to_char (mpt);
-            // Disambiguation if we have more then one piece of type 'mpt'
+            san = to_char (pt);
+            // Disambiguation if we have more then one piece of type 'pt'
             // that can reach 'dst' with a legal move.
             switch (ambiguity (m, pos))
             {
@@ -282,7 +282,7 @@ string move_to_san (Move m, Position &pos)
 
         if (pos.capture (m)) san += 'x';
         san += to_string (dst);
-        if (PROMOTE == mt && PAWN == mpt) san += "=" + to_char (prom_type (m));
+        if (PROMOTE == mt && PAWN == pt) san += "=" + to_char (prom_type (m));
         break;
     }
 

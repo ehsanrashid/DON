@@ -57,7 +57,9 @@ namespace {
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Stack *s)
-    : pos(p), history(h), depth(d)
+    : pos (p)
+    , history (h)
+    , depth (d)
 {
     ASSERT (d > DEPTH_ZERO);
 
@@ -73,7 +75,10 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 }
 
 MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
-    : pos(p), history(h), cur(moves), end(moves)
+    : pos (p)
+    , history (h)
+    , cur (moves)
+    , end (moves)
 {
     ASSERT (d <= DEPTH_ZERO);
 
@@ -109,7 +114,10 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 }
 
 MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
-    : pos(p), history(h), cur(moves), end(moves)
+    : pos (p)
+    , history (h)
+    , cur (moves)
+    , end (moves)
 {
     ASSERT (!pos.checkers ());
 
@@ -155,7 +163,7 @@ void MovePicker::value<CAPTURE>()
         switch (m_type (m))
         {
         case PROMOTE:
-            itr->value += PieceValue[MG][prom_type(m)] - PieceValue[MG][PAWN];
+            itr->value += PieceValue[MG][prom_type (m)] - PieceValue[MG][PAWN];
             break;
         case ENPASSANT:
             itr->value += PieceValue[MG][PAWN];
@@ -298,7 +306,6 @@ void MovePicker::generate_next ()
 
     case QUIET_CHECKS_S3:
         generate_moves<QUIET_CHECK>();
-
         return;
         break;
 
@@ -316,6 +323,7 @@ void MovePicker::generate_next ()
 
     default:
         ASSERT (false);
+        break;
     }
 }
 

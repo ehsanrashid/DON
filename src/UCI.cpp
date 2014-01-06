@@ -33,7 +33,7 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr   setupStates;
 
-        bool active = false;
+        bool active         = false;
 
 #pragma region uci-commands
 
@@ -154,8 +154,7 @@ namespace UCI {
                         TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
-                    StateInfo si;
-                    setupStates->push (si);
+                    setupStates->push (StateInfo ());
                     rootPos.do_move (m, setupStates->top ());
                 }
             }

@@ -203,7 +203,7 @@ namespace TrivialLogger {
                 {
                     // check if characters have grapnical
                     // reprasentation
-                    if (0 != isgraph (unsigned char (*fn_log)))
+                    if (0 != isgraph (uint8_t (*fn_log)))
                     {
                         *filename = *fn_log;
                         ++filename;

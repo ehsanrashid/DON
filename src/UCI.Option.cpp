@@ -193,34 +193,34 @@ namespace UCI {
 
         using namespace OptionType;
 
-        void on_clear_hash  (const Option &opt)
+        void on_clear_hash      (const Option &opt)
         {
             TT.clear ();
             ats () << "info string hash cleared." << endl;
         }
 
-        void on_resize_hash (const Option &opt)
+        void on_resize_hash     (const Option &opt)
         {
             uint32_t size_mb = int32_t (opt);
             size_mb = TT.resize (size_mb);
-            ats () << "info string hash resized " << size_mb << " MB Hash..." << endl;
+            ats () << "info string " << size_mb << " MB Hash." << endl;
         }
 
-        void on_save_hash   (const Option &opt)
+        void on_save_hash       (const Option &opt)
         {
             //ofstream ofstm ("hash.dat", ios_base::out | ios_base::binary);
             //ofstm << tt;
             //ofstm.close ();
         }
 
-        void on_load_hash   (const Option &opt)
+        void on_load_hash       (const Option &opt)
         {
             //ifstream ifstm ("hash.dat", ios_base::in | ios_base::binary);
             //ifstm >> tt;
             //ifstm.close ();
         }
 
-        void on_change_book (const Option &opt)
+        void on_change_book     (const Option &opt)
         {
             if (Searcher::book.is_open ()) Searcher::book.close ();
         }
@@ -230,17 +230,17 @@ namespace UCI {
             Threads.read_uci_options ();
         }
 
-        void on_evaluation  (const Option& opt)
+        void on_evaluation      (const Option& opt)
         {
             Evaluator::initialize ();
         }
 
-        void on_log_io      (const Option &opt)
+        void on_log_io          (const Option &opt)
         {
             log_io (bool (opt));
         }
 
-        void on_query       (const Option &opt)
+        void on_query           (const Option &opt)
         {
         }
 

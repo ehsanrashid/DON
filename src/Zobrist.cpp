@@ -12,8 +12,8 @@ namespace Zobrist {
     const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
     const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
 
-    RKISS rkiss;
-    Key exclusion;
+    RKISS   rkiss;
+    Key     exclusion;
 
     void Zob::initialize (RKISS rkiss)
     {

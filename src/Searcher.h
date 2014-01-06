@@ -32,7 +32,7 @@ namespace Searcher {
 
         GameClock ()
         {
-            time  = 5 * 60 * 1000; // 5 mins default time
+            time  = 0; //5 * 60 * 1000; // 5 mins default time
             inc   = 0;
         }
 

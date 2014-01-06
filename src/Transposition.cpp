@@ -34,11 +34,11 @@ size_t TranspositionTable::resize (uint32_t size_mb)
     if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
 
     total_entry     = uint32_t (1) << bit_hash;
-    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return size_mb;
+    size_t size     = total_entry * SIZE_TENTRY;
+    
+    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return (size >> 20);
 
     erase ();
-
-    size_t size     = total_entry * SIZE_TENTRY;
 
     aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
