@@ -441,7 +441,7 @@ namespace {
         {
         case NIHT: bonus = OutpostBonus[0][rel_sq (C, s)]; break;
         case BSHP: bonus = OutpostBonus[1][rel_sq (C, s)]; break;
-        default:   bonus = VALUE_ZERO;                break;
+        default:   bonus = VALUE_ZERO;                     break;
         }
 
         // Increase bonus if supported by pawn, especially if the opponent has
@@ -544,15 +544,14 @@ namespace {
                     score += evaluate_outposts<PT, C>(pos, ei, s);
                 }
                 // Bishop or knight behind a pawn
-                if (    rel_rank (C, s) < R_5
-                    && (pos.pieces (PAWN) & (s + pawn_push (C))))
+                if (rel_rank (C, s) < R_5 && (pos.pieces (PAWN) & (s + pawn_push (C))))
                 {
                     score += MinorBehindPawnBonus;
                 }
             }
 
-            if (  (ROOK == PT || QUEN == PT)
-                && R_5 <= rel_rank (C, s))
+            if ((ROOK == PT || QUEN == PT) &&
+                R_5 <= rel_rank (C, s))
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
                 if (   R_7 == rel_rank (C, s)
@@ -588,9 +587,9 @@ namespace {
 
                 // Penalize rooks which are trapped by a king. Penalize more if the
                 // king has lost its castling capability.
-                if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
-                    && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                    && !ei.pi->semiopen_on_side(C, _file (fk_sq), _file (fk_sq) < F_E))
+                if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))) &&
+                    (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq)) &&
+                    !ei.pi->semiopen_on_side(C, _file (fk_sq), _file (fk_sq) < F_E))
                 {
                     score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                 }
@@ -599,9 +598,8 @@ namespace {
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
             // pawn diagonally in front of it is a very serious problem, especially
             // when that pawn is also blocked.
-            if (   BSHP == PT
-                && pos.chess960 ()
-                && (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
+            if (BSHP == PT && pos.chess960 () &&
+                (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
             {
                 const Piece P = (C | PAWN);
                 Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);

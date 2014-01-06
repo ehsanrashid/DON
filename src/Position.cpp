@@ -1604,7 +1604,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Update castle rights if needed
     if (_si->castle_rights)
     {
-        int32_t cr = _si->castle_rights & (castle_right (active, org) | castle_right (pasive, dst));
+        int32_t cr = //_si->castle_rights & 
+            (castle_right (active, org) | castle_right (pasive, dst));
         if (cr)
         {
             Bitboard b = cr;

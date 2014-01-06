@@ -141,7 +141,7 @@ typedef unsigned long long      uint64_t;
 
 #else
 
-#define TRI_LOGGER
+//#define TRI_LOGGER
 
 //#define CLEANTLOG
 //#define OTLOG
