@@ -203,12 +203,12 @@ namespace Material {
         {
             if (!pos.piece_count<PAWN> (BLACK))
             {
-                assert (pos.piece_count<PAWN> (WHITE) >= 2);
+                ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else if (!pos.piece_count<PAWN> (WHITE))
             {
-                assert (pos.piece_count<PAWN> (BLACK) >= 2);
+                ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1 && pos.piece_count<PAWN> (BLACK) == 1)

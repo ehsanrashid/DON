@@ -137,7 +137,7 @@ inline Square  scan_lsq (Bitboard bb)
     //// Modulo operation of the isolated LS1B by the prime number 67.
     //// The remainder 0..66 can be used to perfectly hash the bit - index table. Three gaps are 0, 17, and 34
     //const uint8_t Prime_67 = 0x43; // 67
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const int8_t BSF_Table[Prime_67 + 1] =
     //{
     //    64, 00, 01, 39, 02, 15, 40, 23,
@@ -158,7 +158,7 @@ inline Square  scan_lsq (Bitboard bb)
 
     //// * DeBruijn (U32 (0x01)) = U64 (0X0218A392CD3D5DBF)
     //if (!bb) return SQ_NO;
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const uint8_t BSF_Table[SQ_NO] =
     //{
     //    00, 01, 02, 07, 03, 13,  8, 19,
@@ -180,7 +180,7 @@ inline Square  scan_lsq (Bitboard bb)
     //// *@author Martin Läuter (1997), Charles E.Leiserson, Harald Prokop, Keith H.Randall
     //// * DeBruijn (U32 (0x4000000)) = U64 (0X03F79D71B4CB0A89)
     //if (!bb) return SQ_NO;
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const uint8_t BSF_Table[SQ_NO] =
     //{
     //    00, 01, 48, 02, 57, 49, 28, 03,
@@ -202,7 +202,7 @@ inline Square  scan_lsq (Bitboard bb)
     // * @author Kim Walisch (2012)
     // * DeBruijn(U32(0x4000000)) = U64(0X03F79D71B4CB0A89)
     if (!bb) return SQ_NO;
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
@@ -220,7 +220,7 @@ inline Square  scan_lsq (Bitboard bb)
     return Square (BSF_Table[index]);
 
 #else
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         63, 30, 03, 32, 25, 41, 22, 33,
@@ -251,7 +251,7 @@ inline Square  scan_msq (Bitboard bb)
     // * @authors Kim Walisch, Mark Dickinson (2012)
     // * DeBruijn(U32(0x4000000)) = U64(0X03F79D71B4CB0A89)
     if (!bb) return SQ_NO;
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
@@ -278,7 +278,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #else
 
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t MSB_Table[_UI8_MAX + 1] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,

@@ -991,8 +991,7 @@ namespace {
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-        // TODO::
-        //ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
+        ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
@@ -1102,7 +1101,7 @@ namespace Evaluator {
     // evaluation term. Used mainly for debugging.
     string trace(const Position &pos)
     {
-        return Tracing::do_trace(pos);
+        return Tracing::do_trace (pos);
     }
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
@@ -1117,7 +1116,7 @@ namespace Evaluator {
         Weights[KingDanger_C_]  = weight_option ("Aggressiveness",           "Aggressiveness",           WeightsInternal[KingDanger_C_]);
 
         const int32_t MaxSlope  = 30;
-        const int32_t PeakScore = 1280;
+        const int32_t PeakScore = 1280; // 0x500
 
         for (int32_t t = 0, i = 1; i < 100; ++i)
         {

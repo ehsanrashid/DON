@@ -4,18 +4,12 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-//#define POPCNT
+#define POPCNT
 //#define __INTEL_COMPILER
 
 #define BSFQ
 #define NO_PREFETCH
 
-#define TRI_LOGGER
-
-//#define CLEANTLOG
-//#define OTLOG
-//#define ETLOG
-#define FTLOG   log_eng
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
@@ -147,6 +141,12 @@ typedef unsigned long long      uint64_t;
 
 #else
 
+#define TRI_LOGGER
+
+//#define CLEANTLOG
+//#define OTLOG
+//#define ETLOG
+#define FTLOG   log_eng
 
 #   ifdef TRI_LOGGER
 

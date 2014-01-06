@@ -48,7 +48,6 @@ namespace std {
     class basic_null_stream sealed
         : private basic_null_buffer<charT, Traits>
         , public basic_ostream<charT, Traits>
-        , public noncopyable
     {
 
     public:

@@ -438,7 +438,6 @@ bool Position::ok (int8_t *failed_step) const
                     }
                     if (_piece_arr[_piece_list[c][pt][i]] != (c | pt))
                     {
-                        // TODO:: problem bug
                         return false;
                     }
                     if (_piece_index[_piece_list[c][pt][i]] != i)
@@ -1684,13 +1683,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // TODO::
     //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
     ASSERT (ok ());
-
-    //int8_t failed_step;
-    //ASSERT (ok (&failed_step));
-    //if (failed_step)
-    //{
-    //    //TRI_LOG_MSG (int32_t (failed_step));
-    //}
 }
 void Position::do_move (Move m, StateInfo &si_n)
 {
@@ -1792,13 +1784,6 @@ void Position::undo_move ()
     // TODO::
     //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
     ASSERT (ok ());
-
-    //int8_t failed_step;
-    //ASSERT (ok (&failed_step));
-    //if (failed_step)
-    //{
-    //    //TRI_LOG_MSG (int32_t (failed_step));
-    //}
 }
 
 // do_null_move() do the null-move

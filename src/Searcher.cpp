@@ -96,7 +96,8 @@ namespace {
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                swap (rootMoves[0], *find (rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
+                //iter_swap (rootMoves.begin (), find (rootMoves.begin (), rootMoves.end (), move ? move : pick_move ()));
+                swap (rootMoves[0], *std::find(rootMoves.begin (), rootMoves.end(), move ? move : pick_move ()));
             }
         }
 
@@ -334,7 +335,7 @@ namespace Searcher {
 
         if (rootMoves.empty ())
         {
-            rootMoves.push_back (MOVE_NONE);
+            rootMoves.push_back (RootMove (MOVE_NONE));
             ats ()
                 << "info depth 0 score "
                 << score_uci (rootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
@@ -622,15 +623,17 @@ namespace {
             }
 
             // Have found a "mate in x"?
-            if (   limits.mate_in
-                && best_value >= VALUE_MATES_IN_MAX_PLY
-                && VALUE_MATE - best_value <= 2 * limits.mate_in)
+            if (limits.mate_in &&
+                best_value >= VALUE_MATES_IN_MAX_PLY &&
+                VALUE_MATE - best_value <= 2 * limits.mate_in)
             {
                 signals.stop = true;
             }
 
             // Do we have time for the next iteration? Can we stop searching now?
-            if (limits.use_time_management () && !signals.stop && !signals.stop_on_ponderhit)
+            if (limits.use_time_management () &&
+                !signals.stop &&
+                !signals.stop_on_ponderhit)
             {
                 bool stop = false; // Local variable, not the volatile signals.stop
 
@@ -649,13 +652,12 @@ namespace {
                 }
 
                 // Stop search early if one move seems to be much better than others
-                if (   !stop
-                    &&  depth >= 12
-                    &&  best_move_changes <= DBL_EPSILON
-                    &&  pv_size == 1
-                    &&  best_value > VALUE_MATED_IN_MAX_PLY
-                    && (rootMoves.size () == 1
-                    || (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
+                if (!stop && depth >= 12 &&
+                    best_move_changes <= DBL_EPSILON &&
+                    pv_size == 1 &&
+                    best_value > VALUE_MATED_IN_MAX_PLY &&
+                    (rootMoves.size () == 1 ||
+                    (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
                 {
                     Value rbeta = best_value - 2 * VALUE_MG_PAWN;
 
@@ -1484,14 +1486,12 @@ moves_loop: // When in check and at SPNode search starts from here
             bool gives_check = pos.check (move, ci);
 
             // Futility pruning
-            if (   !PVNode
-                && !IN_CHECK
-                && !gives_check
-                &&  move != tt_move
-                //&&  m_type (move) != PROMOTE
-                //&& !pos.passed_pawn_push (move)
-                && !pos.advanced_pawn_push (move)
-                &&  futility_base > -VALUE_KNOWN_WIN)
+            if (!PVNode && !IN_CHECK &&
+                !gives_check &&  move != tt_move &&
+                //m_type (move) != PROMOTE &&
+                //!pos.passed_pawn_push (move) &&
+                !pos.advanced_pawn_push (move) &&
+                futility_base > -VALUE_KNOWN_WIN)
             {
                 ASSERT (m_type (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
@@ -1521,11 +1521,10 @@ moves_loop: // When in check and at SPNode search starts from here
                 !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
-            if (   !PVNode
-                && (!IN_CHECK || evasion_prunable)
-                &&  move != tt_move
-                &&  m_type (move) != PROMOTE
-                &&  pos.see_sign (move) < 0)
+            if (!PVNode && (!IN_CHECK || evasion_prunable) &&
+                move != tt_move &&
+                m_type (move) != PROMOTE &&
+                pos.see_sign (move) < 0)
             {
                 continue;
             }

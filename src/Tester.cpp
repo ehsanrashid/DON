@@ -87,28 +87,28 @@ namespace Tester {
             //ASSERT (BitShiftGap (94, F_H) == 1);
             //ASSERT (BitShiftGap (37, F_E) == 1);
 
-            ////assert(getNextSquare(&b) == SQ_NO);
+            ////ASSERT(getNextSquare(&b) == SQ_NO);
             ////setSquare(b, SQ_H8);
-            ////assert(getNextSquare(&b) == SQ_H8);
-            ////assert(getNextSquare(&b) == SQ_NO);
+            ////ASSERT(getNextSquare(&b) == SQ_H8);
+            ////ASSERT(getNextSquare(&b) == SQ_NO);
 
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_E5));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_F6));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_G7));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_H8));
-            ////assert(getNumberOfSetSquares(squaresBehind[ SQ_D4 ][ SQ_C3 ]) == 4);
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_E5));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_F6));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_G7));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_H8));
+            ////ASSERT(getNumberOfSetSquares(squaresBehind[ SQ_D4 ][ SQ_C3 ]) == 4);
 
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_C4));
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_D5));
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_E6));
-            ////assert(getNumberOfSetSquares(squaresBetween[ SQ_B3 ][ SQ_F7 ]) == 3);
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_C4));
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_D5));
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_E6));
+            ////ASSERT(getNumberOfSetSquares(squaresBetween[ SQ_B3 ][ SQ_F7 ]) == 3);
 
-            ////assert(IsSquareOn(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C4));
-            ////assert(IsSquareOff(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C5));
-            ////assert(IsSquareOn(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E2));
-            ////assert(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
-            ////assert(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
-            ////assert(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C4));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C5));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E2));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
 
             cout << "Bitboard ...done !!!" << endl;
         }
