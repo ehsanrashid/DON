@@ -129,5 +129,4 @@ namespace Engine {
         ::exit (code);
     }
 
-
 }

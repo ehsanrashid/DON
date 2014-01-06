@@ -24,7 +24,7 @@ public:
     }
 
     void initialize (const Searcher::Limits &limits, int32_t current_ply, Color c);
-
+    
 } TimeManager;
 
 #endif

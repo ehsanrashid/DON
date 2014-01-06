@@ -39,29 +39,32 @@ namespace {
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
 
+    // Reduction lookup tables (initialized at startup) and their access function
+    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_number]
+
     inline Value futility_margin (Depth d)
     {
         return Value (100 * int32_t (d));
     }
 
-    // Reduction lookup tables (initialized at startup) and their access function
-    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_number]
-
     template<bool PVNode>
-    inline Depth reduction (bool i, Depth d, int32_t mn)
+    inline Depth reduction (bool imp, Depth d, int32_t mn)
     {
-        return Depth (Reductions[PVNode][i][min (int32_t (d) / ONE_MOVE, 63)][min (mn, 63)]);
+        return Depth (Reductions[PVNode][imp][min (int32_t (d) / ONE_MOVE, 63)][min (mn, 63)]);
     }
 
     // Dynamic razoring margin based on depth
-    inline Value razor_margin (Depth d) { return Value(512 + 16 * int32_t (d)); }
+    inline Value razor_margin (Depth d)
+    {
+        return Value (512 + 16 * int32_t (d));
+    }
 
     uint32_t
         pv_size,
         pv_idx;
     TimeManager time_mgr;
     double      best_move_changes;
-    Value       draw_value[CLR_NO];
+    Value       draw_value[CLR_NO] = { VALUE_DRAW, VALUE_DRAW, };
 
     GainsStats          gains;
     HistoryStats        history;
@@ -198,7 +201,7 @@ void check_time ()
                 Bitboard sm = sp.slaves_mask;
                 while (sm)
                 {
-                    Position *pos = Threads[pop_lsq(sm)]->active_pos;
+                    Position *pos = Threads[pop_lsq (sm)]->active_pos;
                     if (pos) nodes += pos->game_nodes();
                 }
                 sp.mutex.unlock ();
@@ -231,7 +234,6 @@ namespace Searcher {
 
     vector<RootMove>    rootMoves;
     Position            rootPos;
-    Color               rootColor;
     StateInfoStackPtr   setupStates;
 
     Time::point         searchTime;
@@ -326,9 +328,7 @@ namespace Searcher {
 
     void think ()
     {
-        rootColor = rootPos.active ();
-
-        time_mgr.initialize (limits, rootPos.game_ply (), rootColor);
+        time_mgr.initialize (limits, rootPos.game_ply (), rootPos.active ());
 
         bool write_search_log = *(Options["Write Search Log"]);
         string fn_search_log  = *(Options["Search Log File"]);
@@ -359,8 +359,8 @@ namespace Searcher {
         {
             int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
             cf = cf * Material::game_phase (rootPos) / PHASE_MIDGAME; // Scale down with phase
-            draw_value[ rootColor] = VALUE_DRAW - Value (cf);
-            draw_value[~rootColor] = VALUE_DRAW + Value (cf);
+            draw_value[ rootPos.active ()] = VALUE_DRAW - Value (cf);
+            draw_value[~rootPos.active ()] = VALUE_DRAW + Value (cf);
         }
         else
         {
@@ -376,8 +376,8 @@ namespace Searcher {
                 << "Searching: "    << rootPos.fen () << '\n'
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
-                << " time: "        << limits.game_clock[rootColor].time
-                << " increment: "   << limits.game_clock[rootColor].inc
+                << " time: "        << limits.game_clock[rootPos.active ()].time
+                << " increment: "   << limits.game_clock[rootPos.active ()].inc
                 << " moves to go: " << limits.moves_to_go
                 << endl;
         }
@@ -609,15 +609,17 @@ namespace {
                 skill.pick_move ();
             }
 
-            if (*(Options["Write Search Log"]))
+            bool write_search_log = *(Options["Write Search Log"]);
+            if (write_search_log)
             {
                 RootMove &rm = rootMoves[0];
                 if (MOVE_NONE != skill.move)
                 {
                     rm = *find (rootMoves.begin (), rootMoves.end (), skill.move);
                 }
-
-                Log log (*(Options["Search Log File"]));
+                
+                string fn_search_log  = *(Options["Search Log File"]);
+                Log log (fn_search_log);
                 log << pretty_pv (pos, depth, rm.curr_value, (Time::now () - searchTime), rm.pv)
                     << endl;
             }

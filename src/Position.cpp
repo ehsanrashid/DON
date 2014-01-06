@@ -1253,11 +1253,14 @@ void Position::clear ()
 {
     memset (this, 0, sizeof (Position));
 
-    for (PType pt = PAWN; pt <= KING; ++pt)
+    for (Color c = WHITE; c <= BLACK; ++c)
     {
-        for (int32_t j = 0; j < 16; ++j)
+        for (PType pt = PAWN; pt <= KING; ++pt)
         {
-            _piece_list[WHITE][pt][j] = _piece_list[BLACK][pt][j] = SQ_NO;
+            for (int32_t i = 0; i < 16; ++i)
+            {
+                _piece_list[c][pt][i] = SQ_NO;
+            }
         }
     }
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -1512,7 +1515,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         // If the captured piece is a pawn
         if (PAWN == ct) // Update pawn hash key
         {
-            _si->pawn_key ^= ZobGlob._.ps_sq[pasive][PAWN][cap];
+            _si->pawn_key ^= ZobGlob._.psq_k[pasive][PAWN][cap];
         }
         else             // Update non-pawn material
         {
@@ -1520,11 +1523,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         }
 
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.ps_sq[pasive][ct][_piece_count[pasive][ct]];
+        _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][_piece_count[pasive][ct]];
         if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
 
         // Update Hash key of position
-        posi_k ^= ZobGlob._.ps_sq[pasive][ct][cap];
+        posi_k ^= ZobGlob._.psq_k[pasive][ct][cap];
 
         // Update incremental scores
         _si->psq_score -= psq[pasive][ct][cap];
@@ -1559,8 +1562,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
             castle_king_rook (org_king, dst_king, org_rook, dst_rook);
 
-            posi_k ^= ZobGlob._.ps_sq[_active][KING][org_king] ^ ZobGlob._.ps_sq[_active][KING][dst_king];
-            posi_k ^= ZobGlob._.ps_sq[_active][ROOK][org_rook] ^ ZobGlob._.ps_sq[_active][ROOK][dst_rook];
+            posi_k ^= ZobGlob._.psq_k[_active][KING][org_king] ^ ZobGlob._.psq_k[_active][KING][dst_king];
+            posi_k ^= ZobGlob._.psq_k[_active][ROOK][org_rook] ^ ZobGlob._.psq_k[_active][ROOK][dst_rook];
 
             _si->psq_score += psq[active][KING][dst_king] - psq[active][KING][org_king];
             _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
@@ -1575,12 +1578,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             place_piece (dst, active, ppt);
 
             _si->matl_key ^=
-                ZobGlob._.ps_sq[active][PAWN][_piece_count[active][PAWN]] ^
-                ZobGlob._.ps_sq[active][ppt][_piece_count[active][ppt] - 1];
+                ZobGlob._.psq_k[active][PAWN][_piece_count[active][PAWN]] ^
+                ZobGlob._.psq_k[active][ppt][_piece_count[active][ppt] - 1];
 
-            _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org];
+            _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org];
 
-            posi_k ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][ppt][dst];
+            posi_k ^= ZobGlob._.psq_k[active][PAWN][org] ^ ZobGlob._.psq_k[active][ppt][dst];
 
             // Update incremental score
             _si->psq_score += psq[active][ppt][dst] - psq[active][PAWN][org];
@@ -1597,10 +1600,10 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (PAWN == pt)
         {
             // Update pawns hash key
-            _si->pawn_key ^= ZobGlob._.ps_sq[active][PAWN][org] ^ ZobGlob._.ps_sq[active][PAWN][dst];
+            _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org] ^ ZobGlob._.psq_k[active][PAWN][dst];
         }
 
-        posi_k ^= ZobGlob._.ps_sq[active][pt][org] ^ ZobGlob._.ps_sq[active][pt][dst];
+        posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
 
         break;
