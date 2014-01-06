@@ -67,6 +67,8 @@ namespace {
 
     void iter_deep_loop (Position &pos);
 
+    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move *quiets, int quiets_count);
+
     template <NodeType N>
     Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
@@ -681,6 +683,36 @@ namespace {
         }
     }
 
+    // update_stats() updates killers, history and countermoves stats after a fail-high
+    // of a quiet move.
+    void update_stats(Position &pos, Stack ss[], Move move, Depth depth, Move *quiets, int quiets_count)
+    {
+        if (ss->killers[0] != move)
+        {
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = move;
+        }
+
+        // Increase history value of the cut-off move and decrease all the other played quiet moves.
+        Value bonus = Value (int32_t (depth) * int32_t (depth));
+        history.update (pos.moved_piece (move), dst_sq (move), bonus);
+        if (quiets)
+        {
+            for (int32_t i = 0; i < quiets_count; ++i)
+            {
+                Move m = quiets[i];
+                history.update (pos.moved_piece (m), dst_sq (m), -bonus);
+            }
+        }
+        Move prev_move = (ss-1)->current_move;
+        if (_ok(prev_move))
+        {
+            Square prev_move_sq = dst_sq (prev_move);
+            counter_moves.update (pos[prev_move_sq], prev_move_sq, move);
+        }
+    }
+
+
     template <NodeType N>
     // search<>() is the main search function for both PV and non-PV nodes and for
     // normal and SplitPoint nodes. When called just after a split point the search
@@ -709,8 +741,8 @@ namespace {
         Move        excluded_move;
         Move        move;
         Value       tt_value;
-        int32_t     move_count;
-        int32_t     quiet_count;
+        int32_t     moves_count;
+        int32_t     quiets_count;
 
         Move quiets_searched[64];
 
@@ -727,13 +759,13 @@ namespace {
             tt_move  = excluded_move = MOVE_NONE;
             tt_value = VALUE_NONE;
 
-            ASSERT (split_point->best_value > -VALUE_INFINITE && split_point->move_count > 0);
+            ASSERT (split_point->best_value > -VALUE_INFINITE && split_point->moves_count > 0);
 
             goto moves_loop;
         }
 
-        move_count  = 0;
-        quiet_count = 0;
+        moves_count  = 0;
+        quiets_count = 0;
         best_value  = -VALUE_INFINITE;
         best_move   = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
         (ss)->ply   = (ss-1)->ply + 1;
@@ -788,26 +820,10 @@ namespace {
             ss->current_move = tt_move; // Can be MOVE_NONE
 
             // Update killers, history, and counter move on TT hit
-            if (    tt_value >= beta
-                &&  tt_move != MOVE_NONE
-                && !pos.capture_or_promotion (tt_move)
-                && !in_check)
+            if (tt_value >= beta &&  tt_move != MOVE_NONE &&
+                !pos.capture_or_promotion (tt_move) && !in_check)
             {
-                if (ss->killers[0] != tt_move)
-                {
-                    ss->killers[1] = ss->killers[0];
-                    ss->killers[0] = tt_move;
-                }
-
-                Value bonus = Value (int32_t (depth) * int32_t (depth));
-                history.update (pos.moved_piece(tt_move), dst_sq (tt_move), bonus);
-
-                Move prev_move = (ss-1)->current_move;
-                if (_ok(prev_move))
-                {
-                    Square prev_move_sq = dst_sq (prev_move);
-                    counter_moves.update (pos[prev_move_sq], prev_move_sq, tt_move);
-                }
+                update_stats (pos, ss, tt_move, depth, NULL, 0);
             }
             return tt_value;
         }
@@ -1032,17 +1048,17 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 // Shared counter cannot be decremented later if move turns out to be illegal
                 if (!pos.legal (move, ci.pinneds)) continue;
-                move_count = ++split_point->move_count;
+                moves_count = ++split_point->moves_count;
                 split_point->mutex.unlock ();
             }
             else
             {
-                ++move_count;
+                ++moves_count;
             }
 
             if (RootNode)
             {
-                signals.first_root_move = (move_count == 1);
+                signals.first_root_move = (moves_count == 1);
 
                 if (thread == Threads.main () && 
                     (Time::now () - searchTime) > 3000)
@@ -1051,7 +1067,7 @@ moves_loop: // When in check and at SPNode search starts from here
                         << "info"
                         << " depth " << depth / ONE_MOVE
                         << " currmove " << move_to_can (move, pos.chess960 ())
-                        << " currmovenumber " << move_count + pv_idx
+                        << " currmovenumber " << moves_count + pv_idx
                         << endl;
                 }
             }
@@ -1101,7 +1117,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 // Move count based pruning
                 if (depth < 16 * ONE_MOVE &&
-                    move_count >= FutilityMoveCounts[improving][depth])
+                    moves_count >= FutilityMoveCounts[improving][depth])
                 {
                     if (SPNode) split_point->mutex.lock ();
                     continue;
@@ -1110,7 +1126,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 // Value based pruning
                 // We illogically ignore reduction condition depth >= 3*ONE_MOVE for predicted depth,
                 // but fixing this made program slightly weaker.
-                Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, move_count);
+                Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, moves_count);
 
                 // Futility pruning: parent node
                 if (predicted_depth < 7 * ONE_MOVE)
@@ -1143,16 +1159,16 @@ moves_loop: // When in check and at SPNode search starts from here
             // Check for legality only before to do the move
             if (!RootNode && !SPNode && !pos.legal (move, ci.pinneds))
             {
-                --move_count;
+                --moves_count;
                 continue;
             }
 
-            bool move_pv = PVNode && (move_count == 1);
+            bool move_pv = PVNode && (moves_count == 1);
             ss->current_move = move;
 
             if (!SPNode && !capture_or_promotion)
             {
-                if (quiet_count < 64) quiets_searched[quiet_count++] = move;
+                if (quiets_count < 64) quiets_searched[quiets_count++] = move;
             }
 
             // Step 14. Make the move
@@ -1169,7 +1185,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 &&  ss->killers[0] != move
                 &&  ss->killers[1] != move)
             {
-                ss->reduction = reduction<PVNode> (improving, depth, move_count);
+                ss->reduction = reduction<PVNode> (improving, depth, moves_count);
 
                 if (!PVNode && cut_node)
                 {
@@ -1310,7 +1326,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (best_value < beta);
 
-                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move, depth, move_count, &mp, N, cut_node);
+                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move, depth, moves_count, &mp, N, cut_node);
 
                 if (best_value >= beta) break;
             }
@@ -1325,7 +1341,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // harmless because return value is discarded anyhow in the parent nodes.
         // If we are in a singular extension search then return a fail low score.
         // A split node has at least one move, the one tried before to be splitted.
-        if (0 == move_count)
+        if (0 == moves_count)
         {
             return excluded_move ? alpha : in_check ? mated_in (ss->ply) : draw_value[pos.active ()];
         }
@@ -1343,31 +1359,9 @@ moves_loop: // When in check and at SPNode search starts from here
             ss->static_eval);
 
         // Quiet best move: update killers, history and counter_moves
-        if (    best_value >= beta
-            && !pos.capture_or_promotion (best_move)
-            && !in_check)
+        if (best_value >= beta && !pos.capture_or_promotion (best_move) && !in_check)
         {
-            if (ss->killers[0] != best_move)
-            {
-                ss->killers[1] = ss->killers[0];
-                ss->killers[0] = best_move;
-            }
-
-            // Increase history value of the cut-off move and decrease all the other
-            // played non-capture moves.
-            Value bonus = Value (int32_t (depth) * int32_t (depth));
-            history.update (pos.moved_piece (best_move), dst_sq (best_move), bonus);
-
-            for (int32_t i = 0; i < quiet_count - 1; ++i)
-            {
-                move = quiets_searched[i];
-                history.update (pos.moved_piece (move), dst_sq (move), -bonus);
-            }
-
-            if (_ok ((ss-1)->current_move))
-            {
-                counter_moves.update (pos[prev_move_sq], prev_move_sq, best_move);
-            }
+            update_stats (pos, ss, best_move, depth, quiets_searched, quiets_count - 1);
         }
 
         ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);

@@ -124,7 +124,7 @@ struct SplitPoint
     volatile Value          alpha;
     volatile Value          best_value;
     volatile Move           best_move;
-    volatile int32_t        move_count;
+    volatile int32_t        moves_count;
     volatile bool           cut_off;
 };
 
@@ -173,7 +173,7 @@ struct Thread
 
     template <bool FAKE>
     void split (Position &pos, const Searcher::Stack* ss, Value alpha, Value beta, Value* best_value, Move* best_move,
-        Depth depth, int32_t move_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
+        Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
 
 };
 

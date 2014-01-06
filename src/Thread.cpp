@@ -224,7 +224,7 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // search() then split() returns.
 template <bool FAKE>
 void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value *best_value, Move *best_move,
-                    Depth depth, int32_t move_count, MovePicker *move_picker, int32_t node_type, bool cut_node)
+                    Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node)
 {
     ASSERT (pos.ok ());
     ASSERT (-VALUE_INFINITE <*best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
@@ -246,7 +246,7 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
     sp.node_type    = node_type;
     sp.cut_node     = cut_node;
     sp.move_picker  = move_picker;
-    sp.move_count   = move_count;
+    sp.moves_count   = moves_count;
     sp.pos          = &pos;
     sp.nodes        = 0;
     sp.cut_off      = false;

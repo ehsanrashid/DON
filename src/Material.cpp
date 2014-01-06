@@ -43,7 +43,7 @@ namespace {
     };
 
     // Endgame evaluation and scaling functions accessed direcly and not through
-    // the function maps because correspond to more then one material hash key.
+    // the function maps because correspond to more than one material hash key.
     Endgame<KmmKm> EvaluateKmmKm[CLR_NO] = { Endgame<KmmKm>  (WHITE), Endgame<KmmKm>  (BLACK) };
     Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
 
