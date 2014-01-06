@@ -41,7 +41,7 @@ namespace Time {
         ONE_SEC = 1000,
     } point;
 
-    inline int64_t  operator-  (point  p1, point p2) { return (uint64_t (p1) - uint64_t (p2)); }
+    inline uint64_t  operator-  (point  p1, point p2) { return (uint64_t (p1) - uint64_t (p2)); }
 
     inline point now () { return point (system_time_msec ()); }
 

@@ -8,7 +8,7 @@
 
 inline bool   _ok (File f)
 {
-    return !(f & 0xF8);
+    return !(f & ~int32_t (F_H));
 }
 inline File operator~ (File f)
 {
@@ -37,7 +37,7 @@ inline std::basic_ostream<charT, Traits>&
 
 inline bool   _ok (Rank r)
 {
-    return !(r & 0xF8);
+    return !(r & ~int32_t (R_8));
 }
 inline Rank operator~ (Rank r)
 {
@@ -128,8 +128,8 @@ inline Square   _Square (char f, char r)
 }
 inline bool _ok (Square s)
 {
-    return (SQ_A1 <= s && s <= SQ_H8);
-    //return !(s & 0xC0);
+    //return (SQ_A1 <= s && s <= SQ_H8);
+    return !(s & ~int32_t (SQ_H8));
 }
 inline File _file (Square s)
 {

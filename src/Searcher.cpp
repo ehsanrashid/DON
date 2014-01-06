@@ -103,8 +103,6 @@ namespace {
 
     };
 
-    // Debug functions used mainly to collect run-time statistics
-    uint64_t hits[2], means[2];
 
     // _perft() is our utility to verify move generation. All the leaf nodes
     // up to the given depth are generated and counted and the sum returned.
@@ -133,6 +131,11 @@ namespace {
         }
         return cnt;
     }
+
+    // Debug functions used mainly to collect run-time statistics
+    uint64_t
+        hits [2] = { U64(0), U64(0), },
+        means[2] = { U64(0), U64(0), };
 
     void dbg_hit_on  (bool b) { ++hits[0]; if (b) ++hits[1]; }
     void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
@@ -199,7 +202,7 @@ void check_time ()
         Threads.mutex.unlock ();
     }
 
-    int64_t elapsed = now_time - searchTime;
+    uint64_t elapsed = now_time - searchTime;
 
     bool still_at_first_move = 
         signals.first_root_move     &&
@@ -1676,7 +1679,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 sel_depth = Threads[i]->max_ply;
             }
         }
-        
+
         for (uint32_t i = 0; i < pv_size; ++i)
         {
             bool updated = (i <= pv_idx);
