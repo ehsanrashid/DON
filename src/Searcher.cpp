@@ -985,9 +985,9 @@ namespace {
         }
 
         // Step 10. Internal iterative deepening (skipped when in check)
-        if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
-            && tt_move == MOVE_NONE
-            && (PVNode || ss->static_eval + Value (256) >= beta))
+        if (depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE) &&
+            tt_move == MOVE_NONE &&
+            (PVNode || ss->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
@@ -1086,20 +1086,20 @@ moves_loop: // When in check and at SPNode search starts from here
             // is singular and should be extended. To verify this we do a reduced search
             // on all the other moves but the tt_move, if result is lower than tt_value minus
             // a margin then we extend tt_move.
-            if (    singular_ext_node
-                &&  move == tt_move
-                && !ext
-                &&  pos.legal (move, ci.pinneds)
-                &&  abs (tt_value) < VALUE_KNOWN_WIN)
+            if (singular_ext_node &&
+                move == tt_move &&
+                !ext &&
+                pos.legal (move, ci.pinneds) &&
+                abs (tt_value) < VALUE_KNOWN_WIN)
             {
                 ASSERT (tt_value != VALUE_NONE);
 
                 Value rbeta = tt_value - int32_t (depth);
-                ss->excluded_move = move;
+                ss->excluded_move  = move;
                 ss->skip_null_move = true;
                 value = search<NonPV>(pos, ss, rbeta - 1, rbeta, depth / 2, cut_node);
                 ss->skip_null_move = false;
-                ss->excluded_move = MOVE_NONE;
+                ss->excluded_move  = MOVE_NONE;
 
                 if (value < rbeta) ext = ONE_MOVE;
             }
@@ -1108,12 +1108,12 @@ moves_loop: // When in check and at SPNode search starts from here
             Depth new_depth = depth - ONE_MOVE + ext;
 
             // Step 13. Pruning at shallow depth (exclude PV nodes)
-            if (   !PVNode
-                && !capture_or_promotion
-                && !in_check
-                && !dangerous
-                // &&  move != tt_move  // Already implicit in the next condition 
-                &&  best_value > VALUE_MATED_IN_MAX_PLY)
+            if (!PVNode &&
+                !capture_or_promotion &&
+                !in_check &&
+                !dangerous &&
+                // move != tt_move &&  // Already implicit in the next condition 
+                best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
                 if (depth < 16 * ONE_MOVE &&
@@ -1178,12 +1178,12 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Step 15. Reduced depth search (LMR).
             // If the move fails high will be re-searched at full depth.
-            if (    depth >= 3 * ONE_MOVE
-                && !move_pv
-                && !capture_or_promotion
-                &&  tt_move        != move
-                &&  ss->killers[0] != move
-                &&  ss->killers[1] != move)
+            if (!move_pv &&
+                depth >= 3 * ONE_MOVE  && 
+                !capture_or_promotion  &&
+                tt_move        != move &&
+                ss->killers[0] != move &&
+                ss->killers[1] != move)
             {
                 ss->reduction = reduction<PVNode> (improving, depth, moves_count);
 
@@ -1319,10 +1319,9 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Step 19. Check for splitting the search
-            if (   !SPNode
-                &&  depth >= Threads.min_split_depth
-                &&  Threads.available_slave (thread)
-                &&  thread->split_points_size < MAX_SPLITPOINTS_PER_THREAD)
+            if (!SPNode && depth >= Threads.min_split_depth &&
+                Threads.available_slave (thread) &&
+                thread->split_points_size < MAX_SPLITPOINTS_PER_THREAD)
             {
                 ASSERT (best_value < beta);
 
