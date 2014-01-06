@@ -14,7 +14,7 @@ TranspositionTable TT;
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
 // each cluster consists of NUM_TENTRY_CLUSTER number of entry.
-void TranspositionTable::resize (uint32_t size_mb)
+size_t TranspositionTable::resize (uint32_t size_mb)
 {
     //ASSERT (size_mb >= SIZE_MIN_TT);
     //ASSERT (size_mb <= SIZE_MAX_TT);
@@ -34,7 +34,7 @@ void TranspositionTable::resize (uint32_t size_mb)
     if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
 
     total_entry     = uint32_t (1) << bit_hash;
-    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return;
+    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return size_mb;
 
     erase ();
 
@@ -45,6 +45,8 @@ void TranspositionTable::resize (uint32_t size_mb)
     _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
     _stored_entry   = 0;
     _generation     = 0;
+
+    return (size >> 20);
 }
 
 void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)

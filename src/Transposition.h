@@ -157,7 +157,7 @@ public:
         erase ();
     }
 
-    void resize (uint32_t size_mb);
+    size_t resize (uint32_t size_mb);
 
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,

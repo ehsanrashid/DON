@@ -28,10 +28,10 @@ using namespace Evaluator;
 namespace {
 
     // Set to true to force running with one thread. Used for debugging
-    const bool FakeSplit = false;
+    const bool FakeSplit            = false;
 
     // This is the minimum interval in msec between two check_time() calls
-    const int32_t TimerResolution = 5;
+    const int32_t TimerResolution   = 5;
 
     // Different node types, used as template parameter
     enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
@@ -56,10 +56,12 @@ namespace {
     // Dynamic razoring margin based on depth
     inline Value razor_margin (Depth d) { return Value(512 + 16 * int32_t (d)); }
 
-    uint32_t pv_size, pv_idx;
+    uint32_t
+        pv_size,
+        pv_idx;
     TimeManager time_mgr;
-    double best_move_changes;
-    Value draw_value[CLR_NO];
+    double      best_move_changes;
+    Value       draw_value[CLR_NO];
 
     GainsStats          gains;
     HistoryStats        history;
@@ -67,7 +69,7 @@ namespace {
 
     void iter_deep_loop (Position &pos);
 
-    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move *quiets, int quiets_count);
+    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count);
 
     template <NodeType N>
     Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
@@ -685,7 +687,7 @@ namespace {
 
     // update_stats() updates killers, history and countermoves stats after a fail-high
     // of a quiet move.
-    void update_stats(Position &pos, Stack ss[], Move move, Depth depth, Move *quiets, int quiets_count)
+    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count)
     {
         if (ss->killers[0] != move)
         {
@@ -705,7 +707,7 @@ namespace {
             }
         }
         Move prev_move = (ss-1)->current_move;
-        if (_ok(prev_move))
+        if (_ok (prev_move))
         {
             Square prev_move_sq = dst_sq (prev_move);
             counter_moves.update (pos[prev_move_sq], prev_move_sq, move);
@@ -808,13 +810,12 @@ namespace {
         // a fail high/low. Biggest advantage at probing at PV nodes is to have a
         // smooth experience in analysis mode. We don't probe at Root nodes otherwise
         // we should also update RootMoveList to avoid bogus output.
-        if (   !RootNode
-            && te
-            && te->depth () >= depth
-            && tt_value != VALUE_NONE // Only in case of TT access race
-            && (        PVNode ?  te->bound () == BND_EXACT
+        if (!RootNode && te &&
+            te->depth () >= depth &&
+            tt_value != VALUE_NONE && // Only in case of TT access race
+            (           PVNode ?  te->bound () == BND_EXACT
             : tt_value >= beta ? (te->bound () &  BND_LOWER)
-            /**/               : (te->bound () & BND_UPPER)))
+            /**/               : (te->bound () &  BND_UPPER)))
         {
             TT.refresh (te);
             ss->current_move = tt_move; // Can be MOVE_NONE
@@ -858,23 +859,22 @@ namespace {
             TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, ss->static_eval);
         }
 
-        if (   pos.cap_type () != PT_NO
-            && ss->static_eval != VALUE_NONE
-            && (ss-1)->static_eval != VALUE_NONE
-            && (move = (ss-1)->current_move) != MOVE_NULL
-            &&  m_type (move) == NORMAL)
+        if (pos.cap_type () != PT_NO &&
+            ss->static_eval != VALUE_NONE &&
+            (ss-1)->static_eval != VALUE_NONE &&
+            (move = (ss-1)->current_move) != MOVE_NULL &&
+            m_type (move) == NORMAL)
         {
             Square dst = dst_sq (move);
             gains.update (pos[dst], dst, -((ss-1)->static_eval + ss->static_eval));
         }
 
         // Step 6. Razoring (skipped when in check)
-        if (   !PVNode
-            && depth < 4 * ONE_MOVE
-            && eval_value + razor_margin (depth) < beta
-            && tt_move == MOVE_NONE
-            && abs (beta) < VALUE_MATES_IN_MAX_PLY
-            && !pos.pawn_on_7thR (pos.active ()))
+        if (!PVNode && depth < 4 * ONE_MOVE &&
+            eval_value + razor_margin (depth) < beta &&
+            tt_move == MOVE_NONE &&
+            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
+            !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
             Value value = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
@@ -889,24 +889,22 @@ namespace {
         // Step 7. Static null move pruning (skipped when in check)
         // We're betting that the opponent doesn't have a move that will reduce
         // the score by more than futility_margin (depth) if we do a null move.
-        if (   !PVNode
-            && !ss->skip_null_move
-            && depth < 4 * ONE_MOVE
-            && eval_value - futility_margin (depth) >= beta
-            && abs (beta) < VALUE_MATES_IN_MAX_PLY
-            && abs (eval_value) < VALUE_KNOWN_WIN
-            && pos.non_pawn_material (pos.active ()))
+        if (!PVNode && !ss->skip_null_move &&
+            depth < 4 * ONE_MOVE &&
+            eval_value - futility_margin (depth) >= beta &&
+            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
+            abs (eval_value) < VALUE_KNOWN_WIN &&
+            pos.non_pawn_material (pos.active ()))
         {
             return eval_value - futility_margin (depth);
         }
 
         // Step 8. Null move search with verification search (is omitted in PV nodes)
-        if (   !PVNode
-            && !ss->skip_null_move
-            && depth >= 2 * ONE_MOVE
-            && eval_value >= beta
-            && abs (beta) < VALUE_MATES_IN_MAX_PLY
-            && pos.non_pawn_material (pos.active ()))
+        if (!PVNode && !ss->skip_null_move &&
+            depth >= 2 * ONE_MOVE &&
+            eval_value >= beta &&
+            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
+            pos.non_pawn_material (pos.active ()))
         {
             ss->current_move = MOVE_NULL;
 
@@ -952,10 +950,9 @@ namespace {
         // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
         // and a reduced search returns a value much above beta, we can (almost) safely
         // prune the previous move.
-        if (   !PVNode
-            && depth >= 5 * ONE_MOVE
-            && !ss->skip_null_move
-            && abs (beta) < VALUE_MATES_IN_MAX_PLY)
+        if (!PVNode && depth >= 5 * ONE_MOVE &&
+            !ss->skip_null_move &&
+            abs (beta) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
             Depth rdepth = depth - ONE_MOVE - 3 * ONE_MOVE;
@@ -1088,7 +1085,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // a margin then we extend tt_move.
             if (singular_ext_node &&
                 move == tt_move &&
-                !ext &&
+                ext != DEPTH_ZERO &&
                 pos.legal (move, ci.pinneds) &&
                 abs (tt_value) < VALUE_KNOWN_WIN)
             {
@@ -1376,7 +1373,7 @@ moves_loop: // When in check and at SPNode search starts from here
         const bool PVNode = (N == PV);
 
         ASSERT (N == PV || N == NonPV);
-        ASSERT (IN_CHECK == !!pos.checkers ());
+        ASSERT (IN_CHECK == (pos.checkers () != U64 (0)));
         ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);

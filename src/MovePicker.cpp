@@ -39,7 +39,7 @@ namespace {
 
     // Unary predicate used by std::partition to split positive scores from remaining
     // ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool positive_value (const ValMove &vm) { return vm.value > 0; }
+    inline bool positive_value (const ValMove &vm) { return vm.value > VALUE_ZERO; }
 
     // Picks and moves to the front the best move in the range [beg, end),
     // it is faster than sorting all the moves in advance when moves are few, as

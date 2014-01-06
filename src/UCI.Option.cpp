@@ -202,7 +202,7 @@ namespace UCI {
         void on_resize_hash (const Option &opt)
         {
             uint32_t size_mb = int32_t (opt);
-            TT.resize (size_mb);
+            size_mb = TT.resize (size_mb);
             ats () << "info string hash resized " << size_mb << " MB Hash..." << endl;
         }
 

@@ -43,7 +43,7 @@ struct Stats
 {
 
 private:
-    T _table[PT_NO][SQ_NO];
+    T _table[PS_ALL][SQ_NO];
 
 public:
 

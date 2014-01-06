@@ -267,6 +267,7 @@ typedef enum Piece : uint8_t
     B_ROOK    , //  1110
     B_QUEN    , //  1111
 
+    PS_ALL    ,
     //W_PIEC    = 0x00, //  0...
     //B_PIEC    = 0x08, //  1...
 } Piece;
