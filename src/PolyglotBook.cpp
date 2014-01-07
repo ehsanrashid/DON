@@ -151,7 +151,8 @@ PolyglotBook::~PolyglotBook ()
     close ();
 }
 
-// open the file in mode
+// open() tries to open a book file with the given name after closing any existing one.
+// mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
 bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)

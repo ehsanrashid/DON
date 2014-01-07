@@ -395,6 +395,10 @@ namespace BitBoard {
         return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)));
     }
 
+    // between_bb() returns a bitboard representing all squares between two squares.
+    // For instance,
+    // between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for square d5 and e6 set.
+    // If s1 and s2 are not on the same rank, file or diagonal, 0 is returned.
     inline Bitboard betwen_sq_bb (Square s1, Square s2)
     {
         return _betwen_sq_bb[s1][s2];
