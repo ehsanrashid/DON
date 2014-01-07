@@ -1030,7 +1030,6 @@ bool Position::       legal (Move m) const
 bool Position::capture (Move m) const
 {
     ASSERT (_ok (m));
-    //ASSERT (pseudo_legal (m));
 
     MType mt = m_type (m);
     switch (mt)
@@ -1045,9 +1044,8 @@ bool Position::capture (Move m) const
     case NORMAL:
     case PROMOTE:
         {
-            Square dst = dst_sq (m);
-            Piece cp   = _piece_arr[dst];
-            return (~_active == p_color (cp)) && (KING != p_type (cp));
+            Piece p = _piece_arr[dst_sq (m)];
+            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
         }
         break;
     }
@@ -1057,7 +1055,6 @@ bool Position::capture (Move m) const
 bool Position::capture_or_promotion (Move m) const
 {
     ASSERT (_ok (m));
-    //ASSERT (pseudo_legal (m));
 
     //MType mt = m_type (m);
     //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
@@ -1069,9 +1066,8 @@ bool Position::capture_or_promotion (Move m) const
     case ENPASSANT: return (SQ_NO != _si->en_passant); break;
     case NORMAL:
         {
-            Square dst  = dst_sq (m);
-            Piece cp    = _piece_arr[dst];
-            return (PS_NO != cp) && (~_active == p_color (cp)) && (KING != p_type (cp));
+            Piece p = _piece_arr[dst_sq (m)];
+            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
         }
     }
     return false;
@@ -2228,10 +2224,10 @@ Position::operator string () const
     ostringstream spos;
 
     spos
-        << board                          << '\n'
-        << to_char (_active)              << '\n'
-        << to_string (_si->castle_rights) << '\n'
-        << to_string (_si->en_passant)    << '\n'
+        << board                          << endl
+        << to_char (_active)              << endl
+        << to_string (_si->castle_rights) << endl
+        << to_string (_si->en_passant)    << endl
         << uint32_t (_si->clock50)        << ' '
         << game_move ()                   << endl;
 

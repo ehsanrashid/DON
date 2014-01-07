@@ -253,19 +253,33 @@ typedef enum Piece : uint8_t
 {
     PS_NO  = 0, //  0000
 
+    //W_PAWN = 1, //  0001
+    //W_KING    , //  0010
+    //W_NIHT    , //  0011
+    //W_BSHP = 5, //  0101
+    //W_ROOK    , //  0110
+    //W_QUEN    , //  0111
+
+    //B_PAWN = 9, //  1001
+    //B_KING    , //  1010
+    //B_NIHT    , //  1011
+    //B_BSHP =13, //  1101
+    //B_ROOK    , //  1110
+    //B_QUEN    , //  1111
+
     W_PAWN = 1, //  0001
-    W_KING    , //  0010
-    W_NIHT    , //  0011
-    W_BSHP = 5, //  0101
-    W_ROOK    , //  0110
-    W_QUEN    , //  0111
+    W_NIHT    , //  0010
+    W_BSHP    , //  0011
+    W_ROOK    , //  0100
+    W_QUEN    , //  0101
+    W_KING    , //  0110
 
     B_PAWN = 9, //  1001
-    B_KING    , //  1010
-    B_NIHT    , //  1011
-    B_BSHP =13, //  1101
-    B_ROOK    , //  1110
-    B_QUEN    , //  1111
+    B_NIHT    , //  1010
+    B_BSHP    , //  1011
+    B_ROOK    , //  1100
+    B_QUEN    , //  1101
+    B_KING    , //  1110
 
     PS_ALL    ,
     //W_PIEC    = 0x00, //  0...

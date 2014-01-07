@@ -254,22 +254,6 @@ namespace UCI {
         // max split depth
         //int16_t max_spl_depth = cpu < 8 ? 4 : 7;
 
-        //Options["Use Debug Log"]               = Option(false, on_logger);
-        //Options["Use Search Log"]              = Option(false);
-        //Options["Search Log Filename"]         = Option("SearchLog.txt");
-        //Options["Book File"]                   = Option("book.bin");
-        //Options["Best Book Move"]              = Option(false);
-        //Options["Contempt Factor"]             = Option(0, -50,  50);
-        //Options["Mobility (Middle Game)"]      = Option(100, 0, 200, on_eval);
-        //Options["Mobility (Endgame)"]          = Option(100, 0, 200, on_eval);
-        //Options["Passed Pawns (Middle Game)"]  = Option(100, 0, 200, on_eval);
-        //Options["Passed Pawns (Endgame)"]      = Option(100, 0, 200, on_eval);
-        //Options["Space"]                       = Option(100, 0, 200, on_eval);
-        //Options["Min Split Depth"]             = Option(max_spl_depth, 4, 7, on_threads);
-        //Options["Max Threads per Split Point"] = Option(5, 4, 8, on_threads);
-        //Options["Threads"]                     = Option(cpus, 1, MAX_THREADS, on_threads);
-        //Options["Use Sleeping Threads"]        = Option(true);
-
 #pragma endregion
 
 #pragma region Hash Memory Options
@@ -511,7 +495,7 @@ namespace UCI {
 #pragma region Debug Options
 
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_io));
-        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
+        Options["Write Search Log"]             = OptionPtr (new CheckOption (true));
         Options["Search Log File"]              = OptionPtr (new StringOption ("log_search.txt"));
 
 #pragma endregion

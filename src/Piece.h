@@ -23,17 +23,7 @@ inline char to_char (PType pt)
 }
 inline Piece operator| (Color c, PType pt)
 {
-    uint8_t pCode = PS_NO;
-    switch (pt)
-    {
-    case PAWN: pCode = W_PAWN; break;
-    case KING: pCode = W_KING; break;
-    case NIHT: pCode = W_NIHT; break;
-    case BSHP: pCode = W_BSHP; break;
-    case ROOK: pCode = W_ROOK; break;
-    case QUEN: pCode = W_QUEN; break;
-    }
-    return Piece ((c << 3) | pCode);
+    return (PT_NO != pt) ? Piece ((c << 3) | (pt + 1)) : PS_NO;
 }
 inline Piece mk_piece  (Color c, PType pt)
 {
@@ -45,26 +35,16 @@ inline bool     _ok (Piece p)
     //return 
     //    (W_PAWN <= p && p <= W_QUEN) ||
     //    (B_PAWN <= p && p <= B_QUEN);
-    return (p & 0x3) && !(p & ~0xF);
+    return (p & 0x7) && !(p & ~0xF);
 }
 inline PType p_type (Piece p)
 {
-    PType pt;
-    switch (int8_t (p & W_QUEN))
-    {
-    case W_PAWN: pt = PAWN; break;
-    case W_KING: pt = KING; break;
-    case W_NIHT: pt = NIHT; break;
-    case W_BSHP: pt = BSHP; break;
-    case W_ROOK: pt = ROOK; break;
-    case W_QUEN: pt = QUEN; break;
-    default:    pt = PT_NO; break;
-    }
-    return pt;
+    return (PS_NO != p) ? PType ((p & 7) - 1) : PT_NO;
 }
 inline Color p_color (Piece p)
 {
-    return Color ((p >> 3) & BLACK);
+    //return Color ((p >> 3) & BLACK);
+    return Color (p >> 3);
 }
 
 inline Piece operator~ (Piece p)

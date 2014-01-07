@@ -373,7 +373,7 @@ namespace Searcher {
             Log log (fn_search_log);
 
             log << "---------\n"
-                << "Searching: "    << rootPos.fen () << '\n'
+                << "Searching: "    << rootPos.fen () << endl
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
                 << " time: "        << limits.game_clock[rootPos.active ()].time
@@ -403,9 +403,9 @@ namespace Searcher {
 
             Log log (fn_search_log);
 
-            log << "Nodes: "        << rootPos.game_nodes () << '\n'
-                << "Nodes/second: " << (rootPos.game_nodes () * 1000 / elapsed) << '\n'
-                << "Best move: "    << move_to_san (rootMoves[0].pv[0], rootPos) << '\n';
+            log << "Nodes: "        << rootPos.game_nodes () << endl
+                << "Nodes/second: " << (rootPos.game_nodes () * 1000 / elapsed) << endl
+                << "Best move: "    << move_to_san (rootMoves[0].pv[0], rootPos) << endl;
 
             StateInfo si;
             rootPos.do_move (rootMoves[0].pv[0], si);
@@ -1679,7 +1679,7 @@ moves_loop: // When in check and at SPNode search starts from here
             Value   v = updated ? rootMoves[i].curr_value : rootMoves[i].last_value;
 
             // Not at first line
-            if (spv.rdbuf ()->in_avail ()) spv << '\n';
+            if (spv.rdbuf ()->in_avail ()) spv << endl;
 
             spv << "info"
                 << " depth "    << d

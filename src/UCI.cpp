@@ -224,9 +224,9 @@ namespace UCI {
         void exe_key ()
         {
             ats () << hex << uppercase << setfill ('0')
-                << "fen: " << rootPos.fen () << '\n'
-                << "posi key: " << setw (16) << rootPos.posi_key () << '\n'
-                << "matl key: " << setw (16) << rootPos.matl_key () << '\n'
+                << "fen: " << rootPos.fen () << endl
+                << "posi key: " << setw (16) << rootPos.posi_key () << endl
+                << "matl key: " << setw (16) << rootPos.matl_key () << endl
                 << "pawn key: " << setw (16) << rootPos.pawn_key ()
                 << dec << endl;
         }
@@ -313,7 +313,7 @@ namespace UCI {
                     //TRI_LOG_MSG ("WHAT??? No such command: \'" + cmd + "\'");
                 }
             }
-            catch (exception &exp)
+            catch (...)//(exception &exp)
             {
                 //TRI_LOG_MSG (exp.what ());
             }

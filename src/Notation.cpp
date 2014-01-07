@@ -120,18 +120,20 @@ Move move_from_can (string &can, const Position &pos)
         // promotion piece in lowercase
         if (isupper (uint8_t (can[4])))
         {
-            can[4] = char (tolower (can[4]));
+            can[4] = uint8_t (tolower (can[4]));
         }
     }
 
     MoveList mov_lst = generate<LEGAL>(pos);
-    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
+    MoveList::const_iterator itr = mov_lst.cbegin ();
+    while (itr != mov_lst.cend ())
     {
         Move m = *itr;
         if (iequals (can, move_to_can (m, pos.chess960 ())))
         {
             return m;
         }
+        ++itr;
     }
     return MOVE_NONE;
 }
@@ -261,28 +263,31 @@ string move_to_san (Move m, Position &pos)
         break;
 
     default:
-        if (PAWN == pt)
         {
-            if (pos.capture (m)) san = to_char (_file (org));
-        }
-        else
-        {
-            san = to_char (pt);
-            // Disambiguation if we have more then one piece of type 'pt'
-            // that can reach 'dst' with a legal move.
-            switch (ambiguity (m, pos))
+            bool capture = pos.capture (m);
+            if (PAWN == pt)
             {
-            case AMB_NONE:                               break;
-            case AMB_RANK: san += to_char (_file (org)); break;
-            case AMB_FILE: san += to_char (_rank (org)); break;
-            case AMB_SQR:  san += to_string (org);       break;
-            default:       ASSERT (false);               break;
+                if (capture) san = to_char (_file (org));
             }
-        }
+            else
+            {
+                san = to_char (pt);
+                // Disambiguation if we have more then one piece of type 'pt'
+                // that can reach 'dst' with a legal move.
+                switch (ambiguity (m, pos))
+                {
+                case AMB_NONE:                               break;
+                case AMB_RANK: san += to_char (_file (org)); break;
+                case AMB_FILE: san += to_char (_rank (org)); break;
+                case AMB_SQR:  san += to_string (org);       break;
+                default:       ASSERT (false);               break;
+                }
+            }
 
-        if (pos.capture (m)) san += 'x';
-        san += to_string (dst);
-        if (PROMOTE == mt && PAWN == pt) san += "=" + to_char (prom_type (m));
+            if (capture) san += 'x';
+            san += to_string (dst);
+            if (PROMOTE == mt && PAWN == pt) san += "=" + to_char (prom_type (m));
+        }
         break;
     }
 
@@ -327,7 +332,7 @@ string score_uci (Value v, Value alpha, Value beta)
         ss << "mate " << int32_t ((v) > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
     }
     ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
-    
+
     return ss.str ();
 }
 
@@ -383,7 +388,7 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
-    
+
     stringstream spv;
 
     spv << setw(2) << depth

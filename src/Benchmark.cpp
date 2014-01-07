@@ -148,8 +148,8 @@ void benchmark (istream &is, const Position &pos)
         elapsed = Time::now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
         cerr << "\n===========================\n"
-            << "Total time (ms) : " << elapsed << '\n'
-            << "Nodes searched  : " << nodes   << '\n'
+            << "Total time (ms) : " << elapsed << endl
+            << "Nodes searched  : " << nodes   << endl
             << "Nodes/second    : " << (1000 * nodes / elapsed)
             << endl;
 
