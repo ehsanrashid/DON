@@ -318,13 +318,13 @@ string score_uci (Value v, Value alpha, Value beta)
 {
     stringstream ss;
 
-    if (abs(v) < VALUE_MATES_IN_MAX_PLY)
+    if (abs (int32_t (v)) < VALUE_MATES_IN_MAX_PLY)
     {
-        ss << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
+        ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {
-        ss << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+        ss << "mate " << int32_t ((v) > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
     }
     ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
     
@@ -341,15 +341,15 @@ namespace {
         if (false);
         else if (v >= VALUE_MATES_IN_MAX_PLY)
         {
-            ss <<  "#" << (VALUE_MATE - v + 1) / 2;
+            ss <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
         }
         else if (v <= VALUE_MATED_IN_MAX_PLY)
         {
-            ss << "-#" << (VALUE_MATE + v) / 2;
+            ss << "-#" << int32_t (VALUE_MATE + v) / 2;
         }
         else
         {
-            ss << setprecision(2) << fixed << showpos << double(v) / VALUE_MG_PAWN;
+            ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         return ss.str ();
     }

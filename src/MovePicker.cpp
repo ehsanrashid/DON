@@ -56,21 +56,24 @@ namespace {
 // moves to return (in the quiescence search, for instance, we only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Stack *s)
+MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
     : pos (p)
     , history (h)
-    , depth (d)
+    , cur (moves)
+    , end (moves)
 {
-    ASSERT (d > DEPTH_ZERO);
+    ASSERT (!pos.checkers ());
 
-    cur = end = moves;
-    end_bad_captures = moves + MAX_MOVES - 1;
-    counter_moves = cm;
-    ss = s;
+    stage = PROBCUT;
 
-    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
+    // In ProbCut we generate only captures better than parent's captured piece
+    capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
+    {
+        tt_move = MOVE_NONE;
+    }
     end += (tt_move != MOVE_NONE);
 }
 
@@ -113,24 +116,21 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Stack s[])
     : pos (p)
     , history (h)
-    , cur (moves)
-    , end (moves)
+    , depth (d)
 {
-    ASSERT (!pos.checkers ());
+    ASSERT (d > DEPTH_ZERO);
 
-    stage = PROBCUT;
+    cur = end = moves;
+    end_bad_captures = moves + MAX_MOVES - 1;
+    counter_moves = cm;
+    ss = s;
 
-    // In ProbCut we generate only captures better than parent's captured piece
-    capture_threshold = PieceValue[MG][pt];
+    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
-    {
-        tt_move = MOVE_NONE;
-    }
     end += (tt_move != MOVE_NONE);
 }
 
@@ -175,9 +175,10 @@ void MovePicker::value<CAPTURE>()
 template<>
 void MovePicker::value<QUIET>()
 {
+    Move m;
     for (ValMove *itr = moves; itr != end; ++itr)
     {
-        Move m = itr->move;
+        m = itr->move;
         itr->value = history[pos.moved_piece (m)][dst_sq (m)];
     }
 }
@@ -211,7 +212,7 @@ void MovePicker::value<EVASION>()
 template<GType GT>
 void MovePicker::generate_moves ()
 {
-    uint16_t index = 0;
+    uint32_t index = 0;
     MoveList mov_lst = generate<GT>(pos);
     //for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     //{
@@ -221,12 +222,13 @@ void MovePicker::generate_moves ()
     MoveList::const_iterator itr = mov_lst.cbegin ();
     while (itr != mov_lst.cend ())
     {
-        moves[index].move = *itr;
+        moves[index].move  = *itr;
+        //moves[index].value = VALUE_ZERO;
         ++index;
         ++itr;
     }
 
-    //moves[index].move = MOVE_NONE;
+    moves[index].move = MOVE_NONE;
     end = moves + index;
 }
 

@@ -47,7 +47,7 @@ private:
 
 public:
 
-    const T* operator[] (Piece p) const { return &_table[p][0]; }
+    const T* operator[] (Piece p) const { return _table[p]; } // &_table[p][0]
     //const T& operator[] (Piece p) const { return  _table[p][0]; }
 
     void clear ()
@@ -69,7 +69,7 @@ public:
         {
             _table[p][s] = std::max (v, _table[p][s] - 1);
         }
-        else if (abs (_table[p][s] + v) < MaxValue)
+        else if (abs (int32_t (_table[p][s] + v)) < MaxValue)
         {
             _table[p][s] += v;
         }
@@ -126,9 +126,9 @@ private:
 
 public:
 
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
     MovePicker(const Position &, Move, const HistoryStats &, PType);
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move*, Searcher::Stack*);
+    MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
+    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Searcher::Stack []);
 
     template<bool SpNode>
     Move next_move ();

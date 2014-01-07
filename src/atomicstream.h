@@ -4,7 +4,7 @@
 
 #include <sstream>
 #include <iostream>
-#include <mutex>
+//#include <mutex>
 #include "noncopyable.h"
 //#include "functor.h"
 
@@ -140,7 +140,7 @@ namespace std {
         {
             {
                 // acquire lock
-                unique_lock<mutex> lock;
+                //unique_lock<mutex> lock;
                 _out_stm << str () << std::flush;
                 clear ();
                 // release lock

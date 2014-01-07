@@ -43,8 +43,8 @@ bool _ok (const string &fen, bool c960, bool full)
 
 // do_move() copy current state info up to 'posi_key' excluded to the new one.
 // calculate the quad words (64bits) needed to be copied.
-//const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key); // / sizeof (uint32_t);// + 1;
-const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) / sizeof (uint64_t) + 1;
+const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) + 8; // / sizeof (uint32_t);// + 1;
+//const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) / sizeof (uint64_t) + 1;
 
 void StateInfo::clear ()
 {
@@ -126,7 +126,7 @@ namespace {
         {S(  0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(  0, 0),
         S(-20,-8), S(-6,-8), S( 4,-8), S(14,-8), S(14,-8), S( 4,-8), S(-6,-8), S(-20,-8),
         S(-20,-8), S(-6,-8), S( 9,-8), S(34,-8), S(34,-8), S( 9,-8), S(-6,-8), S(-20,-8),
-        S(-20,-8), S(-6,-8), S(17,-8), S(54,-8), S(54,-8), S(17,-8), S(-6,-8), S(-20,-8),
+        S(-20,-8), S(-6,-8), S(17,-8), S(64,-8), S(64,-8), S(17,-8), S(-6,-8), S(-20,-8),
         S(-20,-8), S(-6,-8), S(17,-8), S(34,-8), S(34,-8), S(17,-8), S(-6,-8), S(-20,-8),
         S(-20,-8), S(-6,-8), S( 9,-8), S(14,-8), S(14,-8), S( 9,-8), S(-6,-8), S(-20,-8),
         S(-20,-8), S(-6,-8), S( 4,-8), S(14,-8), S(14,-8), S( 4,-8), S(-6,-8), S(-20,-8),
@@ -183,8 +183,8 @@ namespace {
     // min_attacker() is an helper function used by see() to locate the least
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
-    template<int32_t PT> F_INLINE
-        PType min_attacker(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    template<int32_t PT>
+    inline PType min_attacker(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (!b) return min_attacker<PT+1>(bb, dst, stm_attackers, occupied, attackers);
@@ -203,8 +203,8 @@ namespace {
         return PType (PT);
     }
 
-    template<> F_INLINE
-        PType min_attacker<KING>(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    template<>
+    inline PType min_attacker<KING>(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
@@ -471,7 +471,8 @@ bool Position::ok (int8_t *failed_step) const
     // step 9
     if (++(*step), debug_checker_count)
     {
-        if (pop_count<FULL>(checkers ()) > 2) return false;
+        // TODO::
+        //if (pop_count<FULL>(checkers ()) > 2) return false;
     }
 
     // step 10
@@ -510,19 +511,18 @@ bool Position::ok (int8_t *failed_step) const
     // step 13
     if (++(*step), debug_matl_key)
     {
-        if (ZobGlob.compute_matl_key (*this) != matl_key ()) return false;
+        if (ZobGlob.compute_matl_key (*this) != _si->matl_key) return false;
     }
     // step 14
     if (++(*step), debug_pawn_key)
     {
-        if (ZobGlob.compute_pawn_key (*this) != pawn_key ()) return false;
+        if (ZobGlob.compute_pawn_key (*this) != _si->pawn_key) return false;
     }
 
     // step 15
     if (++(*step), debug_posi_key)
     {
-        //cout << hex << uppercase << posi_key () << endl;
-        if (ZobGlob.compute_posi_key (*this) != posi_key ()) return false;
+        if (ZobGlob.compute_posi_key (*this) != _si->posi_key) return false;
     }
 
     // step 16
@@ -555,6 +555,7 @@ int32_t Position::see      (Move m) const
     Square dst = dst_sq(m);
 
     Color stm = p_color (_piece_arr[org]);
+
     int32_t swap_list[32], index = 1;
     swap_list[0] = PieceValue[MG][p_type (_piece_arr[dst])];
 
@@ -660,7 +661,7 @@ int32_t Position::see_sign (Move m) const
 Piece Position::   moved_piece (Move m) const
 {
     ASSERT (_ok (m));
-    if (!_ok (m)) return PS_NO;
+    //if (!_ok (m)) return PS_NO;
 
     return _piece_arr[org_sq (m)];
 }
@@ -746,6 +747,7 @@ bool Position::pseudo_legal (Move m) const
             // Check whether the destination square is attacked by the opponent.
             // Castling moves are checked for legality during move generation.
             if (KING != pt) return false;
+            if ((active | ROOK) != _piece_arr[dst]) return false;
 
             if (R_1 != rel_rank (active, org) ||
                 R_1 != rel_rank (active, dst))
@@ -759,8 +761,21 @@ bool Position::pseudo_legal (Move m) const
 
             ct = PT_NO;
 
-            bool king_side = (dst > org);
-            //CSide cs = king_side ? CS_K : CS_Q;
+            bool king_side  = (dst > org);
+            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+            ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
+            
+            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+
+            if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
+
+            //if (!_chess960)
+            //{
+            //    if (PS_NO != _piece_arr[dst])       return false;
+            //    if (PS_NO != _piece_arr[dst_rook])  return false;
+            //}
+
             Delta step = king_side ? DEL_E : DEL_W;
             Bitboard enemies = pieces (pasive);
             Square s = org + step;
@@ -1162,10 +1177,7 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 void  Position:: place_piece (Square s, Color c, PType pt)
 {
     ASSERT (PS_NO == _piece_arr[s]);
-    if (PS_NO != _piece_arr[s])
-    {
-        return;
-    }
+
     _piece_arr[s]    = (c | pt);
     _color_bb[c]     += s;
     _types_bb[pt]    += s;
@@ -1201,11 +1213,15 @@ Piece Position::remove_piece (Square s)
     _types_bb[PT_NO] -= s;
     _piece_count[c][PT_NO]--;
     _piece_count[c][pt]--;
+
     // Update piece list, remove piece at [s] index and shrink the list.
     Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
-    _piece_index[last_sq] = _piece_index[s];
-    if (s != last_sq) _piece_index[s] = -1;
-    if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    if (s != last_sq)
+    {
+        _piece_index[last_sq] = _piece_index[s];
+        if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    }
+    _piece_index[s] = -1;
     _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
     return p;
 }
@@ -1406,7 +1422,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += int32_t (_piece_count[c][pt]) * PieceValue[MG][pt];
+        value += PieceValue[MG][pt] * int32_t (_piece_count[c][pt]);
     }
     return value;
 }
@@ -1426,16 +1442,15 @@ void Position::castle_king_rook (Square org_king, Square dst_king, Square org_ro
 // do_move() do the move with checking info
 void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 {
-    //ASSERT (_ok (m));
-    ASSERT (pseudo_legal (m));
+    ASSERT (_ok (m));
     ASSERT (&si_n != _si);
 
     Key posi_k = _si->posi_key;
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    //memcpy (&si_n, _si, SIZE_COPY_STATE);
-    memcpy (&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
+    memcpy (&si_n, _si, SIZE_COPY_STATE);
+    //memcpy (&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
 
     // switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;
@@ -1465,7 +1480,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     {
     case CASTLE:
         ASSERT (KING == pt);
-        ASSERT ((active | ROOK) == _piece_arr[dst]);
+        ASSERT (ROOK == p_type (_piece_arr[dst]));
         ct = PT_NO;
         break;
 
@@ -1517,7 +1532,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         {
             _si->pawn_key ^= ZobGlob._.psq_k[pasive][PAWN][cap];
         }
-        else             // Update non-pawn material
+        else            // Update non-pawn material
         {
             _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
         }
@@ -1553,19 +1568,20 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     case CASTLE:
         // Move the piece. The tricky Chess960 castle is handled earlier
         {
-            bool king_side = (dst > org);
-            Square org_king = org;
-            Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+            bool king_side  = (dst > org);
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
-            castle_king_rook (org_king, dst_king, org_rook, dst_rook);
+            ASSERT (PS_NO == _piece_arr[dst_rook]);
 
-            posi_k ^= ZobGlob._.psq_k[_active][KING][org_king] ^ ZobGlob._.psq_k[_active][KING][dst_king];
+            castle_king_rook (org, dst, org_rook, dst_rook);
+
+            posi_k ^= ZobGlob._.psq_k[_active][KING][org     ] ^ ZobGlob._.psq_k[_active][KING][dst     ];
             posi_k ^= ZobGlob._.psq_k[_active][ROOK][org_rook] ^ ZobGlob._.psq_k[_active][ROOK][dst_rook];
 
-            _si->psq_score += psq[active][KING][dst_king] - psq[active][KING][org_king];
+            _si->psq_score += psq[active][KING][dst     ] - psq[active][KING][org     ];
             _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
         }
         break;
@@ -1612,12 +1628,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Update castle rights if needed
     if (_si->castle_rights)
     {
-        int32_t cr = //_si->castle_rights & 
-            (castle_right (active, org) | castle_right (pasive, dst));
+        uint8_t cr = _si->castle_rights & (castle_right (active, org) | castle_right (pasive, dst));
         if (cr)
         {
             Bitboard b = cr;
-            _si->castle_rights &= ~cr;
+            _si->castle_rights &= ~(cr);
             while (b)
             {
                 posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];
@@ -1689,8 +1704,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
-    // TODO::
-    //TRI_LOG_MSG (">" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)
@@ -1736,13 +1749,13 @@ void Position::undo_move ()
     case CASTLE:
         {
             bool king_side = (dst > org);
-            Square org_king = org;
-            Square dst_king = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-            castle_king_rook (dst_king, org_king, dst_rook, org_rook);
-            pt = KING;
-            ct = PT_NO;
+
+            pt  = KING;
+            ct  = PT_NO;
+            castle_king_rook (dst, org, dst_rook, org_rook);
         }
         break;
 
@@ -1790,8 +1803,6 @@ void Position::undo_move ()
     // Finally point our state pointer back to the previous state
     _si     = _si->p_si;
 
-    // TODO::
-    //TRI_LOG_MSG ("<" + move_to_can(m, _chess960));
     ASSERT (ok ());
 }
 
@@ -2452,13 +2463,13 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
     pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
-    pos._si->checkers = pos.checkers (pos._active);
     pos._si->matl_key = ZobGlob.compute_matl_key (pos);
     pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
     pos._si->posi_key = ZobGlob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
     pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
+    pos._si->checkers = pos.checkers (pos._active);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
     pos._thread       = thread;
@@ -2813,13 +2824,13 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
 #pragma endregion
 
-    pos._si->checkers = pos.checkers (pos._active);
     pos._si->matl_key = ZobGlob.compute_matl_key (pos);
     pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
     pos._si->posi_key = ZobGlob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
     pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
+    pos._si->checkers = pos.checkers (pos._active);
     pos._chess960     = c960;
     pos._game_nodes   = 0;
     pos._thread       = thread;

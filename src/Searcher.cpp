@@ -877,7 +877,7 @@ namespace {
         if (!PVNode && depth < 4 * ONE_MOVE &&
             eval_value + razor_margin (depth) < beta &&
             tt_move == MOVE_NONE &&
-            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
+            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
@@ -896,8 +896,8 @@ namespace {
         if (!PVNode && !ss->skip_null_move &&
             depth < 4 * ONE_MOVE &&
             eval_value - futility_margin (depth) >= beta &&
-            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
-            abs (eval_value) < VALUE_KNOWN_WIN &&
+            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
+            abs (int32_t (eval_value)) < VALUE_KNOWN_WIN &&
             pos.non_pawn_material (pos.active ()))
         {
             return eval_value - futility_margin (depth);
@@ -907,7 +907,7 @@ namespace {
         if (!PVNode && !ss->skip_null_move &&
             depth >= 2 * ONE_MOVE &&
             eval_value >= beta &&
-            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
+            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             pos.non_pawn_material (pos.active ()))
         {
             ss->current_move = MOVE_NULL;
@@ -956,7 +956,7 @@ namespace {
         // prune the previous move.
         if (!PVNode && depth >= 5 * ONE_MOVE &&
             !ss->skip_null_move &&
-            abs (beta) < VALUE_MATES_IN_MAX_PLY)
+            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
             Depth rdepth = depth - ONE_MOVE - 3 * ONE_MOVE;
@@ -1034,16 +1034,14 @@ moves_loop: // When in check and at SPNode search starts from here
         while ((move = mp.next_move<SPNode>()) != MOVE_NONE)
         {
             ASSERT (_ok (move));
-
             if (move == excluded_move) continue;
 
             // At root obey the "searchmoves" option and skip moves not listed in Root
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
-            if (RootNode && !count(rootMoves.begin () + pv_idx, rootMoves.end (), move))
-            {
-                continue;
-            }
+            if (RootNode && !count (rootMoves.begin () + pv_idx, rootMoves.end (), move)) continue;
+            
+            if (!pos.pseudo_legal (move) /*|| !pos.legal (move)*/) continue;
 
             if (SPNode)
             {
@@ -1066,7 +1064,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 {
                     ats ()
                         << "info"
-                        << " depth " << depth / ONE_MOVE
+                        << " depth " << int32_t (depth / ONE_MOVE)
                         << " currmove " << move_to_can (move, pos.chess960 ())
                         << " currmovenumber " << moves_count + pv_idx
                         << endl;
@@ -1091,7 +1089,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 move == tt_move &&
                 ext != DEPTH_ZERO &&
                 pos.legal (move, ci.pinneds) &&
-                abs (tt_value) < VALUE_KNOWN_WIN)
+                abs (int32_t (tt_value)) < VALUE_KNOWN_WIN)
             {
                 ASSERT (tt_value != VALUE_NONE);
 
@@ -1618,7 +1616,7 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         static RKISS rk;
         // PRNG sequence should be not deterministic
-        for (int32_t i = Time::now () % 50; i > 0; --i) rk.rand64 ();
+        for (int32_t i = int32_t (Time::now ()) % 50; i > 0; --i) rk.rand64 ();
 
         // rootMoves are already sorted by score in descending order
         int32_t variance = min (rootMoves[0].curr_value - rootMoves[pv_size - 1].curr_value, VALUE_MG_PAWN);

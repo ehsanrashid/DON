@@ -989,7 +989,8 @@ namespace {
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-        ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
+        // TODO::
+        //ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
@@ -1097,7 +1098,7 @@ namespace Evaluator {
     // trace() is like evaluate() but instead of a value returns a string suitable
     // to be print on stdout with the detailed descriptions and values of each
     // evaluation term. Used mainly for debugging.
-    string trace(const Position &pos)
+    string trace    (const Position &pos)
     {
         return Tracing::do_trace (pos);
     }

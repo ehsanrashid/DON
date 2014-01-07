@@ -54,8 +54,6 @@ namespace MoveGenerator {
                             }
                         }
                     }
-                    // TODO:: Remove if check
-                    //if (s < 0) continue;
 
                     Bitboard moves = attacks_bb<PT> (s, occ) & target;
                     if ((CHECK == G) || (QUIET_CHECK == G))
@@ -94,6 +92,8 @@ namespace MoveGenerator {
                     {
                         if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
+                            if (NULL == ci) ci = &CheckInfo (pos);
+
                             if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
                             {
                                 pos.chess960 () ?
@@ -128,15 +128,17 @@ namespace MoveGenerator {
 
                 Square org_king = pos.king_sq (clr);
                 Square org_rook = pos.castle_rook (clr, SIDE);
+                if (ROOK != p_type (pos[org_rook])) return;
+
                 Square dst_king = rel_sq (clr, (CS_Q == SIDE) ? SQ_WK_Q : SQ_WK_K);
 
                 Bitboard enemies = pos.pieces (~clr);
 
                 Delta step = CHESS960 ? 
                     dst_king < org_king ? DEL_W : DEL_E :
-                    (CS_Q == SIDE) ? DEL_W : DEL_E;
+                    (CS_Q == SIDE)      ? DEL_W : DEL_E;
 
-                for (Square s = org_king + step; s != dst_king; s += step)
+                for (Square s = org_king + step; s != dst_king + step; s += step)
                 {
                     if (pos.attackers_to (s) & enemies)
                     {
@@ -161,7 +163,7 @@ namespace MoveGenerator {
                 {
                 case CHECK:
                 case QUIET_CHECK:
-                    if (ci)
+                    if (UNLIKELY (ci))
                     {
                         if (pos.check (m, *ci))
                         {

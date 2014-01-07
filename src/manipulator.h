@@ -54,13 +54,14 @@ namespace std {
 
     public:
         manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
-            : _fp_manip(fp_manip), _val(val)
+            : _fp_manip (fp_manip)
+            , _val (val)
         {}
 
         void operator() (basic_ostream<C>& os) const
         {
             // Invoke the function pointer with the stream and value
-            _fp_manip(os, _val);
+            _fp_manip (os, _val);
         }  
 
         friend basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)

@@ -63,13 +63,14 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 typedef struct StateInfo sealed
 {
 public:
+
+    Value non_pawn_matl[CLR_NO];
+    Score psq_score;
+
     // Hash key of materials.
     Key matl_key;
     // Hash key of pawns.
     Key pawn_key;
-
-    Value non_pawn_matl[CLR_NO];
-    Score psq_score;
 
     // Castling-rights information for both side.
     CRight castle_rights;
@@ -538,7 +539,7 @@ inline Key      Position::pawn_key      () const { return _si->pawn_key; }
 //
 inline Key      Position::posi_key      () const { return _si->posi_key; }
 //
-inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion;}
+inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion; }
 
 inline Score    Position::psq_score     () const { return _si->psq_score; }
 
@@ -550,8 +551,8 @@ inline Value    Position::non_pawn_material (Color c) const { return _si->non_pa
 
 #pragma region Castling properties
 
-inline CRight Position::can_castle (CRight cr) const { return ::can_castle (_si->castle_rights, cr); }
-inline CRight Position::can_castle (Color   c) const { return ::can_castle (_si->castle_rights, c); }
+inline CRight Position::can_castle (CRight cr)           const { return ::can_castle (_si->castle_rights, cr); }
+inline CRight Position::can_castle (Color   c)           const { return ::can_castle (_si->castle_rights, c); }
 inline CRight Position::can_castle (Color   c, CSide cs) const { return ::can_castle (_si->castle_rights, c, cs); }
 
 inline CRight Position::castle_right (Color c, File   f) const { return _castle_rights[c][f]; }

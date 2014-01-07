@@ -56,7 +56,7 @@ public:
         //srand (uint32_t (time (NULL)));
         //uint32_t seed = rand ();
 
-        uint32_t seed = Time::now () % 10000;
+        uint32_t seed = uint64_t (Time::now ()) % 10000;
 
         init (seed);
     }

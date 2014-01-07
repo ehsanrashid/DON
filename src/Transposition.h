@@ -24,7 +24,7 @@
 //  total        16 byte
 
 //#pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
-//#pragma pack (push, 2)
+#pragma pack (push, 2)
 typedef struct TranspositionEntry
 {
 
@@ -70,7 +70,7 @@ public:
 
 } TranspositionEntry;
 
-//#pragma pack (pop)
+#pragma pack (pop)
 
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of NUM_TENTRY_CLUSTER number of entry.

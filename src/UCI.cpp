@@ -151,7 +151,7 @@ namespace UCI {
                     Move m = move_from_can (token, rootPos);
                     if (MOVE_NONE == m)
                     {
-                        TRI_LOG_MSG ("ERROR: Illegal Move" << token);
+                        //TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
                     setupStates->push (StateInfo ());
@@ -176,6 +176,7 @@ namespace UCI {
         {
             Limits limits;
             string token;
+            int32_t value;
 
             while (cstm.good () && (cstm >> token))
             {
@@ -193,11 +194,11 @@ namespace UCI {
                 else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
                 else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
                 else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
-                else if (iequals (token, "movetime"))   cstm >> limits.move_time;
-                else if (iequals (token, "movestogo"))  cstm >> limits.moves_to_go;
-                else if (iequals (token, "depth"))      cstm >> limits.depth;
-                else if (iequals (token, "nodes"))      cstm >> limits.nodes;
-                else if (iequals (token, "mate"))       cstm >> limits.mate_in;
+                else if (iequals (token, "movetime"))   { cstm >> value; limits.move_time   = value; }
+                else if (iequals (token, "movestogo"))  { cstm >> value; limits.moves_to_go = value; }
+                else if (iequals (token, "depth"))      { cstm >> value; limits.depth       = value; }
+                else if (iequals (token, "nodes"))      { cstm >> value; limits.nodes       = value; }
+                else if (iequals (token, "mate"))       { cstm >> value; limits.mate_in     = value; }
                 else if (iequals (token, "infinite"))   limits.infinite  = true;
                 else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
@@ -222,7 +223,7 @@ namespace UCI {
 
         void exe_key ()
         {
-            ats () << hex << uppercase << setfill('0')
+            ats () << hex << uppercase << setfill ('0')
                 << "fen: " << rootPos.fen () << '\n'
                 << "posi key: " << setw (16) << rootPos.posi_key () << '\n'
                 << "matl key: " << setw (16) << rootPos.matl_key () << '\n'
@@ -308,12 +309,13 @@ namespace UCI {
                     ||   iequals (token, "quit"))       exe_stop ();
                 else
                 {
-                    TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
+                    //TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
+                    //TRI_LOG_MSG ("WHAT??? No such command: \'" + cmd + "\'");
                 }
             }
             catch (exception &exp)
             {
-                TRI_LOG_MSG (exp.what ());
+                //TRI_LOG_MSG (exp.what ());
             }
         }
         while (active && !iequals (cmd, "quit"));

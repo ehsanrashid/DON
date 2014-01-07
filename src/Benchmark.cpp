@@ -18,6 +18,7 @@ namespace {
 
     const char* default_fens[NUM_FEN] =
     {
+        //"4r1k1/1pq2pp1/p3b2p/1r2P3/3R4/2P2N2/1P1Q2PP/3R3K w - - 3 28",
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
         "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11",
