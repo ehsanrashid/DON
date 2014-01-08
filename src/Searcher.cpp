@@ -104,7 +104,7 @@ namespace {
             }
         }
 
-        bool enabled ()                   const { return level < 20; }
+        bool enabled ()                   const { return (level < 20); }
         bool time_to_pick (int16_t depth) const { return depth == (1 + level); }
 
         Move pick_move ();
@@ -617,7 +617,7 @@ namespace {
                 {
                     rm = *find (rootMoves.begin (), rootMoves.end (), skill.move);
                 }
-                
+
                 string fn_search_log  = *(Options["Search Log File"]);
                 Log log (fn_search_log);
                 log << pretty_pv (pos, depth, rm.curr_value, (Time::now () - searchTime), rm.pv)
@@ -750,7 +750,7 @@ namespace {
         int32_t     moves_count;
         int32_t     quiets_count;
 
-        Move quiets_searched[64];
+        Move quiets_searched[64] = {MOVE_NONE};
 
         // Step 1. Initialize node
         Thread *thread      = pos.thread ();
@@ -844,14 +844,14 @@ namespace {
         else if (te)
         {
             // Never assume anything on values stored in TT
-            if ((eval_value = ss->static_eval = te->eval_value ()) == VALUE_NONE)
-            {
-                eval_value = ss->static_eval = evaluate (pos);
-            }
+            Value e_value = te->eval_value ();
+            if (VALUE_NONE == e_value) e_value = evaluate (pos);
+            eval_value = ss->static_eval = e_value;
+
             // Can tt_value be used as a better position evaluation?
-            if (tt_value != VALUE_NONE)
+            if (VALUE_NONE != tt_value)
             {
-                if (te->bound() & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
+                if (te->bound () & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
                 {
                     eval_value = tt_value;
                 }
@@ -965,7 +965,7 @@ namespace {
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
-            MovePicker mp (pos, tt_move, history, pos.cap_type());
+            MovePicker mp (pos, tt_move, history, pos.cap_type ());
             CheckInfo  ci (pos);
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
@@ -1026,8 +1026,8 @@ moves_loop: // When in check and at SPNode search starts from here
             depth >= 8 * ONE_MOVE &&
             tt_move != MOVE_NONE  &&
             !excluded_move        && // Recursive singular search is not allowed
-            (te->bound() & BND_LOWER) &&
-            (te->depth() >= depth - 3 * ONE_MOVE);
+            (te->bound () & BND_LOWER) &&
+            (te->depth () >= depth - 3 * ONE_MOVE);
 
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1040,7 +1040,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (rootMoves.begin () + pv_idx, rootMoves.end (), move)) continue;
-            
+
             if (!pos.pseudo_legal (move) /*|| !pos.legal (move)*/) continue;
 
             if (SPNode)
@@ -1057,7 +1057,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             if (RootNode)
             {
-                signals.first_root_move = (moves_count == 1);
+                signals.first_root_move = (1 == moves_count);
 
                 if (thread == Threads.main () && 
                     (Time::now () - searchTime) > 3000)
@@ -1162,7 +1162,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 continue;
             }
 
-            bool move_pv = PVNode && (moves_count == 1);
+            bool move_pv = PVNode && (1 == moves_count);
             ss->current_move = move;
 
             if (!SPNode && !capture_or_promotion)
@@ -1380,6 +1380,7 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
 
+        Move best_move = ss->current_move = MOVE_NONE;
         ss->ply = (ss-1)->ply + 1;
 
         // Check for an instant draw or maximum ply reached
@@ -1394,8 +1395,6 @@ moves_loop: // When in check and at SPNode search starts from here
 
         // To flag EXACT a node with eval_value above alpha and no available moves
         if (PVNode) old_alpha = alpha;
-
-        Move best_move = ss->current_move = MOVE_NONE;
 
         // Decide whether or not to include checks, this fixes also the type of
         // TT entry depth that we are going to use. Note that in search_quien we use
@@ -1416,9 +1415,9 @@ moves_loop: // When in check and at SPNode search starts from here
         if (   te
             && te->depth() >= tt_depth
             && tt_value != VALUE_NONE // Only in case of TT access race
-            && (        PVNode ?  te->bound() == BND_EXACT
-            : tt_value >= beta ? (te->bound() &  BND_LOWER)
-            : (te->bound() &  BND_UPPER)))
+            && (        PVNode ?  te->bound () == BND_EXACT
+            : tt_value >= beta ? (te->bound () &  BND_LOWER)
+            /**/               : (te->bound () &  BND_UPPER)))
         {
             ss->current_move = tt_move; // Can be MOVE_NONE
             return tt_value;
@@ -1437,9 +1436,9 @@ moves_loop: // When in check and at SPNode search starts from here
             if (te)
             {
                 // Never assume anything on values stored in TT
-                Value value = te->eval_value ();
-                if (VALUE_NONE == value) value = evaluate (pos);
-                best_value = ss->static_eval = value;
+                Value e_value = te->eval_value ();
+                if (VALUE_NONE == e_value) e_value = evaluate (pos);
+                best_value = ss->static_eval = e_value;
 
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
@@ -1495,7 +1494,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (m_type (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
-                Value futility_value = futility_base + PieceValue[EG][pos[dst_sq (move)]];
+                Value futility_value = futility_base + PieceValue[EG][p_type (pos[dst_sq (move)])];
 
                 if (false);
                 else if (futility_value < beta)
@@ -1632,10 +1631,7 @@ moves_loop: // When in check and at SPNode search starts from here
             int32_t v = rootMoves[i].curr_value;
 
             // Don't allow crazy blunders even at very low skills
-            if (i > 0 && rootMoves[i-1].curr_value > (v + 2 * VALUE_MG_PAWN))
-            {
-                break;
-            }
+            if (i > 0 && rootMoves[i-1].curr_value > (v + 2 * VALUE_MG_PAWN)) break;
 
             // This is our magic formula
             v += (weakness * int32_t (rootMoves[0].curr_value - v)

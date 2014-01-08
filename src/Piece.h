@@ -23,7 +23,7 @@ inline char to_char (PType pt)
 }
 inline Piece operator| (Color c, PType pt)
 {
-    return (PT_NO != pt) ? Piece ((c << 3) | (pt + 1)) : PS_NO;
+    return Piece ((c << 3) | (pt));
 }
 inline Piece mk_piece  (Color c, PType pt)
 {
@@ -32,14 +32,14 @@ inline Piece mk_piece  (Color c, PType pt)
 
 inline bool     _ok (Piece p)
 {
-    //return 
-    //    (W_PAWN <= p && p <= W_QUEN) ||
-    //    (B_PAWN <= p && p <= B_QUEN);
-    return (p & 0x7) && !(p & ~0xF);
+    return 
+        (W_PAWN <= p && p <= W_KING) ||
+        (B_PAWN <= p && p <= B_KING);
+    //return (p & 0x7) && !(p & ~0xF);
 }
 inline PType p_type (Piece p)
 {
-    return (PS_NO != p) ? PType ((p & 7) - 1) : PT_NO;
+    return PType ((p & 7));
 }
 inline Color p_color (Piece p)
 {

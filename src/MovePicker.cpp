@@ -157,8 +157,7 @@ void MovePicker::value<CAPTURE>()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-
-        itr->value = PieceValue[MG][p_type (pos[dst_sq (m)])] - p_type (pos.moved_piece (m));
+        itr->value = PieceValue[MG][p_type (pos[dst_sq (m)])] - p_type (pos[org_sq (m)]);
 
         switch (m_type (m))
         {
@@ -199,8 +198,7 @@ void MovePicker::value<EVASION>()
         }
         else if (pos.capture (m))
         {
-            itr->value =  PieceValue[MG][p_type (pos[dst_sq (m)])]
-            - p_type (pos.moved_piece (m)) + MaxValue;
+            itr->value = PieceValue[MG][p_type (pos[dst_sq (m)])] - p_type (pos[org_sq (m)]) + MaxValue;
         }
         else
         {

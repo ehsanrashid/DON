@@ -149,7 +149,7 @@ public:
 
 #pragma region Position
 
-extern const Value PieceValue[PHASE_NO][PT_NO];
+extern const Value PieceValue[PHASE_NO][PT_ALL];
 
 //#pragma pack (push, 4)
 

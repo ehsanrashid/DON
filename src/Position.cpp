@@ -104,15 +104,15 @@ void CheckInfo::clear ()
 
 #pragma region Position
 
-const Value PieceValue[PHASE_NO][PT_NO] =
+const Value PieceValue[PHASE_NO][PT_ALL] =
 {
-    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO }
+    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
 };
 
 namespace {
 
-    //CACHE_ALIGN(64)
+    CACHE_ALIGN(64)
     Score psq[CLR_NO][PT_NO][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
@@ -645,10 +645,8 @@ int32_t Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][p_type (moved_piece (m))] <= PieceValue[MG][p_type (_piece_arr[dst_sq (m)])])
-    {
-        return 1;
-    }
+    if (PieceValue[MG][p_type (_piece_arr[org_sq (m)])]
+    <= PieceValue[MG][p_type (_piece_arr[dst_sq (m)])]) return 1;
 
     return see (m);
 }
@@ -755,11 +753,9 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
 
-            if (castle_impeded (active)) return false;
+            //if (castle_impeded (active)) return false;
             if (!can_castle (active)) return false;
             if (checkers ()) return false;
-
-            ct = PT_NO;
 
             bool king_side  = (dst > org);
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
@@ -769,12 +765,6 @@ bool Position::pseudo_legal (Move m) const
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
-
-            //if (!_chess960)
-            //{
-            //    if (PS_NO != _piece_arr[dst])       return false;
-            //    if (PS_NO != _piece_arr[dst_rook])  return false;
-            //}
 
             Delta step = king_side ? DEL_E : DEL_W;
             Bitboard enemies = pieces (pasive);
@@ -787,6 +777,8 @@ bool Position::pseudo_legal (Move m) const
                 }
                 s += step;
             }
+
+            //ct = PT_NO;
 
             return true;
         }
@@ -1265,6 +1257,11 @@ void Position::clear ()
 {
     memset (this, 0, sizeof (Position));
 
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        _piece_arr  [s] = PS_NO;
+        _piece_index[s] = -1;
+    }
     for (Color c = WHITE; c <= BLACK; ++c)
     {
         for (PType pt = PAWN; pt <= KING; ++pt)
@@ -1274,10 +1271,6 @@ void Position::clear ()
                 _piece_list[c][pt][i] = SQ_NO;
             }
         }
-    }
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
-    {
-        _piece_index[s] = -1;
     }
 
     //fill (

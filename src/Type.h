@@ -251,37 +251,24 @@ typedef enum PType : int8_t
 // ONLY MAJOR    > 5
 typedef enum Piece : uint8_t
 {
-    PS_NO  = 0, //  0000
 
-    //W_PAWN = 1, //  0001
-    //W_KING    , //  0010
-    //W_NIHT    , //  0011
-    //W_BSHP = 5, //  0101
-    //W_ROOK    , //  0110
-    //W_QUEN    , //  0111
+    W_PAWN = 0, //  0000
+    W_NIHT    , //  0001
+    W_BSHP    , //  0010
+    W_ROOK    , //  0011
+    W_QUEN    , //  0100
+    W_KING    , //  0101
 
-    //B_PAWN = 9, //  1001
-    //B_KING    , //  1010
-    //B_NIHT    , //  1011
-    //B_BSHP =13, //  1101
-    //B_ROOK    , //  1110
-    //B_QUEN    , //  1111
+    PS_NO  = 6, //  0000
 
-    W_PAWN = 1, //  0001
-    W_NIHT    , //  0010
-    W_BSHP    , //  0011
-    W_ROOK    , //  0100
-    W_QUEN    , //  0101
-    W_KING    , //  0110
+    B_PAWN = 8, //  1000
+    B_NIHT    , //  1001
+    B_BSHP    , //  1010
+    B_ROOK    , //  1011
+    B_QUEN    , //  1100
+    B_KING    , //  1101
 
-    B_PAWN = 9, //  1001
-    B_NIHT    , //  1010
-    B_BSHP    , //  1011
-    B_ROOK    , //  1100
-    B_QUEN    , //  1101
-    B_KING    , //  1110
-
-    PS_ALL    ,
+    PS_ALL =14,
     //W_PIEC    = 0x00, //  0...
     //B_PIEC    = 0x08, //  1...
 } Piece;
@@ -391,13 +378,6 @@ typedef enum Bound : uint8_t
 {
     BND_NONE    = 0,
 
-    // LOWER (ALPHA) BOUND  - CUT
-    // ALPHA evaluation, when exceed BETA the move is too good.
-    // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
-    // Since some of the search is cut off, What the actual evaluation of the position was?
-    // It was atleast BETA or higher.
-    BND_LOWER   = 1,
-
     // UPPER (BETA) BOUND   - ALL
     // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
     // All moves were searched, but none improved ALPHA.
@@ -406,7 +386,14 @@ typedef enum Bound : uint8_t
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    BND_UPPER   = 2,
+    BND_UPPER   = 1,
+
+    // LOWER (ALPHA) BOUND  - CUT
+    // ALPHA evaluation, when exceed BETA the move is too good.
+    // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
+    // Since some of the search is cut off, What the actual evaluation of the position was?
+    // It was atleast BETA or higher.
+    BND_LOWER   = 2,
 
     // EXACT (-) BOUND      - PV
     // EXACT evaluation, when receive a definite evaluation,
