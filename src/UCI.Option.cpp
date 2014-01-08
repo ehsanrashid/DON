@@ -495,7 +495,7 @@ namespace UCI {
 #pragma region Debug Options
 
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_io));
-        Options["Write Search Log"]             = OptionPtr (new CheckOption (true));
+        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
         Options["Search Log File"]              = OptionPtr (new StringOption ("log_search.txt"));
 
 #pragma endregion

@@ -662,14 +662,13 @@ namespace {
 
         // King shelter and enemy pawns storm
         Score score = ei.pi->king_safety<C>(pos, k_sq);
-        Bitboard undefended;
 
         // Main king safety evaluation
         if (ei.king_attackers_count[C_])
         {
             // Find the attacked squares around the king which has no defenders
             // apart from the king itself
-            undefended = 
+            Bitboard undefended = 
                 ei.attacked_by[C_][PT_NO]
             &   ei.attacked_by[C][KING]
             & ~(ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]

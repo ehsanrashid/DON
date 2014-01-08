@@ -220,7 +220,7 @@ typedef enum CRight : uint8_t
 } CRight;
 
 // Type of the Piece
-typedef enum PType : int8_t
+typedef enum PType : uint8_t
 {
     PAWN   = 0, // 000 - PAWN
     NIHT   = 1, // 001 - KNIGHT
@@ -561,7 +561,6 @@ ARTHMAT_OPERATORS (Depth);
 INC_DEC_OPERATORS (Depth);
 inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); }
 
-
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
@@ -586,7 +585,7 @@ public:
 
     Entry* operator[] (Key k)
     {
-        return &_table[(uint32_t) (k) & (SIZE - 1)];
+        return &_table[uint32_t (k) & (SIZE - 1)];
     }
 
 };

@@ -972,7 +972,7 @@ namespace {
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
             {
-                if (!pos.pseudo_legal (move)) continue;
+                //if (!pos.pseudo_legal (move)) continue;
                 if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
@@ -1486,7 +1486,7 @@ moves_loop: // When in check and at SPNode search starts from here
         {
             ASSERT (_ok (move));
             
-            if (!pos.pseudo_legal (move)) continue;
+            //if (!pos.pseudo_legal (move)) continue;
 
             bool gives_check = pos.check (move, ci);
 

@@ -35,19 +35,19 @@ private:
     int16_t  _depth;
     uint8_t  _bound;
     uint8_t  _gen;
-    uint16_t  _nodes;
-    int16_t _value;
-    int16_t _eval_value;
+    uint16_t _nodes;
+    int16_t  _value;
+    int16_t  _eval_value;
 
 public:
 
-    uint32_t  key ()  const { return uint32_t (_key); }
-    Move     move ()  const { return Move (_move); }
-    Depth   depth ()  const { return Depth (_depth); }
-    Bound   bound ()  const { return Bound (_bound); }
-    uint8_t   gen ()  const { return _gen; }
-    uint16_t nodes () const { return uint16_t (_nodes); }
-    Value   value ()  const { return Value (_value); }
+    uint32_t     key () const { return uint32_t (_key);     }
+    Move        move () const { return Move (_move);        }
+    Depth      depth () const { return Depth (_depth);      }
+    Bound      bound () const { return Bound (_bound);      }
+    uint8_t      gen () const { return uint8_t (_gen);      }
+    uint16_t   nodes () const { return uint16_t (_nodes);   }
+    Value      value () const { return Value (_value);      }
     Value eval_value () const { return Value (_eval_value); }
 
     void save (uint32_t key, Move move, Depth depth, Bound bound,
