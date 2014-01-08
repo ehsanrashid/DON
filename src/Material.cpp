@@ -70,7 +70,8 @@ namespace {
 
     template<Color C> bool is_KQKRPs(const Position &pos)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+        
         return!pos.piece_count<PAWN> (C)
             && pos.non_pawn_material (C) == VALUE_MG_QUEEN
             && pos.piece_count<QUEN> (C)  == 1
@@ -83,7 +84,7 @@ namespace {
     // piece type for both colors.
     int32_t imbalance (const int32_t piece_count[][PT_NO])
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         int32_t value = VALUE_ZERO;
 
@@ -213,15 +214,14 @@ namespace Material {
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1 && pos.piece_count<PAWN> (BLACK) == 1)
             {
-                // This is a special case because we set scaling functions
-                // for both colors instead of only one.
+                // This is a special case because we set scaling functions for both colors instead of only one.
                 e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
                 e->scaling_func[BLACK] = &ScaleKPKP[BLACK];
             }
         }
 
-        // No pawns makes it difficult to win, even with a material advantage. This
-        // catches some trivial draws like KK, KBK and KNK
+        // No pawns makes it difficult to win, even with a material advantage.
+        // This catches some trivial draws like KK, KBK and KNK
         if (pos.piece_count<PAWN> (WHITE) == 0 && w_npm - b_npm <= VALUE_MG_BISHOP)
         {
             e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)]);
@@ -265,9 +265,8 @@ namespace Material {
         return e;
     }
 
-    // Material::game_phase () calculates the phase given the current
-    // position. Because the phase is strictly a function of the material, it
-    // is stored in MaterialEntry.
+    // Material::game_phase () calculates the phase given the current position.
+    // Because the phase is strictly a function of the material, it is stored in MaterialEntry.
     Phase game_phase (const Position &pos)
     {
         Value npm = pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK);

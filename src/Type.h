@@ -322,7 +322,7 @@ typedef enum Move : uint16_t
 
 } Move;
 
-typedef enum Value : int16_t
+typedef enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
@@ -407,9 +407,9 @@ typedef enum Bound : uint8_t
 
 } Bound;
 
-typedef enum Phase
+typedef enum Phase : int16_t
 {
-    PHASE_ENDGAME,
+    PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
 
     MG = 0,
@@ -429,7 +429,10 @@ typedef enum ScaleFactor : uint8_t
 
 #pragma warning (pop)
 
-inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (int32_t mg, int32_t eg)
+{
+    return Score ((mg << 16) + eg);
+}
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined

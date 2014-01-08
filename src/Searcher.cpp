@@ -520,7 +520,7 @@ namespace {
 
             // Save last iteration's scores before first PV line is searched and all
             // the move scores but the (new) PV are set to -VALUE_INFINITE.
-            for (int32_t i = 0; i < rootMoves.size (); ++i)
+            for (uint32_t i = 0; i < rootMoves.size (); ++i)
             {
                 rootMoves[i].last_value = rootMoves[i].curr_value;
             }
@@ -1637,7 +1637,7 @@ moves_loop: // When in check and at SPNode search starts from here
             int32_t v = rootMoves[i].curr_value;
 
             // Don't allow crazy blunders even at very low skills
-            if (i > 0 && rootMoves[i-1].curr_value > (v + 2 * VALUE_MG_PAWN)) break;
+            if ((i > 0) && (rootMoves[i-1].curr_value > (v + 2 * VALUE_MG_PAWN))) break;
 
             // This is our magic formula
             v += (weakness * int32_t (rootMoves[0].curr_value - v)
@@ -1663,7 +1663,7 @@ moves_loop: // When in check and at SPNode search starts from here
         uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), rootMoves.size ());
 
         int32_t sel_depth = 0;
-        for (int32_t i = 0; i < Threads.size (); ++i)
+        for (uint32_t i = 0; i < Threads.size (); ++i)
         {
             if (Threads[i]->max_ply > sel_depth)
             {

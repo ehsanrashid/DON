@@ -16,6 +16,7 @@
 
 using namespace std;
 using namespace BitBoard;
+using namespace Searcher;
 
 namespace {
 
@@ -331,11 +332,11 @@ namespace {
         // If one side has only a king, score for potential unstoppable pawns
         if (!pos.non_pawn_material (WHITE) || !pos.non_pawn_material (BLACK))
         {
-            score += evaluate_unstoppable_pawns(pos, WHITE, ei)
-                -    evaluate_unstoppable_pawns(pos, BLACK, ei);
+            score += evaluate_unstoppable_pawns (pos, WHITE, ei)
+                -    evaluate_unstoppable_pawns (pos, BLACK, ei);
         }
         // Evaluate space for both sides, only in middle-game.
-        if (ei.mi->space_weight())
+        if (ei.mi->space_weight ())
         {
             int32_t s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
             score += apply_weight (s * ei.mi->space_weight(), Weights[Space]);
@@ -661,13 +662,14 @@ namespace {
 
         // King shelter and enemy pawns storm
         Score score = ei.pi->king_safety<C>(pos, k_sq);
+        Bitboard undefended;
 
         // Main king safety evaluation
         if (ei.king_attackers_count[C_])
         {
             // Find the attacked squares around the king which has no defenders
             // apart from the king itself
-            Bitboard undefended = 
+            undefended = 
                 ei.attacked_by[C_][PT_NO]
             &   ei.attacked_by[C][KING]
             & ~(ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]
@@ -707,6 +709,7 @@ namespace {
             undefended_attacked = undefended & ei.attacked_by[C_][ROOK] & ~pos.pieces (C_);
             // Consider only squares where the enemy rook gives check
             undefended_attacked &= attacks_bb<ROOK>(k_sq);
+
             if (undefended_attacked)
             {
                 // ...then remove squares not supported by another enemy piece
@@ -725,8 +728,8 @@ namespace {
             // Analyse enemy's safe distance checks for sliders and knights
             Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][PT_NO]);
 
-            Bitboard   rook_check = pos.attacks_from<ROOK>(k_sq) & safe_sq;
-            Bitboard bishop_check = pos.attacks_from<BSHP>(k_sq) & safe_sq;
+            Bitboard   rook_check = attacks_bb<ROOK>(k_sq) & safe_sq;
+            Bitboard bishop_check = attacks_bb<BSHP>(k_sq) & safe_sq;
 
             Bitboard safe_check;
             // Enemy queen safe checks
@@ -742,7 +745,7 @@ namespace {
             if (safe_check) attack_units += BishopCheck * pop_count<MAX15>(safe_check);
 
             // Enemy knights safe checks
-            safe_check = pos.attacks_from<NIHT>(k_sq) & safe_sq & ei.attacked_by[C_][NIHT];
+            safe_check = attacks_bb<NIHT>(k_sq) & safe_sq & ei.attacked_by[C_][NIHT];
             if (safe_check) attack_units += KnightCheck * pop_count<MAX15>(safe_check);
 
             // To index KingDanger[] attack_units must be in [0, 99] range
@@ -753,7 +756,7 @@ namespace {
             // value that will be used for pruning because this value can sometimes
             // be very big, and so capturing a single attacking piece can therefore
             // result in a score change far bigger than the value of the captured piece.
-            score -= KingDanger[C == Searcher::rootPos.active ()][attack_units];
+            score -= KingDanger[C == rootPos.active ()][attack_units];
         }
 
         if (TRACE)
@@ -1000,9 +1003,16 @@ namespace {
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
-    Score apply_weight (Score score, Score w)
+    Score apply_weight (Score s, Score w)
     {
-        return mk_score ((int32_t (mg_value (score)) * mg_value (w)) / 0x100, (int32_t (eg_value (score)) * eg_value (w)) / 0x100);
+        int32_t mgs = mg_value (s);
+        int32_t mgw = mg_value (w);
+        int32_t egs = eg_value (s);
+        int32_t egw = eg_value (w);
+
+        return mk_score (
+            (int32_t (mg_value (s)) * mg_value (w)) / 0x100,
+            (int32_t (eg_value (s)) * eg_value (w)) / 0x100);
     }
 
     // weight_option () computes the value of an evaluation weight, by combining

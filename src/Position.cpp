@@ -43,7 +43,7 @@ bool _ok (const string &fen, bool c960, bool full)
 
 // do_move() copy current state info up to 'posi_key' excluded to the new one.
 // calculate the quad words (64bits) needed to be copied.
-const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) + 8; // / sizeof (uint32_t);// + 1;
+const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key); // / sizeof (uint32_t);// + 1;
 //const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) / sizeof (uint64_t) + 1;
 
 void StateInfo::clear ()
@@ -184,7 +184,7 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<int32_t PT>
-    inline PType min_attacker(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    inline PType min_attacker      (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (!b) return min_attacker<PT+1>(bb, dst, stm_attackers, occupied, attackers);
@@ -578,7 +578,7 @@ int32_t Position::see      (Move m) const
 
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
-    Bitboard attackers = attackers_to(dst, occupied) & occupied;
+    Bitboard attackers = attackers_to (dst, occupied) & occupied;
 
     // If the opponent has no attackers we are finished
     stm = ~stm;
@@ -602,12 +602,12 @@ int32_t Position::see      (Move m) const
         ++index;
 
         // Locate and remove the next least valuable attacker
-        ct = min_attacker<PAWN>(_types_bb, dst, stm_attackers, occupied, attackers);
+        ct  = min_attacker<PAWN>(_types_bb, dst, stm_attackers, occupied, attackers);
         stm = ~stm;
         stm_attackers = attackers & pieces (stm);
 
         // Stop before processing a king capture
-        if (ct == KING && stm_attackers)
+        if (KING == ct&& stm_attackers)
         {
             swap_list[index++] = VALUE_MG_QUEEN * 16;
             break;
@@ -646,7 +646,10 @@ int32_t Position::see_sign (Move m) const
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
     if (PieceValue[MG][p_type (_piece_arr[org_sq (m)])]
-    <= PieceValue[MG][p_type (_piece_arr[dst_sq (m)])]) return 1;
+    <=  PieceValue[MG][p_type (_piece_arr[dst_sq (m)])])
+    {
+        return 1;
+    }
 
     return see (m);
 }
