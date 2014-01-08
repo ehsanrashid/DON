@@ -486,27 +486,46 @@ namespace BitBoard {
             _attacks_type_bb[QUEN][s] = _attacks_type_bb[BSHP][s] | _attacks_type_bb[ROOK][s];
         }
 
+        initialize_sliding ();
+
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                if (_attacks_type_bb[QUEN][s1] & s2)
-                {
-                    Delta delta = offset_sq (s1, s2);
-                    Square sq = s1 + delta;
-                    while (sq != s2)
-                    {
-                        _betwen_sq_bb[s1][s2] += sq;
-                        sq += delta;
-                    }
 
-                    PType pt = (_attacks_type_bb[BSHP][s1] & s2) ? BSHP : ROOK;
-                    _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
-                }
+                //if (_attacks_type_bb[QUEN][s1] & s2)
+                //{
+                //    Delta delta = offset_sq (s1, s2);
+                //    Square sq = s1 + delta;
+                //    while (sq != s2)
+                //    {
+                //        _betwen_sq_bb[s1][s2] += sq;
+                //        sq += delta;
+                //    }
+                //    
+                //    PType pt = 
+                //        (_attacks_type_bb[BSHP][s1] & s2) ? BSHP :
+                //        (_attacks_type_bb[ROOK][s1] & s2) ? ROOK : PT_NO;
+                //    
+                //    if (PT_NO == pt) continue;
+                //    
+                //    _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
+                //}
+
+                // NOTE:: must be called after initialize_sliding()
+
+                PType pt = 
+                    (_attacks_type_bb[BSHP][s1] & s2) ? BSHP :
+                    (_attacks_type_bb[ROOK][s1] & s2) ? ROOK : PT_NO;
+
+                if (PT_NO == pt) continue;
+
+                _betwen_sq_bb[s1][s2] = attacks_bb(Piece (pt), s1, _square_bb[s2]) & attacks_bb(Piece (pt), s2, _square_bb[s1]);
+                
+                //_lines_sq_bb [s1][s2] = (attacks_bb(Piece (pt), s1, 0) & attacks_bb(Piece (pt), s2, 0)) + s1 + s2;
+                _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
             }
         }
-
-        initialize_sliding ();
 
     }
 

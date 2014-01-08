@@ -758,15 +758,14 @@ bool Position::pseudo_legal (Move m) const
             if (checkers ()) return false;
 
             bool king_side  = (dst > org);
+            if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
+            
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
 
             dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-
-            if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
-
-            Delta step = king_side ? DEL_E : DEL_W;
+            Delta step      = king_side ? DEL_E : DEL_W;
             Bitboard enemies = pieces (pasive);
             Square s  = org + step;
             while (s != dst + step)

@@ -464,7 +464,7 @@ namespace {
     }
 
     template<PType PT, Color C, bool TRACE>
-    // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color
+    // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
     Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
     {
         Score score = SCORE_ZERO;
@@ -483,7 +483,8 @@ namespace {
             Bitboard attacks =
                 (BSHP == PT) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                 (ROOK == PT) ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
-                pos.attacks_from<PT> (s);
+                //pos.attacks_from<PT> (s);
+                attacks_bb<PT> (s);
 
             if (ei.pinned_pieces[C] & s)
             {
@@ -534,7 +535,7 @@ namespace {
             // Penalty for knight when there are few enemy pawns
             if (NIHT == PT)
             {
-                score -= KnightPawnsPenalty * max (5 - pos.piece_count<PAWN>(C_), 0);
+                score -= KnightPawnsPenalty * max<int32_t> (5 - pos.piece_count<PAWN>(C_), 0);
             }
 
             if (BSHP == PT || NIHT == PT)
@@ -569,7 +570,7 @@ namespace {
                 Bitboard pawns = pos.pieces (C_, PAWN) & attacks_bb<ROOK>(s);
                 if (pawns)
                 {
-                    score += int32_t (pop_count<MAX15>(pawns)) * ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus);
+                    score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15>(pawns));
                 }
             }
 

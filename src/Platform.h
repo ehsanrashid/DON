@@ -174,6 +174,4 @@ typedef unsigned long long      uint64_t;
 
 #endif
 
-//#define _snprintf_s(buf, size_buf, count, ...) _snprintf(buf, size_buf, __VA_ARGS__)
-
 #endif

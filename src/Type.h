@@ -229,7 +229,7 @@ typedef enum PType : int8_t
     QUEN   = 4, // 100 - QUEEN
     KING   = 5, // 101 - KING
     PT_NO  = 6, // 110 - PT_NO
-    PT_ALL = PT_NO + 1,
+    PT_ALL = 7,
 
 } PType;
 
@@ -259,7 +259,7 @@ typedef enum Piece : uint8_t
     W_QUEN    , //  0100
     W_KING    , //  0101
 
-    PS_NO  = 6, //  0000
+    PS_NO  = 6, //  0110
 
     B_PAWN = 8, //  1000
     B_NIHT    , //  1001
@@ -436,7 +436,7 @@ inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg);
 // and so is a right shift of a signed integer.
 inline Value mg_value (Score s)
 {
-    return Value (((uint32_t (s) + 0x8000) & ~0xFFFF) / 0x10000);
+    return Value (((s + 0x8000) & ~0xFFFF) / 0x10000);
 }
 
 // On Intel 64 bit we have a small speed regression with the standard conforming
@@ -446,14 +446,14 @@ inline Value mg_value (Score s)
 
 inline Value eg_value (Score s)
 {
-    return Value (uint32_t (s) & 0xFFFF);
+    return Value (int16_t (s & 0xFFFF));
 }
 
 #else
 
 inline Value eg_value (Score s)
 {
-    return Value (int16_t (uint32_t (s) & 0x7FFFU) - int16_t (uint32_t (s) & 0x8000U));
+    return Value (int32_t (uint32_t (s) & 0x7FFFU) - int32_t (uint32_t (s) & 0x8000U));
 }
 
 #endif

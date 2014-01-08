@@ -39,7 +39,7 @@ inline bool     _ok (Piece p)
 }
 inline PType p_type (Piece p)
 {
-    return PType ((p & 7));
+    return PType ((p & PT_ALL));
 }
 inline Color p_color (Piece p)
 {
@@ -100,7 +100,6 @@ inline char to_char (Color c, PType pt)
     return to_char (c | pt);
 }
 
-
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
@@ -108,6 +107,5 @@ inline std::basic_ostream<charT, Traits>&
     os << to_char (p);
     return os;
 }
-
 
 #endif
