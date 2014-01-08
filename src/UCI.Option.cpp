@@ -246,7 +246,7 @@ namespace UCI {
 
     }
 
-    void  init_options ()
+    void   initialize ()
     {
 
 #pragma region old
@@ -502,16 +502,9 @@ namespace UCI {
 
         Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
-        //cout << int32_t (*(Options["Hash"]));
-
-        //cout << (*Options["hash"])();
-        //*Options["Clear Hash"]  = string("");
-        //*Options["Hash"]        = string("128");
-
-        //cout << Options;
     }
 
-    void clear_options ()
+    void deinitialize ()
     {
         Options.clear ();
     }

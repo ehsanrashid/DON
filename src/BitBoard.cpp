@@ -520,7 +520,7 @@ namespace BitBoard {
 
                 if (PT_NO == pt) continue;
 
-                _betwen_sq_bb[s1][s2] = attacks_bb(Piece (pt), s1, _square_bb[s2]) & attacks_bb(Piece (pt), s2, _square_bb[s1]);
+                _betwen_sq_bb[s1][s2] = attacks_bb (Piece (pt), s1, _square_bb[s2]) & attacks_bb (Piece (pt), s2, _square_bb[s1]);
                 
                 //_lines_sq_bb [s1][s2] = (attacks_bb(Piece (pt), s1, 0) & attacks_bb(Piece (pt), s2, 0)) + s1 + s2;
                 _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;

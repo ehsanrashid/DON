@@ -110,7 +110,10 @@ namespace EndGame {
         ~Endgames ();
 
         template<class T>
-        T probe (Key key, T &eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
+        T probe (Key key, T &eg)
+        {
+            return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
+        }
 
     } Endgames;
 

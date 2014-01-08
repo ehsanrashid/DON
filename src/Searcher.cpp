@@ -62,8 +62,11 @@ namespace {
     uint32_t
         pv_size,
         pv_idx;
+
     TimeManager time_mgr;
+    
     double      best_move_changes;
+    
     Value       draw_value[CLR_NO] = { VALUE_DRAW, VALUE_DRAW, };
 
     GainsStats          gains;

@@ -199,7 +199,6 @@ namespace Material {
 
         Value w_npm = pos.non_pawn_material (WHITE);
         Value b_npm = pos.non_pawn_material (BLACK);
-
         if (w_npm + b_npm == VALUE_ZERO)
         {
             if (!pos.piece_count<PAWN> (BLACK))
@@ -212,7 +211,7 @@ namespace Material {
                 ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 1 && pos.piece_count<PAWN> (BLACK) == 1)
+            else if ((pos.piece_count<PAWN> (WHITE) == 1) && (pos.piece_count<PAWN> (BLACK) == 1))
             {
                 // This is a special case because we set scaling functions for both colors instead of only one.
                 e->scaling_func[WHITE] = &ScaleKPKP[WHITE];

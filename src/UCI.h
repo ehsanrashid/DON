@@ -141,8 +141,8 @@ namespace UCI {
 
     typedef ::std::map<string, OptionPtr, ::std::string_less_nocase_comparer> OptionMap;
 
-    extern void  init_options ();
-    extern void clear_options ();
+    extern void  initialize ();
+    extern void deinitialize ();
 
     template<class charT, class Traits>
     inline ::std::basic_ostream<charT, Traits>&

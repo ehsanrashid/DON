@@ -198,7 +198,6 @@ void ThreadPool::read_uci_options ()
     }
 }
 
-
 // slave_available() tries to find an idle thread which is available as a slave
 // for the thread 'master'.
 Thread* ThreadPool::available_slave (const Thread *master) const
@@ -298,10 +297,13 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
     }
 
     searching = true;
+
     --split_points_size;
     active_split_point = sp.parent_split_point;
+    
     active_pos  = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
+    
     *best_move  = sp.best_move;
     *best_value = sp.best_value;
 
@@ -321,10 +323,10 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
 
     searchTime = Time::now (); // As early as possible
 
-    signals.stop_on_ponderhit = false;
-    signals.first_root_move = false;
-    signals.stop = false;
-    signals.failed_low_at_root = false;
+    signals.stop_on_ponderhit   = false;
+    signals.first_root_move     = false;
+    signals.stop                = false;
+    signals.failed_low_at_root  = false;
 
     rootMoves.clear();
     rootPos = pos;

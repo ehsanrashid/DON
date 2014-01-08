@@ -471,8 +471,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 9
     if (++(*step), debug_checker_count)
     {
-        // TODO::
-        //if (pop_count<FULL>(checkers ()) > 2) return false;
+        if (pop_count<FULL>(checkers ()) > 2) return false;
     }
 
     // step 10
@@ -1771,9 +1770,7 @@ void Position::undo_move ()
             ASSERT (R_5 == rel_rank (active, org));
             ASSERT (R_6 == rel_rank (active, dst));
             ASSERT (dst == _si->p_si->en_passant);
-            ct = PAWN;
             cap -= pawn_push (active);
-
             ASSERT (PS_NO == _piece_arr[cap]);
         }
         // NOTE:: no break;
@@ -1935,8 +1932,8 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
 {
     ASSERT (fen);
     ASSERT (ok ());
-    if (!fen)   return false;
-    if (!ok ()) return false;
+    //if (!fen)   return false;
+    //if (!ok ()) return false;
 
     char *ch = (char*) fen;
     memset (ch, '\0', MAX_FEN);

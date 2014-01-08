@@ -137,7 +137,7 @@ namespace MoveGenerator {
                 Delta step = CHESS960 ? 
                     dst_king < org_king ? DEL_W : DEL_E :
                     (CS_Q == SIDE)      ? DEL_W : DEL_E;
-                
+
                 Square s  = org_king + step;
                 while (s != dst_king + step)
                 {
@@ -419,6 +419,7 @@ namespace MoveGenerator {
                 remove_if (mov_lst.begin (), mov_lst.end (), [&] (Move m)
             {
                 return ((org_sq (m) == org_king) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds); 
+
             }), mov_lst.end ());
         }
 
@@ -486,12 +487,12 @@ namespace MoveGenerator {
             switch (type)
             {
             case PAWN: continue; // Will be generated together with direct checks
-            case NIHT: moves = attacks_bb<NIHT> (org) & empty;      break;
+            case NIHT: moves = attacks_bb<NIHT> (org)      & empty; break;
             case BSHP: moves = attacks_bb<BSHP> (org, occ) & empty; break;
             case ROOK: moves = attacks_bb<ROOK> (org, occ) & empty; break;
             case QUEN: moves = attacks_bb<QUEN> (org, occ) & empty; break;
-            case KING: moves = attacks_bb<KING> (org) & empty &
-                           ~attacks_bb<QUEN> (ci.king_sq);          break;
+            case KING: moves = attacks_bb<KING> (org)      & empty
+                           &  ~attacks_bb<QUEN> (ci.king_sq);       break;
             }
 
             SERIALIZE (mov_lst, org, moves);
@@ -531,8 +532,8 @@ namespace MoveGenerator {
             case BSHP: moves = attacks_bb<BSHP> (org, occ) & target; break;
             case ROOK: moves = attacks_bb<ROOK> (org, occ) & target; break;
             case QUEN: moves = attacks_bb<QUEN> (org, occ) & target; break;
-            case KING: moves = attacks_bb<KING> (org)      & target &
-                           ~attacks_bb<QUEN> (ci.king_sq);           break;
+            case KING: moves = attacks_bb<KING> (org)      & target
+                           &  ~attacks_bb<QUEN> (ci.king_sq);        break;
             }
 
             SERIALIZE (mov_lst, org, moves);
@@ -585,7 +586,7 @@ namespace MoveGenerator {
         //    }
         //}
 
-        Bitboard slid_attacks = 0;
+        Bitboard slid_attacks = U64 (0);
         // Find squares attacked by slider checkers, we will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         while (checkers)

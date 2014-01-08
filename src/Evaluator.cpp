@@ -435,7 +435,7 @@ namespace {
         //static_assert (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
         ASSERT (BSHP == PT || NIHT == PT);
 
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         // Initial bonus based on square
         Value bonus;
@@ -470,7 +470,7 @@ namespace {
     {
         Score score = SCORE_ZERO;
 
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
         const Square fk_sq = pos.king_sq (C);
         const Square ek_sq = pos.king_sq (C_);
 
@@ -604,7 +604,7 @@ namespace {
             if (BSHP == PT && pos.chess960 () &&
                 (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
             {
-                const Piece P = (C | PAWN);
+                Piece P = (C | PAWN);
                 Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
                 if (pos[s + d] == P)
                 {
@@ -628,10 +628,10 @@ namespace {
     // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
     Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-        const Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
+        Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
         Score score =
             evaluate_ptype<NIHT, C, TRACE>(pos, ei, mobility, mobility_area);
@@ -656,10 +656,9 @@ namespace {
     // evaluate_king<>() assigns bonuses and penalties to a king of a given color
     Score evaluate_king     (const Position &pos, const EvalInfo &ei)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
-        const Square k_sq = pos.king_sq (C);
-
+        Square k_sq = pos.king_sq (C);
         // King shelter and enemy pawns storm
         Score score = ei.pi->king_safety<C>(pos, k_sq);
 
@@ -771,7 +770,7 @@ namespace {
     // and the type of attacked one.
     Score evaluate_threats  (const Position &pos, const EvalInfo &ei)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         Score score = SCORE_ZERO;
 
@@ -810,11 +809,11 @@ namespace {
     // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
     Score evaluate_passed_pawns(const Position &pos, const EvalInfo &ei)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+        
         Score score = SCORE_ZERO;
 
         Bitboard passed_pawns = ei.pi->passed_pawns (C);
-
         while (passed_pawns)
         {
             Square s = pop_lsq (passed_pawns);
@@ -964,7 +963,7 @@ namespace {
     // material hash table. The aim is to improve play on game opening.
     int32_t evaluate_space  (const Position &pos, const EvalInfo &ei)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         // Find the safe squares for our pieces inside the area defined by
         // SpaceMask[]. A square is unsafe if it is attacked by an enemy
@@ -994,7 +993,7 @@ namespace {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
         // TODO::
-        //ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
+        ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;

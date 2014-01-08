@@ -86,8 +86,8 @@ namespace Engine {
     void start (const std::string &args)
     {
         cout << Engine::info () << endl;
-        
-        UCI      ::init_options();
+
+        UCI      ::initialize ();
         BitBoard ::initialize ();
         Zobrist  ::initialize ();
         Position ::initialize ();
@@ -98,23 +98,25 @@ namespace Engine {
         Threads   .initialize ();
 
         size_t size_mb = TT.resize (int32_t (*(Options["Hash"])));
-        
+
         cout << "info string " << Threads.size () << " thread(s)." << endl;
-        cout << "info string " << size_mb << " MB Hash." << endl;
+        cout << "info string " << size_mb         << " MB Hash."   << endl;
 
 #ifdef _DEBUG
-        Tester::main_test ();
+
+        //Tester::main_test ();
         //system ("pause");
         //return;
+
 #endif
         //log_io (true);
 
         UCI   ::start (args);
 
         //log_io (false);
-        
+
         Threads.deinitialize ();
-        UCI  ::clear_options ();
+        UCI   ::deinitialize ();
     }
 
     void stop ()
