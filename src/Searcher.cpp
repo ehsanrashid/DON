@@ -74,10 +74,10 @@ namespace {
 
     void update_stats   (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count);
 
-    template <NodeType N>
+    template <NodeType NT>
     Value search        (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
-    template <NodeType N, bool IN_CHECK>
+    template <NodeType NT, bool IN_CHECK>
     Value search_quien  (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
@@ -625,9 +625,9 @@ namespace {
             }
 
             // Have found a "mate in x"?
-            if (limits.mate_in &&
+            if (int32_t (limits.mate_in) &&
                 best_value >= VALUE_MATES_IN_MAX_PLY &&
-                VALUE_MATE - best_value <= 2 * limits.mate_in)
+                VALUE_MATE - best_value <= 2 * int32_t (limits.mate_in))
             {
                 signals.stop = true;
             }
@@ -653,7 +653,7 @@ namespace {
                     stop = true;
                 }
 
-                // Stop search early if one move seems to be much better than others
+                // Stop the search early if one move seems to be much better than others
                 if (!stop && depth >= 12 &&
                     best_move_changes <= DBL_EPSILON &&
                     pv_size == 1 &&
@@ -665,11 +665,11 @@ namespace {
 
                     ss->excluded_move  = rootMoves[0].pv[0];
                     ss->skip_null_move = true;
-                    Value value = search<NonPV>(pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
+                    Value v = search<NonPV>(pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
                     ss->skip_null_move = false;
                     ss->excluded_move  = MOVE_NONE;
 
-                    if (value < rbeta) stop = true;
+                    if (v < rbeta) stop = true;
                 }
 
                 if (stop)
@@ -719,7 +719,7 @@ namespace {
     }
 
 
-    template <NodeType N>
+    template <NodeType NT>
     // search<>() is the main search function for both PV and non-PV nodes and for
     // normal and SplitPoint nodes. When called just after a split point the search
     // is simpler because we have already probed the hash table, done a null move
@@ -728,9 +728,9 @@ namespace {
     // here: This is taken care of after we return from the split point.
     Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
     {
-        const bool PVNode   = (N == PV || N == Root || N == SplitPointPV || N == SplitPointRoot);
-        const bool SPNode   = (N == SplitPointPV || N == SplitPointNonPV || N == SplitPointRoot);
-        const bool RootNode = (N == Root || N == SplitPointRoot);
+        const bool PVNode   = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
+        const bool SPNode   = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
+        const bool RootNode = (NT == Root || NT == SplitPointRoot);
 
         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
@@ -746,6 +746,8 @@ namespace {
         Move        tt_move;
         Move        excluded_move;
         Move        move;
+        
+        Value       value;
         Value       tt_value;
         int32_t     moves_count;
         int32_t     quiets_count;
@@ -881,12 +883,12 @@ namespace {
             !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
-            Value value = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
-            if (value < rbeta)
+            Value v = search_quien<NonPV, false>(pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
+            if (v < rbeta)
             {
                 // Logically we should return (value + razor_margin (depth)), but
                 // surprisingly this did slightly weaker in tests.
-                return value;
+                return v;
             }
         }
 
@@ -970,18 +972,18 @@ namespace {
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
             {
-                if (pos.legal (move, ci.pinneds))
-                {
-                    ss->current_move = move;
+                if (!pos.pseudo_legal (move)) continue;
+                if (!pos.legal (move, ci.pinneds)) continue;
 
-                    pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
+                ss->current_move = move;
 
-                    Value value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
 
-                    pos.undo_move ();
+                value = -search<NonPV>(pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
 
-                    if (value >= rbeta) return value;
-                }
+                pos.undo_move ();
+
+                if (value >= rbeta) return value;
             }
         }
 
@@ -1014,7 +1016,7 @@ moves_loop: // When in check and at SPNode search starts from here
         MovePicker mp (pos, tt_move, depth, history, cm, ss);
         CheckInfo  ci (pos);
 
-        Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
+        value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
         bool improving = 
             ss->static_eval >= (ss-2)->static_eval ||
             ss->static_eval == VALUE_NONE          ||
@@ -1041,12 +1043,13 @@ moves_loop: // When in check and at SPNode search starts from here
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (rootMoves.begin () + pv_idx, rootMoves.end (), move)) continue;
 
-            if (!pos.pseudo_legal (move) /*|| !pos.legal (move)*/) continue;
+            if (!pos.pseudo_legal (move) /*|| !pos.legal (move, ci.pinneds)*/) continue;
 
             if (SPNode)
             {
                 // Shared counter cannot be decremented later if move turns out to be illegal
                 if (!pos.legal (move, ci.pinneds)) continue;
+
                 moves_count = ++split_point->moves_count;
                 split_point->mutex.unlock ();
             }
@@ -1312,6 +1315,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     {
                         ASSERT (value >= beta); // Fail high
                         if (SPNode) split_point->cut_off = true;
+                        
                         break;
                     }
                 }
@@ -1324,7 +1328,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (best_value < beta);
 
-                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move, depth, moves_count, &mp, N, cut_node);
+                thread->split<FakeSplit>(pos, ss, alpha, beta, &best_value, &best_move, depth, moves_count, &mp, NT, cut_node);
 
                 if (best_value >= beta) break;
             }
@@ -1367,15 +1371,15 @@ moves_loop: // When in check and at SPNode search starts from here
         return best_value;
     }
 
-    template <NodeType N, bool IN_CHECK>
+    template <NodeType NT, bool IN_CHECK>
     // search_quien() is the quiescence search function, which is called by the main search function
     // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
     Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
     {
-        const bool PVNode = (N == PV);
+        const bool PVNode = (NT == PV);
 
-        ASSERT (N == PV || N == NonPV);
-        ASSERT (IN_CHECK == (pos.checkers () != U64 (0)));
+        ASSERT (NT == PV || NT == NonPV);
+        ASSERT (IN_CHECK == !!pos.checkers ());
         ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
@@ -1481,12 +1485,14 @@ moves_loop: // When in check and at SPNode search starts from here
         while ((move = mp.next_move<false>()) != MOVE_NONE)
         {
             ASSERT (_ok (move));
+            
+            if (!pos.pseudo_legal (move)) continue;
 
             bool gives_check = pos.check (move, ci);
 
             // Futility pruning
             if (!PVNode && !IN_CHECK &&
-                !gives_check &&  move != tt_move &&
+                !gives_check && move != tt_move &&
                 //m_type (move) != PROMOTE &&
                 //!pos.passed_pawn_push (move) &&
                 !pos.advanced_pawn_push (move) &&
@@ -1538,8 +1544,8 @@ moves_loop: // When in check and at SPNode search starts from here
 
             Value value = 
                 gives_check
-                ? -search_quien<N,  true>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
-                : -search_quien<N, false>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
+                ? -search_quien<NT,  true>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
+                : -search_quien<NT, false>(pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 
             pos.undo_move ();
 

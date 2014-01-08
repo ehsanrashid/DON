@@ -277,6 +277,7 @@ namespace {
     Value do_evaluate       (const Position &pos)
     {
         ASSERT (!pos.checkers());
+
         // Score is computed from the point of view of white.
         Score score;
         Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
