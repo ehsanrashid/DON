@@ -68,9 +68,6 @@ namespace {
 
     } EvalInfo;
 
-    // Evaluation grain size, must be a power of 2
-    const int32_t GrainSize = 4;
-
     // Evaluation weights, initialized from UCI options
     enum EvalWeights { Mobility, PawnStructure, PassedPawns, Space, KingDanger_C, KingDanger_C_ };
 
@@ -996,8 +993,7 @@ namespace {
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
-        int32_t r = (mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME;
-        return Value ((r / GrainSize) * GrainSize); // Sign independent
+        return Value ((mg_value (score) * int32_t (ph) + e * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow

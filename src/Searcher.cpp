@@ -64,13 +64,14 @@ namespace {
         pv_idx;
 
     TimeManager time_mgr;
-    
+
     double      best_move_changes;
-    
+
     Value       draw_value[CLR_NO] = { VALUE_DRAW, VALUE_DRAW, };
 
     GainsStats          gains;
     HistoryStats        history;
+
     CountermovesStats   counter_moves;
 
     void iter_deep_loop (Position &pos);
@@ -218,9 +219,12 @@ void check_time ()
     bool still_at_first_move = 
         signals.first_root_move     &&
         !signals.failed_low_at_root &&
-        elapsed > time_mgr.available_time ();
+        elapsed > (time_mgr.available_time () * 62) / 100 &&
+        elapsed > iterated * 1.4;
 
-    bool no_more_time = (elapsed > time_mgr.maximum_time () - 2 * TimerResolution) || still_at_first_move;
+    bool no_more_time = 
+        (elapsed > time_mgr.maximum_time () - 2 * TimerResolution) ||
+        still_at_first_move;
 
     if ((limits.use_time_management () && no_more_time)   ||
         (limits.move_time && elapsed >= limits.move_time) ||
@@ -240,6 +244,8 @@ namespace Searcher {
     StateInfoStackPtr   setupStates;
 
     Time::point         searchTime;
+    // Duration of iteration
+    uint64_t            iterated;
 
     // initialize the PRNG only once
     PolyglotBook book;
@@ -493,9 +499,9 @@ namespace {
         memset (ss-2, 0, 5 * sizeof (Stack));
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
-        TT.new_gen ();
-        gains.clear ();
-        history.clear();
+        TT           .new_gen ();
+        gains        .clear ();
+        history      .clear();
         counter_moves.clear();
 
         pv_size = int32_t (*(Options["MultiPV"]));
@@ -606,7 +612,9 @@ namespace {
                 }
             }
 
-            // Do we need to pick now the sub-optimal best move ?
+            iterated = Time::now () - searchTime;
+
+            // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
             {
                 skill.pick_move ();
@@ -648,45 +656,42 @@ namespace {
                     time_mgr.pv_instability (best_move_changes);
                 }
 
-                // Stop search if most of available time is already consumed. We
-                // probably don't have enough time to search the first move at the
-                // next iteration anyway.
-                if ((Time::now () - searchTime) > (time_mgr.available_time () * 62) / 100)
+                // Stop the search if there is only one legal move available or 
+                // most of the available time has been used.
+                // We probably don't have enough time to search the first move at the next iteration anyway.
+                if (rootMoves.size () == 1 ||
+                    iterated > (time_mgr.available_time () * 62) / 100)
                 {
                     stop = true;
                 }
 
-                // Stop the search early if one move seems to be much better than others
-                if (!stop && depth >= 12 &&
-                    best_move_changes <= DBL_EPSILON &&
-                    pv_size == 1 &&
-                    best_value > VALUE_MATED_IN_MAX_PLY &&
-                    (rootMoves.size () == 1 ||
-                    (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
-                {
-                    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
-
-                    ss->excluded_move  = rootMoves[0].pv[0];
-                    ss->skip_null_move = true;
-                    Value v = search<NonPV>(pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
-                    ss->skip_null_move = false;
-                    ss->excluded_move  = MOVE_NONE;
-
-                    if (v < rbeta) stop = true;
-                }
+                //// Stop the search early if one move seems to be much better than others
+                //if (!stop && depth >= 12 &&
+                //    best_move_changes <= DBL_EPSILON &&
+                //    pv_size == 1 &&
+                //    best_value > VALUE_MATED_IN_MAX_PLY &&
+                //    (rootMoves.size () == 1 ||
+                //    (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
+                //{
+                //    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
+                //
+                //    ss->excluded_move  = rootMoves[0].pv[0];
+                //    ss->skip_null_move = true;
+                //    Value v = search<NonPV>(pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
+                //    ss->skip_null_move = false;
+                //    ss->excluded_move  = MOVE_NONE;
+                //
+                //    if (v < rbeta) stop = true;
+                //}
 
                 if (stop)
                 {
                     // If we are allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "ponderhit" or "stop".
                     if (limits.ponder)
-                    {
                         signals.stop_on_ponderhit = true;
-                    }
                     else
-                    {
-                        signals.stop = true;
-                    }
+                        signals.stop              = true;
                 }
             }
         }
@@ -749,7 +754,7 @@ namespace {
         Move        tt_move;
         Move        excluded_move;
         Move        move;
-        
+
         Value       value;
         Value       tt_value;
         int32_t     moves_count;
@@ -895,11 +900,11 @@ namespace {
             }
         }
 
-        // Step 7. Static null move pruning (skipped when in check)
+        // Step 7. Futility pruning: child node (skipped when in check)
         // We're betting that the opponent doesn't have a move that will reduce
         // the score by more than futility_margin (depth) if we do a null move.
         if (!PVNode && !ss->skip_null_move &&
-            depth < 4 * ONE_MOVE &&
+            depth < 7 * ONE_MOVE &&
             eval_value - futility_margin (depth) >= beta &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             abs (int32_t (eval_value)) < VALUE_KNOWN_WIN &&
@@ -1318,7 +1323,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     {
                         ASSERT (value >= beta); // Fail high
                         if (SPNode) split_point->cut_off = true;
-                        
+
                         break;
                     }
                 }
@@ -1488,7 +1493,7 @@ moves_loop: // When in check and at SPNode search starts from here
         while ((move = mp.next_move<false>()) != MOVE_NONE)
         {
             ASSERT (_ok (move));
-            
+
             //if (!pos.pseudo_legal (move)) continue;
 
             bool gives_check = pos.check (move, ci);

@@ -113,7 +113,7 @@ const Value PieceValue[PHASE_NO][PT_ALL] =
 namespace {
 
     CACHE_ALIGN(64)
-    Score psq[CLR_NO][PT_NO][SQ_NO];
+        Score psq[CLR_NO][PT_NO][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -761,7 +761,7 @@ bool Position::pseudo_legal (Move m) const
 
             bool king_side  = (dst > org);
             if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
-            
+
             Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
 
@@ -1069,11 +1069,8 @@ bool Position::capture_or_promotion (Move m) const
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
     ASSERT (_ok (m));
-    //ASSERT (pseudo_legal (m));
     ASSERT (p_color (moved_piece(m)) == _active);
     ASSERT (ci.check_discovers == check_discovers (_active));
-
-    //if (!legal (m)) return false;
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
@@ -1085,28 +1082,16 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     // Direct check ?
     if (ci.checking_bb[pt] & dst) return true;
 
-    Color active = _active;
-    Color pasive = ~active;
-
     // Discovery check ?
-    if (UNLIKELY (ci.check_discovers))
+    if (UNLIKELY (ci.check_discovers) && ci.check_discovers & org)
     {
-        if (ci.check_discovers & org)
-        {
-            //  need to verify also direction for pawn and king moves
-            if (//((PAWN != pt) && (KING != pt)) ||
-                !sqrs_aligned (org, dst, king_sq (pasive)))
-            {
-                return true;
-            }
-        }
+        if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
 
     MType mt = m_type (m);
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
-    Square ek_sq = king_sq (pasive);
     Bitboard occ = _types_bb[PT_NO];
     switch (mt)
     {
@@ -1114,14 +1099,13 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         // Castling with check ?
         {
             bool king_side = (dst > org);
-            Square org_king = org;
             Square org_rook = dst; // 'King captures the rook' notation
-            Square dst_king = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
+            dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
             Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             return
-                (attacks_bb<ROOK> (dst_rook) & ek_sq) &&
-                (attacks_bb<ROOK> (dst_rook, (occ - org_king - org_rook + dst_king + dst_rook)) & ek_sq);
+                (attacks_bb<ROOK> (dst_rook) & ci.king_sq) &&
+                (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
         }
         break;
 
@@ -1133,14 +1117,14 @@ bool Position::check     (Move m, const CheckInfo &ci) const
             Square cap = _file (dst) | _rank (org);
             Bitboard mocc = occ - org - cap + dst;
             return // if any attacker then in check
-                (attacks_bb<ROOK> (ek_sq, mocc) & pieces (_active, QUEN, ROOK)) |
-                (attacks_bb<BSHP> (ek_sq, mocc) & pieces (_active, QUEN, BSHP));
+                (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) |
+                (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
         }
         break;
 
     case PROMOTE:
         // Promotion with check ?
-        return (attacks_from ((active | prom_type (m)), dst, occ - org + dst) & ek_sq);
+        return (attacks_from ((_active | prom_type (m)), dst, occ - org + dst) & ci.king_sq);
         break;
 
     default:

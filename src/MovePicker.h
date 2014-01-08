@@ -79,6 +79,7 @@ public:
 
 typedef Stats< true, Value> GainsStats;
 typedef Stats<false, Value> HistoryStats;
+
 typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
 
 
