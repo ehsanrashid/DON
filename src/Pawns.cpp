@@ -31,14 +31,16 @@ namespace {
 
     // Candidate passed pawn bonus by [rank]
     const Score CandidatePassed[R_NO] = {
-        S(  0,  0), S(  6, 13), S(  6, 13), S( 14, 29), S( 34, 68), S( 83,166), S(  0,  0), S(  0,  0), };
+        S(  0,  0), S(  6, 13), S(  6, 13), S( 14, 29),
+        S( 34, 68), S( 83,166), S(  0,  0), S(  0,  0), };
 
     // Bonus for file distance of the two outermost pawns
     const Score PawnsFileSpan = S(  0, 15);
 
     // Weakness of our pawn shelter in front of the king indexed by [rank]
     const Value ShelterWeakness[R_NO] = {
-        V(100), V(  0), V( 27), V( 73), V( 92), V(101), V(101), };
+        V(100), V(  0), V( 27), V( 73),
+        V( 92), V(101), V(101), V(  0), };
 
     // Danger of enemy pawns moving toward our king indexed by
     // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
@@ -186,6 +188,36 @@ namespace {
 
 namespace Pawns {
 
+    // Initializes some tables by formula instead of hard-coding their values
+    void initialize ()
+    {
+        const int16_t FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+
+        for (Rank r = R_1; r < R_8; ++r)
+        {
+            for (File f = F_A; f <= F_H; ++f)
+            {
+                int16_t bonus = r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
+                Connected[f][r] = mk_score (bonus, bonus);
+            }
+        }
+    }
+
+    // probe() takes a position object as input, computes a Entry object, and returns
+    // a pointer to it. The result is also stored in a hash table, so we don't have
+    // to recompute everything when the same pawn structure occurs again.
+    Entry* probe (const Position &pos, Table &table)
+    {
+        Key pawn_key = pos.pawn_key ();
+        Entry *e = table[pawn_key];
+
+        if (e->_pawn_key == pawn_key) return e;
+
+        e->_pawn_key = pawn_key;
+        e->_pawn_score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
+        return e;
+    }
+
     template<Color C>
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
@@ -231,10 +263,8 @@ namespace Pawns {
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
-            while (!(dia_rings_bb(k_sq, _min_dist_KP[C]) & pawns))
-            {
-                _min_dist_KP[C]++;
-            }
+            while (!(dia_rings_bb(k_sq, _min_dist_KP[C]++) & pawns))
+            {}
         }
 
         if (rel_rank(C, k_sq) > R_4)
@@ -245,13 +275,13 @@ namespace Pawns {
         Value bonus = shelter_storm<C>(pos, k_sq);
 
         // If we can castle use the bonus after the castle if is bigger
-        if (pos.can_castle (mk_castle_right (C, CS_K)))
+        if (pos.can_castle (C, CS_K))
         {
-            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_G1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq (C, SQ_WK_K)));
         }
-        if (pos.can_castle (mk_castle_right (C, CS_Q)))
+        if (pos.can_castle (C, CS_Q))
         {
-            bonus = max (bonus, shelter_storm<C>(pos, rel_sq(C, SQ_C1)));
+            bonus = max (bonus, shelter_storm<C>(pos, rel_sq (C, SQ_WK_Q)));
         }
 
         return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);
@@ -262,34 +292,5 @@ namespace Pawns {
     template Score Entry::update_safety<WHITE>(const Position &pos, Square k_sq);
     template Score Entry::update_safety<BLACK>(const Position &pos, Square k_sq);
 
-
-    void initialize ()
-    {
-        const int16_t FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
-
-        for (Rank r = R_1; r < R_8; ++r)
-        {
-            for (File f = F_A; f <= F_H; ++f)
-            {
-                int16_t bonus = r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
-                Connected[f][r] = mk_score (bonus, bonus);
-            }
-        }
-    }
-
-    // probe() takes a position object as input, computes a Entry object, and returns
-    // a pointer to it. The result is also stored in a hash table, so we don't have
-    // to recompute everything when the same pawn structure occurs again.
-    Entry* probe (const Position &pos, Table &table)
-    {
-        Key pawn_key = pos.pawn_key ();
-        Entry *e = table[pawn_key];
-
-        if (e->_pawn_key == pawn_key) return e;
-
-        e->_pawn_key = pawn_key;
-        e->_pawn_score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
-        return e;
-    }
 
 } // namespace Pawns

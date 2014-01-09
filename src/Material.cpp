@@ -10,7 +10,7 @@ namespace {
 
     // Values modified by Joona Kiiski
     const Value MidgameLimit = Value (15581);
-    const Value EndgameLimit = Value (3998);
+    const Value EndgameLimit = Value ( 3998);
 
     // Scale factors used when one side has no more pawns
     const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
@@ -22,28 +22,28 @@ namespace {
     const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
     {
         // P    N    B    R    Q    BP
-        {   2,   0,   0,   0,   0,   0, }, // P
-        { 271,  -4,   0,   0,   0,   0, }, // N
+        {   2,   0,   0,   0,   0,  39, }, // P
+        { 271,  -4,   0,   0,   0,  35, }, // N
         { 105,   4,   0,   0,   0,   0, }, // B
-        {  -2,  46, 100,-141,   0,   0, }, // R
-        {  29,  83, 148,-163,   0,   0, }, // Q
-        {  39,  35,   0, -27,  58,   0, }, // BP
+        {  -2,  46, 100,-141,   0, -27, }, // R
+        {  29,  83, 148,-163,   0,  58, }, // Q
+        {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
     const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
     {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
-        {   0,   0,   0,   0,   0,   0, }, // P
-        {  62,   0,   0,   0,   0,   0, }, // N
-        {  64,  39,   0,   0,   0,   0, }, // B     OUR PIECES
-        {  40,  23, -22,   0,   0,   0, }, // R
-        { 101,   3, 151, 171,   0,   0, }, // Q
-        {  37,  10,  57,  50, 106,   0, }, // BP
+        {   0,   0,   0,   0,   0,  37, }, // P
+        {  62,   0,   0,   0,   0,  10, }, // N
+        {  64,  39,   0,   0,   0,  57, }, // B     OUR PIECES
+        {  40,  23, -22,   0,   0,  50, }, // R
+        { 101,   3, 151, 171,   0, 106, }, // Q
+        {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
-    // Endgame evaluation and scaling functions accessed direcly and not through
-    // the function maps because correspond to more than one material hash key.
+    // Endgame evaluation and scaling functions are accessed direcly and not through
+    // the function maps because they correspond to more than one material hash key.
     Endgame<KmmKm> EvaluateKmmKm[CLR_NO] = { Endgame<KmmKm>  (WHITE), Endgame<KmmKm>  (BLACK) };
     Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
 
@@ -56,7 +56,7 @@ namespace {
     template<Color C> bool is_KXK(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        return  !pos.piece_count<PAWN> (C_)
+        return pos.piece_count<PAWN> (C_) == 0
             && pos.non_pawn_material (C_) == VALUE_ZERO
             && pos.non_pawn_material (C) >= VALUE_MG_ROOK;
     }
@@ -71,7 +71,7 @@ namespace {
     template<Color C> bool is_KQKRPs(const Position &pos)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
-        
+
         return!pos.piece_count<PAWN> (C)
             && pos.non_pawn_material (C) == VALUE_MG_QUEEN
             && pos.piece_count<QUEN> (C)  == 1
@@ -97,13 +97,16 @@ namespace {
             if (!pc) continue;
 
             int32_t v = LinearCoefficients[pt1];
-
-            for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
+            if (KING != pt1)
             {
-                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
-                +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
+                for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
+                {
+                    v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
+                    +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
+                }
+                v += QuadraticCoefficientsSameColor    [pt1][KING] * piece_count[C ][KING]
+                +    QuadraticCoefficientsOppositeColor[pt1][KING] * piece_count[C_][KING];
             }
-
             value += pc * v;
         }
         return value;
@@ -192,21 +195,22 @@ namespace Material {
         {
             e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
         }
-        if (is_KQKRPs<BLACK> (pos))
+        else if (is_KQKRPs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
         }
 
-        Value w_npm = pos.non_pawn_material (WHITE);
-        Value b_npm = pos.non_pawn_material (BLACK);
-        if (w_npm + b_npm == VALUE_ZERO)
+        Value npm_w = pos.non_pawn_material (WHITE);
+        Value npm_b = pos.non_pawn_material (BLACK);
+        if (npm_w + npm_b == VALUE_ZERO)
         {
-            if (!pos.piece_count<PAWN> (BLACK))
+            if (false);
+            else if (pos.piece_count<PAWN> (BLACK) == 0)
             {
                 ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
-            else if (!pos.piece_count<PAWN> (WHITE))
+            else if (pos.piece_count<PAWN> (WHITE) == 0)
             {
                 ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
@@ -221,26 +225,30 @@ namespace Material {
 
         // No pawns makes it difficult to win, even with a material advantage.
         // This catches some trivial draws like KK, KBK and KNK
-        if (pos.piece_count<PAWN> (WHITE) == 0 && w_npm - b_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (WHITE) == 0 &&
+            npm_w - npm_b <= VALUE_MG_BISHOP)
         {
-            e->_factor[WHITE] = (w_npm == b_npm || w_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)]);
+            e->_factor[WHITE] = (npm_w == npm_b || npm_w < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)]);
         }
-        if (pos.piece_count<PAWN> (BLACK) == 0 && b_npm - w_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (BLACK) == 0 &&
+            npm_b - npm_w <= VALUE_MG_BISHOP)
         {
-            e->_factor[BLACK] = (w_npm == b_npm || b_npm < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)]);
+            e->_factor[BLACK] = (npm_w == npm_b || npm_b < VALUE_MG_ROOK ? 0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)]);
         }
 
-        if (pos.piece_count<PAWN> (WHITE) == 1 && w_npm - b_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (WHITE) == 1 &&
+            npm_w - npm_b <= VALUE_MG_BISHOP)
         {
             e->_factor[WHITE] = uint8_t (SCALE_FACTOR_ONEPAWN);
         }
-        if (pos.piece_count<PAWN> (BLACK) == 1 && b_npm - w_npm <= VALUE_MG_BISHOP)
+        if (pos.piece_count<PAWN> (BLACK) == 1 &&
+            npm_b - npm_w <= VALUE_MG_BISHOP)
         {
             e->_factor[BLACK] = uint8_t (SCALE_FACTOR_ONEPAWN);
         }
 
         // Compute the space weight
-        if (w_npm + b_npm >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
+        if (npm_w + npm_b >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
             int32_t minor_piece_count = pos.piece_count<NIHT> () + pos.piece_count<BSHP> ();
 
