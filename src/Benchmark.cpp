@@ -58,7 +58,7 @@ namespace {
 //  - transposition table size (default is 32 MB).
 //  - number of search threads that should be used (default is 1 thread).
 //  - filename where to look for positions in fen format (defaults are the positions defined above)
-//  - limit value spent for each position (default is 12 depth),
+//  - limit value spent for each position (default is 13 depth),
 //  - type of the limit value:
 //     * depth (default).
 //     * time in secs
@@ -74,7 +74,7 @@ void benchmark (istream &is, const Position &pos)
         string size_tt    = (is >> token) ? token : "32";
         string num_threads= (is >> token) ? token : "1";
         string fn_fen     = (is >> token) ? token : "default";
-        string limit_val  = (is >> token) ? token : "12";
+        string limit_val  = (is >> token) ? token : "13";
         string limit_type = (is >> token) ? token : "depth";
 
         *Options["Hash"]    = size_tt;

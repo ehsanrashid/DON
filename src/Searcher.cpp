@@ -771,7 +771,7 @@ namespace {
             split_point = ss->split_point;
             best_move   = split_point->best_move;
             best_value  = split_point->best_value;
-            te      = NULL;
+            te       = NULL;
             tt_move  = excluded_move = MOVE_NONE;
             tt_value = VALUE_NONE;
 
@@ -901,8 +901,8 @@ namespace {
         }
 
         // Step 7. Futility pruning: child node (skipped when in check)
-        // We're betting that the opponent doesn't have a move that will reduce
-        // the score by more than futility_margin (depth) if we do a null move.
+        /// We're betting that the opponent doesn't have a move that will reduce
+        /// the score by more than futility_margin (depth) if we do a null move.
         if (!PVNode && !ss->skip_null_move &&
             depth < 7 * ONE_MOVE &&
             eval_value - futility_margin (depth) >= beta &&
@@ -980,7 +980,7 @@ namespace {
 
             while ((move = mp.next_move<false>()) != MOVE_NONE)
             {
-                //if (!pos.pseudo_legal (move)) continue;
+                if (!pos.pseudo_legal (move)) continue;
                 if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
@@ -1163,7 +1163,6 @@ moves_loop: // When in check and at SPNode search starts from here
                     if (SPNode) split_point->mutex.lock ();
                     continue;
                 }
-
             }
 
             // Check for legality only before to do the move
@@ -1245,9 +1244,9 @@ moves_loop: // When in check and at SPNode search starts from here
                     : -search      <NonPV>       (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
-            // Only for PV nodes do a full PV search on the first move or after a fail
-            // high, in the latter case search only if value < beta, otherwise let the
-            // parent node to fail low with value <= alpha and to try another move.
+            // For PV nodes only, do a full PV search on the first move or after a fail
+            // high (in the latter case search only if value < beta), otherwise let the
+            // parent node fail low with value <= alpha and to try another move.
             if (PVNode && (move_pv || (value > alpha && (RootNode || value < beta))))
             {
                 value =
@@ -1501,8 +1500,6 @@ moves_loop: // When in check and at SPNode search starts from here
             // Futility pruning
             if (!PVNode && !IN_CHECK &&
                 !gives_check && move != tt_move &&
-                //m_type (move) != PROMOTE &&
-                //!pos.passed_pawn_push (move) &&
                 !pos.advanced_pawn_push (move) &&
                 futility_base > -VALUE_KNOWN_WIN)
             {
@@ -1510,19 +1507,16 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 Value futility_value = futility_base + PieceValue[EG][p_type (pos[dst_sq (move)])];
 
-                if (false);
-                else if (futility_value < beta)
+                if (futility_value < beta)
                 {
                     if (futility_value > best_value) best_value = futility_value;
-
                     continue;
                 }
                 // Prune moves with negative or equal SEE and also moves with positive
                 // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                else if (futility_base < beta && pos.see (move) <= 0)
+                if (futility_base < beta && pos.see (move) <= 0)
                 {
                     if (futility_base > best_value) best_value = futility_base;
-
                     continue;
                 }
             }
@@ -1542,7 +1536,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 continue;
             }
 
-            // Check for legality only before to do the move
+            // Check for legality just before making the move
             if (!pos.legal (move, ci.pinneds)) continue;
 
             ss->current_move = move;

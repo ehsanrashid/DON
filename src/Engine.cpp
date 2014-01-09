@@ -104,7 +104,7 @@ namespace Engine {
 
 #ifdef _DEBUG
 
-        //Tester::main_test ();
+        Tester::main_test ();
         //system ("pause");
         //return;
 

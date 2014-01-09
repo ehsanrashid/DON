@@ -23,10 +23,13 @@ namespace UCI {
 
     typedef istringstream cmdstream;
 
+    // Root position
+    Position            rootPos(int8_t (0));
+
     namespace {
 
-        // Root position
-        Position            rootPos(int8_t (0));
+        //// Root position
+        //Position            rootPos(int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
@@ -141,10 +144,10 @@ namespace UCI {
 
             rootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
 
+            setupStates = StateInfoStackPtr (new StateInfoStack ());
+
             if (iequals (token, "moves"))
             {
-                setupStates = StateInfoStackPtr (new StateInfoStack ());
-
                 // parse move list (if any)
                 while (cstm.good () && (cstm >> token))
                 {

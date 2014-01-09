@@ -606,14 +606,16 @@ inline Bitboard Position::attacks_from (Square s) const
         return BitBoard::attacks_bb<PAWN> (_active, s);
         break;
     case NIHT:
-    case BSHP:
-    case ROOK:
-    case QUEN:
     case KING:
         return BitBoard::attacks_bb<PT> (s);
         break;
+    case BSHP:
+    case ROOK:
+    case QUEN:
+        return BitBoard::attacks_bb<PT> (s, _types_bb[PT_NO]);
+        break;
     }
-    return 0;
+    return U64 (0);
 }
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const

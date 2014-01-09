@@ -1632,11 +1632,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
                 {
                     if (ROOK != pt)
                     {
-                        _si->checkers |= attacks_bb<ROOK> (king_sq (pasive)) & pieces (active, QUEN, ROOK);
+                        _si->checkers |= attacks_from<ROOK> (king_sq (pasive)) & pieces (active, QUEN, ROOK);
                     }
                     if (BSHP != pt)
                     {
-                        _si->checkers |= attacks_bb<BSHP> (king_sq (pasive)) & pieces (active, QUEN, BSHP);
+                        _si->checkers |= attacks_from<BSHP> (king_sq (pasive)) & pieces (active, QUEN, BSHP);
                     }
                 }
             }

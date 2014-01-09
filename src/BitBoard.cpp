@@ -317,16 +317,19 @@ namespace BitBoard {
     // Piece attacks from square
     Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        switch (p_type (p))
+        PType pt = p_type (p);
+        switch (pt)
         {
         case PAWN: return attacks_bb<PAWN> (p_color (p), s); break;
-        case NIHT: return attacks_bb<NIHT>(s);      break;
         case BSHP: return attacks_bb<BSHP>(s, occ); break;
         case ROOK: return attacks_bb<ROOK>(s, occ); break;
         case QUEN: return attacks_bb<QUEN>(s, occ); break;
-        case KING: return attacks_bb<KING>(s);      break;
+        //case NIHT: return attacks_bb<NIHT>(s);      break;
+        //case KING: return attacks_bb<KING>(s);      break;
+        case NIHT: 
+        case KING: return _attacks_type_bb[pt][s];  break;
         }
-        return 0;
+        return U64 (0);
     }
 
 #pragma endregion
@@ -521,7 +524,7 @@ namespace BitBoard {
                 if (PT_NO == pt) continue;
 
                 _betwen_sq_bb[s1][s2] = attacks_bb (Piece (pt), s1, _square_bb[s2]) & attacks_bb (Piece (pt), s2, _square_bb[s1]);
-                
+
                 //_lines_sq_bb [s1][s2] = (attacks_bb(Piece (pt), s1, 0) & attacks_bb(Piece (pt), s2, 0)) + s1 + s2;
                 _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
             }
