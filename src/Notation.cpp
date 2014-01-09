@@ -92,9 +92,9 @@ AmbType ambiguity (Move m, const Position &pos)
     //if (!(ambiguous & rank_bb (org))) return AMB_FILE;
     //return AMB_SQR;
 
+    Bitboard pinneds = pos.pinneds (pos.active ());
     Bitboard others, b;
     others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
-    Bitboard pinneds = pos.pinneds (pos.active ());
     while (b)
     {
         Move move = mk_move (pop_lsq (b), dst);
@@ -104,11 +104,18 @@ AmbType ambiguity (Move m, const Position &pos)
         }
     }
 
-    if (!(others)) return AMB_NONE;
-    if (!(others & file_bb (org))) return AMB_RANK;
-    if (!(others & rank_bb (org))) return AMB_FILE;
-    return AMB_SQR;
+    //if (!(others)) return AMB_NONE;
+    //if (!(others & file_bb (org))) return AMB_RANK;
+    //if (!(others & rank_bb (org))) return AMB_FILE;
+    //return AMB_SQR;
 
+    if (others)
+    {
+        if (!(others & file_bb (org))) return AMB_RANK;
+        if (!(others & rank_bb (org))) return AMB_FILE;
+        return AMB_SQR;
+    }
+    return AMB_NONE;
 }
 
 // move_from_can(can, pos) takes a position and a string representing a move in

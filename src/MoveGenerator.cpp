@@ -472,28 +472,22 @@ namespace MoveGenerator {
         ASSERT (!pos.checkers ());
 
         MoveList mov_lst;
-        Color active = pos.active ();
-        Bitboard occ = pos.pieces ();
-        Bitboard empty = ~occ;
 
+        Color active    = pos.active ();
+        Bitboard empty  = ~pos.pieces ();
         CheckInfo ci (pos);
+
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType type = p_type (pos[org]);
+            PType pt = p_type (pos[org]);
 
-            Bitboard moves = U64 (0);
-            switch (type)
-            {
-            case PAWN: continue; // Will be generated together with direct checks
-            case NIHT: moves = attacks_bb<NIHT> (org)      & empty; break;
-            case BSHP: moves = attacks_bb<BSHP> (org, occ) & empty; break;
-            case ROOK: moves = attacks_bb<ROOK> (org, occ) & empty; break;
-            case QUEN: moves = attacks_bb<QUEN> (org, occ) & empty; break;
-            case KING: moves = attacks_bb<KING> (org)      & empty
-                           &  ~attacks_bb<QUEN> (ci.king_sq);       break;
-            }
+            if (PAWN == pt) continue; // Will be generated together with direct checks
+
+            Bitboard moves = pos.attacks_from (Piece (pt), org) & empty;
+            
+            if (KING == pt) moves &= ~attacks_bb<QUEN> (ci.king_sq);
 
             SERIALIZE (mov_lst, org, moves);
         }

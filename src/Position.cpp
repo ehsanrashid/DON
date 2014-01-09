@@ -79,11 +79,14 @@ StateInfo::operator string () const
 
 CheckInfo::CheckInfo (const Position &pos)
 {
-    king_sq = pos.king_sq (~pos.active ());
-    pinneds = pos.pinneds ( pos.active ());
-    check_discovers = pos.check_discovers (pos.active ());
+    Color active = pos.active ();
+    Color pasive = ~active;
 
-    checking_bb[PAWN] = attacks_bb<PAWN> (~pos.active (), king_sq);
+    king_sq = pos.king_sq (pasive);
+    pinneds = pos.pinneds (active);
+    check_discovers = pos.check_discovers (active);
+
+    checking_bb[PAWN] = attacks_bb<PAWN> (pasive, king_sq);
     checking_bb[NIHT] = attacks_bb<NIHT> (king_sq);
     checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = attacks_bb<ROOK> (king_sq, pos.pieces ());

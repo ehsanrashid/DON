@@ -408,7 +408,8 @@ namespace {
 
         ei.pinned_pieces[C] = pos.pinneds (C);
 
-        Bitboard attacks = ei.attacked_by[C_][KING] = pos.attacks_from<KING>(pos.king_sq (C_));
+        Bitboard attacks = ei.attacked_by[C_][KING] = attacks_bb<KING>(pos.king_sq (C_));
+
         ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks(C);
 
         // Init king safety tables only if we are going to use them
@@ -447,8 +448,8 @@ namespace {
         // no minor piece which can exchange the outpost piece.
         if (bonus && (ei.attacked_by[C][PAWN] & s))
         {
-            if (   !pos.pieces (C_, NIHT)
-                && !(squares_of_color(s) & pos.pieces (C_, BSHP)))
+            if (!pos.pieces (C_, NIHT) &&
+                !(squares_of_color(s) & pos.pieces (C_, BSHP)))
             {
                 bonus += bonus + bonus / 2;
             }
@@ -481,8 +482,7 @@ namespace {
             Bitboard attacks =
                 (BSHP == PT) ? attacks_bb<BSHP>(s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                 (ROOK == PT) ? attacks_bb<ROOK>(s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
-                //pos.attacks_from<PT> (s);
-                attacks_bb<PT> (s);
+                pos.attacks_from<PT> (s);
 
             if (ei.pinned_pieces[C] & s)
             {
@@ -723,8 +723,8 @@ namespace {
             // Analyse enemy's safe distance checks for sliders and knights
             Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][PT_NO]);
 
-            Bitboard   rook_check = attacks_bb<ROOK>(k_sq) & safe_sq;
-            Bitboard bishop_check = attacks_bb<BSHP>(k_sq) & safe_sq;
+            Bitboard   rook_check = pos.attacks_from<ROOK>(k_sq) & safe_sq;
+            Bitboard bishop_check = pos.attacks_from<BSHP>(k_sq) & safe_sq;
 
             Bitboard safe_check;
             // Enemy queen safe checks
@@ -740,7 +740,7 @@ namespace {
             if (safe_check) attack_units += BishopCheck * pop_count<MAX15>(safe_check);
 
             // Enemy knights safe checks
-            safe_check = attacks_bb<NIHT>(k_sq) & safe_sq & ei.attacked_by[C_][NIHT];
+            safe_check = pos.attacks_from<NIHT>(k_sq) & safe_sq & ei.attacked_by[C_][NIHT];
             if (safe_check) attack_units += KnightCheck * pop_count<MAX15>(safe_check);
 
             // To index KingDanger[] attack_units must be in [0, 99] range
