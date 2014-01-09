@@ -380,12 +380,14 @@ namespace UCI {
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 32));
 
-        // Limit the multi-PV analysis to moves within a range of the best move.
-        // Default 0, min 0, max 999.
-        //
-        // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
-        // A value of 0 means that this parameter will not be taken into account.
-        Options["MultiPV_cp"]                   = OptionPtr (new SpinOption (0, 0, 999));
+        // TODO::
+        //// Limit the multi-PV analysis to moves within a range of the best move.
+        //// Default 0, min 0, max 999.
+        ////
+        //// Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
+        //// A value of 0 means that this parameter will not be taken into account.
+        //Options["MultiPV_cp"]                   = OptionPtr (new SpinOption (0, 0, 999));
+
 
         // Level of contempt to avoid draws in game play.
         // Default 1, min 0 (none), max 2 (aggressive).

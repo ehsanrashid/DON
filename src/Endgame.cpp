@@ -158,6 +158,15 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
 
+        if (!pos.piece_count<PAWN>(_stong_side) &&
+            !pos.piece_count<NIHT>(_stong_side) &&
+            !pos.piece_count<ROOK>(_stong_side) &&
+            !pos.piece_count<QUEN>(_stong_side) &&
+            !pos.bishops_pair     (_stong_side))
+        {
+            return VALUE_DRAW;
+        }
+
         Value value = pos.non_pawn_material(_stong_side)
             +         pos.piece_count<PAWN>(_stong_side) * VALUE_EG_PAWN
             +         PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
@@ -276,9 +285,9 @@ namespace EndGame {
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         Value value = Value (PushToEdges[pos.king_sq (_weak_side)]);
+
         return (_stong_side == pos.active ()) ? value : -value;
     }
-
 
     template<>
     // KR vs KN.  The attacking side has slightly better winning chances than
@@ -291,6 +300,7 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.piece_list<NIHT>(_weak_side)[0];
         Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
+
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
@@ -320,7 +330,6 @@ namespace EndGame {
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
-
     template<>
     // KQ vs KR. This is almost identical to KX vs K:  We give the attacking
     // king a bonus for having the kings close together, and for forcing the
@@ -347,11 +356,13 @@ namespace EndGame {
     Value Endgame<KBBKN>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_BISHOP, 0));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT    , 0));
+        ASSERT (verify_material (pos,  _weak_side,     VALUE_MG_KNIGHT, 0));
 
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.piece_list<NIHT>(_weak_side)[0];
+
+        if (!pos.bishops_pair (_stong_side)) return VALUE_DRAW;
 
         Value value = VALUE_KNOWN_WIN + PushToCorners[bk_sq]
         + PushClose[square_dist (wk_sq, bk_sq)]
@@ -362,9 +373,23 @@ namespace EndGame {
 
     // Some cases of trivial draws
     template<>
-    Value Endgame<KNNK>::operator() (const Position &pos) const { return VALUE_DRAW; }
+    Value Endgame<KNNK> ::operator() (const Position &pos) const
+    {
+        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+
+        return VALUE_DRAW;
+    }
     template<>
-    Value Endgame<KmmKm>::operator() (const Position &pos) const { return VALUE_DRAW; }
+    Value Endgame<KmmKm>::operator() (const Position &pos) const
+    {
+        //ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+
+        return VALUE_DRAW;
+    }
+
+    // ---------------------------------------------------------
+    // Scale Factor is used when any side have some pawns
+    // ---------------------------------------------------------
 
     template<>
     // KB and one or more pawns vs K. It checks for draws with rook pawns and

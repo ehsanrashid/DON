@@ -708,7 +708,7 @@ inline bool Position::pawn_on_7thR (Color c) const
 inline bool Position::bishops_pair (Color c) const
 {
     int32_t bishop_count = _piece_count[c][BSHP];
-    if (bishop_count >= 2)
+    if (bishop_count > 1)
     {
         for (int32_t pc = 0; pc < bishop_count-1; ++pc)
         {

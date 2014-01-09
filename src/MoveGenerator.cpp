@@ -344,14 +344,12 @@ namespace MoveGenerator {
                         Square dst = pop_lsq (promotes);
                         Square org = dst - D;
 
-                        if ( (RELAX == G) || (EVASION == G) ||
-                            ((CAPTURE == G) && (DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D)))
+                        if ((RELAX == G) || (EVASION == G) || (CAPTURE == G))
                         {
                             mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, QUEN));
                         }
 
-                        if ( (RELAX == G) || (EVASION == G) ||
-                            ((QUIET == G) && (DEL_N == D || DEL_S == D)))
+                        if ((RELAX == G) || (EVASION == G) || (QUIET == G))
                         {
                             mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, ROOK));
                             mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, BSHP));

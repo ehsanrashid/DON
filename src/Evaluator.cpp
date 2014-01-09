@@ -332,6 +332,7 @@ namespace {
             score += evaluate_unstoppable_pawns (pos, WHITE, ei)
                 -    evaluate_unstoppable_pawns (pos, BLACK, ei);
         }
+        
         // Evaluate space for both sides, only in middle-game.
         if (ei.mi->space_weight ())
         {
@@ -372,17 +373,18 @@ namespace {
         // In case of tracing add all single evaluation contributions for both white and black
         if (TRACE)
         {
-            Tracing::add (PST, pos.psq_score ());
-            Tracing::add (IMBALANCE, ei.mi->material_score ());
-            Tracing::add (PAWN, ei.pi->pawn_score ());
+            Tracing::add (PST       , pos.psq_score ());
+            Tracing::add (IMBALANCE , ei.mi->material_score ());
+            Tracing::add (PAWN      , ei.pi->pawn_score ());
+            
             Score scr[CLR_NO] =
             {
                 ei.mi->space_weight() * evaluate_space<WHITE>(pos, ei),
                 ei.mi->space_weight() * evaluate_space<BLACK>(pos, ei),
             };
 
-            Tracing::add (SPACE, apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
-            Tracing::add (TOTAL, score);
+            Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
+            Tracing::add (TOTAL     , score);
             Tracing::stream
                 << "-------\n"
                 //<< "Uncertainty margin:"

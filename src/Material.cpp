@@ -91,24 +91,25 @@ namespace {
         // "The Evaluation of Material Imbalances in Chess"
 
         // Second-degree polynomial material imbalance by Tord Romstad
-        for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
+        for (PType pt1 = PAWN; pt1 <= QUEN; ++pt1)
         {
             int32_t pc = piece_count[C][pt1];
             if (!pc) continue;
 
             int32_t v = LinearCoefficients[pt1];
-            if (KING != pt1)
+
+            for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
-                for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
-                {
-                    v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
-                    +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
-                }
-                v += QuadraticCoefficientsSameColor    [pt1][KING] * piece_count[C ][KING]
-                +    QuadraticCoefficientsOppositeColor[pt1][KING] * piece_count[C_][KING];
+                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
+                +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
             }
+            v += QuadraticCoefficientsSameColor    [pt1][KING] * piece_count[C ][KING]
+            +    QuadraticCoefficientsOppositeColor[pt1][KING] * piece_count[C_][KING];
+
             value += pc * v;
         }
+        value += piece_count[C][KING] * LinearCoefficients[KING];
+
         return value;
     }
 
@@ -205,14 +206,16 @@ namespace Material {
         if (npm_w + npm_b == VALUE_ZERO)
         {
             if (false);
-            else if (pos.piece_count<PAWN> (BLACK) == 0)
+            else if (pos.piece_count<PAWN> (BLACK) == 0
+                &&   pos.piece_count<PAWN> (WHITE) >= 2)
             {
-                ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
+                //ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 0)
+            else if (pos.piece_count<PAWN> (WHITE) == 0
+                &&   pos.piece_count<PAWN> (BLACK) >= 2)
             {
-                ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
+                //ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else if ((pos.piece_count<PAWN> (WHITE) == 1) && (pos.piece_count<PAWN> (BLACK) == 1))
@@ -239,19 +242,18 @@ namespace Material {
         if (pos.piece_count<PAWN> (WHITE) == 1 &&
             npm_w - npm_b <= VALUE_MG_BISHOP)
         {
-            e->_factor[WHITE] = uint8_t (SCALE_FACTOR_ONEPAWN);
+            e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
         }
         if (pos.piece_count<PAWN> (BLACK) == 1 &&
             npm_b - npm_w <= VALUE_MG_BISHOP)
         {
-            e->_factor[BLACK] = uint8_t (SCALE_FACTOR_ONEPAWN);
+            e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
         }
 
         // Compute the space weight
         if (npm_w + npm_b >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
             int32_t minor_piece_count = pos.piece_count<NIHT> () + pos.piece_count<BSHP> ();
-
             e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
         }
 
@@ -261,10 +263,10 @@ namespace Material {
         const int32_t piece_count[CLR_NO][PT_NO] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
-            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.piece_count<BSHP> (WHITE) > 1
+            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE),//pos.piece_count<BSHP> (WHITE) > 1
             },
             {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
-            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.piece_count<BSHP> (BLACK) > 1,
+            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK),//pos.piece_count<BSHP> (BLACK) > 1,
             },
         };
 

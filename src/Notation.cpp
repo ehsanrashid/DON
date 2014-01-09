@@ -293,7 +293,7 @@ string move_to_san (Move m, Position &pos)
 
             if (capture) san += 'x';
             san += to_string (dst);
-            if (PROMOTE == mt && PAWN == pt) san += "=" + to_char (prom_type (m));
+            if (PROMOTE == mt && PAWN == pt) san += string ("=") + to_char (prom_type (m));
         }
         break;
     }

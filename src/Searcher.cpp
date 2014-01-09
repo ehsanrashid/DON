@@ -381,13 +381,13 @@ namespace Searcher {
         {
             Log log (fn_search_log);
 
-            log << "---------\n"
-                << "Searching: "    << rootPos.fen () << endl
+            log << "---------\n" << boolalpha
+                << "Searching: "    << rootPos.fen () << '\n'
                 << " infinite: "    << limits.infinite
                 << " ponder: "      << limits.ponder
                 << " time: "        << limits.game_clock[rootPos.active ()].time
                 << " increment: "   << limits.game_clock[rootPos.active ()].inc
-                << " moves to go: " << limits.moves_to_go
+                << " moves to go: " << uint32_t (limits.moves_to_go)
                 << endl;
         }
 
