@@ -59,13 +59,12 @@ namespace {
         return Value (512 + 16 * int32_t (d));
     }
 
+    TimeManager timeMgr;
+    Value       drawValue[CLR_NO];
+
     uint32_t
         pv_size,
         pv_idx;
-
-    TimeManager time_mgr;
-
-    Value       drawValue[CLR_NO];
 
     GainsStats          gains;
     HistoryStats        history;
@@ -218,11 +217,12 @@ void check_time ()
     bool still_at_first_move = 
         signals.first_root_move     &&
         !signals.failed_low_at_root &&
-        elapsed > (time_mgr.available_time () * 62) / 100 &&
-        elapsed > iterated * 1.4;
+        (elapsed > timeMgr.available_time ()
+        || (   elapsed > (timeMgr.available_time() * 62) / 100
+        &&     elapsed > iterated * 1.4));
 
     bool no_more_time = 
-        (elapsed > time_mgr.maximum_time () - 2 * TimerResolution) ||
+        (elapsed > timeMgr.maximum_time () - 2 * TimerResolution) ||
         still_at_first_move;
 
     if ((limits.use_time_management () && no_more_time)   ||
@@ -336,7 +336,7 @@ namespace Searcher {
 
     void think ()
     {
-        time_mgr.initialize (limits, rootPos.game_ply (), rootPos.active ());
+        timeMgr.initialize (limits, rootPos.game_ply (), rootPos.active ());
 
         bool write_search_log = *(Options["Write Search Log"]);
         string fn_search_log  = *(Options["Search Log File"]);
@@ -653,14 +653,14 @@ namespace {
                 // Take in account some extra time if the best move has changed
                 if (4 < depth && depth < 50 &&  1 == pv_size)
                 {
-                    time_mgr.pv_instability (best_move_changes);
+                    timeMgr.pv_instability (best_move_changes);
                 }
 
                 // Stop the search if there is only one legal move available or 
                 // most of the available time has been used.
                 // We probably don't have enough time to search the first move at the next iteration anyway.
                 if (rootMoves.size () == 1 ||
-                    iterated > (time_mgr.available_time () * 62) / 100)
+                    iterated > (timeMgr.available_time () * 62) / 100)
                 {
                     stop = true;
                 }
@@ -671,7 +671,7 @@ namespace {
                 //    pv_size == 1 &&
                 //    best_value > VALUE_MATED_IN_MAX_PLY &&
                 //    (rootMoves.size () == 1 ||
-                //    (Time::now () - searchTime) > (time_mgr.available_time() * 20) / 100))
+                //    (Time::now () - searchTime) > (timeMgr.available_time() * 20) / 100))
                 //{
                 //    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
                 //
