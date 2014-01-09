@@ -145,7 +145,7 @@ typedef unsigned long long      uint64_t;
 //#define CLEANTLOG
 //#define OTLOG
 //#define ETLOG
-#define FTLOG   log_eng
+#define FTLOG   engine_log
 
 #   ifdef TRI_LOGGER
 

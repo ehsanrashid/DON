@@ -65,14 +65,13 @@ namespace {
 
     TimeManager time_mgr;
 
-    double      best_move_changes;
-
-    Value       draw_value[CLR_NO] = { VALUE_DRAW, VALUE_DRAW, };
+    Value       drawValue[CLR_NO];
 
     GainsStats          gains;
     HistoryStats        history;
-
     CountermovesStats   counter_moves;
+
+    double      best_move_changes;
 
     void iter_deep_loop (Position &pos);
 
@@ -364,17 +363,18 @@ namespace Searcher {
             }
         }
 
-        if (*(Options["Contempt Factor"]) && !*(Options["UCI_AnalyseMode"]))
+        int32_t cf = *(Options["Contempt Factor"]);
+        if (cf && !*(Options["UCI_AnalyseMode"]))
         {
-            int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
-            cf = cf * Material::game_phase (rootPos) / PHASE_MIDGAME; // Scale down with phase
-            draw_value[ rootPos.active ()] = VALUE_DRAW - Value (cf);
-            draw_value[~rootPos.active ()] = VALUE_DRAW + Value (cf);
+            cf = cf * VALUE_MG_PAWN / 100;                              // From centipawns
+            cf = cf * Material::game_phase (rootPos) / PHASE_MIDGAME;   // Scale down with phase
+            drawValue[ rootPos.active ()] = VALUE_DRAW - Value (cf);
+            drawValue[~rootPos.active ()] = VALUE_DRAW + Value (cf);
         }
         else
         {
-            draw_value[WHITE] = VALUE_DRAW;
-            draw_value[BLACK] = VALUE_DRAW;
+            drawValue[WHITE] = VALUE_DRAW;
+            drawValue[BLACK] = VALUE_DRAW;
         }
 
         if (write_search_log)
@@ -797,7 +797,7 @@ namespace {
             // Step 2. Check for aborted search and immediate draw
             if (signals.stop || pos.draw () || ss->ply > MAX_PLY)
             {
-                return draw_value[pos.active ()];
+                return drawValue[pos.active ()];
             }
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
             // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
@@ -1352,7 +1352,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // A split node has at least one move, the one tried before to be splitted.
         if (0 == moves_count)
         {
-            return excluded_move ? alpha : in_check ? mated_in (ss->ply) : draw_value[pos.active ()];
+            return excluded_move ? alpha : in_check ? mated_in (ss->ply) : drawValue[pos.active ()];
         }
 
         // If we have pruned all the moves without searching return a fail-low score
@@ -1397,7 +1397,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // Check for an instant draw or maximum ply reached
         if (pos.draw () || ss->ply > MAX_PLY)
         {
-            return draw_value[pos.active ()];
+            return drawValue[pos.active ()];
         }
 
         Value       best_value;

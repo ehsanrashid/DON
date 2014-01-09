@@ -242,7 +242,7 @@ namespace TrivialLogger {
         //T const max (T const x1, T const x2) { return (x1 > x2 ? x1 : x2); }
 
         const char_type* get_fn_log()   { return XSTR(FTLOG); }
-        const char_type* get_fn_def()   { return "log_eng"; }
+        const char_type* get_fn_def()   { return "engine_log"; }
         // extension C string
         const char_type* get_ext_log()  { return ".txt"; }
 

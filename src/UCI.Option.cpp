@@ -230,7 +230,7 @@ namespace UCI {
             Threads.read_uci_options ();
         }
 
-        void on_evaluation      (const Option& opt)
+        void on_change_eval      (const Option& opt)
         {
             Evaluator::initialize ();
         }
@@ -406,6 +406,7 @@ namespace UCI {
         //
         // •	2 = Aggressive
         // Contempt 2 adds some king safety imbalance, leading to a more attacking style.
+        // It would draw less, It will also lose more, especially if your opponent is strong.
         //
         // The contempt settings are fairly mild and have little impact on the objective strength of the engine.
         // It’s hard to say which will give the best results against a given opponent,
@@ -415,7 +416,11 @@ namespace UCI {
         // If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
         Options["Contempt"]                     = OptionPtr (new SpinOption (1, 0, 2));
 
+        // Factor for adjusted contempt. Changes playing style.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
+
+        // TODO::
+        Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
 
         // Activate Contempt for position analysis.
         // Default false.
@@ -429,18 +434,18 @@ namespace UCI {
         // If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it’s White or Black to move.
         Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
 
-        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
-        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
-        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
-        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
-        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
-        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
-        Options["Aggressiveness"]               = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
-        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
-        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_evaluation));
+        Options["Aggressiveness"]               = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, min 5, max 50.
@@ -476,20 +481,20 @@ namespace UCI {
         // The Chess960 feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["UCI_Chess960"]                 = OptionPtr (new CheckOption (false));
 
-        Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_evaluation));
 
-        // Activate the strength limit specified in the UCI_Elo parameter.
-        // Default false.
-        //
-        // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["UCI_LimitStrength"]            = OptionPtr (new CheckOption (false));
+        // TODO::
+        //// Activate the strength limit specified in the UCI_Elo parameter.
+        //// Default false.
+        ////
+        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        //Options["UCI_LimitStrength"]            = OptionPtr (new CheckOption (false));
 
-        // UCI-protocol compliant version of Strength parameter.
-        // Default 3000, min 1200, max 3000.
-        //
-        // Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
-        // The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
+        //// UCI-protocol compliant version of Strength parameter.
+        //// Default 3000, min 1200, max 3000.
+        ////
+        //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
+        //// The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
 
 
 #pragma endregion
@@ -498,7 +503,7 @@ namespace UCI {
 
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_io));
         Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
-        Options["Search Log File"]              = OptionPtr (new StringOption ("log_search.txt"));
+        Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
 
 #pragma endregion
 
