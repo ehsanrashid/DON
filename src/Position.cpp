@@ -2200,12 +2200,27 @@ Position::operator string () const
     ostringstream spos;
 
     spos
-        << board                          << endl
-        << to_char (_active)              << endl
-        << to_string (_si->castle_rights) << endl
-        << to_string (_si->en_passant)    << endl
-        << uint32_t (_si->clock50)        << ' '
-        << game_move ()                   << endl;
+        << board                            << "\n"
+        //<< to_char (_active)                << "\n"
+        //<< to_string (_si->castle_rights)   << "\n"
+        //<< to_string (_si->en_passant)      << "\n"
+        //<< _si->clock50 <<' '<< game_move() << "\n"
+        ;
+
+    spos
+        << "\nFen: " << fen()
+        << "\nKey: " << hex << uppercase << setfill ('0') << setw(16) << _si->posi_key;
+
+    spos << "\nCheckers: ";
+    Bitboard b = checkers();
+    while (b) spos << to_string (pop_lsq (b)) << " ";
+
+    spos << "\nLegal moves: ";
+    MoveList mov_lst = generate<LEGAL>(*this);
+    for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    {
+        spos << move_to_san (m, *const_cast<Position*>(this)) << " ";
+    });
 
     return spos.str ();
 }
