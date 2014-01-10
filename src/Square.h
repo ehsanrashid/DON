@@ -16,9 +16,7 @@ inline File operator~ (File f)
 }
 inline File to_file (char f)
 {
-    char F = toupper (f);
-    //ASSERT (F >= 'A' && F <= 'H');
-    return File (F - 'A');
+    return File (f - 'a');
 }
 inline char to_char (File f, bool lower = true)
 {
@@ -45,7 +43,6 @@ inline Rank operator~ (Rank r)
 }
 inline Rank to_rank (char r)
 {
-    //ASSERT (r >= '1' && r <= '8');
     return Rank (r - '1');
 }
 inline char to_char (Rank r)

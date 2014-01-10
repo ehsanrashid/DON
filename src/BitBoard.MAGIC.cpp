@@ -29,14 +29,14 @@ namespace BitBoard {
         Bitboard*BAttack_bb[SQ_NO];
         Bitboard*RAttack_bb[SQ_NO];
 
-        Bitboard BMask_bb[SQ_NO];
-        Bitboard RMask_bb[SQ_NO];
+        Bitboard   BMask_bb[SQ_NO];
+        Bitboard   RMask_bb[SQ_NO];
 
-        Bitboard BMagic_bb[SQ_NO];
-        Bitboard RMagic_bb[SQ_NO];
+        Bitboard  BMagic_bb[SQ_NO];
+        Bitboard  RMagic_bb[SQ_NO];
 
-        uint8_t BShift[SQ_NO];
-        uint8_t RShift[SQ_NO];
+        uint8_t      BShift[SQ_NO];
+        uint8_t      RShift[SQ_NO];
 
         typedef uint16_t (*Indexer) (Square s, Bitboard occ);
 
@@ -149,7 +149,7 @@ namespace BitBoard {
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
                 uint32_t size   = 0;
-                Bitboard occ    = 0;
+                Bitboard occ    = U64 (0);
                 do
                 {
                     occupancy[size] = occ;
@@ -174,7 +174,7 @@ namespace BitBoard {
 
                 do
                 {
-                    uint8_t index;
+                    uint16_t index;
                     do
                     {
                         magics_bb[s] = rkiss.rand_boost<Bitboard>(booster);

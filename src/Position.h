@@ -29,10 +29,10 @@ const uint8_t MAX_FEN     = 88;
 // X-FEN (CHESS960-FEN) (Fischer Random Chess)
 // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1"
 
-extern const char *const FEN_N;
-extern const char *const FEN_X;
-//extern const std::string FEN_N;
-//extern const std::string FEN_X;
+//extern const char *const FEN_N;
+//extern const char *const FEN_X;
+extern const std::string FEN_N;
+extern const std::string FEN_X;
 
 // Check the validity of FEN string
 extern bool _ok (const        char *fen, bool c960 = false, bool full = true);

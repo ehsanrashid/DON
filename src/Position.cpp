@@ -18,10 +18,10 @@ using namespace MoveGenerator;
 
 #pragma region FEN
 
-const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const char *const FEN_X = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
-//const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-//const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
+//const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+//const char *const FEN_X = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
+const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
 bool _ok (const   char *fen, bool c960, bool full)
 {
@@ -114,6 +114,8 @@ const Value PieceValue[PHASE_NO][PT_ALL] =
 };
 
 namespace {
+
+    const string PieceToChar("PNBRQK  pnbrqk");
 
     CACHE_ALIGN(64)
         Score psq[CLR_NO][PT_NO][SQ_NO];
@@ -551,7 +553,7 @@ bool Position::ok (int8_t *failed_step) const
 // It tries to estimate the material gain or loss resulting from a move.
 int32_t Position::see      (Move m) const
 {
-    //ASSERT (_ok (m));
+    ASSERT (_ok (m));
 
     Square org = org_sq(m);
     Square dst = dst_sq(m);
@@ -642,7 +644,7 @@ int32_t Position::see      (Move m) const
 
 int32_t Position::see_sign (Move m) const
 {
-    //ASSERT (_ok (m));
+    ASSERT (_ok (m));
 
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
@@ -709,8 +711,8 @@ Piece Position::captured_piece (Move m) const
         {
             // check not pawn push and can capture
             if (file_dist (dst, org) != 1) return PS_NO;
-            Bitboard captures = attacks_bb<PAWN> (~_active, dst) & pieces (_active);
-            return ((captures) ? _piece_arr[cap] : PS_NO);
+            return (attacks_bb<PAWN> (~_active, dst) & pieces (_active)) ?
+                _piece_arr[cap] : PS_NO;
         }
         return _piece_arr[cap];
 
@@ -726,7 +728,7 @@ bool Position::pseudo_legal (Move m) const
 {
     //ASSERT (_ok (m));
     if (!_ok (m)) return false;
-    
+
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
@@ -947,20 +949,19 @@ bool Position::pseudo_legal (Move m) const
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::       legal (Move m, Bitboard pinned) const
 {
-    //ASSERT (_ok (m));
+    ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
 
-    //Position c_pos(pos);
-    //if (c_pos.do_move(m))
+    //Position c_pos (pos);
+    //if (c_pos.do_move (m))
     //{
     //    Color active = c_pos.active ();
     //    Color pasive = ~active;
     //    Square fk_sq = c_pos.king_sq (pasive);
     //    Bitboard enemies  = c_pos.pieces (active);
-    //    Bitboard checkers = attackers_to(c_pos, fk_sq) & enemies;
-    //    uint8_t numChecker = pop_count<FULL> (checkers);
-    //    return !numChecker;
+    //    Bitboard checkers = attackers_to (c_pos, fk_sq) & enemies;
+    //    return !pop_count<FULL> (checkers);
     //}
     //return false;
 
@@ -975,7 +976,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
     ASSERT ((active == pc) && (PT_NO != pt));
 
     Square fk_sq = king_sq (active);
-    ASSERT ((active | KING) == _piece_arr[fk_sq]);
+    //ASSERT ((active | KING) == _piece_arr[fk_sq]);
 
     MType mt = m_type (m);
     switch (mt)
@@ -1011,7 +1012,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        Bitboard mocc = _types_bb[PT_NO] - org; // + dst;
+        Bitboard mocc = _types_bb[PT_NO] - org; // Remove 'org' but not place 'dst'
         return !(attackers_to (dst, mocc) & pieces (pasive));
     }
 
@@ -1277,23 +1278,27 @@ void Position::clear ()
 // setup() sets the fen on the position
 bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 {
-    Position pos (int8_t (0));
-    if (parse (pos, fen, thread, c960, full) && pos.ok ())
-    {
-        *this = pos;
-        return true;
-    }
-    return false;
+    //Position pos (int8_t (0));
+    //if (parse (pos, fen, thread, c960, full) && pos.ok ())
+    //{
+    //    *this = pos;
+    //    return true;
+    //}
+    //return false;
+
+    return parse (*const_cast<Position*>(this), fen, thread, c960, full);
 }
 bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
 {
-    Position pos (int8_t (0));
-    if (parse (pos, fen, thread, c960, full) && pos.ok ())
-    {
-        *this = pos;
-        return true;
-    }
-    return false;
+    //Position pos (int8_t (0));
+    //if (parse (pos, fen, thread, c960, full) && pos.ok ())
+    //{
+    //    *this = pos;
+    //    return true;
+    //}
+    //return false;
+
+    return parse (*const_cast<Position*>(this), fen, thread, c960, full);
 }
 
 // set_castle() set the castling for the particular color & rook
@@ -1351,10 +1356,10 @@ bool Position::can_en_passant (Square ep_sq) const
     while (pawns_ep) mov_lst.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
 
     // Check en-passant is legal for the position
-
     Square fk_sq = king_sq (active);
     Bitboard occ = _types_bb[PT_NO];
-    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
+    MoveList::const_iterator itr = mov_lst.cbegin ();
+    while (itr != mov_lst.cend ())
     {
         Move m = *itr;
         Square org = org_sq (m);
@@ -1366,6 +1371,7 @@ bool Position::can_en_passant (Square ep_sq) const
         {
             return true;
         }
+        ++itr;
     }
 
     return false;
@@ -1421,7 +1427,7 @@ void Position::castle_king_rook (Square org_king, Square dst_king, Square org_ro
 // do_move() do the move with checking info
 void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 {
-    //ASSERT (_ok (m));
+    ASSERT (_ok (m));
     ASSERT (&si_n != _si);
 
     Key posi_k = _si->posi_key;
@@ -1703,7 +1709,7 @@ void Position::undo_move ()
     if (NULL == _si->p_si) return;
 
     Move m = _si->last_move;
-    //ASSERT (_ok (m));
+    ASSERT (_ok (m));
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
@@ -2269,7 +2275,7 @@ Position::operator string () const
 bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
     ASSERT (fen);
-    if (!fen)   return false;
+    //if (!fen)   return false;
 
     pos.clear ();
 
@@ -2472,343 +2478,120 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
 bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
-    if (fen.empty ()) return false;
+    ASSERT (!fen.empty ());
+    //if (fen.empty ()) return false;
 
     pos.clear ();
-
-#pragma region String Splits
-
-    //const vector<string> sp_fen = str_splits (fen, ' ');
-    //size_t size_sp_fen = sp_fen.size ();
-    //
-    //if (full)
-    //{
-    //    if (6 != size_sp_fen) return false;
-    //}
-    //else
-    //{
-    //    if (4 != size_sp_fen) return false;
-    //}
-    //
-    //// Piece placement on Board 
-    //const vector<string> sp_brd = str_splits (sp_fen[0], '/', false, true);
-    //size_t size_sp_brd = sp_brd.size ();
-    //
-    //if (R_NO != size_sp_brd) return false;
-    //
-    //Rank r = R_8;
-    //for (size_t j = 0; j < size_sp_brd; ++j)
-    //{
-    //    const string &row = sp_brd[j];
-    //    File f = F_A;
-    //    for (size_t i = 0; i < row.length (); ++i)
-    //    {
-    //        char ch = row[i];
-    //        const Square s = (f | r);
-    //        if (false);
-    //        else if (isdigit (ch))
-    //        {
-    //            // empty square(s)
-    //            ASSERT ('1' <= ch && ch <= '8');
-    //            if ('1' > ch || ch > '8') return false;
-    //
-    //            uint8_t empty = (ch - '0');
-    //            f += empty;
-    //
-    //            ASSERT (f <= F_NO);
-    //            if (f > F_NO) return false;
-    //            ////while (empty-- > 0) place_piece (s++, PS_NO);
-    //        }
-    //        else if (isalpha (ch))
-    //        {
-    //            // piece
-    //            Piece p = to_piece (ch);
-    //            if (PS_NO == p) return false;
-    //            pos.place_piece (s, p);   // put the piece on Board
-    //            if (KING == p_type (p))
-    //            {
-    //                Color c = p_color (p);
-    //                if (1 != pos[p].size ()) return false;
-    //            }
-    //            ++f;
-    //        }
-    //        else
-    //        {
-    //            return false;
-    //        }
-    //    }
-    //    --r;
-    //}
-    //
-    //ASSERT (1 == sp_fen[1].length ());
-    //if (1 != sp_fen[1].length ()) return false;
-    //// Active Color
-    //pos._active = p_color (sp_fen[1][0]);
-    //if (CLR_NO == pos._active) return false;
-    //
-    //ASSERT (4 >= sp_fen[2].length ());
-    //if (4 < sp_fen[2].length ()) return false;
-    //
-    //// Castling rights availability
-    //// Compatible with 3 standards:
-    //// * Normal FEN standard,
-    //// * Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
-    //// * X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
-    //// tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    //const string &castle_s = sp_fen[2];
-    //if ('-' != castle_s[0])
-    //{
-    //    if (c960)
-    //    {
-    //#pragma region X-FEN
-    //        for (size_t i = 0; i < castle_s.length (); ++i)
-    //        {
-    //            char ch = castle_s[i];
-    //
-    //            Square rook;
-    //            Color c = isupper (ch) ? WHITE : BLACK;
-    //            char sym = toupper (ch);
-    //            if ('A' <= sym && sym <= 'H')
-    //            {
-    //                rook = (_file (sym) | rel_rank (c, R_1));
-    //                if (ROOK != p_type (pos[rook])) return false;
-    //                pos.set_castle (c, rook);
-    //            }
-    //            else
-    //            {
-    //                return false;
-    //            }
-    //        }
-    //#pragma endregion
-    //    }
-    //    else
-    //    {
-    //#pragma region N-FEN
-    //        for (size_t i = 0; i < castle_s.length (); ++i)
-    //        {
-    //            char ch = castle_s[i];
-    //            Square rook;
-    //            Color c = isupper (ch) ? WHITE : BLACK;
-    //            switch (toupper (ch))
-    //            {
-    //            case 'K':
-    //                rook = rel_sq (c, SQ_H1);
-    //                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
-    //                break;
-    //            case 'Q':
-    //                rook = rel_sq (c, SQ_A1);
-    //                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
-    //                break;
-    //            default: return false;
-    //            }
-    //            if (ROOK != p_type (pos[rook])) return false;
-    //            pos.set_castle (c, rook);
-    //        }
-    //#pragma endregion
-    //    }
-    //}
-    //
-    //ASSERT (2 >= sp_fen[3].length ());
-    //if (2 < sp_fen[3].length ()) return false;
-    //
-    //// En-passant square
-    //const string &en_pas_s = sp_fen[3];
-    //if ('-' != en_pas_s[0])
-    //{
-    //    uint8_t ep_f = tolower (en_pas_s[0]);
-    //    ASSERT (isalpha (ep_f));
-    //    ASSERT ('a' <= ep_f && ep_f <= 'h');
-    //
-    //    if (!isalpha (ep_f)) return false;
-    //    if ('a' > ep_f || ep_f > 'h') return false;
-    //
-    //    uint8_t ep_r = en_pas_s[1];
-    //    ASSERT (isdigit (ep_r));
-    //    ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
-    //
-    //    if (!isdigit (ep_r)) return false;
-    //    if ((WHITE == pos._active && '6' != ep_r) || (BLACK == pos._active && '3' != ep_r)) return false;
-    //    Square ep_sq  = _Square (ep_f, ep_r);
-    //    if (pos.can_en_passant (ep_sq))
-    //    {
-    //        pos._si->en_passant = ep_sq;
-    //    }
-    //}
-    //// 50-move clock and game-move count
-    //int32_t clk50 = 0, g_move = 1;
-    //if (full && (6 == size_sp_fen))
-    //{
-    //    clk50  = to_int (sp_fen[4]);
-    //    g_move = to_int (sp_fen[5]);
-    //
-    //    // Rule 50 draw case
-    //    if (100 < clk50) return false;
-    //    //if (0 >= g_move) g_move = 1;
-    //}
-    //// Convert from game_move starting from 1 to game_ply starting from 0,
-    //// handle also common incorrect FEN with game_move = 0.
-    //pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
-    //pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
-
-#pragma endregion
 
 #pragma region Input String Stream
 
     istringstream sfen (fen);
     uint8_t ch;
 
-    // Piece placement on Board
     sfen >> noskipws;
-    for (Rank r = R_8; r >= R_1; --r)
+
+    // 1. Piece placement on Board
+    size_t idx;
+    Square s = SQ_A8;
+    while ((sfen >> ch) && !isspace (ch))
     {
-        File f = F_A;
-        while (f <= F_H)
+        if (isdigit (ch))
         {
-            Square s = (f | r);
-            sfen >> ch;
-            if (sfen.eof () || !sfen.good () || !ch) return false;
-
-            if (false);
-            else if (isdigit (ch))
-            {
-                // empty square(s)
-                ASSERT ('1' <= ch && ch <= '8');
-                if ('1' > ch || ch > '8') return false;
-
-                int8_t empty = (ch - '0');
-                f += empty;
-
-                ASSERT (f <= F_NO);
-                if (f > F_NO) return false;
-                ////while (empty-- > 0) place_piece (s++, PS_NO);
-            }
-            else if (isalpha (ch))
-            {
-                // piece
-                Piece p = to_piece (ch);
-                if (PS_NO == p) return false;
-                pos.place_piece (s, p);   // put the piece on Board
-
-                ++f;
-            }
-            else
-            {
-                return false;
-            }
+            s += Delta (ch - '0'); // Advance the given number of files
         }
-
-        if (R_1 < r)
+        else if (ch == '/')
         {
-            sfen >> ch;
-            if (sfen.eof () || !sfen.good () || '/' != ch) return false;
+            s += DEL_SS;
         }
-        else
+        else if ((idx = PieceToChar.find (ch)) != string::npos)
         {
-            for (Color c = WHITE; c <= BLACK; ++c)
-            {
-                if (1 != pos._piece_count[c][KING]) return false;
-            }
+            Piece p = Piece (idx);
+            pos.place_piece (s, p_color (p), p_type (p));
+            ++s;
         }
     }
 
-    // Active color
-    sfen >> skipws >> ch;
+    // 2. Active color
+    sfen >> ch;
     pos._active = to_color (ch);
-    if (CLR_NO == pos._active) return false;
 
-    // Castling rights availability
+    // 3. Castling rights availability
     // Compatible with 3 standards:
     // 1-Normal FEN standard,
     // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    sfen >> skipws >> ch;
-    if ('-' != ch)
+    sfen >> ch;
+    if (c960)
     {
-        sfen >> noskipws;
-
-        if (c960)
-        {
 #pragma region X-FEN
-            do
-            {
-                Square rook;
-                Color c = isupper (ch) ? WHITE : BLACK;
-                char sym = toupper (ch);
-                if ('A' <= sym && sym <= 'H')
-                {
-                    rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != p_type (pos[rook])) return false;
-                    pos.set_castle (c, rook);
-                }
-                else
-                {
-                    return false;
-                }
 
-                sfen >> ch;
-            }
-            while (ch && !isspace (ch));
-#pragma endregion
-        }
-        else
+        while ((sfen >> ch) && !isspace (ch))
         {
-#pragma region N-FEN
-            do
+            Square rook;
+            Color c = isupper (ch) ? WHITE : BLACK;
+            char sym = toupper (ch);
+            if ('A' <= sym && sym <= 'H')
             {
-                Square rook;
-                Color c = isupper (ch) ? WHITE : BLACK;
-                switch (toupper (ch))
-                {
-                case 'K':
-                    rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
-                    break;
-                case 'Q':
-                    rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
-                    break;
-                default: return false;
-                }
-                if (ROOK != p_type (pos[rook])) return false;
+                rook = (to_file (sym) | rel_rank (c, R_1));
+                //if (ROOK != p_type (pos[rook])) return false;
                 pos.set_castle (c, rook);
-
-                sfen >> ch;
             }
-            while (ch && !isspace (ch));
-#pragma endregion
+            else
+            {
+                continue;
+            }
         }
+
+#pragma endregion
     }
-    // En-passant square
-    sfen >> skipws >> ch;
-    if ('-' != ch)
+    else
     {
-        uint8_t ep_f = tolower (ch);
-        ASSERT (isalpha (ep_f));
-        ASSERT ('a' <= ep_f && ep_f <= 'h');
-        if (!isalpha (ep_f)) return false;
-        if ('a' > ep_f || ep_f > 'h') return false;
+#pragma region N-FEN
 
-        sfen >> noskipws >> ch;
-        uint8_t ep_r = ch;
-        ASSERT (isdigit (ep_r));
-        ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
+        while ((sfen >> ch) && !isspace (ch))
+        {
+            Square rook;
+            Color c = isupper (ch) ? WHITE : BLACK;
+            switch (toupper (ch))
+            {
+            case 'K':
+                rook = rel_sq (c, SQ_H1);
+                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
+                break;
+            case 'Q':
+                rook = rel_sq (c, SQ_A1);
+                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
+                break;
+            default: continue;
+            }
 
-        if (!isdigit (ep_r)) return false;
-        if ((WHITE == pos._active && '6' != ep_r) || (BLACK == pos._active && '3' != ep_r)) return false;
+            //if (ROOK != p_type (pos[rook])) return false;
+            pos.set_castle (c, rook);
+        }
 
-        Square ep_sq = _Square (ep_f, ep_r);
+#pragma endregion
+    }
+
+    // 4. En-passant square. Ignore if no pawn capture is possible
+    char col, row;
+    if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
+        && ((sfen >> row) && (row == '3' || row == '6')))
+    {
+        Square ep_sq = _Square (col, row);
         if (pos.can_en_passant (ep_sq))
         {
             pos._si->en_passant = ep_sq;
         }
     }
-    // 50-move clock and game-move count
+
+    // 5-6. 50-move clock and game-move count
     int32_t clk50 = 0, g_move = 1;
     if (full)
     {
         sfen >> skipws >> clk50 >> g_move;
     }
+
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;

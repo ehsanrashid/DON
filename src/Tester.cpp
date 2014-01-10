@@ -225,7 +225,7 @@ namespace Tester {
             Position pos (int8_t (0));
             Square s;
 
-            fen = FEN_N;
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             Position::parse (pos, fen);
             pos.fen (buf);
 
@@ -446,7 +446,7 @@ namespace Tester {
             const char *fen;
             Position pos (int8_t (0));
 
-            fen = FEN_N;
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             Position::parse (pos, fen);
 
             ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
@@ -454,7 +454,7 @@ namespace Tester {
             ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
             ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen));
 
-            fen = FEN_X;
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
             Position::parse (pos, fen, NULL, true);
 
             ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
