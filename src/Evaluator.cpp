@@ -84,12 +84,12 @@ namespace {
     // Values modified by Joona Kiiski
     const Score WeightsInternal[] =
     {
-        S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
+        //Mobility, PawnStructure, PassedPawns, Space, KingDanger_C, KingDanger_C_
+        S(289,344), S(233,201), S(221,273), S( 46,  0), S(271,  0), S(307,  0)
     };
 
-    // MobilityBonus[PType][attacked] contains bonuses for middle and end
-    // game, indexed by piece type and number of attacked squares not occupied by
-    // friendly pieces.
+    // MobilityBonus[PType][attacked] contains bonuses for middle and end game,
+    // indexed by piece type and number of attacked squares not occupied by friendly pieces.
     const Score MobilityBonus[PT_NO][32] =
     {
         {},
@@ -98,28 +98,29 @@ namespace {
         S( 27, 20), S( 37, 28), S( 42, 31), S( 44, 33)
         },
         // Bishops
-        {S(-22,-27), S(- 8,-13), S(  6,  1), S( 20, 15), S( 34, 29), S( 48, 43), S( 60, 55),
-        S( 68, 63), S( 74, 68), S( 77, 72), S( 80, 75), S( 82, 77), S( 84, 79), S( 86, 81)
+        {S(-22,-27), S(- 8,-13), S(  6,  1), S( 20, 15), S( 34, 29),
+        S( 48, 43), S( 60, 55), S( 68, 63), S( 74, 68), S( 77, 72),
+        S( 80, 75), S( 82, 77), S( 84, 79), S( 86, 81)
         },
         // Rooks
-        {S(-17,-33), S(-11,-16), S(- 5,  0), S(  1, 16), S(  7, 32), S( 13, 48),
-        S( 18, 64), S( 22, 80), S( 26, 96), S( 29,109), S( 31,115), S( 33,119),
-        S( 35,122), S( 36,123), S( 37,124),
+        {S(-17,-33), S(-11,-16), S(- 5,  0), S(  1, 16), S(  7, 32),
+        S( 13, 48), S( 18, 64), S( 22, 80), S( 26, 96), S( 29,109),
+        S( 31,115), S( 33,119), S( 35,122), S( 36,123), S( 37,124),
         },
         // Queens
-        {S(-12,-20), S(- 8,-13), S(- 5, -7), S(- 2,- 1), S( 1,  5), S(  4, 11),
-        S(  7, 17), S( 10, 23), S( 13, 29), S( 16, 34), S( 18, 38), S( 20, 40),
-        S( 22, 41), S( 23, 41), S( 24, 41), S( 25, 41), S( 25, 41), S( 25, 41),
-        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41),
-        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41)
+        {S(-12,-20), S(- 8,-13), S(- 5, -7), S(- 2,- 1), S( 1,  5),
+        S(  4, 11), S(  7, 17), S( 10, 23), S( 13, 29), S( 16, 34),
+        S( 18, 38), S( 20, 40), S( 22, 41), S( 23, 41), S( 24, 41),
+        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41),
+        S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41), S( 25, 41),
+        S( 25, 41), S( 25, 41), S( 25, 41)
         },
     };
 
     // OutpostBonus[PType][Square] contains bonuses of knights and bishops, indexed
     // by piece type and square (from white's point of view).
     const Value OutpostBonus[2][SQ_NO] =
-    {
-        // A     B     C     D     E     F     G     H
+    { // A     B     C     D     E     F     G     H
 
         // KNIGHTS
         {V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -145,7 +146,7 @@ namespace {
 
     // ThreatBonus[attacking][attacked] contains bonuses according to which piece
     // type attacks which one.
-    const Score ThreatBonus[][PT_NO] =
+    const Score ThreatBonus[2][PT_NO] =
     {
         { S(  0,  0), S(  7, 39), S( 24, 49), S( 24, 49), S( 41,100), S( 41,100) }, // Minor
         { S(  0,  0), S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49) }, // Major
@@ -181,7 +182,7 @@ namespace {
     // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
     // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
     // happen in Chess960 games.
-    const Score TrappedBishopA1H1 = S( 50, 50);
+    const Score TrappedBishopA1H1      = S( 50, 50);
 
 #undef S
 #undef V
@@ -991,7 +992,6 @@ namespace {
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-        // TODO::
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
         int32_t e = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
@@ -1001,14 +1001,9 @@ namespace {
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
     Score apply_weight (Score s, Score w)
     {
-        int32_t mgs = mg_value (s);
-        int32_t mgw = mg_value (w);
-        int32_t egs = eg_value (s);
-        int32_t egw = eg_value (w);
-
         return mk_score (
-            (int32_t (mg_value (s)) * mg_value (w)) / 0x100,
-            (int32_t (eg_value (s)) * eg_value (w)) / 0x100);
+            (int32_t (mg_value (s)) * int32_t (mg_value (w))) / 0x100,
+            (int32_t (eg_value (s)) * int32_t (eg_value (w))) / 0x100);
     }
 
     // weight_option () computes the value of an evaluation weight, by combining

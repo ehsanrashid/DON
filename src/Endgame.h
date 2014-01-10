@@ -12,7 +12,6 @@ namespace EndGame {
     typedef enum EndgameType
     {
         // Evaluation functions
-        KNNK,  // KNN vs K
         KXK,   // Generic "mate lone king" eval
         KBNK,  // KBN vs K
         KPK,   // KP vs K
@@ -22,25 +21,28 @@ namespace EndGame {
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
         KBBKN, // KBB vs KN
+        // DRAW Cases
+        KNNK,  // KNN vs K
         KmmKm, // K and two minors vs K and one or two minors
-
 
         // Scaling functions
         SCALE_FUNS,
 
-        KBPsK,   // KB+pawns vs K
+        // Generic Scaling functions
+        KBPsKs,  // KB+pawns vs K+s
         KQKRPs,  // KQ vs KR+pawns
+
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
         KPsK,    // King and pawns vs king
+        KPKP,    // KP vs KP
+        KNPK,    // KNP vs K
         //KBPKP,   // KBP vs KP
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPK,    // KNP vs K
         KNPKB,   // KNP vs KB
-        KPKP     // KP vs KP
 
     } EndgameType;
 
@@ -84,7 +86,6 @@ namespace EndGame {
         T operator() (const Position &pos) const;
 
     };
-
 
     // Endgames class stores in two std::map the pointers to endgame evaluation
     // and scaling base objects. Then we use polymorphism to invoke the actual

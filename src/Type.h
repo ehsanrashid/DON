@@ -420,11 +420,12 @@ typedef enum Phase : int16_t
 
 typedef enum ScaleFactor : uint8_t
 {
-    SCALE_FACTOR_DRAW    = 0,
-    SCALE_FACTOR_ONEPAWN = 48,
-    SCALE_FACTOR_NORMAL  = 64,
+    SCALE_FACTOR_DRAW    =   0,
+    SCALE_FACTOR_ONEPAWN =  48,
+    SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = 255
+    SCALE_FACTOR_NONE    = 255,
+
 } ScaleFactor;
 
 #pragma warning (pop)

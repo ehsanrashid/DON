@@ -387,128 +387,14 @@ namespace EndGame {
         return VALUE_DRAW;
     }
 
+
     // ---------------------------------------------------------
-    // Scale Factor is used when any side have some pawns
+    // Scaling functions are used when any side have some pawns
     // ---------------------------------------------------------
 
-    template<>
-    // KB and one or more pawns vs K. It checks for draws with rook pawns and
-    // a bishop of the wrong color. If such a draw is detected, SCALE_FACTOR_DRAW
-    // is returned. If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling
-    // will be used.
-    ScaleFactor Endgame<KBPsK>::operator() (const Position &pos) const
-    {
-        ASSERT (pos.non_pawn_material(_stong_side) == VALUE_MG_BISHOP);
-        //ASSERT (pos.piece_count<BSHP>(_stong_side) == 1);
-        ASSERT (pos.piece_count<PAWN>(_stong_side) >= 1);
-
-        // No assertions about the material of _weak_side, because we want draws to
-        // be detected even when the weaker side has some pawns.
-
-        Bitboard wpawns = pos.pieces (_stong_side, PAWN);
-        File wp_f = _file (pos.piece_list<PAWN>(_stong_side)[0]);
-
-        // All pawns are on a single rook file ?
-        if ((wp_f == F_A || wp_f == F_H) && !(wpawns & ~file_bb (wp_f)))
-        {
-            Square wb_sq = pos.piece_list<BSHP>(_stong_side)[0];
-            Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
-            Square bk_sq = pos.king_sq (_weak_side);
-
-            //if (   opposite_colors (queening_sq, wb_sq)
-            //    && file_dist (_file (bk_sq), wp_f) <= 1)
-            //{
-            //    // The bishop has the wrong color, and the defending king is on the
-            //    // file of the pawn(s) or the adjacent file. Find the rank of the
-            //    // frontmost pawn.
-            //    Square wp_sq = scan_rel_frntmost_sq (_stong_side, pawns);
-            //
-            //    // If the defending king has distance 1 to the promotion square or
-            //    // is placed somewhere in front of the pawn, it's a draw.
-            //    if (   square_dist (bk_sq, queening_sq) <= 1
-            //        || rel_rank (_weak_side, bk_sq) <= rel_rank (_weak_side, wp_sq))
-            //    {
-            //        return SCALE_FACTOR_DRAW;
-            //    }
-            //}
-
-            if (opposite_colors (queening_sq, wb_sq) &&
-                square_dist (queening_sq, bk_sq) <= 1)
-            {
-                return SCALE_FACTOR_DRAW;
-            }
-        }
-
-        // All pawns on same B or G file? Then potential draw
-        if ((wp_f == F_B || wp_f == F_G) &&
-            !(pos.pieces (PAWN) & ~file_bb (wp_f)) &&
-            (pos.non_pawn_material(_weak_side) == 0) &&
-            (pos.piece_count<PAWN>(_weak_side) >= 1))
-        {
-            // Get _weak_side pawn that is closest to home rank
-            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces (_weak_side, PAWN));
-
-            Square wk_sq = pos.king_sq (_stong_side);
-            Square bk_sq = pos.king_sq (_weak_side);
-            Square wb_sq = pos.piece_list<BSHP>(_stong_side)[0];
-
-            //// It's a draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
-            //// weaker king can stop opposing opponent's king from penetrating.
-            //if (   rel_rank (_stong_side, bp_sq) == R_7
-            //    && opposite_colors (wb_sq, bp_sq)
-            //    && square_dist (bp_sq, bk_sq) <= square_dist (bp_sq, wk_sq))
-            //    return SCALE_FACTOR_DRAW;
-
-            // There's potential for a draw if our pawn is blocked on the 7th rank
-            // the bishop cannot attack it or they only have one pawn left
-            if ((rel_rank (_stong_side, bp_sq) == R_7) &&
-                (pos.pieces (_stong_side, PAWN) & (bp_sq + pawn_push (_weak_side))) &&
-                (opposite_colors (wb_sq, bp_sq) || pos.piece_count<PAWN>(_stong_side) == 1))
-            {
-                int32_t wk_dist = square_dist (bp_sq, wk_sq);
-                int32_t bk_dist = square_dist (bp_sq, bk_sq);
-
-                // It's a draw if the weak king is on its back two ranks, within 2
-                // squares of the blocking pawn and the strong king is not
-                // closer. (I think this rule only fails in practically
-                // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
-                // and positions where qsearch will immediately correct the
-                // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
-                if (rel_rank (_stong_side, bk_sq) >= R_7 &&
-                    bk_dist <= 2 && bk_dist <= wk_dist)
-                {
-                    return SCALE_FACTOR_DRAW;
-                }
-            }
-        }
-
-        return SCALE_FACTOR_NONE;
-    }
-
-    template<>
-    // KQ vs KR and one or more pawns. It tests for fortress draws with
-    // a rook on the 3rd rank defended by a pawn.
-    ScaleFactor Endgame<KQKRPs>::operator() (const Position &pos) const
-    {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
-        ASSERT (pos.piece_count<ROOK>(_weak_side) == 1);
-        ASSERT (pos.piece_count<PAWN>(_weak_side) >= 1);
-
-        Square bk_sq = pos.king_sq (_weak_side);
-        Square br_sq = pos.piece_list<ROOK>(_weak_side)[0];
-
-        if (rel_rank (_weak_side, bk_sq) <= R_2 &&
-            rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4 &&
-            rel_rank (_weak_side, br_sq) == R_3 &&
-            (pos.pieces (_weak_side, PAWN) &
-            pos.attacks_from<KING>(bk_sq) &
-            pos.attacks_from<PAWN>(_stong_side, br_sq)))
-        {
-            return SCALE_FACTOR_DRAW;
-        }
-
-        return SCALE_FACTOR_NONE;
-    }
+    // ---------------------------------------------------------
+    // Special Scaling functions
+    // ---------------------------------------------------------
 
     template<>
     // KRP vs KR. This function knows a handful of the most important classes of
@@ -689,6 +575,7 @@ namespace EndGame {
             default: ASSERT (false);
             }
         }
+
         return SCALE_FACTOR_NONE;
     }
 
@@ -710,6 +597,54 @@ namespace EndGame {
         if (!(pawns & ~front_ranks_bb (_weak_side, _rank (bk_sq))) &&
             !((pawns & FA_bb_) && (pawns & FH_bb_)) &&
             file_dist (bk_sq, wp_sq) <= 1)
+        {
+            return SCALE_FACTOR_DRAW;
+        }
+
+        return SCALE_FACTOR_NONE;
+    }
+
+    template<>
+    // KP vs KP. This is done by removing the weakest side's pawn and probing the
+    // KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
+    // has at least a draw with the pawn as well. The exception is when the stronger
+    // side's pawn is far advanced and not on a rook file; in this case it is often
+    // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
+    ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
+    {
+        ASSERT (verify_material (pos, _stong_side, VALUE_ZERO, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO, 1));
+
+        // Assume _stong_side is white and the pawn is on files A-D
+        Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
+        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
+        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN>(_stong_side)[0]);
+
+        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
+
+        // If the pawn has advanced to the fifth rank or further, and is not a
+        // rook pawn, it's too dangerous to assume that it's at least a draw.
+        if (_rank (wp_sq) >= R_5 && _file (wp_sq) != F_A) return SCALE_FACTOR_NONE;
+
+        // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
+        // it's probably at least a draw even with the pawn.
+        return BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq)
+            ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+    }
+
+    template<>
+    // KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
+    // and the defending king prevents the pawn from advancing the position is drawn.
+    ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
+    {
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
+
+        // Assume _stong_side is white and the pawn is on files A-D
+        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN>(_stong_side)[0]);
+        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
+
+        if (wp_sq == SQ_A7 && square_dist (SQ_A8, bk_sq) <= 1)
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -816,6 +751,7 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_NONE;
             }
+            break;
 
         case 1:
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
@@ -840,10 +776,12 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_NONE;
             }
+            break;
 
         default:
             // The pawns are not on the same file or adjacent files. No scaling.
             return SCALE_FACTOR_NONE;
+            break;
         }
     }
 
@@ -863,24 +801,9 @@ namespace EndGame {
         if (_file (bk_sq) == _file (wp_sq) &&
             rel_rank (_stong_side, wp_sq) < rel_rank (_stong_side, bk_sq) &&
             (opposite_colors (bk_sq, wb_sq) || rel_rank (_stong_side, bk_sq) <= R_6))
+        {
             return SCALE_FACTOR_DRAW;
-
-        return SCALE_FACTOR_NONE;
-    }
-
-    template<>
-    // KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
-    // and the defending king prevents the pawn from advancing the position is drawn.
-    ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
-    {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
-
-        // Assume _stong_side is white and the pawn is on files A-D
-        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN>(_stong_side)[0]);
-        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
-
-        if (wp_sq == SQ_A7 && square_dist (SQ_A8, bk_sq) <= 1) return SCALE_FACTOR_DRAW;
+        }
 
         return SCALE_FACTOR_NONE;
     }
@@ -899,34 +822,135 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        return (front_squares_bb (_stong_side, wp_sq) & pos.attacks_from<BSHP>(wb_sq)) ?
-            ScaleFactor (square_dist (bk_sq, wp_sq)) : SCALE_FACTOR_NONE;
+        if (front_squares_bb (_stong_side, wp_sq) & pos.attacks_from<BSHP>(wb_sq))
+        {
+            return ScaleFactor (square_dist (bk_sq, wp_sq));
+        }
+
+        return SCALE_FACTOR_NONE;
+    }
+
+
+    // --------------------------------------------------------------
+    // Generic Scaling functions
+    // --------------------------------------------------------------
+
+    template<>
+    // KB and one or more pawns vs K.
+    // It checks for draws with rook pawns and a bishop of the wrong color.
+    // If such a draw is detected, SCALE_FACTOR_DRAW is returned.
+    // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
+    ScaleFactor Endgame<KBPsKs>::operator() (const Position &pos) const
+    {
+        ASSERT (pos.non_pawn_material(_stong_side) == VALUE_MG_BISHOP);
+        ASSERT (pos.piece_count<BSHP>(_stong_side) == 1);
+        ASSERT (pos.piece_count<PAWN>(_stong_side) >= 1);
+        // No assertions about the material of _weak_side, because we want draws to
+        // be detected even when the weaker side has some materials or pawns.
+
+        Bitboard wpawns = pos.pieces (_stong_side, PAWN);
+        File wp_f = _file (pos.piece_list<PAWN>(_stong_side)[0]);
+
+        // All pawns are on a single rook file ?
+        if ((wp_f == F_A || wp_f == F_H) && !(wpawns & ~file_bb (wp_f)))
+        {
+            Square wb_sq = pos.piece_list<BSHP>(_stong_side)[0];
+            Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
+            Square bk_sq = pos.king_sq (_weak_side);
+
+            //if (   opposite_colors (queening_sq, wb_sq)
+            //    && file_dist (_file (bk_sq), wp_f) <= 1)
+            //{
+            //    // The bishop has the wrong color, and the defending king is on the
+            //    // file of the pawn(s) or the adjacent file. Find the rank of the
+            //    // frontmost pawn.
+            //    Square wp_sq = scan_rel_frntmost_sq (_stong_side, pawns);
+            //
+            //    // If the defending king has distance 1 to the promotion square or
+            //    // is placed somewhere in front of the pawn, it's a draw.
+            //    if (   square_dist (bk_sq, queening_sq) <= 1
+            //        || rel_rank (_weak_side, bk_sq) <= rel_rank (_weak_side, wp_sq))
+            //    {
+            //        return SCALE_FACTOR_DRAW;
+            //    }
+            //}
+
+            if (opposite_colors (queening_sq, wb_sq) &&
+                square_dist (queening_sq, bk_sq) <= 1)
+            {
+                return SCALE_FACTOR_DRAW;
+            }
+        }
+
+        // All pawns on same B or G file? Then potential draw
+        if ((wp_f == F_B || wp_f == F_G) &&
+            !(pos.pieces (PAWN) & ~file_bb (wp_f)) &&
+            (pos.non_pawn_material(_weak_side) == 0) &&
+            (pos.piece_count<PAWN>(_weak_side) >= 1))
+        {
+            // Get _weak_side pawn that is closest to home rank
+            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces (_weak_side, PAWN));
+
+            Square wk_sq = pos.king_sq (_stong_side);
+            Square bk_sq = pos.king_sq (_weak_side);
+            Square wb_sq = pos.piece_list<BSHP>(_stong_side)[0];
+
+            //// It's a draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
+            //// weaker king can stop opposing opponent's king from penetrating.
+            //if (   rel_rank (_stong_side, bp_sq) == R_7
+            //    && opposite_colors (wb_sq, bp_sq)
+            //    && square_dist (bp_sq, bk_sq) <= square_dist (bp_sq, wk_sq))
+            //    return SCALE_FACTOR_DRAW;
+
+            // There's potential for a draw if our pawn is blocked on the 7th rank
+            // the bishop cannot attack it or they only have one pawn left
+            if ((rel_rank (_stong_side, bp_sq) == R_7) &&
+                (pos.pieces (_stong_side, PAWN) & (bp_sq + pawn_push (_weak_side))) &&
+                (opposite_colors (wb_sq, bp_sq) || pos.piece_count<PAWN>(_stong_side) == 1))
+            {
+                int32_t wk_dist = square_dist (bp_sq, wk_sq);
+                int32_t bk_dist = square_dist (bp_sq, bk_sq);
+
+                // It's a draw if the weak king is on its back two ranks, within 2
+                // squares of the blocking pawn and the strong king is not
+                // closer. (I think this rule only fails in practically
+                // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
+                // and positions where qsearch will immediately correct the
+                // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
+                if (rel_rank (_stong_side, bk_sq) >= R_7 &&
+                    bk_dist <= 2 && bk_dist <= wk_dist)
+                {
+                    return SCALE_FACTOR_DRAW;
+                }
+            }
+        }
+
+        return SCALE_FACTOR_NONE;
     }
 
     template<>
-    // KP vs KP. This is done by removing the weakest side's pawn and probing the
-    // KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
-    // has at least a draw with the pawn as well. The exception is when the stronger
-    // side's pawn is far advanced and not on a rook file; in this case it is often
-    // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
-    ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
+    // KQ vs KR and one or more pawns.
+    // It tests for fortress draws with a rook on the 3rd rank defended by a pawn.
+    ScaleFactor Endgame<KQKRPs>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_ZERO, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO, 1));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
+        ASSERT (pos.piece_count<ROOK>(_weak_side) == 1);
+        ASSERT (pos.piece_count<PAWN>(_weak_side) >= 1);
 
-        // Assume _stong_side is white and the pawn is on files A-D
-        Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
-        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
-        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN>(_stong_side)[0]);
+        Square bk_sq = pos.king_sq (_weak_side);
+        Square br_sq = pos.piece_list<ROOK>(_weak_side)[0];
 
-        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
+        if (rel_rank (_weak_side, bk_sq) <= R_2 &&
+            rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4 &&
+            rel_rank (_weak_side, br_sq) == R_3 &&
+            ( pos.pieces (_weak_side, PAWN)
+            & pos.attacks_from<KING>(bk_sq)
+            & pos.attacks_from<PAWN>(_stong_side, br_sq)))
+        {
+            return SCALE_FACTOR_DRAW;
+        }
 
-        // If the pawn has advanced to the fifth rank or further, and is not a
-        // rook pawn, it's too dangerous to assume that it's at least a draw.
-        if (_rank (wp_sq) >= R_5 && _file (wp_sq) != F_A) return SCALE_FACTOR_NONE;
-
-        // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
-        // it's probably at least a draw even with the pawn.
-        return BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq) ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+        return SCALE_FACTOR_NONE;
     }
+
 }

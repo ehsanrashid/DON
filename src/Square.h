@@ -174,7 +174,7 @@ inline Square rel_sq    (Color c, Square s)
 }
 inline bool opposite_colors (Square s1, Square s2)
 {
-    int8_t s = int8_t (s1) ^ int8_t (s2);
+    int8_t s = s1 ^ s2;
     return ((s >> 3) ^ s) & BLACK;
 }
 

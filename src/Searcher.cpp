@@ -276,12 +276,20 @@ namespace Searcher {
             pos.do_move (pv[ply++], *si++);
             te = TT.retrieve (pos.posi_key ());
 
-            // Local copy, TT could change
-            if (!te || MOVE_NONE == (m = te->move ())) break;
-            if (!pos.pseudo_legal (m) || !pos.legal (m)) break;
-            if (!(ply < MAX_PLY && (!pos.draw () || ply < 2))) break;
+            //// Local copy, TT could change
+            //if (!te || MOVE_NONE == (m = te->move ()) ||
+            //    !pos.pseudo_legal (m) || !pos.legal (m) ||
+            //    !(ply < MAX_PLY) || (pos.draw () && ply >= 1))
+            //{
+            //    break;
+            //}
         }
-        while (true);
+        while (te // Local copy, TT could change
+            && MOVE_NONE != (m = te->move ())
+            && pos.pseudo_legal (m)
+            && pos.legal (m)
+            && (ply < MAX_PLY)
+            && (!pos.draw () || ply < 2));
 
         pv.emplace_back (MOVE_NONE); // Must be zero-terminating
 
@@ -317,6 +325,7 @@ namespace Searcher {
 #endif
 
             pos.do_move (pv[ply++], *si++);
+
         }
         while (MOVE_NONE != pv[ply]);
 
@@ -1322,7 +1331,6 @@ moves_loop: // When in check and at SPNode search starts from here
                     {
                         ASSERT (value >= beta); // Fail high
                         if (SPNode) split_point->cut_off = true;
-
                         break;
                     }
                 }

@@ -45,8 +45,12 @@ namespace Material {
     // which checks for draws with rook pawns and wrong-colored bishops.
     inline ScaleFactor Entry::scale_factor (const Position &pos, Color c) const
     {
-        return (!scaling_func[c] || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE) ?
-            ScaleFactor (_factor[c]) : (*scaling_func[c]) (pos);
+        if (scaling_func[c])
+        {
+            ScaleFactor sf = (*scaling_func[c]) (pos);
+            return (SCALE_FACTOR_NONE == sf) ? ScaleFactor (_factor[c]) : sf;
+        }
+        return ScaleFactor (_factor[c]);
     }
 
 
