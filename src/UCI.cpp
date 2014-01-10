@@ -20,16 +20,14 @@ namespace UCI {
 
     using namespace std;
     using namespace Searcher;
+    using namespace MoveGenerator;
 
     typedef istringstream cmdstream;
 
-    // Root position
-    Position            rootPos(int8_t (0));
-
     namespace {
 
-        //// Root position
-        //Position            rootPos(int8_t (0));
+        // Root position
+        Position            rootPos (int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
@@ -42,7 +40,7 @@ namespace UCI {
 
         void exe_uci ()
         {
-            ats ()
+            cout
                 << Engine::info (true) 
                 << Options
                 << "uciok" << endl;
@@ -55,7 +53,7 @@ namespace UCI {
 
         void exe_isready ()
         {
-            ats () << "readyok" << endl;
+            cout << "readyok" << endl;
         }
 
         void exe_setoption (cmdstream &cstm)
@@ -87,7 +85,7 @@ namespace UCI {
                 }
                 else
                 {
-                    //ats () << "WHAT??? No such option: \'" << name << "\'";
+                    //cout << "WHAT??? No such option: \'" << name << "\'";
                 }
             }
         }
@@ -221,17 +219,53 @@ namespace UCI {
 
         void exe_print ()
         {
-            ats () << rootPos << endl;
+            cout << rootPos << endl;
         }
 
         void exe_key ()
         {
-            ats () << hex << uppercase << setfill ('0')
+            cout << hex << uppercase << setfill ('0')
                 << "fen: " << rootPos.fen () << endl
                 << "posi key: " << setw (16) << rootPos.posi_key () << endl
                 << "matl key: " << setw (16) << rootPos.matl_key () << endl
                 << "pawn key: " << setw (16) << rootPos.pawn_key ()
                 << dec << endl;
+        }
+
+        void exe_allmoves ()
+        {
+            MoveList mov_lst;
+
+            cout << "\nQuiet moves: ";
+            mov_lst = generate<QUIET>(rootPos);
+            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            {
+                cout << move_to_san (m, rootPos) << " ";
+            });
+
+            cout << "\nCheck moves: ";
+            mov_lst = generate<CHECK>(rootPos);
+            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            {
+                cout << move_to_san (m, rootPos) << " ";
+            });
+
+            cout << "\nQuiet Check moves: ";
+            mov_lst = generate<QUIET_CHECK>(rootPos);
+            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            {
+                cout << move_to_san (m, rootPos) << " ";
+            });
+
+
+            cout << "\nLegal moves: ";
+            mov_lst = generate<LEGAL>(rootPos);
+            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            {
+                cout << move_to_san (m, rootPos) << " ";
+            });
+
+            cout << endl;
         }
 
         void exe_flip ()
@@ -241,7 +275,7 @@ namespace UCI {
 
         void exe_eval ()
         {
-            ats () << Evaluator::trace (rootPos) << endl;
+            cout << Evaluator::trace (rootPos) << endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -304,6 +338,7 @@ namespace UCI {
                 else if (iequals (token, "debug"))      exe_debug (cstm);
                 else if (iequals (token, "print"))      exe_print ();
                 else if (iequals (token, "key"))        exe_key ();
+                else if (iequals (token, "allmoves"))   exe_allmoves ();
                 else if (iequals (token, "flip"))       exe_flip ();
                 else if (iequals (token, "eval"))       exe_eval ();
                 else if (iequals (token, "perft"))      exe_perft (cstm);
@@ -346,7 +381,7 @@ namespace UCI {
     //        if (copied != -1)
     //        {
     //            buf[copied] = '\0';
-    //            ats () << buf << endl;
+    //            cout << buf << endl;
     //        }
     //    }
     //    catch (...)

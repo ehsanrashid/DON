@@ -118,7 +118,7 @@ namespace MoveGenerator {
                 //template<CSide SIDE, bool CHESS960>
                 //void Generator<G, KING>::generate_castling (MoveList &mov_lst, const Position &pos, Color clr, const CheckInfo *ci)
             {
-                //static_assert ((EVASION != G) && (CHECK != G), "G must not be EVASION & CHECK");
+                //static_assert ((EVASION != G), "G must not be EVASION");
 
                 ASSERT (!pos.castle_impeded (clr, SIDE));
                 ASSERT (pos.can_castle (clr, SIDE));
@@ -217,14 +217,14 @@ namespace MoveGenerator {
                 default:      enemies = pos.pieces (C_);          break;
                 }
 
-                Bitboard empty = U64 (0);
+                Bitboard empties = U64 (0);
                 // Pawn single-push and double-push, no promotions
                 if ((CAPTURE != G))
                 {
-                    empty = ((QUIET == G) || (QUIET_CHECK == G) ? target : ~occ);
+                    empties = ((QUIET == G) || (QUIET_CHECK == G) ? target : ~occ);
 
-                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx) & empty;
-                    Bitboard push_2 = shift_del<PUSH> (push_1 & bbRR3) & empty;
+                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx   ) & empties;
+                    Bitboard push_2 = shift_del<PUSH> (push_1 & bbRR3) & empties;
 
                     switch (G)
                     {
@@ -251,8 +251,8 @@ namespace MoveGenerator {
                             // promotion has been already generated among captures.
                             if (pawns_chk_dis)
                             {
-                                Bitboard push_cd_1 = shift_del<PUSH>(pawns_chk_dis) & empty;
-                                Bitboard push_cd_2 = shift_del<PUSH>(push_cd_1 & bbRR3) & empty;
+                                Bitboard push_cd_1 = shift_del<PUSH>(pawns_chk_dis    ) & empties;
+                                Bitboard push_cd_2 = shift_del<PUSH>(push_cd_1 & bbRR3) & empties;
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -309,19 +309,17 @@ namespace MoveGenerator {
                     {
                         switch (G)
                         {
-                        case EVASION: empty &= target;        break;
-                        case CAPTURE: empty = ~pos.pieces (); break;
+                        case EVASION: empties &= target;        break;
+                        case CAPTURE: empties = ~pos.pieces (); break;
                         }
-
-                        //if ((CAPTURE != G))
-                        {
-                            generate_promotion<PUSH> (mov_lst, pawns_on_R7, empty, ci);
-                        }
-
-                        if ((QUIET != G) && (QUIET_CHECK != G))
+                        //if ((QUIET != G) && (QUIET_CHECK != G))
                         {
                             generate_promotion<LCAP> (mov_lst, pawns_on_R7, enemies, ci);
                             generate_promotion<RCAP> (mov_lst, pawns_on_R7, enemies, ci);
+                        }
+                        //if ((CAPTURE != G))
+                        {
+                            generate_promotion<PUSH> (mov_lst, pawns_on_R7, empties, ci);
                         }
                     }
                 }
@@ -334,7 +332,7 @@ namespace MoveGenerator {
                 //template<Delta D>
                 //void Generator<G, PAWN>::generate_promotion (MoveList &mov_lst, Bitboard pawns_on_R7, Bitboard target, const CheckInfo *ci)
             {
-                static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "D may be wrong");
+                static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "Value of Delta is wrong");
 
                 //if (pawns_on_R7)
                 {
@@ -358,11 +356,29 @@ namespace MoveGenerator {
 
                         // Knight-promotion is the only one that can give a direct check
                         // not already included in the queen-promotion (queening).
-                        if ((CHECK == G) || (QUIET_CHECK == G))
+                        if ((QUIET_CHECK == G) || (CHECK == G))
                         {
                             if (ci && attacks_bb<NIHT> (dst) & ci->king_sq)
                             {
                                 mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, NIHT));
+                            }
+                            if (CHECK == G)
+                            {
+                                if (ci)
+                                {
+                                    if (attacks_bb<BSHP> (dst, target) & ci->king_sq)
+                                    {
+                                        mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, BSHP));
+                                    }
+                                    if (attacks_bb<ROOK> (dst, target) & ci->king_sq)
+                                    {
+                                        mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, ROOK));
+                                    }
+                                    if (attacks_bb<QUEN> (dst, target) & ci->king_sq)
+                                    {
+                                        mov_lst.emplace_back (mk_move<PROMOTE> (org, dst, QUEN));
+                                    }
+                                }
                             }
                         }
                         else
@@ -472,7 +488,7 @@ namespace MoveGenerator {
         MoveList mov_lst;
 
         Color active    = pos.active ();
-        Bitboard empty  = ~pos.pieces ();
+        Bitboard empties  = ~pos.pieces ();
         CheckInfo ci (pos);
 
         Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
@@ -483,8 +499,8 @@ namespace MoveGenerator {
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
-            Bitboard moves = pos.attacks_from (Piece (pt), org) & empty;
-            
+            Bitboard moves = pos.attacks_from (Piece (pt), org) & empties;
+
             if (KING == pt) moves &= ~attacks_bb<QUEN> (ci.king_sq);
 
             SERIALIZE (mov_lst, org, moves);
@@ -492,8 +508,8 @@ namespace MoveGenerator {
 
         switch (active)
         {
-        case WHITE: generate_moves<WHITE, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
-        case BLACK: generate_moves<BLACK, QUIET_CHECK> (mov_lst, pos, empty, &ci); break;
+        case WHITE: generate_moves<WHITE, QUIET_CHECK> (mov_lst, pos, empties, &ci); break;
+        case BLACK: generate_moves<BLACK, QUIET_CHECK> (mov_lst, pos, empties, &ci); break;
         }
 
         return mov_lst;
