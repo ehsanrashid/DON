@@ -551,7 +551,7 @@ bool Position::ok (int8_t *failed_step) const
 // It tries to estimate the material gain or loss resulting from a move.
 int32_t Position::see      (Move m) const
 {
-    ASSERT (_ok(m));
+    //ASSERT (_ok (m));
 
     Square org = org_sq(m);
     Square dst = dst_sq(m);
@@ -642,7 +642,7 @@ int32_t Position::see      (Move m) const
 
 int32_t Position::see_sign (Move m) const
 {
-    ASSERT (_ok(m));
+    //ASSERT (_ok (m));
 
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
@@ -663,7 +663,7 @@ int32_t Position::see_sign (Move m) const
 // moved_piece() return piece moved on move
 Piece Position::   moved_piece (Move m) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     //if (!_ok (m)) return PS_NO;
 
     return _piece_arr[org_sq (m)];
@@ -671,14 +671,14 @@ Piece Position::   moved_piece (Move m) const
 // captured_piece() return piece captured by moving piece
 Piece Position::captured_piece (Move m) const
 {
-    ASSERT (_ok (m));
-    if (!_ok (m)) return PS_NO;
+    //ASSERT (_ok (m));
+    //if (!_ok (m)) return PS_NO;
 
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
-    Color pasive = ~_active;
-    Piece p  = _piece_arr[org];
-    PType pt = p_type (p);
+    Square org  = org_sq (m);
+    Square dst  = dst_sq (m);
+
+    Piece p     = _piece_arr[org];
+    PType pt    = p_type (p);
 
     Square cap = dst;
 
@@ -691,7 +691,7 @@ Piece Position::captured_piece (Move m) const
         {
             cap += ((WHITE == _active) ? DEL_S : DEL_N);
 
-            Bitboard captures = attacks_bb<PAWN> (pasive, _si->en_passant) & pieces (_active, PAWN);
+            Bitboard captures = attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN);
 
             return (captures) ? _piece_arr[cap] : PS_NO;
         }
@@ -709,7 +709,7 @@ Piece Position::captured_piece (Move m) const
         {
             // check not pawn push and can capture
             if (file_dist (dst, org) != 1) return PS_NO;
-            Bitboard captures = attacks_bb<PAWN> (pasive, dst) & pieces (_active);
+            Bitboard captures = attacks_bb<PAWN> (~_active, dst) & pieces (_active);
             return ((captures) ? _piece_arr[cap] : PS_NO);
         }
         return _piece_arr[cap];
@@ -724,7 +724,9 @@ Piece Position::captured_piece (Move m) const
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
+    //ASSERT (_ok (m));
     if (!_ok (m)) return false;
+    
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
@@ -945,7 +947,7 @@ bool Position::pseudo_legal (Move m) const
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::       legal (Move m, Bitboard pinned) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
 
@@ -1025,7 +1027,7 @@ bool Position::       legal (Move m) const
 // capture(m) tests move is capture
 bool Position::capture (Move m) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
 
     MType mt = m_type (m);
     switch (mt)
@@ -1050,7 +1052,7 @@ bool Position::capture (Move m) const
 // capture_or_promotion(m) tests move is capture or promotion
 bool Position::capture_or_promotion (Move m) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
 
     //MType mt = m_type (m);
     //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
@@ -1071,7 +1073,7 @@ bool Position::capture_or_promotion (Move m) const
 // check(m) tests whether a pseudo-legal move gives a check
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     ASSERT (p_color (moved_piece(m)) == _active);
     ASSERT (ci.check_discovers == check_discovers (_active));
 
@@ -1138,7 +1140,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
 bool Position::checkmate (Move m, const CheckInfo &ci) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     if (!check (m, ci)) return false;
 
     Position pos = *this;
@@ -1419,7 +1421,7 @@ void Position::castle_king_rook (Square org_king, Square dst_king, Square org_ro
 // do_move() do the move with checking info
 void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     ASSERT (&si_n != _si);
 
     Key posi_k = _si->posi_key;
@@ -1701,7 +1703,7 @@ void Position::undo_move ()
     if (NULL == _si->p_si) return;
 
     Move m = _si->last_move;
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);

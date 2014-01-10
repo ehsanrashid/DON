@@ -93,16 +93,21 @@ inline Move mk_move (Square org, Square dst)
 
 inline bool _ok (Move m)
 {
-    if (MOVE_NONE == m) return false;
-    if (MOVE_NULL == m) return false;
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
-    if (org == dst) return false;
+    //if (MOVE_NONE == m || MOVE_NULL == m) return false;
+    //
+    //Square org = org_sq (m);
+    //Square dst = dst_sq (m);
+    //if (org == dst) return false;
+    //
+    //uint8_t del_f = BitBoard::file_dist (org, dst);
+    //uint8_t del_r = BitBoard::rank_dist (org, dst);
+    //if (del_f == del_r ||
+    //    0 == del_f || 0 == del_r ||
+    //    5 == del_f*del_f + del_r*del_r) return true;
+    //
+    //return false;
 
-    uint8_t del_f = BitBoard::file_dist (org, dst);
-    uint8_t del_r = BitBoard::rank_dist (org, dst);
-    if (del_f == del_r || 0 == del_f || 0 == del_r || 5 == del_f*del_f + del_r*del_r) return true;
-    return false;
+    return (org_sq (m) != dst_sq (m));
 }
 
 //inline std::string to_string (Move m, bool c960 = false)

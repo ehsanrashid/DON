@@ -285,7 +285,7 @@ namespace Searcher {
             //}
         }
         while (te // Local copy, TT could change
-            && MOVE_NONE != (m = te->move ())
+            && (m = te->move ())
             && pos.pseudo_legal (m)
             && pos.legal (m)
             && (ply < MAX_PLY)

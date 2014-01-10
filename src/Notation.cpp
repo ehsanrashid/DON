@@ -164,7 +164,8 @@ string move_to_can (Move m, bool c960)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
-    if (!_ok (m))      return "(xxxx)";
+    //if (!_ok (m))       return "(xxxx)";
+
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     MType mt   = m_type (m);
@@ -421,7 +422,7 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
-        if (!_ok (m)) return;
+        //if (!_ok (m)) return;
 
         string san = move_to_san (m, pos);
 
@@ -440,7 +441,8 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
-        if (_ok (m)) pos.undo_move ();
+        //if (!_ok (m)) return;
+        pos.undo_move ();
     });
 
     return spv.str();
