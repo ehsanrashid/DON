@@ -139,6 +139,8 @@ public:
 
 #pragma region Position
 
+extern const std::string PieceChar;
+
 extern const Value PieceValue[PHASE_NO][PT_ALL];
 
 //#pragma pack (push, 4)
@@ -362,8 +364,8 @@ public:
 
 #pragma region Move properties
 
-    Piece    moved_piece (Move m)               const;
-    Piece captured_piece (Move m)               const;
+    Piece moved_piece (Move m)               const;
+    //Piece captured_piece (Move m)               const;
 
     bool pseudo_legal (Move m)                  const;
     bool        legal (Move m, Bitboard pinned) const;
@@ -373,7 +375,7 @@ public:
     bool check     (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
 
-    bool   passed_pawn_push (Move m)            const;
+    //bool   passed_pawn_push (Move m)            const;
     bool advanced_pawn_push (Move m)            const;
 
 #pragma endregion
@@ -559,16 +561,20 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
     Bitboard occ = _types_bb[PT_NO];
-    switch (cs)
-    {
-    case CS_K:
-    case CS_Q:
-        return (_castle_paths[c][cs] & occ);
-        break;
-    default:
-        return (_castle_paths[c][CS_K] & occ) && (_castle_paths[c][CS_Q] & occ);
-        break;
-    }
+
+    //switch (cs)
+    //{
+    //case CS_K:
+    //case CS_Q:
+    //    return (_castle_paths[c][cs] & occ);
+    //default:
+    //    return (_castle_paths[c][CS_K] & occ) && (_castle_paths[c][CS_Q] & occ);
+    //}
+
+    return (CS_K == c || CS_Q == c)
+        ?  (_castle_paths[c][cs]   & occ)
+        :  (_castle_paths[c][CS_K] & occ)
+        && (_castle_paths[c][CS_Q] & occ);
 }
 
 #pragma endregion
@@ -604,22 +610,26 @@ template<PType PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
-    switch (PT)
-    {
-    case PAWN:
-        return BitBoard::attacks_bb<PAWN> (_active, s);
-        break;
-    case NIHT:
-    case KING:
-        return BitBoard::attacks_bb<PT> (s);
-        break;
-    case BSHP:
-    case ROOK:
-    case QUEN:
-        return BitBoard::attacks_bb<PT> (s, _types_bb[PT_NO]);
-        break;
-    }
-    return U64 (0);
+    //switch (PT)
+    //{
+    //case PAWN:
+    //    return BitBoard::_attacks_pawn_bb[_active][s];
+    //case NIHT:
+    //case KING:
+    //    return BitBoard::_attacks_type_bb[PT][s];
+    //case BSHP:
+    //case ROOK:
+    //    return BitBoard::attacks_bb<PT> (s, _types_bb[PT_NO]);
+    //case QUEN:
+    //    return BitBoard::attacks_bb<BSHP>(s, _types_bb[PT_NO])
+    //        |  BitBoard::attacks_bb<ROOK>(s, _types_bb[PT_NO]);
+    //}
+    //return U64 (0);
+
+    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT>(s, _types_bb[PT_NO])
+        : (QUEN == PT) ? BitBoard::attacks_bb<BSHP>(s, _types_bb[PT_NO]) | BitBoard::attacks_bb<ROOK>(s, _types_bb[PT_NO])
+        : (PAWN == PT) ? BitBoard::_attacks_pawn_bb[_active][s]
+    : BitBoard::_attacks_type_bb[PT][s];
 }
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
@@ -735,14 +745,18 @@ inline bool Position::opposite_bishops () const
 #pragma region Move properties
 
 // moved_piece() return piece moved on move
-inline Piece Position::   moved_piece (Move m) const
+inline Piece Position::moved_piece (Move m) const
 {
+    //ASSERT (_ok (m));
+    
     return _piece_arr[org_sq (m)];
 }
 
 //// captured_piece() return piece captured by moving piece
 //inline Piece Position::captured_piece (Move m) const
 //{
+//    //ASSERT (_ok (m));
+//
 //    Square org  = org_sq (m);
 //    Square dst  = dst_sq (m);
 //
@@ -753,8 +767,8 @@ inline Piece Position::   moved_piece (Move m) const
 //
 //    switch (m_type (m))
 //    {
-//    case CASTLE:   return PS_NO; break;
-//
+//    case CASTLE:
+//        return PS_NO;
 //    case ENPASSANT:
 //        if (PAWN == pt)
 //        {
@@ -763,25 +777,24 @@ inline Piece Position::   moved_piece (Move m) const
 //                _piece_arr[cap] : PS_NO;
 //        }
 //        return PS_NO;
-//        break;
 //
 //    case PROMOTE:
-//        if (PAWN != pt) return PS_NO;
-//        if (R_7 != rel_rank (_active, org)) return PS_NO;
-//        if (R_8 != rel_rank (_active, dst)) return PS_NO;
-//
+//        if (PAWN != pt
+//         || R_7 != rel_rank (_active, org)
+//         || R_8 != rel_rank (_active, dst))
+//        {
+//            return PS_NO;
+//        }
 //        // NOTE: no break
 //    case NORMAL:
 //        if (PAWN == pt)
 //        {
 //            // check not pawn push and can capture
-//            if (1 != BitBoard::file_dist (dst, org)) return PS_NO;
-//            return (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active)) ?
-//                _piece_arr[cap] : PS_NO;
+//            return (1 == BitBoard::file_dist (dst, org))
+//                && (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active))
+//                ? _piece_arr[cap] : PS_NO;
 //        }
 //        return _piece_arr[cap];
-//
-//        break;
 //    }
 //    return PS_NO;
 //}
@@ -795,51 +808,52 @@ inline bool Position::       legal (Move m) const
 inline bool Position::capture (Move m) const
 {
     //ASSERT (_ok (m));
-    MType mt = m_type (m);
-    switch (mt)
-    {
-    case CASTLE:
-        return false;
-        break;
-    case ENPASSANT:
-        return  (SQ_NO != _si->en_passant);
-        break;
 
-    case NORMAL:
-    case PROMOTE:
-        {
-            Piece p = _piece_arr[dst_sq (m)];
-            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
-        }
-        break;
-    }
-    return false;
+    //MType mt = m_type (m);
+    //switch (mt)
+    //{
+    //case CASTLE:
+    //    return false;
+    //case ENPASSANT:
+    //    return _ok (_si->en_passant);
+    //case NORMAL:
+    //case PROMOTE:
+    //    return !empty (dst_sq (m));
+    //}
+    //return false;
+
+    MType mt = m_type (m);
+    //return (!empty (dst_sq (m)) && CASTLE != mt)
+    //    || (ENPASSANT == mt && _ok (_si->en_passant));
+    return (NORMAL == mt || PROMOTE == mt)
+        ?  !empty (dst_sq (m))
+        :  (ENPASSANT == mt && _ok (_si->en_passant));
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion (Move m) const
 {
     //ASSERT (_ok (m));
 
-    //MType mt = m_type (m);
-    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
-    switch (m_type (m))
-    {
-    case CASTLE:    return false; break;
-    case PROMOTE:   return true;  break;
-    case ENPASSANT: return (SQ_NO != _si->en_passant); break;
-    case NORMAL:
-        {
-            Piece p = _piece_arr[dst_sq (m)];
-            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
-        }
-    }
-    return false;
+    //switch (m_type (m))
+    //{
+    //case CASTLE:    return false;
+    //case PROMOTE:   return true;
+    //case ENPASSANT: return _ok (_si->en_passant);
+    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == p_color (p)) && (KING != p_type (p));
+    //}
+    //return false;
+
+    MType mt = m_type (m);
+    return (NORMAL == mt)
+        ?  !empty (dst_sq (m))
+        :  (ENPASSANT == mt && _ok (_si->en_passant))
+        || (CASTLE != mt);
 }
 
-inline bool Position::  passed_pawn_push (Move m) const
-{
-    return (PAWN == p_type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
-}
+//inline bool Position::  passed_pawn_push (Move m) const
+//{
+//    return (PAWN == p_type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
+//}
 inline bool Position::advanced_pawn_push (Move m) const
 {
     return (PAWN == p_type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));

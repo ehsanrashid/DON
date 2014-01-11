@@ -320,14 +320,13 @@ namespace BitBoard {
         PType pt = p_type (p);
         switch (pt)
         {
-        case PAWN: return attacks_bb<PAWN> (p_color (p), s); break;
-        case BSHP: return attacks_bb<BSHP>(s, occ); break;
-        case ROOK: return attacks_bb<ROOK>(s, occ); break;
-        case QUEN: return attacks_bb<QUEN>(s, occ); break;
-        //case NIHT: return attacks_bb<NIHT>(s);      break;
-        //case KING: return attacks_bb<KING>(s);      break;
-        case NIHT: 
-        case KING: return _attacks_type_bb[pt][s];  break;
+        case PAWN: return _attacks_pawn_bb[p_color (p)][s];
+        case BSHP: return attacks_bb<BSHP>(s, occ);
+        case ROOK: return attacks_bb<ROOK>(s, occ);
+        case QUEN: return attacks_bb<BSHP>(s, occ)
+                       |  attacks_bb<ROOK>(s, occ);
+        case NIHT:
+        case KING: return _attacks_type_bb[pt][s];
         }
         return U64 (0);
     }
