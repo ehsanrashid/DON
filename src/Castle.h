@@ -32,9 +32,9 @@ inline CRight can_castle (CRight cr, Color c, CSide cs)
     return (cr & mk_castle_right (c, cs));
 }
 
-inline ::std::string to_string (CRight cr)
+inline std::string to_string (CRight cr)
 {
-    ::std::string scastle;
+    std::string scastle;
     if (can_castle (cr, CR_A))
     {
         if (can_castle (cr, CR_W))

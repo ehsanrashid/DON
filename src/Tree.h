@@ -63,7 +63,7 @@ public:
 };
 
 //template<class T>
-//inline ::std::ostream& operator<< (std::ostream &ostream, const Tree<T> &tree)
+//inline std::ostream& operator<< (std::ostream &ostream, const Tree<T> &tree)
 //{
 //    tree.print (ostream, 0);
 //    return ostream;

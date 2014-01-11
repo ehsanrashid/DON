@@ -172,7 +172,7 @@ inline std::basic_ostream<charT, Traits>&
 //    MoveStack stk_dup = stk_move;
 //    while (!stk_dup.empty ())
 //    {
-//        os << stk_dup.top () << ::std::endl;
+//        os << stk_dup.top () << std::endl;
 //        stk_dup.pop ();
 //    }
 //    return os;
