@@ -1203,6 +1203,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     case CASTLE:
         ASSERT (KING == pt);
         ASSERT (ROOK == p_type (_piece_arr[dst]));
+
         ct = PT_NO;
         break;
 
@@ -1223,6 +1224,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (PAWN == pt);        // Moving type must be PAWN
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
+
         ct = p_type (_piece_arr[cap]);
         ASSERT (PAWN != ct);
         break;
@@ -1248,7 +1250,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     {
         // Remove captured piece
         remove_piece (cap);
-
         // If the captured piece is a pawn
         if (PAWN == ct) // Update pawn hash key
         {
@@ -1258,17 +1259,13 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         {
             _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
         }
-
         // Update Hash key of material situation and prefetch access to material_table
         _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][_piece_count[pasive][ct]];
         if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
-
         // Update Hash key of position
         posi_k ^= ZobGlob._.psq_k[pasive][ct][cap];
-
         // Update incremental scores
         _si->psq_score -= psq[pasive][ct][cap];
-
         // Reset Rule-50 draw counter
         _si->clock50 = 0;
     }
@@ -1332,14 +1329,14 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     case ENPASSANT:
     case NORMAL:
-
+        // Move the piece
         move_piece (org, dst);
 
+        // Update pawns hash key
         if (PAWN == pt)
-        {
-            // Update pawns hash key
-            _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org] ^ ZobGlob._.psq_k[active][PAWN][dst];
-        }
+            _si->pawn_key ^=
+            ZobGlob._.psq_k[active][PAWN][org] ^
+            ZobGlob._.psq_k[active][PAWN][dst];
 
         posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
@@ -1369,23 +1366,22 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (NORMAL == mt)
         {
             // Direct check ?
-            if (ci->checking_bb[pt] & dst)
-            {
-                _si->checkers += dst;
-            }
+            if (ci->checking_bb[pt] & dst) _si->checkers += dst;
+
             // Discovery check ?
             if (QUEN != pt)
             {
                 if ((ci->check_discovers) && (ci->check_discovers & org))
                 {
                     if (ROOK != pt)
-                    {
-                        _si->checkers |= attacks_from<ROOK> (king_sq (pasive)) & pieces (active, QUEN, ROOK);
-                    }
+                        _si->checkers |=
+                        attacks_from<ROOK> (king_sq (pasive)) &
+                        pieces (active, QUEN, ROOK);
+
                     if (BSHP != pt)
-                    {
-                        _si->checkers |= attacks_from<BSHP> (king_sq (pasive)) & pieces (active, QUEN, BSHP);
-                    }
+                        _si->checkers |=
+                            attacks_from<BSHP> (king_sq (pasive)) &
+                            pieces (active, QUEN, BSHP);
                 }
             }
         }
@@ -1419,7 +1415,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Update the key with the final value
     _si->posi_key   = posi_k;
-
     _si->cap_type   = ct;
     _si->last_move  = m;
     _si->null_ply++;
