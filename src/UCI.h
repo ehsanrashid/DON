@@ -10,8 +10,6 @@
 
 namespace UCI {
 
-    using ::std::string;
-
     namespace OptionType {
 
         // Option class implements an option as defined by UCI protocol
@@ -31,14 +29,14 @@ namespace UCI {
             Option (const OnChange on_change = NULL);
             virtual ~Option ();
 
-            virtual string operator() ()  const   = NULL;
+            virtual std::string operator() ()  const   = NULL;
 
             virtual operator bool ()        const { return bool (); }
             virtual operator int32_t ()     const { return int32_t (); }
-            virtual operator string () const { return string (); }
+            virtual operator std::string () const { return std::string (); }
 
-            virtual Option& operator= (char   *v) = NULL;
-            virtual Option& operator= (string &v) = NULL;
+            //virtual Option& operator= (char   *v) = NULL;
+            virtual Option& operator= (std::string &v) = NULL;
 
         } Option;
 
@@ -47,10 +45,10 @@ namespace UCI {
         public:
             ButtonOption (const OnChange on_change = NULL);
 
-            string operator() ()  const;
+            std::string operator() ()  const;
 
-            Option& operator= (char   *v);
-            Option& operator= (string &v);
+            //Option& operator= (char   *v);
+            Option& operator= (std::string &v);
 
         } ButtonOption;
 
@@ -62,27 +60,27 @@ namespace UCI {
 
             CheckOption (const bool val, const OnChange on_change = NULL);
 
-            string operator() ()  const;
+            std::string operator() ()  const;
             virtual operator bool () const;
 
-            Option& operator= (char   *v);
-            Option& operator= (string &v);
+            //Option& operator= (char   *v);
+            Option& operator= (std::string &v);
 
         }  CheckOption;
 
         typedef class StringOption : public Option
         {
         public:
-            string default;
-            string value;
+            std::string default;
+            std::string value;
 
             StringOption (const char val[], const OnChange on_change = NULL);
 
-            string operator() ()  const;
-            operator string () const;
+            std::string operator() ()  const;
+            operator std::string () const;
 
-            Option& operator= (char   *v);
-            Option& operator= (string &v);
+            //Option& operator= (char   *v);
+            Option& operator= (std::string &v);
 
         } StringOption;
 
@@ -95,11 +93,11 @@ namespace UCI {
 
             SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
 
-            string operator() ()  const;
+            std::string operator() ()  const;
             operator int32_t () const;
 
-            Option& operator= (char   *v);
-            Option& operator= (string &v);
+            //Option& operator= (char   *v);
+            Option& operator= (std::string &v);
 
         }   SpinOption;
 
@@ -110,10 +108,10 @@ namespace UCI {
 
             ComboOption (const OnChange on_change = NULL);
 
-            string operator() ()  const;
+            std::string operator() ()  const;
 
-            Option& operator= (char   *v);
-            Option& operator= (string &v);
+            //Option& operator= (char   *v);
+            Option& operator= (std::string &v);
 
         }  ComboOption;
 
@@ -136,17 +134,17 @@ namespace UCI {
 
     }
 
-    //typedef ::std::shared_ptr<OptionType::Option> OptionPtr;
-    typedef ::std::unique_ptr<OptionType::Option> OptionPtr;
+    //typedef std::shared_ptr<OptionType::Option> OptionPtr;
+    typedef std::unique_ptr<OptionType::Option> OptionPtr;
 
-    typedef ::std::map<string, OptionPtr, ::std::string_less_nocase_comparer> OptionMap;
+    typedef std::map<std::string, OptionPtr, std::string_less_nocase_comparer> OptionMap;
 
     extern void  initialize ();
     extern void deinitialize ();
 
     template<class charT, class Traits>
-    inline ::std::basic_ostream<charT, Traits>&
-        operator<< (::std::basic_ostream<charT, Traits> &os, const OptionMap &options)
+    inline std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
@@ -155,7 +153,7 @@ namespace UCI {
                 if (idx == itr->second->index)
                 {
                     const OptionType::Option *opt = itr->second.get ();
-                    os << "option name " << itr->first << " " << opt << ::std::endl;
+                    os << "option name " << itr->first << " " << opt << std::endl;
                     break;
                 }
             }
@@ -165,7 +163,7 @@ namespace UCI {
 
     // ---------------------------------------------
 
-    extern void start (const string &args = "");
+    extern void start (const std::string &args = "");
     extern void stop ();
 }
 

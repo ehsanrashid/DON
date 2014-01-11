@@ -3,7 +3,6 @@
 #include <iostream>
 #include <cstdarg>
 
-#include "xcstring.h"
 #include "xstring.h"
 #include "atomicstream.h"
 

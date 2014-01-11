@@ -131,6 +131,8 @@ PolyglotBook::PolyglotBook()
     , _size_book (0)
     , _rkiss ()
 {}
+
+#ifdef _DEBUG
 PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
@@ -138,6 +140,7 @@ PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     , _size_book (0)
     , _rkiss ()
 {}
+#endif
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
@@ -155,6 +158,7 @@ PolyglotBook::~PolyglotBook ()
 // mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
+#ifdef _DEBUG
 bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
 {
     close ();
@@ -164,6 +168,7 @@ bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
     _mode    = mode;
     return fstream::is_open ();
 }
+#endif
 bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 {
     close ();

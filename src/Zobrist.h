@@ -50,7 +50,9 @@ namespace Zobrist {
         Key compute_posi_key (const Position &pos) const;
 
         // Hash key of the FEN
+#ifdef _DEBUG
         Key compute_fen_key (const        char *fen, bool c960 = false) const;
+#endif
         Key compute_fen_key (const std::string &fen, bool c960 = false) const;
 
     } Zob;

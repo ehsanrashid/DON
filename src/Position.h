@@ -35,7 +35,9 @@ extern const std::string FEN_N;
 extern const std::string FEN_X;
 
 // Check the validity of FEN string
+#ifdef _DEBUG
 extern bool _ok (const        char *fen, bool c960 = false, bool full = true);
+#endif
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
 #pragma endregion
@@ -96,18 +98,6 @@ public:
     Bitboard checkers;
 
     StateInfo *p_si;
-
-    void clear ();
-
-    operator std::string () const;
-
-    template<class charT, class Traits>
-    friend std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const StateInfo &si)
-    {
-        os << std::string (si);
-        return os;
-    }
 
 } StateInfo;
 
@@ -219,10 +209,12 @@ public:
 #pragma region Constructors
 
     Position () { clear (); }
+#ifdef _DEBUG
     Position (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (fen, thread, c960, full)) clear ();
     }
+#endif
     Position (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (fen, thread, c960, full)) clear ();
@@ -413,7 +405,9 @@ public:
     void  remove_piece (Square s);
     void    move_piece (Square s1, Square s2);
 
+#ifdef _DEBUG
     bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+#endif
     bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
 
     void flip ();
@@ -442,12 +436,16 @@ public:
 
 #pragma region Conversions
 
+#ifdef _DEBUG
     bool        fen (const char *fen, bool c960 = false, bool full = true) const;
+#endif
     std::string fen (bool                  c960 = false, bool full = true) const;
 
     operator std::string () const;
 
+#ifdef _DEBUG
     static bool parse (Position &pos, const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+#endif
     static bool parse (Position &pos, const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
 
 #pragma endregion

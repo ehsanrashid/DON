@@ -42,42 +42,6 @@ bool _ok (const string &fen, bool c960, bool full)
 
 #pragma endregion
 
-#pragma region StateInfo
-
-// do_move() copy current state info up to 'posi_key' excluded to the new one.
-// calculate the quad words (64bits) needed to be copied.
-const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key); // / sizeof (uint32_t);// + 1;
-//const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key) / sizeof (uint64_t) + 1;
-
-void StateInfo::clear ()
-{
-    castle_rights = CR_NO;
-    en_passant  = SQ_NO;
-    cap_type    = PT_NO;
-    clock50     = 0;
-    null_ply    = 0;
-
-    last_move = MOVE_NONE;
-
-    checkers = U64 (0);
-
-    matl_key = U64 (0);
-    pawn_key = U64 (0);
-    posi_key = U64 (0);
-    non_pawn_matl[WHITE] = VALUE_ZERO;
-    non_pawn_matl[BLACK] = VALUE_ZERO;
-    psq_score = SCORE_ZERO;
-
-    p_si    = NULL;
-}
-
-StateInfo::operator string () const
-{
-    return "";
-}
-
-#pragma endregion
-
 #pragma region CheckInfo
 
 //void CheckInfo::clear ()
@@ -101,6 +65,10 @@ const Value PieceValue[PHASE_NO][PT_ALL] =
 };
 
 namespace {
+
+    // do_move() copy current state info up to 'posi_key' excluded to the new one.
+    // calculate the quad words (64bits) needed to be copied.
+    const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key);
 
     const string PieceToChar("PNBRQK  pnbrqk");
 
@@ -1206,7 +1174,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
     memcpy (&si_n, _si, SIZE_COPY_STATE);
-    //memcpy (&si_n, _si, SIZE_COPY_STATE * sizeof (uint64_t));
 
     // switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;

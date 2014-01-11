@@ -1,6 +1,9 @@
 #include "Tester.h"
 #include <iostream>
+
+#ifdef _DEBUG
 #include "xcstring.h"
+#endif
 #include "xstring.h"
 
 #include "Castle.h"
@@ -633,4 +636,5 @@ namespace Tester {
     }
 
 #endif
+
 }

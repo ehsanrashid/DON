@@ -4,7 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
-#include "xcstring.h"
+//#include "xcstring.h"
 #include "xstring.h"
 
 #include "Transposition.h"
@@ -42,11 +42,11 @@ namespace UCI {
         {
             return string ("type button");
         }
-        Option& ButtonOption::operator= (char   *v)
-        {
-            if (_on_change) _on_change (*this);
-            return *this;
-        }
+        //Option& ButtonOption::operator= (char   *v)
+        //{
+        //    if (_on_change) _on_change (*this);
+        //    return *this;
+        //}
         Option& ButtonOption::operator= (string &v)
         {
             if (_on_change) _on_change (*this);
@@ -66,17 +66,17 @@ namespace UCI {
         {
             return value;
         }
-        Option& CheckOption::operator= (char   *v)
-        {
-            if (whitespace (v)) return *this;
-            bool val = iequals (v, "true");
-            if (value != val)
-            {
-                value = val;
-                if (_on_change) _on_change (*this);
-            }
-            return *this;
-        }
+        //Option& CheckOption::operator= (char   *v)
+        //{
+        //    if (whitespace (v)) return *this;
+        //    bool val = iequals (v, "true");
+        //    if (value != val)
+        //    {
+        //        value = val;
+        //        if (_on_change) _on_change (*this);
+        //    }
+        //    return *this;
+        //}
         Option& CheckOption::operator= (string &v)
         {
             if (whitespace (v)) return *this;
@@ -102,15 +102,15 @@ namespace UCI {
         {
             return whitespace (value) ? "<empty>" : value;
         }
-        Option& StringOption::operator= (char   *v)
-        {
-            if (value != v)
-            {
-                value = v;
-                if (_on_change) _on_change (*this);
-            }
-            return *this;
-        }
+        //Option& StringOption::operator= (char   *v)
+        //{
+        //    if (value != v)
+        //    {
+        //        value = v;
+        //        if (_on_change) _on_change (*this);
+        //    }
+        //    return *this;
+        //}
         Option& StringOption::operator= (string &v)
         {
             if (value != v)
@@ -138,21 +138,21 @@ namespace UCI {
         {
             return value;
         }
-        Option& SpinOption::operator= (char   *v)
-        {
-            if (whitespace (v)) return *this;
-            int32_t val = to_int (v);
-            val = min (max (val, min_value), max_value);
-            //if (min_value < val && val < max_value)
-            {
-                if (value != val)
-                {
-                    value = val;
-                    if (_on_change) _on_change (*this);
-                }
-            }
-            return *this;
-        }
+        //Option& SpinOption::operator= (char   *v)
+        //{
+        //    if (whitespace (v)) return *this;
+        //    int32_t val = to_int (v);
+        //    val = min (max (val, min_value), max_value);
+        //    //if (min_value < val && val < max_value)
+        //    {
+        //        if (value != val)
+        //        {
+        //            value = val;
+        //            if (_on_change) _on_change (*this);
+        //        }
+        //    }
+        //    return *this;
+        //}
         Option& SpinOption::operator= (string &v)
         {
             if (whitespace (v)) return *this;
@@ -176,11 +176,11 @@ namespace UCI {
         {
             return string ("type combo");
         }
-        Option& ComboOption::operator= (char   *v)
-        {
-            if (_on_change) _on_change (*this);
-            return *this;
-        }
+        //Option& ComboOption::operator= (char   *v)
+        //{
+        //    if (_on_change) _on_change (*this);
+        //    return *this;
+        //}
         Option& ComboOption::operator= (string &v)
         {
             if (_on_change) _on_change (*this);
