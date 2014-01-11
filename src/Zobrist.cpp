@@ -240,8 +240,8 @@ namespace Zobrist {
                 do
                 {
                     Color c = isupper (ch) ? WHITE : BLACK;
-                    char sym = toupper (ch);
-                    if ('A' <= sym && sym <= 'H')
+                    char sym = tolower (ch);
+                    if ('a' <= sym && sym <= 'h')
                     {
                         fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
                     }
@@ -376,8 +376,8 @@ namespace Zobrist {
                 do
                 {
                     Color c = isupper (ch) ? WHITE : BLACK;
-                    char sym = toupper (ch);
-                    if ('A' <= sym && sym <= 'H')
+                    char sym = tolower (ch);
+                    if ('a' <= sym && sym <= 'h')
                     {
                         fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
                     }

@@ -58,6 +58,8 @@ bool _ok (const string &fen, bool c960, bool full)
 
 #pragma region Position
 
+const string PieceChar ("PNBRQK  pnbrqk");
+
 const Value PieceValue[PHASE_NO][PT_ALL] =
 {
     { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
@@ -69,8 +71,6 @@ namespace {
     // do_move() copy current state info up to 'posi_key' excluded to the new one.
     // calculate the quad words (64bits) needed to be copied.
     const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key);
-
-    const string PieceToChar("PNBRQK  pnbrqk");
 
     CACHE_ALIGN(64)
         Score psq[CLR_NO][PT_NO][SQ_NO];
@@ -1011,11 +1011,12 @@ void Position::clear ()
         }
     }
 
-    //fill (
-    //    _castle_rooks[0] + 0,
-    //    _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
-    //    SQ_NO);
-    //
+    fill (
+        _castle_rooks[0] + 0,
+        _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
+        SQ_NO);
+
+
     //_game_ply   = 1;
 
     _sb.en_passant = SQ_NO;
@@ -2080,7 +2081,6 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     // Active color
     get_next ();
     pos._active = to_color (ch);
-    if (CLR_NO == pos._active) return false;
 
     SKIP_WHITESPACE ();
     // Castling rights availability
@@ -2099,8 +2099,8 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             {
                 Square rook;
                 Color c = isupper (ch) ? WHITE : BLACK;
-                char sym = toupper (ch);
-                if ('A' <= sym && sym <= 'H')
+                char sym = tolower (ch);
+                if ('a' <= sym && sym <= 'h')
                 {
                     rook = (to_file (sym) | rel_rank (c, R_1));
                     if (ROOK != p_type (pos[rook])) return false;
@@ -2243,7 +2243,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += DEL_SS;
         }
-        else if ((idx = PieceToChar.find (ch)) != string::npos)
+        else if ((idx = PieceChar.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
             pos.place_piece (s, p_color (p), p_type (p));
@@ -2270,8 +2270,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
-            char sym = toupper (ch);
-            if ('A' <= sym && sym <= 'H')
+            char sym = tolower (ch);
+            if ('a' <= sym && sym <= 'h')
             {
                 rook = (to_file (sym) | rel_rank (c, R_1));
                 //if (ROOK != p_type (pos[rook])) return false;
