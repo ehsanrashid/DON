@@ -47,7 +47,7 @@ namespace BitBoard {
         uint16_t attack_index (Square s, Bitboard occ);
 
         template<>
-        uint16_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint16_t attack_index<BSHP> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -61,7 +61,7 @@ namespace BitBoard {
         }
 
         template<>
-        uint16_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint16_t attack_index<ROOK> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -73,7 +73,6 @@ namespace BitBoard {
 #endif
 
         }
-
 
         void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer);
 

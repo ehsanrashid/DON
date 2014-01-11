@@ -113,8 +113,8 @@ public:
 
     // Max power of hash for cluster
 #ifdef _64BIT
-    //static const uint8_t MAX_BIT_HASH       = 0x24; // 36
-    static const uint8_t MAX_BIT_HASH       = 0x20; // 32
+    //static const uint8_t MAX_BIT_HASH       = 0x20; // 32
+    static const uint8_t MAX_BIT_HASH       = 0x24; // 36
 #else
     static const uint8_t MAX_BIT_HASH       = 0x20; // 32
 #endif

@@ -124,21 +124,24 @@ namespace {
         StateInfo si;
         CheckInfo ci (pos);
         MoveList mov_lst = generate<LEGAL>(pos);
-        //for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+
+        //MoveList::const_iterator itr = mov_lst.cbegin ();
+        //while (itr != mov_lst.cend ())
         //{
+        //    Move m = *itr;
         //    pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
         //    cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
         //    pos.undo_move ();
-        //});
-        MoveList::const_iterator itr = mov_lst.cbegin ();
-        while (itr != mov_lst.cend ())
+        //    ++itr;
+        //}
+
+        for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
         {
-            Move m = *itr;
             pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
             cnt += leaf ? generate<LEGAL>(pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
-            ++itr;
-        }
+        });
+
         return cnt;
     }
 
@@ -147,9 +150,9 @@ namespace {
         hits [2] = { U64(0), U64(0), },
         means[2] = { U64(0), U64(0), };
 
-    void dbg_hit_on  (bool b) { ++hits[0]; if (b) ++hits[1]; }
-    void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
-    void dbg_mean_of (int32_t v) { ++means[0]; means[1] += v; }
+    void dbg_hit_on  (bool b)           { ++hits[0]; if (b) ++hits[1]; }
+    void dbg_hit_on_c(bool c, bool b)   { if (c) dbg_hit_on (b);       }
+    void dbg_mean_of (int32_t v)        { ++means[0]; means[1] += v;   }
 
     void dbg_print()
     {
@@ -257,12 +260,12 @@ namespace Searcher {
     // long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        StateInfo states[MAX_PLY_6], *si = states;
-
-        const TranspositionEntry *te;
         uint16_t ply = 0;
         Move m = pv[ply];
         pv.clear ();
+        
+        const TranspositionEntry *te;
+        StateInfo states[MAX_PLY_6], *si = states;
 
         do
         {
@@ -305,10 +308,10 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MAX_PLY_6], *si = states;
+        uint16_t ply = 0;
 
         const TranspositionEntry *te;
-        uint16_t ply = 0;
+        StateInfo states[MAX_PLY_6], *si = states;
 
         do
         {

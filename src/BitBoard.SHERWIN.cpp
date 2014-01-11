@@ -64,7 +64,7 @@ namespace BitBoard {
         uint32_t attack_index (Square s, Bitboard occ);
 
         template<>
-        uint32_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint32_t attack_index<BSHP> (Square s, Bitboard occ)
         {
             const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (x)-rays
@@ -104,7 +104,7 @@ namespace BitBoard {
         }
 
         template<>
-        uint32_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint32_t attack_index<ROOK> (Square s, Bitboard occ)
         {
             const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (+)-rays

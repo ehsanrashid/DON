@@ -969,6 +969,15 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_bb[KING] = U64 (0);
 }
 
+//inline void CheckInfo::clear ()
+//{
+//    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
+//    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
+//
+//    king_sq         = SQ_NO;
+//    pinneds         = U64 (0);
+//    check_discovers = U64 (0);
+//}
 
 #pragma endregion
 

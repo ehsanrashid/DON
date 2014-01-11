@@ -163,9 +163,11 @@ void ThreadPool::deinitialize ()
 {
     delete_thread (timer); // As first because check_time() accesses threads data
 
-    for (iterator itr = begin (); itr != end (); ++itr)
+    iterator itr = begin ();
+    while (itr != end ())
     {
         delete_thread (*itr);
+        ++itr;
     }
 }
 
