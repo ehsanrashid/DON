@@ -1354,7 +1354,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (cr)
         {
             Bitboard b = cr;
-            _si->castle_rights &= ~(cr);
+            _si->castle_rights &= ~cr;
             while (b)
             {
                 posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];

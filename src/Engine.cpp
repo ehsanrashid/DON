@@ -103,11 +103,9 @@ namespace Engine {
         cout << "info string " << size_mb         << " MB Hash."   << endl;
 
 #ifdef _DEBUG
-        Tester::main_test ();
-        
+        //Tester::main_test ();
         //system ("pause");
         //return;
-
 #endif
         //log_io (true);
 

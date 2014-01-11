@@ -153,7 +153,7 @@ namespace UCI {
                     Move m = move_from_can (token, rootPos);
                     if (MOVE_NONE == m)
                     {
-                        //TRI_LOG_MSG ("ERROR: Illegal Move" << token);
+                        TRI_LOG_MSG ("ERROR: Illegal Move" << token);
                         break;
                     }
                     setupStates->push (StateInfo ());

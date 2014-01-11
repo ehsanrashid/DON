@@ -560,21 +560,10 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
-    Bitboard occ = _types_bb[PT_NO];
-
-    //switch (cs)
-    //{
-    //case CS_K:
-    //case CS_Q:
-    //    return (_castle_paths[c][cs] & occ);
-    //default:
-    //    return (_castle_paths[c][CS_K] & occ) && (_castle_paths[c][CS_Q] & occ);
-    //}
-
-    return (CS_K == c || CS_Q == c)
-        ?  (_castle_paths[c][cs]   & occ)
-        :  (_castle_paths[c][CS_K] & occ)
-        && (_castle_paths[c][CS_Q] & occ);
+    return (CS_K == cs || CS_Q == cs)
+        ?  (_castle_paths[c][cs]   & _types_bb[PT_NO])
+        :  (_castle_paths[c][CS_K] & _types_bb[PT_NO])
+        && (_castle_paths[c][CS_Q] & _types_bb[PT_NO]);
 }
 
 #pragma endregion

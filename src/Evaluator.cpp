@@ -976,8 +976,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friendly pawn
         Bitboard behind = pos.pieces (C, PAWN);
-        behind |= ((WHITE == C) ? behind >>  8 : behind <<  8);
-        behind |= ((WHITE == C) ? behind >> 16 : behind << 16);
+        behind |= ((WHITE == C) ? behind >> 0x08 : behind << 0x08);
+        behind |= ((WHITE == C) ? behind >> 0x10 : behind << 0x10);
 
         // Since SpaceMask[C] is fully on our half of the board
         ASSERT (uint32_t (safe >> ((WHITE == C) ? 32 : 0)) == 0);
