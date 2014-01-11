@@ -505,7 +505,7 @@ namespace BitBoard {
 
 #pragma region Attacks
 
-    extern Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0));
+    extern inline Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0));
 
     template<PType PT>
     // Attacks of the PAWN
@@ -517,7 +517,7 @@ namespace BitBoard {
 
     template<PType PT>
     // Attacks of the PType with occupancy
-    extern Bitboard attacks_bb (Square s, Bitboard occ);
+    extern inline Bitboard attacks_bb (Square s, Bitboard occ);
 
     extern inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ);
 

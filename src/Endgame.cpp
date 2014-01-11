@@ -93,9 +93,7 @@ namespace EndGame {
             string empty = string ("") + char ('0' + 8 - length);
             if ("0" == empty) empty = "";
             string fen = sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
-
-            Position pos (fen);
-            return pos.matl_key ();
+            return Position (fen).matl_key ();
         }
 
         template<class M>

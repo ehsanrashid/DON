@@ -134,9 +134,11 @@ namespace UCI {
                     fen += whitespace (fen) ? token : " " + token;
                 }
 
+#ifdef _DEBUG
                 bool ok_fen = _ok (fen);
                 ASSERT (ok_fen);
                 if (!ok_fen) return;
+#endif
             }
             else return;
 

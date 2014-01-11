@@ -137,24 +137,21 @@ namespace Zobrist {
             }
         }
 
-        //if (pos.can_castle(CR_A))
+        //if (pos.can_castle (CR_A))
         //{
         //    for (Color c = WHITE; c <= BLACK; ++c)
         //    {
-        //        if (pos.can_castle(c))
+        //        if (pos.can_castle (c))
         //        {
         //            for (CSide cs = CS_K; cs <= CS_Q; ++cs)
         //            {
-        //                if (pos.can_castle(c, cs)) posi_key ^= _.castle_right[c][cs];
+        //                if (pos.can_castle (c, cs)) posi_key ^= _.castle_right[c][cs];
         //            }
         //        }
         //    }
         //}
         Bitboard b = pos.castle_rights ();
-        while (b)
-        {
-            posi_key ^= _.castle_right[0][pop_lsq (b)];
-        }
+        while (b) posi_key ^= _.castle_right[0][pop_lsq (b)];
 
         Square ep_sq = pos.en_passant ();
         if (SQ_NO != ep_sq) posi_key ^= _.en_passant[_file (ep_sq)];
@@ -168,7 +165,7 @@ namespace Zobrist {
     Key Zob::compute_fen_key (const   char *fen, bool c960) const
     {
         ASSERT (fen);
-        if (!fen)   return U64 (0);
+        //if (!fen)   return U64 (0);
 
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
@@ -310,7 +307,7 @@ namespace Zobrist {
     // Hash key of the FEN
     Key Zob::compute_fen_key (const string &fen, bool c960) const
     {
-        if (fen.empty ()) return U64 (0);
+        //if (fen.empty ()) return U64 (0);
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
 
