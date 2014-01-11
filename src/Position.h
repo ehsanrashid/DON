@@ -410,8 +410,8 @@ public:
 
     void   place_piece (Square s, Color c, PType pt);
     void   place_piece (Square s, Piece p);
-    Piece remove_piece (Square s);
-    Piece   move_piece (Square s1, Square s2);
+    void  remove_piece (Square s);
+    void    move_piece (Square s1, Square s2);
 
     bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
     bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
@@ -471,6 +471,12 @@ public:
 } Position;
 
 //#pragma pack (pop)
+
+#pragma endregion
+
+// -------------------------------
+
+#pragma region Position Def
 
 #pragma region Basic properties
 
@@ -730,6 +736,108 @@ inline bool Position::opposite_bishops () const
 
 #pragma region Move properties
 
+// moved_piece() return piece moved on move
+inline Piece Position::   moved_piece (Move m) const
+{
+    return _piece_arr[org_sq (m)];
+}
+
+//// captured_piece() return piece captured by moving piece
+//inline Piece Position::captured_piece (Move m) const
+//{
+//    Square org  = org_sq (m);
+//    Square dst  = dst_sq (m);
+//
+//    Piece p     = _piece_arr[org];
+//    PType pt    = p_type (p);
+//
+//    Square cap = dst;
+//
+//    switch (m_type (m))
+//    {
+//    case CASTLE:   return PS_NO; break;
+//
+//    case ENPASSANT:
+//        if (PAWN == pt)
+//        {
+//            cap += ((WHITE == _active) ? DEL_S : DEL_N);
+//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN)) ?
+//                _piece_arr[cap] : PS_NO;
+//        }
+//        return PS_NO;
+//        break;
+//
+//    case PROMOTE:
+//        if (PAWN != pt) return PS_NO;
+//        if (R_7 != rel_rank (_active, org)) return PS_NO;
+//        if (R_8 != rel_rank (_active, dst)) return PS_NO;
+//
+//        // NOTE: no break
+//    case NORMAL:
+//        if (PAWN == pt)
+//        {
+//            // check not pawn push and can capture
+//            if (1 != BitBoard::file_dist (dst, org)) return PS_NO;
+//            return (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active)) ?
+//                _piece_arr[cap] : PS_NO;
+//        }
+//        return _piece_arr[cap];
+//
+//        break;
+//    }
+//    return PS_NO;
+//}
+
+inline bool Position::       legal (Move m) const
+{
+    return legal (m, pinneds (_active));
+}
+
+// capture(m) tests move is capture
+inline bool Position::capture (Move m) const
+{
+    //ASSERT (_ok (m));
+    MType mt = m_type (m);
+    switch (mt)
+    {
+    case CASTLE:
+        return false;
+        break;
+    case ENPASSANT:
+        return  (SQ_NO != _si->en_passant);
+        break;
+
+    case NORMAL:
+    case PROMOTE:
+        {
+            Piece p = _piece_arr[dst_sq (m)];
+            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
+        }
+        break;
+    }
+    return false;
+}
+// capture_or_promotion(m) tests move is capture or promotion
+inline bool Position::capture_or_promotion (Move m) const
+{
+    //ASSERT (_ok (m));
+
+    //MType mt = m_type (m);
+    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
+    switch (m_type (m))
+    {
+    case CASTLE:    return false; break;
+    case PROMOTE:   return true;  break;
+    case ENPASSANT: return (SQ_NO != _si->en_passant); break;
+    case NORMAL:
+        {
+            Piece p = _piece_arr[dst_sq (m)];
+            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
+        }
+    }
+    return false;
+}
+
 inline bool Position::  passed_pawn_push (Move m) const
 {
     return (PAWN == p_type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
@@ -740,6 +848,115 @@ inline bool Position::advanced_pawn_push (Move m) const
 }
 
 #pragma endregion
+
+#pragma region Basic methods
+
+inline void  Position:: place_piece (Square s, Color c, PType pt)
+{
+    //ASSERT (PS_NO == _piece_arr[s]);
+    _piece_arr[s]    = (c | pt);
+    Bitboard bb       = BitBoard::_square_bb[s];
+    _color_bb[c]     |= bb;
+    _types_bb[pt]    |= bb;
+    _types_bb[PT_NO] |= bb;
+    _piece_count[c][PT_NO]++;
+    // Update piece list, put piece at [s] index
+    _piece_index[s] = _piece_count[c][pt]++;
+    _piece_list[c][pt][_piece_index[s]] = s;
+}
+inline void  Position:: place_piece (Square s, Piece p)
+{
+    place_piece (s, p_color (p), p_type (p));
+}
+inline void  Position::remove_piece (Square s)
+{
+    // WARNING: This is not a reversible operation. If we remove a piece in
+    // do_move() and then replace it in undo_move() we will put it at the end of
+    // the list and not in its original place, it means index[] and pieceList[]
+    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
+
+    Piece p = _piece_arr[s];
+    //ASSERT (PS_NO != p);
+    Color c  = p_color (p);
+    PType pt = p_type (p);
+    //ASSERT (0 < _piece_count[c][pt]);
+
+    _piece_arr[s]     = PS_NO;
+
+    Bitboard bb       = ~BitBoard::_square_bb[s];
+    _color_bb[c]     &= bb;
+    _types_bb[pt]    &= bb;
+    _types_bb[PT_NO] &= bb;
+    _piece_count[c][PT_NO]--;
+    _piece_count[c][pt]--;
+
+    // Update piece list, remove piece at [s] index and shrink the list.
+    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
+    if (s != last_sq)
+    {
+        _piece_index[last_sq] = _piece_index[s];
+        _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+    }
+    _piece_index[s] = -1;
+    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
+}
+inline void  Position::  move_piece (Square s1, Square s2)
+{
+    Piece p = _piece_arr[s1];
+    //ASSERT (PS_NO == _piece_arr[s2]);
+
+    Color c = p_color (p);
+    PType pt = p_type (p);
+
+    _piece_arr[s1] = PS_NO;
+    _piece_arr[s2] = p;
+
+    Bitboard bb = BitBoard::_square_bb[s1] ^ BitBoard::_square_bb[s2];
+    _color_bb[c]     ^= bb;
+    _types_bb[pt]    ^= bb;
+    _types_bb[PT_NO] ^= bb;
+
+    // _piece_index[s1] is not updated and becomes stale. This works as long
+    // as _piece_index[] is accessed just by known occupied squares.
+    _piece_index[s2] = _piece_index[s1];
+    _piece_index[s1] = -1;
+    _piece_list[c][pt][_piece_index[s2]] = s2;
+}
+
+// castle_king_rook() exchanges the king and rook
+inline void Position::castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook)
+{
+    // Remove both pieces first since squares could overlap in chess960
+    remove_piece (org_king);
+    remove_piece (org_rook);
+
+    place_piece (dst_king, _active, KING);
+    place_piece (dst_rook, _active, ROOK);
+}
+
+#pragma endregion
+
+#pragma endregion
+
+#pragma region Check Inforamtion Def
+
+inline CheckInfo::CheckInfo (const Position &pos)
+{
+    Color active = pos.active ();
+    Color pasive = ~active;
+
+    king_sq = pos.king_sq (pasive);
+    pinneds = pos.pinneds (active);
+    check_discovers = pos.check_discovers (active);
+
+    checking_bb[PAWN] = BitBoard::attacks_bb<PAWN> (pasive, king_sq);
+    checking_bb[NIHT] = BitBoard::attacks_bb<NIHT> (king_sq);
+    checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
+    checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
+    checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
+    checking_bb[KING] = U64 (0);
+}
+
 
 #pragma endregion
 

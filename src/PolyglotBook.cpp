@@ -220,10 +220,13 @@ size_t PolyglotBook::find_index (const Position &pos)
 {
     return find_index (ZobPG.compute_posi_key (pos));
 }
+
+#ifdef _DEBUG
 size_t PolyglotBook::find_index (const        char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
+#endif
 size_t PolyglotBook::find_index (const string &fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));

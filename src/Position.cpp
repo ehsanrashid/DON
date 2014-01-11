@@ -23,6 +23,7 @@ using namespace MoveGenerator;
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
+#ifdef _DEBUG
 bool _ok (const   char *fen, bool c960, bool full)
 {
     ASSERT (fen);
@@ -30,6 +31,8 @@ bool _ok (const   char *fen, bool c960, bool full)
     Position pos (int8_t (0));
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
+#endif
+
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
@@ -77,31 +80,15 @@ StateInfo::operator string () const
 
 #pragma region CheckInfo
 
-CheckInfo::CheckInfo (const Position &pos)
-{
-    Color active = pos.active ();
-    Color pasive = ~active;
-
-    king_sq = pos.king_sq (pasive);
-    pinneds = pos.pinneds (active);
-    check_discovers = pos.check_discovers (active);
-
-    checking_bb[PAWN] = attacks_bb<PAWN> (pasive, king_sq);
-    checking_bb[NIHT] = attacks_bb<NIHT> (king_sq);
-    checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());
-    checking_bb[ROOK] = attacks_bb<ROOK> (king_sq, pos.pieces ());
-    checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
-    checking_bb[KING] = U64 (0);
-}
-void CheckInfo::clear ()
-{
-    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
-    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
-
-    king_sq         = SQ_NO;
-    pinneds         = U64 (0);
-    check_discovers = U64 (0);
-}
+//void CheckInfo::clear ()
+//{
+//    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
+//    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
+//
+//    king_sq         = SQ_NO;
+//    pinneds         = U64 (0);
+//    check_discovers = U64 (0);
+//}
 
 #pragma endregion
 
@@ -662,65 +649,6 @@ int32_t Position::see_sign (Move m) const
 
 #pragma region Move properties
 
-// moved_piece() return piece moved on move
-Piece Position::   moved_piece (Move m) const
-{
-    //ASSERT (_ok (m));
-    //if (!_ok (m)) return PS_NO;
-
-    return _piece_arr[org_sq (m)];
-}
-// captured_piece() return piece captured by moving piece
-Piece Position::captured_piece (Move m) const
-{
-    //ASSERT (_ok (m));
-    //if (!_ok (m)) return PS_NO;
-
-    Square org  = org_sq (m);
-    Square dst  = dst_sq (m);
-
-    Piece p     = _piece_arr[org];
-    PType pt    = p_type (p);
-
-    Square cap = dst;
-
-    switch (m_type (m))
-    {
-    case CASTLE:   return PS_NO; break;
-
-    case ENPASSANT:
-        if (PAWN == pt)
-        {
-            cap += ((WHITE == _active) ? DEL_S : DEL_N);
-
-            Bitboard captures = attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN);
-
-            return (captures) ? _piece_arr[cap] : PS_NO;
-        }
-        return PS_NO;
-        break;
-
-    case PROMOTE:
-        if (PAWN != pt) return PS_NO;
-        if (R_7 != rel_rank (_active, org)) return PS_NO;
-        if (R_8 != rel_rank (_active, dst)) return PS_NO;
-
-        // NOTE: no break
-    case NORMAL:
-        if (PAWN == pt)
-        {
-            // check not pawn push and can capture
-            if (file_dist (dst, org) != 1) return PS_NO;
-            return (attacks_bb<PAWN> (~_active, dst) & pieces (_active)) ?
-                _piece_arr[cap] : PS_NO;
-        }
-        return _piece_arr[cap];
-
-        break;
-    }
-    return PS_NO;
-}
-
 // pseudo_legal(m) tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
@@ -875,7 +803,7 @@ bool Position::pseudo_legal (Move m) const
             // (en passant captures was handled earlier).
             if (PT_NO == ct || active == p_color (_piece_arr[cap])) return false;
             // cap and org files must be one del apart, avoids a7h5
-            if (1 != file_dist (cap, org)) return false;
+            if (1 != BitBoard::file_dist (cap, org)) return false;
             break;
 
         case DEL_NN:
@@ -923,17 +851,17 @@ bool Position::pseudo_legal (Move m) const
         if (KING != pt)
         {
             // Double check? In this case a king move is required
-            if (more_than_one (chkrs)) return false;
+            if (BitBoard::more_than_one (chkrs)) return false;
             if ((PAWN == pt) && (ENPASSANT == mt))
             {
                 // Our move must be a blocking evasion of the checking piece or a capture of the checking en-passant pawn
                 if (!(chkrs & cap) &&
-                    !(betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) & dst)) return false;
+                    !(BitBoard::betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) & dst)) return false;
             }
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) | chkrs) & dst)) return false;
+                if (!((BitBoard::betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) | chkrs) & dst)) return false;
             }
         }
         // In case of king moves under check we have to remove king so to catch
@@ -946,24 +874,13 @@ bool Position::pseudo_legal (Move m) const
 
     return true;
 }
+
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::       legal (Move m, Bitboard pinned) const
 {
     ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
-
-    //Position c_pos (pos);
-    //if (c_pos.do_move (m))
-    //{
-    //    Color active = c_pos.active ();
-    //    Color pasive = ~active;
-    //    Square fk_sq = c_pos.king_sq (pasive);
-    //    Bitboard enemies  = c_pos.pieces (active);
-    //    Bitboard checkers = attackers_to (c_pos, fk_sq) & enemies;
-    //    return !pop_count<FULL> (checkers);
-    //}
-    //return false;
 
     Color active = _active;
     Color pasive = ~active;
@@ -1021,56 +938,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
     // is a blocking evasion or a capture of the checking piece.
     return !pinned || !(pinned & org) || sqrs_aligned (org, dst, fk_sq);
 }
-bool Position::       legal (Move m) const
-{
-    return legal (m, pinneds (_active));
-}
-// capture(m) tests move is capture
-bool Position::capture (Move m) const
-{
-    //ASSERT (_ok (m));
 
-    MType mt = m_type (m);
-    switch (mt)
-    {
-    case CASTLE:
-        return false;
-        break;
-    case ENPASSANT:
-        return  (SQ_NO != _si->en_passant);
-        break;
-
-    case NORMAL:
-    case PROMOTE:
-        {
-            Piece p = _piece_arr[dst_sq (m)];
-            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
-        }
-        break;
-    }
-    return false;
-}
-// capture_or_promotion(m) tests move is capture or promotion
-bool Position::capture_or_promotion (Move m) const
-{
-    //ASSERT (_ok (m));
-
-    //MType mt = m_type (m);
-    //return (NORMAL != mt) ? (CASTLE != mt) : !empty (dst_sq (m));
-
-    switch (m_type (m))
-    {
-    case CASTLE:    return false; break;
-    case PROMOTE:   return true;  break;
-    case ENPASSANT: return (SQ_NO != _si->en_passant); break;
-    case NORMAL:
-        {
-            Piece p = _piece_arr[dst_sq (m)];
-            return (PS_NO != p);// && (~_active == p_color (p)) && (KING != p_type (p));
-        }
-    }
-    return false;
-}
 // check(m) tests whether a pseudo-legal move gives a check
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
@@ -1138,6 +1006,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         return false;
     }
 }
+
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
 bool Position::checkmate (Move m, const CheckInfo &ci) const
 {
@@ -1152,96 +1021,6 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 #pragma endregion
 
 #pragma region Basic methods
-
-void  Position:: place_piece (Square s, Color c, PType pt)
-{
-    ASSERT (PS_NO == _piece_arr[s]);
-
-    _piece_arr[s]    = (c | pt);
-    _color_bb[c]     += s;
-    _types_bb[pt]    += s;
-    _types_bb[PT_NO] += s;
-    _piece_count[c][PT_NO]++;
-    // Update piece list, put piece at [s] index
-    _piece_index[s] = _piece_count[c][pt]++;
-    _piece_list[c][pt][_piece_index[s]] = s;
-}
-void  Position:: place_piece (Square s, Piece p)
-{
-    place_piece (s, p_color (p), p_type (p));
-}
-Piece Position::remove_piece (Square s)
-{
-    // WARNING: This is not a reversible operation. If we remove a piece in
-    // do_move() and then replace it in undo_move() we will put it at the end of
-    // the list and not in its original place, it means index[] and pieceList[]
-    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
-
-    Piece p = _piece_arr[s];
-    ASSERT (PS_NO != p);
-    if (PS_NO == p) return p;
-    Color c  = p_color (p);
-    PType pt = p_type (p);
-    int32_t ps_count = _piece_count[c][pt];
-    ASSERT (0 < ps_count);
-    if (0 >= ps_count) return PS_NO;
-
-    _piece_arr[s]     = PS_NO;
-    _color_bb[c]     -= s;
-    _types_bb[pt]    -= s;
-    _types_bb[PT_NO] -= s;
-    _piece_count[c][PT_NO]--;
-    _piece_count[c][pt]--;
-
-    // Update piece list, remove piece at [s] index and shrink the list.
-    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
-    if (s != last_sq)
-    {
-        _piece_index[last_sq] = _piece_index[s];
-        if (SQ_NO != last_sq) _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
-    }
-    _piece_index[s] = -1;
-    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
-    return p;
-}
-Piece Position::  move_piece (Square s1, Square s2)
-{
-    if (s1 == s2) return _piece_arr[s1];
-
-    Piece p = _piece_arr[s1];
-    if (!_ok (p)) return PS_NO;
-
-    ASSERT (PS_NO == _piece_arr[s2]);
-    if (PS_NO != _piece_arr[s2])
-    {
-        return PS_NO;
-    }
-
-    Color c = p_color (p);
-    PType pt = p_type (p);
-
-    _piece_arr[s1] = PS_NO;
-    _piece_arr[s2] = p;
-
-    //_color_bb[c]     -= s1;
-    //_types_bb[pt]    -= s1;
-    //_types_bb[PT_NO] -= s1;
-    //_color_bb[c]     += s2;
-    //_types_bb[pt]    += s2;
-    //_types_bb[PT_NO] += s2;
-    Bitboard bb = _square_bb[s1] ^ _square_bb[s2];
-    _color_bb[c]     ^= bb;
-    _types_bb[pt]    ^= bb;
-    _types_bb[PT_NO] ^= bb;
-
-    // _piece_index[s1] is not updated and becomes stale. This works as long
-    // as _piece_index[] is accessed just by known occupied squares.
-    _piece_index[s2] = _piece_index[s1];
-    _piece_index[s1] = -1;
-    _piece_list[c][pt][_piece_index[s2]] = s2;
-
-    return p;
-}
 
 // clear() clear the position
 void Position::clear ()
@@ -1276,6 +1055,7 @@ void Position::clear ()
     _si = &_sb;
 }
 // setup() sets the fen on the position
+#ifdef _DEBUG
 bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 {
     //Position pos (int8_t (0));
@@ -1288,6 +1068,7 @@ bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 
     return parse (*const_cast<Position*>(this), fen, thread, c960, full);
 }
+#endif
 bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
 {
     //Position pos (int8_t (0));
@@ -1413,16 +1194,6 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 #pragma region Do/Undo Move
-// castle_king_rook() exchanges the king and rook
-void Position::castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook)
-{
-    // Remove both pieces first since squares could overlap in chess960
-    remove_piece (org_king);
-    remove_piece (org_rook);
-
-    place_piece (dst_king, _active, KING);
-    place_piece (dst_rook, _active, ROOK);
-}
 
 // do_move() do the move with checking info
 void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
@@ -1923,12 +1694,11 @@ void Position::flip ()
 
 #pragma region Conversions
 
+#ifdef _DEBUG
 bool   Position::fen (const char *fen, bool c960, bool full) const
 {
     ASSERT (fen);
     ASSERT (ok ());
-    //if (!fen)   return false;
-    //if (!ok ()) return false;
 
     char *ch = (char*) fen;
     memset (ch, '\0', MAX_FEN);
@@ -2073,6 +1843,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
 
     return true;
 }
+#endif
 string Position::fen (bool                  c960, bool full) const
 {
     ostringstream sfen;
@@ -2269,6 +2040,7 @@ Position::operator string () const
 // 6) Fullmove number. The number of the full move.
 // It starts at 1, and is incremented after Black's move.
 
+#ifdef _DEBUG
 #undef SKIP_WHITESPACE
 #define SKIP_WHITESPACE()  while (isspace (uint8_t (*fen))) ++fen
 
@@ -2475,6 +2247,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     return true;
 }
 #undef SKIP_WHITESPACE
+#endif
 
 bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {

@@ -161,6 +161,7 @@ namespace Zobrist {
         return posi_key;
     }
 
+#ifdef _DEBUG
     // Hash key of the FEN
     Key Zob::compute_fen_key (const   char *fen, bool c960) const
     {
@@ -304,6 +305,8 @@ namespace Zobrist {
 
         return fen_key;
     }
+#endif
+
     // Hash key of the FEN
     Key Zob::compute_fen_key (const string &fen, bool c960) const
     {

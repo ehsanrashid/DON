@@ -11,6 +11,7 @@
 
 namespace Tester {
 
+#ifdef _DEBUG
     using namespace std;
 
     namespace {
@@ -630,4 +631,6 @@ namespace Tester {
 
         test_uci ();
     }
+
+#endif
 }
