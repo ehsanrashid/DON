@@ -327,7 +327,7 @@ namespace Zobrist {
             {
                 s += Delta (ch - '0'); // Advance the given number of files
             }
-            else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+            else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
                 fen_key ^= _.psq_k[p_color (p)][p_type (p)][s];

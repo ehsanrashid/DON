@@ -16,6 +16,9 @@
 class Position;
 struct Thread;
 
+extern const std::string CharPiece;
+extern const Value PieceValue[PHASE_NO][PT_ALL];
+
 #pragma region FEN
 
 // FORSYTH–EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
@@ -138,10 +141,6 @@ public:
 #pragma endregion
 
 #pragma region Position
-
-extern const std::string PieceChar;
-
-extern const Value PieceValue[PHASE_NO][PT_ALL];
 
 //#pragma pack (push, 4)
 
@@ -483,69 +482,69 @@ public:
 
 #pragma region Board properties
 
-INLINE Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
-INLINE Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
-INLINE Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
-INLINE const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
+inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
+inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
+inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
+inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
-INLINE bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
-INLINE Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
+inline bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
+inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
 
-INLINE Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
+inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-INLINE Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
-INLINE Bitboard Position::pieces (PType pt)           const { return _types_bb[pt]; }
-INLINE Bitboard Position::pieces (Color c, PType pt)  const { return _color_bb[c]  & _types_bb[pt]; }
-INLINE Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p1] | _types_bb[p2]; }
-INLINE Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
-INLINE Bitboard Position::pieces ()                   const { return  _types_bb[PT_NO]; }
-INLINE Bitboard Position::empties ()                  const { return ~_types_bb[PT_NO]; }
-//INLINE Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
-
-template<PType PT>
-INLINE int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
-template<PType PT>
-INLINE int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
-INLINE int32_t Position::piece_count (Color c) const { return _piece_count[c][PT_NO]; }
-INLINE int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
-INLINE int32_t Position::piece_count (Color c, PType pt) const { return _piece_count[c][pt]; }
+inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
+inline Bitboard Position::pieces (PType pt)           const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c, PType pt)  const { return _color_bb[c]  & _types_bb[pt]; }
+inline Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p1] | _types_bb[p2]; }
+inline Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
+inline Bitboard Position::pieces ()                   const { return  _types_bb[PT_NO]; }
+inline Bitboard Position::empties ()                  const { return ~_types_bb[PT_NO]; }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
 
 template<PType PT>
-INLINE const Square* Position::piece_list (Color c) const { return _piece_list[c][PT]; }
+inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
+template<PType PT>
+inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
+inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT_NO]; }
+inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
+inline int32_t Position::piece_count (Color c, PType pt) const { return _piece_count[c][pt]; }
+
+template<PType PT>
+inline const Square* Position::piece_list (Color c) const { return _piece_list[c][PT]; }
 
 #pragma endregion
 
 #pragma region StateInfo properties
 
 // Castling rights for both side
-INLINE CRight   Position::castle_rights () const { return _si->castle_rights; }
+inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
-INLINE Square   Position::en_passant    () const { return _si->en_passant; }
+inline Square   Position::en_passant    () const { return _si->en_passant; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-INLINE uint32_t Position::clock50       () const { return _si->clock50; }
+inline uint32_t Position::clock50       () const { return _si->clock50; }
 //
-INLINE Move     Position::last_move     () const { return _si->last_move; }
+inline Move     Position::last_move     () const { return _si->last_move; }
 //
-INLINE PType    Position::cap_type      () const { return _si->cap_type; }
+inline PType    Position::cap_type      () const { return _si->cap_type; }
 //
-INLINE Piece    Position::cap_piece     () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
+inline Piece    Position::cap_piece     () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
 //
-INLINE Bitboard Position::checkers      () const { return _si->checkers; }
+inline Bitboard Position::checkers      () const { return _si->checkers; }
 //
-INLINE Key      Position::matl_key      () const { return _si->matl_key; }
+inline Key      Position::matl_key      () const { return _si->matl_key; }
 //
-INLINE Key      Position::pawn_key      () const { return _si->pawn_key; }
+inline Key      Position::pawn_key      () const { return _si->pawn_key; }
 //
-INLINE Key      Position::posi_key      () const { return _si->posi_key; }
+inline Key      Position::posi_key      () const { return _si->posi_key; }
 //
-INLINE Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion; }
+inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::exclusion; }
 
-INLINE Score    Position::psq_score     () const { return _si->psq_score; }
+inline Score    Position::psq_score     () const { return _si->psq_score; }
 
-INLINE Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-//INLINE Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN> (c)) * VALUE_EG_PAWN; }
+//inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN> (c)) * VALUE_EG_PAWN; }
 
 #pragma endregion
 
@@ -571,21 +570,21 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
 #pragma endregion
 
 // Color of the side on move
-INLINE Color    Position::active    () const { return _active; }
+inline Color    Position::active    () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-INLINE uint32_t Position::game_ply  () const { return _game_ply; }
+inline uint32_t Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-INLINE uint32_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline uint32_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 //
-INLINE bool     Position::chess960  () const { return _chess960; }
+inline bool     Position::chess960  () const { return _chess960; }
 
 // Nodes visited
-INLINE uint64_t Position::game_nodes() const { return _game_nodes; }
-INLINE void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
+inline uint64_t Position::game_nodes() const { return _game_nodes; }
+inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
-INLINE Thread*  Position::thread    () const { return _thread; }
+inline Thread*  Position::thread    () const { return _thread; }
 
 #pragma endregion
 

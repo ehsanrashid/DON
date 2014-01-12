@@ -16,6 +16,15 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
+const string CharPiece ("PNBRQK  pnbrqk");
+
+const Value PieceValue[PHASE_NO][PT_ALL] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
+};
+
+
 #pragma region FEN
 
 //const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -43,14 +52,6 @@ bool _ok (const string &fen, bool c960, bool full)
 #pragma endregion
 
 #pragma region Position
-
-const string PieceChar ("PNBRQK  pnbrqk");
-
-const Value PieceValue[PHASE_NO][PT_ALL] =
-{
-    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
-};
 
 namespace {
 
@@ -130,18 +131,18 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<int32_t PT>
-    inline PType min_attacker      (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PType min_attacker      (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (!b) return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
 
         occupied -= (b & ~(b - 1));
 
-        if (PT == PAWN || PT == BSHP || PT == QUEN)
+        if (PAWN == PT || BSHP == PT || QUEN == PT)
         {
             attackers |= attacks_bb<BSHP> (dst, occupied) & (bb[BSHP] | bb[QUEN]);
         }
-        if (PT == ROOK || PT == QUEN)
+        if (ROOK == PT || QUEN == PT)
         {
             attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
         }
@@ -150,7 +151,7 @@ namespace {
     }
 
     template<>
-    inline PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
@@ -545,7 +546,7 @@ int32_t Position::see      (Move m) const
         stm_attackers = attackers & pieces (stm);
 
         // Stop before processing a king capture
-        if (KING == ct&& stm_attackers)
+        if ((KING == ct) && stm_attackers)
         {
             swap_list[index++] = VALUE_MG_QUEEN * 16;
             break;
@@ -1837,7 +1838,7 @@ string Position::fen (bool                  c960, bool full) const
                 ++empty_cnt; ++f; ++s;
             }
             if (empty_cnt) sfen << empty_cnt;
-            if (F_H >= f)  sfen << PieceChar[piece_on (s)];
+            if (F_H >= f)  sfen << CharPiece[piece_on (s)];
         }
 
         if (R_1 < r) sfen << '/';
@@ -2214,7 +2215,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += Delta (ch - '0'); // Advance the given number of files
         }
-        else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+        else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
             pos.place_piece (s, p_color (p), p_type (p));
