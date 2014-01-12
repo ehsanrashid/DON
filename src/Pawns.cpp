@@ -1,4 +1,5 @@
 #include "Pawns.h"
+
 #include "BitCount.h"
 #include "Position.h"
 
@@ -258,18 +259,18 @@ namespace Pawns {
     {
         _king_sq[C] = k_sq;
         _castle_rights[C] = pos.can_castle(C);
-        _min_dist_KP[C] = 0;
+        _min_KP_dist[C] = 0;
 
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
-            while (!(dia_rings_bb(k_sq, _min_dist_KP[C]++) & pawns))
+            while (!(dia_rings_bb(k_sq, _min_KP_dist[C]++) & pawns))
             {}
         }
 
         if (rel_rank(C, k_sq) > R_4)
         {
-            return _king_safety[C] = mk_score (0, -16 * _min_dist_KP[C]);
+            return _king_safety[C] = mk_score (0, -16 * _min_KP_dist[C]);
         }
 
         Value bonus = shelter_storm<C> (pos, k_sq);
@@ -284,7 +285,7 @@ namespace Pawns {
             bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
         }
 
-        return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);
+        return _king_safety[C] = mk_score (bonus, -16 * _min_KP_dist[C]);
     }
 
     // Explicit template instantiation

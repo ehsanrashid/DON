@@ -57,12 +57,12 @@ namespace {
         // KnightAttackWeight in evaluate.cpp
         int32_t king_attackers_weight[CLR_NO];
 
-        // king_adjacent_zone_attacks_count[color] is the number of attacks to squares
+        // king_zone_attacks_count[color] is the number of attacks to squares
         // directly adjacent to the king of the given color. Pieces which attack
         // more than one square are counted multiple times. For instance, if black's
         // king is on g8 and there's a white knight on g5, this knight adds
-        // 2 to king_adjacent_zone_attacks_count[BLACK].
-        int32_t king_adjacent_zone_attacks_count[CLR_NO];
+        // 2 to king_zone_attacks_count[BLACK].
+        int32_t king_zone_attacks_count[CLR_NO];
 
         Bitboard pinned_pieces[CLR_NO];
 
@@ -286,7 +286,7 @@ namespace {
         // Initialize score by reading the incrementally updated scores included
         // in the position object (material + piece square tables) and adding Tempo bonus. 
         score = pos.psq_score () + (WHITE == pos.active () ? TempoBonus : -TempoBonus);
-        
+
         EvalInfo ei;
         // Probe the material hash table
         ei.mi = Material::probe (pos, thread->material_table, thread->endgames);
@@ -333,7 +333,7 @@ namespace {
             score += evaluate_unstoppable_pawns (pos, WHITE, ei)
                 -    evaluate_unstoppable_pawns (pos, BLACK, ei);
         }
-        
+
         // Evaluate space for both sides, only in middle-game.
         if (ei.mi->space_weight ())
         {
@@ -377,7 +377,7 @@ namespace {
             Tracing::add (PST       , pos.psq_score ());
             Tracing::add (IMBALANCE , ei.mi->material_score ());
             Tracing::add (PAWN      , ei.pi->pawn_score ());
-            
+
             Score scr[CLR_NO] =
             {
                 ei.mi->space_weight() * evaluate_space<WHITE> (pos, ei),
@@ -420,12 +420,14 @@ namespace {
         {
             ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
             attacks &= ei.attacked_by[C][PAWN];
-            ei.king_attackers_count[C] = attacks ? pop_count<MAX15> (attacks) / 2 : 0;
-            ei.king_adjacent_zone_attacks_count[C] = ei.king_attackers_weight[C] = 0;
+            ei.king_attackers_count[C]  = attacks ? pop_count<MAX15> (attacks) / 2 : 0;
+            ei.king_zone_attacks_count[C]   = 0;
+            ei.king_attackers_weight[C]     = 0;
         }
         else
         {
-            ei.king_ring[C_] = ei.king_attackers_count[C] = 0;
+            ei.king_ring[C_] = U64 (0);
+            ei.king_attackers_count[C] = 0;
         }
     }
 
@@ -502,7 +504,7 @@ namespace {
                 Bitboard attacks_king = (attacks & ei.attacked_by[C_][KING]);
                 if (attacks_king)
                 {
-                    ei.king_adjacent_zone_attacks_count[C] += pop_count<MAX15> (attacks_king);
+                    ei.king_zone_attacks_count[C] += pop_count<MAX15> (attacks_king);
                 }
             }
 
@@ -592,7 +594,7 @@ namespace {
                 // king has lost its castling capability.
                 if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))) &&
                     (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq)) &&
-                    !ei.pi->semiopen_on_side(C, _file (fk_sq), _file (fk_sq) < F_E))
+                    !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                 {
                     score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                 }
@@ -681,7 +683,7 @@ namespace {
             // the pawn shelter (current 'score' value).
             int32_t attack_units =
                 min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
-                + 3 * (ei.king_adjacent_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
+                + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
                 - mg_value (score) / 32;
 
             // Analyse enemy's safe queen contact checks. First find undefended
@@ -776,16 +778,10 @@ namespace {
 
         // Undefended minors get penalized even if not under attack
         Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][PT_NO];
-        if (undefended_minors)
-        {
-            score += UndefendedMinorPenalty;
-        }
+        if (undefended_minors) score += UndefendedMinorPenalty;
 
         // Enemy pieces not defended by a pawn and under our attack
-        Bitboard weak_enemies = 
-            pos.pieces (C_) &
-            ~ei.attacked_by[C_][PAWN] &
-            ei.attacked_by[C][PT_NO];
+        Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][PT_NO];
         // Add a bonus according if the attacking pieces are minor or major
         if (weak_enemies)
         {
@@ -810,7 +806,7 @@ namespace {
     Score evaluate_passed_pawns(const Position &pos, const EvalInfo &ei)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
-        
+
         Score score = SCORE_ZERO;
 
         Bitboard passed_pawns = ei.pi->passed_pawns (C);
@@ -847,8 +843,8 @@ namespace {
                 {
                     // squares to queen
                     Bitboard squares_queen = front_squares_bb (C, s);
-                    Bitboard squares_defended, squares_unsafe;
 
+                    Bitboard squares_unsafe;
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
@@ -862,6 +858,7 @@ namespace {
                         squares_unsafe = squares_queen & (ei.attacked_by[C_][PT_NO] | pos.pieces (C_));
                     }
 
+                    Bitboard squares_defended;
                     if (    UNLIKELY(front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
                         && (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
@@ -947,11 +944,10 @@ namespace {
     Score evaluate_unstoppable_pawns(const Position &pos, Color c, const EvalInfo &ei)
     {
         Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
-        if (!unstoppable_pawns || pos.non_pawn_material (~c))
-        {
-            return SCORE_ZERO;
-        }
-        return UnstoppablePawnBonus * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, unstoppable_pawns)));
+        return (!unstoppable_pawns || pos.non_pawn_material (~c))
+            ? SCORE_ZERO
+            : UnstoppablePawnBonus
+            * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, unstoppable_pawns)));
     }
 
     template<Color C>
@@ -1013,7 +1009,6 @@ namespace {
         // Scale option value from 100 to 256
         int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
         int16_t eg = int32_t (*(Options[eg_opt])) * 256 / 100;
-
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
@@ -1031,6 +1026,7 @@ namespace {
         {
             Score w_score = scores[WHITE][idx];
             Score b_score = scores[BLACK][idx];
+
             switch (idx)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
