@@ -1,4 +1,5 @@
 #include "Material.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -53,7 +54,8 @@ namespace {
     Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
     // Helper templates used to detect a given material distribution
-    template<Color C> bool is_KXK(const Position &pos)
+    template<Color C>
+    inline bool is_KXK(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
         
@@ -62,7 +64,8 @@ namespace {
             && pos.piece_count<PAWN> (C_) == 0;
     }
 
-    template<Color C> bool is_KBPsKs(const Position &pos)
+    template<Color C> 
+    inline bool is_KBPsKs(const Position &pos)
     {
         //const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -71,7 +74,8 @@ namespace {
             && pos.piece_count<PAWN> (C ) >= 1;
     }
 
-    template<Color C> bool is_KQKRPs(const Position &pos)
+    template<Color C>
+    inline bool is_KQKRPs(const Position &pos)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -85,7 +89,7 @@ namespace {
     template<Color C>
     // imbalance<> () calculates imbalance comparing piece count of each
     // piece type for both colors.
-    int32_t imbalance (const int32_t piece_count[][PT_NO])
+    inline int32_t imbalance (const int32_t piece_count[][PT_NO])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 

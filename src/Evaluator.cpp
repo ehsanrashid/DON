@@ -979,7 +979,7 @@ namespace {
 
     // interpolate () interpolates between a middle game and an endgame score,
     // based on game phase. It also scales the return value by a ScaleFactor array.
-    inline Value interpolate (const Score &score, Phase ph, ScaleFactor sf)
+    inline Value interpolate    (const Score &score, Phase ph, ScaleFactor sf)
     {
         ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
@@ -990,7 +990,7 @@ namespace {
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
-    inline Score apply_weight (Score s, Score w)
+    inline Score apply_weight   (Score s, Score w)
     {
         return mk_score (
             (int32_t (mg_value (s)) * int32_t (mg_value (w))) / 0x100,
@@ -999,7 +999,7 @@ namespace {
 
     // weight_option () computes the value of an evaluation weight, by combining
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
-    inline Score weight_option (const string &mg_opt, const string &eg_opt, Score internal_weight)
+    inline Score weight_option  (const string &mg_opt, const string &eg_opt, Score internal_weight)
     {
         // Scale option value from 100 to 256
         int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;

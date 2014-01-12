@@ -70,7 +70,7 @@ namespace {
 #undef V
 
     template<Color C>
-    Score evaluate (const Position &pos, Pawns::Entry *e)
+    inline Score evaluate (const Position &pos, Pawns::Entry *e)
     {
         const Color  C_  = ((WHITE == C) ? BLACK  : WHITE);
         const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);

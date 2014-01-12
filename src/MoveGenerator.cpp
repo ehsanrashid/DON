@@ -1,7 +1,8 @@
 #include "MoveGenerator.h"
+
 #include "Position.h"
 #include "BitCount.h"
-#include "BitScan.h"
+
 
 namespace MoveGenerator {
 

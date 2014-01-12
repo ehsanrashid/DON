@@ -27,7 +27,7 @@ namespace BitBases {
         // bit    12: side to move (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
-        uint32_t index(Color c, Square bk_sq, Square wk_sq, Square p_sq)
+        inline uint32_t index(Color c, Square bk_sq, Square wk_sq, Square p_sq)
         {
             return wk_sq + (bk_sq << 6) + (c << 12) + (_file (p_sq) << 13) + ((int32_t (R_7) - int32_t (_rank (p_sq))) << 15);
         }
@@ -67,7 +67,7 @@ namespace BitBases {
 
         };
 
-        KPKPosition::KPKPosition (uint32_t idx)
+        inline KPKPosition::KPKPosition (uint32_t idx)
         {
             wk_sq   = Square((idx >>  0) & 0x3F);
             bk_sq   = Square((idx >>  6) & 0x3F);
@@ -107,7 +107,7 @@ namespace BitBases {
         }
 
         template<Color C>
-        Result KPKPosition::classify (const vector<KPKPosition>& db)
+        inline Result KPKPosition::classify (const vector<KPKPosition>& db)
         {
 
             // White to Move:
@@ -148,6 +148,7 @@ namespace BitBases {
                 ? (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW)
                 : (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
         }
+
     }
 
     void initialize ()
