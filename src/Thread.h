@@ -228,7 +228,7 @@ struct ThreadPool
     
     Thread* available_slave (const Thread *master) const;
 
-    void start_thinking (const Position &pos, const Searcher::Limits &limit, StateInfoStackPtr &states);
+    void start_thinking (const Position &pos, const Searcher::Limits_t &limit, StateInfoStackPtr &states);
   
     void wait_for_think_finished ();
 };

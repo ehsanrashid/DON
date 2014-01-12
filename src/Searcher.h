@@ -19,9 +19,9 @@ namespace Searcher {
 
     const uint16_t MAX_DEPTH = 64;
 
-    const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
-    const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
-    const uint16_t MAX_THREAT = 90;
+    //const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
+    //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
+    //const uint16_t MAX_THREAT = 90;
 
     extern PolyglotBook book;
 
@@ -53,7 +53,7 @@ namespace Searcher {
     //  - Search move list
     //  - if in analysis mode.
     //  - if have to ponder while is opponent's side to move.
-    typedef struct Limits
+    typedef struct Limits_t
     {
         GameClock game_clock[CLR_NO];
 
@@ -66,7 +66,7 @@ namespace Searcher {
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
 
-        Limits() { memset (this, 0, sizeof (Limits)); }
+        Limits_t () { memset (this, 0, sizeof (Limits_t)); }
 
         bool use_time_management () const
         {
@@ -86,7 +86,7 @@ namespace Searcher {
         //    return cpu_time / 30 + cpu_inc / 2;
         //}
 
-    } Limits;
+    } Limits_t;
 
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
@@ -94,16 +94,16 @@ namespace Searcher {
     //  - Stop on ponderhit.
     //  - On first root move.
     //  - Falied low at root.
-    typedef struct Signals
+    typedef struct Signals_t
     {
         bool stop;
         bool stop_on_ponderhit;
         bool first_root_move;
         bool failed_low_at_root;
 
-        Signals() { memset (this, 0, sizeof (Signals)); }
+        Signals_t () { memset (this, 0, sizeof (Signals_t)); }
 
-    } Signals;
+    } Signals_t;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -153,15 +153,15 @@ namespace Searcher {
         int32_t     skip_null_move;
     } Stack;
 
-    extern Limits                limits;
-    extern volatile Signals      signals;
+    extern Limits_t              Limits;
+    extern volatile Signals_t    Signals;
 
-    extern std::vector<RootMove> rootMoves;
-    extern Position              rootPos;
-    extern StateInfoStackPtr     setupStates;
+    extern std::vector<RootMove> RootMoves;
+    extern Position              RootPos;
+    extern StateInfoStackPtr     SetupStates;
 
-    extern Time::point           searchTime;
-    extern uint64_t              iterated;
+    extern Time::point           SearchTime;
+    //extern uint64_t              Iterated;
 
 
     extern size_t perft (Position &pos, Depth depth);

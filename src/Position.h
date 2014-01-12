@@ -942,5 +942,4 @@ inline CheckInfo::CheckInfo (const Position &pos)
 
 typedef std::stack     <StateInfo>          StateInfoStack;
 
-
 #endif

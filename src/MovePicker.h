@@ -126,7 +126,7 @@ private:
 
 public:
 
-    MovePicker(const Position &, Move, const HistoryStats &, PType);
+    MovePicker(const Position &, Move,        const HistoryStats &, PType);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Searcher::Stack []);
 

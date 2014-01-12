@@ -99,9 +99,7 @@ namespace BitBoard {
 
 #pragma endregion
 
-
 #pragma endregion
-
 
 #pragma endregion
 
@@ -338,20 +336,20 @@ namespace BitBoard {
 
     template<PType PT>
     // Attacks of the PAWN
-    extern inline Bitboard attacks_bb (Color c, Square s);
+    extern INLINE Bitboard attacks_bb (Color c, Square s);
 
     template<>
     // PAWN attacks
-    inline Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
+    INLINE Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
 
     // --------------------------------
     template<PType PT>
     // Attacks of the PType
-    extern inline Bitboard attacks_bb (Square s);
+    extern INLINE Bitboard attacks_bb (Square s);
 
     template<PType PT>
     // Attacks of the PType
-    inline Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
+    INLINE Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
     // --------------------------------
     // explicit template instantiations
     template Bitboard attacks_bb<NIHT> (Square s);
@@ -363,14 +361,14 @@ namespace BitBoard {
 
     template<PType PT>
     // Attacks of the PType with occupancy
-    extern inline Bitboard attacks_bb (Square s, Bitboard occ);
+    extern INLINE Bitboard attacks_bb (Square s, Bitboard occ);
 
     template<>
     // KNIGHT attacks
-    inline Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
+    INLINE Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
     template<>
     // KING attacks
-    inline Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
+    INLINE Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
     // --------------------------------
 
     template<PType PT>

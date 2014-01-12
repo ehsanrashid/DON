@@ -319,34 +319,34 @@ template void Thread::split< true> (Position&, const Stack*, Value, Value, Value
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
-void ThreadPool::start_thinking (const Position &pos, const Limits &search_limits, StateInfoStackPtr &states)
+void ThreadPool::start_thinking (const Position &pos, const Limits_t &limits, StateInfoStackPtr &states)
 {
     wait_for_think_finished ();
 
-    searchTime = Time::now (); // As early as possible
+    SearchTime = Time::now (); // As early as possible
 
-    signals.stop_on_ponderhit   = false;
-    signals.first_root_move     = false;
-    signals.stop                = false;
-    signals.failed_low_at_root  = false;
+    Signals.stop_on_ponderhit   = false;
+    Signals.first_root_move     = false;
+    Signals.stop                = false;
+    Signals.failed_low_at_root  = false;
 
-    rootMoves.clear();
-    rootPos = pos;
-    limits  = search_limits;
+    RootMoves.clear();
+    RootPos = pos;
+    Limits  = limits;
     if (states.get ()) // If we don't set a new position, preserve current state
     {
-        //setupStates = move (states); // Ownership transfer here
-        setupStates = states; // Ownership transfer here
+        //SetupStates = move (states); // Ownership transfer here
+        SetupStates = states; // Ownership transfer here
         ASSERT (!states.get ());
     }
 
     MoveList mov_lst = generate<LEGAL> (pos);
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
-        if (search_limits.search_moves.empty ()
-            || count (search_limits.search_moves.begin (), search_limits.search_moves.end (), m))
+        if (limits.search_moves.empty ()
+            || count (limits.search_moves.begin (), limits.search_moves.end (), m))
         {
-            rootMoves.push_back (RootMove (m));
+            RootMoves.push_back (RootMove (m));
         }
     });
 
@@ -393,6 +393,7 @@ void prefetch (char *addr)
         __builtin_prefetch (addr);
     }
 #   endif
+
 }
 
 #endif

@@ -81,7 +81,7 @@ void benchmark (istream &is, const Position &pos)
         *Options["Threads"] = num_threads;
 
         TT.clear ();
-        Limits limits;
+        Limits_t limits;
 
         if (false);
         else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
@@ -141,7 +141,7 @@ void benchmark (istream &is, const Position &pos)
             {
                 Threads.start_thinking (pos, limits, states);
                 Threads.wait_for_think_finished ();
-                nodes += rootPos.game_nodes ();
+                nodes += RootPos.game_nodes ();
             }
         }
 

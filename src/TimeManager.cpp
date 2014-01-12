@@ -98,7 +98,7 @@ namespace {
     }
 }
 
-void TimeManager::initialize (const Limits &limits, int32_t current_ply, Color c)
+void TimeManager::initialize (const Limits_t &limits, int32_t current_ply, Color c)
 {
     /*
     We support four different kind of time controls:
