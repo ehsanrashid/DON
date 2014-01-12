@@ -1652,9 +1652,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
 } // namespace
 
-// check_time() is called by the timer thread when the timer triggers. It is
-// used to print debug info and, more important, to detect when we are out of
-// available time and so stop the search.
+// check_time () is called by the timer thread when the timer triggers.
+// It is used to print debug info and, more important,
+// to detect when we are out of available time and so stop the search.
 void check_time ()
 {
     static Time::point last_time = Time::now ();

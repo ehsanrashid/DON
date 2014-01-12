@@ -443,7 +443,7 @@ namespace UCI {
         Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
-        Options["Aggressiveness"]               = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
