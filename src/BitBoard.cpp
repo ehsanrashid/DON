@@ -253,6 +253,9 @@ namespace BitBoard {
 
     // ---
 
+    CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
+
     // Attacks of the pawn
     CACHE_ALIGN(64) Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
 
@@ -265,54 +268,10 @@ namespace BitBoard {
     // Path of the passed pawn
     CACHE_ALIGN(64) Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
 #pragma endregion
 
 #pragma region Attacks
-
-    Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ)
-    {
-        Bitboard attacks_slid = 0;
-        int8_t i = 0;
-        Delta del = deltas[i++];
-        while (del)
-        {
-            Square sq = s + del;
-            while (_ok (sq) && _square_dist[sq][sq - del] == 1)
-            {
-                attacks_slid += sq;
-                if (occ & sq)
-                    break;
-                sq += del;
-            }
-            del = deltas[i++];
-        }
-        return attacks_slid;
-    }
-
-    template<>
-    // PAWN attacks
-    Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
-
-    template<PType PT>
-    Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
-    // --------------------------------
-    // explicit template instantiations
-    template Bitboard attacks_bb<NIHT> (Square s);
-    template Bitboard attacks_bb<BSHP> (Square s);
-    template Bitboard attacks_bb<ROOK> (Square s);
-    template Bitboard attacks_bb<QUEN> (Square s);
-    template Bitboard attacks_bb<KING> (Square s);
-    // --------------------------------
-
-    template<>
-    // KNIGHT attacks
-    Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
-    template<>
-    // KING attacks
-    Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
 
     // Piece attacks from square
     Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
@@ -320,13 +279,13 @@ namespace BitBoard {
         PType pt = p_type (p);
         switch (pt)
         {
-        case PAWN: return _attacks_pawn_bb[p_color (p)][s];
+        case PAWN: return attacks_bb<PAWN> (p_color (p), s);
         case BSHP: return attacks_bb<BSHP> (s, occ);
         case ROOK: return attacks_bb<ROOK> (s, occ);
         case QUEN: return attacks_bb<BSHP> (s, occ)
                        |  attacks_bb<ROOK> (s, occ);
-        case NIHT:
-        case KING: return _attacks_type_bb[pt][s];
+        case NIHT: return attacks_bb<NIHT>(s);
+        case KING: return attacks_bb<KING>(s);
         }
         return U64 (0);
     }
@@ -517,12 +476,12 @@ namespace BitBoard {
                 // NOTE:: must be called after initialize_sliding()
 
                 PType pt = 
-                    (_attacks_type_bb[BSHP][s1] & s2) ? BSHP :
-                    (_attacks_type_bb[ROOK][s1] & s2) ? ROOK : PT_NO;
+                    (attacks_bb<BSHP> (s1) & s2) ? BSHP :
+                    (attacks_bb<ROOK> (s1) & s2) ? ROOK : PT_NO;
 
                 if (PT_NO == pt) continue;
 
-                _betwen_sq_bb[s1][s2] = attacks_bb (Piece (pt), s1, _square_bb[s2]) & attacks_bb (Piece (pt), s2, _square_bb[s1]);
+                _betwen_sq_bb[s1][s2] = attacks_bb (Piece (pt), s1, square_bb (s2)) & attacks_bb (Piece (pt), s2, square_bb (s1));
 
                 //_lines_sq_bb [s1][s2] = (attacks_bb(Piece (pt), s1, 0) & attacks_bb(Piece (pt), s2, 0)) + s1 + s2;
                 _lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;
@@ -690,24 +649,24 @@ namespace BitBoard {
 
 #pragma endregion
 
-    SquareList squares (Bitboard bb)
-    {
-        SquareList sq_list;
+    //SquareList squares (Bitboard bb)
+    //{
+    //    SquareList sq_list;
 
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        //{
-        //    if (bb & s) sq_list.emplace_back (s);
-        //}
+    //    //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    //    //{
+    //    //    if (bb & s) sq_list.emplace_back (s);
+    //    //}
 
-        // ---
+    //    // ---
 
-        while (bb)
-        {
-            Square s = pop_lsq (bb);
-            sq_list.emplace_back (s);
-        }
+    //    while (bb)
+    //    {
+    //        Square s = pop_lsq (bb);
+    //        sq_list.emplace_back (s);
+    //    }
 
-        return sq_list;
-    }
+    //    return sq_list;
+    //}
 
 }

@@ -300,73 +300,28 @@ namespace BitBoard {
 
 #pragma region Masks
 
-    inline Bitboard square_bb (Square s)
-    {
-        return  _square_bb[s];
-    }
-    inline Bitboard square_bb_ (Square s)
-    {
-        return ~_square_bb[s];
-    }
+    inline Bitboard square_bb  (Square s) { return  _square_bb[s]; }
+    inline Bitboard square_bb_ (Square s) { return ~_square_bb[s]; }
 
-    inline Bitboard file_bb (File   f)
-    {
-        return _file_bb[f];
-    }
-    inline Bitboard file_bb (Square s)
-    {
-        return _file_bb[_file (s)];
-    }
+    inline Bitboard file_bb (File   f) { return _file_bb[f]; }
+    inline Bitboard file_bb (Square s) { return _file_bb[_file (s)]; }
 
-    inline Bitboard rank_bb (Rank   r)
-    {
-        return _rank_bb[r];
-    }
-    inline Bitboard rank_bb (Square s)
-    {
-        return _rank_bb[_rank (s)];
-    }
+    inline Bitboard rank_bb (Rank   r) { return _rank_bb[r]; }
+    inline Bitboard rank_bb (Square s) { return _rank_bb[_rank (s)]; }
 
-    inline Bitboard diag18_bb (Diag   d)
-    {
-        return _diag18_bb[d];
-    }
-    inline Bitboard diag18_bb (Square s)
-    {
-        return _diag18_bb[_diag18 (s)];
-    }
+    inline Bitboard diag18_bb (Diag   d) { return _diag18_bb[d]; }
+    inline Bitboard diag18_bb (Square s) { return _diag18_bb[_diag18 (s)]; }
 
-    inline Bitboard diag81_bb (Diag   d)
-    {
-        return _diag81_bb[d];
-    }
-    inline Bitboard diag81_bb (Square s)
-    {
-        return _diag81_bb[_diag81 (s)];
-    }
+    inline Bitboard diag81_bb (Diag   d) { return _diag81_bb[d]; }
+    inline Bitboard diag81_bb (Square s) { return _diag81_bb[_diag81 (s)]; }
 
-    inline Bitboard adj_files_bb (File   f)
-    {
-        return _adj_file_bb[f];
-    }
-    inline Bitboard adj_files_bb (Square s)
-    {
-        return _adj_file_bb[_file (s)];
-    }
+    inline Bitboard adj_files_bb (File   f) { return _adj_file_bb[f]; }
+    inline Bitboard adj_files_bb (Square s) { return _adj_file_bb[_file (s)]; }
 
-    inline Bitboard adj_ranks_bb (Rank   r)
-    {
-        return _adj_rank_bb[r];
-    }
-    inline Bitboard adj_ranks_bb (Square s)
-    {
-        return _adj_rank_bb[_rank (s)];
-    }
+    inline Bitboard adj_ranks_bb (Rank   r) { return _adj_rank_bb[r]; }
+    inline Bitboard adj_ranks_bb (Square s) { return _adj_rank_bb[_rank (s)]; }
 
-    inline Bitboard rel_rank_bb (Color c, Rank   r)
-    {
-        return _rank_bb[rel_rank (c, r)];
-    }
+    inline Bitboard rel_rank_bb (Color c, Rank   r) { return _rank_bb[rel_rank (c, r)]; }
     inline Bitboard rel_rank_bb (Color c, Square s)
     {
         return _rank_bb[rel_rank (c, s)];
@@ -374,69 +329,39 @@ namespace BitBoard {
     }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
-    inline Bitboard front_ranks_bb (Color c, Rank   r)
-    {
-        return _front_rank_bb[c][r];
-    }
+    inline Bitboard front_ranks_bb   (Color c, Rank   r) { return _front_rank_bb[c][r]; }
     // Bitboard of squares along the line in front of the square, from the point of view of the given color.
-    inline Bitboard front_squares_bb (Color c, Square s)
-    {
-        return _front_squares_bb[c][s];
-    }
+    inline Bitboard front_squares_bb (Color c, Square s) { return _front_squares_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
-    inline Bitboard dia_rings_bb (Square s, uint8_t d)
-    {
-        return _dia_rings_bb[s][d];
-    }
+    inline Bitboard dia_rings_bb    (Square s, uint8_t d) { return _dia_rings_bb[s][d]; }
 
-    inline Bitboard brd_edges_bb (Square s)
-    {
-        return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)));
-    }
-
-    // between_bb() returns a bitboard representing all squares between two squares.
-    // For instance,
-    // between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for square d5 and e6 set.
-    // If s1 and s2 are not on the same rank, file or diagonal, 0 is returned.
-    inline Bitboard betwen_sq_bb (Square s1, Square s2)
-    {
-        return _betwen_sq_bb[s1][s2];
-    }
+    inline Bitboard brd_edges_bb    (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
     // pawn_attack_span_bb() takes a color and a square as input, and returns a bitboard
     // representing all squares that can be attacked by a pawn of the given color
     // when it moves along its file starting from the given square. Definition is:
     // PawnAttackSpan[c][s] = in_front_bb(c, s) & adjacent_files_bb(s);
-    inline Bitboard pawn_attack_span_bb (Color c, Square s)
-    {
-        return _pawn_attack_span_bb[c][s];
-    }
+    inline Bitboard pawn_attack_span_bb (Color c, Square s) { return _pawn_attack_span_bb[c][s]; }
     // passer_pawn_span_bb() takes a color and a square as input, and returns a
     // bitboard mask which can be used to test if a pawn of the given color on
     // the given square is a passed pawn. Definition of the table is:
     // PassedPawnMask[c][s] = pawn_attack_span_bb(c, s) | forward_bb(c, s)
-    inline Bitboard passer_pawn_span_bb (Color c, Square s)
-    {
-        return _passer_pawn_span_bb[c][s];
-    }
+    inline Bitboard passer_pawn_span_bb (Color c, Square s) { return _passer_pawn_span_bb[c][s]; }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s)
-    {
-        return (DR_SQ_bb & s) ? DR_SQ_bb : LT_SQ_bb;
-    }
+    inline Bitboard squares_of_color (Square s) { return (DR_SQ_bb & s) ? DR_SQ_bb : LT_SQ_bb; }
 
-    inline bool more_than_one (Bitboard bb)
-    {
-        return bool ((bb) & (bb - 1));
-    }
+    // between_bb() returns a bitboard representing all squares between two squares.
+    // For instance,
+    // between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for square d5 and e6 set.
+    // If s1 and s2 are not on the same rank, file or diagonal, 0 is returned.
+    inline Bitboard betwen_sq_bb (Square s1, Square s2) { return _betwen_sq_bb[s1][s2]; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned (Square s1, Square s2, Square s3)
-    {
-        return _lines_sq_bb[s1][s2] & s3;
-    }
+    inline bool sqrs_aligned    (Square s1, Square s2, Square s3) { return _lines_sq_bb[s1][s2] & s3; }
+
+    inline bool more_than_one (Bitboard bb) { return bool ((bb) & (bb - 1)); }
 
 #pragma endregion
 
@@ -505,19 +430,61 @@ namespace BitBoard {
 
 #pragma region Attacks
 
-    extern inline Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0));
+    F_INLINE Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0))
+    {
+        Bitboard attacks_slid = 0;
+        int8_t i = 0;
+        Delta del = deltas[i++];
+        while (del)
+        {
+            Square sq = s + del;
+            while (_ok (sq) && square_dist(sq, sq - del) == 1)
+            {
+                attacks_slid += sq;
+                if (occ & sq) break;
+                sq += del;
+            }
+            del = deltas[i++];
+        }
+        return attacks_slid;
+    }
 
     template<PType PT>
     // Attacks of the PAWN
-    extern inline Bitboard attacks_bb (Color c, Square s);
+    extern F_INLINE Bitboard attacks_bb (Color c, Square s);
+
+    template<>
+    // PAWN attacks
+    F_INLINE Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
+
+    // --------------------------------
+    template<PType PT>
+    // Attacks of the PType
+    extern F_INLINE Bitboard attacks_bb (Square s);
 
     template<PType PT>
     // Attacks of the PType
-    extern inline Bitboard attacks_bb (Square s);
+    F_INLINE Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
+    // --------------------------------
+    // explicit template instantiations
+    template F_INLINE Bitboard attacks_bb<NIHT> (Square s);
+    template F_INLINE Bitboard attacks_bb<BSHP> (Square s);
+    template F_INLINE Bitboard attacks_bb<ROOK> (Square s);
+    template F_INLINE Bitboard attacks_bb<QUEN> (Square s);
+    template F_INLINE Bitboard attacks_bb<KING> (Square s);
+    // --------------------------------
 
     template<PType PT>
     // Attacks of the PType with occupancy
-    extern inline Bitboard attacks_bb (Square s, Bitboard occ);
+    extern F_INLINE Bitboard attacks_bb (Square s, Bitboard occ);
+
+    template<>
+    // KNIGHT attacks
+    F_INLINE Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
+    template<>
+    // KING attacks
+    F_INLINE Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
+    // --------------------------------
 
     extern inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ);
 
@@ -538,7 +505,8 @@ namespace BitBoard {
 
 #pragma endregion
 
-    extern inline SquareList squares (Bitboard  bb);
+    //extern SquareList squares (Bitboard  bb);
+
 }
 
 #endif

@@ -78,7 +78,7 @@ namespace BitBases {
 
             // Check if two pieces are on the same square or if a king can be captured
             if (   square_dist (wk_sq, bk_sq) <= 1 || wk_sq == p_sq || bk_sq == p_sq
-                || (WHITE == active && (_attacks_pawn_bb[WHITE][p_sq] & bk_sq)))
+                || (WHITE == active && (attacks_bb<PAWN>(WHITE, p_sq) & bk_sq)))
             {
                 result = INVALID;
             }
@@ -89,7 +89,8 @@ namespace BitBases {
                     // Immediate win if a pawn can be promoted without getting captured
                     if (   _rank (p_sq) == R_7
                         && wk_sq != p_sq + DEL_N
-                        && (square_dist (bk_sq, p_sq + DEL_N) > 1 || (_attacks_type_bb[KING][wk_sq] & (p_sq + DEL_N))))
+                        && (square_dist (bk_sq, p_sq + DEL_N) > 1
+                        || (attacks_bb<KING> (wk_sq) & (p_sq + DEL_N))))
                     {
                         result = WIN;
                     }
@@ -97,8 +98,8 @@ namespace BitBases {
                 else
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
-                    if (  !(_attacks_type_bb[KING][bk_sq] & ~(_attacks_type_bb[KING][wk_sq] | _attacks_pawn_bb[WHITE][p_sq]))
-                        || (_attacks_type_bb[KING][bk_sq] & p_sq & ~_attacks_type_bb[KING][wk_sq]))
+                    if (  !(attacks_bb<KING> (bk_sq) & ~(attacks_bb<KING> (wk_sq) | attacks_bb<PAWN>(WHITE, p_sq)))
+                        || (attacks_bb<KING> (bk_sq) & p_sq & ~attacks_bb<KING> (wk_sq)))
                     {
                         result = DRAW;
                     }

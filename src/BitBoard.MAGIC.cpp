@@ -86,16 +86,10 @@ namespace BitBoard {
 
     template<>
     // Attacks of the BISHOP with occupancy
-    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
-    {
-        return BAttack_bb[s][attack_index<BSHP> (s, occ)];
-    }
+    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][attack_index<BSHP> (s, occ)]; }
     template<>
     // Attacks of the ROOK with occupancy
-    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
-    {
-        return RAttack_bb[s][attack_index<ROOK> (s, occ)];
-    }
+    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][attack_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occ
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)

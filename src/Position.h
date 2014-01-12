@@ -604,7 +604,7 @@ inline Bitboard Position::attacks_from (Square s) const
     //switch (PT)
     //{
     //case PAWN:
-    //    return BitBoard::_attacks_pawn_bb[_active][s];
+    //    return BitBoard::attacks_bb<PAWN> (_active, s);
     //case NIHT:
     //case KING:
     //    return BitBoard::_attacks_type_bb[PT][s];
@@ -619,8 +619,7 @@ inline Bitboard Position::attacks_from (Square s) const
 
     return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
         : (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ()) | BitBoard::attacks_bb<ROOK> (s, pieces ())
-        : (PAWN == PT) ? BitBoard::_attacks_pawn_bb[_active][s]
-    : BitBoard::_attacks_type_bb[PT][s];
+        : (PAWN == PT) ? BitBoard::attacks_bb<PAWN> (_active, s) : BitBoard::_attacks_type_bb[PT][s];
 }
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
