@@ -246,8 +246,8 @@ public:
     Bitboard pieces (Color c)           const;
     Bitboard pieces (PType pt)          const;
     Bitboard pieces (Color c, PType pt) const;
-    Bitboard pieces (PType pt1, PType pt2) const;
-    Bitboard pieces (Color c, PType pt1, PType pt2) const;
+    Bitboard pieces (PType p1, PType p2) const;
+    Bitboard pieces (Color c, PType p1, PType p2) const;
     Bitboard pieces () const;
     Bitboard empties () const;
     //Bitboard pieces (Piece p) const;
@@ -489,17 +489,17 @@ inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
 
 inline bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
-inline Piece    Position::piece_on(Square s) const { return _piece_arr[s]; }
+inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
 
-inline Square   Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
+inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces (Color  c) const { return _color_bb[c]; }
-inline Bitboard Position::pieces (PType pt) const { return _types_bb[pt]; }
-inline Bitboard Position::pieces (Color c, PType pt)    const { return _color_bb[c] & _types_bb[pt]; }
-inline Bitboard Position::pieces (PType pt1, PType pt2) const { return _types_bb[pt1] | _types_bb[pt2]; }
-inline Bitboard Position::pieces (Color c, PType pt1, PType pt2) const { return _color_bb[c] & (_types_bb[pt1] | _types_bb[pt2]); }
-inline Bitboard Position::pieces ()  const { return  _types_bb[PT_NO]; }
-inline Bitboard Position::empties () const { return ~_types_bb[PT_NO]; }
+inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c]; }
+inline Bitboard Position::pieces (PType pt)           const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c, PType pt)  const { return _color_bb[c] & _types_bb[pt]; }
+inline Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p1] | _types_bb[p2]; }
+inline Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
+inline Bitboard Position::pieces ()                   const { return  _types_bb[PT_NO]; }
+inline Bitboard Position::empties ()                  const { return ~_types_bb[PT_NO]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
 
 template<PType PT>
@@ -545,7 +545,7 @@ inline Score    Position::psq_score     () const { return _si->psq_score; }
 
 inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-//inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN>(c)) * VALUE_EG_PAWN; }
+//inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN> (c)) * VALUE_EG_PAWN; }
 
 #pragma endregion
 
@@ -612,13 +612,13 @@ inline Bitboard Position::attacks_from (Square s) const
     //case ROOK:
     //    return BitBoard::attacks_bb<PT> (s, pieces ());
     //case QUEN:
-    //    return BitBoard::attacks_bb<BSHP>(s, pieces ())
-    //        |  BitBoard::attacks_bb<ROOK>(s, pieces ());
+    //    return BitBoard::attacks_bb<BSHP> (s, pieces ())
+    //        |  BitBoard::attacks_bb<ROOK> (s, pieces ());
     //}
     //return U64 (0);
 
-    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT>(s, pieces ())
-        : (QUEN == PT) ? BitBoard::attacks_bb<BSHP>(s, pieces ()) | BitBoard::attacks_bb<ROOK>(s, pieces ())
+    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
+        : (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ()) | BitBoard::attacks_bb<ROOK> (s, pieces ())
         : (PAWN == PT) ? BitBoard::_attacks_pawn_bb[_active][s]
     : BitBoard::_attacks_type_bb[PT][s];
 }
@@ -653,7 +653,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (king_sq (c)) & _color_bb[~c];
+    return attackers_to (king_sq (c)) & pieces (~c);
 }
 
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
@@ -687,12 +687,12 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    int32_t bishop_count = _piece_count[c][BSHP];
+    int32_t bishop_count = piece_count<BSHP> (c);
     if (bishop_count > 1)
     {
         for (int32_t pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (_piece_list[c][BSHP][pc], _piece_list[c][BSHP][pc+1])) return true;
+            if (opposite_colors (piece_list<BSHP> (c)[pc], piece_list<BSHP> (c)[pc+1])) return true;
         }
     }
     return false;
@@ -701,9 +701,9 @@ inline bool Position::bishops_pair (Color c) const
 inline bool Position::opposite_bishops () const
 {
     return
-        (_piece_count[WHITE][BSHP] == 1) &&
-        (_piece_count[BLACK][BSHP] == 1) &&
-        opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
+        (piece_count<BSHP> (WHITE) == 1) &&
+        (piece_count<BSHP> (BLACK) == 1) &&
+        opposite_colors (piece_list<BSHP> (WHITE)[0], piece_list<BSHP> (BLACK)[0]);
 }
 
 #pragma endregion
@@ -740,7 +740,7 @@ inline Piece Position::moved_piece (Move m) const
 //        {
 //            cap += ((WHITE == _active) ? DEL_S : DEL_N);
 //            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN)) ?
-//                _piece_arr[cap] : PS_NO;
+//                piece_on (cap) : PS_NO;
 //        }
 //        return PS_NO;
 //
@@ -758,9 +758,9 @@ inline Piece Position::moved_piece (Move m) const
 //            // check not pawn push and can capture
 //            return (1 == BitBoard::file_dist (dst, org))
 //                && (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active))
-//                ? _piece_arr[cap] : PS_NO;
+//                ? piece_on (cap) : PS_NO;
 //        }
-//        return _piece_arr[cap];
+//        return piece_on (cap);
 //    }
 //    return PS_NO;
 //}

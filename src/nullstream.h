@@ -55,7 +55,7 @@ namespace std {
         basic_null_stream()
             // C++98 standard allows that construction
             // 12.6.2/7
-            : basic_ostream<charT, Traits>(this)
+            : basic_ostream<charT, Traits> (this)
         {}
 
     };

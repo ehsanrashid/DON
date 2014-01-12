@@ -139,7 +139,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 // The moves with highest scores will be picked first.
 
 template<>
-void MovePicker::value<CAPTURE>()
+void MovePicker::value<CAPTURE> ()
 {
     // Winning and equal captures in the main search are ordered by MVV/LVA.
     // Suprisingly, this appears to perform slightly better than SEE based
@@ -172,7 +172,7 @@ void MovePicker::value<CAPTURE>()
 }
 
 template<>
-void MovePicker::value<QUIET>()
+void MovePicker::value<QUIET> ()
 {
     Move m;
     for (ValMove *itr = moves; itr != end; ++itr)
@@ -183,7 +183,7 @@ void MovePicker::value<QUIET>()
 }
 
 template<>
-void MovePicker::value<EVASION>()
+void MovePicker::value<EVASION> ()
 {
     // Try good captures ordered by MVV/LVA, then non-captures if destination square
     // is not under attack, ordered by history value, then bad-captures and quiet
@@ -211,7 +211,7 @@ template<GType GT>
 void MovePicker::generate_moves ()
 {
     uint32_t index = 0;
-    MoveList mov_lst = generate<GT>(pos);
+    MoveList mov_lst = generate<GT> (pos);
 
     //MoveList::const_iterator itr = mov_lst.cbegin ();
     //while (itr != mov_lst.cend ())
@@ -246,8 +246,8 @@ void MovePicker::generate_next ()
     case CAPTURES_S4:
     case CAPTURES_S5:
     case CAPTURES_S6:
-        generate_moves<CAPTURE>();
-        value<CAPTURE>();
+        generate_moves<CAPTURE> ();
+        value<CAPTURE> ();
         return;
         break;
 
@@ -277,9 +277,9 @@ void MovePicker::generate_next ()
         break;
 
     case QUIETS_1_S1:
-        generate_moves<QUIET>();
+        generate_moves<QUIET> ();
         end_quiets = end;
-        value<QUIET>();
+        value<QUIET> ();
         end = partition (cur, end, positive_value);
         insertion_sort (cur, end);
         return;
@@ -302,13 +302,13 @@ void MovePicker::generate_next ()
         return;
 
     case EVASIONS_S2:
-        generate_moves<EVASION>();
-        if (end > moves + 1) value<EVASION>();
+        generate_moves<EVASION> ();
+        if (end > moves + 1) value<EVASION> ();
         return;
         break;
 
     case QUIET_CHECKS_S3:
-        generate_moves<QUIET_CHECK>();
+        generate_moves<QUIET_CHECK> ();
         return;
         break;
 
@@ -335,7 +335,7 @@ template<>
 // a new pseudo legal move every time is called, until there are no more moves
 // left. It picks the move with the biggest score from a list of generated moves
 // taking care not returning the tt_move if has already been searched previously.
-Move MovePicker::next_move<false>()
+Move MovePicker::next_move<false> ()
 {
     Move move;
 
@@ -440,7 +440,7 @@ template<>
 // Version of next_move() to use at split point nodes where the move is grabbed
 // from the split point's shared MovePicker object. This function is not thread
 // safe so must be lock protected by the caller.
-Move MovePicker::next_move<true>()
+Move MovePicker::next_move<true> ()
 {
-    return ss->split_point->move_picker->next_move<false>();
+    return ss->split_point->move_picker->next_move<false> ();
 }

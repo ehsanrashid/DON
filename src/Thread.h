@@ -220,7 +220,7 @@ struct ThreadPool
     void initialize (); 
     void deinitialize (); 
 
-    MainThread* main () { return static_cast<MainThread*>((*this)[0]); }
+    MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
     void read_uci_options();
     

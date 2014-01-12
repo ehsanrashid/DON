@@ -321,10 +321,10 @@ namespace BitBoard {
         switch (pt)
         {
         case PAWN: return _attacks_pawn_bb[p_color (p)][s];
-        case BSHP: return attacks_bb<BSHP>(s, occ);
-        case ROOK: return attacks_bb<ROOK>(s, occ);
-        case QUEN: return attacks_bb<BSHP>(s, occ)
-                       |  attacks_bb<ROOK>(s, occ);
+        case BSHP: return attacks_bb<BSHP> (s, occ);
+        case ROOK: return attacks_bb<ROOK> (s, occ);
+        case QUEN: return attacks_bb<BSHP> (s, occ)
+                       |  attacks_bb<ROOK> (s, occ);
         case NIHT:
         case KING: return _attacks_type_bb[pt][s];
         }

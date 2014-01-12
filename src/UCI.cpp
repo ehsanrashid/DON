@@ -238,29 +238,28 @@ namespace UCI {
             MoveList mov_lst;
 
             cout << "\nQuiet moves: ";
-            mov_lst = generate<QUIET>(rootPos);
+            mov_lst = generate<QUIET> (rootPos);
             for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
             {
                 cout << move_to_san (m, rootPos) << " ";
             });
 
             cout << "\nCheck moves: ";
-            mov_lst = generate<CHECK>(rootPos);
+            mov_lst = generate<CHECK> (rootPos);
             for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
             {
                 cout << move_to_san (m, rootPos) << " ";
             });
 
             cout << "\nQuiet Check moves: ";
-            mov_lst = generate<QUIET_CHECK>(rootPos);
+            mov_lst = generate<QUIET_CHECK> (rootPos);
             for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
             {
                 cout << move_to_san (m, rootPos) << " ";
             });
 
-
             cout << "\nLegal moves: ";
-            mov_lst = generate<LEGAL>(rootPos);
+            mov_lst = generate<LEGAL> (rootPos);
             for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
             {
                 cout << move_to_san (m, rootPos) << " ";

@@ -89,7 +89,7 @@ namespace std {
     // Manipulator function itself. This is what is used by client code
     inline manip_infra<int, char> set_width (int n)
     {
-        return (manip_infra<int, char>(set_width, n));
+        return (manip_infra<int, char> (set_width, n));
     }
 
     // Another helper that takes a char argument
@@ -101,7 +101,7 @@ namespace std {
 
     inline manip_infra<char, char> set_fill(char c)
     {
-        return (manip_infra<char, char>(set_fill, c));
+        return (manip_infra<char, char> (set_fill, c));
     }
 
 
@@ -112,7 +112,7 @@ namespace std {
     //    ...
     //};
 
-    //istream &operator>>(istream &, eat);
+    //istream &operator>> (istream &, eat);
 
 
 }

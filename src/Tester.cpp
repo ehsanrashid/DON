@@ -23,6 +23,12 @@ namespace Tester {
 
         void test_type ()
         {
+
+            //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            //{
+            //    ASSERT (_ok (s));
+            //}
+
             ASSERT (CR_W == mk_castle_right (WHITE));
             ASSERT (CR_B == mk_castle_right (BLACK));
 

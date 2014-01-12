@@ -85,9 +85,9 @@ namespace {
         e->_passed_pawns  [C] = e->_candidate_pawns[C] = 0;
         e->_king_sq       [C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
-        e->_pawn_attacks  [C] = shift_del<RCAP>(pawns[0]) | shift_del<LCAP>(pawns[0]);
-        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15>(pawns[0] & DR_SQ_bb);
-        e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN>(C) - e->_num_pawns_on_sq[C][BLACK];
+        e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
+        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15> (pawns[0] & DR_SQ_bb);
+        e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN> (C) - e->_num_pawns_on_sq[C][BLACK];
 
         Score pawn_score = SCORE_ZERO;
 
@@ -121,7 +121,7 @@ namespace {
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | connected)
                 || (pawns[0] & pawn_attack_span_bb (C_, s))
-                || (pos.attacks_from<PAWN>(C, s) & pawns[1]))
+                || (pos.attacks_from<PAWN> (C, s) & pawns[1]))
             {
                 backward = false;
             }
@@ -149,7 +149,7 @@ namespace {
             Bitboard adj_pawns;
             bool candidate_passed = !(opposed | passed | backward | isolated)
                 && (adj_pawns = pawn_attack_span_bb (C_, s + PUSH) & pawns[0]) != 0
-                &&  pop_count<MAX15>(adj_pawns) >= pop_count<MAX15>(pawn_attack_span_bb (C, s) & pawns[1]);
+                &&  pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (pawn_attack_span_bb (C, s) & pawns[1]);
 
             // Passed pawns will be properly scored in evaluation because we need
             // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -175,7 +175,7 @@ namespace {
 
         // In endgame it's better to have pawns on both wings. So give a bonus according
         // to file distance between left and right outermost pawns.
-        if (pos.piece_count<PAWN>(C) > 1)
+        if (pos.piece_count<PAWN> (C) > 1)
         {
             Bitboard b = e->_semiopen_files[C] ^ 0xFF;
             pawn_score += PawnsFileSpan * int32_t (scan_msq (b) - scan_lsq (b));
@@ -214,7 +214,7 @@ namespace Pawns {
         if (e->_pawn_key == pawn_key) return e;
 
         e->_pawn_key = pawn_key;
-        e->_pawn_score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
+        e->_pawn_score = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
         return e;
     }
 
@@ -272,16 +272,16 @@ namespace Pawns {
             return _king_safety[C] = mk_score (0, -16 * _min_dist_KP[C]);
         }
 
-        Value bonus = shelter_storm<C>(pos, k_sq);
+        Value bonus = shelter_storm<C> (pos, k_sq);
 
         // If we can castle use the bonus after the castle if is bigger
         if (pos.can_castle (C, CS_K))
         {
-            bonus = max (bonus, shelter_storm<C>(pos, rel_sq (C, SQ_WK_K)));
+            bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_K)));
         }
         if (pos.can_castle (C, CS_Q))
         {
-            bonus = max (bonus, shelter_storm<C>(pos, rel_sq (C, SQ_WK_Q)));
+            bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
         }
 
         return _king_safety[C] = mk_score (bonus, -16 * _min_dist_KP[C]);
@@ -289,8 +289,8 @@ namespace Pawns {
 
     // Explicit template instantiation
     // -------------------------------
-    template Score Entry::update_safety<WHITE>(const Position &pos, Square k_sq);
-    template Score Entry::update_safety<BLACK>(const Position &pos, Square k_sq);
+    template Score Entry::update_safety<WHITE> (const Position &pos, Square k_sq);
+    template Score Entry::update_safety<BLACK> (const Position &pos, Square k_sq);
 
 
 } // namespace Pawns

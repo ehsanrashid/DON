@@ -133,24 +133,24 @@ namespace {
     inline PType min_attacker      (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
-        if (!b) return min_attacker<PT+1>(bb, dst, stm_attackers, occupied, attackers);
+        if (!b) return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
 
         occupied -= (b & ~(b - 1));
 
         if (PT == PAWN || PT == BSHP || PT == QUEN)
         {
-            attackers |= attacks_bb<BSHP>(dst, occupied) & (bb[BSHP] | bb[QUEN]);
+            attackers |= attacks_bb<BSHP> (dst, occupied) & (bb[BSHP] | bb[QUEN]);
         }
         if (PT == ROOK || PT == QUEN)
         {
-            attackers |= attacks_bb<ROOK>(dst, occupied) & (bb[ROOK] | bb[QUEN]);
+            attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
         }
         attackers &= occupied; // After X-ray that may add already processed pieces
         return PType (PT);
     }
 
     template<>
-    inline PType min_attacker<KING>(const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    inline PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
@@ -260,9 +260,9 @@ bool Position::ok (int8_t *failed_step) const
     // step 1
     if (++(*step), !_ok (_active)) return false;
     // step 2
-    if (++(*step), W_KING != _piece_arr[king_sq (WHITE)]) return false;
+    if (++(*step), W_KING != piece_on (king_sq (WHITE))) return false;
     // step 3
-    if (++(*step), B_KING != _piece_arr[king_sq (BLACK)]) return false;
+    if (++(*step), B_KING != piece_on (king_sq (BLACK))) return false;
 
     // step 4
     if (++(*step), debug_king_count)
@@ -276,7 +276,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (_piece_count[c][KING] != pop_count<FULL> (pieces (c, KING))) return false;
+            if (piece_count<KING> (c) != pop_count<FULL> (pieces (c, KING))) return false;
         }
     }
 
@@ -299,7 +299,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt)))
+                if (piece_count (c, pt) != pop_count<FULL> (pieces (c, pt)))
                 {
                     return false;
                 }
@@ -319,16 +319,16 @@ bool Position::ok (int8_t *failed_step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if ((_piece_count[c][PAWN] +
-                max (_piece_count[c][NIHT] - 2, 0) +
-                max (_piece_count[c][BSHP] - 2, 0) +
-                max (_piece_count[c][ROOK] - 2, 0) +
-                max (_piece_count[c][QUEN] - 1, 0)) > 8)
+            if (    (piece_count<PAWN> (c) +
+                max (piece_count<NIHT> (c) - 2, 0) +
+                max (piece_count<BSHP> (c) - 2, 0) +
+                max (piece_count<ROOK> (c) - 2, 0) +
+                max (piece_count<QUEN> (c) - 1, 0)) > 8)
             {
                 return false; // Too many Promoted Piece of color
             }
 
-            if (_piece_count[c][BSHP] > 1)
+            if (piece_count<BSHP> (c) > 1)
             {
                 Bitboard bishops = colors & pieces (BSHP);
                 uint8_t bishop_count[CLR_NO] =
@@ -337,7 +337,7 @@ bool Position::ok (int8_t *failed_step) const
                     pop_count<FULL> (DR_SQ_bb & bishops),
                 };
 
-                if ((_piece_count[c][PAWN] +
+                if (    (piece_count<PAWN> (c) +
                     max (bishop_count[WHITE] - 1, 0) +
                     max (bishop_count[BLACK] - 1, 0)) > 8)
                 {
@@ -368,8 +368,10 @@ bool Position::ok (int8_t *failed_step) const
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if ((pieces (PAWN) | pieces (NIHT) | pieces (BSHP) | pieces (ROOK) | pieces (QUEN) | pieces (KING)) != occ) return false;
-        if ((pieces (PAWN) ^ pieces (NIHT) ^ pieces (BSHP) ^ pieces (ROOK) ^ pieces (QUEN) ^ pieces (KING)) != occ) return false;
+        if ( (pieces (PAWN) | pieces (NIHT) | pieces (BSHP)
+            | pieces (ROOK) | pieces (QUEN) | pieces (KING)) != occ) return false;
+        if ( (pieces (PAWN) ^ pieces (NIHT) ^ pieces (BSHP)
+            ^ pieces (ROOK) ^ pieces (QUEN) ^ pieces (KING)) != occ) return false;
 
         // PAWN rank should not be 1/8
         if ((pieces (PAWN) & (R1_bb | R8_bb))) return false;
@@ -382,20 +384,11 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PType pt = PAWN; pt <= KING; ++pt)
             {
-                for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
+                for (int32_t i = 0; i < piece_count (c, pt); ++i)
                 {
-                    if (!_ok (_piece_list[c][pt][i]))
-                    {
-                        return false;
-                    }
-                    if (_piece_arr[_piece_list[c][pt][i]] != (c | pt))
-                    {
-                        return false;
-                    }
-                    if (_piece_index[_piece_list[c][pt][i]] != i)
-                    {
-                        return false;
-                    }
+                    if (!_ok (_piece_list[c][pt][i])) return false;
+                    if (piece_on (_piece_list[c][pt][i]) != (c | pt)) return false;
+                    if (_piece_index[_piece_list[c][pt][i]] != i) return false;
                 }
             }
         }
@@ -417,7 +410,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 9
     if (++(*step), debug_checker_count)
     {
-        if (pop_count<FULL>(checkers ()) > 2) return false;
+        if (pop_count<FULL> (checkers ()) > 2) return false;
     }
 
     // step 10
@@ -547,7 +540,7 @@ int32_t Position::see      (Move m) const
         ++index;
 
         // Locate and remove the next least valuable attacker
-        ct  = min_attacker<PAWN>(_types_bb, dst, stm_attackers, occupied, attackers);
+        ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
         stm = ~stm;
         stm_attackers = attackers & pieces (stm);
 
@@ -590,8 +583,8 @@ int32_t Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][p_type (_piece_arr[org_sq (m)])]
-    <=  PieceValue[MG][p_type (_piece_arr[dst_sq (m)])])
+    if (PieceValue[MG][p_type (piece_on (org_sq (m)))]
+    <=  PieceValue[MG][p_type (piece_on (dst_sq (m)))])
     {
         return 1;
     }
@@ -707,7 +700,7 @@ bool Position::pseudo_legal (Move m) const
                 return false;
 
             cap += pawn_push (pasive);
-            if ((pasive | PAWN) != _piece_arr[cap]) return false;
+            if ((pasive | PAWN) != piece_on (cap)) return false;
 
             ct = PAWN;
         }
@@ -719,13 +712,13 @@ bool Position::pseudo_legal (Move m) const
             if (R_7 != rel_rank (active, org)) return false;
             if (R_8 != rel_rank (active, dst)) return false;
         }
-        ct = p_type (_piece_arr[cap]);
+        ct = p_type (piece_on (cap));
         break;
 
     case NORMAL:
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
-        ct = p_type (_piece_arr[cap]);
+        ct = p_type (piece_on (cap));
         break;
     }
 
@@ -781,7 +774,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_SW:
             // Capture. The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (PT_NO == ct || active == p_color (_piece_arr[cap])) return false;
+            if (PT_NO == ct || active == p_color (piece_on (cap))) return false;
             // cap and org files must be one del apart, avoids a7h5
             if (1 != BitBoard::file_dist (cap, org)) return false;
             break;
@@ -879,7 +872,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
     ASSERT ((active == pc) && (PT_NO != pt));
 
     Square ksq = king_sq (active);
-    //ASSERT ((active | KING) == _piece_arr[ksq]);
+    //ASSERT ((active | KING) == piece_on (ksq));
 
     MType mt = m_type (m);
     switch (mt)
@@ -896,9 +889,9 @@ bool Position::       legal (Move m, Bitboard pinned) const
 
             ASSERT (dst == _si->en_passant);
             ASSERT ((active | PAWN) == piece_on (org));
-            ASSERT ((pasive | PAWN) == _piece_arr[cap]);
+            ASSERT ((pasive | PAWN) == piece_on (cap));
             ASSERT (empty (dst));
-            ASSERT ((pasive | PAWN) == _piece_arr[cap]);
+            ASSERT ((pasive | PAWN) == piece_on (cap));
 
             Bitboard mocc = pieces () - org - cap + dst;
 
@@ -1037,7 +1030,6 @@ void Position::clear ()
         _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
         SQ_NO);
 
-
     //_game_ply   = 1;
 
     _sb.en_passant = SQ_NO;
@@ -1056,7 +1048,7 @@ bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
     //}
     //return false;
 
-    return parse (*const_cast<Position*>(this), fen, thread, c960, full);
+    return parse (*const_cast<Position*> (this), fen, thread, c960, full);
 }
 #endif
 bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
@@ -1069,7 +1061,7 @@ bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
     //}
     //return false;
 
-    return parse (*const_cast<Position*>(this), fen, thread, c960, full);
+    return parse (*const_cast<Position*> (this), fen, thread, c960, full);
 }
 
 // set_castle() set the castling for the particular color & rook
@@ -1111,13 +1103,15 @@ void Position::set_castle (Color c, Square org_rook)
 // can_en_passant() tests the en-passant square
 bool Position::can_en_passant (Square ep_sq) const
 {
-    if (SQ_NO == ep_sq) return false;
+    ASSERT (_ok (ep_sq));
+
     Color active = _active;
     Color pasive = ~active;
-    if (R_6 != rel_rank (active, ep_sq)) return false;
+    ASSERT (R_6 == rel_rank (active, ep_sq));
+
     Square cap = ep_sq + pawn_push (pasive);
     //if (!(pieces (pasive, PAWN) & cap)) return false;
-    if ((pasive | PAWN) != _piece_arr[cap]) return false;
+    if ((pasive | PAWN) != piece_on (cap)) return false;
 
     Bitboard pawns_ep = attacks_bb<PAWN> (pasive, ep_sq) & pieces (active, PAWN);
     if (!pawns_ep) return false;
@@ -1178,7 +1172,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PType pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += PieceValue[MG][pt] * int32_t (_piece_count[c][pt]);
+        value += PieceValue[MG][pt] * piece_count (c, pt);
     }
     return value;
 }
@@ -1283,7 +1277,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
         }
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][_piece_count[pasive][ct]];
+        _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][piece_count (pasive, ct)];
         if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
         posi_k ^= ZobGlob._.psq_k[pasive][ct][cap];
@@ -1316,7 +1310,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
-            ASSERT (PS_NO == _piece_arr[dst_rook]);
+            ASSERT (empty (dst_rook));
 
             castle_king_rook (org, dst, org_rook, dst_rook);
 
@@ -1336,8 +1330,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             place_piece (dst, active, ppt);
 
             _si->matl_key ^=
-                ZobGlob._.psq_k[active][PAWN][_piece_count[active][PAWN]] ^
-                ZobGlob._.psq_k[active][ppt][_piece_count[active][ppt] - 1];
+                ZobGlob._.psq_k[active][PAWN][piece_count (active, PAWN)] ^
+                ZobGlob._.psq_k[active][ppt][piece_count (active, ppt) - 1];
 
             _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org];
 
@@ -1949,10 +1943,10 @@ Position::operator string () const
     while (b) spos << to_string (pop_lsq (b)) << " ";
 
     spos << "\nLegal moves: ";
-    MoveList mov_lst = generate<LEGAL>(*this);
+    MoveList mov_lst = generate<LEGAL> (*this);
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
-        spos << move_to_san (m, *const_cast<Position*>(this)) << " ";
+        spos << move_to_san (m, *const_cast<Position*> (this)) << " ";
     });
 
     return spos.str ();
@@ -2055,7 +2049,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         {
             for (Color c = WHITE; c <= BLACK; ++c)
             {
-                if (1 != pos._piece_count[c][KING]) return false;
+                if (1 != pos.piece_count<KING> (c)) return false;
             }
         }
     }

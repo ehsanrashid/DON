@@ -51,7 +51,7 @@ namespace Pawns {
         Score king_safety(const Position &pos, Square k_sq)
         {
             return (_king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
-                ? _king_safety[C] : update_safety<C>(pos, k_sq);
+                ? _king_safety[C] : update_safety<C> (pos, k_sq);
         }
 
         template<Color C>

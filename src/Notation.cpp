@@ -131,7 +131,7 @@ Move move_from_can (string &can, const Position &pos)
         }
     }
 
-    MoveList mov_lst = generate<LEGAL>(pos);
+    MoveList mov_lst = generate<LEGAL> (pos);
     MoveList::const_iterator itr = mov_lst.cbegin ();
     while (itr != mov_lst.cend ())
     {

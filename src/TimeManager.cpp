@@ -142,8 +142,8 @@ void TimeManager::initialize (const Limits &limits, int32_t current_ply, Color c
 
         if (hyp_time < 0) hyp_time = 0;
 
-        int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
-        int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME>(hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
 
         _optimum_search_time = min (_optimum_search_time, opt_time);
         _maximum_search_time = min (_maximum_search_time, max_time);

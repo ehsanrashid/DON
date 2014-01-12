@@ -314,8 +314,8 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
 }
 
 // Explicit template instantiations
-template void Thread::split<false>(Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
-template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
+template void Thread::split<false> (Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
+template void Thread::split< true> (Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
@@ -340,7 +340,7 @@ void ThreadPool::start_thinking (const Position &pos, const Limits &search_limit
         ASSERT (!states.get ());
     }
 
-    MoveList mov_lst = generate<LEGAL>(pos);
+    MoveList mov_lst = generate<LEGAL> (pos);
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
         if (search_limits.search_moves.empty ()

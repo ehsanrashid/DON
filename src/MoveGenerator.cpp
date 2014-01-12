@@ -35,7 +35,7 @@ namespace MoveGenerator {
                 static_assert ((KING != PT) && (PAWN != PT), "PT must not be KING & PAWN");
 
                 Bitboard occ = pos.pieces ();
-                const Square *pl = pos.piece_list<PT>(c);
+                const Square *pl = pos.piece_list<PT> (c);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
@@ -251,8 +251,8 @@ namespace MoveGenerator {
                             // promotion has been already generated among captures.
                             if (pawns_chk_dis)
                             {
-                                Bitboard push_cd_1 = shift_del<PUSH>(pawns_chk_dis    ) & empties;
-                                Bitboard push_cd_2 = shift_del<PUSH>(push_cd_1 & bbRR3) & empties;
+                                Bitboard push_cd_1 = shift_del<PUSH> (pawns_chk_dis    ) & empties;
+                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & bbRR3) & empties;
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -288,7 +288,7 @@ namespace MoveGenerator {
                             // All time except when EVASION then 2nd condition must true
                             if ((EVASION != G) || (target & (ep_sq - PUSH)))
                             {
-                                Bitboard pawns_ep = attacks_bb<PAWN>(C_, ep_sq) & pawns_on_R5;
+                                Bitboard pawns_ep = attacks_bb<PAWN> (C_, ep_sq) & pawns_on_R5;
                                 ASSERT (pawns_ep);
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
 
@@ -576,7 +576,7 @@ namespace MoveGenerator {
         //// Generates evasions for king, capture and non-capture moves excluding friends
         //Bitboard moves = attacks_bb<KING> (org_king) & ~friends;
         //check_sq = pop_lsq (checkers);
-        //checker_count = pop_count<MAX15>(checkers);
+        //checker_count = pop_count<MAX15> (checkers);
         //
         //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - org_king;

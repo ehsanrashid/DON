@@ -88,21 +88,21 @@ namespace BitBoard {
     // Attacks of the BISHOP with occupancy
     Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
-        return BAttack_bb[s][attack_index<BSHP>(s, occ)];
+        return BAttack_bb[s][attack_index<BSHP> (s, occ)];
     }
     template<>
     // Attacks of the ROOK with occupancy
     Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
-        return RAttack_bb[s][attack_index<ROOK>(s, occ)];
+        return RAttack_bb[s][attack_index<ROOK> (s, occ)];
     }
     template<>
     // QUEEN Attacks with occ
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return 
-            BAttack_bb[s][attack_index<BSHP>(s, occ)] |
-            RAttack_bb[s][attack_index<ROOK>(s, occ)];
+            BAttack_bb[s][attack_index<BSHP> (s, occ)] |
+            RAttack_bb[s][attack_index<ROOK> (s, occ)];
     }
 
     namespace {
@@ -176,7 +176,7 @@ namespace BitBoard {
                     uint16_t index;
                     do
                     {
-                        magics_bb[s] = rkiss.rand_boost<Bitboard>(booster);
+                        magics_bb[s] = rkiss.rand_boost<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
                         //if (pop_count<MAX15> (index) >= 6) break;
                     }

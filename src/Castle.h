@@ -3,7 +3,6 @@
 #define CASTLE_H_
 
 #include "Type.h"
-//#include <string>
 
 inline CRight mk_castle_right (Color c)
 {
@@ -14,7 +13,7 @@ inline CRight mk_castle_right (Color c, CSide cs)
     return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK)));
 }
 
-inline CRight operator~ (CRight cr)
+inline CRight operator~  (CRight cr)
 {
     return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC));
 }
