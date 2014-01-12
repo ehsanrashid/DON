@@ -433,7 +433,7 @@ namespace Tester {
 
             fen = "8/1q6/8/1k3BR1/p1p4P/8/5K2/8 w - - 0 1";
             pos.setup (fen);
-            ASSERT (U64 (0x0000002000000000) == pos.check_discovers (pos.active ()));
+            ASSERT (U64 (0x0000002000000000) == pos.discoverers (pos.active ()));
 
             cout << "Position ...done !!!" << endl;
         }

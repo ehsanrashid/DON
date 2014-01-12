@@ -123,7 +123,7 @@ public:
     // Pinned pieces
     Bitboard pinneds;
     // Check discoverer pieces
-    Bitboard check_discovers;
+    Bitboard discoverers;
     // Enemy king square
     Square king_sq;
 
@@ -233,11 +233,13 @@ public:
 
 #pragma region Board properties
 
-    bool empty (Square s)               const;
     Piece    operator[] (Square s)      const;
     Bitboard operator[] (Color  c)      const;
     Bitboard operator[] (PType pt)      const;
     const Square* operator[] (Piece p)  const;
+
+    bool empty     (Square s)           const;
+    Piece piece_on (Square s)           const;
 
     Square king_sq (Color c)            const;
 
@@ -335,8 +337,8 @@ public:
 #pragma region Attack properties
 
 private:
-    inline Bitboard blockers (Square s, Bitboard attackers) const;
-    inline Bitboard hidden_checkers (Square sq_king, Color c) const;
+
+    Bitboard check_blockers (Color c, Color king_c) const;
 
 public:
 
@@ -355,10 +357,9 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard checkers (Color c) const;
-
-    Bitboard pinneds (Color c) const;
-    Bitboard check_discovers (Color c) const;
+    Bitboard checkers    (Color c) const;
+    Bitboard pinneds     (Color c) const;
+    Bitboard discoverers (Color c) const;
 
 #pragma endregion
 
@@ -482,12 +483,13 @@ public:
 
 #pragma region Board properties
 
-inline bool Position::empty (Square s) const { return (PS_NO == _piece_arr[s]); }
-
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c]; }
 inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
+
+inline bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
+inline Piece    Position::piece_on(Square s) const { return _piece_arr[s]; }
 
 inline Square   Position::king_sq (Color c) const { return _piece_list[c][KING][0]; }
 
@@ -561,9 +563,9 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
     return (CS_K == cs || CS_Q == cs)
-        ?  (_castle_paths[c][cs]   & _types_bb[PT_NO])
-        :  (_castle_paths[c][CS_K] & _types_bb[PT_NO])
-        && (_castle_paths[c][CS_Q] & _types_bb[PT_NO]);
+        ?  (_castle_paths[c][cs]   & pieces ())
+        :  (_castle_paths[c][CS_K] & pieces ())
+        && (_castle_paths[c][CS_Q] & pieces ());
 }
 
 #pragma endregion
@@ -608,15 +610,15 @@ inline Bitboard Position::attacks_from (Square s) const
     //    return BitBoard::_attacks_type_bb[PT][s];
     //case BSHP:
     //case ROOK:
-    //    return BitBoard::attacks_bb<PT> (s, _types_bb[PT_NO]);
+    //    return BitBoard::attacks_bb<PT> (s, pieces ());
     //case QUEN:
-    //    return BitBoard::attacks_bb<BSHP>(s, _types_bb[PT_NO])
-    //        |  BitBoard::attacks_bb<ROOK>(s, _types_bb[PT_NO]);
+    //    return BitBoard::attacks_bb<BSHP>(s, pieces ())
+    //        |  BitBoard::attacks_bb<ROOK>(s, pieces ());
     //}
     //return U64 (0);
 
-    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT>(s, _types_bb[PT_NO])
-        : (QUEN == PT) ? BitBoard::attacks_bb<BSHP>(s, _types_bb[PT_NO]) | BitBoard::attacks_bb<ROOK>(s, _types_bb[PT_NO])
+    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT>(s, pieces ())
+        : (QUEN == PT) ? BitBoard::attacks_bb<BSHP>(s, pieces ()) | BitBoard::attacks_bb<ROOK>(s, pieces ())
         : (PAWN == PT) ? BitBoard::_attacks_pawn_bb[_active][s]
     : BitBoard::_attacks_type_bb[PT][s];
 }
@@ -628,7 +630,7 @@ inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s) const
 {
-    return attacks_from (p, s, _types_bb[PT_NO]);
+    return attacks_from (p, s, pieces ());
 }
 
 // Attackers to the square on given occ
@@ -637,15 +639,15 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return
         (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces (BLACK, PAWN)) |
         (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces (WHITE, PAWN)) |
-        (BitBoard::attacks_bb<NIHT> (s)        & pieces (NIHT)) |
-        (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN)) |
-        (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN)) |
+        (BitBoard::attacks_bb<NIHT> (s)        & pieces (NIHT))        |
+        (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))  |
+        (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))  |
         (BitBoard::attacks_bb<KING> (s)        & pieces (KING));
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
 {
-    return attackers_to (s, _types_bb[PT_NO]);
+    return attackers_to (s, pieces ());
 }
 
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
@@ -654,44 +656,19 @@ inline Bitboard Position::checkers (Color c) const
     return attackers_to (king_sq (c)) & _color_bb[~c];
 }
 
-// Blockers are lonely defenders of the attacks on square by the attackers
-inline Bitboard Position::blockers (Square s, Bitboard pinners) const
-{
-    Bitboard occ       = _types_bb[PT_NO];
-    Bitboard defenders = _color_bb[_active];
-    Bitboard blockers  = 0;
-    while (pinners)
-    {
-        Bitboard blocker = BitBoard::betwen_sq_bb (s, pop_lsq (pinners)) & occ;
-        if (!BitBoard::more_than_one (blocker))
-        {
-            blockers |= (blocker & defenders);
-        }
-    }
-    return blockers;
-}
-
-inline Bitboard Position::hidden_checkers (Square sq_king, Color c) const
-{
-    Bitboard hdn_chkrs =
-        (BitBoard::attacks_bb<ROOK> (sq_king) & pieces (c, QUEN, ROOK)) |
-        (BitBoard::attacks_bb<BSHP> (sq_king) & pieces (c, QUEN, BSHP));
-    return (hdn_chkrs) ? blockers (sq_king, hdn_chkrs) : 0;
-}
-
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
 inline Bitboard Position::pinneds (Color c) const
 {
-    return hidden_checkers (king_sq (c), ~c);
+    return check_blockers (c,  c); // blockers for self king
 }
 
 // Check discovers are candidate friend anti-sliders w.r.t piece behind it,
 // that give the discover check to enemy king when moved.
-inline Bitboard Position::check_discovers (Color c) const
+inline Bitboard Position::discoverers (Color c) const
 {
-    return hidden_checkers (king_sq (~c), c);
+    return check_blockers (c, ~c); // blockers for opp king
 }
 
 #pragma endregion
@@ -737,7 +714,7 @@ inline bool Position::opposite_bishops () const
 inline Piece Position::moved_piece (Move m) const
 {
     //ASSERT (_ok (m));
-    
+
     return _piece_arr[org_sq (m)];
 }
 
@@ -749,7 +726,7 @@ inline Piece Position::moved_piece (Move m) const
 //    Square org  = org_sq (m);
 //    Square dst  = dst_sq (m);
 //
-//    Piece p     = _piece_arr[org];
+//    Piece p     = piece_on (org);
 //    PType pt    = p_type (p);
 //
 //    Square cap = dst;
@@ -854,7 +831,7 @@ inline bool Position::advanced_pawn_push (Move m) const
 
 inline void  Position:: place_piece (Square s, Color c, PType pt)
 {
-    //ASSERT (PS_NO == _piece_arr[s]);
+    //ASSERT (empty (s));
     _piece_arr[s]    = (c | pt);
     Bitboard bb       = BitBoard::_square_bb[s];
     _color_bb[c]     |= bb;
@@ -876,13 +853,13 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece p = _piece_arr[s];
+    Piece p = _piece_arr [s];
     //ASSERT (PS_NO != p);
     Color c  = p_color (p);
     PType pt = p_type (p);
     //ASSERT (0 < _piece_count[c][pt]);
 
-    _piece_arr[s]     = PS_NO;
+    _piece_arr [s]     = PS_NO;
 
     Bitboard bb       = ~BitBoard::_square_bb[s];
     _color_bb[c]     &= bb;
@@ -948,7 +925,7 @@ inline CheckInfo::CheckInfo (const Position &pos)
 
     king_sq = pos.king_sq (pasive);
     pinneds = pos.pinneds (active);
-    check_discovers = pos.check_discovers (active);
+    discoverers = pos.discoverers (active);
 
     checking_bb[PAWN] = BitBoard::attacks_bb<PAWN> (pasive, king_sq);
     checking_bb[NIHT] = BitBoard::attacks_bb<NIHT> (king_sq);
@@ -963,9 +940,9 @@ inline CheckInfo::CheckInfo (const Position &pos)
 //    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
 //    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
 //
-//    king_sq         = SQ_NO;
-//    pinneds         = U64 (0);
-//    check_discovers = U64 (0);
+//    king_sq     = SQ_NO;
+//    pinneds     = U64 (0);
+//    discoverers = U64 (0);
 //}
 
 #pragma endregion

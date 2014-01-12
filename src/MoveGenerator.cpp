@@ -48,7 +48,7 @@ namespace MoveGenerator {
                             {
                                 continue;
                             }
-                            if (UNLIKELY (ci->check_discovers) && (ci->check_discovers & s))
+                            if (UNLIKELY (ci->discoverers) && (ci->discoverers & s))
                             {
                                 continue;
                             }
@@ -244,7 +244,7 @@ namespace MoveGenerator {
                             push_2 &= attack;
 
                             // pawns which give discovered check
-                            Bitboard pawns_chk_dis = pawns_on_Rx & ci->check_discovers;
+                            Bitboard pawns_chk_dis = pawns_on_Rx & ci->discoverers;
                             // Add pawn pushes which give discovered check. This is possible only
                             // if the pawn is not on the same file as the enemy king, because we
                             // don't generate captures. Note that a possible discovery check
@@ -491,7 +491,7 @@ namespace MoveGenerator {
         Bitboard empties  = ~pos.pieces ();
         CheckInfo ci (pos);
 
-        Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
+        Bitboard discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
@@ -526,7 +526,7 @@ namespace MoveGenerator {
         Bitboard target = ~pos.pieces (active);
 
         CheckInfo ci (pos);
-        Bitboard discovers = ci.check_discovers & ~pos.pieces (active, PAWN);
+        Bitboard discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
