@@ -101,17 +101,19 @@ typedef unsigned long long      uint64_t;
 
 #endif
 
+#   undef INLINE
+
 #if defined(_MSC_VER)
 
-#   define F_INLINE     __forceinline
+#   define INLINE     __forceinline
 
 #elif defined(__GNUC__)
 
-#   define F_INLINE     inline __attribute__((always_inline))
+#   define INLINE     inline __attribute__((always_inline))
 
 #else
 
-#   define F_INLINE     inline
+#   define INLINE     inline
 
 #endif
 

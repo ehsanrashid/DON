@@ -60,9 +60,9 @@ namespace Tester {
             ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
             ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
 
-            ASSERT (0x09 == taxi_dist (SQ_B2, SQ_F7));
-            ASSERT (0x08 == taxi_dist (SQ_G3, SQ_B6));
-            ASSERT (0x04 == taxi_dist (SQ_H5, SQ_E4));
+            ASSERT (0x09 == taxicab_dist (SQ_B2, SQ_F7));
+            ASSERT (0x08 == taxicab_dist (SQ_G3, SQ_B6));
+            ASSERT (0x04 == taxicab_dist (SQ_H5, SQ_E4));
 
             Bitboard b;
 

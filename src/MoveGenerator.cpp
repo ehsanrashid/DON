@@ -27,7 +27,7 @@ namespace MoveGenerator {
 
         public:
             // Generates piece common move
-            static inline void generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci = NULL)
+            static INLINE void generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci = NULL)
                 //template<GType G, PType PT>
                 //inline void Generator<G, PT>::generate (MoveList &mov_lst, const Position &pos, Color c, Bitboard target, const CheckInfo *ci)
             {
@@ -74,7 +74,7 @@ namespace MoveGenerator {
 
         public:
             // Generates KING common move
-            static inline void generate (MoveList &mov_lst, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci = NULL)
+            static INLINE void generate (MoveList &mov_lst, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci = NULL)
                 //template<GType G>
                 //void Generator<G, KING>::generate (MoveList &mov_lst, const Position &pos, Color clr, Bitboard target, const CheckInfo *ci)
             {
@@ -113,7 +113,7 @@ namespace MoveGenerator {
 
             template<CSide SIDE, bool CHESS960>
             // Generates KING castling move
-            static inline void generate_castling (MoveList &mov_lst, const Position &pos, Color clr, const CheckInfo *ci /*= NULL*/)
+            static INLINE void generate_castling (MoveList &mov_lst, const Position &pos, Color clr, const CheckInfo *ci /*= NULL*/)
                 //template<GType G>
                 //template<CSide SIDE, bool CHESS960>
                 //void Generator<G, KING>::generate_castling (MoveList &mov_lst, const Position &pos, Color clr, const CheckInfo *ci)
@@ -190,7 +190,7 @@ namespace MoveGenerator {
         public:
             template<Color C>
             // Generates PAWN common move
-            static inline void generate (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
+            static INLINE void generate (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
                 //template<GType G>
                 //template<Color C>
                 //void Generator<G, PAWN>::generate<> (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci)
@@ -327,7 +327,7 @@ namespace MoveGenerator {
 
             template<Delta D>
             // Generates PAWN promotion move
-            static inline void generate_promotion (MoveList &mov_lst, Bitboard pawns_on_R7, Bitboard target, const CheckInfo *ci /*= NULL*/)
+            static INLINE void generate_promotion (MoveList &mov_lst, Bitboard pawns_on_R7, Bitboard target, const CheckInfo *ci /*= NULL*/)
                 //template<GType G>
                 //template<Delta D>
                 //void Generator<G, PAWN>::generate_promotion (MoveList &mov_lst, Bitboard pawns_on_R7, Bitboard target, const CheckInfo *ci)
@@ -395,7 +395,7 @@ namespace MoveGenerator {
 
         template<Color C, GType G>
         // Generates all pseudo-legal moves of color for target.
-        inline void generate_moves (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
+        INLINE void generate_moves (MoveList &mov_lst, const Position &pos, Bitboard target, const CheckInfo *ci = NULL)
         {
             Generator<G, PAWN>::generate<C> (mov_lst, pos, target, ci);
             Generator<G, NIHT>::generate (mov_lst, pos, C, target, ci);
@@ -409,7 +409,7 @@ namespace MoveGenerator {
             }
         }
 
-        inline void filter_illegal (MoveList &mov_lst, const Position &pos)
+        INLINE void filter_illegal (MoveList &mov_lst, const Position &pos)
         {
             Square org_king  = pos.king_sq (pos.active ());
             Bitboard pinneds = pos.pinneds (pos.active ());

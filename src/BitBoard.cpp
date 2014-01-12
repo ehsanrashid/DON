@@ -62,7 +62,7 @@ namespace BitBoard {
     // FILE & RANK distance
     Delta _filerank_dist[F_NO][R_NO];
     Delta   _square_dist[SQ_NO][SQ_NO];
-    Delta     _taxi_dist[SQ_NO][SQ_NO];
+    Delta  _taxicab_dist[SQ_NO][SQ_NO];
 
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
     const Delta _deltas_pawn[CLR_NO][3] =
@@ -347,8 +347,8 @@ namespace BitBoard {
                     Delta dFile = _filerank_dist[f1][f2];
                     Delta dRank = _filerank_dist[r1][r2];
 
-                    _square_dist[s1][s2] = max (dFile, dRank);
-                    _taxi_dist  [s1][s2] = (dFile + dRank);
+                    _square_dist[s1][s2]  = max (dFile, dRank);
+                    _taxicab_dist[s1][s2] = (dFile + dRank);
 
                     _dia_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
