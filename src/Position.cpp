@@ -599,8 +599,8 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Square ksq = king_sq (king_c);
     // Pinners are sliders that give check when a pinned piece is removed
     Bitboard pinners =
-        ( (_attacks_type_bb[ROOK][ksq] & pieces (QUEN, ROOK))
-        | (_attacks_type_bb[BSHP][ksq] & pieces (QUEN, BSHP)))
+        ( (attacks_bb<ROOK> (ksq) & pieces (QUEN, ROOK))
+        | (attacks_bb<BSHP> (ksq) & pieces (QUEN, BSHP)))
         &  pieces (~king_c);
 
     Bitboard chk_blockers  = U64 (0);

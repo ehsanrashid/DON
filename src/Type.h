@@ -817,15 +817,22 @@ inline std::basic_ostream<charT, Traits>&
 
 #pragma endregion
 
+#pragma region Value
+
+inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
+inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
+
+#pragma endregion
+
 
 typedef std::vector<Square> SquareList;
 //typedef std::list  <Square> SquareList;
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_list)
+    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_lst)
 {
-    std::for_each (sq_list.cbegin (), sq_list.cend (), [&os] (Square s) { os << s << std::endl; });
+    std::for_each (sq_lst.cbegin (), sq_lst.cend (), [&os] (Square s) { os << s << std::endl; });
     return os;
 }
 
@@ -854,9 +861,6 @@ inline std::basic_ostream<charT, Traits>&
 //    return os;
 //}
 
-
-inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
 template<class Entry, int32_t SIZE>
 struct HashTable

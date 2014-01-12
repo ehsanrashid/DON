@@ -331,11 +331,11 @@ namespace BitBoard {
     inline Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
     // --------------------------------
     // explicit template instantiations
-    template inline Bitboard attacks_bb<NIHT> (Square s);
-    template inline Bitboard attacks_bb<BSHP> (Square s);
-    template inline Bitboard attacks_bb<ROOK> (Square s);
-    template inline Bitboard attacks_bb<QUEN> (Square s);
-    template inline Bitboard attacks_bb<KING> (Square s);
+    template Bitboard attacks_bb<NIHT> (Square s);
+    template Bitboard attacks_bb<BSHP> (Square s);
+    template Bitboard attacks_bb<ROOK> (Square s);
+    template Bitboard attacks_bb<QUEN> (Square s);
+    template Bitboard attacks_bb<KING> (Square s);
     // --------------------------------
 
     template<PType PT>
