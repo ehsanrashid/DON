@@ -561,7 +561,6 @@
     <ClCompile Include="src\Benchmark.cpp" />
     <ClCompile Include="src\BitBases.cpp" />
     <ClCompile Include="src\BitBoard.cpp" />
-    <ClCompile Include="src\BitBoard.MAGIC.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />

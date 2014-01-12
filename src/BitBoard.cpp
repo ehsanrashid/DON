@@ -3,6 +3,8 @@
 #include <iostream>
 #include "BitCount.h"
 #include "BitScan.h"
+#include "RKISS.h"
+
 #include "xstring.h"
 
 namespace BitBoard {
@@ -56,8 +58,6 @@ namespace BitBoard {
 #pragma endregion
 
 #pragma region LOOKUPs
-
-
 
     // FILE & RANK distance
     Delta _filerank_dist[F_NO][R_NO];
@@ -256,43 +256,161 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
-    // Attacks of the pawn
-    CACHE_ALIGN(64) Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
-
-    // Attacks of the pieces
-    CACHE_ALIGN(64) Bitboard _attacks_type_bb[PT_NO][SQ_NO];
-
     // Span of the attacks of pawn
     CACHE_ALIGN(64) Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
     CACHE_ALIGN(64) Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
+    // Attacks of the pawn
+    CACHE_ALIGN(64) Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
+
+    // Attacks of the pieces
+    CACHE_ALIGN(64) Bitboard _attacks_type_bb[PT_NO][SQ_NO];
+
+    CACHE_ALIGN(64) Bitboard*BAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard*RAttack_bb[SQ_NO];
+
+    CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
+
+    CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
+
+    CACHE_ALIGN(64) uint8_t      BShift[SQ_NO];
+    CACHE_ALIGN(64) uint8_t      RShift[SQ_NO];
 
 #pragma endregion
 
-#pragma region Attacks
+    namespace {
 
-    // Piece attacks from square
-    Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
-    {
-        PType pt = _type (p);
-        switch (pt)
+        // max moves for rook from any corner square
+        // 2 ^ 12 = 4096 = 0x1000
+        const uint16_t MAX_MOVES =   U32 (0x1000);
+
+        // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
+        // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
+        //    2048 +     256 +     1536 +     1408
+        //                                    5248 = 0x1480
+        const uint32_t MAX_B_MOVES = U32 (0x1480);
+
+        // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
+        // 4 * 4096 + 24 * 2048 + 36 * 1024
+        //    16384 +     49152 +     36864
+        //                           102400 = 0x19000
+        const uint32_t MAX_R_MOVES = U32 (0x19000);
+
+
+        CACHE_ALIGN(64) Bitboard BTable_bb[MAX_B_MOVES];
+        CACHE_ALIGN(64) Bitboard RTable_bb[MAX_R_MOVES];
+
+        typedef uint16_t (*Indexer) (Square s, Bitboard occ);
+
+        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer)
         {
-        case PAWN: return attacks_bb<PAWN> (_color (p), s);
-        case BSHP: return attacks_bb<BSHP> (s, occ);
-        case ROOK: return attacks_bb<ROOK> (s, occ);
-        case QUEN: return attacks_bb<BSHP> (s, occ)
-                       |  attacks_bb<ROOK> (s, occ);
-        case NIHT: return attacks_bb<NIHT>(s);
-        case KING: return attacks_bb<KING>(s);
+
+            uint16_t _bMagicBoosters[R_NO] =
+#if defined(_64BIT)
+            { 0x423, 0xE18, 0x25D, 0xCA2, 0xCFE, 0x026, 0x7ED, 0xBE3, }; // 64-bit
+#else
+            { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
+#endif
+
+            Bitboard occupancy[MAX_MOVES];
+            Bitboard reference[MAX_MOVES];
+
+            RKISS rkiss;
+
+            attacks_bb[SQ_A1] = table_bb;
+
+            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            {
+                // Board edges are not considered in the relevant occupancies
+                Bitboard edges = brd_edges_bb (s);
+
+                // Given a square 's', the mask is the bitboard of sliding attacks from
+                // 's' computed on an empty board. The index must be big enough to contain
+                // all the attacks for each possible subset of the mask and so is 2 power
+                // the number of 1s of the mask. Hence we deduce the size of the shift to
+                // apply to the 64 or 32 bits word to get the index.
+                Bitboard moves = attacks_sliding (s, deltas);
+
+                Bitboard mask = masks_bb[s] = moves & ~edges;
+
+                shift[s] =
+#if defined(_64BIT)
+                    64 - pop_count<MAX15> (mask);
+#else
+                    32 - pop_count<MAX15> (mask);
+#endif
+
+                // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
+                // store the corresponding sliding attack bitboard in reference[].
+                uint32_t size   = 0;
+                Bitboard occ    = U64 (0);
+                do
+                {
+                    occupancy[size] = occ;
+                    reference[size] = attacks_sliding (s, deltas, occ);
+                    ++size;
+                    occ = (occ - mask) & mask;
+                }
+                while (occ);
+
+                // Set the offset for the table_bb of the next square. We have individual
+                // table_bb sizes for each square with "Fancy Magic Bitboards".
+                if (s < SQ_H8)
+                {
+                    attacks_bb[s + 1] = attacks_bb[s] + size;
+                }
+
+                uint16_t booster = _bMagicBoosters[_rank (s)];
+
+                // Find a magic for square 's' picking up an (almost) random number
+                // until we find the one that passes the verification test.
+                uint32_t i;
+
+                do
+                {
+                    uint16_t index;
+                    do
+                    {
+                        magics_bb[s] = rkiss.rand_boost<Bitboard> (booster);
+                        index = (mask * magics_bb[s]) >> 0x38;
+                        //if (pop_count<MAX15> (index) >= 6) break;
+                    }
+                    while (pop_count<MAX15> (index) < 6);
+
+                    memset (attacks_bb[s], 0, size * sizeof (Bitboard));
+
+                    // A good magic must map every possible occupancy to an index that
+                    // looks up the correct sliding attack in the attacks_bb[s] database.
+                    // Note that we build up the database for square 's' as a side
+                    // effect of verifying the magic.
+                    for (i = 0; i < size; ++i)
+                    {
+                        Bitboard &attacks = attacks_bb[s][indexer (s, occupancy[i])];
+
+                        if (attacks && (attacks != reference[i]))
+                            break;
+
+                        ASSERT (reference[i]);
+                        attacks = reference[i];
+                    }
+                }
+                while (i < size);
+
+            }
         }
-        return U64 (0);
+
+        void initialize_sliding ()
+        {
+            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], indexer<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], indexer<ROOK>);
+
+        }
+
     }
-
-#pragma endregion
-
-    extern void initialize_sliding ();
 
     void initialize ()
     {
