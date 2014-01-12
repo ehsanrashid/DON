@@ -76,7 +76,7 @@ namespace Zobrist {
         //while (pawns)
         //{
         //    Square s = pop_lsq (pawns);
-        //    pawn_key ^= _.psq_k[p_color (pos[s])][PAWN][s];
+        //    pawn_key ^= _.psq_k[_color (pos[s])][PAWN][s];
         //}
 
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -100,7 +100,7 @@ namespace Zobrist {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[p_color (p)][p_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
         //}
 
         //for (Color c = WHITE; c <= BLACK; ++c)
@@ -121,7 +121,7 @@ namespace Zobrist {
         //{
         //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[p_color (p)][p_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
         //}
 
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -200,13 +200,15 @@ namespace Zobrist {
                 }
                 else if (isalpha (ch))
                 {
-                    // piece
-                    Piece p = to_piece (ch);
-                    if (PS_NO == p) return U64 (0);
-                    if (KING == p_type (p))  king[p_color (p)] = f;
+                    size_t idx = CharPiece.find (ch);
+                    if (idx != string::npos)
+                    {
+                        Piece p = Piece (idx);
+                        if (PS_NO == p) return U64 (0);
+                        if (KING == _type (p))  king[_color (p)] = f;
 
-                    fen_key ^= _.psq_k[p_color (p)][p_type (p)][(f | r)];
-
+                        fen_key ^= _.psq_k[_color (p)][_type (p)][(f | r)];
+                    }
                     ++f;
                 }
                 else
@@ -222,7 +224,7 @@ namespace Zobrist {
         }
         skip_whitespace ();
         char active = get_next ();
-        if (WHITE == to_color (active)) fen_key ^= _.mover_side;
+        if ('w' == active) fen_key ^= _.mover_side;
 
         skip_whitespace ();
         // 3. Castling availability
@@ -330,7 +332,7 @@ namespace Zobrist {
             else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
-                fen_key ^= _.psq_k[p_color (p)][p_type (p)][s];
+                fen_key ^= _.psq_k[_color (p)][_type (p)][s];
                 ++s;
             }
             else if (ch == '/')

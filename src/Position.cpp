@@ -17,6 +17,7 @@ using namespace BitBoard;
 using namespace MoveGenerator;
 
 const string CharPiece ("PNBRQK  pnbrqk");
+const string CharColor ("wb-");
 
 const Value PieceValue[PHASE_NO][PT_ALL] =
 {
@@ -272,7 +273,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Piece p = piece_on (s);
-            if (KING == p_type (p)) ++king_count[p_color (p)];
+            if (KING == _type (p)) ++king_count[_color (p)];
         }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
@@ -493,10 +494,10 @@ int32_t Position::see      (Move m) const
     Square org = org_sq(m);
     Square dst = dst_sq(m);
 
-    Color stm = p_color (piece_on (org));
+    Color stm = _color (piece_on (org));
 
     int32_t swap_list[32], index = 1;
-    swap_list[0] = PieceValue[MG][p_type (piece_on (dst))];
+    swap_list[0] = PieceValue[MG][_type (piece_on (dst))];
 
     Bitboard occupied = pieces () - org;
 
@@ -530,7 +531,7 @@ int32_t Position::see      (Move m) const
     // destination square, where the sides alternately capture, and always
     // capture with the least valuable piece. After each capture, we look for
     // new X-ray attacks from behind the capturing piece.
-    PType ct = p_type (piece_on (org));
+    PType ct = _type (piece_on (org));
 
     do
     {
@@ -584,8 +585,8 @@ int32_t Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][p_type (piece_on (org_sq (m)))]
-    <=  PieceValue[MG][p_type (piece_on (dst_sq (m)))])
+    if (PieceValue[MG][_type (piece_on (org_sq (m)))]
+    <=  PieceValue[MG][_type (piece_on (dst_sq (m)))])
     {
         return 1;
     }
@@ -601,7 +602,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
         ( (_attacks_type_bb[ROOK][ksq] & pieces (QUEN, ROOK))
         | (_attacks_type_bb[BSHP][ksq] & pieces (QUEN, BSHP)))
         &  pieces (~king_c);
-    
+
     Bitboard chk_blockers  = U64 (0);
 
     while (pinners)
@@ -638,9 +639,9 @@ bool Position::pseudo_legal (Move m) const
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if ((PS_NO == p) || (active != p_color (p))) return false;
+    if ((PS_NO == p) || (active != _color (p))) return false;
 
-    PType pt = p_type (p);
+    PType pt = _type (p);
     PType ct;
 
     Square cap = dst;
@@ -713,13 +714,13 @@ bool Position::pseudo_legal (Move m) const
             if (R_7 != rel_rank (active, org)) return false;
             if (R_8 != rel_rank (active, dst)) return false;
         }
-        ct = p_type (piece_on (cap));
+        ct = _type (piece_on (cap));
         break;
 
     case NORMAL:
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
-        ct = p_type (piece_on (cap));
+        ct = _type (piece_on (cap));
         break;
     }
 
@@ -775,7 +776,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_SW:
             // Capture. The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (PT_NO == ct || active == p_color (piece_on (cap))) return false;
+            if (PT_NO == ct || active == _color (piece_on (cap))) return false;
             // cap and org files must be one del apart, avoids a7h5
             if (1 != BitBoard::file_dist (cap, org)) return false;
             break;
@@ -868,8 +869,8 @@ bool Position::       legal (Move m, Bitboard pinned) const
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    Color pc = p_color (p);
-    PType pt = p_type  (p);
+    Color pc = _color (p);
+    PType pt = _type  (p);
     ASSERT ((active == pc) && (PT_NO != pt));
 
     Square ksq = king_sq (active);
@@ -926,15 +927,15 @@ bool Position::       legal (Move m, Bitboard pinned) const
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
     //ASSERT (_ok (m));
-    ASSERT (p_color (moved_piece(m)) == _active);
+    ASSERT (_color (moved_piece(m)) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    Color pc = p_color (p);
-    PType pt = p_type  (p);
+    Color pc = _color (p);
+    PType pt = _type  (p);
 
     // Direct check ?
     if (ci.checking_bb[pt] & dst) return true;
@@ -1159,7 +1160,7 @@ Score Position::compute_psq_score () const
     {
         Square s = pop_lsq (occ);
         Piece  p = piece_on (s);
-        score += psq[p_color (p)][p_type (p)][s];
+        score += psq[_color (p)][_type (p)][s];
     }
     return score;
 }
@@ -1202,13 +1203,13 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Square org   = org_sq (m);
     Square dst   = dst_sq (m);
     Piece p      = piece_on (org);
-    PType pt     = p_type (p);
+    PType pt     = _type (p);
 
     ASSERT ((PS_NO != p) &&
-        (active == p_color (p)) &&
+        (active == _color (p)) &&
         (PT_NO != pt));
     ASSERT (empty (dst) ||
-        (pasive == p_color (piece_on (dst))) ||
+        (pasive == _color (piece_on (dst))) ||
         (CASTLE == m_type (m)));
 
     Square cap = dst;
@@ -1220,7 +1221,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     {
     case CASTLE:
         ASSERT (KING == pt);
-        ASSERT (ROOK == p_type (piece_on (dst)));
+        ASSERT (ROOK == _type (piece_on (dst)));
 
         ct = PT_NO;
         break;
@@ -1243,7 +1244,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
 
-        ct = p_type (piece_on (cap));
+        ct = _type (piece_on (cap));
         ASSERT (PAWN != ct);
         break;
 
@@ -1255,7 +1256,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             ASSERT (0 == del_f || 1 == del_f);
             if (0 == del_f) break;
         }
-        ct = p_type (piece_on (cap));
+        ct = _type (piece_on (cap));
         break;
     }
 
@@ -1468,7 +1469,7 @@ void Position::undo_move ()
     Color active = _active = ~_active; // switch
 
     Piece p  = piece_on (dst);
-    PType pt = p_type (p);
+    PType pt = _type (p);
 
     MType mt = m_type (m);
     ASSERT (empty (org) || CASTLE == mt);
@@ -1708,7 +1709,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             }
             else if (_ok (p))
             {
-                set_next (to_char (p));
+                set_next (CharPiece[p]);
                 ++f;
             }
             else
@@ -1718,9 +1719,11 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         }
         if (R_1 < r) set_next ('/');
     }
+
     set_next (' ');
-    set_next (to_char (_active));
+    set_next (CharColor[_active]);
     set_next (' ');
+
     if (can_castle (CR_A))
     {
         if (_chess960 || c960)
@@ -1844,7 +1847,7 @@ string Position::fen (bool                  c960, bool full) const
         if (R_1 < r) sfen << '/';
     }
 
-    sfen << (WHITE == _active ? " w " : " b ");
+    sfen << " " << CharColor[_active] << " ";
 
     if (can_castle (CR_A))
     {
@@ -1920,7 +1923,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
-        board[3 + size_t (row_len * (7.5 - r)) + 4 * f] = to_char (piece_on (s));
+        board[3 + size_t (row_len * (7.5 - r)) + 4 * f] = CharPiece[piece_on (s)];
     }
 
 #pragma endregion
@@ -2029,11 +2032,13 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             }
             else if (isalpha (ch))
             {
-                // piece
-                Piece p = to_piece (ch);
-                if (PS_NO == p) return false;
-                pos.place_piece (s, p);   // put the piece on board
-
+                size_t idx = CharPiece.find (ch);
+                if (idx != string::npos)
+                {
+                    Piece p = Piece (idx);
+                    if (PS_NO == p) return false;
+                    pos.place_piece (s, p);   // put the piece on board
+                }
                 ++f;
             }
             else
@@ -2058,7 +2063,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     SKIP_WHITESPACE ();
     // Active color
     get_next ();
-    pos._active = to_color (ch);
+    pos._active = Color (CharColor.find (ch));
 
     SKIP_WHITESPACE ();
     // Castling rights availability
@@ -2081,7 +2086,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 if ('a' <= sym && sym <= 'h')
                 {
                     rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != p_type (pos[rook])) return false;
+                    if (ROOK != _type (pos[rook])) return false;
                     pos.set_castle (c, rook);
                 }
                 else
@@ -2105,15 +2110,15 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 {
                 case 'K':
                     rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
+                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _type (pos[rook]))) --rook;
                     break;
                 case 'Q':
                     rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
+                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _type (pos[rook]))) ++rook;
                     break;
                 default: return false;
                 }
-                if (ROOK != p_type (pos[rook])) return false;
+                if (ROOK != _type (pos[rook])) return false;
                 pos.set_castle (c, rook);
 
                 get_next ();
@@ -2141,7 +2146,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         if (!isdigit (ep_r)) return false;
         if ((WHITE == pos._active && '6' != ep_r) || (BLACK == pos._active && '3' != ep_r)) return false;
 
-        Square ep_sq  = _Square (ep_f, ep_r);
+        Square ep_sq  = to_square (ep_f, ep_r);
         if (pos.can_en_passant (ep_sq))
         {
             pos._si->en_passant = ep_sq;
@@ -2218,7 +2223,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
-            pos.place_piece (s, p_color (p), p_type (p));
+            pos.place_piece (s, _color (p), _type (p));
             ++s;
         }
         else if (ch == '/')
@@ -2229,7 +2234,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // 2. Active color
     sfen >> ch;
-    pos._active = to_color (ch);
+    pos._active = Color (CharColor.find (ch));
 
     // 3. Castling rights availability
     // Compatible with 3 standards:
@@ -2250,7 +2255,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             if ('a' <= sym && sym <= 'h')
             {
                 rook = (to_file (sym) | rel_rank (c, R_1));
-                //if (ROOK != p_type (pos[rook])) return false;
+                //if (ROOK != _type (pos[rook])) return false;
                 pos.set_castle (c, rook);
             }
             else
@@ -2273,16 +2278,16 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             {
             case 'K':
                 rook = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != p_type (pos[rook]))) --rook;
+                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _type (pos[rook]))) --rook;
                 break;
             case 'Q':
                 rook = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != p_type (pos[rook]))) ++rook;
+                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _type (pos[rook]))) ++rook;
                 break;
             default: continue;
             }
 
-            //if (ROOK != p_type (pos[rook])) return false;
+            //if (ROOK != _type (pos[rook])) return false;
             pos.set_castle (c, rook);
         }
 
@@ -2297,7 +2302,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         if (!(WHITE == pos._active && '6' != row) &&
             !(BLACK == pos._active && '3' != row))
         {
-            Square ep_sq = _Square (col, row);
+            Square ep_sq = to_square (col, row);
             if (pos.can_en_passant (ep_sq))
             {
                 pos._si->en_passant = ep_sq;

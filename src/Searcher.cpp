@@ -1516,7 +1516,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (m_type (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
-                Value futility_value = futility_base + PieceValue[EG][p_type (pos[dst_sq (move)])];
+                Value futility_value = futility_base + PieceValue[EG][_type (pos[dst_sq (move)])];
 
                 if (futility_value < beta)
                 {

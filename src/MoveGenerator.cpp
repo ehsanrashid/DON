@@ -128,7 +128,7 @@ namespace MoveGenerator {
 
                 Square org_king = pos.king_sq (clr);
                 Square org_rook = pos.castle_rook (clr, SIDE);
-                if (ROOK != p_type (pos[org_rook])) return;
+                if (ROOK != _type (pos[org_rook])) return;
 
                 Square dst_king = rel_sq (clr, (CS_Q == SIDE) ? SQ_WK_Q : SQ_WK_K);
 
@@ -495,7 +495,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType pt = p_type (pos[org]);
+            PType pt = _type (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
@@ -530,7 +530,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType type = p_type (pos[org]);
+            PType type = _type (pos[org]);
 
             Bitboard moves = U64 (0);
             switch (type)
@@ -602,9 +602,9 @@ namespace MoveGenerator {
             ++checker_count;
             check_sq = pop_lsq (checkers);
 
-            ASSERT (p_color (pos[check_sq]) == ~active);
+            ASSERT (_color (pos[check_sq]) == ~active);
 
-            if (p_type (pos[check_sq]) > NIHT) // A slider
+            if (_type (pos[check_sq]) > NIHT) // A slider
             {
                 slid_attacks |= _lines_sq_bb[check_sq][org_king] - check_sq;
             }

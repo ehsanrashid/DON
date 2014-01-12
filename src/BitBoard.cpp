@@ -276,10 +276,10 @@ namespace BitBoard {
     // Piece attacks from square
     Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        PType pt = p_type (p);
+        PType pt = _type (p);
         switch (pt)
         {
-        case PAWN: return attacks_bb<PAWN> (p_color (p), s);
+        case PAWN: return attacks_bb<PAWN> (_color (p), s);
         case BSHP: return attacks_bb<BSHP> (s, occ);
         case ROOK: return attacks_bb<ROOK> (s, occ);
         case QUEN: return attacks_bb<BSHP> (s, occ)

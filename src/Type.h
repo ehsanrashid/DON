@@ -5,6 +5,7 @@
 #include <cctype>
 #include <climits>
 #include <vector>
+//#include <stack>
 
 #include "Platform.h"
 
@@ -555,7 +556,304 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); 
 
 #pragma endregion
 
+extern const std::string CharPiece;
+extern const std::string CharColor;
+
+extern const Value PieceValue[PHASE_NO][PT_ALL];
+
+
+#pragma region Color
+
+inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
+inline Color operator~(Color c) { return Color (c ^ BLACK); }
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
+//{
+//    os << CharColor[c];
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region File & Rank
+
+inline bool      _ok (File f) { return !(f & ~int32_t (F_H)); }
+inline File operator~(File f) { return File (f ^ F_H); }
+inline File to_file  (char f) { return File (f - 'a'); }
+inline char to_char  (File f, bool lower = true) { return char (f - F_A) + (lower ? 'a' : 'A'); }
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, File f)
+//{
+//    os << to_char (f);
+//    return os;
+//}
+
+
+inline bool      _ok (Rank r) { return !(r & ~int32_t (R_8)); }
+inline Rank operator~(Rank r) { return Rank (r ^ R_8); }
+inline Rank to_rank  (char r) { return Rank (r - '1'); }
+inline char to_char  (Rank r) { return char (r - R_1) + '1'; }
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
+//{
+//    os << to_char (r);
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Square
+
+inline Square operator| (File f, Rank r) { return Square (( r << 3) | f); }
+inline Square operator| (Rank r, File f) { return Square ((~r << 3) | f); }
+inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
+inline bool _ok     (Square s) { return !(s & ~int32_t (SQ_H8)); }
+inline File _file   (Square s) { return File (s & SQ_H1); }
+inline Rank _rank   (Square s) { return Rank (s >> 3); }
+inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & SQ_H1) + SQ_H1); } // R - F + 7
+inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & SQ_H1)); }         // R + F
+inline Color _color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
+// FLIP   => SQ_A1 -> SQ_A8
+inline Square operator~(Square s) { return Square (s ^ SQ_A8); }
+// MIRROR => SQ_A1 -> SQ_H1
+inline Square operator!(Square s) { return Square (s ^ SQ_H1); }
+
+inline Rank   rel_rank  (Color c, Rank   r) { return Rank (r ^ (c * SQ_H1)); }
+inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
+inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
+
+inline bool opposite_colors (Square s1, Square s2)
+{
+    int8_t s = s1 ^ s2;
+    return ((s >> 3) ^ s) & BLACK;
+}
+
+inline std::string to_string (Square s)
+{
+    char sq[3] = { to_char (_file (s)), to_char (_rank (s)), '\0' };
+    return sq;
+    //return { to_char (_file (s)), to_char (_rank (s)), '\0' };
+}
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Square s)
+//{
+//    os << to_string (s);
+//    return os;
+//}
+
+inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
+
+#pragma endregion
+
+#pragma region Castle
+
+inline CRight mk_castle_right (Color c) { return CRight (CR_W << (c << BLACK)); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK))); }
+
+inline CRight operator~  (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
+
+inline CRight can_castle (CRight cr, CRight crx) { return (cr & crx); }
+inline CRight can_castle (CRight cr, Color c)    { return (cr & mk_castle_right (c)); }
+inline CRight can_castle (CRight cr, Color c, CSide cs) { return (cr & mk_castle_right (c, cs)); }
+
+//inline std::string to_string (CRight cr)
+//{
+//    std::string scastle;
+//    if (can_castle (cr, CR_A))
+//    {
+//        if (can_castle (cr, CR_W))
+//        {
+//            scastle += "W:";
+//            if (can_castle (cr, CR_W_K)) scastle += " OO";
+//            if (can_castle (cr, CR_W_Q)) scastle += " OOO";
+//            scastle += " - ";
+//        }
+//        if (can_castle (cr, CR_B))
+//        {
+//            scastle += "B:";
+//            if (can_castle (cr, CR_B_K)) scastle += " OO";
+//            if (can_castle (cr, CR_B_Q)) scastle += " OOO";
+//        }
+//    }
+//    else
+//    {
+//        scastle = "-";
+//    }
+//    return scastle;
+//}
+//
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//operator<< (std::basic_ostream<charT, Traits> &os, const CRight cr)
+//{
+//    os << to_string (cr);
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Piece
+
+inline bool     _ok (PType pt) { return (PAWN <= pt && pt <= KING); }
+
+inline Piece operator| (Color c, PType pt) { return Piece ((c << 3) | (pt)); }
+//inline Piece mk_piece  (Color c, PType pt) { return c | pt; }
+
+inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline PType _type  (Piece p) { return PType ((p & PT_ALL)); }
+inline Color _color (Piece p) { return Color (p >> 3); }
+
+inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
+//{
+//    os << CharPiece[p];
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Move
+
+inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
+inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
+inline PType prom_type (Move m) { return PType (((m >> 12) & ROOK) + NIHT); }
+inline MType m_type (Move m)    { return MType (PROMOTE & m); }
+
+inline void org_sq (Move &m, Square org)
+{
+    m &= 0xF03F;
+    m |= (org << 6);
+}
+inline void dst_sq (Move &m, Square dst)
+{
+    m &= 0xFFC0;
+    m |= (dst << 0);
+}
+inline void prom_type (Move &m, PType pt)
+{
+    m &= 0x0FFF;
+    m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
+}
+inline void m_type (Move &m, MType mt)
+{
+    m &= ~PROMOTE;
+    m |= mt;
+}
+
+inline Move operator~ (Move m)
+{
+    Move mm = m;
+    org_sq (mm, ~org_sq (m));
+    dst_sq (mm, ~dst_sq (m));
+    return mm;
+}
+
+template<MType M>
+extern Move mk_move (Square org, Square dst, PType pt);
+template<MType M>
+extern Move mk_move (Square org, Square dst);
+
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst, PType pt)
+{
+    return Move (PROMOTE | ((pt - NIHT) << 12) | (org << 6) | (dst << 0));
+}
+template<MType M>
+inline Move mk_move (Square org, Square dst)
+{
+    return Move (M | (org << 6) | (dst << 0));
+}
+// --------------------------------
+// explicit template instantiations
+template Move mk_move<NORMAL> (Square org, Square dst);
+template Move mk_move<CASTLE> (Square org, Square dst);
+template Move mk_move<ENPASSANT> (Square org, Square dst);
+// --------------------------------
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst)
+{
+    return mk_move<PROMOTE> (org, dst, QUEN);
+}
+inline Move mk_move (Square org, Square dst)
+{
+    return mk_move<NORMAL> (org, dst);
+}
+
+inline bool _ok (Move m)
+{
+    //if (MOVE_NONE == m || MOVE_NULL == m) return false;
+    //
+    //Square org = org_sq (m);
+    //Square dst = dst_sq (m);
+    //if (org == dst) return false;
+    //
+    //uint8_t del_f = BitBoard::file_dist (org, dst);
+    //uint8_t del_r = BitBoard::rank_dist (org, dst);
+    //if (del_f == del_r ||
+    //    0 == del_f || 0 == del_r ||
+    //    5 == del_f*del_f + del_r*del_r) return true;
+    //
+    //return false;
+
+    return (org_sq (m) != dst_sq (m));
+}
+
+
+template<class charT, class Traits>
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
+{
+    os << move_to_can (m);
+    return os;
+}
+
+#pragma endregion
+
+
+typedef std::vector<Square> SquareList;
+//typedef std::list  <Square> SquareList;
+
+template<class charT, class Traits>
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_list)
+{
+    std::for_each (sq_list.cbegin (), sq_list.cend (), [&os] (Square s) { os << s << std::endl; });
+    return os;
+}
+
+
 typedef std::vector<Move>   MoveList;
+//typedef std::stack <Move>   MoveStack;
+
+template<class charT, class Traits>
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &mov_lst)
+{
+    std::for_each (mov_lst.cbegin (), mov_lst.cend (), [&os] (Move m) { os << m << std::endl; });
+    return os;
+}
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, const MoveStack &stk_move)
+//{
+//    MoveStack stk_dup = stk_move;
+//    while (!stk_dup.empty ())
+//    {
+//        os << stk_dup.top () << std::endl;
+//        stk_dup.pop ();
+//    }
+//    return os;
+//}
+
 
 inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }

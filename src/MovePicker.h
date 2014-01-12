@@ -82,7 +82,6 @@ typedef Stats<false, Value> HistoryStats;
 
 typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
 
-
 // MovePicker class is used to pick one pseudo legal move at a time from the
 // current position. The most important method is next_move(), which returns a
 // new pseudo legal move each time it is called, until there are no moves left,

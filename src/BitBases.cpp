@@ -1,7 +1,6 @@
 #include "BitBases.h"
 
 #include <vector>
-#include "Square.h"
 #include "BitBoard.h"
 #include "BitScan.h"
 

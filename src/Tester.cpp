@@ -6,7 +6,6 @@
 #endif
 #include "xstring.h"
 
-#include "Castle.h"
 #include "BitBoard.h"
 #include "BitCount.h"
 #include "Position.h"

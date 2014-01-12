@@ -6,8 +6,10 @@
 #include "Material.h"
 #include "MovePicker.h"
 #include "Pawns.h"
-#include "Position.h"
+//#include "Position.h"
 #include "Searcher.h"
+
+class Position;
 
 // Because SplitPoint::slaves_mask is a uint64_t
 const int32_t MAX_THREADS                = 64;

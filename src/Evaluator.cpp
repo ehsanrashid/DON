@@ -791,10 +791,10 @@ namespace {
         {
             Bitboard attacked_enemies;
             attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
-            if (attacked_enemies) score += ThreatBonus[0][p_type (pos[scan_lsq (attacked_enemies)])];
+            if (attacked_enemies) score += ThreatBonus[0][_type (pos[scan_lsq (attacked_enemies)])];
 
             attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
-            if (attacked_enemies) score += ThreatBonus[1][p_type (pos[scan_lsq (attacked_enemies)])];
+            if (attacked_enemies) score += ThreatBonus[1][_type (pos[scan_lsq (attacked_enemies)])];
         }
 
         if (TRACE)

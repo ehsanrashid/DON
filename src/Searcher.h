@@ -2,16 +2,18 @@
 #ifndef SEARCHER_H_
 #define SEARCHER_H_
 
-#include "Time.h"
 #include <iomanip>
-
-#include "Move.h"
+#include "Type.h"
+#include "Time.h"
 #include "Position.h"
 
 #pragma warning (disable: 4805)
 
 class PolyglotBook;
 struct SplitPoint;
+
+//typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;
 
 namespace Searcher {
 
@@ -134,6 +136,7 @@ namespace Searcher {
         void  insert_pv_into_tt (Position &pos);
 
     };
+
 
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread

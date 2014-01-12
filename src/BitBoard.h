@@ -2,8 +2,7 @@
 #ifndef BITBOARD_H_
 #define BITBOARD_H_
 
-#include "Square.h"
-#include "Piece.h"
+#include "Type.h"
 
 namespace BitBoard {
 

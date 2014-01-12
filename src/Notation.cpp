@@ -20,7 +20,7 @@ AmbType ambiguity (Move m, const Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PType pt  = p_type (p);
+    PType pt  = _type (p);
 
     //MoveList mov_lst = generate<LEGAL> (pos);
     //uint8_t n = 0;
@@ -171,7 +171,7 @@ string move_to_can (Move m, bool c960)
     MType mt   = m_type (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
-    if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
+    if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
     return can;
 }
 
@@ -186,7 +186,7 @@ string move_to_san (Move m, Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PType pt  = p_type (p);
+    PType pt  = _type (p);
 
     //    switch (pt)
     //    {
@@ -279,7 +279,7 @@ string move_to_san (Move m, Position &pos)
             }
             else
             {
-                san = to_char (pt);
+                san = CharPiece[pt];
                 // Disambiguation if we have more then one piece of type 'pt'
                 // that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
@@ -294,7 +294,7 @@ string move_to_san (Move m, Position &pos)
 
             if (capture) san += 'x';
             san += to_string (dst);
-            if (PROMOTE == mt && PAWN == pt) san += string ("=") + to_char (prom_type (m));
+            if (PROMOTE == mt && PAWN == pt) san += string ("=") + CharPiece[prom_type (m)];
         }
         break;
     }

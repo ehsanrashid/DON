@@ -6,18 +6,12 @@
 #include <memory>
 #include <stack>
 
-#include "Square.h"
-#include "Piece.h"
-#include "Castle.h"
-#include "Move.h"
+#include "BitBoard.h"
 #include "BitScan.h"
 #include "Zobrist.h"
 
 class Position;
 struct Thread;
-
-extern const std::string CharPiece;
-extern const Value PieceValue[PHASE_NO][PT_ALL];
 
 #pragma region FEN
 
@@ -485,7 +479,7 @@ public:
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p) const { return _piece_list[p_color (p)][p_type (p)]; }
+inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_type (p)]; }
 
 inline bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
 inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
@@ -499,7 +493,7 @@ inline Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p
 inline Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[PT_NO]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[PT_NO]; }
-//inline Bitboard Position::pieces (Piece p) const { return pieces (p_color (p), p_type (p)); }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
 
 template<PType PT>
 inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
@@ -725,7 +719,7 @@ inline Piece Position::moved_piece (Move m) const
 //    Square dst  = dst_sq (m);
 //
 //    Piece p     = piece_on (org);
-//    PType pt    = p_type (p);
+//    PType pt    = _type (p);
 //
 //    Square cap = dst;
 //
@@ -803,7 +797,7 @@ inline bool Position::capture_or_promotion (Move m) const
     //case CASTLE:    return false;
     //case PROMOTE:   return true;
     //case ENPASSANT: return _ok (_si->en_passant);
-    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == p_color (p)) && (KING != p_type (p));
+    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _type (p));
     //}
     //return false;
 
@@ -816,11 +810,11 @@ inline bool Position::capture_or_promotion (Move m) const
 
 //inline bool Position::  passed_pawn_push (Move m) const
 //{
-//    return (PAWN == p_type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
+//    return (PAWN == _type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
 //}
 inline bool Position::advanced_pawn_push (Move m) const
 {
-    return (PAWN == p_type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == _type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
 #pragma endregion
@@ -842,7 +836,7 @@ inline void  Position:: place_piece (Square s, Color c, PType pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    place_piece (s, p_color (p), p_type (p));
+    place_piece (s, _color (p), _type (p));
 }
 inline void  Position::remove_piece (Square s)
 {
@@ -853,8 +847,8 @@ inline void  Position::remove_piece (Square s)
 
     Piece p = _piece_arr [s];
     //ASSERT (PS_NO != p);
-    Color c  = p_color (p);
-    PType pt = p_type (p);
+    Color c  = _color (p);
+    PType pt = _type (p);
     //ASSERT (0 < _piece_count[c][pt]);
 
     _piece_arr [s]     = PS_NO;
@@ -881,8 +875,8 @@ inline void  Position::  move_piece (Square s1, Square s2)
     Piece p = _piece_arr[s1];
     //ASSERT (PS_NO == _piece_arr[s2]);
 
-    Color c = p_color (p);
-    PType pt = p_type (p);
+    Color c = _color (p);
+    PType pt = _type (p);
 
     _piece_arr[s1] = PS_NO;
     _piece_arr[s2] = p;
@@ -946,7 +940,6 @@ inline CheckInfo::CheckInfo (const Position &pos)
 #pragma endregion
 
 typedef std::stack     <StateInfo>          StateInfoStack;
-//typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
-typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;
+
 
 #endif

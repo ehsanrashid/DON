@@ -2,7 +2,7 @@
 #ifndef MOVE_GENERATOR_H_
 #define MOVE_GENERATOR_H_
 
-#include "Move.h"
+#include "Type.h"
 
 class Position;
 
