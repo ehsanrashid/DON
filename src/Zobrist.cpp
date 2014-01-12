@@ -315,124 +315,77 @@ namespace Zobrist {
         File king[CLR_NO] = {F_NO};
 
         istringstream sfen (fen);
-        unsigned char ch;
+        uint8_t ch;
 
         sfen >> noskipws;
-        for (Rank r = R_8; r >= R_1; --r)
+
+        size_t idx;
+        Square s = SQ_A8;
+        while ((sfen >> ch) && !isspace (ch))
         {
-            File f = F_A;
-            while (f <= F_H)
+            if (isdigit (ch))
             {
-                sfen >> ch;
-                if (sfen.eof () || !sfen.good () || !ch) return U64 (0);
+                s += Delta (ch - '0'); // Advance the given number of files
+            }
+            else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+            {
+                Piece p = Piece (idx);
+                fen_key ^= _.psq_k[p_color (p)][p_type (p)][s];
+                ++s;
+            }
+            else if (ch == '/')
+            {
+                s += DEL_SS;
+            }
+        }
 
-                if (false);
-                else if (isdigit (ch))
+        sfen >> ch;
+        if ('w' == ch) fen_key ^= _.mover_side;
+
+        sfen >> ch;
+        if (c960)
+        {
+#pragma region X-FEN
+
+            while ((sfen >> ch) && !isspace (ch))
+            {
+                Color c = isupper (ch) ? WHITE : BLACK;
+                uint8_t sym = tolower (ch);
+                if ('a' <= sym && sym <= 'h')
                 {
-                    // empty square(s)
-                    ASSERT ('1' <= ch && ch <= '8');
-                    if ('1' > ch || ch > '8') return U64 (0);
-
-                    uint8_t empty = (ch - '0');
-                    f += empty;
-
-                    ASSERT (f <= F_NO);
-                    if (f > F_NO) return U64 (0);
-                }
-                else if (isalpha (ch))
-                {
-                    // piece
-                    Piece p = to_piece (ch);
-                    if (PS_NO == p) return U64 (0);
-                    if (KING == p_type (p))  king[p_color (p)] = f;
-
-                    fen_key ^= _.psq_k[p_color (p)][p_type (p)][(f | r)];
-
-                    ++f;
+                    fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
                 }
                 else
                 {
                     return U64 (0);
                 }
             }
-            if (R_1 < r)
-            {
-                sfen >> ch;
-                if (sfen.eof () || !sfen.good () || '/' != ch) return U64 (0);
-            }
-        }
-        sfen >> skipws >> ch;
-        char active = ch;
-        if (WHITE == to_color (active)) fen_key ^= _.mover_side;
 
-        sfen >> skipws >> ch;
-        if ('-' != ch)
-        {
-            sfen >> noskipws;
-
-            if (c960)
-            {
-#pragma region X-FEN
-                do
-                {
-                    Color c = isupper (ch) ? WHITE : BLACK;
-                    char sym = tolower (ch);
-                    if ('a' <= sym && sym <= 'h')
-                    {
-                        fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
-                    }
-                    else
-                    {
-                        return U64 (0);
-                    }
-                    sfen >> ch;
-                }
-                while (ch && !isspace (ch));
 #pragma endregion
-            }
-            else
-            {
+        }
+        else
+        {
 #pragma region N-FEN
-                do
+
+            while ((sfen >> ch) && !isspace (ch))
+            {
+                Color c = isupper (ch) ? WHITE : BLACK;
+                switch (toupper (ch))
                 {
-                    //switch (ch)
-                    //{
-                    //case 'K': fen_key ^= _.castle_right[WHITE][CS_K]; break;
-                    //case 'Q': fen_key ^= _.castle_right[WHITE][CS_Q]; break;
-                    //case 'k': fen_key ^= _.castle_right[BLACK][CS_K]; break;
-                    //case 'q': fen_key ^= _.castle_right[BLACK][CS_Q]; break;
-                    //default:  return U64(0); break;
-                    //}
-
-                    Color c = isupper (ch) ? WHITE : BLACK;
-                    switch (toupper (ch))
-                    {
-                    case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
-                    case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;
-                    default:  return U64 (0); break;
-                    }
-
-                    sfen >> ch;
+                case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
+                case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;
+                default : return U64 (0); break;
                 }
-                while (ch && !isspace (ch));
-#pragma endregion
             }
 
+#pragma endregion
         }
-        sfen >> skipws >> ch;
-        if ('-' != ch)
+
+        uint8_t col, row;
+        if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
+            && ((sfen >> row) && (row == '3' || row == '6')))
         {
-            unsigned char ep_f = tolower (ch);
-            if (!isalpha (ep_f)) return U64 (0);
-            if ('a' > ep_f || ep_f > 'h') return U64 (0);
-
-            sfen >> noskipws >> ch;
-            unsigned char ep_r = ch;
-            if (!isdigit (ep_r)) return U64 (0);
-            if (('w' == active && '6' != ep_r) ||
-                ('b' == active && '3' != ep_r)) return U64 (0);
-
-            fen_key ^= _.en_passant[to_file (ep_f)];
+            fen_key ^= _.en_passant[to_file (col)];
         }
 
         return fen_key;

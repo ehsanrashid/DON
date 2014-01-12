@@ -76,16 +76,6 @@ inline Color to_color (char c)
     }
 }
 
-//inline std::string to_string (Color  c)
-//{
-//    switch (c)
-//    {
-//    case WHITE: return "WHITE";
-//    case BLACK: return "BLACK";
-//    }
-//    return "PT_NO";
-//}
-
 inline char to_char (Color  c)
 {
     switch (c)

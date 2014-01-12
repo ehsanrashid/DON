@@ -1380,8 +1380,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
                     if (BSHP != pt)
                         _si->checkers |=
-                            attacks_from<BSHP> (king_sq (pasive)) &
-                            pieces (active, QUEN, BSHP);
+                        attacks_from<BSHP> (king_sq (pasive)) &
+                        pieces (active, QUEN, BSHP);
                 }
             }
         }
@@ -1575,80 +1575,81 @@ void Position::undo_null_move ()
 void Position::flip ()
 {
 
-    //string f, token;
-    //stringstream ss (fen ());
+    //Position pos (*this);
+    //clear ();
     //
-    //for (Rank rank = R_8; rank >= R_1; --rank) // Piece placement
+    ////for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    ////{
+    ////    Piece p = pos[s];
+    ////    if (PS_NO != p)
+    ////    {
+    ////        place_piece (~s, ~p);
+    ////    }
+    ////}
+    //Bitboard occ    = pos._types_bb[PT_NO];
+    //while (occ)
     //{
-    //    getline (ss, token, rank > R_1 ? '/' : ' ');
-    //    f.insert (0, token + (f.empty () ? ' ' : '/'));
-    //}
-    //
-    //ss >> token; // Active color
-    //f += (token == "w" ? "B" : "W"); // Will be lowercased later
-    //f += ' ';
-    //ss >> token; // Castling availability
-    //f += token;
-    //f += ' ';
-    //transform (f.begin (), f.end (), f.begin (),
-    //    [] (char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
-    //
-    //ss >> token; // En passant square
-    //f += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : "3"));
-    //getline (ss, token); // Half and full moves
-    //f += token;
-    //
-    //setup (f, chess960 ());
-
-    Position pos (*this);
-    clear ();
-
-    //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-    //{
-    //    Piece p = pos[s];
+    //    Square s = pop_lsq (occ);
+    //    Piece p  = pos[s];
     //    if (PS_NO != p)
     //    {
     //        place_piece (~s, ~p);
     //    }
     //}
-    Bitboard occ    = pos._types_bb[PT_NO];
-    while (occ)
+    //
+    //if (pos.can_castle (CR_W_K)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_K));
+    //if (pos.can_castle (CR_W_Q)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_Q));
+    //if (pos.can_castle (CR_B_K)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_K));
+    //if (pos.can_castle (CR_B_Q)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_Q));
+    //
+    //_si->castle_rights = ~pos._si->castle_rights;
+    //
+    //Square ep_sq    = pos._si->en_passant;
+    //if (SQ_NO != ep_sq)
+    //{
+    //    _si->en_passant = ~ep_sq;
+    //}
+    //
+    //_si->cap_type   = pos._si->cap_type;
+    //_si->clock50    = pos._si->clock50;
+    //_si->last_move  = MOVE_NONE;
+    //_si->checkers   = flip_verti (pos._si->checkers);
+    //_active         = ~pos._active;
+    //_si->matl_key   = ZobGlob.compute_matl_key (*this);
+    //_si->pawn_key   = ZobGlob.compute_pawn_key (*this);
+    //_si->posi_key   = ZobGlob.compute_posi_key (*this);
+    //_si->psq_score  = compute_psq_score ();
+    //_si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
+    //_si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
+    //_game_ply       = pos._game_ply;
+    //_chess960       = pos._chess960;
+    //_game_nodes     = 0; //pos._game_nodes;
+
+    string fen_, ch;
+    stringstream sfen (fen ());
+    // 1. Piece placement
+    for (Rank rank = R_8; rank >= R_1; --rank)
     {
-        Square s = pop_lsq (occ);
-        Piece p  = pos[s];
-        if (PS_NO != p)
-        {
-            place_piece (~s, ~p);
-        }
+        getline (sfen, ch, rank > R_1 ? '/' : ' ');
+        fen_.insert (0, ch + (fen_.empty () ? " " : "/"));
     }
+    // 2. Active color
+    sfen >> ch;
+    fen_ += (ch == "w" ? "B" : "W"); // Will be lowercased later
+    fen_ += " ";
+    // 3. Castling availability
+    sfen >> ch;
+    fen_ += ch + " ";
+    transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)
+    { return char (islower (c) ? toupper (c) : tolower (c)); });
+    // 4. En-passant square
+    sfen >> ch;
+    fen_ += (ch == "-" ? ch : ch.replace (1, 1, ch[1] == '3' ? "6" : "3"));
+    // 5-6. Half and full moves
+    getline (sfen, ch);
+    fen_ += ch;
 
-    if (pos.can_castle (CR_W_K)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_K));
-    if (pos.can_castle (CR_W_Q)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_Q));
-    if (pos.can_castle (CR_B_K)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_K));
-    if (pos.can_castle (CR_B_Q)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_Q));
-
-    _si->castle_rights = ~pos._si->castle_rights;
-
-    Square ep_sq    = pos._si->en_passant;
-    if (SQ_NO != ep_sq)
-    {
-        _si->en_passant = ~ep_sq;
-    }
-
-    _si->cap_type   = pos._si->cap_type;
-    _si->clock50    = pos._si->clock50;
-    _si->last_move  = MOVE_NONE;
-    _si->checkers   = flip_verti (pos._si->checkers);
-    _active         = ~pos._active;
-    _si->matl_key   = ZobGlob.compute_matl_key (*this);
-    _si->pawn_key   = ZobGlob.compute_pawn_key (*this);
-    _si->posi_key   = ZobGlob.compute_posi_key (*this);
-    _si->psq_score  = compute_psq_score ();
-    _si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
-    _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
-    _game_ply       = pos._game_ply;
-    _chess960       = pos._chess960;
-    _game_nodes     = 0; //pos._game_nodes;
+    setup (fen_, _thread, _chess960);
 
     ASSERT (ok ());
 }
@@ -1670,37 +1671,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
 
     for (Rank r = R_8; r >= R_1; --r)
     {
-        //uint8_t empty = 0;
-        //for (File f = F_A; f <= F_H; ++f)
-        //{
-        //    bool empty = true;
-        //    for (Color c = WHITE; c <= BLACK; ++c)
-        //    {
-        //        Bitboard colors = pieces (c);
-        //        Square s = _Square(f, r);
-        //        if (colors & s)
-        //        {
-        //            for (PType pt = PAWN; pt <= KING; ++pt)
-        //            {
-        //                Bitboard types = pieces (pt);
-        //                if (types & s)
-        //                {
-        //                    empty = false;
-        //                    if (0 < empty)
-        //                    {
-        //                        if (8 < empty) return false;  
-        //                        set_next ('0' + empty);
-        //                        empty = 0;
-        //                    }
-        //                    set_next (to_string(c, pt));
-        //                    break;
-        //                }
-        //            }
-        //        }
-        //    }
-        //    if (empty) ++empty;
-        //}
-
         File f = F_A;
         while (f <= F_H)
         {
@@ -1711,12 +1681,12 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             if (false);
             else if (PS_NO == p)
             {
-                uint32_t empty = 0;
+                uint32_t empty_cnt = 0;
                 for ( ; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
-                    ++empty;
-                ASSERT (1 <= empty && empty <= 8);
-                if (1 > empty || empty > 8) return false;
-                set_next ('0' + empty);
+                    ++empty_cnt;
+                ASSERT (1 <= empty_cnt && empty_cnt <= 8);
+                if (1 > empty_cnt || empty_cnt > 8) return false;
+                set_next ('0' + empty_cnt);
             }
             else if (_ok (p))
             {
@@ -1809,46 +1779,58 @@ string Position::fen (bool                  c960, bool full) const
 {
     ostringstream sfen;
 
+    //for (Rank r = R_8; r >= R_1; --r)
+    //{
+    //    File f = F_A;
+    //    while (f <= F_H)
+    //    {
+    //        Square s = f | r;
+    //        Piece p  = _piece_arr[s];
+    //        ASSERT (PS_NO == p || _ok (p));
+    //
+    //        if (false);
+    //        else if (PS_NO == p)
+    //        {
+    //            uint32_t empty = 0;
+    //            for ( ; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
+    //                ++empty;
+    //            ASSERT (1 <= empty && empty <= 8);
+    //            if (1 > empty || empty > 8) return "";
+    //            sfen << (empty);
+    //        }
+    //        else if (_ok (p))
+    //        {
+    //            sfen << to_char (p);
+    //            ++f;
+    //        }
+    //        else
+    //            return "";
+    //    }
+    //    if (R_1 < r) sfen << '/';
+    //}
+
     for (Rank r = R_8; r >= R_1; --r)
     {
-        File f = F_A;
-        while (f <= F_H)
+        for (File f = F_A; f <= F_H; ++f)
         {
             Square s = f | r;
-            Piece p  = _piece_arr[s];
-            ASSERT (PS_NO == p || _ok (p));
+            int16_t empty_cnt = 0;
+            while (F_H >= f && empty (s))
+            {
+                ++empty_cnt; ++f; ++s;
+            }
+            if (empty_cnt) sfen << empty_cnt;
+            if (F_H >= f)  sfen << PieceChar[_piece_arr[s]];
+        }
 
-            if (false);
-            else if (PS_NO == p)
-            {
-                uint32_t empty = 0;
-                for ( ; f <= F_H && PS_NO == _piece_arr[s]; ++f, ++s)
-                    ++empty;
-                ASSERT (1 <= empty && empty <= 8);
-                if (1 > empty || empty > 8) return "";
-                sfen << (empty);
-            }
-            else if (_ok (p))
-            {
-                sfen << to_char (p);
-                ++f;
-            }
-            else
-            {
-                return "";
-            }
-        }
-        if (R_1 < r)
-        {
-            sfen << '/';
-        }
+        if (R_1 < r) sfen << '/';
     }
-    sfen << ' ';
-    sfen << to_char (_active);
-    sfen << ' ';
+
+    sfen << (WHITE == _active ? " w " : " b ");
+
     if (can_castle (CR_A))
     {
-        if (chess960 () || c960)
+        if (_chess960 || c960)
         {
 #pragma region X-FEN
             if (can_castle (WHITE))
@@ -1883,26 +1865,11 @@ string Position::fen (bool                  c960, bool full) const
     {
         sfen << '-';
     }
-    sfen << ' ';
-    Square ep_sq = _si->en_passant;
-    if (SQ_NO != ep_sq)
-    {
-        ASSERT (_ok (ep_sq));
-        if (R_6 != rel_rank (_active, ep_sq)) return "";
-        sfen << ::to_string (ep_sq);
-    }
-    else
-    {
-        sfen << '-';
-    }
-    if (full)
-    {
-        sfen << ' ';
-        sfen << _si->clock50;
-        sfen << ' ';
-        sfen << game_move ();
-    }
-    sfen << '\0';
+
+    sfen << (SQ_NO == _si->en_passant ?
+        " - " : " " + to_string (_si->en_passant) + " ");
+
+    if (full) sfen << _si->clock50 << " " << game_move ();
 
     return sfen.str ();
 }
@@ -2035,12 +2002,12 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 ASSERT ('1' <= ch && ch <= '8');
                 if ('1' > ch || ch > '8') return false;
 
-                int8_t empty = (ch - '0');
-                f += empty;
+                int8_t empty_cnt = (ch - '0');
+                f += empty_cnt;
 
                 ASSERT (f <= F_NO);
                 if (f > F_NO) return false;
-                //while (empty-- > 0) place_piece(s++, PS_NO);
+                //while (empty_cnt-- > 0) place_piece(s++, PS_NO);
             }
             else if (isalpha (ch))
             {
@@ -2216,8 +2183,6 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     pos.clear ();
 
-#pragma region Input String Stream
-
     istringstream sfen (fen);
     uint8_t ch;
 
@@ -2232,15 +2197,15 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += Delta (ch - '0'); // Advance the given number of files
         }
-        else if (ch == '/')
-        {
-            s += DEL_SS;
-        }
-        else if ((idx = PieceChar.find (ch)) != string::npos)
+        else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
             pos.place_piece (s, p_color (p), p_type (p));
             ++s;
+        }
+        else if (ch == '/')
+        {
+            s += DEL_SS;
         }
     }
 
@@ -2307,14 +2272,18 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
-    char col, row;
+    uint8_t col, row;
     if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
         && ((sfen >> row) && (row == '3' || row == '6')))
     {
-        Square ep_sq = _Square (col, row);
-        if (pos.can_en_passant (ep_sq))
+        if (!(WHITE == pos._active && '6' != row) &&
+            !(BLACK == pos._active && '3' != row))
         {
-            pos._si->en_passant = ep_sq;
+            Square ep_sq = _Square (col, row);
+            if (pos.can_en_passant (ep_sq))
+            {
+                pos._si->en_passant = ep_sq;
+            }
         }
     }
 
@@ -2328,9 +2297,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
-    pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
-
-#pragma endregion
+    pos._game_ply = max (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->matl_key = ZobGlob.compute_matl_key (pos);
     pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
