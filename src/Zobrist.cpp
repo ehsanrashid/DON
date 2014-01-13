@@ -165,8 +165,7 @@ namespace Zobrist {
     // Hash key of the FEN
     Key Zob::compute_fen_key (const   char *fen, bool c960) const
     {
-        ASSERT (fen);
-        //if (!fen)   return U64 (0);
+        if (!fen)   return U64 (0);
 
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
@@ -189,13 +188,11 @@ namespace Zobrist {
                 else if (isdigit (ch))
                 {
                     // empty square(s)
-                    ASSERT ('1' <= ch && ch <= '8');
                     if ('1' > ch || ch > '8') return U64 (0);
 
                     uint8_t empty = (ch - '0');
                     f += empty;
 
-                    ASSERT (f <= F_NO);
                     if (f > F_NO) return U64 (0);
                 }
                 else if (isalpha (ch))
@@ -312,7 +309,7 @@ namespace Zobrist {
     // Hash key of the FEN
     Key Zob::compute_fen_key (const string &fen, bool c960) const
     {
-        //if (fen.empty ()) return U64 (0);
+        if (fen.empty ()) return U64 (0);
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
 

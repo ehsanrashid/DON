@@ -36,7 +36,6 @@ const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 #ifdef _DEBUG
 bool _ok (const   char *fen, bool c960, bool full)
 {
-    ASSERT (fen);
     if (!fen)   return false;
     Position pos (int8_t (0));
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
@@ -626,7 +625,6 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
-    //ASSERT (_ok (m));
     if (!_ok (m)) return false;
 
     Square org = org_sq (m);
@@ -859,7 +857,7 @@ bool Position::pseudo_legal (Move m) const
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::       legal (Move m, Bitboard pinned) const
 {
-    ASSERT (_ok (m));
+    //ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
 
@@ -874,7 +872,6 @@ bool Position::       legal (Move m, Bitboard pinned) const
     ASSERT ((active == pc) && (PT_NO != pt));
 
     Square ksq = king_sq (active);
-    //ASSERT ((active | KING) == piece_on (ksq));
 
     MType mt = m_type (m);
     switch (mt)
@@ -984,11 +981,8 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         // Promotion with check ?
         return (attacks_from ((_active | prom_type (m)), dst, occ - org + dst) & ci.king_sq);
         break;
-
-    default:
-        ASSERT (false);
-        return false;
     }
+    return false;
 }
 
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
@@ -1070,9 +1064,7 @@ bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
 void Position::set_castle (Color c, Square org_rook)
 {
     Square org_king = king_sq (c);
-
-    ASSERT ((org_king != org_rook));
-    if (org_king == org_rook) return;
+    ASSERT (org_king != org_rook);
 
     bool king_side = (org_rook > org_king);
     CSide cs = (king_side ? CS_K : CS_Q);
@@ -1116,8 +1108,8 @@ bool Position::can_en_passant (Square ep_sq) const
     if ((pasive | PAWN) != piece_on (cap)) return false;
 
     Bitboard pawns_ep = attacks_bb<PAWN> (pasive, ep_sq) & pieces (active, PAWN);
-    if (!pawns_ep) return false;
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
+    if (!pawns_ep) return false;
 
     MoveList mov_lst;
     while (pawns_ep) mov_lst.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
@@ -1234,7 +1226,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (empty (cap));  // Capture Square must be empty
 
         cap += pawn_push (pasive);
-        //ASSERT (!(pieces (pasive, PAWN) & cap));
         ASSERT ((pasive | PAWN) == piece_on (cap));
         ct = PAWN;
         break;
@@ -1457,8 +1448,6 @@ void Position::do_move (string &can, StateInfo &si_n)
 void Position::undo_move ()
 {
     ASSERT (_si->p_si);
-    if (NULL == _si->p_si) return;
-
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
@@ -1695,7 +1684,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
         {
             Square s = f | r;
             Piece p  = piece_on (s);
-            ASSERT (PS_NO == p || _ok (p));
 
             if (false);
             else if (PS_NO == p)
@@ -1703,7 +1691,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
                 uint32_t empty_cnt = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
                     ++empty_cnt;
-                ASSERT (1 <= empty_cnt && empty_cnt <= 8);
                 if (1 > empty_cnt || empty_cnt > 8) return false;
                 set_next ('0' + empty_cnt);
             }
@@ -1765,7 +1752,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     Square ep_sq = _si->en_passant;
     if (SQ_NO != ep_sq)
     {
-        ASSERT (_ok (ep_sq));
         if (R_6 != rel_rank (_active, ep_sq)) return false;
         set_next (to_char (_file (ep_sq)));
         set_next (to_char (_rank (ep_sq)));
@@ -1807,7 +1793,6 @@ string Position::fen (bool                  c960, bool full) const
     //    {
     //        Square s = f | r;
     //        Piece p  = piece_on (s);
-    //        ASSERT (PS_NO == p || _ok (p));
     //
     //        if (false);
     //        else if (PS_NO == p)
@@ -1815,7 +1800,6 @@ string Position::fen (bool                  c960, bool full) const
     //            uint32_t empty_cnt = 0;
     //            for ( ; f <= F_H && empty (s); ++f, ++s)
     //                ++empty_cnt;
-    //            ASSERT (1 <= empty_cnt && empty_cnt <= 8);
     //            if (1 > empty_cnt || empty_cnt > 8) return "";
     //            sfen << (empty_cnt);
     //        }
@@ -1995,8 +1979,7 @@ Position::operator string () const
 
 bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
-    ASSERT (fen);
-    //if (!fen)   return false;
+    if (!fen)   return false;
 
     pos.clear ();
 
@@ -2020,13 +2003,11 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             else if (isdigit (ch))
             {
                 // empty square(s)
-                ASSERT ('1' <= ch && ch <= '8');
                 if ('1' > ch || ch > '8') return false;
 
                 int8_t empty_cnt = (ch - '0');
                 f += empty_cnt;
 
-                ASSERT (f <= F_NO);
                 if (f > F_NO) return false;
                 //while (empty_cnt-- > 0) place_piece(s++, PS_NO);
             }
@@ -2134,14 +2115,10 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     if ('-' != ch)
     {
         uint8_t ep_f = tolower (ch);
-        ASSERT (isalpha (ep_f));
-        ASSERT ('a' <= ep_f && ep_f <= 'h');
         if (!isalpha (ep_f)) return false;
         if ('a' > ep_f || ep_f > 'h') return false;
 
         uint8_t ep_r = get_next ();
-        ASSERT (isdigit (ep_r));
-        ASSERT ((WHITE == pos._active && '6' == ep_r) || (BLACK == pos._active && '3' == ep_r));
 
         if (!isdigit (ep_r)) return false;
         if ((WHITE == pos._active && '6' != ep_r) || (BLACK == pos._active && '3' != ep_r)) return false;
@@ -2201,8 +2178,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
 bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
-    ASSERT (!fen.empty ());
-    //if (fen.empty ()) return false;
+    if (fen.empty ()) return false;
 
     pos.clear ();
 

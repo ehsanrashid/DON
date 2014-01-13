@@ -375,10 +375,10 @@ namespace BitBoard {
     // Function 'indexer(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE uint16_t indexer (Square s, Bitboard occ);
+    extern INLINE uint16_t indexer   (Square s, Bitboard occ);
 
     template<>
-    INLINE uint16_t indexer<BSHP> (Square s, Bitboard occ)
+    INLINE uint16_t indexer   <BSHP> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT
@@ -392,7 +392,7 @@ namespace BitBoard {
     }
 
     template<>
-    INLINE uint16_t indexer<ROOK> (Square s, Bitboard occ)
+    INLINE uint16_t indexer   <ROOK> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT

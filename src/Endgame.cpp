@@ -55,8 +55,8 @@ namespace EndGame {
 
 #endif
 
-        // Map the square as if strongSide is white and strongSide's only pawn
-        // is on the left half of the board.
+        // Map the square as if strong_side is white and
+        // strong_side's only pawn is on the left half of the board.
         inline Square normalize (const Position &pos, Color strong_side, Square sq)
         {
             ASSERT (pos.piece_count<PAWN> (strong_side) == 1);

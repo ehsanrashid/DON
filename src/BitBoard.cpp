@@ -605,7 +605,7 @@ namespace BitBoard {
         remove_if (sbb, isspace);
 
         size_t length = sbb.length ();
-        ASSERT (SQ_NO == length);
+        //ASSERT (SQ_NO == length);
         if (SQ_NO != length) return "";
 
         string shex = "0x";

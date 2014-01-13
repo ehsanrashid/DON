@@ -706,16 +706,12 @@ inline bool Position::opposite_bishops () const
 // moved_piece() return piece moved on move
 inline Piece Position::moved_piece (Move m) const
 {
-    //ASSERT (_ok (m));
-
     return _piece_arr[org_sq (m)];
 }
 
 //// captured_piece() return piece captured by moving piece
 //inline Piece Position::captured_piece (Move m) const
 //{
-//    //ASSERT (_ok (m));
-//
 //    Square org  = org_sq (m);
 //    Square dst  = dst_sq (m);
 //
@@ -766,8 +762,6 @@ inline bool Position::       legal (Move m) const
 // capture(m) tests move is capture
 inline bool Position::capture (Move m) const
 {
-    //ASSERT (_ok (m));
-
     //MType mt = m_type (m);
     //switch (mt)
     //{
@@ -791,8 +785,6 @@ inline bool Position::capture (Move m) const
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion (Move m) const
 {
-    //ASSERT (_ok (m));
-
     //switch (m_type (m))
     //{
     //case CASTLE:    return false;
@@ -824,7 +816,7 @@ inline bool Position::advanced_pawn_push (Move m) const
 
 inline void  Position:: place_piece (Square s, Color c, PType pt)
 {
-    //ASSERT (empty (s));
+    ASSERT (empty (s));
     _piece_arr[s]    = (c | pt);
     Bitboard bb       = BitBoard::_square_bb[s];
     _color_bb[c]     |= bb;
@@ -841,16 +833,17 @@ inline void  Position:: place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
+    ASSERT (!empty (s));
+
     // WARNING: This is not a reversible operation. If we remove a piece in
     // do_move() and then replace it in undo_move() we will put it at the end of
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
     Piece p = _piece_arr [s];
-    //ASSERT (PS_NO != p);
+    
     Color c  = _color (p);
     PType pt = _type (p);
-    //ASSERT (0 < _piece_count[c][pt]);
 
     _piece_arr [s]     = PS_NO;
 
@@ -873,8 +866,10 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
+    ASSERT (!empty (s1));
+    ASSERT ( empty (s2));
+
     Piece p = _piece_arr[s1];
-    //ASSERT (PS_NO == _piece_arr[s2]);
 
     Color c = _color (p);
     PType pt = _type (p);

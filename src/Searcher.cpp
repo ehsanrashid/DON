@@ -375,8 +375,8 @@ finish:
         // When search is stopped this info is not printed
         ats ()
             << "info"
-            << " nodes " << RootPos.game_nodes ()
             << " time "  << (Time::now () - SearchTime + 1)
+            << " nodes " << RootPos.game_nodes ()
             << endl;
 
         // When we reach max depth we arrive here even without Signals.stop is raised,
@@ -519,8 +519,8 @@ namespace {
                     // valid, although refers to previous iteration.
                     if (Signals.stop) break;
 
-                    // When failing high/low give some update (without cluttering
-                    // the UI) before to research.
+                    // When failing high/low give some update
+                    // (without cluttering the UI) before to research.
                     if ((alpha >= best_value || best_value >= beta) &&
                         (Time::now () - SearchTime) > 3000)
                     {
@@ -765,7 +765,8 @@ namespace {
         excluded_move = ss->excluded_move;
         posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
         te       = TT.retrieve (posi_key);
-        tt_move  = RootNode ? RootMoves[PVIdx].pv[0] : te ? te->move () : MOVE_NONE;
+        tt_move  = RootNode ? RootMoves[PVIdx].pv[0]
+        :          te ?              te->move ()            : MOVE_NONE;
         tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
 
         // At PV nodes we check for exact scores, while at non-PV nodes we check for
@@ -871,19 +872,19 @@ namespace {
             ss->current_move = MOVE_NULL;
 
             // Null move dynamic reduction based on depth
-            Depth R = 3 * ONE_MOVE + depth / 4;
+            Depth red = 3 * ONE_MOVE + depth / 4;
 
             // Null move dynamic reduction based on value
-            if (eval_value - VALUE_MG_PAWN > beta) R += ONE_MOVE;
+            if (eval_value - VALUE_MG_PAWN > beta) red += ONE_MOVE;
 
             pos.do_null_move (si);
 
             (ss+1)->skip_null_move = true;
 
             Value null_value = 
-                (depth-R < ONE_MOVE)
+                (depth-red < ONE_MOVE)
                 ? -search_quien<NonPV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-R, !cut_node);
+                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-red, !cut_node);
 
             (ss+1)->skip_null_move = false;
 
@@ -901,7 +902,7 @@ namespace {
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
-                Value v = search<NonPV> (pos, ss, alpha, beta, depth-R, false);
+                Value v = search<NonPV> (pos, ss, alpha, beta, depth-red, false);
                 ss->skip_null_move = false;
 
                 if (v >= beta) return null_value;
@@ -999,7 +1000,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + PVIdx, RootMoves.end (), move)) continue;
 
-            if (!pos.pseudo_legal (move) /*|| !pos.legal (move, ci.pinneds)*/) continue;
+            //if (!pos.pseudo_legal (move) /*|| !pos.legal (move, ci.pinneds)*/) continue;
 
             if (SPNode)
             {
@@ -1367,7 +1368,7 @@ moves_loop: // When in check and at SPNode search starts from here
         Value tt_value;
 
         te       = TT.retrieve (posi_key);
-        tt_move  = te ? te->move() : MOVE_NONE;
+        tt_move  = te ?              te->move()             : MOVE_NONE;
         tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
 
         if (   te
@@ -1542,7 +1543,7 @@ moves_loop: // When in check and at SPNode search starts from here
         return best_value;
     }
 
-    // value_to_tt() adjusts a mate score from "plies to mate from the root" to
+    // value_to_tt () adjusts a mate score from "plies to mate from the root" to
     // "plies to mate from the current position". Non-mate scores are unchanged.
     // The function is called before storing a value to the transposition table.
     Value value_to_tt (Value v, int32_t ply)
@@ -1553,9 +1554,10 @@ moves_loop: // When in check and at SPNode search starts from here
             v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
     }
 
-    // value_fr_tt() is the inverse of value_to_tt(): It adjusts a mate score
-    // from the transposition table (where refers to the plies to mate/be mated
-    // from current position) to "plies to mate/be mated from the root".
+    // value_fr_tt () is the inverse of value_to_tt ():
+    // It adjusts a mate score from the transposition table
+    // (where refers to the plies to mate/be mated from current position)
+    // to "plies to mate/be mated from the root".
     Value value_fr_tt (Value v, int32_t ply)
     {
         return
@@ -1601,9 +1603,9 @@ moves_loop: // When in check and at SPNode search starts from here
         return move;
     }
 
-    // pv_info_uci() formats PV information according to UCI protocol. UCI requires
-    // to send all the PV lines also if are still to be searched and so refer to
-    // the previous search score.
+    // pv_info_uci () formats PV information according to UCI protocol.
+    // UCI requires to send all the PV lines also if are still to be searched
+    // and so refer to the previous search score.
     string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
     {
         stringstream spv;
@@ -1636,9 +1638,9 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " depth "    << d
                 << " seldepth " << sel_depth
                 << " score "    << (i == PVIdx ? score_uci (v, alpha, beta) : score_uci (v))
-                << " nodes "    << pos.game_nodes ()
-                << " nps "      << pos.game_nodes () * 1000 / elapsed
                 << " time "     << elapsed
+                << " nodes "    << pos.game_nodes ()
+                << " nps "      << (pos.game_nodes () * 1000) / elapsed
                 << " multipv "  << i + 1
                 << " pv";
             for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)

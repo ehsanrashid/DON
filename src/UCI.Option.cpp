@@ -414,7 +414,7 @@ namespace UCI {
         // One could envisage more pronounced contempt but this would start to degrade the engine’s objective strength.
         // By default the contempt is only activated during game play, not during infinite analysis.
         // If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
-        Options["Contempt"]                     = OptionPtr (new SpinOption (1, 0, 2));
+        Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
 
         // Factor for adjusted contempt. Changes playing style.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
@@ -457,7 +457,7 @@ namespace UCI {
         //
         // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50, 5, 50));
+        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50));
 
         // Maximum search depth for mate search.
         // Default 0, min 0, max 99.
@@ -465,14 +465,14 @@ namespace UCI {
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in X", you can use X or a value slightly larger than X in the Mate Search option.
         // This will prevent Houdini from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  = OptionPtr (new SpinOption (0, 0, 99));
+        Options["Mate Search"]                  = OptionPtr (new SpinOption ( 0,  0, 99));
 
-        Options["Skill Level"]                  = OptionPtr (new SpinOption (20, 0, 20));
+        Options["Skill Level"]                  = OptionPtr (new SpinOption (20,  0, 20));
 
-        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption (40, 0, 50));
-        Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60, 0, 30000));
-        Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30, 0, 5000));
-        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20, 0, 5000));
+        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption (40,  0, 50));
+        Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60,  0, 30000));
+        Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
+        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
         Options["Slow Mover"]                   = OptionPtr (new SpinOption (70, 10, 1000));
 
         // Activate Fischer Random Chess a.k.a. Chess960 games.

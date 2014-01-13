@@ -120,12 +120,8 @@ namespace MoveGenerator {
                 //void Generator<G, KING>::generate_castling (MoveList &mov_lst, const Position &pos, Color clr, const CheckInfo *ci)
             {
                 //static_assert ((EVASION != G), "G must not be EVASION");
-
-                ASSERT (!pos.castle_impeded (clr, SIDE));
-                ASSERT (pos.can_castle (clr, SIDE));
-                ASSERT (!pos.checkers ());
-
-                if (pos.castle_impeded (clr, SIDE) || !pos.can_castle (clr, SIDE) || pos.checkers ()) return;
+                ASSERT (!pos.castle_impeded (clr, SIDE) && pos.can_castle (clr, SIDE) && !pos.checkers ());
+                //if (pos.castle_impeded (clr, SIDE) || !pos.can_castle (clr, SIDE) || pos.checkers ()) return;
 
                 Square org_king = pos.king_sq (clr);
                 Square org_rook = pos.castle_rook (clr, SIDE);
