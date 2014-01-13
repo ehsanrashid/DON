@@ -58,8 +58,8 @@ namespace {
     inline bool is_KXK(const Position &pos)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-        
-        return pos.non_pawn_material(C ) >= VALUE_MG_ROOK
+
+        return pos.non_pawn_material(C ) >= VALUE_MG_KNIGHT
             && pos.non_pawn_material(C_) == VALUE_ZERO
             && pos.piece_count<PAWN> (C_) == 0;
     }
@@ -168,8 +168,13 @@ namespace Material {
             ASSERT ((pos.pieces (WHITE, NIHT) | pos.pieces (WHITE, BSHP)));
             ASSERT ((pos.pieces (BLACK, NIHT) | pos.pieces (BLACK, BSHP)));
 
-            if (   pos.piece_count<BSHP> (WHITE) + pos.piece_count<NIHT> (WHITE) <= 2
-                && pos.piece_count<BSHP> (BLACK) + pos.piece_count<NIHT> (BLACK) <= 2)
+            int32_t minor_piece_count[CLR_NO] =
+            {
+                pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE),
+                pos.piece_count<NIHT> (BLACK) + pos.piece_count<BSHP> (BLACK),
+            };
+
+            if (minor_piece_count[WHITE] <= 2 && minor_piece_count[BLACK] <= 2)
             {
                 e->evaluation_func = &EvaluateKmmKm[pos.active ()];
                 return e;

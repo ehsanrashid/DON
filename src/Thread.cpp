@@ -302,10 +302,10 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
 
     --split_points_size;
     active_split_point = sp.parent_split_point;
-    
+
     active_pos  = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
-    
+
     *best_move  = sp.best_move;
     *best_value = sp.best_value;
 
@@ -364,18 +364,20 @@ void ThreadPool::wait_for_think_finished ()
 }
 
 
-/// prefetch() preloads the given address in L1/L2 cache. This is a non-blocking
-/// function that doesn't stall the CPU waiting for data to be loaded from memory,
-/// which can be quite slow.
+// prefetch() preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall
+// the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
 #ifdef NO_PREFETCH
 
 void prefetch (char *addr) {}
 
-#else
+#elif defined(__INTEL_COMPILER) || defined(_MSC_VER)
+
+#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
 void prefetch (char *addr)
 {
-
 #   if defined(__INTEL_COMPILER)
     {
         // This hack prevents prefetches from being optimized away by
@@ -383,17 +385,14 @@ void prefetch (char *addr)
         __asm__ ("");
     }
 #   endif
+    _mm_prefetch (addr, _MM_HINT_T0);
+}
 
-#   if defined(__INTEL_COMPILER) || defined(_MSC_VER)
-    {
-        _mm_prefetch (addr, _MM_HINT_T0);
-    }
-#   else
-    {
-        __builtin_prefetch (addr);
-    }
-#   endif
+#else
 
+void prefetch (char *addr)
+{
+    __builtin_prefetch (addr);
 }
 
 #endif

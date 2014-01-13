@@ -8,6 +8,8 @@ using namespace BitBoard;
 
 namespace {
 
+    const Bitboard MiddleEdges_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
+
 #define V Value
 #define S(mg, eg) mk_score(mg, eg)
 
@@ -226,27 +228,37 @@ namespace Pawns {
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
-        Bitboard front_pawns = pos.pieces (PAWN) & (front_ranks_bb (C, _rank (k_sq)) | rank_bb (k_sq));
+        Value safety = MaxSafetyBonus;
 
+        Bitboard front_pawns = pos.pieces (PAWN) & (front_ranks_bb (C, _rank (k_sq)) | rank_bb (k_sq));
         Bitboard pawns[CLR_NO] =
         {
             front_pawns & pos.pieces (C ),
             front_pawns & pos.pieces (C_),
         };
-
-        Value safety = MaxSafetyBonus;
-
         File kf = max (F_B, min (F_G, _file (k_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
-            Bitboard fb_pawns;
-            fb_pawns = pawns[0] & file_bb (f);
-            Rank w_rk = fb_pawns ? rel_rank (C, scan_rel_backmost_sq (C, fb_pawns)) : R_1;
-            safety -= ShelterWeakness[w_rk];
+            Bitboard mid_pawns;
 
-            fb_pawns  = pawns[1] & file_bb (f);
-            Rank b_rk = fb_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, fb_pawns)) : R_1;
-            safety -= StormDanger[(w_rk == R_1) ? 0 : (b_rk == w_rk + 1) ? 2 : 1][b_rk];
+            mid_pawns  = pawns[1] & file_bb (f);
+            Rank b_rk = mid_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, mid_pawns)) : R_1;
+
+            if ((MiddleEdges_bb & (f | b_rk)) &&
+                _file (k_sq) == f &&
+                rel_rank (C, k_sq) == b_rk - 1)
+            {
+                safety += Value (200);
+            }
+            else
+            {
+                mid_pawns = pawns[0] & file_bb (f);
+                Rank w_rk = mid_pawns ? rel_rank (C, scan_rel_backmost_sq (C, mid_pawns)) : R_1;
+
+                safety -= 
+                    ShelterWeakness[w_rk] +
+                    StormDanger[(w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0][b_rk];
+            }
         }
 
         return safety;

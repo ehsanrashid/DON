@@ -4,10 +4,10 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-#define POPCNT
 //#define __INTEL_COMPILER
 
-#define BSFQ
+//#define POPCNT
+//#define BSFQ
 //#define NO_PREFETCH
 
 // STD TYPES

@@ -1185,7 +1185,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // which are going to be recalculated from scratch anyway, 
     memcpy (&si_n, _si, SIZE_COPY_STATE);
 
-    // switch state pointer to point to the new, ready to be updated, state.
+    // Switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;
     _si          = &si_n;
 
@@ -1401,7 +1401,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         }
     }
 
-    // switch side to move
+    // Switch side to move
     _active = pasive;
     posi_k ^= ZobGlob._.mover_side;
 
@@ -1455,7 +1455,7 @@ void Position::undo_move ()
     Square dst = dst_sq (m);
 
     Color pasive = _active;
-    Color active = _active = ~_active; // switch
+    Color active = _active = ~_active; // Switch
 
     Piece p  = piece_on (dst);
     PType pt = _type (p);
@@ -1540,7 +1540,7 @@ void Position::do_null_move (StateInfo &si_n)
     // Full copy here
     memcpy (&si_n, _si, sizeof (StateInfo));
 
-    // switch our state pointer to point to the new, ready to be updated, state.
+    // Switch our state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;
     _si       = &si_n;
 

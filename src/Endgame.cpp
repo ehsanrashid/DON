@@ -14,6 +14,9 @@ namespace EndGame {
 
     namespace {
 
+        const Bitboard Corner_bb = U64(0x8100000000000081);
+
+
         // Table used to drive the king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
         const int32_t PushToEdges[SQ_NO] =
@@ -48,7 +51,7 @@ namespace EndGame {
 
 #ifdef _DEBUG
 
-        bool verify_material (const Position &pos, Color c, Value npm, uint32_t num_pawns)
+        inline bool verify_material (const Position &pos, Color c, Value npm, uint32_t num_pawns)
         {
             return (pos.non_pawn_material(c) == npm) && (pos.piece_count<PAWN> (c) == num_pawns);
         }
@@ -150,7 +153,9 @@ namespace EndGame {
         // Stalemate detection with lone king
         if (pos.active () == _weak_side && generate<LEGAL> (pos).size() == 0)
         {
-            return VALUE_DRAW;
+            return VALUE_DRAW
+                + pos.piece_count (_stong_side)
+                - pos.piece_count (_weak_side);
         }
 
         Square wk_sq = pos.king_sq (_stong_side);
@@ -162,7 +167,9 @@ namespace EndGame {
             !pos.piece_count<QUEN> (_stong_side) &&
             !pos.bishops_pair     (_stong_side))
         {
-            return VALUE_DRAW;
+            return VALUE_DRAW
+                + pos.piece_count (_stong_side)
+                - pos.piece_count (_weak_side);
         }
 
         Value value = pos.non_pawn_material(_stong_side)
@@ -220,8 +227,12 @@ namespace EndGame {
 
         Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
 
-        if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq)) return VALUE_DRAW;
-
+        if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
+        {
+            return VALUE_DRAW
+                + pos.piece_count (_stong_side)
+                - pos.piece_count (_weak_side);
+        }
         Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -282,7 +293,18 @@ namespace EndGame {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
-        Value value = Value (PushToEdges[pos.king_sq (_weak_side)]);
+        Square bk_sq = pos.king_sq (_weak_side);
+
+        //// To draw, the weaker side should run towards the corner.
+        //// And not just any corner! Only a corner that's not the same color as the bishop will do.
+        //if (Corner_bb & bk_sq)
+        //{
+        //    Square bb_sq = pos.piece_list<BSHP> (_weak_side)[0];
+        //    if (opposite_colors (bk_sq, bb_sq)) return VALUE_DRAW;
+        //}
+
+        // when the weaker side ended up in the wrong corner.
+        Value value = Value (PushToEdges[bk_sq]);
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -351,6 +373,8 @@ namespace EndGame {
     // KBB vs KN. This is almost always a win. We try to push enemy king to a corner
     // and away from his knight. For a reference of this difficult endgame see:
     // en.wikipedia.org/wiki/Chess_endgame#Effect_of_tablebases_on_endgame_theory
+    // But this endgame is not known, there are many position where it takes 50+ moves to win.
+    // Because exact rule is not possible better to retire and allow the search to workout the endgame.
     Value Endgame<KBBKN>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_BISHOP, 0));
@@ -360,9 +384,13 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.piece_list<NIHT> (_weak_side)[0];
 
-        if (!pos.bishops_pair (_stong_side)) return VALUE_DRAW;
-
-        Value value = VALUE_KNOWN_WIN + PushToCorners[bk_sq]
+        if (!pos.bishops_pair (_stong_side))
+        {
+            return VALUE_DRAW
+                + pos.piece_count (_stong_side)
+                - pos.piece_count (_weak_side);
+        }
+        Value value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
         + PushClose[square_dist (wk_sq, bk_sq)]
         + PushAway[square_dist (bk_sq, bn_sq)];
 
@@ -375,14 +403,17 @@ namespace EndGame {
     {
         ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
 
-        return VALUE_DRAW;
+        Value value = VALUE_DRAW + pos.piece_count<NIHT> (_stong_side);
+        return (_stong_side == pos.active ()) ? value : -value;
     }
     template<>
     Value Endgame<KmmKm>::operator() (const Position &pos) const
     {
-        //ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+        Value value = VALUE_DRAW
+            + pos.piece_count (_stong_side)
+            - pos.piece_count (_weak_side);
 
-        return VALUE_DRAW;
+        return (_stong_side == pos.active ()) ? value : -value;
     }
 
 

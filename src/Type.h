@@ -76,61 +76,29 @@ const uint16_t MAX_PLY_6    = MAX_PLY + 6;
 // File of Square
 typedef enum File : int8_t
 {
-    F_A,
-    F_B,
-    F_C,
-    F_D,
-    F_E,
-    F_F,
-    F_G,
-    F_H,
-    F_NO,
+    F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO,
 
 } File;
 
 // Rank of Square
 typedef enum Rank : int8_t
 {
-    R_1,
-    R_2,
-    R_3,
-    R_4,
-    R_5,
-    R_6,
-    R_7,
-    R_8,
-    R_NO,
+    R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO,
 
 } Rank;
 
 // Diagonal of Square
 typedef enum Diag : int8_t
 {
-    D_01,
-    D_02,
-    D_03,
-    D_04,
-    D_05,
-    D_06,
-    D_07,
-    D_08,
-    D_09,
-    D_10,
-    D_11,
-    D_12,
-    D_13,
-    D_14,
-    D_15,
-    D_NO,
+    D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
+    D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO,
 
 } Diag;
 
 // Color of Square and Side
 typedef enum Color : uint8_t
 {
-    WHITE,
-    BLACK,
-    CLR_NO,
+    WHITE, BLACK, CLR_NO,
 
 } Color;
 
@@ -199,38 +167,38 @@ typedef enum Delta : int8_t
 // Castle Side
 typedef enum CSide : uint8_t
 {
-    CS_K  = 0,    // SHORT CASTLE
-    CS_Q  = 1,    // LONG  CASTLE
-    CS_NO = 2,
+    CS_K ,    // SHORT CASTLE
+    CS_Q ,    // LONG  CASTLE
+    CS_NO,
 
 } CSide;
 
 // Castle Right
 typedef enum CRight : uint8_t
 {
-    CR_NO  = 0,             // 0000
-    CR_W_K = 1,             // 0001
+    CR_NO ,                 // 0000
+    CR_W_K,                 // 0001
     CR_W_Q = CR_W_K << 1,   // 0010
     CR_B_K = CR_W_K << 2,   // 0100
     CR_B_Q = CR_W_K << 3,   // 1000
 
     CR_W = CR_W_K | CR_W_Q, // 0011
     CR_B = CR_B_K | CR_B_Q, // 1100
-    CR_A = CR_W | CR_B,     // 1111
+    CR_A = CR_W   | CR_B,   // 1111
 
 } CRight;
 
 // Type of the Piece
 typedef enum PType : uint8_t
 {
-    PAWN   = 0, // 000 - PAWN
-    NIHT   = 1, // 001 - KNIGHT
-    BSHP   = 2, // 010 - BISHOP
-    ROOK   = 3, // 011 - ROOK
-    QUEN   = 4, // 100 - QUEEN
-    KING   = 5, // 101 - KING
-    PT_NO  = 6, // 110 - PT_NO
-    PT_ALL = 7,
+    PAWN  , // 000 - PAWN
+    NIHT  , // 001 - KNIGHT
+    BSHP  , // 010 - BISHOP
+    ROOK  , // 011 - ROOK
+    QUEN  , // 100 - QUEEN
+    KING  , // 101 - KING
+    PT_NO , // 110 - PT_NO
+    PT_ALL,
 
 } PType;
 
