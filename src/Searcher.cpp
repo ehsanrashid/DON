@@ -391,11 +391,12 @@ finish:
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        ats ()
-            << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ())
-            << " ponder "  << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ())
-            << endl;
-
+        cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
+        if (RootMoves[0].pv[0])
+        {
+            cout << " ponder "  << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
+        }
+        cout << endl;
     }
 
     // initialize() is called during startup to initialize various lookup tables

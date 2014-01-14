@@ -59,7 +59,7 @@ namespace {
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
-        return pos.non_pawn_material(C ) >= VALUE_MG_KNIGHT
+        return pos.non_pawn_material(C ) >= VALUE_MG_ROOK
             && pos.non_pawn_material(C_) == VALUE_ZERO
             && pos.piece_count<PAWN> (C_) == 0;
     }

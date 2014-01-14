@@ -390,6 +390,8 @@ typedef enum Phase : int16_t
 typedef enum ScaleFactor : uint8_t
 {
     SCALE_FACTOR_DRAW    =   0,
+    //SCALE_FACTOR_BOUND   =   2,
+
     SCALE_FACTOR_ONEPAWN =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
@@ -514,6 +516,8 @@ inline Score operator/ (Score s, int32_t i)
 {
     return mk_score (mg_value (s) / i, eg_value (s) / i);
 }
+
+//ARTHMAT_OPERATORS (ScaleFactor)
 
 ARTHMAT_OPERATORS (Depth);
 INC_DEC_OPERATORS (Depth);

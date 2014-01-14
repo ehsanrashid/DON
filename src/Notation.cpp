@@ -330,9 +330,10 @@ string move_to_lan (Move m, Position &pos)
 string score_uci (Value v, Value alpha, Value beta)
 {
     stringstream ss;
-
-    if (abs (int32_t (v)) < VALUE_MATES_IN_MAX_PLY)
+    int32_t abs_v = abs (int32_t (v));
+    if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
+        if (abs_v < 10) v = Value (0);
         ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
