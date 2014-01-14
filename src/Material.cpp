@@ -5,6 +5,7 @@
 #include <cstring>
 
 using namespace std;
+using namespace BitBoard;
 using namespace EndGame;
 
 namespace {
@@ -161,12 +162,13 @@ namespace Material {
             return e;
         }
 
-        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) && !pos.pieces (QUEN))
+        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) && !pos.pieces (QUEN) &&
+            (pos.pieces (WHITE, NIHT, BSHP) | pos.pieces (BLACK, NIHT, BSHP)))
         {
             // Minor piece endgame with at least one minor piece per side and
             // no pawns. Note that the case KmmK is already handled by KXK.
-            ASSERT ((pos.pieces (WHITE, NIHT) | pos.pieces (WHITE, BSHP)));
-            ASSERT ((pos.pieces (BLACK, NIHT) | pos.pieces (BLACK, BSHP)));
+            //ASSERT (pos.pieces (WHITE, NIHT, BSHP));
+            //ASSERT (pos.pieces (BLACK, NIHT, BSHP));
 
             int32_t minor_piece_count[CLR_NO] =
             {
@@ -196,11 +198,12 @@ namespace Material {
         // Generic scaling functions that refer to more then one material distribution.
         // Should be probed after the specialized ones.
         // Note that these ones don't return after setting the function.
-        if (is_KBPsKs<WHITE> (pos))
+        if (false);
+        else if (is_KBPsKs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
         }
-        if (is_KBPsKs<BLACK> (pos))
+        else if (is_KBPsKs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
         }
@@ -246,29 +249,59 @@ namespace Material {
 
         // No pawns makes it difficult to win, even with a material advantage.
         // This catches some trivial draws like KK, KBK and KNK
-        if (pos.piece_count<PAWN> (WHITE) == 0 &&
-            npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+
+        //if (pos.piece_count<PAWN> (WHITE) == 0 &&
+        //    npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        //{
+        //    e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+        //        0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
+        //}
+        //if (pos.piece_count<PAWN> (BLACK) == 0 &&
+        //    npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
+        //{
+        //    e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
+        //        0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
+        //}
+        //if (pos.piece_count<PAWN> (WHITE) == 1 &&
+        //    npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        //{
+        //    e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
+        //}
+        //if (pos.piece_count<PAWN> (BLACK) == 1 &&
+        //    npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
+        //{
+        //    e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
+        //}
+
+        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
-            e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
-        }
-        if (pos.piece_count<PAWN> (BLACK) == 0 &&
-            npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
-        {
-            e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
-                0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
+            if (pos.piece_count<PAWN> (WHITE) == 0)
+            {
+                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+                    0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
+            }
+            else if (pos.piece_count<PAWN> (WHITE) == 1 ||
+                !(pos.pieces (WHITE, PAWN) & ~file_bb (pos.piece_list<PAWN> (WHITE)[0])))
+            {
+                e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
+            }
         }
 
-        if (pos.piece_count<PAWN> (WHITE) == 1 &&
-            npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
-            e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
+            if (pos.piece_count<PAWN> (BLACK) == 0)
+            {
+                e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
+                    0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
+            }
+            else if (pos.piece_count<PAWN> (BLACK) == 1 ||
+                !(pos.pieces (BLACK, PAWN) & ~file_bb (pos.piece_list<PAWN> (BLACK)[0])))
+            {
+                e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
+            }
+
         }
-        if (pos.piece_count<PAWN> (BLACK) == 1 &&
-            npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
-        {
-            e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
-        }
+
 
         // Compute the space weight
         if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)

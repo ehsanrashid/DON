@@ -295,6 +295,7 @@ typedef enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
+    VALUE_CHIK      = 10,
 
     VALUE_NONE      = _I16_MAX,
     VALUE_INFINITE  = VALUE_NONE - 1,

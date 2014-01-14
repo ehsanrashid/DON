@@ -150,34 +150,53 @@ namespace EndGame {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
         ASSERT (!pos.checkers ()); // Eval is never called when in check
 
+        Value value;
+
         // Stalemate detection with lone king
         if (pos.active () == _weak_side && generate<LEGAL> (pos).size() == 0)
         {
-            return VALUE_DRAW;
+            value = VALUE_DRAW 
+                +   pos.piece_count (_stong_side)
+                -   pos.piece_count (_weak_side);
         }
-
-        Square wk_sq = pos.king_sq (_stong_side);
-        Square bk_sq = pos.king_sq (_weak_side);
-
-        if (!pos.piece_count<PAWN> (_stong_side) &&
-            !pos.piece_count<NIHT> (_stong_side) &&
-            !pos.piece_count<ROOK> (_stong_side) &&
-            !pos.piece_count<QUEN> (_stong_side) &&
-            !pos.bishops_pair      (_stong_side))
+        else
         {
-            return VALUE_DRAW + pos.piece_count<BSHP> (_stong_side);
-        }
+            Square wk_sq = pos.king_sq (_stong_side);
+            Square bk_sq = pos.king_sq (_weak_side);
 
-        Value value = pos.non_pawn_material(_stong_side)
-            +         pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
-            +         PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+            //if (!pos.piece_count<PAWN> (_stong_side) &&
+            //    !pos.piece_count<NIHT> (_stong_side) &&
+            //    !pos.piece_count<ROOK> (_stong_side) &&
+            //    !pos.piece_count<QUEN> (_stong_side) &&
+            //    !pos.bishops_pair      (_stong_side))
+            //{
+            //    return VALUE_DRAW + pos.piece_count<BSHP> (_stong_side);
+            //}
 
-        if (pos.piece_count<QUEN> (_stong_side) ||
-            pos.piece_count<ROOK> (_stong_side) ||
-            pos.piece_count<NIHT> (_stong_side) > 2 ||
-            pos.bishops_pair (_stong_side))
-        {
-            value += VALUE_KNOWN_WIN;
+            Value value;
+
+            if (pos.piece_count<PAWN> (_stong_side) == 0 &&
+                (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK ||
+                !pos.bishops_pair     (_stong_side)))
+            {
+                value = VALUE_DRAW 
+                    +   pos.piece_count (_stong_side)
+                    -   pos.piece_count (_weak_side);
+            }
+            else
+            {
+                value = pos.non_pawn_material(_stong_side)
+                    +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
+                    +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+
+                if (pos.piece_count<QUEN> (_stong_side) ||
+                    pos.piece_count<ROOK> (_stong_side) ||
+                    pos.piece_count<NIHT> (_stong_side) > 2 ||
+                    pos.bishops_pair (_stong_side))
+                {
+                    value += VALUE_KNOWN_WIN;
+                }
+            }
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -366,15 +385,19 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.piece_list<NIHT> (_weak_side)[0];
 
+        Value value;
         if (!pos.bishops_pair (_stong_side))
         {
-            return VALUE_DRAW
+            value = VALUE_DRAW
                 + pos.piece_count (_stong_side)
                 - pos.piece_count (_weak_side);
         }
-        Value value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
-        + PushClose[square_dist (wk_sq, bk_sq)]
-        + PushAway[square_dist (bk_sq, bn_sq)];
+        else
+        {
+            value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
+            + PushClose[square_dist (wk_sq, bk_sq)]
+            + PushAway[square_dist (bk_sq, bn_sq)];
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -532,7 +555,7 @@ namespace EndGame {
             // and the defending king is near the corner
             if (r == R_6 &&
                 square_dist (wp_sq + 2 * push, bk_sq) <= 1 &&
-                BitBoard::attacks_bb<BSHP> (bb_sq) & (wp_sq + push) &&
+                attacks_bb<BSHP> (bb_sq) & (wp_sq + push) &&
                 file_dist (bb_sq, wp_sq) >= 2)
             {
                 return ScaleFactor (8);
@@ -993,12 +1016,17 @@ namespace EndGame {
 
         Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
 
+        Value value;
+
         if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
         {
-            return VALUE_DRAW + pos.piece_count<PAWN> (_stong_side);
+            value = VALUE_DRAW + pos.piece_count<PAWN> (_stong_side);
+        }
+        else
+        {
+            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
         }
 
-        Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
         return (_stong_side == pos.active ()) ? value : -value;
     }
 

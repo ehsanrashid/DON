@@ -776,7 +776,7 @@ bool Position::pseudo_legal (Move m) const
             // (en passant captures was handled earlier).
             if (PT_NO == ct || active == _color (piece_on (cap))) return false;
             // cap and org files must be one del apart, avoids a7h5
-            if (1 != BitBoard::file_dist (cap, org)) return false;
+            if (1 != file_dist (cap, org)) return false;
             break;
 
         case DEL_NN:
@@ -824,12 +824,12 @@ bool Position::pseudo_legal (Move m) const
         if (KING != pt)
         {
             // Double check? In this case a king move is required
-            if (BitBoard::more_than_one (chkrs)) return false;
+            if (more_than_one (chkrs)) return false;
             if ((PAWN == pt) && (ENPASSANT == mt))
             {
                 // Our move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
-                if (!((chkrs & cap) || (BitBoard::betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) & dst)))
+                if (!((chkrs & cap) || (betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) & dst)))
                 {
                     return false;
                 }
@@ -837,7 +837,7 @@ bool Position::pseudo_legal (Move m) const
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((BitBoard::betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) | chkrs) & dst))
+                if (!((betwen_sq_bb (scan_lsq (chkrs), king_sq (active)) | chkrs) & dst))
                 {
                     return false;
                 }

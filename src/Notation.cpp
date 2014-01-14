@@ -333,7 +333,7 @@ string score_uci (Value v, Value alpha, Value beta)
     int32_t abs_v = abs (int32_t (v));
     if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
-        if (abs_v < 10) v = Value (0);
+        if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
         ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
