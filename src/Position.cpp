@@ -722,11 +722,7 @@ bool Position::pseudo_legal (Move m) const
         break;
     }
 
-    if (PT_NO != ct)
-    {
-        if (!_ok (ct)) return false;
-        if (KING == ct) return false;
-    }
+    if (KING == ct) return false;
 
     // The destination square cannot be occupied by a friendly piece
     if (pieces (active) & dst) return false;
@@ -737,28 +733,14 @@ bool Position::pseudo_legal (Move m) const
         // Move direction must be compatible with pawn color
         // We have already handled promotion moves, so destination
         Delta delta = dst - org;
-        switch (active)
-        {
-        case WHITE:
-            {
-                if (delta < DEL_O) return false;
-                Rank r_org = _rank (org);
-                if (r_org == R_1 || r_org == R_8) return false;
-                Rank r_dst = _rank (dst);
-                if (r_dst == R_1 || r_dst == R_2) return false;
-            }
-            break;
 
-        case BLACK:
-            {
-                if (delta > DEL_O) return false;
-                Rank r_org = _rank (org);
-                if (r_org == R_8 || r_org == R_1) return false;
-                Rank r_dst = _rank (dst);
-                if (r_dst == R_8 || r_dst == R_7) return false;
-            }
-            break;
-        }
+        if ((active == WHITE) != (delta > DEL_O)) return false;
+
+        Rank r_org = rel_rank (active, org);
+        if (r_org == R_1 || r_org == R_8) return false;
+        Rank r_dst = rel_rank (active, dst);
+        if (r_dst == R_1 || r_dst == R_2) return false;
+
         // Proceed according to the square delta between the origin and destiny squares.
         switch (delta)
         {

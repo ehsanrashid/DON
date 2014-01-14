@@ -150,10 +150,19 @@ namespace EndGame {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
         ASSERT (!pos.checkers ()); // Eval is never called when in check
 
-        Value value;
-
         // Stalemate detection with lone king
         if (pos.active () == _weak_side && generate<LEGAL> (pos).size() == 0)
+        {
+            return VALUE_DRAW;
+        }
+
+        Value value;
+
+        Square wk_sq = pos.king_sq (_stong_side);
+        Square bk_sq = pos.king_sq (_weak_side);
+
+        if (!pos.piece_count<PAWN> (_stong_side) &&
+            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
         {
             value = VALUE_DRAW 
                 +   pos.piece_count (_stong_side)
@@ -161,41 +170,16 @@ namespace EndGame {
         }
         else
         {
-            Square wk_sq = pos.king_sq (_stong_side);
-            Square bk_sq = pos.king_sq (_weak_side);
+            value = pos.non_pawn_material(_stong_side)
+                +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
+                +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
 
-            //if (!pos.piece_count<PAWN> (_stong_side) &&
-            //    !pos.piece_count<NIHT> (_stong_side) &&
-            //    !pos.piece_count<ROOK> (_stong_side) &&
-            //    !pos.piece_count<QUEN> (_stong_side) &&
-            //    !pos.bishops_pair      (_stong_side))
-            //{
-            //    return VALUE_DRAW + pos.piece_count<BSHP> (_stong_side);
-            //}
-
-            Value value;
-
-            if (pos.piece_count<PAWN> (_stong_side) == 0 &&
-                (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK ||
-                !pos.bishops_pair     (_stong_side)))
+            if (pos.piece_count<QUEN> (_stong_side) ||
+                pos.piece_count<ROOK> (_stong_side) ||
+                pos.piece_count<NIHT> (_stong_side) > 2 ||
+                pos.bishops_pair (_stong_side))
             {
-                value = VALUE_DRAW 
-                    +   pos.piece_count (_stong_side)
-                    -   pos.piece_count (_weak_side);
-            }
-            else
-            {
-                value = pos.non_pawn_material(_stong_side)
-                    +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
-                    +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
-
-                if (pos.piece_count<QUEN> (_stong_side) ||
-                    pos.piece_count<ROOK> (_stong_side) ||
-                    pos.piece_count<NIHT> (_stong_side) > 2 ||
-                    pos.bishops_pair (_stong_side))
-                {
-                    value += VALUE_KNOWN_WIN;
-                }
+                value += VALUE_KNOWN_WIN;
             }
         }
 
@@ -884,12 +868,12 @@ namespace EndGame {
             Square wk_sq = pos.king_sq (_stong_side);
             Square bk_sq = pos.king_sq (_weak_side);
 
+            //// The bishop has the wrong color, and the defending king is on the
+            //// file of the pawn(s) or the adjacent file.
             //if (   opposite_colors (queening_sq, wb_sq)
             //    && file_dist (_file (bk_sq), wp_f) <= 1)
             //{
-            //    // The bishop has the wrong color, and the defending king is on the
-            //    // file of the pawn(s) or the adjacent file. Find the rank of the
-            //    // frontmost pawn.
+            //    // Find the rank of the frontmost pawn.
             //    Square wp_sq = scan_rel_frntmost_sq (_stong_side, pawns);
             //
             //    // If the defending king has distance 1 to the promotion square or
@@ -901,31 +885,33 @@ namespace EndGame {
             //    }
             //}
 
+            // The bishop has the wrong color.
             if (opposite_colors (queening_sq, wb_sq))
             {
+                // If the defending king defends the queening square.
                 if (square_dist (queening_sq, bk_sq) <= 1)
                 {
                     return SCALE_FACTOR_DRAW;
                 }
 
-                //if (square_dist (queening_sq, bk_sq) <= 1 ||
-                //    (_file (bk_sq) == _file (wp_sq) &&
-                //    square_dist (queening_sq, bk_sq) < square_dist (queening_sq, wk_sq)))
-                //{
-                //    return SCALE_FACTOR_DRAW;
-                //}
+                // TODO::
+                // If the defending king has some pawns
+                Bitboard bpawns = pos.pieces (_weak_side, PAWN);
+                if (bpawns && !(bpawns & ~file_bb (wp_f)))
+                {
+                    Square bp_sq = pos.piece_list<PAWN> (_weak_side)[0];
+                    Rank r = rel_rank (_weak_side, bp_sq);
+                    if (r > R_4 &&
+                        rank_dist (r, rel_rank (_weak_side, wp_sq)) == 1 &&
+                        opposite_colors (bp_sq, wb_sq))
+                    {
+                        return SCALE_FACTOR_DRAW;
+                    }
+                }
+
             }
 
-            //Square wk_sq = pos.king_sq (_stong_side);
-
-            //int32_t tempo = (pos.active () == _stong_side);
-            //// If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
-            //if (square_dist (wk_sq, wp_sq) - tempo >= 2)
-            //{
-            //    return SCALE_FACTOR_DRAW;
-            //}
             return SCALE_FACTOR_NONE;
-
         }
 
         // All pawns on same B or G file? Then potential draw

@@ -233,26 +233,38 @@ namespace UCI {
         {
             MoveList mov_lst;
 
-            cout << "\nQuiet moves: ";
-            mov_lst = generate<QUIET> (RootPos);
-            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            if (RootPos.checkers ())
             {
-                cout << move_to_san (m, RootPos) << " ";
-            });
+                cout << "\nEvasion moves: ";
+                mov_lst = generate<EVASION> (RootPos);
+                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                {
+                    cout << move_to_san (m, RootPos) << " ";
+                });
+            }
+            else
+            {
+                cout << "\nQuiet moves: ";
+                mov_lst = generate<QUIET> (RootPos);
+                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                {
+                    cout << move_to_san (m, RootPos) << " ";
+                });
 
-            cout << "\nCheck moves: ";
-            mov_lst = generate<CHECK> (RootPos);
-            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
-            {
-                cout << move_to_san (m, RootPos) << " ";
-            });
+                cout << "\nCheck moves: ";
+                mov_lst = generate<CHECK> (RootPos);
+                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                {
+                    cout << move_to_san (m, RootPos) << " ";
+                });
 
-            cout << "\nQuiet Check moves: ";
-            mov_lst = generate<QUIET_CHECK> (RootPos);
-            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
-            {
-                cout << move_to_san (m, RootPos) << " ";
-            });
+                cout << "\nQuiet Check moves: ";
+                mov_lst = generate<QUIET_CHECK> (RootPos);
+                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                {
+                    cout << move_to_san (m, RootPos) << " ";
+                });
+            }
 
             cout << "\nLegal moves: ";
             mov_lst = generate<LEGAL> (RootPos);
