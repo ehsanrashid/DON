@@ -4,7 +4,7 @@
 
 #include <istream>
 
-class Position;
+#include "Position.h"
 
 extern void benchmark (std::istream &is, const Position &pos);
 

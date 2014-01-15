@@ -6,9 +6,8 @@
 #include <set>
 #include "Type.h"
 #include "MoveGenerator.h"
+#include "Position.h"
 #include "Searcher.h"
-
-class Position;
 
 typedef struct ValMove
 {
@@ -23,11 +22,6 @@ typedef struct ValMove
     friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
 
 } ValMove;
-
-//typedef std::vector<ValMove>     ValMoveList;
-//typedef std::set   <ValMove>     ValMoveSet;
-
-extern const Value MaxValue;
 
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.
@@ -46,6 +40,8 @@ private:
     T _table[PS_ALL][SQ_NO];
 
 public:
+
+    static const Value MaxValue = Value (2000);
 
     const T* operator[] (Piece p) const { return _table[p]; } // &_table[p][0]
     //const T& operator[] (Piece p) const { return  _table[p][0]; }
@@ -117,6 +113,7 @@ private:
     ValMove             killers[6];
     Square              recapture_sq;
     int32_t             capture_threshold;
+    
     uint8_t             stage;
 
     ValMove             moves[MAX_MOVES];
@@ -131,7 +128,6 @@ public:
 
     MovePicker(const Position &, Move,        const HistoryStats &, PType);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Searcher::Stack []);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Move [], Searcher::Stack []);
 
     template<bool SpNode>

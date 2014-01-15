@@ -1,7 +1,6 @@
 #include "Pawns.h"
 
 #include "BitCount.h"
-#include "Position.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -236,6 +235,7 @@ namespace Pawns {
             front_pawns & pos.pieces (C ),
             front_pawns & pos.pieces (C_),
         };
+
         File kf = max (F_B, min (F_G, _file (k_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {

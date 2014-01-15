@@ -906,7 +906,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
     //ASSERT (_ok (m));
-    ASSERT (_color (moved_piece(m)) == _active);
+    ASSERT (_color (moved_piece (m)) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
 
     Square org = org_sq (m);

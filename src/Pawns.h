@@ -4,8 +4,7 @@
 
 #include "Type.h"
 #include "BitBoard.h"
-
-class Position;
+#include "Position.h"
 
 namespace Pawns {
 

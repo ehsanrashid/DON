@@ -423,8 +423,6 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
-        //if (!_ok (m)) return;
-
         string san = move_to_san (m, pos);
 
         if (length + san.length () > 80)
@@ -442,7 +440,6 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
-        //if (!_ok (m)) return;
         pos.undo_move ();
     });
 

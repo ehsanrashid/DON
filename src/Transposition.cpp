@@ -11,44 +11,6 @@ using namespace std;
 // Global Transposition Table
 TranspositionTable TT;
 
-// resize(mb) sets the size of the table, measured in mega-bytes.
-// Transposition table consists of a power of 2 number of clusters and
-// each cluster consists of NUM_TENTRY_CLUSTER number of entry.
-size_t TranspositionTable::resize (uint32_t size_mb)
-{
-    //ASSERT (size_mb >= SIZE_MIN_TT);
-    //ASSERT (size_mb <= SIZE_MAX_TT);
-    if (size_mb < SIZE_MIN_TT) size_mb = SIZE_MIN_TT;
-    if (size_mb > SIZE_MAX_TT) size_mb = SIZE_MAX_TT;
-    //{
-    //    cerr << "ERROR: hash size too large " << size_mb << " MB..." << endl;
-    //    return;
-    //}
-
-    size_t size_byte    = size_t (size_mb) << 20;
-    uint32_t total_entry  = (size_byte) / SIZE_TENTRY;
-    //uint32_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
-
-    uint8_t bit_hash = scan_msq (total_entry);
-    ASSERT (bit_hash < MAX_BIT_HASH);
-    if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
-
-    total_entry     = uint32_t (1) << bit_hash;
-    size_t size     = total_entry * SIZE_TENTRY;
-    
-    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return (size >> 20);
-
-    erase ();
-
-    aligned_memory_alloc (size, SIZE_CACHE_LINE); 
-
-    _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
-    _stored_entry   = 0;
-    _generation     = 0;
-
-    return (size >> 20);
-}
-
 void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
@@ -88,6 +50,44 @@ void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
     
     ptr[-1] = mem;
+}
+
+// resize(mb) sets the size of the table, measured in mega-bytes.
+// Transposition table consists of a power of 2 number of clusters and
+// each cluster consists of NUM_TENTRY_CLUSTER number of entry.
+size_t TranspositionTable::resize (uint32_t size_mb)
+{
+    //ASSERT (size_mb >= SIZE_MIN_TT);
+    //ASSERT (size_mb <= SIZE_MAX_TT);
+    if (size_mb < SIZE_MIN_TT) size_mb = SIZE_MIN_TT;
+    if (size_mb > SIZE_MAX_TT) size_mb = SIZE_MAX_TT;
+    //{
+    //    cerr << "ERROR: hash size too large " << size_mb << " MB..." << endl;
+    //    return;
+    //}
+
+    size_t size_byte    = size_t (size_mb) << 20;
+    uint32_t total_entry  = (size_byte) / SIZE_TENTRY;
+    //uint32_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
+
+    uint8_t bit_hash = scan_msq (total_entry);
+    ASSERT (bit_hash < MAX_BIT_HASH);
+    if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
+
+    total_entry     = uint32_t (1) << bit_hash;
+    size_t size     = total_entry * SIZE_TENTRY;
+    
+    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return (size >> 20);
+
+    erase ();
+
+    aligned_memory_alloc (size, SIZE_CACHE_LINE); 
+
+    _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
+    _stored_entry   = 0;
+    _generation     = 0;
+
+    return (size >> 20);
 }
 
 // store() writes a new entry in the transposition table.
@@ -137,9 +137,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
         int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
-        int8_t c4 = 0;//((te->nodes () < re->nodes ()) ? +1 : 0);
+        //int8_t c4 = 0;//((te->nodes () < re->nodes ()) ? +1 : 0);
 
-        if ((c1 + c2 + c3 + c4) > 0)
+        if ((c1 + c2 + c3) > 0)
         {
             re = te;
         }

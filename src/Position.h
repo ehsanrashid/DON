@@ -704,10 +704,7 @@ inline bool Position::opposite_bishops () const
 #pragma region Move properties
 
 // moved_piece() return piece moved on move
-inline Piece Position::moved_piece (Move m) const
-{
-    return _piece_arr[org_sq (m)];
-}
+inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
 
 //// captured_piece() return piece captured by moving piece
 //inline Piece Position::captured_piece (Move m) const
@@ -754,13 +751,10 @@ inline Piece Position::moved_piece (Move m) const
 //    return PS_NO;
 //}
 
-inline bool Position::       legal (Move m) const
-{
-    return legal (m, pinneds (_active));
-}
+inline bool Position::legal        (Move m) const { return legal (m, pinneds (_active)); }
 
 // capture(m) tests move is capture
-inline bool Position::capture (Move m) const
+inline bool Position::capture               (Move m) const
 {
     //MType mt = m_type (m);
     //switch (mt)
@@ -783,7 +777,7 @@ inline bool Position::capture (Move m) const
         :  (ENPASSANT == mt && _ok (_si->en_passant));
 }
 // capture_or_promotion(m) tests move is capture or promotion
-inline bool Position::capture_or_promotion (Move m) const
+inline bool Position::capture_or_promotion  (Move m) const
 {
     //switch (m_type (m))
     //{
@@ -805,7 +799,7 @@ inline bool Position::capture_or_promotion (Move m) const
 //{
 //    return (PAWN == _type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
 //}
-inline bool Position::advanced_pawn_push (Move m) const
+inline bool Position::advanced_pawn_push    (Move m) const
 {
     return (PAWN == _type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
 }

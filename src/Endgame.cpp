@@ -370,6 +370,7 @@ namespace EndGame {
         Square bn_sq = pos.piece_list<NIHT> (_weak_side)[0];
 
         Value value;
+
         if (!pos.bishops_pair (_stong_side))
         {
             value = VALUE_DRAW

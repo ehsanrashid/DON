@@ -1,13 +1,15 @@
+#include "Benchmark.h"
+
 #include <fstream>
 #include <iostream>
 #include <vector>
+
 #include "xstring.h"
-#include "Position.h"
+#include "TriLogger.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "UCI.h"
-#include "TriLogger.h"
 #include "Thread.h"
+#include "UCI.h"
 
 using namespace std;
 using namespace Searcher;

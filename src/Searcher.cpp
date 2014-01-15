@@ -158,7 +158,7 @@ namespace {
     void dbg_hit_on_c(bool c, bool b)   { if (c) dbg_hit_on (b);       }
     void dbg_mean_of (int32_t v)        { ++means[0]; means[1] += v;   }
 
-    void dbg_print()
+    inline void dbg_print()
     {
         if (hits[0])
         {
@@ -357,12 +357,12 @@ namespace Searcher {
 
         if (write_search_log)
         {
-            uint64_t elapsed = (Time::now () - SearchTime + 1);
+            uint64_t elapsed = Time::now () - SearchTime + 1;
 
             Log log (fn_search_log);
 
             log << "Nodes: "        << RootPos.game_nodes () << endl
-                << "Nodes/second: " << (RootPos.game_nodes () * 1000 / elapsed) << endl
+                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << endl
                 << "Best move: "    << move_to_san (RootMoves[0].pv[0], RootPos) << endl;
 
             StateInfo si;
@@ -848,9 +848,8 @@ namespace {
         // Step 6. Razoring (skipped when in check)
         if (!PVNode && depth < 4 * ONE_MOVE &&
             eval_value + razor_margin (depth) < beta &&
-            tt_move == MOVE_NONE &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
-            !pos.pawn_on_7thR (pos.active ()))
+            !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
             Value rbeta = beta - razor_margin (depth);
             Value v = search_quien<NonPV, false> (pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
@@ -937,6 +936,8 @@ namespace {
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
+            // Initialize a MovePicker object for the current position, and prepare
+            // to search the moves.
             MovePicker mp (pos, tt_move, History, pos.cap_type ());
             CheckInfo  ci (pos);
 
@@ -959,8 +960,7 @@ namespace {
 
         // Step 10. Internal iterative deepening (skipped when in check)
         if (depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE) &&
-            tt_move == MOVE_NONE &&
-            (PVNode || ss->static_eval + Value (256) >= beta))
+            !tt_move && (PVNode || ss->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
@@ -989,7 +989,7 @@ moves_loop: // When in check and at SPNode search starts from here
         };
 
 
-        MovePicker mp (pos, tt_move, depth, History, cm, ss);
+        MovePicker mp (pos, tt_move, depth, History, cm, fm, ss);
         CheckInfo  ci (pos);
 
         value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
@@ -1110,7 +1110,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (predicted_depth < 7 * ONE_MOVE)
                 {
                     Value futility_value = ss->static_eval + futility_margin (predicted_depth)
-                        + Value (128) + Gains[pos.moved_piece (move)][dst_sq (move)];
+                        + Value (128) + Gains[pos[org_sq (move)]][dst_sq (move)];
 
                     if (futility_value <= alpha)
                     {
@@ -1158,9 +1158,9 @@ moves_loop: // When in check and at SPNode search starts from here
             if (!move_pv &&
                 depth >= 3 * ONE_MOVE  && 
                 !capture_or_promotion  &&
-                tt_move        != move &&
-                ss->killers[0] != move &&
-                ss->killers[1] != move)
+                move != tt_move        &&
+                move != ss->killers[0] &&
+                move != ss->killers[1])
             {
                 ss->reduction = reduction<PVNode> (improving, depth, moves_count);
 
@@ -1629,7 +1629,7 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         stringstream spv;
 
-        uint64_t elapsed = (Time::now () - SearchTime + 1);
+        uint64_t elapsed = Time::now () - SearchTime + 1;
         uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
 
         int32_t sel_depth = 0;
@@ -1659,7 +1659,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " score "    << (i == PVIdx ? score_uci (v, alpha, beta) : score_uci (v))
                 << " time "     << elapsed
                 << " nodes "    << pos.game_nodes ()
-                << " nps "      << (pos.game_nodes () * 1000) / elapsed
+                << " nps "      << pos.game_nodes () * 1000 / elapsed
                 << " multipv "  << i + 1
                 << " pv";
             for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
@@ -1679,7 +1679,7 @@ moves_loop: // When in check and at SPNode search starts from here
 void check_time ()
 {
     static Time::point last_time = Time::now ();
-    int64_t nodes = 0;
+    int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
     Time::point now_time = Time::now ();
     if (now_time - last_time >= 1000)

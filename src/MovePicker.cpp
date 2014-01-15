@@ -1,13 +1,10 @@
 #include "MovePicker.h"
 
-#include "Position.h"
 #include "Thread.h"
 
 using namespace std;
 using namespace Searcher;
 using namespace MoveGenerator;
-
-const Value MaxValue = Value (2000);
 
 namespace {
 
@@ -117,37 +114,19 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Stack s[])
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Move fm[], Stack s[])
     : pos (p)
     , history (h)
     , depth (d)
+    , counter_moves (cm)
+    , followup_moves (fm)
+    , ss (s)
+    , cur (moves)
+    , end (moves)
 {
     ASSERT (d > DEPTH_ZERO);
 
-    cur = end = moves;
     end_bad_captures = moves + MAX_MOVES - 1;
-    counter_moves = cm;
-    ss = s;
-
-    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
-
-    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    end += (tt_move != MOVE_NONE);
-}
-
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move cm[], Move fm[], Stack s[])
-    : pos (p)
-    , history (h)
-    , depth (d)
-{
-
-    ASSERT (d > DEPTH_ZERO);
-
-    cur = end = moves;
-    end_bad_captures = moves + MAX_MOVES - 1;
-    counter_moves   = cm;
-    followup_moves  = fm;
-    ss = s;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
@@ -178,7 +157,8 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - _type (pos[org_sq (m)]);
+        int32_t pt = _type (pos[org_sq (m)]);
+        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - (PT_NO != pt ? pt+1 : 0);
 
         switch (m_type (m))
         {
@@ -199,7 +179,7 @@ void MovePicker::value<QUIET> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         m = itr->move;
-        itr->value = history[pos.moved_piece (m)][dst_sq (m)];
+        itr->value = history[pos[org_sq (m)]][dst_sq (m)];
     }
 }
 
@@ -215,15 +195,17 @@ void MovePicker::value<EVASION> ()
         int32_t see_value = pos.see_sign (m);
         if (see_value < 0)
         {
-            itr->value = see_value - MaxValue; // At the bottom
+            itr->value = see_value - HistoryStats::MaxValue; // At the bottom
         }
         else if (pos.capture (m))
         {
-            itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - _type (pos[org_sq (m)]) + MaxValue;
+            int32_t pt = _type (pos[org_sq (m)]);
+            itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
+            - (PT_NO != pt ? pt+1 : 0) + HistoryStats::MaxValue;
         }
         else
         {
-            itr->value = history[pos.moved_piece (m)][dst_sq (m)];
+            itr->value = history[pos[org_sq (m)]][dst_sq (m)];
         }
     }
 }
@@ -286,25 +268,29 @@ void MovePicker::generate_next ()
         // Be sure counter_moves are different from killers
         for (int32_t i = 0; i < 2; ++i)
         {
-            if ((counter_moves[i] != (cur+0)->move) &&
-                (counter_moves[i] != (cur+1)->move))
+            if (counter_moves[i] != (cur+0)->move &&
+                counter_moves[i] != (cur+1)->move)
             {
                 (end++)->move = counter_moves[i];
             }
         }
         if (counter_moves[1] && (counter_moves[1] == counter_moves[0])) // Due to SMP races
         {
-            killers[3].move = MOVE_NONE;
+            //(cur+3)->move = MOVE_NONE;
+            (--end)->move = MOVE_NONE;
         }
 
         // Be sure followupmoves are different from killers and countermoves
-        for (int i = 0; i < 2; ++i)
-            if (   followup_moves[i] != (cur+0)->move
-                && followup_moves[i] != (cur+1)->move
-                && followup_moves[i] != (cur+2)->move
-                && followup_moves[i] != (cur+3)->move)
+        for (int32_t i = 0; i < 2; ++i)
+        {
+            if (followup_moves[i] != (cur+0)->move &&
+                followup_moves[i] != (cur+1)->move &&
+                followup_moves[i] != (cur+2)->move &&
+                followup_moves[i] != (cur+3)->move)
+            {
                 (end++)->move = followup_moves[i];
-
+            }
+        }
         if (followup_moves[1] && (followup_moves[1] == followup_moves[0])) // Due to SMP races
         {
             (--end)->move = MOVE_NONE;
@@ -408,7 +394,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
-            
+
             break;
 
         case QUIETS_1_S1: case QUIETS_2_S1:
@@ -435,7 +421,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
-            
+
             break;
 
         case CAPTURES_S5:
@@ -444,7 +430,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
-            
+
             break;
 
         case CAPTURES_S6:
@@ -453,7 +439,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
-            
+
             break;
 
         case QUIET_CHECKS_S3:
@@ -462,7 +448,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
-            
+
             break;
 
         case STOP:
