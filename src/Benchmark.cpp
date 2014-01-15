@@ -131,12 +131,12 @@ void benchmark (istream &is, const Position &pos)
             Position pos (fens[i], Threads.main (), *(Options["UCI_Chess960"]));
 
             cerr << "\n--------------\n" 
-                <<"Position: " << (i + 1) << '/' << fens.size () << endl;
+                << "Position: " << (i + 1) << '/' << fens.size () << '\n';
 
             if (limit_type == "perft")
             {
                 size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
-                cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << endl;
+                cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << '\n';
                 nodes += cnt;
             }
             else
@@ -150,9 +150,9 @@ void benchmark (istream &is, const Position &pos)
         elapsed = Time::now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
         cerr << "\n===========================\n"
-            << "Total time (ms) : " << elapsed << endl
-            << "Nodes searched  : " << nodes   << endl
-            << "Nodes/second    : " << (1000 * nodes / elapsed)
+            << "Total time (ms) : " << elapsed << '\n'
+            << "Nodes searched  : " << nodes   << '\n'
+            << "Nodes/second    : " << nodes * 1000 / elapsed
             << endl;
 
     }

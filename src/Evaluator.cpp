@@ -985,8 +985,10 @@ namespace {
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-        int32_t eg =  (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
-        return Value ((mg_value (score) * int32_t (ph) + eg * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
+        int32_t eg   = eg_value (score);
+        int32_t sign = (eg ? eg / abs (eg) : 0);
+        int32_t eg_f = (eg * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        return Value ((mg_value (score) * int32_t (ph) + eg_f * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME + sign);
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
@@ -1028,6 +1030,7 @@ namespace {
                 stream << setw(20) << name << " |   ---   --- |   ---   --- | "
                     << setw(6)  << to_cp (mg_value (w_score)) << " "
                     << setw(6)  << to_cp (eg_value (w_score)) << " \n";
+                
                 break;
 
             default:
@@ -1039,6 +1042,9 @@ namespace {
                     << showpos
                     << setw(6)  << to_cp (mg_value (w_score - b_score)) << " "
                     << setw(6)  << to_cp (eg_value (w_score - b_score)) << " \n";
+                
+                break;
+
             }
         }
 
@@ -1053,7 +1059,7 @@ namespace {
             string totals = stream.str ();
             stream.str ("");
 
-            stream << setw(21) << "Eval term |    White    |    Black    |     Total     \n"
+            stream << setw(21)      << "Eval term |    White    |    Black    |     Total     \n"
                 <<          "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                 <<          "---------------------+-------------+-------------+---------------\n";
 
@@ -1098,7 +1104,7 @@ namespace Evaluator {
     }
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
-    // and setup king tables.
+    // and setup king danger tables.
     void initialize ()
     {
         Weights[Mobility]       = weight_option ("Mobility (Midgame)",       "Mobility (Endgame)",       WeightsInternal[Mobility]);

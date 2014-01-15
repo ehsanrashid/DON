@@ -99,8 +99,9 @@ namespace Engine {
 
         size_t size_mb = TT.resize (int32_t (*(Options["Hash"])));
 
-        cout << "info string " << Threads.size () << " thread(s)." << endl;
-        cout << "info string " << size_mb         << " MB Hash."   << endl;
+        cout 
+            << "info string " << Threads.size () << " thread(s)." << '\n'
+            << "info string " << size_mb         << " MB Hash."   << endl;
 
 #ifdef _DEBUG
         //Tester::main_test ();

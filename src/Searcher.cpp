@@ -162,14 +162,18 @@ namespace {
     {
         if (hits[0])
         {
-            cerr << "Total " << hits[0]
-            << " Hits " << hits[1]
-            << " Hit-rate (%) " << (100 * hits[1] / hits[0]) << endl;
+            cerr 
+                << "Total " << (hits[0])
+                << " Hits " << (hits[1])
+                << " Hit-rate (%) " << (100 * hits[1] / hits[0])
+                << endl;
         }
         if (means[0])
         {
-            cerr << "Total " << means[0]
-            << " Mean " << double (means[1]) / double (means[0]) << endl;
+            cerr 
+                << "Total " << (means[0])
+                << " Mean " << double (means[1]) / double (means[0])
+                << endl;
         }
     }
 
@@ -360,14 +364,15 @@ namespace Searcher {
             uint64_t elapsed = Time::now () - SearchTime + 1;
 
             Log log (fn_search_log);
-
-            log << "Nodes: "        << RootPos.game_nodes () << endl
-                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << endl
-                << "Best move: "    << move_to_san (RootMoves[0].pv[0], RootPos) << endl;
+            log << "Nodes: "        << RootPos.game_nodes ()                  << '\n'
+                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << '\n'
+                << "Best move: "    << move_to_san (RootMoves[0].pv[0], RootPos)
+                << endl;
 
             StateInfo si;
             RootPos.do_move (RootMoves[0].pv[0], si);
-            log << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << endl;
+            log << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos)
+                << endl;
             RootPos.undo_move ();
         }
 
@@ -376,7 +381,7 @@ finish:
         // When search is stopped this info is not printed
         ats ()
             << "info"
-            << " time "  << (Time::now () - SearchTime + 1)
+            << " time "  << Time::now () - SearchTime + 1
             << " nodes " << RootPos.game_nodes ()
             << endl;
 
@@ -392,12 +397,13 @@ finish:
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
+        ats () << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
         if (RootMoves[0].pv[0])
         {
-            cout << " ponder "  << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
+            ats () << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
         }
-        cout << endl;
+        ats () << endl;
+
     }
 
     // initialize() is called during startup to initialize various lookup tables
@@ -612,7 +618,7 @@ namespace {
                 // most of the available time has been used.
                 // We probably don't have enough time to search the first move at the next iteration anyway.
                 if (RootMoves.size () == 1 ||
-                    Iterated > (TimeMgr.available_time () * 62) / 100)
+                    Iterated > TimeMgr.available_time () * 62 / 100)
                 {
                     stop = true;
                 }
@@ -623,7 +629,7 @@ namespace {
                 //    PVSize == 1 &&
                 //    best_value > VALUE_MATED_IN_MAX_PLY &&
                 //    (RootMoves.size () == 1 ||
-                //    (Time::now () - SearchTime) > (TimeMgr.available_time() * 20) / 100))
+                //    (Time::now () - SearchTime) > TimeMgr.available_time() * 20 / 100))
                 //{
                 //    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
                 //
@@ -684,7 +690,6 @@ namespace {
             Square prev_own_move_sq = dst_sq (prev_own_move);
             FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
         }
-
     }
 
 
@@ -697,29 +702,32 @@ namespace {
     // here: This is taken care of after we return from the split point.
     Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
     {
-        const bool PVNode   = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
-        const bool SPNode   = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
+        const bool   PVNode = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
+        const bool   SPNode = (NT == SplitPointPV  || NT == SplitPointNonPV || NT == SplitPointRoot);
         const bool RootNode = (NT == Root || NT == SplitPointRoot);
 
         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth > DEPTH_ZERO);
 
-        Value       best_value;
-        Move        best_move;
         StateInfo   si;
 
         SplitPoint *split_point;
         Key         posi_key;
-        const TranspositionEntry *te;
-        Move        tt_move;
-        Move        excluded_move;
-        Move        move;
 
-        Value       value;
-        Value       tt_value;
-        int32_t     moves_count;
-        int32_t     quiets_count;
+        const TranspositionEntry *te;
+
+        Move        best_move
+            ,       tt_move
+            ,       excluded_move
+            ,       move;
+
+        Value       best_value
+            ,       tt_value
+            ,       value;
+
+        int32_t     moves_count
+            ,       quiets_count;
 
         Move quiets_searched[64] = {MOVE_NONE};
 
@@ -732,6 +740,7 @@ namespace {
             split_point = ss->split_point;
             best_move   = split_point->best_move;
             best_value  = split_point->best_value;
+
             te       = NULL;
             tt_move  = excluded_move = MOVE_NONE;
             tt_value = VALUE_NONE;
@@ -760,6 +769,7 @@ namespace {
             {
                 return DrawValue[pos.active ()];
             }
+
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
             // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
             // a shorter mate was found upward in the tree then there is no need to search
@@ -797,7 +807,7 @@ namespace {
             ss->current_move = tt_move; // Can be MOVE_NONE
 
             // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
-            if (tt_value >= beta && MOVE_NONE != tt_move &&
+            if ( tt_value >= beta && tt_move &&
                 !pos.capture_or_promotion (tt_move) && !in_check)
             {
                 update_stats (pos, ss, tt_move, depth, NULL, 0);
@@ -884,22 +894,20 @@ namespace {
             ss->current_move = MOVE_NULL;
 
             // Null move dynamic reduction based on depth
-            Depth red = 3 * ONE_MOVE + depth / 4;
+            Depth red_depth = 3 * ONE_MOVE + depth / 4;
 
             // Null move dynamic reduction based on value
-            if (eval_value - VALUE_MG_PAWN > beta) red += ONE_MOVE;
+            if (eval_value - VALUE_MG_PAWN > beta) red_depth += ONE_MOVE;
 
+            // Make null move
             pos.do_null_move (si);
-
             (ss+1)->skip_null_move = true;
-
             Value null_value = 
-                (depth-red < ONE_MOVE)
+                (depth-red_depth < ONE_MOVE)
                 ? -search_quien<NonPV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-red, !cut_node);
-
+                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-red_depth, !cut_node);
             (ss+1)->skip_null_move = false;
-
+            // Unmake null move
             pos.undo_null_move ();
 
             if (null_value >= beta)
@@ -914,7 +922,7 @@ namespace {
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
-                Value v = search<NonPV> (pos, ss, alpha, beta, depth-red, false);
+                Value v = search<NonPV> (pos, ss, alpha, beta, depth-red_depth, false);
                 ss->skip_null_move = false;
 
                 if (v >= beta) return null_value;
@@ -936,8 +944,8 @@ namespace {
             ASSERT ((ss-1)->current_move != MOVE_NONE);
             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
-            // Initialize a MovePicker object for the current position, and prepare
-            // to search the moves.
+            // Initialize a MovePicker object for the current position,
+            // and prepare to search the moves.
             MovePicker mp (pos, tt_move, History, pos.cap_type ());
             CheckInfo  ci (pos);
 
@@ -999,8 +1007,7 @@ moves_loop: // When in check and at SPNode search starts from here
             (ss-2)->static_eval == VALUE_NONE;
 
         bool singular_ext_node =
-            !RootNode             &&
-            !SPNode               &&
+            !RootNode && !SPNode  &&
             depth >= 8 * ONE_MOVE &&
             tt_move != MOVE_NONE  &&
             !excluded_move        && // Recursive singular search is not allowed
@@ -1018,7 +1025,6 @@ moves_loop: // When in check and at SPNode search starts from here
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + PVIdx, RootMoves.end (), move)) continue;
-
             //if (!pos.pseudo_legal (move) /*|| !pos.legal (move, ci.pinneds)*/) continue;
 
             if (SPNode)
@@ -1039,12 +1045,12 @@ moves_loop: // When in check and at SPNode search starts from here
                 Signals.first_root_move = (1 == moves_count);
 
                 if (thread == Threads.main () && 
-                    (Time::now () - SearchTime) > 3000)
+                    Time::now () - SearchTime > 3000)
                 {
                     ats ()
                         << "info"
-                        << " depth " << int32_t (depth / ONE_MOVE)
-                        << " currmove " << move_to_can (move, pos.chess960 ())
+                        << " depth "          << int32_t (depth / ONE_MOVE)
+                        << " currmove "       << move_to_can (move, pos.chess960 ())
                         << " currmovenumber " << moves_count + PVIdx
                         << endl;
                 }
@@ -1723,11 +1729,11 @@ void check_time ()
         Signals.first_root_move     &&
         !Signals.failed_low_at_root &&
         (elapsed > TimeMgr.available_time ()
-        || (   elapsed > (TimeMgr.available_time() * 62) / 100
+        || (   elapsed > TimeMgr.available_time() * 62 / 100
         &&     elapsed > Iterated * 1.4));
 
     bool no_more_time = 
-        (elapsed > TimeMgr.maximum_time () - 2 * TimerResolution) ||
+        elapsed > TimeMgr.maximum_time () - 2 * TimerResolution ||
         still_at_first_move;
 
     if ((Limits.use_time_management () && no_more_time)   ||
@@ -1736,6 +1742,7 @@ void check_time ()
     {
         Signals.stop = true;
     }
+
 }
 
 // Thread::idle_loop () is where the thread is parked when it has no work to do

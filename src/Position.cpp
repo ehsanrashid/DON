@@ -484,15 +484,14 @@ bool Position::ok (int8_t *failed_step) const
     return true;
 }
 
-// see() is a static exchange evaluator:
+// see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
 int32_t Position::see      (Move m) const
 {
-    ASSERT (_ok (m));
-
     Square org = org_sq(m);
     Square dst = dst_sq(m);
-
+    
+    // side to move
     Color stm = _color (piece_on (org));
 
     int32_t swap_list[32], index = 1;
@@ -579,8 +578,6 @@ int32_t Position::see      (Move m) const
 
 int32_t Position::see_sign (Move m) const
 {
-    ASSERT (_ok (m));
-
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
@@ -905,7 +902,6 @@ bool Position::       legal (Move m, Bitboard pinned) const
 // check(m) tests whether a pseudo-legal move gives a check
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
-    //ASSERT (_ok (m));
     ASSERT (_color (moved_piece (m)) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
 
@@ -970,7 +966,6 @@ bool Position::check     (Move m, const CheckInfo &ci) const
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
 bool Position::checkmate (Move m, const CheckInfo &ci) const
 {
-    //ASSERT (_ok (m));
     if (!check (m, ci)) return false;
 
     Position pos = *this;
@@ -1897,11 +1892,12 @@ Position::operator string () const
     ostringstream spos;
 
     spos
-        << board                            << "\n"
-        //<< to_char (_active)                << "\n"
-        //<< to_string (_si->castle_rights)   << "\n"
-        //<< to_string (_si->en_passant)      << "\n"
-        //<< _si->clock50 <<' '<< game_move() << "\n"
+        << board                            << '\n'
+        //<< to_char (_active)                << '\n'
+        //<< to_string (_si->castle_rights)   << '\n'
+        //<< to_string (_si->en_passant)      << '\n'
+        //<< _si->clock50 <<' '<< game_move()
+        //<< endl
         ;
 
     spos
@@ -1927,33 +1923,33 @@ Position::operator string () const
 // A FEN string contains six fields separated by a space. The fields are:
 //
 // 1) Piece placement (from white's perspective).
-// Each rank is described, starting with rank 8 and ending with rank 1;
-// within each rank, the contents of each square are described from file A through file H.
-// Following the Standard Algebraic Notation (SAN),
-// each piece is identified by a single letter taken from the standard English names.
-// White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
-// Blank squares are noted using digits 1 through 8 (the number of blank squares),
-// and "/" separates ranks.
+//    Each rank is described, starting with rank 8 and ending with rank 1;
+//    within each rank, the contents of each square are described from file A through file H.
+//    Following the Standard Algebraic Notation (SAN),
+//    each piece is identified by a single letter taken from the standard English names.
+//    White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
+//    Blank squares are noted using digits 1 through 8 (the number of blank squares),
+//    and "/" separates ranks.
 //
 // 2) Active color. "w" means white, "b" means black - moves next,.
 //
 // 3) Castling availability. If neither side can castle, this is "-". 
-// Otherwise, this has one or more letters:
-// "K" (White can castle  Kingside),
-// "Q" (White can castle Queenside),
-// "k" (Black can castle  Kingside),
-// "q" (Black can castle Queenside).
+//    Otherwise, this has one or more letters:
+//    "K" (White can castle  Kingside),
+//    "Q" (White can castle Queenside),
+//    "k" (Black can castle  Kingside),
+//    "q" (Black can castle Queenside).
 //
 // 4) En passant target square (in algebraic notation).
-// If there's no en passant target square, this is "-".
-// If a pawn has just made a 2-square move, this is the position "behind" the pawn.
-// This is recorded regardless of whether there is a pawn in position to make an en passant capture.
+//    If there's no en passant target square, this is "-".
+//    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
+//    This is recorded regardless of whether there is a pawn in position to make an en passant capture.
 //
 // 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
-// This is used to determine if a draw can be claimed under the fifty-move rule.
+//    This is used to determine if a draw can be claimed under the fifty-move rule.
 //
 // 6) Fullmove number. The number of the full move.
-// It starts at 1, and is incremented after Black's move.
+//    It starts at 1, and is incremented after Black's move.
 
 #ifdef _DEBUG
 #undef SKIP_WHITESPACE

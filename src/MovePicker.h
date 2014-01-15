@@ -14,6 +14,10 @@ typedef struct ValMove
     Move    move;
     Value   value;
 
+    // Unary predicate functor used by std::partition to split positive(+ve) scores from
+    // remaining ones so to sort separately the two sets, and with the second sort delayed.
+    inline bool operator() (const ValMove &vm) { return vm.value > VALUE_ZERO; }
+    
     friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
     friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
     friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
@@ -101,16 +105,18 @@ private:
     void generate_next ();
 
     const Position     &pos;
+    
     const HistoryStats &history;
+    
     Searcher::Stack    *ss;
 
+    ValMove             killers[6];
     Move               *counter_moves
         ,              *followup_moves;
 
     Move                tt_move;
     Depth               depth;
 
-    ValMove             killers[6];
     Square              recapture_sq;
     int32_t             capture_threshold;
     
@@ -126,9 +132,9 @@ private:
 
 public:
 
-    MovePicker(const Position &, Move,        const HistoryStats &, PType);
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Move [], Searcher::Stack []);
+    MovePicker (const Position &, Move,        const HistoryStats &, PType);
+    MovePicker (const Position &, Move, Depth, const HistoryStats &, Square);
+    MovePicker (const Position &, Move, Depth, const HistoryStats &, Move [], Move [], Searcher::Stack []);
 
     template<bool SpNode>
     Move next_move ();

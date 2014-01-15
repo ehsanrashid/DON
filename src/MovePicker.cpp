@@ -34,10 +34,6 @@ namespace {
         }
     }
 
-    // Unary predicate used by std::partition to split positive scores from remaining
-    // ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool positive_value (const ValMove &vm) { return vm.value > VALUE_ZERO; }
-
     // Picks and moves to the front the best move in the range [beg, end),
     // it is faster than sorting all the moves in advance when moves are few, as
     // normally are the possible captures.
@@ -54,7 +50,7 @@ namespace {
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
+MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PType pt)
     : pos (p)
     , history (h)
     , cur (moves)
@@ -173,7 +169,7 @@ void MovePicker::value<CAPTURE> ()
 }
 
 template<>
-void MovePicker::value<QUIET> ()
+void MovePicker::value<QUIET>   ()
 {
     Move m;
     for (ValMove *itr = moves; itr != end; ++itr)
@@ -293,6 +289,7 @@ void MovePicker::generate_next ()
         }
         if (followup_moves[1] && (followup_moves[1] == followup_moves[0])) // Due to SMP races
         {
+            //(cur+5)->move = MOVE_NONE;
             (--end)->move = MOVE_NONE;
         }
 
@@ -302,8 +299,8 @@ void MovePicker::generate_next ()
         generate_moves<QUIET> ();
         end_quiets = end;
         value<QUIET> ();
-        end = partition (cur, end, positive_value);
-        insertion_sort (cur, end);
+        end = partition (cur, end, ValMove ());
+        insertion_sort  (cur, end);
 
         return;
 
@@ -321,15 +318,18 @@ void MovePicker::generate_next ()
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = moves + MAX_MOVES - 1;
         end = end_bad_captures;
+
         return;
 
     case EVASIONS_S2:
         generate_moves<EVASION> ();
         if (end > moves + 1) value<EVASION> ();
+        
         return;
 
     case QUIET_CHECKS_S3:
         generate_moves<QUIET_CHECK> ();
+        
         return;
 
     case EVASIONS:
@@ -341,6 +341,7 @@ void MovePicker::generate_next ()
 
     case STOP:
         end = cur + 1; // Avoid another next_phase() call
+
         return;
 
     default:
@@ -373,7 +374,6 @@ Move MovePicker::next_move<false> ()
         case PROBCUT:
             ++cur;
             return tt_move;
-            break;
 
         case CAPTURES_S1:
             move = pick_best (cur++, end)->move;
@@ -383,6 +383,7 @@ Move MovePicker::next_move<false> ()
                 // Losing capture, move it to the tail of the array
                 (end_bad_captures--)->move = move;
             }
+
             break;
 
         case KILLERS_S1:

@@ -19,20 +19,20 @@ namespace {
 
     // start_routine() is the C function which is called when a new thread
     // is launched. It is a wrapper to the virtual function idle_loop().
-    extern "C" { long start_routine (ThreadBase *th) { th->idle_loop (); return 0; } }
+    extern "C" { inline long start_routine (ThreadBase *th) { th->idle_loop (); return 0; } }
 
     // Helpers to launch a thread after creation and joining before delete. Must be
     // outside Thread c'tor and d'tor because object shall be fully initialized
     // when start_routine (and hence virtual idle_loop) is called and when joining.
     template<class T>
-    T* new_thread()
+    inline T* new_thread()
     {
         T *th = new T ();
         thread_create (th->handle, start_routine, th); // Will go to sleep
         return th;
     }
 
-    void delete_thread (ThreadBase *th)
+    inline void delete_thread (ThreadBase *th)
     {
         th->exit = true; // Search must be already finished
         th->notify_one ();

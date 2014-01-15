@@ -386,7 +386,8 @@ string PolyglotBook::read_entries (const Position &pos)
     if (ERROR_INDEX == index)
     {
         cerr << "ERROR: no such key... "
-            << hex << uppercase << key << endl;
+            << hex << uppercase << key
+            << endl;
         return "";
     }
 
@@ -407,7 +408,8 @@ string PolyglotBook::read_entries (const Position &pos)
     {
         ss  << setfill ('0')
             << pe << " prob: " << right << fixed << width_prec (6, 2)
-            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0) << endl;
+            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0)
+            << endl;
     });
 
     return ss.str ();
