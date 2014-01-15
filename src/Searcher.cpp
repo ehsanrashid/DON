@@ -70,7 +70,8 @@ namespace {
 
     GainsStats          Gains;
     HistoryStats        History;
-    CountermovesStats   CounterMoves;
+    MovesStats          CounterMoves;
+    MovesStats          FollowupMoves;
 
     // Duration of iteration
     uint64_t            Iterated;
@@ -448,10 +449,20 @@ namespace {
         memset (ss-2, 0, 5 * sizeof (Stack));
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
-        TT           .new_gen ();
-        Gains        .clear ();
-        History      .clear();
+        TT.new_gen ();
+
+        Gains.clear ();
+        History.clear();
         CounterMoves.clear();
+        FollowupMoves.clear();
+
+        BestMoveChanges  = 0.0;
+
+        Value best_value = -VALUE_INFINITE;
+        Value alpha      = -VALUE_INFINITE;
+        Value beta       = +VALUE_INFINITE;
+        Value delta      = -VALUE_INFINITE;
+        Depth depth      = DEPTH_ZERO;
 
         PVSize = int32_t (*(Options["MultiPV"]));
         Skill skill (*(Options["Skill Level"]));
@@ -461,14 +472,6 @@ namespace {
         if (skill.enabled () && PVSize < 4) PVSize = 4;
 
         if (RootMoves.size () < PVSize) PVSize = RootMoves.size ();
-
-        BestMoveChanges  = 0.0;
-
-        Value best_value = -VALUE_INFINITE;
-        Value alpha      = -VALUE_INFINITE;
-        Value beta       = +VALUE_INFINITE;
-        Value delta      = -VALUE_INFINITE;
-        Depth depth      = DEPTH_ZERO;
 
         // Iterative deepening loop until requested to stop or target depth reached
         while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
@@ -585,7 +588,7 @@ namespace {
             }
 
             // Have found a "mate in x"?
-            if (int32_t (Limits.mate_in) &&
+            if (Limits.mate_in &&
                 best_value >= VALUE_MATES_IN_MAX_PLY &&
                 VALUE_MATE - best_value <= 2 * int32_t (Limits.mate_in))
             {
@@ -646,8 +649,8 @@ namespace {
         }
     }
 
-    // update_stats() updates killers, history and countermoves stats after a fail-high
-    // of a quiet move.
+    // update_stats() updates killers, history, countermoves and followupmoves stats
+    // after a fail-high of a quiet move.
     void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count)
     {
         if (ss->killers[0] != move)
@@ -658,21 +661,30 @@ namespace {
 
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
         Value bonus = Value (int32_t (depth) * int32_t (depth));
-        History.update (pos.moved_piece (move), dst_sq (move), bonus);
+        History.update (pos[org_sq (move)], dst_sq (move), bonus);
         if (quiets)
         {
             for (int32_t i = 0; i < quiets_count; ++i)
             {
                 Move m = quiets[i];
-                History.update (pos.moved_piece (m), dst_sq (m), -bonus);
+                History.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
         }
+
         Move prev_move = (ss-1)->current_move;
         if (_ok (prev_move))
         {
             Square prev_move_sq = dst_sq (prev_move);
             CounterMoves.update (pos[prev_move_sq], prev_move_sq, move);
         }
+
+        Move prev_own_move = (ss-2)->current_move;
+        if (_ok (prev_own_move) && (ss-1)->current_move == (ss-1)->tt_move)
+        {
+            Square prev_own_move_sq = dst_sq (prev_own_move);
+            FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
+        }
+
     }
 
 
@@ -732,7 +744,7 @@ namespace {
         moves_count  = 0;
         quiets_count = 0;
         best_value  = -VALUE_INFINITE;
-        best_move   = ss->current_move = (ss+1)->excluded_move = MOVE_NONE;
+        best_move   = ss->current_move = ss->tt_move = (ss+1)->excluded_move = MOVE_NONE;
         (ss)->ply   = (ss-1)->ply + 1;
         (ss+1)->skip_null_move = false;
         (ss+1)->reduction      = DEPTH_ZERO;
@@ -766,7 +778,7 @@ namespace {
         excluded_move = ss->excluded_move;
         posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
         te       = TT.retrieve (posi_key);
-        tt_move  = RootNode ? RootMoves[PVIdx].pv[0]
+        tt_move  = ss->tt_move = RootNode ? RootMoves[PVIdx].pv[0]
         :          te ?              te->move ()            : MOVE_NONE;
         tt_value = te ? value_fr_tt (te->value (), ss->ply) : VALUE_NONE;
 
@@ -784,8 +796,8 @@ namespace {
             TT.refresh (te);
             ss->current_move = tt_move; // Can be MOVE_NONE
 
-            // Update killers, history, and counter move on TT hit
-            if (tt_value >= beta &&  tt_move != MOVE_NONE &&
+            // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
+            if (tt_value >= beta && MOVE_NONE != tt_move &&
                 !pos.capture_or_promotion (tt_move) && !in_check)
             {
                 update_stats (pos, ss, tt_move, depth, NULL, 0);
@@ -930,7 +942,7 @@ namespace {
 
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
-                if (!pos.pseudo_legal (move)) continue;
+                //if (!pos.pseudo_legal (move)) continue;
                 if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
@@ -963,13 +975,19 @@ namespace {
 moves_loop: // When in check and at SPNode search starts from here
 
         Square prev_move_sq = dst_sq ((ss-1)->current_move);
-        ASSERT (_ok (prev_move_sq));
-
         Move cm[CLR_NO] = 
         {
             CounterMoves[pos[prev_move_sq]][prev_move_sq].first,
-            CounterMoves[pos[prev_move_sq]][prev_move_sq].second
+            CounterMoves[pos[prev_move_sq]][prev_move_sq].second,
         };
+
+        Square prev_own_move_sq = dst_sq ((ss-2)->current_move);
+        Move fm[CLR_NO] =
+        { 
+            FollowupMoves[pos[prev_own_move_sq]][prev_own_move_sq].first,
+            FollowupMoves[pos[prev_own_move_sq]][prev_own_move_sq].second,
+        };
+
 
         MovePicker mp (pos, tt_move, depth, History, cm, ss);
         CheckInfo  ci (pos);
@@ -1316,7 +1334,7 @@ moves_loop: // When in check and at SPNode search starts from here
             value_to_tt (best_value, ss->ply),
             ss->static_eval);
 
-        // Quiet best move: update killers, history and counter moves
+        // Quiet best move: update killers, history, counter moves and followup moves
         if (best_value >= beta && !pos.capture_or_promotion (best_move) && !in_check)
         {
             update_stats (pos, ss, best_move, depth, quiets_searched, quiets_count - 1);
@@ -1790,7 +1808,7 @@ void Thread::idle_loop ()
             case Root : search<SplitPointRoot>  (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
             case PV   : search<SplitPointPV>    (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
             case NonPV: search<SplitPointNonPV> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
-            default   : ASSERT (false); break;
+            default   : ASSERT (false);
             }
 
             ASSERT (searching);

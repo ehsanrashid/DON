@@ -146,11 +146,13 @@ namespace Searcher {
         SplitPoint *split_point;
         int32_t     ply;
         Move        current_move;
+        Move        tt_move;
         Move        excluded_move;
         Move        killers[2];
         Depth       reduction;
         Value       static_eval;
         int32_t     skip_null_move;
+
     } Stack;
 
     extern Limits_t              Limits;

@@ -5,8 +5,8 @@
 #include <vector>
 #include <set>
 #include "Type.h"
-#include "Searcher.h"
 #include "MoveGenerator.h"
+#include "Searcher.h"
 
 class Position;
 
@@ -80,7 +80,8 @@ public:
 typedef Stats< true, Value> GainsStats;
 typedef Stats<false, Value> HistoryStats;
 
-typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
+typedef Stats<false, std::pair<Move, Move> > MovesStats;
+
 
 // MovePicker class is used to pick one pseudo legal move at a time from the
 // current position. The most important method is next_move(), which returns a
@@ -100,27 +101,29 @@ private:
 
     template<MoveGenerator::GType>
     void generate_moves ();
-    
+
     void generate_next ();
 
     const Position     &pos;
     const HistoryStats &history;
     Searcher::Stack    *ss;
-    Move               *counter_moves;
+
+    Move               *counter_moves
+        ,              *followup_moves;
 
     Move                tt_move;
     Depth               depth;
 
-    ValMove             killers[4];
+    ValMove             killers[6];
     Square              recapture_sq;
     int32_t             capture_threshold;
     uint8_t             stage;
 
     ValMove             moves[MAX_MOVES];
-    ValMove            *cur;
-    ValMove            *end;
-    ValMove            *end_quiets;
-    ValMove            *end_bad_captures;
+    ValMove            *cur
+        ,              *end
+        ,              *end_quiets
+        ,              *end_bad_captures;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
@@ -129,6 +132,7 @@ public:
     MovePicker(const Position &, Move,        const HistoryStats &, PType);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
     MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Searcher::Stack []);
+    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move [], Move [], Searcher::Stack []);
 
     template<bool SpNode>
     Move next_move ();

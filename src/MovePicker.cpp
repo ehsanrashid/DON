@@ -52,10 +52,11 @@ namespace {
 }
 
 // Constructors of the MovePicker class. As arguments we pass information
-// to help it to return the presumably good moves first, to decide which
+// to help it to return the (presumably) good moves first, to decide which
 // moves to return (in the quiescence search, for instance, we only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
+
 MovePicker::MovePicker (const Position &p, Move ttm, const HistoryStats &h, PType pt)
     : pos (p)
     , history (h)
@@ -126,6 +127,26 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     cur = end = moves;
     end_bad_captures = moves + MAX_MOVES - 1;
     counter_moves = cm;
+    ss = s;
+
+    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
+
+    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    end += (tt_move != MOVE_NONE);
+}
+
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, Move cm[], Move fm[], Stack s[])
+    : pos (p)
+    , history (h)
+    , depth (d)
+{
+
+    ASSERT (d > DEPTH_ZERO);
+
+    cur = end = moves;
+    end_bad_captures = moves + MAX_MOVES - 1;
+    counter_moves   = cm;
+    followup_moves  = fm;
     ss = s;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
@@ -248,8 +269,8 @@ void MovePicker::generate_next ()
     case CAPTURES_S6:
         generate_moves<CAPTURE> ();
         value<CAPTURE> ();
+
         return;
-        break;
 
     case KILLERS_S1:
         cur = killers;
@@ -259,11 +280,14 @@ void MovePicker::generate_next ()
         killers[1].move = ss->killers[1];
         killers[2].move = MOVE_NONE;
         killers[3].move = MOVE_NONE;
+        killers[4].move = MOVE_NONE;
+        killers[5].move = MOVE_NONE;
 
         // Be sure counter_moves are different from killers
         for (int32_t i = 0; i < 2; ++i)
         {
-            if ((counter_moves[i] != cur->move) && (counter_moves[i] != (cur+1)->move))
+            if ((counter_moves[i] != (cur+0)->move) &&
+                (counter_moves[i] != (cur+1)->move))
             {
                 (end++)->move = counter_moves[i];
             }
@@ -273,8 +297,20 @@ void MovePicker::generate_next ()
             killers[3].move = MOVE_NONE;
         }
 
+        // Be sure followupmoves are different from killers and countermoves
+        for (int i = 0; i < 2; ++i)
+            if (   followup_moves[i] != (cur+0)->move
+                && followup_moves[i] != (cur+1)->move
+                && followup_moves[i] != (cur+2)->move
+                && followup_moves[i] != (cur+3)->move)
+                (end++)->move = followup_moves[i];
+
+        if (followup_moves[1] && (followup_moves[1] == followup_moves[0])) // Due to SMP races
+        {
+            (--end)->move = MOVE_NONE;
+        }
+
         return;
-        break;
 
     case QUIETS_1_S1:
         generate_moves<QUIET> ();
@@ -282,8 +318,8 @@ void MovePicker::generate_next ()
         value<QUIET> ();
         end = partition (cur, end, positive_value);
         insertion_sort (cur, end);
+
         return;
-        break;
 
     case QUIETS_2_S1:
         cur = end;
@@ -292,8 +328,8 @@ void MovePicker::generate_next ()
         {
             insertion_sort (cur, end);
         }
+
         return;
-        break;
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
@@ -305,12 +341,10 @@ void MovePicker::generate_next ()
         generate_moves<EVASION> ();
         if (end > moves + 1) value<EVASION> ();
         return;
-        break;
 
     case QUIET_CHECKS_S3:
         generate_moves<QUIET_CHECK> ();
         return;
-        break;
 
     case EVASIONS:
     case QSEARCH_0:
@@ -322,11 +356,9 @@ void MovePicker::generate_next ()
     case STOP:
         end = cur + 1; // Avoid another next_phase() call
         return;
-        break;
 
     default:
         ASSERT (false);
-        break;
     }
 }
 
@@ -376,6 +408,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
+            
             break;
 
         case QUIETS_1_S1: case QUIETS_2_S1:
@@ -384,10 +417,13 @@ Move MovePicker::next_move<false> ()
                 && move != killers[0].move
                 && move != killers[1].move
                 && move != killers[2].move
-                && move != killers[3].move)
+                && move != killers[3].move
+                && move != killers[4].move
+                && move != killers[5].move)
             {
                 return move;
             }
+
             break;
 
         case BAD_CAPTURES_S1:
@@ -399,6 +435,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
+            
             break;
 
         case CAPTURES_S5:
@@ -407,6 +444,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
+            
             break;
 
         case CAPTURES_S6:
@@ -415,6 +453,7 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
+            
             break;
 
         case QUIET_CHECKS_S3:
@@ -423,15 +462,14 @@ Move MovePicker::next_move<false> ()
             {
                 return move;
             }
+            
             break;
 
         case STOP:
             return MOVE_NONE;
-            break;
 
         default:
             ASSERT (false);
-            break;
         }
     }
 }
