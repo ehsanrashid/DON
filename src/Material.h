@@ -25,12 +25,12 @@ namespace Material {
         EndGame::EndgameBase<Value> *evaluation_func;
         EndGame::EndgameBase<ScaleFactor> *scaling_func[CLR_NO];
 
-        Score material_score () const { return mk_score (_value, _value); }
-        Score space_weight ()   const { return _space_weight; }
-        Phase game_phase ()     const { return _game_phase; }
+        inline Score material_score () const { return mk_score (_value, _value); }
+        inline Score space_weight ()   const { return _space_weight; }
+        inline Phase game_phase ()     const { return _game_phase; }
 
-        bool specialized_eval_exists ()      const { return evaluation_func != NULL; }
-        Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
+        inline bool specialized_eval_exists ()      const { return evaluation_func != NULL; }
+        inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
 
         ScaleFactor scale_factor (const Position &pos, Color c) const;
 

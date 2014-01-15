@@ -15,10 +15,10 @@ private:
 
 public:
 
-    int32_t available_time () const { return _optimum_search_time + _unstable_pv_extra_time; }
-    int32_t maximum_time   () const { return _maximum_search_time; }
+    inline int32_t available_time () const { return _optimum_search_time + _unstable_pv_extra_time; }
+    inline int32_t maximum_time   () const { return _maximum_search_time; }
 
-    void pv_instability (double best_move_changes)
+    inline void pv_instability (double best_move_changes)
     {
         _unstable_pv_extra_time = int32_t (best_move_changes * _optimum_search_time / 1.4);
     }

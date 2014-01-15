@@ -76,9 +76,45 @@ namespace {
     // Duration of iteration
     uint64_t            Iterated;
 
-    void iter_deep_loop (Position &pos);
 
-    void update_stats   (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count);
+    // update_stats() updates killers, history, countermoves and followupmoves stats
+    // after a fail-high of a quiet move.
+    inline void update_stats (Position &pos, Stack ss[], Move move, int32_t depth, Move quiets[], int32_t quiets_count)
+    {
+        if (ss->killers[0] != move)
+        {
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = move;
+        }
+
+        // Increase history value of the cut-off move and decrease all the other played quiet moves.
+        Value bonus = Value (depth * depth);
+        History.update (pos[org_sq (move)], dst_sq (move), bonus);
+        if (quiets)
+        {
+            for (int32_t i = 0; i < quiets_count; ++i)
+            {
+                Move m = quiets[i];
+                History.update (pos[org_sq (m)], dst_sq (m), -bonus);
+            }
+        }
+
+        Move prev_move = (ss-1)->current_move;
+        if (_ok (prev_move))
+        {
+            Square prev_move_sq = dst_sq (prev_move);
+            CounterMoves.update (pos[prev_move_sq], prev_move_sq, move);
+        }
+
+        Move prev_own_move = (ss-2)->current_move;
+        if (_ok (prev_own_move) && (ss-1)->current_move == (ss-1)->tt_move)
+        {
+            Square prev_own_move_sq = dst_sq (prev_own_move);
+            FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
+        }
+    }
+
+    void iter_deep_loop (Position &pos);
 
     template <NodeType NT>
     Value search        (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
@@ -91,7 +127,7 @@ namespace {
 
     string pv_info_uci  (const Position &pos, int16_t depth, Value alpha, Value beta);
 
-    struct Skill
+    typedef struct Skill
     {
         int32_t level;
         Move    move;
@@ -115,7 +151,7 @@ namespace {
 
         Move pick_move ();
 
-    };
+    } Skill;
 
 
     // _perft() is our utility to verify move generation. All the leaf nodes
@@ -128,16 +164,6 @@ namespace {
         StateInfo si;
         CheckInfo ci (pos);
         MoveList mov_lst = generate<LEGAL> (pos);
-
-        //MoveList::const_iterator itr = mov_lst.cbegin ();
-        //while (itr != mov_lst.cend ())
-        //{
-        //    Move m = *itr;
-        //    pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
-        //    cnt += leaf ? generate<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
-        //    pos.undo_move ();
-        //    ++itr;
-        //}
 
         for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
         {
@@ -387,9 +413,8 @@ finish:
 
         // When we reach max depth we arrive here even without Signals.stop is raised,
         // but if we are pondering or in infinite search, according to UCI protocol,
-        // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit"
-        // command. We simply wait here until GUI sends one of those commands (that
-        // raise Signals.stop).
+        // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
+        // We simply wait here until GUI sends one of those commands (that raise Signals.stop).
         if (!Signals.stop && (Limits.ponder || Limits.infinite))
         {
             Signals.stop_on_ponderhit = true;
@@ -654,44 +679,6 @@ namespace {
             }
         }
     }
-
-    // update_stats() updates killers, history, countermoves and followupmoves stats
-    // after a fail-high of a quiet move.
-    void update_stats (Position &pos, Stack ss[], Move move, Depth depth, Move quiets[], int32_t quiets_count)
-    {
-        if (ss->killers[0] != move)
-        {
-            ss->killers[1] = ss->killers[0];
-            ss->killers[0] = move;
-        }
-
-        // Increase history value of the cut-off move and decrease all the other played quiet moves.
-        Value bonus = Value (int32_t (depth) * int32_t (depth));
-        History.update (pos[org_sq (move)], dst_sq (move), bonus);
-        if (quiets)
-        {
-            for (int32_t i = 0; i < quiets_count; ++i)
-            {
-                Move m = quiets[i];
-                History.update (pos[org_sq (m)], dst_sq (m), -bonus);
-            }
-        }
-
-        Move prev_move = (ss-1)->current_move;
-        if (_ok (prev_move))
-        {
-            Square prev_move_sq = dst_sq (prev_move);
-            CounterMoves.update (pos[prev_move_sq], prev_move_sq, move);
-        }
-
-        Move prev_own_move = (ss-2)->current_move;
-        if (_ok (prev_own_move) && (ss-1)->current_move == (ss-1)->tt_move)
-        {
-            Square prev_own_move_sq = dst_sq (prev_own_move);
-            FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
-        }
-    }
-
 
     template <NodeType NT>
     // search<> () is the main search function for both PV and non-PV nodes and for
@@ -1571,9 +1558,10 @@ moves_loop: // When in check and at SPNode search starts from here
     // value_to_tt () adjusts a mate score from "plies to mate from the root" to
     // "plies to mate from the current position". Non-mate scores are unchanged.
     // The function is called before storing a value to the transposition table.
-    Value value_to_tt (Value v, int32_t ply)
+    inline Value value_to_tt (Value v, int32_t ply)
     {
-        ASSERT (v != VALUE_NONE);
+        //ASSERT (v != VALUE_NONE);
+        
         return
             v >= VALUE_MATES_IN_MAX_PLY ? v + ply :
             v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
@@ -1583,7 +1571,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // It adjusts a mate score from the transposition table
     // (where refers to the plies to mate/be mated from current position)
     // to "plies to mate/be mated from the root".
-    Value value_fr_tt (Value v, int32_t ply)
+    inline Value value_fr_tt (Value v, int32_t ply)
     {
         return
             v == VALUE_NONE             ? VALUE_NONE :
@@ -1631,7 +1619,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // pv_info_uci () formats PV information according to UCI protocol.
     // UCI requires to send all the PV lines also if are still to be searched
     // and so refer to the previous search score.
-    string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
+    inline string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta)
     {
         stringstream spv;
 

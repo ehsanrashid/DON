@@ -194,14 +194,17 @@ Position& Position::operator= (const Position &pos)
 bool Position::draw () const
 {
     // Draw by Material?
-    if (!pieces (PAWN) && (non_pawn_material (WHITE) + non_pawn_material (BLACK) <= VALUE_MG_BISHOP))
+    if (!pieces (PAWN) &&
+        (non_pawn_material (WHITE) + non_pawn_material (BLACK)
+        <= VALUE_MG_BISHOP))
     {
         return true;
     }
 
     // Draw by 50 moves Rule?
     if ( 100 <  _si->clock50 ||
-        (100 == _si->clock50 && (!checkers () || generate<LEGAL> (*this).size ())))
+        (100 == _si->clock50 &&
+        (!checkers () || generate<LEGAL> (*this).size ())))
     {
         return true;
     }
@@ -490,11 +493,12 @@ int32_t Position::see      (Move m) const
 {
     Square org = org_sq(m);
     Square dst = dst_sq(m);
-    
+
     // side to move
     Color stm = _color (piece_on (org));
 
-    int32_t swap_list[32], index = 1;
+    // Gain list
+    int32_t swap_list[32], depth = 1;
     swap_list[0] = PieceValue[MG][_type (piece_on (dst))];
 
     Bitboard occupied = pieces () - org;
@@ -533,11 +537,11 @@ int32_t Position::see      (Move m) const
 
     do
     {
-        ASSERT (index < 32);
+        ASSERT (depth < 32);
 
         // Add the new entry to the swap list
-        swap_list[index] = -swap_list[index - 1] + PieceValue[MG][ct];
-        ++index;
+        swap_list[depth] = PieceValue[MG][ct] - swap_list[depth - 1];
+        ++depth;
 
         // Locate and remove the next least valuable attacker
         ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
@@ -545,9 +549,10 @@ int32_t Position::see      (Move m) const
         stm_attackers = attackers & pieces (stm);
 
         // Stop before processing a king capture
-        if ((KING == ct) && stm_attackers)
+        if (KING == ct && stm_attackers)
         {
-            swap_list[index++] = VALUE_MG_QUEEN * 16;
+            swap_list[depth] = VALUE_MG_QUEEN * 16;
+            ++depth;
             break;
         }
     }
@@ -559,7 +564,7 @@ int32_t Position::see      (Move m) const
     //// before negamaxing.
     //if (asymm_threshold)
     //{
-    //    for (int32_t i = 0; i < index; i += 2)
+    //    for (int32_t i = 0; i < depth; i += 2)
     //    {
     //        if (swap_list[i] < asymm_threshold)
     //            swap_list[i] = -VALUE_MG_QUEEN * 16;
@@ -568,9 +573,9 @@ int32_t Position::see      (Move m) const
 
     // Having built the swap list, we negamax through it to find the best
     // achievable score from the point of view of the side to move.
-    while (--index)
+    while (--depth)
     {
-        swap_list[index - 1] = min (-swap_list[index], swap_list[index - 1]);
+        swap_list[depth - 1] = min (-swap_list[depth], swap_list[depth - 1]);
     }
 
     return swap_list[0];
@@ -734,9 +739,10 @@ bool Position::pseudo_legal (Move m) const
         if ((active == WHITE) != (delta > DEL_O)) return false;
 
         Rank r_org = rel_rank (active, org);
-        if (r_org == R_1 || r_org == R_8) return false;
+        if (R_1 == r_org || R_8 == r_org) return false;
         Rank r_dst = rel_rank (active, dst);
-        if (r_dst == R_1 || r_dst == R_2) return false;
+        if (R_1 == r_dst || R_2 == r_dst) return false;
+        if (NORMAL == mt && (R_7 == r_org || R_8 == r_dst)) return false;
 
         // Proceed according to the square delta between the origin and destiny squares.
         switch (delta)

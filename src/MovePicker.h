@@ -17,7 +17,7 @@ typedef struct ValMove
     // Unary predicate functor used by std::partition to split positive(+ve) scores from
     // remaining ones so to sort separately the two sets, and with the second sort delayed.
     inline bool operator() (const ValMove &vm) { return vm.value > VALUE_ZERO; }
-    
+
     friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
     friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
     friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
@@ -45,17 +45,14 @@ private:
 
 public:
 
-    static const Value MaxValue = Value (2000);
+    inline const T* operator[] (Piece p) const { return _table[p]; }
 
-    const T* operator[] (Piece p) const { return _table[p]; } // &_table[p][0]
-    //const T& operator[] (Piece p) const { return  _table[p][0]; }
-
-    void clear ()
+    inline void clear ()
     {
         memset (_table, 0, sizeof (_table));
     }
 
-    void update (Piece p, Square s, Move m)
+    inline void update (Piece p, Square s, Move m)
     {
         if (m == _table[p][s].first) return;
 
@@ -63,15 +60,18 @@ public:
         _table[p][s].first = m;
     }
 
-    void update (Piece p, Square s, Value v)
+    inline void update (Piece p, Square s, Value v)
     {
         if (GAIN)
         {
-            _table[p][s] = std::max (v, _table[p][s] - 1);
+            _table[p][s] = std::max (v, _table[p][s]);
         }
-        else if (abs (int32_t (_table[p][s] + v)) < MaxValue)
+        else
         {
-            _table[p][s] += v;
+            if (abs (int32_t (_table[p][s] + v)) < VALUE_EG_QUEEN)
+            {
+                _table[p][s] += v;
+            }
         }
     }
 
@@ -100,14 +100,14 @@ private:
     void value ();
 
     template<MoveGenerator::GType>
-    void generate_moves ();
+    int32_t generate_moves ();
 
     void generate_next ();
 
     const Position     &pos;
-    
+
     const HistoryStats &history;
-    
+
     Searcher::Stack    *ss;
 
     ValMove             killers[6];
@@ -119,7 +119,7 @@ private:
 
     Square              recapture_sq;
     int32_t             capture_threshold;
-    
+
     uint8_t             stage;
 
     ValMove             moves[MAX_MOVES];

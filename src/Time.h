@@ -11,9 +11,9 @@
 #ifdef _WIN32   // WINDOWS
 
 #   include <sys/timeb.h>
-#   include <time.h>
+//#   include <time.h>
 
-inline uint64_t system_time_msec ()
+INLINE uint64_t system_time_msec ()
 {
     _timeb timebuf;
     //_ftime (&timebuf);
@@ -25,7 +25,7 @@ inline uint64_t system_time_msec ()
 
 #   include <sys/time.h>
 
-inline uint64_t system_time_msec ()
+INLINE uint64_t system_time_msec ()
 {
     timeval timebuf;
     gettimeofday (&timebuf, NULL);
@@ -41,9 +41,9 @@ namespace Time {
         ONE_SEC = 1000,
     } point;
 
-    inline uint64_t  operator-  (point  p1, point p2) { return (uint64_t (p1) - uint64_t (p2)); }
+    INLINE uint64_t  operator-  (point  p1, point p2) { return (uint64_t (p1) - uint64_t (p2)); }
 
-    inline point now () { return point (system_time_msec ()); }
+    INLINE point now () { return point (system_time_msec ()); }
 
     inline std::string to_string (const point t)
     {

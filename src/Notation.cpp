@@ -145,15 +145,15 @@ Move move_from_can (string &can, const Position &pos)
     return MOVE_NONE;
 }
 
-Move move_from_san (string &san, const Position &pos)
-{
-    return MOVE_NONE;
-}
-
-Move move_from_lan (string &lan, const Position &pos)
-{
-    return MOVE_NONE;
-}
+//Move move_from_san (string &san, const Position &pos)
+//{
+//    return MOVE_NONE;
+//}
+//
+//Move move_from_lan (string &lan, const Position &pos)
+//{
+//    return MOVE_NONE;
+//}
 
 // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
 // The only special case is castling moves,
@@ -311,35 +311,37 @@ string move_to_san (Move m, Position &pos)
     return san;
 }
 
-// move_to_lan(m, pos) takes a position and a legal move as input
-// and returns its long algebraic notation representation.
-string move_to_lan (Move m, Position &pos)
-{
-    string lan;
-
-
-    return lan;
-}
-
-// score_uci() converts a value to a string suitable for use with the UCI
-// protocol specifications:
+//// move_to_lan(m, pos) takes a position and a legal move as input
+//// and returns its long algebraic notation representation.
+//string move_to_lan (Move m, Position &pos)
+//{
+//    string lan;
 //
-// cp <x>     The score from the engine's point of view in centipawns.
-// mate <y>   Mate in y moves, not plies. If the engine is getting mated
-//            use negative values for y.
+//
+//    return lan;
+//}
+
+// score_uci() converts a value to a string suitable
+// for use with the UCI protocol specifications:
+//
+// cp <x>     The score x from the engine's point of view in centipawns.
+// mate <y>   Mate in y moves, not plies.
+//            If the engine is getting mated use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
     stringstream ss;
+
     int32_t abs_v = abs (int32_t (v));
     if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
         if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
-        ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
+        ss << "cp " << int32_t (v) * 100 / VALUE_MG_PAWN;
     }
     else
     {
-        ss << "mate " << int32_t ((v) > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+        ss << "mate " << int32_t (v > VALUE_ZERO ? VALUE_MATE - v + 1 : -(VALUE_MATE + v)) / 2;
     }
+    
     ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
     return ss.str ();
@@ -352,18 +354,22 @@ namespace {
     {
         stringstream ss;
 
-        if (false);
-        else if (v >= VALUE_MATES_IN_MAX_PLY)
+        int32_t abs_v = abs (int32_t (v));
+        if (abs_v < VALUE_MATES_IN_MAX_PLY)
         {
-            ss <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
-        }
-        else if (v <= VALUE_MATED_IN_MAX_PLY)
-        {
-            ss << "-#" << int32_t (VALUE_MATE + v) / 2;
+            if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+            ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else
         {
-            ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+            if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
+            {
+                ss <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+            }
+            else                //if (v <= VALUE_MATED_IN_MAX_PLY)
+            {
+                ss << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+            }
         }
         return ss.str ();
     }

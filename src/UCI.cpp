@@ -141,9 +141,9 @@ namespace UCI {
 
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
 
+            // parse and validate game moves (if any)
             if (iequals (token, "moves"))
             {
-                // parse move list (if any)
                 while (cstm.good () && (cstm >> token))
                 {
                     Move m = move_from_can (token, RootPos);
@@ -179,6 +179,7 @@ namespace UCI {
             while (cstm.good () && (cstm >> token))
             {
                 if (false);
+                // parse and validate search moves (if any)
                 else if (iequals (token, "searchmoves"))
                 {
                     while (cstm.good () && (cstm >> token))

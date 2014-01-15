@@ -295,7 +295,7 @@ typedef enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
-    VALUE_CHIK      = 10,
+    VALUE_CHIK      = 5,
 
     VALUE_NONE      = _I16_MAX,
     VALUE_INFINITE  = VALUE_NONE - 1,
@@ -847,10 +847,7 @@ public:
         : _table (SIZE, Entry ())
     {}
 
-    Entry* operator[] (Key k)
-    {
-        return &_table[uint32_t (k) & (SIZE - 1)];
-    }
+    inline Entry* operator[] (Key k) { return &_table[uint32_t (k) & (SIZE - 1)]; }
 
 };
 

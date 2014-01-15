@@ -54,7 +54,7 @@ namespace {
     // analysis of "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    double move_importance (int32_t ply)
+    inline double move_importance (int32_t ply)
     {
         //return MoveImportance[min (ply, 511)];
 
@@ -65,7 +65,7 @@ namespace {
 
     // remaining() calculate the time remaining
     template<TimeType TT>
-    int32_t remaining (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
+    inline int32_t remaining (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
     {
         //const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         //const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);

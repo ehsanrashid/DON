@@ -20,7 +20,7 @@ namespace {
     };
 
     // Our insertion sort, guaranteed to be stable, as is needed
-    void insertion_sort (ValMove *beg, ValMove *end)
+    inline void insertion_sort (ValMove *beg, ValMove *end)
     {
         for (ValMove *p = beg + 1; p < end; ++p)
         {
@@ -188,16 +188,16 @@ void MovePicker::value<EVASION> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        int32_t see_value = pos.see_sign (m);
-        if (see_value < 0)
+        int32_t gain = pos.see_sign (m);
+        if (gain < 0)
         {
-            itr->value = see_value - HistoryStats::MaxValue; // At the bottom
+            itr->value = gain - VALUE_EG_QUEEN; // At the bottom
         }
         else if (pos.capture (m))
         {
             int32_t pt = _type (pos[org_sq (m)]);
             itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - (PT_NO != pt ? pt+1 : 0) + HistoryStats::MaxValue;
+            - (PT_NO != pt ? pt+1 : 0) + VALUE_EG_QUEEN;
         }
         else
         {
@@ -207,7 +207,7 @@ void MovePicker::value<EVASION> ()
 }
 
 template<GType GT>
-void MovePicker::generate_moves ()
+int32_t MovePicker::generate_moves ()
 {
     uint32_t index = 0;
     MoveList mov_lst = generate<GT> (pos);
@@ -230,6 +230,7 @@ void MovePicker::generate_moves ()
 
     moves[index].move = MOVE_NONE;
     end = moves + index;
+    return index;
 }
 
 // generate_next () generates, scores and sorts the next bunch of moves,
@@ -249,7 +250,7 @@ void MovePicker::generate_next ()
         value<CAPTURE> ();
 
         return;
-
+        //  killer moves usually come right after after the hash move and (good) captures
     case KILLERS_S1:
         cur = killers;
         end = cur + 2;
@@ -322,14 +323,16 @@ void MovePicker::generate_next ()
         return;
 
     case EVASIONS_S2:
-        generate_moves<EVASION> ();
-        if (end > moves + 1) value<EVASION> ();
-        
+        if (generate_moves<EVASION> () > 0)
+        {
+            value<EVASION> ();
+        }
+
         return;
 
     case QUIET_CHECKS_S3:
         generate_moves<QUIET_CHECK> ();
-        
+
         return;
 
     case EVASIONS:

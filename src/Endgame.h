@@ -81,7 +81,7 @@ namespace EndGame {
             , _weak_side(~c)
         {}
 
-        Color color() const { return _stong_side; }
+        inline Color color () const { return _stong_side; }
 
         T operator() (const Position &pos) const;
 
@@ -99,8 +99,8 @@ namespace EndGame {
         M1 m1;
         M2 m2;
 
-        M1& map (M1::mapped_type) { return m1; }
-        M2& map (M2::mapped_type) { return m2; }
+        inline M1& map (M1::mapped_type) { return m1; }
+        inline M2& map (M2::mapped_type) { return m2; }
 
         template<EndgameType E>
         void add (const std::string &code);
@@ -111,7 +111,7 @@ namespace EndGame {
         ~Endgames ();
 
         template<class T>
-        T probe (Key key, T &eg)
+        inline T probe (Key key, T &eg)
         {
             return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
         }

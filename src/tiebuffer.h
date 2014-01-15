@@ -30,12 +30,12 @@ namespace std {
             , _fstm (fstm)
         {}
 
-        basic_streambuf<Elem, Traits>* sbuf () const
+        inline basic_streambuf<Elem, Traits>* sbuf () const
         {
             return _sbuf;
         }
 
-        int_type log (int_type c, const Elem prefix[])
+        inline int_type log (int_type c, const Elem prefix[])
         {
             static int_type last_ch = '\n';
 
@@ -57,24 +57,23 @@ namespace std {
 
     protected:
 
-        virtual int sync () override
+        inline virtual int sync () override
         {
             _fstm->rdbuf ()->pubsync ();
             return _sbuf->pubsync ();
         }
 
-        virtual int_type overflow (int_type c) override
+        inline virtual int_type overflow (int_type c) override
         {
             return log (_sbuf->sputc (Elem (c)), "<< ");
         }
 
-
-        virtual int_type underflow () override
+        inline virtual int_type underflow () override
         {
             return _sbuf->sgetc ();
         }
 
-        virtual int_type uflow () override
+        inline virtual int_type uflow () override
         {
             return log (_sbuf->sbumpc (), ">> ");
         }
