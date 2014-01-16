@@ -71,7 +71,7 @@ namespace {
     MovesStats          FollowupMoves;
 
     // Duration of iteration
-    uint64_t            Iterated;
+    Time::point         Iterated;
 
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
@@ -384,7 +384,7 @@ namespace Searcher {
 
         if (write_search_log)
         {
-            uint64_t elapsed = Time::now () - SearchTime + 1;
+            Time::point elapsed = Time::now () - SearchTime + 1;
 
             Log log (fn_search_log);
             log << "Nodes: "        << RootPos.game_nodes ()                  << '\n'
@@ -1616,7 +1616,7 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         stringstream spv;
 
-        uint64_t elapsed = Time::now () - SearchTime + 1;
+        Time::point elapsed = Time::now () - SearchTime + 1;
         uint32_t pv_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
 
         int32_t sel_depth = 0;
@@ -1704,7 +1704,7 @@ void check_time ()
         Threads.mutex.unlock ();
     }
 
-    uint64_t elapsed = now_time - SearchTime;
+    Time::point elapsed = now_time - SearchTime;
 
     bool still_at_first_move = 
         Signals.first_root_move     &&

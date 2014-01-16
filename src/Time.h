@@ -36,12 +36,14 @@ INLINE uint64_t system_time_msec ()
 
 namespace Time {
 
-    typedef enum point : uint64_t
-    {
-        ONE_SEC = 1000,
-    } point;
+    //typedef enum point : uint64_t
+    //{
+    //    ONE_SEC = 1000,
+    //} point;
+    //INLINE point  operator-  (point  p1, point p2) { return point (uint64_t (p1) - uint64_t (p2)); }
 
-    INLINE uint64_t  operator-  (point  p1, point p2) { return (uint64_t (p1) - uint64_t (p2)); }
+    typedef int64_t point;
+    const point ONE_SEC = 1000;
 
     INLINE point now () { return point (system_time_msec ()); }
 

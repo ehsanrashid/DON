@@ -163,7 +163,7 @@ namespace Searcher {
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;
-    //extern uint64_t              Iterated;
+    //extern Time::point         Iterated;
 
 
     extern size_t perft (Position &pos, Depth depth);

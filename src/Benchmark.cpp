@@ -124,7 +124,7 @@ void benchmark (istream &is, const Position &pos)
 
         StateInfoStackPtr states;
         uint64_t nodes = 0;
-        uint64_t elapsed = Time::now ();
+        Time::point elapsed = Time::now ();
         
         for (size_t i = 0; i < fens.size (); ++i)
         {
