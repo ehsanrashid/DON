@@ -594,22 +594,6 @@ template<PType PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
-    //switch (PT)
-    //{
-    //case PAWN:
-    //    return BitBoard::attacks_bb<PAWN> (_active, s);
-    //case NIHT:
-    //case KING:
-    //    return BitBoard::attacks_bb<PT> (s);
-    //case BSHP:
-    //case ROOK:
-    //    return BitBoard::attacks_bb<PT> (s, pieces ());
-    //case QUEN:
-    //    return BitBoard::attacks_bb<BSHP> (s, pieces ())
-    //        |  BitBoard::attacks_bb<ROOK> (s, pieces ());
-    //}
-    //return U64 (0);
-
     return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
         : (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ()) | BitBoard::attacks_bb<ROOK> (s, pieces ())
         : (PAWN == PT) ? BitBoard::attacks_bb<PAWN> (_active, s)

@@ -56,46 +56,45 @@ namespace BitBoard {
     extern const int8_t _center_dist[SQ_NO]; 
     extern const int8_t _manhattan_center_dist[SQ_NO];
 
-    CACHE_ALIGN(64)
-        extern const Bitboard _square_bb[SQ_NO];
-    extern const Bitboard   _file_bb[F_NO];
-    extern const Bitboard   _rank_bb[R_NO];
+    CACHE_ALIGN(64) extern const Bitboard _square_bb[SQ_NO];
+    CACHE_ALIGN(64) extern const Bitboard   _file_bb[F_NO];
+    CACHE_ALIGN(64) extern const Bitboard   _rank_bb[R_NO];
 
-    extern const Bitboard _diag18_bb[D_NO];
-    extern const Bitboard _diag81_bb[D_NO];
+    CACHE_ALIGN(64) extern const Bitboard _diag18_bb[D_NO];
+    CACHE_ALIGN(64) extern const Bitboard _diag81_bb[D_NO];
 
-    extern const Bitboard _adj_file_bb[F_NO];
-    extern const Bitboard _adj_rank_bb[R_NO];
-    extern const Bitboard _front_rank_bb[CLR_NO][R_NO];
-    extern Bitboard _front_squares_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern const Bitboard _adj_file_bb[F_NO];
+    CACHE_ALIGN(64) extern const Bitboard _adj_rank_bb[R_NO];
+    CACHE_ALIGN(64) extern const Bitboard _front_rank_bb[CLR_NO][R_NO];
+    CACHE_ALIGN(64) extern Bitboard _front_squares_bb[CLR_NO][SQ_NO];
 
-    extern Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
-    extern Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
-    extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
+    CACHE_ALIGN(64) extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
 
-    extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
-    extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
 #pragma region Attacks
 
     // attacks of the pieces
-    extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
-    extern Bitboard _attacks_type_bb[PT_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _attacks_type_bb[PT_NO][SQ_NO];
 
 #pragma region MAGIC
 
-    extern Bitboard*BAttack_bb[SQ_NO];
-    extern Bitboard*RAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard*BAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard*RAttack_bb[SQ_NO];
 
-    extern Bitboard   BMask_bb[SQ_NO];
-    extern Bitboard   RMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   BMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   RMask_bb[SQ_NO];
 
-    extern Bitboard  BMagic_bb[SQ_NO];
-    extern Bitboard  RMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard  BMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard  RMagic_bb[SQ_NO];
 
-    extern uint8_t      BShift[SQ_NO];
-    extern uint8_t      RShift[SQ_NO];
+    CACHE_ALIGN(8) extern uint8_t      BShift[SQ_NO];
+    CACHE_ALIGN(8) extern uint8_t      RShift[SQ_NO];
 
 #pragma endregion
 

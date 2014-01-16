@@ -277,8 +277,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) uint8_t      BShift[SQ_NO];
-    CACHE_ALIGN(64) uint8_t      RShift[SQ_NO];
+    CACHE_ALIGN(8) uint8_t      BShift[SQ_NO];
+    CACHE_ALIGN(8) uint8_t      RShift[SQ_NO];
 
 #pragma endregion
 

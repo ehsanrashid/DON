@@ -446,24 +446,26 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>Full</Optimization>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;_CONSOLE;POPCNT;BSFQ;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <SmallerTypeCheck>false</SmallerTypeCheck>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level2</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>
       </AdditionalOptions>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <AdditionalDependencies>
@@ -478,10 +480,10 @@
       <TargetMachine>MachineX64</TargetMachine>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <LargeAddressAware>false</LargeAddressAware>
+      <HeapReserveSize>2097152</HeapReserveSize>
+      <HeapCommitSize>8192</HeapCommitSize>
       <StackReserveSize>2097152</StackReserveSize>
       <StackCommitSize>32768</StackCommitSize>
-      <HeapReserveSize>4194304</HeapReserveSize>
-      <HeapCommitSize>16384</HeapCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">
