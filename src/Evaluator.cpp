@@ -985,10 +985,8 @@ namespace {
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-        int32_t eg   = eg_value (score);
-        int32_t sign = (eg ? eg / abs (eg) : 0);
-        int32_t eg_f = (eg * int32_t (sf)) / SCALE_FACTOR_NORMAL;
-        return Value ((mg_value (score) * int32_t (ph) + eg_f * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME + sign);
+        int32_t eg  = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        return Value ((mg_value (score) * int32_t (ph) + eg * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
     }
 
     // apply_weight () weights 'score' by factor 'w' trying to prevent overflow

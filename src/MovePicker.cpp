@@ -212,15 +212,6 @@ int32_t MovePicker::generate_moves ()
     uint32_t index = 0;
     MoveList mov_lst = generate<GT> (pos);
 
-    //MoveList::const_iterator itr = mov_lst.cbegin ();
-    //while (itr != mov_lst.cend ())
-    //{
-    //    moves[index].move  = *itr;
-    //    //moves[index].value = VALUE_ZERO;
-    //    ++index;
-    //    ++itr;
-    //}
-
     for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
     {
         moves[index].move = m;
