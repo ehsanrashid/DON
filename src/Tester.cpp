@@ -254,7 +254,7 @@ namespace Tester {
             }
             for (s = SQ_A3; s <= SQ_H6; ++s)
             {
-                ASSERT (pos[s] == PS_NO);
+                ASSERT (pos[s] == EMPTY);
             }
             for (s = SQ_A7; s <= SQ_H7; ++s)
             {

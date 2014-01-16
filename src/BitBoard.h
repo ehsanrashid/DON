@@ -51,7 +51,7 @@ namespace BitBoard {
     //extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
     extern const Delta _deltas_pawn[CLR_NO][3];
-    extern const Delta _deltas_type[PT_NO][9];
+    extern const Delta _deltas_type[NONE][9];
 
     extern const int8_t _center_dist[SQ_NO]; 
     extern const int8_t _manhattan_center_dist[SQ_NO];
@@ -80,7 +80,7 @@ namespace BitBoard {
 
     // attacks of the pieces
     CACHE_ALIGN(64) extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard _attacks_type_bb[PT_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard _attacks_type_bb[NONE][SQ_NO];
 
 #pragma region MAGIC
 

@@ -154,7 +154,7 @@ void MovePicker::value<CAPTURE> ()
     {
         Move m = itr->move;
         int32_t pt = _type (pos[org_sq (m)]);
-        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - (PT_NO != pt ? pt+1 : 0);
+        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - (NONE != pt ? pt+1 : 0);
 
         switch (m_type (m))
         {
@@ -197,7 +197,7 @@ void MovePicker::value<EVASION> ()
         {
             int32_t pt = _type (pos[org_sq (m)]);
             itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - (PT_NO != pt ? pt+1 : 0) + VALUE_EG_QUEEN;
+            - (NONE != pt ? pt+1 : 0) + VALUE_EG_QUEEN;
         }
         else
         {

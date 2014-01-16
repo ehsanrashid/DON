@@ -19,7 +19,7 @@ using namespace MoveGenerator;
 const string CharPiece ("PNBRQK  pnbrqk");
 const string CharColor ("wb-");
 
-const Value PieceValue[PHASE_NO][PT_ALL] =
+const Value PieceValue[PHASE_NO][ALLS] =
 {
     { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
@@ -60,14 +60,14 @@ namespace {
     const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key);
 
     CACHE_ALIGN(32)
-        Score psq[CLR_NO][PT_NO][SQ_NO];
+        Score psq[CLR_NO][NONE][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
     // PSQT[PieceType][Square] contains Piece-Square scores. For each piece type on
     // a given square a (midgame, endgame) score pair is assigned. PSQT is defined
     // for white side, for black side the tables are symmetric.
-    const Score PSQT[PT_NO][SQ_NO] =
+    const Score PSQT[NONE][SQ_NO] =
     {
         // Pawn
         {S(  0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(  0, 0),
@@ -640,7 +640,7 @@ bool Position::pseudo_legal (Move m) const
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if ((PS_NO == p) || (active != _color (p))) return false;
+    if ((EMPTY == p) || (active != _color (p))) return false;
 
     Rank r_org = rel_rank (active, org);
     Rank r_dst = rel_rank (active, dst);
@@ -687,7 +687,7 @@ bool Position::pseudo_legal (Move m) const
                 s += step;
             }
 
-            //ct = PT_NO;
+            //ct = NONE;
             return true;
         }
         break;
@@ -757,7 +757,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_SW:
             // Capture. The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (PT_NO == ct || active == _color (piece_on (cap))) return false;
+            if (NONE == ct || active == _color (piece_on (cap))) return false;
             // cap and org files must be one del apart, avoids a7h5
             if (1 != file_dist (cap, org)) return false;
             break;
@@ -839,7 +839,7 @@ bool Position::       legal (Move m, Bitboard pinned) const
     Piece p  = piece_on (org);
     Color pc = _color (p);
     PType pt = _type  (p);
-    ASSERT ((active == pc) && (PT_NO != pt));
+    ASSERT ((active == pc) && (NONE != pt));
 
     Square ksq = king_sq (active);
 
@@ -975,7 +975,7 @@ void Position::clear ()
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        _piece_arr  [s] = PS_NO;
+        _piece_arr  [s] = EMPTY;
         _piece_index[s] = -1;
     }
     for (Color c = WHITE; c <= BLACK; ++c)
@@ -997,7 +997,7 @@ void Position::clear ()
     //_game_ply   = 1;
 
     _sb.en_passant = SQ_NO;
-    _sb.cap_type   = PT_NO;
+    _sb.cap_type   = NONE;
     _si = &_sb;
 }
 // setup() sets the fen on the position
@@ -1165,15 +1165,15 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Piece p      = piece_on (org);
     PType pt     = _type (p);
 
-    ASSERT ((PS_NO != p) &&
+    ASSERT ((EMPTY != p) &&
         (active == _color (p)) &&
-        (PT_NO != pt));
+        (NONE != pt));
     ASSERT (empty (dst) ||
         (pasive == _color (piece_on (dst))) ||
         (CASTLE == m_type (m)));
 
     Square cap = dst;
-    PType  ct  = PT_NO;
+    PType  ct  = NONE;
 
     MType mt   = m_type (m);
     // Pick capture piece and check validation
@@ -1183,7 +1183,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (KING == pt);
         ASSERT (ROOK == _type (piece_on (dst)));
 
-        ct = PT_NO;
+        ct = NONE;
         break;
 
     case ENPASSANT:
@@ -1224,7 +1224,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // ------------------------
 
     // Handle all captures
-    if (PT_NO != ct)
+    if (NONE != ct)
     {
         // Remove captured piece
         remove_piece (cap);
@@ -1447,7 +1447,7 @@ void Position::undo_move ()
             Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
 
             pt  = KING;
-            ct  = PT_NO;
+            ct  = NONE;
             castle_king_rook (dst, org, dst_rook, org_rook);
         }
         break;
@@ -1485,7 +1485,7 @@ void Position::undo_move ()
     }
 
     // If there was any capture piece
-    if (PT_NO != ct)
+    if (NONE != ct)
     {
         place_piece (cap, pasive, ct); // Restore the captured piece
     }
@@ -1557,7 +1557,7 @@ void Position::flip ()
     ////for (Square s = SQ_A1; s <= SQ_H8; ++s)
     ////{
     ////    Piece p = pos[s];
-    ////    if (PS_NO != p)
+    ////    if (EMPTY != p)
     ////    {
     ////        place_piece (~s, ~p);
     ////    }
@@ -1567,7 +1567,7 @@ void Position::flip ()
     //{
     //    Square s = pop_lsq (occ);
     //    Piece p  = pos[s];
-    //    if (PS_NO != p)
+    //    if (EMPTY != p)
     //    {
     //        place_piece (~s, ~p);
     //    }
@@ -1654,7 +1654,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             Piece p  = piece_on (s);
 
             if (false);
-            else if (PS_NO == p)
+            else if (EMPTY == p)
             {
                 uint32_t empty_cnt = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
@@ -1763,7 +1763,7 @@ string Position::fen (bool                  c960, bool full) const
     //        Piece p  = piece_on (s);
     //
     //        if (false);
-    //        else if (PS_NO == p)
+    //        else if (EMPTY == p)
     //        {
     //            uint32_t empty_cnt = 0;
     //            for ( ; f <= F_H && empty (s); ++f, ++s)
@@ -1978,7 +1978,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 f += empty_cnt;
 
                 if (f > F_NO) return false;
-                //while (empty_cnt-- > 0) place_piece(s++, PS_NO);
+                //while (empty_cnt-- > 0) place_piece(s++, EMPTY);
             }
             else if (isalpha (ch))
             {
@@ -1986,7 +1986,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 if (idx != string::npos)
                 {
                     Piece p = Piece (idx);
-                    if (PS_NO == p) return false;
+                    if (EMPTY == p) return false;
                     pos.place_piece (s, p);   // put the piece on board
                 }
                 ++f;

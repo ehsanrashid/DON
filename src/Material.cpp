@@ -19,9 +19,9 @@ namespace {
 
     // Polynomial material balance parameters
     //                                            P      N      B      R      Q     BP
-    const int32_t LinearCoefficients[PT_NO] = { -162, -1122,  -183,   249,   -52,  1852, };
+    const int32_t LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
 
-    const int32_t QuadraticCoefficientsSameColor[PT_NO][PT_NO] =
+    const int32_t QuadraticCoefficientsSameColor[NONE][NONE] =
     {
         // P    N    B    R    Q    BP
         {   2,   0,   0,   0,   0,  39, }, // P
@@ -32,7 +32,7 @@ namespace {
         {   0,   0,   0,   0,   0,   0, }, // BP
     };
 
-    const int32_t QuadraticCoefficientsOppositeColor[PT_NO][PT_NO] =
+    const int32_t QuadraticCoefficientsOppositeColor[NONE][NONE] =
     {
         //       THEIR PIECES
         // P    N    B    R    Q    BP
@@ -90,7 +90,7 @@ namespace {
     template<Color C>
     // imbalance<> () calculates imbalance comparing piece count of each
     // piece type for both colors.
-    inline int32_t imbalance (const int32_t piece_count[][PT_NO])
+    inline int32_t imbalance (const int32_t piece_count[][NONE])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -250,29 +250,6 @@ namespace Material {
         // No pawns makes it difficult to win, even with a material advantage.
         // This catches some trivial draws like KK, KBK and KNK
 
-        //if (pos.piece_count<PAWN> (WHITE) == 0 &&
-        //    npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
-        //{
-        //    e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-        //        0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
-        //}
-        //if (pos.piece_count<PAWN> (BLACK) == 0 &&
-        //    npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
-        //{
-        //    e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
-        //        0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
-        //}
-        //if (pos.piece_count<PAWN> (WHITE) == 1 &&
-        //    npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
-        //{
-        //    e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
-        //}
-        //if (pos.piece_count<PAWN> (BLACK) == 1 &&
-        //    npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
-        //{
-        //    e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
-        //}
-
         if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
             if (pos.piece_count<PAWN> (WHITE) == 0)
@@ -280,8 +257,7 @@ namespace Material {
                 e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
                     0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 1 ||
-                !(pos.pieces (WHITE, PAWN) & ~file_bb (pos.piece_list<PAWN> (WHITE)[0])))
+            else if (pos.piece_count<PAWN> (WHITE) == 1)
             {
                 e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
             }
@@ -294,12 +270,10 @@ namespace Material {
                 e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
                     0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
             }
-            else if (pos.piece_count<PAWN> (BLACK) == 1 ||
-                !(pos.pieces (BLACK, PAWN) & ~file_bb (pos.piece_list<PAWN> (BLACK)[0])))
+            else if (pos.piece_count<PAWN> (BLACK) == 1)
             {
                 e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
             }
-
         }
 
 
@@ -313,7 +287,7 @@ namespace Material {
         // Evaluate the material imbalance.
         // We use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const int32_t piece_count[CLR_NO][PT_NO] =
+        const int32_t piece_count[CLR_NO][NONE] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
             pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE),//pos.piece_count<BSHP> (WHITE) > 1

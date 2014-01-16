@@ -41,7 +41,7 @@ struct Stats
 {
 
 private:
-    T _table[PS_ALL][SQ_NO];
+    T _table[14][SQ_NO];
 
 public:
 
@@ -64,7 +64,7 @@ public:
     {
         if (GAIN)
         {
-            _table[p][s] = std::max (v, _table[p][s]);
+            _table[p][s] = std::max (v, _table[p][s] - 1);
         }
         else
         {

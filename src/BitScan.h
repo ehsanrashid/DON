@@ -340,8 +340,8 @@ inline Square  scan_msq (Bitboard bb)
 
 #endif
 
-// scan_rel_lsq() finds least significant bit relative to the given color
-INLINE Square scan_rel_lsq         (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
+//// scan_rel_lsq() finds least significant bit relative to the given color
+//INLINE Square scan_rel_lsq         (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
 
 // scan_rel_frntmost_sq() and scan_rel_backmost_sq() find the square
 // corresponding to the most/least advanced bit relative to the given color.

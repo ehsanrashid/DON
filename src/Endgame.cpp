@@ -170,14 +170,19 @@ namespace EndGame {
         }
         else
         {
-            value = pos.non_pawn_material(_stong_side)
+
+            value = pos.non_pawn_material (_stong_side)
+                -   pos.piece_count<BSHP> (_stong_side) * VALUE_EG_BISHOP
                 +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
                 +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
-
+            
+            bool bishop_pair = pos.bishops_pair (_stong_side);
+            value += (bishop_pair ? 2 : 1) * VALUE_EG_BISHOP + pos.piece_count<BSHP> (_stong_side);
+            
             if (pos.piece_count<QUEN> (_stong_side) ||
                 pos.piece_count<ROOK> (_stong_side) ||
                 pos.piece_count<NIHT> (_stong_side) > 2 ||
-                pos.bishops_pair (_stong_side))
+                bishop_pair)
             {
                 value += VALUE_KNOWN_WIN;
             }
@@ -851,14 +856,14 @@ namespace EndGame {
     // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
     ScaleFactor Endgame<KBPsKs>::operator() (const Position &pos) const
     {
-        ASSERT (pos.non_pawn_material(_stong_side) == VALUE_MG_BISHOP);
+        ASSERT (pos.non_pawn_material (_stong_side) == VALUE_MG_BISHOP);
         ASSERT (pos.piece_count<BSHP> (_stong_side) == 1);
         ASSERT (pos.piece_count<PAWN> (_stong_side) >= 1);
         // No assertions about the material of _weak_side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
         Bitboard wpawns = pos.pieces (_stong_side, PAWN);
-        Square wp_sq = pos.piece_list<PAWN> (_stong_side)[0];
+        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns); //pos.piece_list<PAWN> (_stong_side)[0];
         File wp_f = _file (wp_sq);
 
         // All pawns are on a single rook file ?
@@ -895,30 +900,32 @@ namespace EndGame {
                     return SCALE_FACTOR_DRAW;
                 }
 
-                // TODO::
                 // If the defending king has some pawns
                 Bitboard bpawns = pos.pieces (_weak_side, PAWN);
                 if (bpawns && !(bpawns & ~file_bb (wp_f)))
                 {
                     Square bp_sq = pos.piece_list<PAWN> (_weak_side)[0];
-                    Rank r = rel_rank (_weak_side, bp_sq);
-                    if (r > R_4 &&
-                        rank_dist (r, rel_rank (_weak_side, wp_sq)) == 1 &&
+                    int32_t br = rel_rank (_weak_side, bp_sq);
+                    int32_t wr = rel_rank (_weak_side, wp_sq);
+                    if (br == wr - 1 &&
                         opposite_colors (bp_sq, wb_sq))
                     {
-                        return SCALE_FACTOR_DRAW;
+                        int32_t tempo = (pos.active () == _stong_side);
+                        if (square_dist (queening_sq, bk_sq) < 
+                            square_dist (bp_sq, wk_sq) + br - tempo)
+                        {
+                            return SCALE_FACTOR_DRAW;
+                        }
                     }
                 }
 
             }
 
-            return SCALE_FACTOR_NONE;
         }
 
         // All pawns on same B or G file? Then potential draw
-        if ((wp_f == F_B || wp_f == F_G) &&
-            !(pos.pieces (PAWN) & ~file_bb (wp_f)) &&
-            (pos.non_pawn_material(_weak_side) == 0) &&
+        if ((wp_f == F_B || wp_f == F_G) && !(pos.pieces (PAWN) & ~file_bb (wp_f)) &&
+            (pos.non_pawn_material (_weak_side) == 0) &&
             (pos.piece_count<PAWN> (_weak_side) >= 1))
         {
             // Get _weak_side pawn that is closest to home rank
@@ -956,8 +963,6 @@ namespace EndGame {
                     return SCALE_FACTOR_DRAW;
                 }
             }
-
-            return SCALE_FACTOR_NONE;
 
         }
 

@@ -197,8 +197,8 @@ typedef enum PType : uint8_t
     ROOK  , // 011 - ROOK
     QUEN  , // 100 - QUEEN
     KING  , // 101 - KING
-    PT_NO , // 110 - PT_NO
-    PT_ALL,
+    NONE  , // 110 - NONE
+    ALLS  ,
 
 } PType;
 
@@ -228,7 +228,7 @@ typedef enum Piece : uint8_t
     W_QUEN    , //  0100
     W_KING    , //  0101
 
-    PS_NO  = 6, //  0110
+    EMPTY  = 6, //  0110
 
     B_PAWN = 8, //  1000
     B_NIHT    , //  1001
@@ -237,7 +237,7 @@ typedef enum Piece : uint8_t
     B_QUEN    , //  1100
     B_KING    , //  1101
 
-    PS_ALL =14,
+    // TOTAL piece is 14
     //W_PIEC    = 0x00, //  0...
     //B_PIEC    = 0x08, //  1...
 } Piece;
@@ -391,7 +391,6 @@ typedef enum Phase : int16_t
 typedef enum ScaleFactor : uint8_t
 {
     SCALE_FACTOR_DRAW    =   0,
-    //SCALE_FACTOR_BOUND   =   2,
 
     SCALE_FACTOR_ONEPAWN =  48,
     SCALE_FACTOR_NORMAL  =  64,
@@ -532,7 +531,7 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); 
 extern const std::string CharPiece;
 extern const std::string CharColor;
 
-extern const Value PieceValue[PHASE_NO][PT_ALL];
+extern const Value PieceValue[PHASE_NO][ALLS];
 
 
 #pragma region Color
@@ -678,7 +677,7 @@ inline Piece operator| (Color c, PType pt) { return Piece ((c << 3) | (pt)); }
 //inline Piece mk_piece  (Color c, PType pt) { return c | pt; }
 
 inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PType _type  (Piece p) { return PType ((p & PT_ALL)); }
+inline PType _type  (Piece p) { return PType ((p & ALLS)); }
 inline Color _color (Piece p) { return Color (p >> 3); }
 
 inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }

@@ -116,7 +116,7 @@ typedef struct CheckInfo sealed
 {
 public:
     // Checking squares from which the enemy king can be checked
-    Bitboard checking_bb[PT_NO];
+    Bitboard checking_bb[NONE];
     // Pinned pieces
     Bitboard pinneds;
     // Check discoverer pieces
@@ -167,10 +167,10 @@ private:
     // Board for storing pieces.
     Piece    _piece_arr[SQ_NO];
     Bitboard _color_bb[CLR_NO];
-    Bitboard _types_bb[PT_ALL];
+    Bitboard _types_bb[ALLS];
 
-    Square   _piece_list [CLR_NO][PT_NO][16];
-    uint8_t  _piece_count[CLR_NO][PT_ALL];
+    Square   _piece_list [CLR_NO][NONE][16];
+    uint8_t  _piece_count[CLR_NO][ALLS];
     int8_t   _piece_index[SQ_NO];
 
     // Object for base status information
@@ -481,7 +481,7 @@ inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c]
 inline Bitboard      Position::operator[] (PType pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_type (p)]; }
 
-inline bool     Position::empty   (Square s) const { return PS_NO == _piece_arr[s]; }
+inline bool     Position::empty   (Square s) const { return EMPTY == _piece_arr[s]; }
 inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
@@ -491,16 +491,16 @@ inline Bitboard Position::pieces (PType pt)           const { return _types_bb[p
 inline Bitboard Position::pieces (Color c, PType pt)  const { return _color_bb[c]  & _types_bb[pt]; }
 inline Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p1] | _types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
-inline Bitboard Position::pieces ()                   const { return  _types_bb[PT_NO]; }
-inline Bitboard Position::empties ()                  const { return ~_types_bb[PT_NO]; }
+inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
+inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
 
 template<PType PT>
 inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
 template<PType PT>
 inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
-inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT_NO]; }
-inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT_NO] + _piece_count[BLACK][PT_NO]; }
+inline int32_t Position::piece_count (Color c) const { return _piece_count[c][NONE]; }
+inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][NONE] + _piece_count[BLACK][NONE]; }
 inline int32_t Position::piece_count (Color c, PType pt) const { return _piece_count[c][pt]; }
 
 template<PType PT>
@@ -522,7 +522,7 @@ inline Move     Position::last_move     () const { return _si->last_move; }
 //
 inline PType    Position::cap_type      () const { return _si->cap_type; }
 //
-inline Piece    Position::cap_piece     () const { return (PT_NO == cap_type ()) ? PS_NO : (_active | cap_type ()); }
+inline Piece    Position::cap_piece     () const { return (NONE == cap_type ()) ? EMPTY : (_active | cap_type ()); }
 //
 inline Bitboard Position::checkers      () const { return _si->checkers; }
 //
@@ -704,22 +704,22 @@ inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)
 //    switch (m_type (m))
 //    {
 //    case CASTLE:
-//        return PS_NO;
+//        return EMPTY;
 //    case ENPASSANT:
 //        if (PAWN == pt)
 //        {
 //            cap += ((WHITE == _active) ? DEL_S : DEL_N);
 //            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN)) ?
-//                piece_on (cap) : PS_NO;
+//                piece_on (cap) : EMPTY;
 //        }
-//        return PS_NO;
+//        return EMPTY;
 //
 //    case PROMOTE:
 //        if (PAWN != pt
 //         || R_7 != rel_rank (_active, org)
 //         || R_8 != rel_rank (_active, dst))
 //        {
-//            return PS_NO;
+//            return EMPTY;
 //        }
 //        // NOTE: no break
 //    case NORMAL:
@@ -728,11 +728,11 @@ inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)
 //            // check not pawn push and can capture
 //            return (1 == BitBoard::file_dist (dst, org))
 //                && (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active))
-//                ? piece_on (cap) : PS_NO;
+//                ? piece_on (cap) : EMPTY;
 //        }
 //        return piece_on (cap);
 //    }
-//    return PS_NO;
+//    return EMPTY;
 //}
 
 inline bool Position::legal        (Move m) const { return legal (m, pinneds (_active)); }
@@ -799,8 +799,8 @@ inline void  Position:: place_piece (Square s, Color c, PType pt)
     Bitboard bb       = BitBoard::_square_bb[s];
     _color_bb[c]     |= bb;
     _types_bb[pt]    |= bb;
-    _types_bb[PT_NO] |= bb;
-    _piece_count[c][PT_NO]++;
+    _types_bb[NONE] |= bb;
+    _piece_count[c][NONE]++;
     // Update piece list, put piece at [s] index
     _piece_index[s] = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
@@ -823,13 +823,13 @@ inline void  Position::remove_piece (Square s)
     Color c  = _color (p);
     PType pt = _type (p);
 
-    _piece_arr [s]     = PS_NO;
+    _piece_arr [s]     = EMPTY;
 
     Bitboard bb       = ~BitBoard::_square_bb[s];
     _color_bb[c]     &= bb;
     _types_bb[pt]    &= bb;
-    _types_bb[PT_NO] &= bb;
-    _piece_count[c][PT_NO]--;
+    _types_bb[NONE] &= bb;
+    _piece_count[c][NONE]--;
     _piece_count[c][pt]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.
@@ -852,13 +852,13 @@ inline void  Position::  move_piece (Square s1, Square s2)
     Color c = _color (p);
     PType pt = _type (p);
 
-    _piece_arr[s1] = PS_NO;
+    _piece_arr[s1] = EMPTY;
     _piece_arr[s2] = p;
 
     Bitboard bb = BitBoard::_square_bb[s1] ^ BitBoard::_square_bb[s2];
     _color_bb[c]     ^= bb;
     _types_bb[pt]    ^= bb;
-    _types_bb[PT_NO] ^= bb;
+    _types_bb[NONE] ^= bb;
 
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.

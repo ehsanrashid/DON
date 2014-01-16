@@ -70,7 +70,7 @@ namespace BitBoard {
         { DEL_NW, DEL_NE },
         { DEL_SE, DEL_SW },
     };
-    const Delta _deltas_type[PT_NO][9] =
+    const Delta _deltas_type[NONE][9] =
     {
         {},
         { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
@@ -266,7 +266,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
 
     // Attacks of the pieces
-    CACHE_ALIGN(64) Bitboard _attacks_type_bb[PT_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard _attacks_type_bb[NONE][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard*BAttack_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard*RAttack_bb[SQ_NO];
@@ -575,9 +575,9 @@ namespace BitBoard {
 
                 PType pt = 
                     (attacks_bb<BSHP> (s1) & s2) ? BSHP :
-                    (attacks_bb<ROOK> (s1) & s2) ? ROOK : PT_NO;
+                    (attacks_bb<ROOK> (s1) & s2) ? ROOK : NONE;
 
-                if (PT_NO == pt) continue;
+                if (NONE == pt) continue;
 
                 _betwen_sq_bb[s1][s2] = attacks_bb (Piece (pt), s1, square_bb (s2)) & attacks_bb (Piece (pt), s2, square_bb (s1));
                 //_lines_sq_bb[s1][s2] = (_attacks_type_bb[pt][s1] & _attacks_type_bb[pt][s2]) + s1 + s2;

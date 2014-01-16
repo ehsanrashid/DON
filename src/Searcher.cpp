@@ -829,7 +829,7 @@ namespace {
             TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, ss->static_eval);
         }
 
-        if (pos.cap_type () != PT_NO &&
+        if (pos.cap_type () != NONE &&
             ss->static_eval != VALUE_NONE &&
             (ss-1)->static_eval != VALUE_NONE &&
             (move = (ss-1)->current_move) != MOVE_NULL &&

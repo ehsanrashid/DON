@@ -35,8 +35,8 @@ namespace {
         Pawns   ::Entry *pi;
 
         // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
-        // attacked_by[color][PT_NO] contains all squares attacked by the given color.
-        Bitboard attacked_by[CLR_NO][PT_ALL];
+        // attacked_by[color][NONE] contains all squares attacked by the given color.
+        Bitboard attacked_by[CLR_NO][ALLS];
 
         // king_ring[color] is the zone around the king which is considered
         // by the king safety evaluation. This consists of the squares directly
@@ -92,7 +92,7 @@ namespace {
 
     // MobilityBonus[PType][attacked] contains bonuses for middle and end game,
     // indexed by piece type and number of attacked squares not occupied by friendly pieces.
-    const Score MobilityBonus[PT_NO][32] =
+    const Score MobilityBonus[NONE][32] =
     {
         {},
         // Knights
@@ -148,7 +148,7 @@ namespace {
 
     // ThreatBonus[attacking][attacked] contains bonuses according to which piece
     // type attacks which one.
-    const Score ThreatBonus[2][PT_NO] =
+    const Score ThreatBonus[2][NONE] =
     {
         { S(  0,  0), S(  7, 39), S( 24, 49), S( 24, 49), S( 41,100), S( 41,100) }, // Minor
         { S(  0,  0), S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49) }, // Major
@@ -156,7 +156,7 @@ namespace {
 
     // ThreatenedByPawnPenalty[PType] contains a penalty according to which piece
     // type is attacked by an enemy pawn.
-    const Score ThreatenedByPawnPenalty[PT_NO] =
+    const Score ThreatenedByPawnPenalty[NONE] =
     {
         S(  0,  0), S( 56, 70), S( 56, 70), S( 76, 99), S( 86, 118), S(  0,  0),
     };
@@ -205,7 +205,7 @@ namespace {
     // is used as an index to KingDanger[].
     //
     // KingAttackWeights[PType] contains king attack weights by piece type
-    const int32_t KingAttackWeights[PT_NO] = { 0, 2, 2, 3, 5, 0, };
+    const int32_t KingAttackWeights[NONE] = { 0, 2, 2, 3, 5, 0, };
 
     // Bonuses for enemy's safe checks
     const int32_t KnightCheck       =  3;
@@ -636,7 +636,7 @@ namespace {
         +   evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
         // Sum up all attacked squares
-        ei.attacked_by[C][PT_NO] = 
+        ei.attacked_by[C][NONE] = 
             ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]
         |   ei.attacked_by[C][BSHP] | ei.attacked_by[C][ROOK]
         |   ei.attacked_by[C][QUEN] | ei.attacked_by[C][KING];
@@ -665,7 +665,7 @@ namespace {
             // Find the attacked squares around the king which has no defenders
             // apart from the king itself
             Bitboard undefended = 
-                ei.attacked_by[C_][PT_NO]
+                ei.attacked_by[C_][NONE]
             &   ei.attacked_by[C][KING]
             & ~(ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]
             |   ei.attacked_by[C][BSHP] | ei.attacked_by[C][ROOK]
@@ -721,7 +721,7 @@ namespace {
             }
 
             // Analyse enemy's safe distance checks for sliders and knights
-            Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][PT_NO]);
+            Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
 
             Bitboard   rook_check = pos.attacks_from<ROOK> (k_sq) & safe_sq;
             Bitboard bishop_check = pos.attacks_from<BSHP> (k_sq) & safe_sq;
@@ -772,11 +772,11 @@ namespace {
         Score score = SCORE_ZERO;
 
         // Undefended minors get penalized even if not under attack
-        Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][PT_NO];
+        Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][NONE];
         if (undefended_minors) score += UndefendedMinorPenalty;
 
         // Enemy pieces not defended by a pawn and under our attack
-        Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][PT_NO];
+        Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][NONE];
         // Add a bonus according if the attacking pieces are minor or major
         if (weak_enemies)
         {
@@ -850,7 +850,7 @@ namespace {
                     }
                     else
                     {
-                        squares_unsafe = squares_queen & (ei.attacked_by[C_][PT_NO] | pos.pieces (C_));
+                        squares_unsafe = squares_queen & (ei.attacked_by[C_][NONE] | pos.pieces (C_));
                     }
 
                     Bitboard squares_defended;
@@ -861,7 +861,7 @@ namespace {
                     }
                     else
                     {
-                        squares_defended = squares_queen & ei.attacked_by[C][PT_NO];
+                        squares_defended = squares_queen & ei.attacked_by[C][NONE];
                     }
 
                     // If there aren't enemy attacks huge bonus, a bit smaller if at
@@ -963,7 +963,7 @@ namespace {
             SpaceMask[C] &
             ~pos.pieces (C, PAWN) &
             ~ei.attacked_by[C_][PAWN] &
-            (ei.attacked_by[C][PT_NO] | ~ei.attacked_by[C_][PT_NO]);
+            (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);
 
         // Find all squares which are at most three squares behind some friendly pawn
         Bitboard behind = pos.pieces (C, PAWN);

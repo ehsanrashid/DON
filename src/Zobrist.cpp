@@ -201,7 +201,7 @@ namespace Zobrist {
                     if (idx != string::npos)
                     {
                         Piece p = Piece (idx);
-                        if (PS_NO == p) return U64 (0);
+                        if (EMPTY == p) return U64 (0);
                         if (KING == _type (p))  king[_color (p)] = f;
 
                         fen_key ^= _.psq_k[_color (p)][_type (p)][(f | r)];
