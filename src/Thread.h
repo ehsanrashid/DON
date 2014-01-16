@@ -171,7 +171,7 @@ struct Thread
     bool available_to(const Thread* master) const;
 
     template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack* ss, Value alpha, Value beta, Value* best_value, Move* best_move,
+    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value* best_value, Move* best_move,
         Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
 
 };
@@ -192,13 +192,16 @@ struct MainThread
 struct TimerThread
     : public ThreadBase
 {
+    // This is the minimum interval in msec between two check_time() calls
+    static const int32_t Resolution = 5;
+
     bool run;
-    static const int32_t Resolution = 5; // msec between two check_time() calls
 
     TimerThread()
         : run(false) {}
 
-    virtual void idle_loop();
+    virtual void idle_loop ();
+
 };
 
 // ThreadPool struct handles all the threads related stuff like init, starting,

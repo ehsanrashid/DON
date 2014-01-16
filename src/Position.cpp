@@ -147,6 +147,7 @@ namespace {
             attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
         }
         attackers &= occupied; // After X-ray that may add already processed pieces
+
         return PType (PT);
     }
 
@@ -641,6 +642,9 @@ bool Position::pseudo_legal (Move m) const
     // then the move is obviously not legal.
     if ((PS_NO == p) || (active != _color (p))) return false;
 
+    Rank r_org = rel_rank (active, org);
+    Rank r_dst = rel_rank (active, dst);
+
     PType pt = _type (p);
     PType ct;
 
@@ -657,11 +661,7 @@ bool Position::pseudo_legal (Move m) const
             if (KING != pt) return false;
             if ((active | ROOK) != piece_on (dst)) return false;
 
-            if (R_1 != rel_rank (active, org) ||
-                R_1 != rel_rank (active, dst))
-            {
-                return false;
-            }
+            if (R_1 != r_org || R_1 != r_dst) return false;
 
             //if (castle_impeded (active)) return false;
             if (!can_castle (active)) return false;
@@ -696,8 +696,8 @@ bool Position::pseudo_legal (Move m) const
         {
             if (   PAWN != pt
                 || _si->en_passant != dst
-                || R_5 != rel_rank (active, org)
-                || R_6 != rel_rank (active, dst)
+                || R_5 != r_org
+                || R_6 != r_dst
                 || !empty (dst))
                 return false;
 
@@ -711,8 +711,8 @@ bool Position::pseudo_legal (Move m) const
     case PROMOTE:
         {
             if (PAWN != pt) return false;
-            if (R_7 != rel_rank (active, org)) return false;
-            if (R_8 != rel_rank (active, dst)) return false;
+            if (R_7 != r_org) return false;
+            if (R_8 != r_dst) return false;
         }
         ct = _type (piece_on (cap));
         break;
@@ -738,9 +738,7 @@ bool Position::pseudo_legal (Move m) const
 
         if ((active == WHITE) != (delta > DEL_O)) return false;
 
-        Rank r_org = rel_rank (active, org);
         if (R_1 == r_org || R_8 == r_org) return false;
-        Rank r_dst = rel_rank (active, dst);
         if (R_1 == r_dst || R_2 == r_dst) return false;
         if (NORMAL == mt && (R_7 == r_org || R_8 == r_dst)) return false;
 
@@ -765,34 +763,21 @@ bool Position::pseudo_legal (Move m) const
             break;
 
         case DEL_NN:
-            // Double white pawn push. The destination square must be on the fourth
-            // rank, and both the destination square and the square between the
-            // source and destination squares must be empty.
-
-            //if (WHITE != active) return false;
-            if (   R_2 != _rank (org)
-                || R_4 != _rank (dst)
-                || !empty (dst)
-                || !empty (org + DEL_N))
-                return false;
-            break;
-
         case DEL_SS:
-            // Double black pawn push. The destination square must be on the fifth
+            // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
 
-            //if (BLACK != active) return false;
-            if (   R_7 != _rank (org)
-                || R_5 != _rank (dst)
+            if (   R_2 != r_org
+                || R_4 != r_dst
                 || !empty (dst)
-                || !empty (org + DEL_S))
+                || !empty (org + pawn_push (active)))
                 return false;
+
             break;
 
         default:
             return false;
-            break;
         }
     }
     else

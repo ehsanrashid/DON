@@ -179,21 +179,21 @@ void ThreadPool::read_uci_options ()
 {
     max_threads_per_split_point = int32_t (*(Options["Threads per Split Point"]));
     min_split_depth             = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-    int32_t num_threads         = int32_t (*(Options["Threads"]));
+    int32_t req_threads         = int32_t (*(Options["Threads"]));
 
-    ASSERT (num_threads > 0);
+    ASSERT (req_threads > 0);
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
     // automatically. Anyhow the min_split_depth should never be under 4 plies.
     min_split_depth = !min_split_depth ?
-        (num_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, min_split_depth);
+        (req_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, min_split_depth);
 
-    while (size () < num_threads)
+    while (size () < req_threads)
     {
         push_back (new_thread<Thread> ());
     }
 
-    while (size () > num_threads)
+    while (size () > req_threads)
     {
         delete_thread (back ());
         pop_back ();
@@ -224,7 +224,7 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // leave their idle loops and call search(). When all threads have returned from
 // search() then split() returns.
 template <bool FAKE>
-void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value *best_value, Move *best_move,
+void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
                     Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node)
 {
     ASSERT (pos.ok ());
@@ -314,8 +314,8 @@ void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Val
 }
 
 // Explicit template instantiations
-template void Thread::split<false> (Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
-template void Thread::split< true> (Position&, const Stack*, Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
+template void Thread::split<false> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
+template void Thread::split< true> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.

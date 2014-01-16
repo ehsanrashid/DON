@@ -11,7 +11,7 @@ using namespace Searcher;
 
 namespace {
 
-    const int32_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
+    const int8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
     const double  MaxRatio      =  7.0;  // When in trouble, we can step over reserved time with this ratio
     const double  StealRatio    =  0.33; // However we must not steal time from remaining moves over this ratio
 
@@ -81,21 +81,21 @@ namespace {
         double time_ratio1; //= (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
         double time_ratio2; //= (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
 
-        switch (TT)
+        if (false);
+        else if (OPTIMUM_TIME == TT)
         {
-        case OPTIMUM_TIME:
             time_ratio1 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
             time_ratio2 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
-            break;
-
-        case MAXIMUM_TIME:
+        }
+        else if (MAXIMUM_TIME == TT)
+        {
             time_ratio1 = (MaxRatio * curr_moves_importance) / (MaxRatio * curr_moves_importance + other_moves_importance);
             time_ratio2 = (curr_moves_importance + StealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
-            break;
         }
 
         return int32_t (floor (time * min (time_ratio1, time_ratio2)));
     }
+
 }
 
 void TimeManager::initialize (const Limits_t &limits, int32_t current_ply, Color c)
@@ -130,15 +130,12 @@ void TimeManager::initialize (const Limits_t &limits, int32_t current_ply, Color
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
     for (int32_t hyp_moves_to_go = 1;
-        hyp_moves_to_go <= (limits.moves_to_go ? min (int32_t (limits.moves_to_go), MoveHorizon) : MoveHorizon);
+        hyp_moves_to_go <= (limits.moves_to_go ? min<int32_t> (limits.moves_to_go, MoveHorizon) : MoveHorizon);
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_time =  
-            limits.game_clock[c].time
-            + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
-            - emergency_base_time
-            - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
+        int32_t hyp_time = limits.game_clock[c].time + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
+            - emergency_base_time - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
 
         if (hyp_time < 0) hyp_time = 0;
 

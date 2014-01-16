@@ -30,9 +30,6 @@ namespace {
     // Set to true to force running with one thread. Used for debugging
     const bool FakeSplit            = false;
 
-    // This is the minimum interval in msec between two check_time() calls
-    const int32_t TimerResolution   = 5;
-
     // Different node types, used as template parameter
     enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -90,7 +87,7 @@ namespace {
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
         Value bonus = Value (depth * depth);
         History.update (pos[org_sq (move)], dst_sq (move), bonus);
-        if (quiets)
+        //if (quiets)
         {
             for (int32_t i = 0; i < quiets_count; ++i)
             {
@@ -1328,7 +1325,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // Quiet best move: update killers, history, counter moves and followup moves
         if (best_value >= beta && !pos.capture_or_promotion (best_move) && !in_check)
         {
-            update_stats (pos, ss, best_move, depth, quiets_searched, quiets_count - 1);
+            update_stats (pos, ss, best_move, depth, quiets_searched, quiets_count);
         }
 
         ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1717,7 +1714,7 @@ void check_time ()
         &&     elapsed > Iterated * 1.4));
 
     bool no_more_time = 
-        elapsed > TimeMgr.maximum_time () - 2 * TimerResolution ||
+        elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution ||
         still_at_first_move;
 
     if ((Limits.use_time_management () && no_more_time)   ||
