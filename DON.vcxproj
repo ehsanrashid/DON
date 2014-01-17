@@ -318,6 +318,8 @@
       <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>
       </AdditionalOptions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>

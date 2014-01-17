@@ -88,8 +88,8 @@ namespace EndGame {
 
             string sides[CLR_NO] =
             {
-                code.substr (   code.find('K', 1)), // Weak
-                code.substr (0, code.find('K', 1)), // Strong
+                code.substr (   code.find('K', 1)), // Lossing
+                code.substr (0, code.find('K', 1)), // Winning
             };
 
             transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
@@ -115,6 +115,7 @@ namespace EndGame {
         add<KRKN>    ("KRKN");
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
+        // KBBKN is retired
         add<KBBKN>   ("KBBKN");
 
         add<KNPK>    ("KNPK");
@@ -170,15 +171,18 @@ namespace EndGame {
         }
         else
         {
+            int32_t bishop_count = pos.piece_count<BSHP> (_stong_side);
 
             value = pos.non_pawn_material (_stong_side)
-                -   pos.piece_count<BSHP> (_stong_side) * VALUE_EG_BISHOP
+                -   bishop_count * VALUE_EG_BISHOP
                 +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
                 +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
-            
-            bool bishop_pair = pos.bishops_pair (_stong_side);
-            value += (bishop_pair ? 2 : 1) * VALUE_EG_BISHOP + pos.piece_count<BSHP> (_stong_side);
-            
+
+            bool bishop_pair = bishop_count > 1 && pos.bishops_pair (_stong_side);
+            value += bishop_pair
+                ? bishop_count * VALUE_EG_BISHOP
+                : bishop_count + VALUE_EG_BISHOP;
+
             if (pos.piece_count<QUEN> (_stong_side) ||
                 pos.piece_count<ROOK> (_stong_side) ||
                 pos.piece_count<NIHT> (_stong_side) > 2 ||

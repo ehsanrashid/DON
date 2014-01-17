@@ -22,14 +22,14 @@ namespace Material {
         uint8_t _factor[CLR_NO];
         Score _space_weight;
         Phase _game_phase;
-        EndGame::EndgameBase<Value> *evaluation_func;
-        EndGame::EndgameBase<ScaleFactor> *scaling_func[CLR_NO];
+        EndGame::EndgameBase<Value>         *evaluation_func;
+        EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
         inline Score material_score () const { return mk_score (_value, _value); }
         inline Score space_weight ()   const { return _space_weight; }
         inline Phase game_phase ()     const { return _game_phase; }
 
-        inline bool specialized_eval_exists ()      const { return evaluation_func != NULL; }
+        inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
         inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
 
         ScaleFactor scale_factor (const Position &pos, Color c) const;
@@ -44,7 +44,7 @@ namespace Material {
     // which checks for draws with rook pawns and wrong-colored bishops.
     inline ScaleFactor Entry::scale_factor (const Position &pos, Color c) const
     {
-        if (scaling_func[c])
+        if (scaling_func[c] != NULL)
         {
             ScaleFactor sf = (*scaling_func[c]) (pos);
             return (SCALE_FACTOR_NONE == sf) ? ScaleFactor (_factor[c]) : sf;
@@ -55,7 +55,7 @@ namespace Material {
 
     typedef HashTable<Entry, 8192> Table;
 
-    Entry* probe (const Position &pos, Table &table, EndGame::Endgames &endgames);
+    Entry* probe     (const Position &pos, Table &table, EndGame::Endgames &endgames);
     
     Phase game_phase (const Position &pos);
 

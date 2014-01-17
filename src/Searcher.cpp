@@ -1307,7 +1307,9 @@ moves_loop: // When in check and at SPNode search starts from here
         // A split node has at least one move, the one tried before to be splitted.
         if (0 == moves_count)
         {
-            return excluded_move ? alpha : in_check ? mated_in (ss->ply) : DrawValue[pos.active ()];
+            return excluded_move ? alpha :
+                in_check ? mated_in (ss->ply) :
+                DrawValue[pos.active ()];
         }
 
         // If we have pruned all the moves without searching return a fail-low score

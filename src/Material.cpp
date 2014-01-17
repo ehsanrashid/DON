@@ -15,7 +15,8 @@ namespace {
     const Value EndgameLimit = Value ( 3998);
 
     // Scale factors used when one side has no more pawns
-    const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
+    //const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
+    const int32_t NoPawnsSF[4] = {  4, 8, 16,  0, };
 
     // Polynomial material balance parameters
     //                                            P      N      B      R      Q     BP
@@ -78,7 +79,7 @@ namespace {
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
-        return pos.non_pawn_material(C ) == VALUE_MG_QUEEN
+        return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
             && pos.piece_count<QUEN> (C ) == 1
             && pos.piece_count<PAWN> (C ) == 0
             && pos.piece_count<ROOK> (C_) == 1
@@ -86,8 +87,8 @@ namespace {
     }
 
     template<Color C>
-    // imbalance<> () calculates imbalance comparing piece count of each
-    // piece type for both colors.
+    // imbalance<> () calculates imbalance comparing
+    // piece count of each piece type for both colors.
     inline int32_t imbalance (const int32_t piece_count[][NONE])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -106,11 +107,11 @@ namespace {
 
             for (PType pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
-                v += QuadraticCoefficientsSameColor    [pt1][pt2] * piece_count[C ][pt2]
-                +    QuadraticCoefficientsOppositeColor[pt1][pt2] * piece_count[C_][pt2];
+                v += piece_count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
+                +    piece_count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
             }
-            v += QuadraticCoefficientsSameColor    [pt1][KING] * piece_count[C ][KING]
-            +    QuadraticCoefficientsOppositeColor[pt1][KING] * piece_count[C_][KING];
+            v += piece_count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
+            +    piece_count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
 
             value += pc * v;
         }
@@ -123,11 +124,12 @@ namespace {
 
 namespace Material {
 
-    // Material::probe () takes a position object as input, looks up a MaterialEntry
-    // object, and returns a pointer to it. If the material configuration is not
-    // already present in the table, it is computed and stored there, so we don't
-    // have to recompute everything when the same material configuration occurs again.
-    Entry* probe (const Position &pos, Table &table, Endgames &endgames)
+    // Material::probe () takes a position object as input,
+    // looks up a MaterialEntry object, and returns a pointer to it.
+    // If the material configuration is not already present in the table,
+    // it is computed and stored there, so we don't have to recompute everything
+    // when the same material configuration occurs again.
+    Entry* probe     (const Position &pos, Table &table, Endgames &endgames)
     {
         Key key  = pos.matl_key ();
         Entry *e = table[key];
@@ -160,11 +162,12 @@ namespace Material {
             return e;
         }
 
-        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) && !pos.pieces (QUEN) &&
-            (pos.pieces (WHITE, NIHT, BSHP) | pos.pieces (BLACK, NIHT, BSHP)))
+        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) &&
+            !pos.pieces (QUEN) && pos.pieces (NIHT, BSHP))
         {
             // Minor piece endgame with at least one minor piece per side and
             // no pawns. Note that the case KmmK is already handled by KXK.
+            
             //ASSERT (pos.pieces (WHITE, NIHT, BSHP));
             //ASSERT (pos.pieces (BLACK, NIHT, BSHP));
 
@@ -237,7 +240,8 @@ namespace Material {
                 //ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
-            else if ((pos.piece_count<PAWN> (WHITE) == 1) && (pos.piece_count<PAWN> (BLACK) == 1))
+            else if (pos.piece_count<PAWN> (WHITE) == 1
+                &&   pos.piece_count<PAWN> (BLACK) == 1)
             {
                 // This is a special case because we set scaling functions for both colors instead of only one.
                 e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
@@ -265,7 +269,7 @@ namespace Material {
         {
             if (pos.piece_count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = (npm[WHITE] == npm[BLACK] || npm[BLACK] < VALUE_MG_ROOK) ?
+                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
                     0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
             }
             else if (pos.piece_count<PAWN> (BLACK) == 1)
