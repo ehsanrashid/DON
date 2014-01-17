@@ -16,7 +16,6 @@ namespace {
 
     // Scale factors used when one side has no more pawns
     //const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
-    const int32_t NoPawnsSF[4] = {  4, 8, 16,  0, };
 
     // Polynomial material balance parameters
     //                                            P      N      B      R      Q     BP
@@ -167,7 +166,7 @@ namespace Material {
         {
             // Minor piece endgame with at least one minor piece per side and
             // no pawns. Note that the case KmmK is already handled by KXK.
-            
+
             //ASSERT (pos.pieces (WHITE, NIHT, BSHP));
             //ASSERT (pos.pieces (BLACK, NIHT, BSHP));
 
@@ -254,30 +253,33 @@ namespace Material {
 
         if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
-            if (pos.piece_count<PAWN> (WHITE) == 0)
+            if (false);
+            else if (pos.piece_count<PAWN> (WHITE) == 0)
             {
                 e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                    0 : NoPawnsSF[min (pos.piece_count<BSHP> (WHITE), 2)];
+                    0 : ScaleFactor (4 * (pos.piece_count (WHITE) - 1));
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
+                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+                    ScaleFactor (4 * (pos.piece_count (WHITE) - 1)) : SCALE_FACTOR_ONEPAWN;
             }
         }
 
         if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
-            if (pos.piece_count<PAWN> (BLACK) == 0)
+            if (false);
+            else if (pos.piece_count<PAWN> (BLACK) == 0)
             {
                 e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                    0 : NoPawnsSF[min (pos.piece_count<BSHP> (BLACK), 2)];
+                    0 : ScaleFactor (4 * (pos.piece_count (BLACK) - 1));
             }
             else if (pos.piece_count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
+                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
+                    ScaleFactor (4 * (pos.piece_count (BLACK) - 1)) : SCALE_FACTOR_ONEPAWN;
             }
         }
-
 
         // Compute the space weight
         if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)

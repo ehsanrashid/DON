@@ -181,7 +181,7 @@ namespace {
     void dbg_hit_on_c(bool c, bool b)   { if (c) dbg_hit_on (b);       }
     void dbg_mean_of (int32_t v)        { ++means[0]; means[1] += v;   }
 
-    inline void dbg_print()
+    inline void dbg_print ()
     {
         if (hits[0])
         {
@@ -455,6 +455,7 @@ finish:
                 }
             }
         }
+
         // Init futility move count array
         for (int32_t d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
@@ -1555,8 +1556,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // The function is called before storing a value to the transposition table.
     inline Value value_to_tt (Value v, int32_t ply)
     {
-        //ASSERT (v != VALUE_NONE);
-        
+        ASSERT (v != VALUE_NONE);
         return
             v >= VALUE_MATES_IN_MAX_PLY ? v + ply :
             v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;

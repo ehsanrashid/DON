@@ -321,7 +321,6 @@ namespace {
         score += evaluate_threats<WHITE, TRACE> (pos, ei)
             -    evaluate_threats<BLACK, TRACE> (pos, ei);
 
-
         // Evaluate passed pawns, we need full attack information including king
         score += evaluate_passed_pawns<WHITE, TRACE> (pos, ei)
             -    evaluate_passed_pawns<BLACK, TRACE> (pos, ei);

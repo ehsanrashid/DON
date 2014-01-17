@@ -174,14 +174,14 @@ namespace EndGame {
             int32_t bishop_count = pos.piece_count<BSHP> (_stong_side);
 
             value = pos.non_pawn_material (_stong_side)
-                -   bishop_count * VALUE_EG_BISHOP
+                //-   bishop_count * VALUE_MG_BISHOP
                 +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
                 +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
 
             bool bishop_pair = bishop_count > 1 && pos.bishops_pair (_stong_side);
-            value += bishop_pair
-                ? bishop_count * VALUE_EG_BISHOP
-                : bishop_count + VALUE_EG_BISHOP;
+            //value += bishop_pair
+            //    ? bishop_count * VALUE_MG_BISHOP
+            //    : bishop_count + VALUE_MG_BISHOP;
 
             if (pos.piece_count<QUEN> (_stong_side) ||
                 pos.piece_count<ROOK> (_stong_side) ||

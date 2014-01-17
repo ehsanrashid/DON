@@ -492,7 +492,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType pt = _type (pos[org]);
+            PType pt   = _type (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
@@ -526,7 +526,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType pt = _type (pos[org]);
+            PType pt   = _type (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
