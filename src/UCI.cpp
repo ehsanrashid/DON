@@ -123,7 +123,7 @@ namespace UCI {
             if (iequals (token, "startpos"))
             {
                 fen = FEN_N;
-                if (!(cstm >> token)) return;
+                cstm >> token; // Consume "moves" token if any
             }
             else if (iequals (token, "fen"))
             {

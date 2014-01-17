@@ -64,7 +64,7 @@ public:
     {
         if (GAIN)
         {
-            _table[p][s] = std::max (v, _table[p][s] - 1);
+            _table[p][s] = std::max (v, _table[p][s]);
         }
         else
         {
