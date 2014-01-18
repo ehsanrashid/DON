@@ -28,7 +28,7 @@ namespace Engine {
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "1.0";
+        const string Version   = ""; //"1.0";
         const string Author    = "Ehsan Rashid";
 
         const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
@@ -57,8 +57,8 @@ namespace Engine {
                 >> year;
 
             ss << setfill ('0')
-                << setw (2) << day << '-'
-                << setw (2) << (Months.find (month) / 4 + 1) << '-'
+                << setw (2) << day //<< '-'
+                << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
                 << setw (2) << year.substr (2);
         }
         else
@@ -76,11 +76,9 @@ namespace Engine {
         //        ss << " SSE4.2";
         //#endif
 
-        ss << "\n" << ((uci) ? "id author " : "(c) 2014 ");
-
-        ss << Author;
-
-        ss << endl;
+        ss  << "\n" 
+            << ((uci) ? "id author " : "(c) 2014 ")
+            << Author << "\n";
 
         return ss.str ();
     }
