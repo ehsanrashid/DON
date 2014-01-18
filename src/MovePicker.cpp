@@ -175,8 +175,9 @@ void MovePicker::value<QUIET>   ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         m = itr->move;
-        Value value = history[pos[org_sq (m)]][dst_sq (m)];
-        itr->value = (value ? value : Value (1));
+        //Value value = history[pos[org_sq (m)]][dst_sq (m)];
+        //itr->value = (value ? value : Value (1));
+        itr->value = history[pos[org_sq (m)]][dst_sq (m)];
     }
 }
 
@@ -203,9 +204,9 @@ void MovePicker::value<EVASION> ()
         }
         else
         {
-            Value value = history[pos[org_sq (m)]][dst_sq (m)];
-            itr->value = (value ? value : Value (1));
-            //itr->value = history[pos[org_sq (m)]][dst_sq (m)];
+            //Value value = history[pos[org_sq (m)]][dst_sq (m)];
+            //itr->value  = (value ? value : Value (1));
+            itr->value = history[pos[org_sq (m)]][dst_sq (m)];
         }
     }
 }

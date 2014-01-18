@@ -21,7 +21,6 @@
 #pragma warning (disable: 4996) // Function _ftime() may be unsafe
 #pragma warning (disable: 6326) // Constant comparison
 
-// MSVC does not support <inttypes.h>
 //#   include <stdint.h>
 
 typedef   signed __int8          int8_t;
@@ -63,6 +62,7 @@ typedef unsigned __int32 __w64  uint32_t;
 #elif defined(__GNUC__)
 
 #   include <inttypes.h>
+#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 #   define S32(X) (X## L )
 #   define U32(X) (X##UL )
@@ -77,6 +77,7 @@ typedef unsigned __int32 __w64  uint32_t;
 //#   define X64_FORMAT "%016llX"
 
 #else
+#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 typedef   signed char            int8_t;
 typedef unsigned char           uint8_t;

@@ -367,12 +367,13 @@ namespace UCI {
         }
         while (active && !iequals (cmd, "quit"));
 
-        Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
 
     void stop ()
     {
         active = false;
+
+        Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
 
     //void send_responce (const char format[], ...)

@@ -1,7 +1,8 @@
 #ifndef THREAD_H_
 #define THREAD_H_
 
-#include <vector>
+//#include <string>
+//#include <vector>
 
 #include "Pawns.h"
 #include "Material.h"
@@ -36,6 +37,7 @@ typedef void*(*pt_start_fn)(void*);
 
 #else // Windows and MinGW
 
+#   include <intrin.h>
 #   undef NOMINMAX
 #   define NOMINMAX // disable macros min() and max()
 
@@ -141,7 +143,7 @@ struct ThreadBase
     virtual ~ThreadBase() {}
 
     virtual void idle_loop() = 0;
-    
+
     void notify_one ();
     void wait_for (volatile const bool &b);
 };
@@ -225,11 +227,11 @@ struct ThreadPool
     MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
     void read_uci_options();
-    
+
     Thread* available_slave (const Thread *master) const;
 
     void start_thinking (const Position &pos, const Searcher::Limits_t &limit, StateInfoStackPtr &states);
-  
+
     void wait_for_think_finished ();
 };
 
@@ -249,6 +251,128 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 
     cond_timedwait (sleep_cond, sleep_lock, tm);
 }
+
+#if __cplusplus > 199711L
+#   include<thread>
+#endif
+
+inline int32_t physical_processor ()
+{
+
+#if __cplusplus > 199711L
+    // May return 0 when not able to detect
+    return std::thread::hardware_concurrency ();
+
+#else    
+
+#   ifdef WIN32
+
+    SYSTEM_INFO sys_info;
+    GetSystemInfo (&sys_info);
+    return sys_info.dwNumberOfProcessors;
+
+#   elif MACOS
+
+    uint32_t count;
+    size_t len = sizeof (count);
+
+    int32_t nm[2];
+    nm[0] = CTL_HW;
+    nm[1] = HW_AVAILCPU;
+    sysctl (nm, 2, &count, &len, NULL, 0);
+    if (count < 1)
+    {
+        nm[1] = HW_NCPU;
+        sysctl (nm, 2, &count, &len, NULL, 0);
+        if (count < 1) count = 1;
+    }
+    return count;
+
+#   elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+
+    return sysconf (_SC_NPROCESSORS_ONLN);
+
+#   elif __HPUX
+
+    pst_dynamic psd;
+    return (pstat_getdynamic (&psd, sizeof (psd), size_t (1), 0) == -1) ?
+        1 : psd.psd_proc_cnt;
+
+    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
+
+#   elif __IRIX
+
+    return sysconf (_SC_NPROC_ONLN);
+
+#   else
+
+    return 1;
+
+#   endif
+
+#endif
+
+}
+
+//inline void cpu_id (uint32_t regs[4], int32_t i)
+//{
+//#ifdef _WIN32
+//
+//    __cpuid ((int32_t *) regs, i);
+//
+//#else
+//
+//    asm volatile
+//        ("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+//        : "a" (i), "c" (0));
+//    // ECX is set to zero for CPUID function 4
+//#endif
+//}
+//
+//inline std::string cpu_feature ()
+//{
+//    uint32_t regs[4];
+//
+//    // Get vendor
+//    char vendor[12];
+//    cpu_id (regs, 0);
+//    ((int32_t *)vendor)[0] = regs[1]; // EBX
+//    ((int32_t *)vendor)[1] = regs[3]; // EDX
+//    ((int32_t *)vendor)[2] = regs[2]; // ECX
+//    std::string cpu_vendor = std::string (vendor);
+//
+//    std::ostringstream ss;
+//
+//    cpu_id (regs, 1);
+//    // Get CPU features
+//    uint32_t cpuFeatures = regs[3]; // EDX
+//    // Logical core count per CPU
+//    uint32_t logical = (regs[1] >> 16) & 0xff; // EBX[23:16]
+//    ss << " logical cpus: " << logical << std::endl;
+//    uint32_t cores = logical;
+//
+//    if (cpu_vendor == "GenuineIntel")
+//    {
+//        // Get DCP cache info
+//        cpu_id (regs, 2);
+//        cores = ((regs[0] >> 26) & 0x3f) + 1; // EAX[31:26] + 1
+//    } 
+//    else if (cpu_vendor == "AuthenticAMD")
+//    {
+//        // Get NC: Number of CPU cores - 1
+//        cpu_id (regs, 0x80000008);
+//        cores = ((uint32_t)(regs[2] & 0xff)) + 1; // ECX[7:0] + 1
+//    }
+//
+//    ss << "    cpu cores: " << cores << std::endl;
+//
+//    // Detect hyper-threads  
+//    bool hyper_threads = cpuFeatures & (1 << 28) && cores < logical;
+//
+//    ss << "hyper-threads: " << std::boolalpha <<  hyper_threads << std::endl;
+//
+//    return ss.str ();
+//}
 
 extern ThreadPool Threads;
 

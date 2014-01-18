@@ -201,9 +201,8 @@ namespace UCI {
 
         void on_resize_hash     (const Option &opt)
         {
-            uint32_t size_mb = int32_t (opt);
-            size_mb = TT.resize (size_mb);
-            ats () << "info string " << size_mb << " MB Hash." << endl;
+            TT.resize (int32_t (opt));
+            ats () << "info string " << TT.size () << " MB Hash." << endl;
         }
 
         void on_save_hash       (const Option &opt)
@@ -250,7 +249,7 @@ namespace UCI {
     {
 
 #pragma region old
-        //int16_t cpu   = min (cpu_count (), MAX_THREADS);
+        //int16_t cpu   = min (physical_processor (), MAX_THREADS);
         // max split depth
         //int16_t max_spl_depth = cpu < 8 ? 4 : 7;
 

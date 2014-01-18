@@ -6,14 +6,13 @@ using namespace std;
 
 string args_str (size_t argc, const char* const argv[]);
 
-int32_t main (int32_t argc, const char* const argv[])
+void main (int32_t argc, const char* const argv[])
 {
     string args = args_str (argc, argv);
-    Engine::start (args);
-
+    Engine::run (args);
     //system ("pause");
     //atexit (report_leak);
-    return EXIT_SUCCESS;
+    Engine::exit (EXIT_SUCCESS);
 }
 
 string args_str (size_t argc, const char* const argv[])

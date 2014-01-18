@@ -121,7 +121,7 @@ public:
 
 
     // Default size for Transposition table in mega-byte
-    static const size_t DEF_SIZE_TT         = 32;
+    static const size_t DEF_SIZE_TT         = 128;
 
     // Minimum size for Transposition table in mega-byte
     static const size_t SIZE_MIN_TT         = 4;
@@ -158,6 +158,8 @@ public:
     }
 
     size_t resize (uint32_t size_mb);
+
+    size_t size () const { return (size_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
 
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,

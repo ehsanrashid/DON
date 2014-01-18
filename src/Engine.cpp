@@ -11,10 +11,12 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "Thread.h"
 #include "UCI.h"
 #include "Tester.h"
 #include "IOLogger.h"
+
+//#include <thread>
+#include "Thread.h"
 
 namespace Engine {
 
@@ -22,7 +24,7 @@ namespace Engine {
 
     namespace {
 
-        const string Engine    = "DON";
+        const string Name      = "DON";
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
@@ -35,10 +37,10 @@ namespace Engine {
 
     string info (bool uci)
     {
-        stringstream sinfo;
+        ostringstream ss;
 
-        if (uci) sinfo << "id name ";
-        sinfo << Engine << ' ';
+        if (uci) ss << "id name ";
+        ss << Name << " ";
 
         if (Version.empty ())
         {
@@ -54,36 +56,36 @@ namespace Engine {
                 >> day
                 >> year;
 
-            sinfo << setfill ('0')
+            ss << setfill ('0')
                 << setw (2) << day << '-'
                 << setw (2) << (Months.find (month) / 4 + 1) << '-'
                 << setw (2) << year.substr (2);
         }
         else
         {
-            sinfo << Version;
+            ss << Version;
         }
 
 #ifdef _64BIT
-        sinfo << " x64";
+        ss << " x64";
 #else
-        sinfo << " x86";
+        ss << " w32";
 #endif
 
-#ifdef POPCNT
-        sinfo << " SSE4.2";
-#endif
+        //#ifdef POPCNT
+        //        ss << " SSE4.2";
+        //#endif
 
-        sinfo << ((uci) ? "\nid author " : " by ");
+        ss << "\n" << ((uci) ? "id author " : "(c) 2014 ");
 
-        sinfo << Author;
+        ss << Author;
 
-        sinfo << endl;
+        ss << endl;
 
-        return sinfo.str ();
+        return ss.str ();
     }
 
-    void start (const std::string &args)
+    void run (const std::string &args)
     {
         cout << Engine::info () << endl;
 
@@ -97,11 +99,14 @@ namespace Engine {
         Evaluator::initialize ();
         Threads   .initialize ();
 
-        size_t size_mb = TT.resize (int32_t (*(Options["Hash"])));
-
         cout 
+            << "info string " << physical_processor () << " processor(s) found."
+#ifdef POPCNT
+            << " POPCNT available."
+#endif
+            << '\n'
             << "info string " << Threads.size () << " thread(s)." << '\n'
-            << "info string " << size_mb         << " MB Hash."   << endl;
+            << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifdef _DEBUG
         //Tester::main_test ();
@@ -114,19 +119,15 @@ namespace Engine {
 
         //log_io (false);
 
-        Threads.deinitialize ();
-        UCI   ::deinitialize ();
     }
 
-    void stop ()
+    // Exit in case of error with error code
+    void exit (int32_t code)
     {
         UCI::stop ();
         Threads.deinitialize ();
-    }
+        UCI   ::deinitialize ();
 
-    void exit (int32_t code)
-    {
-        stop ();
         ::exit (code);
     }
 
