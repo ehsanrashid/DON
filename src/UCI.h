@@ -166,7 +166,9 @@ namespace UCI {
     // ---------------------------------------------
 
     extern void start (const std::string &args = "");
+
     extern void stop ();
+
 }
 
 // Global string mapping of options

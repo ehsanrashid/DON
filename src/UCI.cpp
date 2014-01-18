@@ -33,7 +33,7 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr   SetupStates;
 
-        bool active         = false;
+        bool run         = false;
 
 #pragma region uci-commands
 
@@ -313,13 +313,13 @@ namespace UCI {
     {
         RootPos.setup (FEN_N, Threads.main (), *(Options["UCI_Chess960"]));
 
-        active = args.empty ();
+        run = args.empty ();
         string cmd = args;
         string token;
         do
         {
             // Block here waiting for input
-            if (active && !getline (cin, cmd, '\n')) cmd = "quit";
+            if (run && !getline (cin, cmd, '\n')) cmd = "quit";
             if (whitespace (cmd)) continue;
 
             try
@@ -365,13 +365,13 @@ namespace UCI {
                 //TRI_LOG_MSG (exp.what ());
             }
         }
-        while (active && !iequals (cmd, "quit"));
+        while (run && !iequals (cmd, "quit"));
 
     }
 
     void stop ()
     {
-        active = false;
+        run = false;
 
         Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
