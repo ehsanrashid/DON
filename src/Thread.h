@@ -10,9 +10,9 @@
 #include "Searcher.h"
 
 // Because SplitPoint::slaves_mask is a uint64_t
-const int32_t MAX_THREADS                = 64;
-const int32_t MAX_SPLITPOINTS_PER_THREAD = 8;
-const uint8_t MAX_SPLIT_DEPTH            = 99;
+const int32_t MAX_THREADS             = 64;
+const int32_t MAX_THREADS_SPLIT_POINT = 8;
+const int32_t MIN_SPLIT_DEPTH         = 15;
 
 #ifndef _WIN32 // Linux - Unix
 
@@ -155,7 +155,7 @@ struct ThreadBase
 struct Thread
     : public ThreadBase
 {
-    SplitPoint           split_points[MAX_SPLITPOINTS_PER_THREAD];
+    SplitPoint           split_points[MAX_THREADS_SPLIT_POINT];
     Material::Table      material_table;
     Pawns   ::Table      pawns_table;
     EndGame ::Endgames   endgames;
@@ -163,7 +163,7 @@ struct Thread
     size_t               idx;
     int32_t              max_ply;
     SplitPoint* volatile active_split_point;
-    volatile int32_t     split_points_size;
+    volatile int32_t     threads_split_point;
     volatile bool        searching;
 
     Thread ();
@@ -213,8 +213,8 @@ struct ThreadPool
     : public std::vector<Thread*>
 {
     bool                sleep_while_idle;
-    Depth               min_split_depth;
-    size_t              max_threads_per_split_point;
+    Depth               split_depth;
+    size_t              threads_split_point;
     Mutex               mutex;
     ConditionVariable   sleep_condition;
     TimerThread        *timer;
@@ -256,7 +256,7 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 #   include<thread>
 #endif
 
-inline int32_t physical_processor ()
+inline int32_t cpu_count ()
 {
 
 #if __cplusplus > 199711L
@@ -265,13 +265,13 @@ inline int32_t physical_processor ()
 
 #else    
 
-#   ifdef WIN32
+#   if defined(WIN32)
 
     SYSTEM_INFO sys_info;
     GetSystemInfo (&sys_info);
     return sys_info.dwNumberOfProcessors;
 
-#   elif MACOS
+#   elif defined(MACOS)
 
     uint32_t count;
     size_t len = sizeof (count);
@@ -288,11 +288,11 @@ inline int32_t physical_processor ()
     }
     return count;
 
-#   elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+#   elif defined(_SC_NPROCESSORS_ONLN) // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
 
     return sysconf (_SC_NPROCESSORS_ONLN);
 
-#   elif __HPUX
+#   elif defined(__HPUX)
 
     pst_dynamic psd;
     return (pstat_getdynamic (&psd, sizeof (psd), size_t (1), 0) == -1) ?
@@ -300,7 +300,7 @@ inline int32_t physical_processor ()
 
     //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
 
-#   elif __IRIX
+#   elif defined(__IRIX)
 
     return sysconf (_SC_NPROC_ONLN);
 

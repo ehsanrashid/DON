@@ -358,7 +358,7 @@ namespace Searcher {
             Log log (fn_search_log);
 
             log << "---------\n" << boolalpha
-                << "Searching: "    << RootPos.fen () << '\n'
+                << "Searching: "    << RootPos.fen () << "\n"
                 << " infinite: "    << Limits.infinite
                 << " ponder: "      << Limits.ponder
                 << " time: "        << Limits.game_clock[RootPos.active ()].time
@@ -387,8 +387,8 @@ namespace Searcher {
             Time::point elapsed = Time::now () - SearchTime + 1;
 
             Log log (fn_search_log);
-            log << "Nodes: "        << RootPos.game_nodes ()                  << '\n'
-                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << '\n'
+            log << "Nodes: "        << RootPos.game_nodes ()                  << "\n"
+                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << "\n"
                 << "Best move: "    << move_to_san (RootMoves[0].pv[0], RootPos)
                 << endl;
 
@@ -1285,9 +1285,9 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Step 19. Check for splitting the search
-            if (!SPNode && depth >= Threads.min_split_depth &&
+            if (!SPNode && depth >= Threads.split_depth &&
                 Threads.available_slave (thread) &&
-                thread->split_points_size < MAX_SPLITPOINTS_PER_THREAD)
+                thread->threads_split_point < MAX_THREADS_SPLIT_POINT)
             {
                 ASSERT (best_value < beta);
 
@@ -1689,7 +1689,7 @@ void check_time ()
         // all the currently active positions nodes.
         for (size_t i = 0; i < Threads.size (); ++i)
         {
-            for (int32_t j = 0; j < Threads[i]->split_points_size; ++j)
+            for (int32_t j = 0; j < Threads[i]->threads_split_point; ++j)
             {
                 SplitPoint &sp = Threads[i]->split_points[j];
                 sp.mutex.lock ();
@@ -1733,7 +1733,7 @@ void Thread::idle_loop ()
 {
     // Pointer 'this_sp' is not null only if we are called from split(), and not
     // at the thread creation. So it means we are the split point's master.
-    SplitPoint *this_sp = split_points_size ? active_split_point : NULL;
+    SplitPoint *this_sp = threads_split_point ? active_split_point : NULL;
 
     ASSERT (!this_sp || (this_sp->master_thread == this && searching));
 

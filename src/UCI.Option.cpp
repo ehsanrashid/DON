@@ -249,7 +249,7 @@ namespace UCI {
     {
 
 #pragma region old
-        //int16_t cpu   = min (physical_processor (), MAX_THREADS);
+        //int16_t cpu   = min (cpu_count (), MAX_THREADS);
         // max split depth
         //int16_t max_spl_depth = cpu < 8 ? 4 : 7;
 
@@ -351,15 +351,15 @@ namespace UCI {
         // Default is hardware-dependent, min 1, max 6 (Standard) or 32 (Pro).
         //
         // Houdini will automatically limit the number of threads to the number of logical processors of your hardware. If your computer supports hyper-threading it is recommended not using more threads than physical cores, as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      = OptionPtr (new SpinOption (1, 1, MAX_THREADS, on_change_threads));
+        Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
 
         // When using multiple threads, the Split Depth parameter defines the minimum depth at which work will be split between cores.
         // Default 10, min 8, max 99.
         // 
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware. The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  = OptionPtr (new SpinOption (10, 8, MAX_SPLIT_DEPTH, on_change_threads));
+        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 8, MIN_SPLIT_DEPTH, on_change_threads));
 
-        Options["Threads per Split Point"]      = OptionPtr (new SpinOption (5, 4, MAX_SPLITPOINTS_PER_THREAD, on_change_threads));
+        Options["Threads per Split Point"]      = OptionPtr (new SpinOption ( 5, 4, MAX_THREADS_SPLIT_POINT, on_change_threads));
 
         Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 

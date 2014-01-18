@@ -294,7 +294,10 @@ namespace UCI {
             if (cstm.good () && (cstm >> token))
             {
                 stringstream ss;
-                ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
+                ss  << Options["Hash"] << " "
+                    << Options["Threads"] << " "
+                    << token << " current perft";
+
                 benchmark (ss, RootPos);
             }
         }
@@ -372,7 +375,7 @@ namespace UCI {
     void stop ()
     {
         running = false;
-
+        exe_stop ();
         Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
 

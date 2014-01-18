@@ -64,7 +64,7 @@ Thread::Thread () /* : split_points() */  // Value-initialization bug in MSVC
     : split_points ()
 {
     searching = false;
-    max_ply = split_points_size = 0;
+    max_ply = threads_split_point = 0;
     active_split_point = NULL;
     active_pos = NULL;
     idx = Threads.size ();
@@ -93,7 +93,7 @@ bool Thread::available_to (const Thread *master) const
 
     // Make a local copy to be sure doesn't become zero under our feet while
     // testing next condition and so leading to an out of bound access.
-    int32_t size = split_points_size;
+    int32_t size = threads_split_point;
 
     // No split points means that the thread is available as a slave for any
     // other thread otherwise apply the "helpful master" concept if possible.
@@ -172,21 +172,21 @@ void ThreadPool::deinitialize ()
 }
 
 // read_uci_options() updates internal threads parameters from the corresponding
-// UCI options and creates/destroys threads to match the requested number. Thread
-// objects are dynamically allocated to avoid creating in advance all possible
+// UCI options and creates/destroys threads to match the requested number.
+// Thread objects are dynamically allocated to avoid creating in advance all possible
 // threads, with included pawns and material tables, if only few are used.
 void ThreadPool::read_uci_options ()
 {
-    max_threads_per_split_point = int32_t (*(Options["Threads per Split Point"]));
-    min_split_depth             = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-    int32_t req_threads         = int32_t (*(Options["Threads"]));
+    split_depth         = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
+    threads_split_point = int32_t (*(Options["Threads per Split Point"]));
+    int32_t req_threads = int32_t (*(Options["Threads"]));
 
     ASSERT (req_threads > 0);
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
-    // automatically. Anyhow the min_split_depth should never be under 4 plies.
-    min_split_depth = !min_split_depth ?
-        (req_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, min_split_depth);
+    // automatically. Anyhow the split_depth should never be under 4 plies.
+    split_depth = !split_depth ?
+        (req_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, split_depth);
 
     while (size () < req_threads)
     {
@@ -229,12 +229,12 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 {
     ASSERT (pos.ok ());
     ASSERT (-VALUE_INFINITE <*best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
-    ASSERT (depth >= Threads.min_split_depth);
+    ASSERT (depth >= Threads.split_depth);
     ASSERT (searching);
-    ASSERT (split_points_size < MAX_SPLITPOINTS_PER_THREAD);
+    ASSERT (threads_split_point < MAX_THREADS_SPLIT_POINT);
 
     // Pick the next available split point from the split point stack
-    SplitPoint &sp = split_points[split_points_size];
+    SplitPoint &sp = split_points[threads_split_point];
 
     sp.master_thread = this;
     sp.parent_split_point = active_split_point;
@@ -259,7 +259,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     Threads.mutex.lock ();
     sp.mutex.lock ();
 
-    ++split_points_size;
+    ++threads_split_point;
     active_split_point = &sp;
     active_pos = NULL;
 
@@ -267,7 +267,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     Thread *slave;
 
     while ((slave = Threads.available_slave (this)) != NULL
-        && ++slaves_count <= Threads.max_threads_per_split_point && !FAKE)
+        && ++slaves_count <= Threads.threads_split_point && !FAKE)
     {
         sp.slaves_mask |= 1ULL << slave->idx;
         slave->active_split_point = &sp;
@@ -291,8 +291,8 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
         ASSERT (!searching);
         ASSERT (!active_pos);
 
-        // We have returned from the idle loop, which means that all threads are
-        // finished. Note that setting 'searching' and decreasing split_points_size is
+        // We have returned from the idle loop, which means that all threads are finished.
+        // Note that setting 'searching' and decreasing threads_split_point is
         // done under lock protection to avoid a race with Thread::available_to().
         Threads.mutex.lock ();
         sp.mutex.lock ();
@@ -300,7 +300,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 
     searching = true;
 
-    --split_points_size;
+    --threads_split_point;
     active_split_point = sp.parent_split_point;
 
     active_pos  = &pos;

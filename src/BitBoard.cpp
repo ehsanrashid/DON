@@ -722,16 +722,14 @@ namespace BitBoard {
             sbb += to_char (r) + row;
         }
 
-        sbb += " \\---------------/\n";
-        sbb += ' ';
+        sbb += " \\---------------/\n ";
 
         for (File f = F_A; f <= F_H; ++f)
         {
-            sbb += ' ';
-            sbb += to_char (f);
+            sbb += " "; sbb += to_char (f);
         }
 
-        sbb += '\n';
+        sbb += "\n";
 
         while (bb)
         {

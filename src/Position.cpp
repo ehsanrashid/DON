@@ -1883,10 +1883,10 @@ Position::operator string () const
     ostringstream spos;
 
     spos
-        << board                            << '\n'
-        //<< to_char (_active)                << '\n'
-        //<< to_string (_si->castle_rights)   << '\n'
-        //<< to_string (_si->en_passant)      << '\n'
+        << board                            << "\n"
+        //<< to_char (_active)                << "\n"
+        //<< to_string (_si->castle_rights)   << "\n"
+        //<< to_string (_si->en_passant)      << "\n"
         //<< _si->clock50 <<' '<< game_move()
         //<< endl
         ;

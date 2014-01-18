@@ -87,6 +87,13 @@ namespace Engine {
     {
         cout << Engine::info () << endl;
 
+        cout 
+            << "info string " << cpu_count () << " processor(s) found."
+#ifdef POPCNT
+            << " POPCNT available."
+#endif
+            << endl;
+
         UCI      ::initialize ();
         BitBoard ::initialize ();
         Zobrist  ::initialize ();
@@ -97,13 +104,8 @@ namespace Engine {
         Evaluator::initialize ();
         Threads   .initialize ();
 
-        cout 
-            << "info string " << physical_processor () << " processor(s) found."
-#ifdef POPCNT
-            << " POPCNT available."
-#endif
-            << '\n'
-            << "info string " << Threads.size () << " thread(s)." << '\n'
+        cout
+            << "info string " << Threads.size () << " thread(s)." << "\n"
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifdef _DEBUG
