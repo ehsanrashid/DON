@@ -14,9 +14,6 @@ namespace {
     const Value MidgameLimit = Value (15581);
     const Value EndgameLimit = Value ( 3998);
 
-    // Scale factors used when one side has no more pawns
-    //const int32_t NoPawnsSF[4] = {  6, 12, 32,  0, };
-
     // Polynomial material balance parameters
     //                                            P      N      B      R      Q     BP
     const int32_t LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
@@ -46,7 +43,6 @@ namespace {
 
     // Endgame evaluation and scaling functions are accessed direcly and not through
     // the function maps because they correspond to more than one material hash key.
-    Endgame<KmmKm> EvaluateKmmKm[CLR_NO] = { Endgame<KmmKm>  (WHITE), Endgame<KmmKm>  (BLACK) };
     Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
 
     Endgame<KBPsKs> ScaleKBPsKs [CLR_NO] = { Endgame<KBPsKs> (WHITE), Endgame<KBPsKs> (BLACK) };
@@ -161,28 +157,6 @@ namespace Material {
             return e;
         }
 
-        if (!pos.pieces (PAWN) && !pos.pieces (ROOK) &&
-            !pos.pieces (QUEN) && pos.pieces (NIHT, BSHP))
-        {
-            // Minor piece endgame with at least one minor piece per side and
-            // no pawns. Note that the case KmmK is already handled by KXK.
-
-            //ASSERT (pos.pieces (WHITE, NIHT, BSHP));
-            //ASSERT (pos.pieces (BLACK, NIHT, BSHP));
-
-            int32_t minor_piece_count[CLR_NO] =
-            {
-                pos.piece_count<NIHT> (WHITE) + pos.piece_count<BSHP> (WHITE),
-                pos.piece_count<NIHT> (BLACK) + pos.piece_count<BSHP> (BLACK),
-            };
-
-            if (minor_piece_count[WHITE] <= 2 && minor_piece_count[BLACK] <= 2)
-            {
-                e->evaluation_func = &EvaluateKmmKm[pos.active ()];
-                return e;
-            }
-        }
-
         // OK, we didn't find any special evaluation function for the current
         // material configuration. Is there a suitable scaling function?
         //
@@ -218,6 +192,7 @@ namespace Material {
             e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
         }
 
+
         Value npm[CLR_NO] = 
         {
             pos.non_pawn_material (WHITE),
@@ -251,33 +226,45 @@ namespace Material {
         // No pawns makes it difficult to win, even with a material advantage.
         // This catches some trivial draws like KK, KBK and KNK
 
-        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        //if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
             if (false);
             else if (pos.piece_count<PAWN> (WHITE) == 0)
             {
-                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                    0 : ScaleFactor (4 * (pos.piece_count (WHITE) - 1));
+                //e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
+                //    0 : npm[BLACK] <= VALUE_MG_BISHOP ?
+                //    4 : pos.bishops_pair (WHITE) ?
+                //    12 : 1;
+                e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
+                    0 : !pos.piece_count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
+                    2 : 12;
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                    ScaleFactor (4 * (pos.piece_count (WHITE) - 1)) : SCALE_FACTOR_ONEPAWN;
+                //e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+                //    ScaleFactor (4 * (pos.piece_count (WHITE) - 1)) : SCALE_FACTOR_ONEPAWN;
+                e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
             }
         }
 
-        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
+        //if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
             if (false);
             else if (pos.piece_count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                    0 : ScaleFactor (4 * (pos.piece_count (BLACK) - 1));
+                //e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
+                //    0 : npm[WHITE] <= VALUE_MG_BISHOP ?
+                //    4 : pos.bishops_pair (BLACK) ?
+                //    12 : 1;
+                e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
+                    0 : !pos.piece_count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
+                    2 : 12;
             }
             else if (pos.piece_count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                    ScaleFactor (4 * (pos.piece_count (BLACK) - 1)) : SCALE_FACTOR_ONEPAWN;
+                //e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
+                //    ScaleFactor (4 * (pos.piece_count (BLACK) - 1)) : SCALE_FACTOR_ONEPAWN;
+                e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
             }
         }
 
@@ -294,10 +281,10 @@ namespace Material {
         const int32_t piece_count[CLR_NO][NONE] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
-            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE),//pos.piece_count<BSHP> (WHITE) > 1
+            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE), //pos.piece_count<BSHP> (WHITE) > 1
             },
             {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
-            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK),//pos.piece_count<BSHP> (BLACK) > 1,
+            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK), //pos.piece_count<BSHP> (BLACK) > 1,
             },
         };
 

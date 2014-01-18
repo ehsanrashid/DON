@@ -107,31 +107,31 @@ private:
 public:
 
     // Total size for Transposition entry in byte
-    static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
+    static const uint32_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
     // Number of entry in a cluster
-    static const uint8_t NUM_TENTRY_CLUSTER = 4;
+    static const uint32_t NUM_TENTRY_CLUSTER = 4;
 
     // Max power of hash for cluster
 #ifdef _64BIT
-    //static const uint8_t MAX_BIT_HASH       = 0x20; // 32
-    static const uint8_t MAX_BIT_HASH       = 0x24; // 36
+    static const uint32_t MAX_BIT_HASH       = 0x20; // 32
+    //static const uint32_t MAX_BIT_HASH       = 0x24; // 36
 #else
-    static const uint8_t MAX_BIT_HASH       = 0x20; // 32
+    static const uint32_t MAX_BIT_HASH       = 0x20; // 32
 #endif
 
 
     // Default size for Transposition table in mega-byte
-    static const size_t DEF_SIZE_TT         = 128;
+    static const uint32_t DEF_SIZE_TT        = 128;
 
     // Minimum size for Transposition table in mega-byte
-    static const size_t SIZE_MIN_TT         = 4;
+    static const uint32_t SIZE_MIN_TT        = 4;
 
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> WIN64
     // 032768 MB = 032 GB   -> WIN32
-    static const size_t SIZE_MAX_TT         = (size_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
+    static const uint32_t SIZE_MAX_TT        = (uint32_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
 
-    static const uint32_t SIZE_CACHE_LINE   = 0x40; // 64
+    static const uint32_t SIZE_CACHE_LINE    = 0x40; // 64
 
 
     TranspositionTable ()
@@ -157,9 +157,9 @@ public:
         erase ();
     }
 
-    size_t resize (uint32_t size_mb);
+    uint32_t resize (uint32_t size_mb);
 
-    size_t size () const { return (size_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
+    uint32_t size () const { return (uint64_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
 
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,
@@ -215,12 +215,12 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
     {
-        size_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
+        uint64_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
         uint32_t size_mb  = size_byte >> 20;
-        os.write ((char *) &size_mb, sizeof (size_mb));
-        os.write ((char *) &TranspositionTable::SIZE_TENTRY, sizeof (TranspositionTable::SIZE_TENTRY));
-        os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (TranspositionTable::NUM_TENTRY_CLUSTER));
         uint8_t dummy = 0;
+        os.write ((char *) &size_mb, sizeof (size_mb));
+        os.write ((char *) &TranspositionTable::SIZE_TENTRY       , sizeof (dummy));
+        os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (dummy));
         os.write ((char *) &dummy, sizeof (dummy));
         os.write ((char *) &tt._generation, sizeof (tt._generation));
         os.write ((char *) &tt._hash_mask, sizeof (tt._hash_mask));

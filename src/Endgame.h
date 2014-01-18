@@ -23,7 +23,6 @@ namespace EndGame {
         KBBKN, // KBB vs KN
         // DRAW Cases
         KNNK,  // KNN vs K
-        KmmKm, // K and two minors vs K and one or two minors
 
         // Scaling functions
         SCALE_FUNS,

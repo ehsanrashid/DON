@@ -184,7 +184,7 @@ void ThreadPool::read_uci_options ()
     ASSERT (req_threads > 0);
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
-    // automatically. Anyhow the split_depth should never be under 4 plies.
+    // automatically. Anyhow the split depth should never be under 4 plies.
     split_depth = !split_depth ?
         (req_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, split_depth);
 

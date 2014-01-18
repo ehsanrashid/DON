@@ -396,15 +396,7 @@ namespace EndGame {
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
-    template<>
-    Value Endgame<KmmKm>::operator() (const Position &pos) const
-    {
-        Value value = VALUE_DRAW
-            + pos.piece_count (_stong_side)
-            - pos.piece_count (_weak_side);
 
-        return (_stong_side == pos.active ()) ? value : -value;
-    }
 
     // ---------------------------------------------------------
     // Scaling functions are used when any side have some pawns
