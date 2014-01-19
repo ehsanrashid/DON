@@ -200,8 +200,8 @@ void ThreadPool::read_uci_options ()
     }
 }
 
-// slave_available() tries to find an idle thread which is available as a slave
-// for the thread 'master'.
+// slave_available() tries to find an idle thread
+// which is available as a slave for the thread 'master'.
 Thread* ThreadPool::available_slave (const Thread *master) const
 {
     for (const_iterator itr = cbegin (); itr != cend (); ++itr)
@@ -227,6 +227,7 @@ template <bool FAKE>
 void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
                     Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node)
 {
+
     ASSERT (pos.ok ());
     ASSERT (-VALUE_INFINITE <*best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     ASSERT (depth >= Threads.split_depth);
@@ -269,7 +270,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     while ((slave = Threads.available_slave (this)) != NULL
         && ++slaves_count <= Threads.threads_split_point && !FAKE)
     {
-        sp.slaves_mask |= 1ULL << slave->idx;
+        sp.slaves_mask |= (1ULL) << slave->idx;
         slave->active_split_point = &sp;
         slave->searching = true; // Slave leaves idle_loop()
         slave->notify_one (); // Could be sleeping
@@ -284,7 +285,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
         sp.mutex.unlock ();
         Threads.mutex.unlock ();
 
-        Thread::idle_loop(); // Force a call to base class idle_loop()
+        Thread::idle_loop (); // Force a call to base class idle_loop()
 
         // In helpful master concept a master can help only a sub-tree of its split
         // point, and because here is all finished is not possible master is booked.

@@ -129,7 +129,7 @@ namespace Material {
         Key key  = pos.matl_key ();
         Entry *e = table[key];
 
-        // If e->key matches the position's material hash key, it means that we
+        // If e->_key matches the position's material hash key, it means that we
         // have analysed this material configuration before, and we can simply
         // return the information we found the last time instead of recomputing it.
         if (e->_key == key) return e;
@@ -226,7 +226,7 @@ namespace Material {
         // No pawns makes it difficult to win, even with a material advantage.
         // This catches some trivial draws like KK, KBK and KNK
 
-        //if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
             if (false);
             else if (pos.piece_count<PAWN> (WHITE) == 0)
@@ -247,7 +247,7 @@ namespace Material {
             }
         }
 
-        //if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
+        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
             if (false);
             else if (pos.piece_count<PAWN> (BLACK) == 0)
