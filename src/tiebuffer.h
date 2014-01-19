@@ -57,23 +57,23 @@ namespace std {
 
     protected:
 
-        inline virtual int sync () override
+        virtual int sync () override
         {
             _fstm->rdbuf ()->pubsync ();
             return _sbuf->pubsync ();
         }
 
-        inline virtual int_type overflow (int_type c) override
+        virtual int_type overflow (int_type c) override
         {
             return log (_sbuf->sputc (Elem (c)), "<< ");
         }
 
-        inline virtual int_type underflow () override
+        virtual int_type underflow () override
         {
             return _sbuf->sgetc ();
         }
 
-        inline virtual int_type uflow () override
+        virtual int_type uflow () override
         {
             return log (_sbuf->sbumpc (), ">> ");
         }

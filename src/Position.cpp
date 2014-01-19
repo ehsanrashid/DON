@@ -1075,14 +1075,13 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 
-    vector<Move> mov_lst;
-    while (pawns_ep) mov_lst.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
+    vector<Move> mov_ep;
+    while (pawns_ep) mov_ep.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
 
     // Check en-passant is legal for the position
     Square fk_sq = king_sq (active);
     Bitboard occ = pieces ();
-    vector<Move>::const_iterator itr = mov_lst.cbegin ();
-    while (itr != mov_lst.cend ())
+    for (vector<Move>::const_iterator itr = mov_ep.cbegin (); itr != mov_ep.cend (); ++itr)
     {
         Move m = *itr;
         Square org = org_sq (m);

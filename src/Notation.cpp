@@ -22,12 +22,11 @@ AmbType ambiguity (Move m, const Position &pos)
     Piece p   = pos[org];
     PType pt  = _type (p);
 
-    //MoveList mov_lst = generate<LEGAL> (pos);
+    
     //uint8_t n = 0;
     //uint8_t f = 0;
     //uint8_t r = 0;
-    //MoveList::const_iterator itr = mov_lst.cbegin ();
-    //while (itr != mov_lst.cend ())
+    //for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     //{
     //    Move mm = *itr;
     //    if (org_sq (mm) != org)
@@ -45,7 +44,6 @@ AmbType ambiguity (Move m, const Position &pos)
     //            }
     //        }
     //    }
-    //    ++itr;
     //}
     //if (!n) return AMB_NONE;
     //if (!f) return AMB_RANK;

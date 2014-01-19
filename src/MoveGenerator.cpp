@@ -392,7 +392,7 @@ namespace MoveGenerator {
 
         template<Color C, GType GT>
         // Generates all pseudo-legal moves of color for targets.
-        INLINE ValMove* generate_moves (ValMove *mlist, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+        INLINE ValMove* generate_moves (ValMove *&mlist, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, PAWN>::generate<C> (mlist, pos, targets, ci);
             Generator<GT, NIHT>::generate (mlist, pos, C, targets, ci);
@@ -400,7 +400,7 @@ namespace MoveGenerator {
             Generator<GT, ROOK>::generate (mlist, pos, C, targets, ci);
             Generator<GT, QUEN>::generate (mlist, pos, C, targets, ci);
 
-            if ((EVASION != GT))
+            if (EVASION != GT)
             {
                 Generator<GT, KING>::generate (mlist, pos, C, targets, ci);
             }
@@ -408,30 +408,30 @@ namespace MoveGenerator {
             return mlist;
         }
 
-        INLINE void filter_illegal (ValMove *beg, ValMove *&end, const Position &pos)
-        {
-            Square k_sq = pos.king_sq (pos.active ());
-            Bitboard pinneds = pos.pinneds (pos.active ());
-        
-            //mlist.erase (
-            //    remove_if (mlist.begin (), mlist.end (), [&] (Move m)
-            //{
-            //    return ((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds); 
-            //}), mlist.end ());
-        
-            while (beg != end)
-            {
-                Move m = beg->move;
-                if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds))
-                {
-                    beg->move = (--end)->move;
-                }
-                else
-                {
-                    ++beg;
-                }
-            }
-        }
+        //INLINE void filter_illegal (ValMove *beg, ValMove *&end, const Position &pos)
+        //{
+        //    Square k_sq = pos.king_sq (pos.active ());
+        //    Bitboard pinneds = pos.pinneds (pos.active ());
+        //
+        //    //mlist.erase (
+        //    //    remove_if (mlist.begin (), mlist.end (), [&] (Move m)
+        //    //{
+        //    //    return ((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds); 
+        //    //}), mlist.end ());
+        //
+        //    while (beg != end)
+        //    {
+        //        Move m = beg->move;
+        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds))
+        //        {
+        //            beg->move = (--end)->move;
+        //        }
+        //        else
+        //        {
+        //            ++beg;
+        //        }
+        //    }
+        //}
 
     }
 
@@ -453,12 +453,9 @@ namespace MoveGenerator {
             RELAX   == GT ? ~pos.pieces(active) :
             U64 (0);
 
-        switch (active)
-        {
-        case WHITE: return generate_moves<WHITE, GT> (mlist, pos, targets);
-        case BLACK: return generate_moves<BLACK, GT> (mlist, pos, targets);
-        }
-        return mlist;
+        return WHITE == active ? generate_moves<WHITE, GT> (mlist, pos, targets)
+            :  BLACK == active ? generate_moves<BLACK, GT> (mlist, pos, targets)
+            :  mlist;
     }
 
     // --------------------------------
@@ -501,12 +498,9 @@ namespace MoveGenerator {
             SERIALIZE (mlist, org, moves);
         }
 
-        switch (active)
-        {
-        case WHITE: return generate_moves<WHITE, QUIET_CHECK> (mlist, pos, empties, &ci);
-        case BLACK: return generate_moves<BLACK, QUIET_CHECK> (mlist, pos, empties, &ci);
-        }
-        return mlist;
+        return WHITE == active ? generate_moves<WHITE, QUIET_CHECK> (mlist, pos, empties, &ci)
+            :  BLACK == active ? generate_moves<BLACK, QUIET_CHECK> (mlist, pos, empties, &ci)
+            :  mlist;
     }
 
     template<>
@@ -533,12 +527,9 @@ namespace MoveGenerator {
             SERIALIZE (mlist, org, moves);
         }
 
-        switch (active)
-        {
-        case WHITE: return generate_moves<WHITE, CHECK> (mlist, pos, targets, &ci);
-        case BLACK: return generate_moves<BLACK, CHECK> (mlist, pos, targets, &ci);
-        }
-        return mlist;
+        return WHITE == active ? generate_moves<WHITE, CHECK> (mlist, pos, targets, &ci)
+            :  BLACK == active ? generate_moves<BLACK, CHECK> (mlist, pos, targets, &ci)
+            :  mlist;
     }
 
     template<>
@@ -599,16 +590,15 @@ namespace MoveGenerator {
 
         SERIALIZE (mlist, org_king, moves);
 
-        // if Double check, then only a king move can save the day
-        if ((1 == checker_count) && pop_count<FULL> (friends) > 1)
+        // If double check, then only a king move can save the day
+        if (1 == checker_count && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
             Bitboard targets = betwen_sq_bb (check_sq, org_king) + check_sq;
-            switch (active)
-            {
-            case WHITE: return generate_moves<WHITE, EVASION> (mlist, pos, targets);
-            case BLACK: return generate_moves<BLACK, EVASION> (mlist, pos, targets);
-            }
+
+            return WHITE == active ? generate_moves<WHITE, EVASION> (mlist, pos, targets)
+                :  BLACK == active ? generate_moves<BLACK, EVASION> (mlist, pos, targets)
+                :  mlist;
         }
         return mlist;
     }
@@ -628,7 +618,8 @@ namespace MoveGenerator {
         while (cur != end)
         {
             Move m = cur->move;
-            if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds))
+            if ((org_sq (m) == k_sq || pinneds || ENPASSANT == m_type (m)) &&
+                !pos.legal (m, pinneds))
             {
                 cur->move = (--end)->move;
             }

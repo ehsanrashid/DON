@@ -2,13 +2,15 @@
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
-//#pragma comment (linker, "/stack:xxx /heap:yyy")
-
-//#define __INTEL_COMPILER
-
 //#define POPCNT
 //#define BSFQ
 //#define NO_PREFETCH
+
+//#define __INTEL_COMPILER
+
+//POPCNT;BSFQ;%(PreprocessorDefinitions)
+//#pragma comment (linker, "/stack:xxx /heap:yyy")
+
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
