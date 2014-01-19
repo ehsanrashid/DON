@@ -62,9 +62,10 @@ namespace Searcher {
         uint8_t   depth;          // search <x> depth (plies) only
         uint16_t  nodes;          // search <x> nodes only
         uint8_t   mate_in;        // search mate in <x> moves
-        MoveList  search_moves;   // search these moves only restrict
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
+
+        std::vector<Move>  search_moves;   // search these moves only restrict
 
         Limits_t () { memset (this, 0, sizeof (Limits_t)); }
 
@@ -118,7 +119,7 @@ namespace Searcher {
         Value last_value;
         //uint64_t nodes;
 
-        MoveList pv;
+        std::vector<Move> pv;
 
         RootMove (Move m)
             : curr_value(-VALUE_INFINITE)

@@ -341,15 +341,15 @@ void ThreadPool::start_thinking (const Position &pos, const Limits_t &limits, St
         ASSERT (!states.get ());
     }
 
-    MoveList mov_lst = generate<LEGAL> (pos);
-    for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
+        Move m = *itr;
         if (limits.search_moves.empty ()
             || count (limits.search_moves.begin (), limits.search_moves.end (), m))
         {
             RootMoves.push_back (RootMove (m));
         }
-    });
+    }
 
     main ()->thinking = true;
     main ()->notify_one (); // Starts main thread

@@ -9,24 +9,6 @@
 #include "Position.h"
 #include "Searcher.h"
 
-typedef struct ValMove
-{
-    Move    move;
-    Value   value;
-
-    // Unary predicate functor used by std::partition to split positive(+ve) scores from
-    // remaining ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool operator() (const ValMove &vm) { return vm.value > VALUE_ZERO; }
-
-    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
-    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
-    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
-    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
-    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
-    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
-
-} ValMove;
-
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store History, Gains and Countermoves.
@@ -99,9 +81,6 @@ private:
     // The moves with highest scores will be picked first.
     void value ();
 
-    template<MoveGenerator::GType>
-    int32_t generate_moves ();
-
     void generate_next ();
 
     const Position     &pos;
@@ -122,7 +101,7 @@ private:
 
     uint8_t             stage;
 
-    ValMove             moves[MAX_MOVES];
+    ValMove             mlist[MAX_MOVES];
     ValMove            *cur
         ,              *end
         ,              *end_quiets
@@ -134,7 +113,7 @@ public:
 
     MovePicker (const Position &, Move,        const HistoryStats &, PType);
     MovePicker (const Position &, Move, Depth, const HistoryStats &, Square);
-    MovePicker (const Position &, Move, Depth, const HistoryStats &, Move [], Move [], Searcher::Stack []);
+    MovePicker (const Position &, Move, Depth, const HistoryStats &, Move[], Move[], Searcher::Stack[]);
 
     template<bool SpNode>
     Move next_move ();

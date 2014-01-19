@@ -744,9 +744,9 @@ namespace BitBoard {
 
 #pragma endregion
 
-    //SquareList squares (Bitboard bb)
+    //vector<Square> squares (Bitboard bb)
     //{
-    //    SquareList sq_lst;
+    //    vector<Square> sq_lst;
     //
     //    //for (Square s = SQ_A1; s <= SQ_H8; ++s)
     //    //{

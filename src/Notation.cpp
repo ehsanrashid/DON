@@ -131,16 +131,13 @@ Move move_from_can (string &can, const Position &pos)
         }
     }
 
-    MoveList mov_lst = generate<LEGAL> (pos);
-    MoveList::const_iterator itr = mov_lst.cbegin ();
-    while (itr != mov_lst.cend ())
+    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
         if (iequals (can, move_to_can (m, pos.chess960 ())))
         {
             return m;
         }
-        ++itr;
     }
     return MOVE_NONE;
 }
@@ -304,7 +301,7 @@ string move_to_san (Move m, Position &pos)
     {
         StateInfo si;
         pos.do_move (m, si);
-        san += (generate<EVASION> (pos).size () ? "+" : "#");
+        san += MoveList<LEGAL> (pos).size () ? "+" : "#";
         pos.undo_move ();
     }
 
@@ -399,7 +396,7 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
+string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const vector<Move> &pv)
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;

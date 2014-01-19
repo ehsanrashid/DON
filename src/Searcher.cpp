@@ -160,14 +160,14 @@ namespace {
 
         StateInfo si;
         CheckInfo ci (pos);
-        MoveList mov_lst = generate<LEGAL> (pos);
 
-        for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+        for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
+            Move m = *itr;
             pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
-            cnt += leaf ? generate<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
+            cnt += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
-        });
+        };
 
         return cnt;
     }
@@ -235,10 +235,7 @@ namespace Searcher {
         {
             pv.emplace_back (m);
 
-#ifndef NDEBUG
-            MoveList mov_lst = generate<LEGAL> (pos);
-            ASSERT (find (mov_lst.cbegin (), mov_lst.cend (), pv[ply]) != mov_lst.cend ());
-#endif
+            ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *si++);
             te = TT.retrieve (pos.posi_key ());
@@ -286,10 +283,7 @@ namespace Searcher {
                 TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, VALUE_NONE);
             }
 
-#ifndef NDEBUG
-            MoveList mov_lst = generate<LEGAL> (pos);
-            ASSERT (find (mov_lst.cbegin (), mov_lst.cend (), pv[ply]) != mov_lst.cend ());
-#endif
+            ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *si++);
 
@@ -307,7 +301,7 @@ namespace Searcher {
 
     size_t perft (Position &pos, Depth depth)
     {
-        return (depth > ONE_MOVE) ? _perft (pos, depth) : generate<LEGAL> (pos).size();
+        return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
     }
 
     void think ()

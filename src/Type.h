@@ -66,7 +66,6 @@
 typedef uint64_t   Bitboard; // Type for Bitboard
 typedef uint64_t   Key;      // Type for Zobrist Hash
 
-const uint16_t MAX_MOVES    = 192;
 const uint16_t MAX_PLY      = 100;
 const uint16_t MAX_PLY_6    = MAX_PLY + 6;
 
@@ -796,43 +795,13 @@ inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
 #pragma endregion
 
-
-typedef std::vector<Square> SquareList;
-//typedef std::list  <Square> SquareList;
-
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const SquareList &sq_lst)
-{
-    std::for_each (sq_lst.cbegin (), sq_lst.cend (), [&os] (Square s) { os << s << std::endl; });
-    return os;
-}
-
-
-typedef std::vector<Move>   MoveList;
-//typedef std::stack <Move>   MoveStack;
-
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const MoveList &mov_lst)
-{
-    std::for_each (mov_lst.cbegin (), mov_lst.cend (), [&os] (Move m) { os << m << std::endl; });
-    return os;
-}
-
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const MoveStack &stk_move)
+//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_lst)
 //{
-//    MoveStack stk_dup = stk_move;
-//    while (!stk_dup.empty ())
-//    {
-//        os << stk_dup.top () << std::endl;
-//        stk_dup.pop ();
-//    }
+//    std::for_each (sq_lst.cbegin (), sq_lst.cend (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
-
 
 template<class Entry, int32_t SIZE>
 struct HashTable

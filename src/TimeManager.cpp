@@ -11,7 +11,7 @@ using namespace Searcher;
 
 namespace {
 
-    const int8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
+    const uint8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
     const double  MaxRatio      =  7.0;  // When in trouble, we can step over reserved time with this ratio
     const double  StealRatio    =  0.33; // However we must not steal time from remaining moves over this ratio
 
@@ -125,12 +125,12 @@ void TimeManager::initialize (const Limits_t &limits, int32_t current_ply, Color
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_extra_time = 0;
-    _optimum_search_time    = _maximum_search_time = limits.game_clock[c].time;
+    _optimum_search_time    = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
 
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
     for (int32_t hyp_moves_to_go = 1;
-        hyp_moves_to_go <= (limits.moves_to_go ? min<int32_t> (limits.moves_to_go, MoveHorizon) : MoveHorizon);
+        hyp_moves_to_go <= (limits.moves_to_go ? min (limits.moves_to_go, MoveHorizon) : MoveHorizon);
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value

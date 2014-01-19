@@ -152,7 +152,7 @@ namespace EndGame {
         ASSERT (!pos.checkers ()); // Eval is never called when in check
 
         // Stalemate detection with lone king
-        if (pos.active () == _weak_side && generate<LEGAL> (pos).size() == 0)
+        if (pos.active () == _weak_side && !MoveList<LEGAL> (pos).size ())
         {
             return VALUE_DRAW;
         }

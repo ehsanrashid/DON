@@ -205,7 +205,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if ( 100 <  _si->clock50 ||
         (100 == _si->clock50 &&
-        (!checkers () || generate<LEGAL> (*this).size ())))
+        (!checkers () || MoveList<LEGAL> (*this).size ())))
     {
         return true;
     }
@@ -542,7 +542,6 @@ int32_t Position::see      (Move m) const
 
         // Add the new entry to the swap list
         swap_list[depth] = PieceValue[MG][ct] - swap_list[depth - 1];
-        ++depth;
 
         // Locate and remove the next least valuable attacker
         ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
@@ -550,12 +549,9 @@ int32_t Position::see      (Move m) const
         stm_attackers = attackers & pieces (stm);
 
         // Stop before processing a king capture
-        if (KING == ct && stm_attackers)
-        {
-            swap_list[depth] = VALUE_MG_QUEEN * 16;
-            ++depth;
-            break;
-        }
+        if (KING == ct && stm_attackers) break;
+
+        ++depth;
     }
     while (stm_attackers);
 
@@ -961,7 +957,7 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 
     Position pos = *this;
     pos.do_move (m, StateInfo ());
-    return !generate<EVASION> (pos).size ();
+    return !MoveList<LEGAL> (pos).size ();
 }
 
 #pragma endregion
@@ -1079,13 +1075,13 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 
-    MoveList mov_lst;
+    vector<Move> mov_lst;
     while (pawns_ep) mov_lst.emplace_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
 
     // Check en-passant is legal for the position
     Square fk_sq = king_sq (active);
     Bitboard occ = pieces ();
-    MoveList::const_iterator itr = mov_lst.cbegin ();
+    vector<Move>::const_iterator itr = mov_lst.cbegin ();
     while (itr != mov_lst.cend ())
     {
         Move m = *itr;
@@ -1880,9 +1876,9 @@ Position::operator string () const
 
 #pragma endregion
 
-    ostringstream spos;
+    ostringstream ss;
 
-    spos
+    ss
         << board                            << "\n"
         //<< to_char (_active)                << "\n"
         //<< to_string (_si->castle_rights)   << "\n"
@@ -1891,22 +1887,21 @@ Position::operator string () const
         //<< endl
         ;
 
-    spos
+    ss
         << "\nFen: " << fen()
         << "\nKey: " << hex << uppercase << setfill ('0') << setw(16) << _si->posi_key;
 
-    spos << "\nCheckers: ";
+    ss  << "\nCheckers: ";
     Bitboard b = checkers();
-    while (b) spos << to_string (pop_lsq (b)) << " ";
+    while (b) ss << to_string (pop_lsq (b)) << " ";
 
-    spos << "\nLegal moves: ";
-    MoveList mov_lst = generate<LEGAL> (*this);
-    for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+    ss  << "\nLegal moves: ";
+    for (MoveList<LEGAL> itr (*this); *itr; ++itr)
     {
-        spos << move_to_san (m, *const_cast<Position*> (this)) << " ";
-    });
+        ss << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
+    }
 
-    return spos.str ();
+    return ss.str ();
 }
 
 // A FEN string defines a particular position using only the ASCII character set.

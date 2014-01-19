@@ -107,7 +107,7 @@ namespace Zobrist {
         //{
         //    for (PType pt = PAWN; pt <= KING; ++pt)
         //    {
-        //        SquareList sq_lst = squares (pos[c] & pos[pt]);
+        //        vector<Square> sq_lst = squares (pos[c] & pos[pt]);
         //        for (int32_t pc = 0; pc < sq_lst.size (); ++pc)
         //        {
         //            Square s = sq_lst[pc];

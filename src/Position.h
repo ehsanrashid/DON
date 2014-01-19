@@ -913,6 +913,6 @@ inline CheckInfo::CheckInfo (const Position &pos)
 
 #pragma endregion
 
-typedef std::stack     <StateInfo>          StateInfoStack;
+typedef std::stack<StateInfo>   StateInfoStack;
 
 #endif

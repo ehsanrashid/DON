@@ -6,6 +6,26 @@
 
 class Position;
 
+const uint16_t MAX_MOVES    = 256;
+
+typedef struct ValMove
+{
+    Move    move;
+    Value   value;
+
+    // Unary predicate functor used by std::partition to split positive(+ve) scores from
+    // remaining ones so to sort separately the two sets, and with the second sort delayed.
+    inline bool operator() (const ValMove &vm) { return vm.value > VALUE_ZERO; }
+
+    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
+    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
+    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
+    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
+    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
+    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
+
+} ValMove;
+
 namespace MoveGenerator {
 
     // Type of Generators
@@ -19,7 +39,7 @@ namespace MoveGenerator {
         CHECK,       // Any way checks the enemy King.
         QUIET_CHECK, // Do not change material and only checks the enemy King.
         //DESPERADO,   // Where pieces seem determined to give itself up to bring up stalemate if it is captured.
-        
+
         // ------------------------
 
         LEGAL,       // Legal moves
@@ -27,8 +47,62 @@ namespace MoveGenerator {
     } GType;
 
 
-    template<GType G>
-    extern MoveList generate (const Position &pos);
+    template<GType GT>
+    extern ValMove* generate (ValMove *mlist, const Position &pos);
+
+    // The MoveList struct is a simple wrapper around generate(). It sometimes comes
+    // in handy to use this class instead of the low level generate() function.
+    template<GType GT>
+    struct MoveList
+    {
+
+    private:
+
+        ValMove mlist[MAX_MOVES];
+        ValMove *beg
+            ,   *cur
+            ,   *end;
+
+    public:
+        explicit MoveList (const Position &pos)
+            : beg (mlist)
+            , cur (mlist)
+            , end (generate<GT>(mlist, pos))
+        {
+            end->move = MOVE_NONE;
+        }
+
+        void operator++ () { ++cur; }
+        void operator-- () { --cur; }
+        void operator!  () { cur = beg; }
+
+        Move operator* () const { return cur->move; }
+
+        size_t size () const { return end - beg; }
+
+        bool contains (Move m) const
+        {
+            for (const ValMove *itr = beg; itr != end; ++itr)
+            {
+                if (itr->move == m) return true;
+            }
+            return false;
+        }
+
+        //template<class charT, class Traits, GType GT>
+        //friend std::basic_ostream<charT, Traits>&
+        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &mov_lst)
+        //{
+        //    ValMove *cur = mov_lst.cur;
+        //    for ( ; *mov_lst; ++mov_lst)
+        //    {
+        //        os << *mov_lst << std::endl;
+        //    }
+        //    mov_lst.cur = cur;
+        //    return os;
+        //}
+
+    };
 
 }
 

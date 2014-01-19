@@ -31,7 +31,7 @@ extern std::string move_to_san (Move m, Position &pos);
 
 extern inline std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
-extern inline std::string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv);
+extern inline std::string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const std::vector<Move> &pv);
 
 
 #endif

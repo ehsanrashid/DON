@@ -360,9 +360,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     if (pt) prom_type (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    MoveList mov_lst = generate<LEGAL> (pos);
-    MoveList::const_iterator itr = mov_lst.cbegin ();
-    while (itr != mov_lst.cend ())
+    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
         //if ((m ^ m_type (m)) == move)
@@ -370,7 +368,6 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         {
             return m;
         }
-        ++itr;
     }
 
     return MOVE_NONE;

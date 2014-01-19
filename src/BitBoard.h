@@ -453,7 +453,7 @@ namespace BitBoard {
 
 #pragma endregion
 
-    //extern SquareList squares (Bitboard  bb);
+    //extern std::vector<Square> squares (Bitboard  bb);
 
 }
 

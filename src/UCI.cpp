@@ -232,47 +232,41 @@ namespace UCI {
 
         void exe_allmoves ()
         {
-            MoveList mov_lst;
 
             if (RootPos.checkers ())
             {
                 cout << "\nEvasion moves: ";
-                mov_lst = generate<EVASION> (RootPos);
-                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                for (MoveList<EVASION> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (m, RootPos) << " ";
-                });
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
             }
             else
             {
                 cout << "\nQuiet moves: ";
-                mov_lst = generate<QUIET> (RootPos);
-                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                for (MoveList<QUIET> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (m, RootPos) << " ";
-                });
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
 
                 cout << "\nCheck moves: ";
-                mov_lst = generate<CHECK> (RootPos);
-                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                for (MoveList<CHECK> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (m, RootPos) << " ";
-                });
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
 
                 cout << "\nQuiet Check moves: ";
-                mov_lst = generate<QUIET_CHECK> (RootPos);
-                for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+                for (MoveList<QUIET_CHECK> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (m, RootPos) << " ";
-                });
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
             }
 
             cout << "\nLegal moves: ";
-            mov_lst = generate<LEGAL> (RootPos);
-            for_each (mov_lst.cbegin (), mov_lst.cend (), [&] (Move m)
+            for (MoveList<LEGAL> itr (RootPos); *itr; ++itr)
             {
-                cout << move_to_san (m, RootPos) << " ";
-            });
+                cout << move_to_san (*itr, RootPos) << " ";
+            }
 
             cout << endl;
         }
