@@ -9,10 +9,10 @@
 #include "MovePicker.h"
 #include "Searcher.h"
 
-// Because SplitPoint::slaves_mask is a uint64_t
-const int32_t MAX_THREADS             = 64;
-const int32_t MAX_THREADS_SPLIT_POINT = 8;
-const int32_t MIN_SPLIT_DEPTH         = 15;
+
+const int32_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
+const int32_t MAX_THREADS_SPLIT_POINT = 8;  // Maximum threads per split point
+const int32_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
 #ifndef _WIN32 // Linux - Unix
 

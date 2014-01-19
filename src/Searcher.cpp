@@ -61,7 +61,7 @@ namespace {
 
     double      BestMoveChanges;
 
-    uint32_t
+    size_t
         PVSize,
         PVIdx;
 
