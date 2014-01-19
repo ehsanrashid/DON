@@ -13,7 +13,7 @@ namespace UCI {
     namespace OptionType {
 
         // Option class implements an option as defined by UCI protocol
-        typedef class Option
+        typedef class       Option
         {
 
         public:
@@ -38,7 +38,7 @@ namespace UCI {
             //virtual Option& operator= (char   *v) = NULL;
             virtual Option& operator= (std::string &v) = NULL;
 
-        } Option;
+        }       Option;
 
         typedef class ButtonOption : public Option
         {

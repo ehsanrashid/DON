@@ -414,7 +414,7 @@ namespace BitBoard {
     // QUEEN Attacks with occ
     INLINE Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
-        return 
+        return
             BAttack_bb[s][indexer<BSHP> (s, occ)] |
             RAttack_bb[s][indexer<ROOK> (s, occ)];
     }
