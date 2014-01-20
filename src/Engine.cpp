@@ -13,7 +13,7 @@
 #include "Transposition.h"
 #include "UCI.h"
 #include "Tester.h"
-#include "IOLogger.h"
+#include "DebugLogger.h"
 
 //#include <thread>
 #include "Thread.h"
@@ -113,11 +113,11 @@ namespace Engine {
         //system ("pause");
         //return;
 #endif
-        //log_io (true);
+        //log_debug (true);
 
         UCI   ::start (args);
 
-        //log_io (false);
+        //log_debug (false);
 
     }
 

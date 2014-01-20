@@ -14,7 +14,7 @@
 #include "Thread.h"
 
 #include "atomicstream.h"
-#include "iologger.h"
+#include "DebugLogger.h"
 
 // Global string mapping of options
 UCI::OptionMap Options;
@@ -229,14 +229,14 @@ namespace UCI {
             Threads.read_uci_options ();
         }
 
-        void on_change_eval      (const Option& opt)
+        void on_change_eval     (const Option& opt)
         {
             Evaluator::initialize ();
         }
 
-        void on_log_io          (const Option &opt)
+        void on_log_debug       (const Option &opt)
         {
-            log_io (bool (opt));
+            log_debug (bool (opt));
         }
 
         void on_query           (const Option &opt)
@@ -388,7 +388,7 @@ namespace UCI {
         //// A value of 0 means that this parameter will not be taken into account.
         //Options["MultiPV_cp"]                   = OptionPtr (new SpinOption (0, 0, 999));
 
-
+        // TODO::
         // Level of contempt to avoid draws in game play.
         // Default 1, min 0 (none), max 2 (aggressive).
         //
@@ -422,6 +422,7 @@ namespace UCI {
         // TODO::
         Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
 
+        // TODO::
         // Activate Contempt for position analysis.
         // Default false.
         //
@@ -447,6 +448,7 @@ namespace UCI {
         Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
+        // TODO::
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, min 5, max 50.
         //
@@ -459,6 +461,7 @@ namespace UCI {
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50));
 
+        // TODO::
         // Maximum search depth for mate search.
         // Default 0, min 0, max 99.
         //
@@ -501,12 +504,13 @@ namespace UCI {
 
 #pragma region Debug Options
 
-        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_io));
+        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
         Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
         Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
 
 #pragma endregion
 
+        // TODO::
         Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
     }

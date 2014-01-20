@@ -81,11 +81,11 @@
       <FileName>src\Log.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="IOLogger" Collapsed="true">
+  <Class Name="DebugLogger" Collapsed="true">
     <Position X="13" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAIAIAAAAAgAAAAAABgAQBgAAAAAAAgAAAQAAA=</HashCode>
-      <FileName>src\IOLogger.h</FileName>
+      <FileName>src\DebugLogger.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PGN" Collapsed="true">

@@ -7,7 +7,7 @@
 #include "Time.h"
 
 // Singleton I/O logger class
-typedef class IOLogger sealed
+typedef class DebugLogger sealed
 {
 
 private:
@@ -19,7 +19,7 @@ private:
 protected:
 
     // Constructor should be protected !!!
-    IOLogger (std::string fn_log)
+    DebugLogger (std::string fn_log)
         : _inbuf (std::cin.rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
         , _fn_log (fn_log)
@@ -29,24 +29,24 @@ protected:
     // Want to make sure they are unaccessable & non-copyable
     // otherwise may accidently get copies of singleton.
     // Don't Implement these functions.
-    IOLogger ();
+    DebugLogger ();
 
-    IOLogger (IOLogger const &);
+    DebugLogger (DebugLogger const &);
     template<class T>
-    T& operator= (IOLogger const &);
+    T& operator= (DebugLogger const &);
 
 public:
 
-    ~IOLogger ()
+    ~DebugLogger ()
     {
         stop ();
     }
 
-    static IOLogger& instance ()
+    static DebugLogger& instance ()
     {
         // Guaranteed to be destroyed.
         // Instantiated on first use.
-        static IOLogger _instance ("debug_log.txt");
+        static DebugLogger _instance ("debug_log.txt");
         return _instance;
     }
 
@@ -74,12 +74,12 @@ public:
         }
     }
 
-} IOLogger;
+} DebugLogger;
 
-inline void log_io (bool on)
+inline void log_debug (bool on)
 {
-    on  ? IOLogger::instance ().start ()
-        : IOLogger::instance ().stop  ();
+    on  ? DebugLogger::instance ().start ()
+        : DebugLogger::instance ().stop  ();
 }
 
 #endif

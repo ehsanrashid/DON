@@ -47,7 +47,7 @@ namespace UCI {
 
         void exe_ucinewgame ()
         {
-            TT.clear ();
+            if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
         }
 
         void exe_isready ()
@@ -58,23 +58,23 @@ namespace UCI {
         void exe_setoption (cmdstream &cstm)
         {
             string token;
-            if (!(cstm >> token)) return; // consume "name" token
-            if (iequals (token, "name"))
+            // consume "name" token
+            if (cstm.good () && (cstm >> token) &&
+                iequals (token, "name"))
             {
                 string name;
                 // Read option-name (can contain spaces)
-                while (cstm.good ())
+                // consume "value" token
+                while (cstm.good () && (cstm >> token) &&
+                    !iequals (token, "value"))
                 {
-                    if (!(cstm >> token)) return;
-                    if (iequals (token, "value")) break;
                     name += whitespace (name) ? token : " " + token;
                 }
 
                 string value;
                 // Read option-value (can contain spaces)
-                while (cstm.good ())
+                while (cstm.good () && (cstm >> token))
                 {
-                    if (!(cstm >> token)) return;
                     value += whitespace (value) ? token : " " + token;
                 }
 
@@ -84,7 +84,7 @@ namespace UCI {
                 }
                 else
                 {
-                    //cout << "WHAT??? No such option: \'" << name << "\'";
+                    ats () << "WHAT??? No such option: \'" << name << "\'" << endl;
                 }
             }
         }

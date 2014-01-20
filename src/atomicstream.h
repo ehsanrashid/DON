@@ -135,8 +135,8 @@ namespace std {
             (*this) ();
         }
 
-        // Write the whole shebang in one go & also flush
-        atomic_stream& operator() ()
+        // Write the whole shebang in one go and also flush
+        inline atomic_stream& operator() ()
         {
             {
                 // acquire lock

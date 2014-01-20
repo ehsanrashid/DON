@@ -107,9 +107,9 @@ private:
 public:
 
     // Total size for Transposition entry in byte
-    static const uint32_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
+    static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
     // Number of entry in a cluster
-    static const uint32_t NUM_TENTRY_CLUSTER = 4;
+    static const uint8_t NUM_TENTRY_CLUSTER = 4;
 
     // Max power of hash for cluster
 #ifdef _64BIT
@@ -169,7 +169,7 @@ public:
     {
         if (_hash_table)
         {
-            size_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
+            uint64_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
             memset (_hash_table, 0, size_byte);
             _stored_entry    = 0;
             _generation     = 0;
