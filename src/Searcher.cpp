@@ -57,6 +57,10 @@ namespace {
     }
 
     TimeManager TimeMgr;
+
+    Time::point const   InfoDuration  = 3000; // 3 sec
+    Time::point         IterDuration; // Duration of iteration
+
     Value       DrawValue[CLR_NO];
 
     double      BestMoveChanges;
@@ -68,11 +72,6 @@ namespace {
     HistoryStats        History;
     MovesStats          CounterMoves;
     MovesStats          FollowupMoves;
-
-    // Duration of iteration
-    Time::point         IterDuration;
-    const Time::point   InfoDuration  = 3000; // 3 sec
-
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
     // after a fail-high of a quiet move.
@@ -153,9 +152,9 @@ namespace {
 
     // _perft() is our utility to verify move generation. All the leaf nodes
     // up to the given depth are generated and counted and the sum returned.
-    size_t _perft (Position &pos, Depth depth)
+    inline uint64_t _perft (Position &pos, Depth depth)
     {
-        size_t cnt = 0;
+        uint64_t cnt = 0;
         const bool leaf = (depth == ONE_MOVE);
 
         StateInfo si;
@@ -299,7 +298,7 @@ namespace Searcher {
 
 #pragma endregion
 
-    size_t perft (Position &pos, Depth depth)
+    uint64_t perft (Position &pos, Depth depth)
     {
         return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
     }
@@ -362,7 +361,7 @@ namespace Searcher {
         }
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (size_t i = 0; i < Threads.size (); ++i)
+        for (int32_t i = 0; i < Threads.size (); ++i)
         {
             Threads[i]->max_ply = 0;
         }
@@ -1706,7 +1705,7 @@ void check_time ()
 
         // Loop across all split points and sum accumulated SplitPoint nodes plus
         // all the currently active positions nodes.
-        for (size_t i = 0; i < Threads.size (); ++i)
+        for (int32_t i = 0; i < Threads.size (); ++i)
         {
             for (int32_t j = 0; j < Threads[i]->threads_split_point; ++j)
             {

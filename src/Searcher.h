@@ -164,8 +164,6 @@ namespace Searcher {
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;
-    //extern Time::point         IterDuration;
-
 
     extern size_t perft (Position &pos, Depth depth);
     extern void think ();
