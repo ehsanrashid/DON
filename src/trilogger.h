@@ -33,7 +33,7 @@
 
 //#define OTLOG
 //#define ETLOG
-//#define FTLOG   engine_log
+//#define FTLOG   except_log
 
 namespace TrivialLogger {
 

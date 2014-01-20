@@ -121,7 +121,7 @@ namespace {
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    string pv_info_uci  (const Position &pos, int16_t depth, Value alpha, Value beta, Time::point elapsed);
+    string pv_info_uci  (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed);
 
     typedef struct Skill
     {
@@ -143,7 +143,7 @@ namespace {
         }
 
         bool enabled ()                   const { return (level < 20); }
-        bool time_to_pick (int16_t depth) const { return depth == (1 + level); }
+        bool time_to_pick (uint8_t depth) const { return depth == (1 + level); }
 
         Move pick_move ();
 
@@ -350,13 +350,13 @@ namespace Searcher {
         {
             Log log (fn_search_log);
 
-            log << "---------\n" << boolalpha
-                << "Searching:  " << RootPos.fen ()                              << "\n"
-                << " infinite:  " << Limits.infinite                             << "\n"
-                << " ponder:    " << Limits.ponder                               << "\n"
-                << " time:      " << Limits.game_clock[RootPos.active ()].time   << "\n"
-                << " increment: " << Limits.game_clock[RootPos.active ()].inc    << "\n"
-                << " movestogo: " << uint32_t (Limits.moves_to_go)
+            log << "-----------\n" << boolalpha
+                << "fen:       " << RootPos.fen ()                              << "\n"
+                << "infinite:  " << Limits.infinite                             << "\n"
+                << "ponder:    " << Limits.ponder                               << "\n"
+                << "time:      " << Limits.game_clock[RootPos.active ()].time   << "\n"
+                << "increment: " << Limits.game_clock[RootPos.active ()].inc    << "\n"
+                << "movestogo: " << uint32_t (Limits.moves_to_go)
                 << endl;
         }
 
@@ -1631,7 +1631,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // pv_info_uci () formats PV information according to UCI protocol.
     // UCI requires to send all the PV lines also if are still to be searched
     // and so refer to the previous search score.
-    inline string pv_info_uci (const Position &pos, int16_t depth, Value alpha, Value beta, Time::point elapsed)
+    inline string pv_info_uci (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed)
     {
         stringstream spv;
 

@@ -22,7 +22,7 @@ AmbType ambiguity (Move m, const Position &pos)
     Piece p   = pos[org];
     PType pt  = _type (p);
 
-    
+
     //uint8_t n = 0;
     //uint8_t f = 0;
     //uint8_t r = 0;
@@ -336,7 +336,7 @@ string score_uci (Value v, Value alpha, Value beta)
     {
         ss << "mate " << int32_t (v > VALUE_ZERO ? VALUE_MATE - v + 1 : -(VALUE_MATE + v)) / 2;
     }
-    
+
     ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
     return ss.str ();
@@ -394,14 +394,14 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const vector<Move> &pv)
+string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const vector<Move> &pv)
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
 
     stringstream spv;
 
-    spv << setw(2) << depth
+    spv << setw(3) << depth
         << setw(8) << value_to_string (value)
         << setw(8) << time_to_string (msecs);
 
@@ -424,24 +424,30 @@ string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, cons
 
     for_each (pv.cbegin (), pv.cend (), [&] (Move m)
     {
-        string san = move_to_san (m, pos);
-
-        if (length + san.length () > 80)
+        if (MOVE_NONE != m)
         {
-            spv << "\n" + padding;
-            length = padding.length ();
+            string san = move_to_san (m, pos);
+
+            if (length + san.length () > 80)
+            {
+                spv << "\n" + padding;
+                length = padding.length ();
+            }
+
+            spv << san << ' ';
+            length += san.length () + 1;
+
+            states.push (StateInfo ());
+            pos.do_move (m, states.top ());
         }
-
-        spv << san << ' ';
-        length += san.length () + 1;
-
-        states.push (StateInfo ());
-        pos.do_move (m, states.top ());
     });
 
     for_each (pv.crbegin (), pv.crend (), [&] (Move m)
     {
-        pos.undo_move ();
+        if (MOVE_NONE != m)
+        {
+            pos.undo_move ();
+        }
     });
 
     return spv.str();
