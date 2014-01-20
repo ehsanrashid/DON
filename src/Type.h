@@ -66,8 +66,8 @@
 typedef uint64_t   Bitboard; // Type for Bitboard
 typedef uint64_t   Key;      // Type for Zobrist Hash
 
-const uint16_t MAX_PLY      = 100;          // Maximum Depth 50
-const uint16_t MAX_PLY_6    = MAX_PLY + 6;
+const uint8_t MAX_PLY      = 100;          // Maximum Depth 50
+const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 
 #pragma warning (push)
 #pragma warning (disable: 4341)

@@ -145,7 +145,7 @@ namespace Searcher {
     typedef struct Stack
     {
         SplitPoint *split_point;
-        int32_t     ply;
+        uint8_t     ply;
         Move        current_move;
         Move        tt_move;
         Move        excluded_move;
@@ -165,7 +165,8 @@ namespace Searcher {
 
     extern Time::point           SearchTime;
 
-    extern size_t perft (Position &pos, Depth depth);
+    extern uint64_t perft (Position &pos, Depth depth);
+    
     extern void think ();
 
     extern void initialize ();

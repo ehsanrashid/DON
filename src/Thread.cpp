@@ -93,7 +93,7 @@ bool Thread::available_to (const Thread *master) const
 
     // Make a local copy to be sure doesn't become zero under our feet while
     // testing next condition and so leading to an out of bound access.
-    int32_t size = threads_split_point;
+    uint8_t size = threads_split_point;
 
     // No split points means that the thread is available as a slave for any
     // other thread otherwise apply the "helpful master" concept if possible.
@@ -225,7 +225,7 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // search() then split() returns.
 template <bool FAKE>
 void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
-                    Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node)
+                    Depth depth, int32_t moves_count, MovePicker *move_picker, int8_t node_type, bool cut_node)
 {
 
     ASSERT (pos.ok ());
@@ -315,8 +315,8 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 }
 
 // Explicit template instantiations
-template void Thread::split<false> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
-template void Thread::split< true> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int32_t, bool);
+template void Thread::split<false> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int8_t, bool);
+template void Thread::split< true> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, int8_t, bool);
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.

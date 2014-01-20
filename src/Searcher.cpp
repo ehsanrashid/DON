@@ -223,7 +223,7 @@ namespace Searcher {
     // long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        uint16_t ply = 0;
+        uint8_t ply = 0;
         Move m = pv[ply];
         pv.clear ();
 
@@ -268,7 +268,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        uint16_t ply = 0;
+        uint8_t ply = 0;
 
         const TranspositionEntry *te;
         StateInfo states[MAX_PLY_6], *si = states;
@@ -361,7 +361,7 @@ namespace Searcher {
         }
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (int32_t i = 0; i < Threads.size (); ++i)
+        for (uint32_t i = 0; i < Threads.size (); ++i)
         {
             Threads[i]->max_ply = 0;
         }
@@ -1635,10 +1635,10 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         stringstream spv;
 
-        int32_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
+        uint32_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
 
-        int32_t sel_depth = 0;
-        for (int32_t i = 0; i < Threads.size (); ++i)
+        uint8_t sel_depth = 0;
+        for (uint32_t i = 0; i < Threads.size (); ++i)
         {
             if (Threads[i]->max_ply > sel_depth)
             {
@@ -1646,13 +1646,13 @@ moves_loop: // When in check and at SPNode search starts from here
             }
         }
 
-        for (int32_t i = 0; i < rm_size; ++i)
+        for (uint32_t i = 0; i < rm_size; ++i)
         {
             bool updated = (i <= IndexPV);
 
             if (1 == depth && !updated) continue;
 
-            int32_t d = updated ? depth : depth - 1;
+            uint8_t d = updated ? depth : depth - 1;
             Value   v = updated ? RootMoves[i].curr_value : RootMoves[i].last_value;
 
             // Not at first line
@@ -1660,8 +1660,8 @@ moves_loop: // When in check and at SPNode search starts from here
 
             spv << "info"
                 << " multipv "  << i + 1
-                << " depth "    << d
-                << " seldepth " << sel_depth
+                << " depth "    << uint32_t (d)
+                << " seldepth " << uint32_t (sel_depth)
                 << " score "    << (i == IndexPV ? score_uci (v, alpha, beta) : score_uci (v))
                 << " time "     << elapsed
                 << " nodes "    << pos.game_nodes ()
@@ -1705,9 +1705,9 @@ void check_time ()
 
         // Loop across all split points and sum accumulated SplitPoint nodes plus
         // all the currently active positions nodes.
-        for (int32_t i = 0; i < Threads.size (); ++i)
+        for (uint32_t i = 0; i < Threads.size (); ++i)
         {
-            for (int32_t j = 0; j < Threads[i]->threads_split_point; ++j)
+            for (uint8_t j = 0; j < Threads[i]->threads_split_point; ++j)
             {
                 SplitPoint &sp = Threads[i]->split_points[j];
                 sp.mutex.lock ();

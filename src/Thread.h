@@ -111,7 +111,7 @@ struct SplitPoint
     Thread                 *master_thread;
     Depth                   depth;
     Value                   beta;
-    int32_t                 node_type;
+    int8_t                  node_type;
     bool                    cut_node;
 
     // Const pointers to shared data
@@ -160,10 +160,10 @@ struct Thread
     Pawns   ::Table      pawns_table;
     EndGame ::Endgames   endgames;
     Position            *active_pos;
-    size_t               idx;
-    int32_t              max_ply;
+    uint32_t             idx;
+    uint8_t              max_ply;
     SplitPoint* volatile active_split_point;
-    volatile int32_t     threads_split_point;
+    volatile uint8_t     threads_split_point;
     volatile bool        searching;
 
     Thread ();
@@ -174,7 +174,7 @@ struct Thread
 
     template <bool FAKE>
     void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value* best_value, Move* best_move,
-        Depth depth, int32_t moves_count, MovePicker *move_picker, int32_t node_type, bool cut_node);
+        Depth depth, int32_t moves_count, MovePicker *move_picker, int8_t node_type, bool cut_node);
 
 };
 
