@@ -37,30 +37,30 @@ private:
     uint8_t  _gen;
     uint16_t _nodes;
     int16_t  _value;
-    int16_t  _eval_value;
+    int16_t  _e_value;
 
 public:
 
-    uint32_t     key () const { return uint32_t (_key);     }
-    Move        move () const { return Move (_move);        }
-    Depth      depth () const { return Depth (_depth);      }
-    Bound      bound () const { return Bound (_bound);      }
-    uint8_t      gen () const { return uint8_t (_gen);      }
-    uint16_t   nodes () const { return uint16_t (_nodes);   }
-    Value      value () const { return Value (_value);      }
-    Value eval_value () const { return Value (_eval_value); }
+    uint32_t     key () const { return uint32_t     (_key); }
+    Move        move () const { return Move        (_move); }
+    Depth      depth () const { return Depth      (_depth); }
+    Bound      bound () const { return Bound      (_bound); }
+    uint8_t      gen () const { return uint8_t      (_gen); }
+    uint16_t   nodes () const { return uint16_t   (_nodes); }
+    Value      value () const { return Value      (_value); }
+    Value    e_value () const { return Value    (_e_value); }
 
     void save (uint32_t key, Move move, Depth depth, Bound bound,
         uint8_t gen, uint16_t nodes, Value value, Value e_value)
     {
-        _key        = uint32_t (key);
-        _move       = uint16_t (move);
-        _depth      = uint16_t (depth);
-        _bound      =  uint8_t (bound);
-        _gen        =  uint8_t (gen);
-        _nodes      = uint16_t (nodes);
-        _value      = uint16_t (value);
-        _eval_value = uint16_t (e_value);
+        _key     = uint32_t (key);
+        _move    = uint16_t (move);
+        _depth   = uint16_t (depth);
+        _bound   =  uint8_t (bound);
+        _gen     =  uint8_t (gen);
+        _nodes   = uint16_t (nodes);
+        _value   = uint16_t (value);
+        _e_value = uint16_t (e_value);
     }
 
     void gen (uint8_t gen)
@@ -157,15 +157,13 @@ public:
         erase ();
     }
 
-    uint32_t resize (uint32_t size_mb);
-
-    uint32_t size () const { return (uint64_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
+    inline uint32_t size () const { return (uint64_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
 
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,
     // or when the user asks the program to clear the table
     // 'ucinewgame' (from the UCI interface).
-    void clear ()
+    inline void clear ()
     {
         if (_hash_table)
         {
@@ -199,12 +197,6 @@ public:
         return _hash_table + (uint32_t (key) & _hash_mask);
     }
 
-    // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value);
-
-    // retrieve() looks up the entry in the transposition table.
-    const TranspositionEntry* retrieve (Key key) const;
-
     // permill_full() returns the per-mille of the all transposition entries
     // which have received at least one write during the current search.
     // It is used to display the "info hashfull ..." information in UCI.
@@ -212,16 +204,17 @@ public:
     // hash, are using <x>%. of the state of full.
     inline uint32_t TranspositionTable::permill_full () const
     {
-        //uint32_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
-        //return (0 != total_entry) ?
-        //    //(1 - exp (_stored_entry * log (1.0 - 1.0/total_entry))) * 1000 :
-        //    (1 - exp (log (1.0 - double (_stored_entry) / double (total_entry)))) * 1000 :
-        //    //exp (log (1000.0 + _stored_entry - total_entry)) :
-        //    0.0;
-
         return _stored_entry * 1000 / (_hash_mask + NUM_TENTRY_CLUSTER);
     }
 
+
+    uint32_t resize (uint32_t size_mb);
+
+    // store() writes a new entry in the transposition table.
+    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value);
+
+    // retrieve() looks up the entry in the transposition table.
+    const TranspositionEntry* retrieve (Key key) const;
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -235,8 +228,8 @@ public:
         os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (dummy));
         os.write ((char *) &dummy, sizeof (dummy));
         os.write ((char *) &tt._generation, sizeof (tt._generation));
-        os.write ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
-        os.write ((char *) tt._hash_table, size_byte);
+        os.write ((char *) &tt._hash_mask , sizeof (tt._hash_mask));
+        os.write ((char *)  tt._hash_table, size_byte);
         return os;
     }
 

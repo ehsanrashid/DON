@@ -590,8 +590,8 @@ namespace {
 
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
-
-                if (IndexPV + 1 == MultiPV || (elapsed = Time::now () - SearchTime + 1) > InfoDuration)
+                elapsed = Time::now () - SearchTime + 1;
+                if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
                 {
                     ats () << pv_info_uci (pos, depth, alpha, beta, elapsed) << endl;
                 }
@@ -814,7 +814,7 @@ namespace {
         else if (te)
         {
             // Never assume anything on values stored in TT
-            Value e_value = te->eval_value ();
+            Value e_value = te->e_value ();
             if (VALUE_NONE == e_value) e_value = evaluate (pos);
             eval_value = ss->static_eval = e_value;
 
@@ -1424,7 +1424,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (te)
             {
                 // Never assume anything on values stored in TT
-                Value e_value = te->eval_value ();
+                Value e_value = te->e_value ();
                 if (VALUE_NONE == e_value) e_value = evaluate (pos);
                 best_value = ss->static_eval = e_value;
 
@@ -1635,10 +1635,11 @@ moves_loop: // When in check and at SPNode search starts from here
     // and so refer to the previous search score.
     inline string pv_info_uci (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed)
     {
+        ASSERT (elapsed);
+
         stringstream spv;
 
-        uint32_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
-
+        uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
         uint8_t sel_depth = 0;
         for (uint32_t i = 0; i < Threads.size (); ++i)
         {
@@ -1648,7 +1649,7 @@ moves_loop: // When in check and at SPNode search starts from here
             }
         }
 
-        for (uint32_t i = 0; i < rm_size; ++i)
+        for (uint8_t i = 0; i < rm_size; ++i)
         {
             bool updated = (i <= IndexPV);
 
@@ -1661,7 +1662,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (spv.rdbuf ()->in_avail ()) spv << endl;
 
             spv << "info"
-                << " multipv "  << i + 1
+                << " multipv "  << uint32_t (i + 1)
                 << " depth "    << uint32_t (d)
                 << " seldepth " << uint32_t (sel_depth)
                 << " score "    << (i == IndexPV ? score_uci (v, alpha, beta) : score_uci (v))
@@ -1671,7 +1672,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " hashfull " << TT.permill_full ()
                 //<< " cpuload "  << // the cpu usage of the engine is x permill.
                 << " pv";
-            for (int32_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
+            for (uint8_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
                 spv << ' ' << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
             }

@@ -378,8 +378,8 @@ namespace {
 
             Score scr[CLR_NO] =
             {
-                ei.mi->space_weight() * evaluate_space<WHITE> (pos, ei),
-                ei.mi->space_weight() * evaluate_space<BLACK> (pos, ei),
+                ei.mi->space_weight () * evaluate_space<WHITE> (pos, ei),
+                ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei),
             };
 
             Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
@@ -390,9 +390,9 @@ namespace {
                 //<< " White: " << to_cp (margins[WHITE]) << "-"
                 //<< " Black: " << to_cp (margins[BLACK]) << "\n"
                 << "Scaling: " << noshowpos
-                << setw(6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
-                << setw(6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
-                << setw(6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                << setw (6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
+                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
+                << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
                 << "Total evaluation: " << to_cp (value);
         }
 
@@ -525,7 +525,7 @@ namespace {
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
             {
-                score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares(C, s);
+                score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
 
             // Penalty for knight when there are few enemy pawns
@@ -583,7 +583,7 @@ namespace {
 
                 // Penalize rooks which are trapped by a king. Penalize more if the
                 // king has lost its castling capability.
-                if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))) &&
+                if ((_file (fk_sq) < F_E == _file (s) < _file (fk_sq)) &&
                     (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq)) &&
                     !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                 {
@@ -796,7 +796,7 @@ namespace {
     }
 
     template<Color C, bool TRACE>
-    // evaluate_passed_pawns<> () evaluates the passed pawns of the given color
+    // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
     inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -817,7 +817,7 @@ namespace {
             Value mg_bonus = Value (17 * rr);
             Value eg_bonus = Value ( 7 * (rr + r + 1));
 
-            if (0 != rr)
+            if (rr)
             {
                 Square block_sq = s + pawn_push (C);
 
@@ -939,9 +939,8 @@ namespace {
     {
         Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
         return (!unstoppable_pawns || pos.non_pawn_material (~c))
-            ? SCORE_ZERO
-            : UnstoppablePawnBonus
-            * int32_t (rel_rank (c, scan_rel_frntmost_sq(c, unstoppable_pawns)));
+            ? SCORE_ZERO : UnstoppablePawnBonus
+            * int32_t (rel_rank (c, scan_rel_frntmost_sq (c, unstoppable_pawns)));
     }
 
     template<Color C>
@@ -1024,22 +1023,24 @@ namespace {
             switch (idx)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
-                stream << setw(20) << name << " |   ---   --- |   ---   --- | "
-                    << setw(6)  << to_cp (mg_value (w_score)) << " "
-                    << setw(6)  << to_cp (eg_value (w_score)) << " \n";
-                
+                stream
+                    << setw (20) << name << " |   ---   --- |   ---   --- | "
+                    << setw (6)  << to_cp (mg_value (w_score)) << " "
+                    << setw (6)  << to_cp (eg_value (w_score)) << " \n";
+
                 break;
 
             default:
-                stream << setw(20) << name << " | " << noshowpos
-                    << setw(5)  << to_cp (mg_value (w_score)) << " "
-                    << setw(5)  << to_cp (eg_value (w_score)) << " | "
-                    << setw(5)  << to_cp (mg_value (b_score)) << " "
-                    << setw(5)  << to_cp (eg_value (b_score)) << " | "
+                stream
+                    << setw (20) << name << " | " << noshowpos
+                    << setw (5)  << to_cp (mg_value (w_score)) << " "
+                    << setw (5)  << to_cp (eg_value (w_score)) << " | "
+                    << setw (5)  << to_cp (mg_value (b_score)) << " "
+                    << setw (5)  << to_cp (eg_value (b_score)) << " | "
                     << showpos
-                    << setw(6)  << to_cp (mg_value (w_score - b_score)) << " "
-                    << setw(6)  << to_cp (eg_value (w_score - b_score)) << " \n";
-                
+                    << setw (6)  << to_cp (mg_value (w_score - b_score)) << " "
+                    << setw (6)  << to_cp (eg_value (w_score - b_score)) << " \n";
+
                 break;
 
             }
@@ -1056,7 +1057,8 @@ namespace {
             string totals = stream.str ();
             stream.str ("");
 
-            stream << setw(21)      << "Eval term |    White    |    Black    |     Total     \n"
+            stream
+                << setw (21)        << "Eval term |    White    |    Black    |     Total     \n"
                 <<          "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                 <<          "---------------------+-------------+-------------+---------------\n";
 

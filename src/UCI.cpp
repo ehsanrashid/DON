@@ -116,20 +116,20 @@ namespace UCI {
         void exe_position (cmdstream &cstm)
         {
             string token;
-            // consume "startpos" or "fen" token
-            if (!(cstm >> token)) return;
             string fen;
-            // consume "moves" token if any
-            if (iequals (token, "startpos"))
+            // consume "startpos" or "fen" token
+            if (cstm.good () && (cstm >> token) &&
+                iequals (token, "startpos"))
             {
                 fen = FEN_N;
                 cstm >> token; // Consume "moves" token if any
             }
             else if (iequals (token, "fen"))
             {
-                while (cstm.good () && (cstm >> token))
+                // consume "moves" token if any
+                while (cstm.good () && (cstm >> token) &&
+                    !iequals (token, "moves"))
                 {
-                    if (iequals (token, "moves")) break;
                     fen += whitespace (fen) ? token : " " + token;
                 }
 
