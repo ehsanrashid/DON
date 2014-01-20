@@ -11,7 +11,7 @@ using namespace std;
 // Global Transposition Table
 TranspositionTable TT;
 
-void TranspositionTable::aligned_memory_alloc (size_t size, uint32_t alignment)
+void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
@@ -66,15 +66,15 @@ uint32_t TranspositionTable::resize (uint32_t size_mb)
     //    return;
     //}
 
-    uint64_t size_byte    = size_t (size_mb) << 20;
-    uint64_t total_entry  = (size_byte) / SIZE_TENTRY;
+    uint64_t size_byte    = uint64_t (size_mb) << 20;
+    uint32_t total_entry  = (size_byte) / SIZE_TENTRY;
     //uint32_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
 
     uint8_t bit_hash = scan_msq (total_entry);
     ASSERT (bit_hash < MAX_BIT_HASH);
     if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
 
-    total_entry     = uint64_t (1) << bit_hash;
+    total_entry     = uint32_t (1) << bit_hash;
     uint64_t size   = total_entry * SIZE_TENTRY;
     
     if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return (size >> 20);
@@ -145,8 +145,10 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
+    //if (!re->move () && move && _stored_entry < (_hash_mask + NUM_TENTRY_CLUSTER)) ++_stored_entry;
+    if (!re->move () && move) ++_stored_entry;
+    if (re->move () && !move) --_stored_entry;
     re->save (key32, move, depth, bound, _generation, nodes/1000, value, e_value);
-    ++_stored_entry;
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -177,7 +179,6 @@ double TranspositionTable::permill_full () const
     //    //exp (log (1000.0 + _stored_entry - total_entry)) :
     //    0.0;
 
-    return (0 != total_entry) ?
-        double (_stored_entry) * 1000 / double (total_entry) : 0.0;
-
+    return (0 == total_entry) ?
+        0.0 : double (_stored_entry) * 1000 / double (total_entry);
 }

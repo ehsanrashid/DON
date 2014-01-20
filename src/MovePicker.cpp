@@ -147,8 +147,8 @@ void MovePicker::value<CAPTURE> ()
     // big pieces before capturing a hanging piece probably helps to reduce
     // the subtree size.
     // In main search we want to push captures with negative SEE values to
-    // badCaptures[] array, but instead of doing it now we delay till when
-    // the move has been picked up in pick_move_from_list(), this way we save
+    // bad_captures[] array, but instead of doing it now we delay till when
+    // the move has been picked up in pick_move(), this way we save
     // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
     for (ValMove *itr = mlist; itr != end; ++itr)
     {
@@ -224,7 +224,7 @@ void MovePicker::generate_next ()
     case CAPTURES_S4:
     case CAPTURES_S5:
     case CAPTURES_S6:
-        end = generate<CAPTURE>(mlist, pos);
+        end = generate<CAPTURE> (mlist, pos);
         value<CAPTURE> ();
 
         return;
@@ -315,7 +315,7 @@ void MovePicker::generate_next ()
         return;
 
     case EVASIONS_S2:
-        end = generate<EVASION>(mlist, pos);
+        end = generate<EVASION> (mlist, pos);
         if (end > mlist + 1)
         {
             value<EVASION> ();

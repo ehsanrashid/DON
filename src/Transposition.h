@@ -87,7 +87,7 @@ private:
     uint32_t            _stored_entry;
     uint8_t             _generation;
 
-    void aligned_memory_alloc (size_t size, uint32_t alignment);
+    void aligned_memory_alloc (uint64_t size, uint32_t alignment);
 
     // erase() free the allocated memory
     void erase ()

@@ -30,6 +30,8 @@ namespace {
     // Set to true to force running with one thread. Used for debugging
     const bool FakeSplit            = false;
 
+    const Time::point InfoDuration  = 3000; // 3 sec
+
     // Different node types, used as template parameter
     enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -352,12 +354,12 @@ namespace Searcher {
             Log log (fn_search_log);
 
             log << "---------\n" << boolalpha
-                << "Searching: "    << RootPos.fen () << "\n"
-                << " infinite: "    << Limits.infinite
-                << " ponder: "      << Limits.ponder
-                << " time: "        << Limits.game_clock[RootPos.active ()].time
-                << " increment: "   << Limits.game_clock[RootPos.active ()].inc
-                << " moves to go: " << uint32_t (Limits.moves_to_go)
+                << "Searching:  " << RootPos.fen ()                              << "\n"
+                << " infinite:  " << Limits.infinite                             << "\n"
+                << " ponder:    " << Limits.ponder                               << "\n"
+                << " time:      " << Limits.game_clock[RootPos.active ()].time   << "\n"
+                << " increment: " << Limits.game_clock[RootPos.active ()].inc    << "\n"
+                << " movestogo: " << uint32_t (Limits.moves_to_go)
                 << endl;
         }
 
@@ -376,30 +378,35 @@ namespace Searcher {
         Threads.timer->run = false;      // Stop the timer
         Threads.sleep_while_idle = true; // Send idle threads to sleep
 
-        if (write_search_log)
-        {
-            Time::point elapsed = Time::now () - SearchTime + 1;
-
-            Log log (fn_search_log);
-            log << "Nodes: "        << RootPos.game_nodes ()                  << "\n"
-                << "Nodes/second: " << RootPos.game_nodes () * 1000 / elapsed << "\n"
-                << "Best move: "    << move_to_san (RootMoves[0].pv[0], RootPos)
-                << endl;
-
-            StateInfo si;
-            RootPos.do_move (RootMoves[0].pv[0], si);
-            log << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos)
-                << endl;
-            RootPos.undo_move ();
-        }
 
 finish:
+
+        Time::point elapsed = Time::now () - SearchTime + 1;
+
+        if (write_search_log)
+        {
+            Log log (fn_search_log);
+            log << "Time:       " << elapsed                                   << "\n"
+                << "Nodes:      " << RootPos.game_nodes ()                     << "\n"
+                << "Nodes/sec.: " << RootPos.game_nodes () * 1000 / elapsed    << "\n"
+                << "Best move:  " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
+            if (RootMoves[0].pv[0])
+            {
+                StateInfo si;
+                RootPos.do_move (RootMoves[0].pv[0], si);
+                log << "Ponder move:  " << move_to_san (RootMoves[0].pv[1], RootPos);
+                RootPos.undo_move ();
+            }
+            log << endl;
+        }
 
         // When search is stopped this info is not printed
         ats ()
             << "info"
-            << " time "  << Time::now () - SearchTime + 1
-            << " nodes " << RootPos.game_nodes ()
+            << " time "     << elapsed
+            << " nodes "    << RootPos.game_nodes ()
+            << " nps "      << RootPos.game_nodes () * 1000 / elapsed
+            << " hashfull " << setprecision (2) << fixed << TT.permill_full ()
             << endl;
 
         // When we reach max depth we arrive here even without Signals.stop is raised,
@@ -524,6 +531,7 @@ namespace {
                 // research with bigger window until not failing high/low anymore.
                 while (true)
                 {
+
                     best_value = search<Root> (pos, ss, alpha, beta, depth * int32_t (ONE_MOVE), false);
 
                     // Bring to front the best move. It is critical that sorting is
@@ -549,7 +557,7 @@ namespace {
                     // When failing high/low give some update
                     // (without cluttering the UI) before to research.
                     if ((alpha >= best_value || best_value >= beta) &&
-                        (Time::now () - SearchTime) > 3000)
+                        Time::now () - SearchTime > InfoDuration)
                     {
                         ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                     }
@@ -581,7 +589,7 @@ namespace {
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + PVIdx + 1);
 
-                if (PVIdx + 1 == PVSize || (Time::now () - SearchTime) > 3000)
+                if (PVIdx + 1 == PVSize || Time::now () - SearchTime > InfoDuration)
                 {
                     ats () << pv_info_uci (pos, depth, alpha, beta) << endl;
                 }
@@ -606,8 +614,7 @@ namespace {
 
                 string fn_search_log  = *(Options["Search Log File"]);
                 Log log (fn_search_log);
-                log << pretty_pv (pos, depth, rm.curr_value, (Time::now () - SearchTime), rm.pv)
-                    << endl;
+                log << pretty_pv (pos, depth, rm.curr_value, Time::now () - SearchTime, rm.pv) << endl;
             }
 
             // Have found a "mate in x"?
@@ -992,6 +999,18 @@ moves_loop: // When in check and at SPNode search starts from here
             (te->bound () & BND_LOWER) &&
             (te->depth () >= depth - 3 * ONE_MOVE);
 
+        if (RootNode)
+        {
+            if (thread == Threads.main () && 
+                Time::now () - SearchTime > InfoDuration)
+            {
+                ats ()
+                    << "info"
+                    << " depth " << int32_t (depth / ONE_MOVE)
+                    << endl;
+            }
+        }
+
         // Step 11. Loop through moves
         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)
@@ -1022,11 +1041,11 @@ moves_loop: // When in check and at SPNode search starts from here
                 Signals.first_root_move = (1 == moves_count);
 
                 if (thread == Threads.main () && 
-                    Time::now () - SearchTime > 3000)
+                    Time::now () - SearchTime > InfoDuration)
                 {
                     ats ()
                         << "info"
-                        << " depth "          << int32_t (depth / ONE_MOVE)
+                        //<< " depth "          << int32_t (depth / ONE_MOVE)
                         << " currmove "       << move_to_can (move, pos.chess960 ())
                         << " currmovenumber " << moves_count + PVIdx
                         << endl;
@@ -1628,7 +1647,7 @@ moves_loop: // When in check and at SPNode search starts from here
         {
             bool updated = (i <= PVIdx);
 
-            if ((1 == depth) && !updated) continue;
+            if (1 == depth && !updated) continue;
 
             int32_t d = updated ? depth : depth - 1;
             Value   v = updated ? RootMoves[i].curr_value : RootMoves[i].last_value;
@@ -1637,13 +1656,15 @@ moves_loop: // When in check and at SPNode search starts from here
             if (spv.rdbuf ()->in_avail ()) spv << endl;
 
             spv << "info"
+                << " multipv "  << i + 1
                 << " depth "    << d
                 << " seldepth " << sel_depth
                 << " score "    << (i == PVIdx ? score_uci (v, alpha, beta) : score_uci (v))
                 << " time "     << elapsed
                 << " nodes "    << pos.game_nodes ()
                 << " nps "      << pos.game_nodes () * 1000 / elapsed
-                << " multipv "  << i + 1
+                << " hashfull " << setprecision (2) << fixed << TT.permill_full ()
+                //<< " cpuload "  << // the cpu usage of the engine is x permill.
                 << " pv";
             for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
