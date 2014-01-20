@@ -56,7 +56,7 @@ namespace Engine {
                 >> day
                 >> year;
 
-            ss << setfill ('0')
+            ss  << setfill ('0')
                 << setw (2) << day //<< '-'
                 << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
                 << setw (2) << year.substr (2);

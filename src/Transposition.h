@@ -171,33 +171,30 @@ public:
         {
             uint64_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
             memset (_hash_table, 0, size_byte);
-            _stored_entry    = 0;
-            _generation     = 0;
+            _stored_entry = 0;
+            _generation   = 0;
         }
     }
 
     // new_gen() is called at the beginning of every new search.
     // It increments the "Generation" variable, which is used to distinguish
     // transposition table entries from previous searches from entries from the current search.
-    void new_gen ()
-    {
-        ++_generation;
-    }
+    inline void new_gen () { ++_generation; }
 
     // refresh() updates the 'Generation' of the entry to avoid aging.
     // Normally called after a TranspositionTable hit.
-    void refresh (const TranspositionEntry &te) const
+    inline void refresh (const TranspositionEntry &te) const
     {
         const_cast<TranspositionEntry&> (te).gen (_generation);
     }
-    void refresh (const TranspositionEntry *te) const
+    inline void refresh (const TranspositionEntry *te) const
     {
         const_cast<TranspositionEntry*> (te)->gen (_generation);
     }
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    TranspositionEntry* get_cluster (const Key key) const
+    inline TranspositionEntry* get_cluster (const Key key) const
     {
         return _hash_table + (uint32_t (key) & _hash_mask);
     }
