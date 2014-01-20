@@ -350,13 +350,15 @@ namespace Searcher {
         {
             Log log (fn_search_log);
 
-            log << "-----------\n" << boolalpha
+            log << "----------->\n" << boolalpha
                 << "fen:       " << RootPos.fen ()                              << "\n"
                 << "infinite:  " << Limits.infinite                             << "\n"
                 << "ponder:    " << Limits.ponder                               << "\n"
                 << "time:      " << Limits.game_clock[RootPos.active ()].time   << "\n"
                 << "increment: " << Limits.game_clock[RootPos.active ()].inc    << "\n"
-                << "movestogo: " << uint32_t (Limits.moves_to_go)
+                << "movestogo: " << uint32_t (Limits.moves_to_go)               << "\n"
+                << "  d   score   time    nodes  pv\n"
+                << "-----------------------------------------------------------"
                 << endl;
         }
 
@@ -366,14 +368,14 @@ namespace Searcher {
             Threads[i]->max_ply = 0;
         }
 
-        Threads.sleep_while_idle = *(Options["Idle Threads Sleep"]);
+        Threads.sleep_idle = *(Options["Idle Threads Sleep"]);
         Threads.timer->run = true;
-        Threads.timer->notify_one();     // Wake up the recurring timer
+        Threads.timer->notify_one();// Wake up the recurring timer
 
-        iter_deep_loop (RootPos);        // Let's start searching !
+        iter_deep_loop (RootPos);   // Let's start searching !
 
-        Threads.timer->run = false;      // Stop the timer
-        Threads.sleep_while_idle = true; // Send idle threads to sleep
+        Threads.timer->run = false; // Stop the timer
+        Threads.sleep_idle = true;  // Send idle threads to sleep
 
 
 finish:
@@ -524,7 +526,7 @@ namespace {
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
                 }
-                
+
                 Time::point elapsed;
 
                 // Start with a small aspiration window and, in case of fail high/low,
@@ -614,7 +616,7 @@ namespace {
 
                 string fn_search_log  = *(Options["Search Log File"]);
                 Log log (fn_search_log);
-                log << pretty_pv (pos, depth, rm.curr_value, Time::now () - SearchTime, rm.pv) << endl;
+                log << pretty_pv (pos, depth, rm.curr_value, Time::now () - SearchTime, &rm.pv[0]) << endl;
             }
 
             // Have found a "mate in x"?
@@ -1759,7 +1761,7 @@ void Thread::idle_loop ()
     {
         // If we are not searching, wait for a condition to be signaled instead of
         // wasting CPU time polling for work.
-        while ((!searching && Threads.sleep_while_idle) || exit)
+        while ((!searching && Threads.sleep_idle) || exit)
         {
             if (exit)
             {
@@ -1828,7 +1830,7 @@ void Thread::idle_loop ()
 
             // Wake up master thread so to allow it to return from the idle loop
             // in case we are the last slave of the split point.
-            if (Threads.sleep_while_idle &&
+            if (Threads.sleep_idle &&
                 this != sp->master_thread &&
                 !sp->slaves_mask)
             {

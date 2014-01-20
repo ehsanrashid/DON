@@ -155,7 +155,7 @@ Move move_from_can (string &can, const Position &pos)
 //  - e1g1 notation in normal chess mode,
 //  - e1h1 notation in chess960 mode.
 // Internally castle moves are always coded as "king captures rook".
-string move_to_can (Move m, bool c960)
+const string move_to_can (Move m, bool c960)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
@@ -172,7 +172,7 @@ string move_to_can (Move m, bool c960)
 
 // move_to_san(m, pos) takes a position and a legal move as input
 // and returns its short algebraic notation representation.
-string move_to_san (Move m, Position &pos)
+const string move_to_san (Move m, Position &pos)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
@@ -308,7 +308,7 @@ string move_to_san (Move m, Position &pos)
 
 //// move_to_lan(m, pos) takes a position and a legal move as input
 //// and returns its long algebraic notation representation.
-//string move_to_lan (Move m, Position &pos)
+//const string move_to_lan (Move m, Position &pos)
 //{
 //    string lan;
 //
@@ -394,61 +394,56 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const vector<Move> &pv)
+string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const Move pv[])
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
 
     stringstream spv;
 
-    spv << setw(3) << depth
-        << setw(8) << value_to_string (value)
-        << setw(8) << time_to_string (msecs);
+    spv << setw (3) << uint32_t (depth)
+        << setw (8) << value_to_string (value)
+        << setw (8) << time_to_string (msecs);
 
     if (pos.game_nodes () < M)
     {
-        spv << setw(8) << pos.game_nodes () / 1 << "  ";
+        spv << setw (8) << pos.game_nodes () / 1 << "  ";
     }
     else if (pos.game_nodes () < K * M)
     {
-        spv << setw(7) << pos.game_nodes () / K << "K  ";
+        spv << setw (7) << pos.game_nodes () / K << "K  ";
     }
     else
     {
-        spv << setw(7) << pos.game_nodes () / M << "M  ";
+        spv << setw (7) << pos.game_nodes () / M << "M  ";
     }
 
     string padding = string (spv.str ().length (), ' ');
     size_t length  = padding.length ();
     StateInfoStack states;
 
-    for_each (pv.cbegin (), pv.cend (), [&] (Move m)
+    const Move *m = pv;
+
+    while (*m != MOVE_NONE)
     {
-        if (MOVE_NONE != m)
+        string san = move_to_san (*m, pos);
+        if (length + san.length () > 80)
         {
-            string san = move_to_san (m, pos);
-
-            if (length + san.length () > 80)
-            {
-                spv << "\n" + padding;
-                length = padding.length ();
-            }
-
-            spv << san << ' ';
-            length += san.length () + 1;
-
-            states.push (StateInfo ());
-            pos.do_move (m, states.top ());
+            spv << "\n" + padding;
+            length = padding.length ();
         }
-    });
+        spv << san << ' ';
+        length += san.length () + 1;
+        states.push (StateInfo ());
+        pos.do_move (*m, states.top ());
+        ++m;
+    }
 
-    for_each (pv.crbegin (), pv.crend (), [&] (Move m)
+    while (m != pv)
     {
-        if (MOVE_NONE != m)
-        {
-            pos.undo_move ();
-        }
-    });
+        pos.undo_move();
+        --m;
+    }
 
     return spv.str();
 }

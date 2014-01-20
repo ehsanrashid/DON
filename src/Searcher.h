@@ -122,8 +122,8 @@ namespace Searcher {
         std::vector<Move> pv;
 
         RootMove (Move m)
-            : curr_value(-VALUE_INFINITE)
-            , last_value(-VALUE_INFINITE)
+            : curr_value (-VALUE_INFINITE)
+            , last_value (-VALUE_INFINITE)
         {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);

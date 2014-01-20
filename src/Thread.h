@@ -186,7 +186,7 @@ struct MainThread
     volatile bool thinking;
 
     MainThread()
-        : thinking(true) {} // Avoid a race with start_thinking()
+        : thinking (true) {} // Avoid a race with start_thinking()
 
     virtual void idle_loop ();
 };
@@ -212,7 +212,7 @@ struct TimerThread
 struct ThreadPool
     : public std::vector<Thread*>
 {
-    bool                sleep_while_idle;
+    bool                sleep_idle;
     Depth               split_depth;
     size_t              threads_split_point;
     Mutex               mutex;

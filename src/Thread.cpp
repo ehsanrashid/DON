@@ -147,12 +147,12 @@ void MainThread::idle_loop ()
 }
 
 // init() is called at startup to create and launch requested threads, that will
-// go immediately to sleep due to 'sleep_while_idle' set to true. We cannot use
-// a c'tor becuase Threads is a static object and we need a fully initialized
+// go immediately to sleep due to 'sleep_idle' set to true.
+// We cannot use a c'tor becuase Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
 void ThreadPool::initialize ()
 {
-    sleep_while_idle = true;
+    sleep_idle = true;
     timer = new_thread<TimerThread> ();
     push_back (new_thread<MainThread> ());
     read_uci_options ();

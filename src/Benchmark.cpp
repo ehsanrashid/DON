@@ -70,93 +70,88 @@ void benchmark (istream &is, const Position &pos)
     string token;
     vector<string> fens;
 
-    try
+    // Assign default values to missing arguments
+    string size_tt    = (is >> token) ? token : "32";
+    string num_threads= (is >> token) ? token : "1";
+    string fn_fen     = (is >> token) ? token : "default";
+    string limit_val  = (is >> token) ? token : "13";
+    string limit_type = (is >> token) ? token : "depth";
+
+    *Options["Hash"]    = size_tt;
+    *Options["Threads"] = num_threads;
+
+    TT.clear ();
+    Limits_t limits;
+
+    if (false);
+    else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
+    else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
+    else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
+    //if (iequals (limit_type, "depth"))
+    else                                    limits.depth     = stoi (limit_val);
+
+    if (false);
+    else if (iequals (fn_fen, "default"))
     {
-        // Assign default values to missing arguments
-        string size_tt    = (is >> token) ? token : "32";
-        string num_threads= (is >> token) ? token : "1";
-        string fn_fen     = (is >> token) ? token : "default";
-        string limit_val  = (is >> token) ? token : "13";
-        string limit_type = (is >> token) ? token : "depth";
+        fens.assign (default_fens, default_fens + NUM_FEN);
+    }
+    else if (iequals (fn_fen, "current"))
+    {
+        fens.emplace_back (pos.fen ());
+    }
+    else
+    {
+        ifstream fstm_fen (fn_fen);
 
-        *Options["Hash"]    = size_tt;
-        *Options["Threads"] = num_threads;
-
-        TT.clear ();
-        Limits_t limits;
-
-        if (false);
-        else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
-        else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
-        else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
-        //if (iequals (limit_type, "depth"))
-        else                                    limits.depth     = stoi (limit_val);
-
-        if (false);
-        else if (iequals (fn_fen, "default"))
+        if (!fstm_fen.is_open ())
         {
-            fens.assign (default_fens, default_fens + NUM_FEN);
+            TRI_LOG_MSG ("ERROR: Unable to open file ... \'" << fn_fen << "\'");
+            return;
         }
-        else if (iequals (fn_fen, "current"))
+
+        string fen;
+        while (getline (fstm_fen, fen))
         {
-            fens.emplace_back (pos.fen ());
+            if (!fen.empty ())
+            {
+                fens.emplace_back (fen);
+            }
+        }
+        fstm_fen.close ();
+    }
+
+    StateInfoStackPtr states;
+    uint64_t nodes = 0;
+    Time::point elapsed = Time::now ();
+    bool chess960 = *(Options["UCI_Chess960"]);
+
+    for (size_t i = 0; i < fens.size (); ++i)
+    {
+        Position pos (fens[i], Threads.main (), chess960);
+
+        cerr << "\n--------------\n" 
+            << "Position: " << (i + 1) << "/" << fens.size () << "\n";
+
+        if (limit_type == "perft")
+        {
+            size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
+            cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
+            nodes += cnt;
         }
         else
         {
-            ifstream fstm_fen (fn_fen);
-
-            if (!fstm_fen.is_open ())
-            {
-                TRI_LOG_MSG ("ERROR: Unable to open file ... \'" << fn_fen << "\'");
-                return;
-            }
-
-            string fen;
-            while (getline (fstm_fen, fen))
-            {
-                if (!fen.empty ())
-                {
-                    fens.emplace_back (fen);
-                }
-            }
-            fstm_fen.close ();
+            Threads.start_thinking (pos, limits, states);
+            Threads.wait_for_think_finished ();
+            nodes += RootPos.game_nodes ();
         }
-
-        StateInfoStackPtr states;
-        uint64_t nodes = 0;
-        Time::point elapsed = Time::now ();
-        
-        for (size_t i = 0; i < fens.size (); ++i)
-        {
-            Position pos (fens[i], Threads.main (), *(Options["UCI_Chess960"]));
-
-            cerr << "\n--------------\n" 
-                << "Position: " << (i + 1) << "/" << fens.size () << "\n";
-
-            if (limit_type == "perft")
-            {
-                size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
-                cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
-                nodes += cnt;
-            }
-            else
-            {
-                Threads.start_thinking (pos, limits, states);
-                Threads.wait_for_think_finished ();
-                nodes += RootPos.game_nodes ();
-            }
-        }
-
-        elapsed = Time::now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
-
-        cerr << "\n===========================\n"
-            << "Total time (ms) : " << elapsed << "\n"
-            << "Nodes searched  : " << nodes   << "\n"
-            << "Nodes/second    : " << nodes * 1000 / elapsed
-            << endl;
-
     }
-    catch (...)
-    {}
+
+    elapsed = Time::now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
+
+    cerr << "\n===========================\n"
+        << "Total time (ms) : " << elapsed << "\n"
+        << "Nodes searched  : " << nodes   << "\n"
+        << "Nodes/second    : " << nodes * 1000 / elapsed
+        << endl;
 
 }
