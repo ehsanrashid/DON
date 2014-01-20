@@ -163,22 +163,3 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
     }
     return NULL;
 }
-
-// permill_full() returns the per-mille of the all transposition entries
-// which have received at least one write during the current search.
-// It is used to display the "info hashfull ..." information in UCI.
-// "the hash is <x> permill full", the engine should send this info regularly.
-// hash, are using <x>%. of the state of full.
-double TranspositionTable::permill_full () const
-{
-    uint32_t total_entry = (_hash_mask + NUM_TENTRY_CLUSTER);
-
-    //return (0 != total_entry) ?
-    //    //(1 - exp (_stored_entry * log (1.0 - 1.0/total_entry))) * 1000 :
-    //    (1 - exp (log (1.0 - double (_stored_entry) / double (total_entry)))) * 1000 :
-    //    //exp (log (1000.0 + _stored_entry - total_entry)) :
-    //    0.0;
-
-    return (0 == total_entry) ?
-        0.0 : double (_stored_entry) * 1000 / double (total_entry);
-}

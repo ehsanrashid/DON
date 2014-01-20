@@ -375,7 +375,7 @@ void prefetch (char *addr) {}
 
 #elif defined(__INTEL_COMPILER) || defined(_MSC_VER)
 
-#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
 void prefetch (char *addr)
 {
