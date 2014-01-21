@@ -515,10 +515,7 @@ ARTHMAT_OPERATORS (Score);
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
-inline Score operator/ (Score s, int32_t i)
-{
-    return mk_score (mg_value (s) / i, eg_value (s) / i);
-}
+inline Score operator/ (Score s, int32_t i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 
 //ARTHMAT_OPERATORS (ScaleFactor)
 

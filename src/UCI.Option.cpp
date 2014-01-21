@@ -262,7 +262,7 @@ namespace UCI {
         //
         // For infinite analysis or long time control matches you should use the largest hash that fits in the physical memory of your system.
         // For example, on a system with 4 GB of memory you can use up to 2048 MB hash size.
-        // For shorter games, for example 3 to 5 minute games, it’val better to use 256 MB or 512 MB as this will provide the best performance.
+        // For shorter games, for example 3 to 5 minute games, it'val better to use 256 MB or 512 MB as this will provide the best performance.
         // For 16 min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
@@ -292,18 +292,18 @@ namespace UCI {
         // For that purpose the following procedure can be used.
         // 
         // To save a Hash file to disk:
-        // •	End the analysis
-        // •	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game1.dat)
-        // •	Press the Save Hash to File button, and OK in the options window.
+        // .	End the analysis
+        // .	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .	Press the Save Hash to File button, and OK in the options window.
         // 
         // To load a Hash file from disk:
-        // •	Load the correspondence game
-        // •	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game1.dat)
-        // •	Press the Load Hash from File button, and OK in the options window.
+        // .	Load the correspondence game
+        // .	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .	Press the Load Hash from File button, and OK in the options window.
         // -----------------------------------------------------------------------------------------
 
         // File name for saving or loading the hash file with the Save Hash to File or Load Hash from File buttons.
-        // A full file name is required, for example C:\Chess\Hash001.dat.
+        // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default Houdini will use the hash.dat file in the "My Documents" folder of the current user.
         Options["Hash File"]                    = OptionPtr (new StringOption ("hash.dat"));
 
@@ -387,51 +387,51 @@ namespace UCI {
         //Options["MultiPV_cp"]                   = OptionPtr (new SpinOption (0, 0, 999));
 
         // TODO::
-        // Level of contempt to avoid draws in game play.
-        // Default 1, min 0 (none), max 2 (aggressive).
-        //
-        // The notion of "contempt" implies that engine will try to avoid draws by evaluating its own position slightly too optimistically.
-        // The Contempt level can be chosen between 0 (none) and 2 (aggressive), the default value of 1 should be a good compromise in most situations.
-        //
-        // •	0 = No Contempt
-        // The evaluations are accurate and identical for both sides. This is recommended for position analysis in which you analyze alternatively for White and Black.
-        // The starting position evaluates as approx. +0.15.
-        //
-        // •	1 = Default Contempt
-        // Contempt 1 is primarily based on piece value imbalance, engine will value its own pieces higher than the opponent pieces, so will only exchange them if there’s a clear positional advantage in doing so.
-        // This also means that the score is evaluated optimistically for the side to move (at most 0.15 pawn). For example, the starting position evaluates as approx. +0.30 when analyzing for White and +0.00 when viewed from Black.
-        // This is only recommended for position analysis if you always analyze for the same side.
-        //
-        // •	2 = Aggressive
-        // Contempt 2 adds some king safety imbalance, leading to a more attacking style.
-        // It would draw less, It will also lose more, especially if your opponent is strong.
-        //
-        // The contempt settings are fairly mild and have little impact on the objective strength of the engine.
-        // It’s hard to say which will give the best results against a given opponent,
-        // it may depend on the style and strength of the opponent.
-        // One could envisage more pronounced contempt but this would start to degrade the engine’s objective strength.
-        // By default the contempt is only activated during game play, not during infinite analysis.
-        // If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
-        Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
+        //// Level of contempt to avoid draws in game play.
+        //// Default 1, min 0 (none), max 2 (aggressive).
+        ////
+        //// The notion of "contempt" implies that engine will try to avoid draws by evaluating its own position slightly too optimistically.
+        //// The Contempt level can be chosen between 0 (none) and 2 (aggressive), the default value of 1 should be a good compromise in most situations.
+        ////
+        //// .	0 = No Contempt
+        //// The evaluations are accurate and identical for both sides. This is recommended for position analysis in which you analyze alternatively for White and Black.
+        //// The starting position evaluates as approx. +0.15.
+        ////
+        //// .	1 = Default Contempt
+        //// Contempt 1 is primarily based on piece value imbalance, engine will value its own pieces higher than the opponent pieces, so will only exchange them if there's a clear positional advantage in doing so.
+        //// This also means that the score is evaluated optimistically for the side to move (at most 0.15 pawn). For example, the starting position evaluates as approx. +0.30 when analyzing for White and +0.00 when viewed from Black.
+        //// This is only recommended for position analysis if you always analyze for the same side.
+        ////
+        //// .	2 = Aggressive
+        //// Contempt 2 adds some king safety imbalance, leading to a more attacking style.
+        //// It would draw less, It will also lose more, especially if your opponent is strong.
+        ////
+        //// The contempt settings are fairly mild and have little impact on the objective strength of the engine.
+        //// It's hard to say which will give the best results against a given opponent,
+        //// it may depend on the style and strength of the opponent.
+        //// One could envisage more pronounced contempt but this would start to degrade the engine's objective strength.
+        //// By default the contempt is only activated during game play, not during infinite analysis.
+        //// If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
+        //Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
 
         // Factor for adjusted contempt. Changes playing style.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
 
-        // TODO::
+        // Analyse Mode
         Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
 
         // TODO::
-        // Activate Contempt for position analysis.
-        // Default false.
-        //
-        // It is usually not recommended to activate the contempt for analyzing positions.
-        // When contempt is active, the score of the analysis will be optimistic (over-evaluated) for the side that is to move.
-        // That means that if you use Analysis Contempt the evaluations will change depending on whether White or Black has the move.
-        // For example, from the start position, when you do an analysis with Analysis Contempt (and Contempt value 1)
-        // you could find a best move e2-e4 scoring about +0.3 for White.
-        // If you then play e2-e4 and analyze for Black you could find a score close to +0.0.
-        // If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it’s White or Black to move.
-        Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
+        //// Activate Contempt for position analysis.
+        //// Default false.
+        ////
+        //// It is usually not recommended to activate the contempt for analyzing positions.
+        //// When contempt is active, the score of the analysis will be optimistic (over-evaluated) for the side that is to move.
+        //// That means that if you use Analysis Contempt the evaluations will change depending on whether White or Black has the move.
+        //// For example, from the start position, when you do an analysis with Analysis Contempt (and Contempt value 1)
+        //// you could find a best move e2-e4 scoring about +0.3 for White.
+        //// If you then play e2-e4 and analyze for Black you could find a score close to +0.0.
+        //// If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it's White or Black to move.
+        //Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
 
         Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));

@@ -497,14 +497,15 @@ bool Position::ok (int8_t *failed_step) const
 // It tries to estimate the material gain or loss resulting from a move.
 int32_t Position::see      (Move m) const
 {
-    Square org = org_sq(m);
-    Square dst = dst_sq(m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     // side to move
     Color stm = _color (piece_on (org));
 
     // Gain list
-    int32_t swap_list[32], depth = 1;
+    int32_t swap_list[32];
+    int8_t depth = 1;
     swap_list[0] = PieceValue[MG][_type (piece_on (dst))];
 
     Bitboard occupied = pieces () - org;
@@ -559,19 +560,6 @@ int32_t Position::see      (Move m) const
         ++depth;
     }
     while (stm_attackers);
-
-    //// If we are doing asymmetric SEE evaluation and the same side does the first
-    //// and the last capture, he loses a tempo and gain must be at least worth
-    //// 'asymm_threshold', otherwise we replace the score with a very low value,
-    //// before negamaxing.
-    //if (asymm_threshold)
-    //{
-    //    for (int32_t i = 0; i < depth; i += 2)
-    //    {
-    //        if (swap_list[i] < asymm_threshold)
-    //            swap_list[i] = -VALUE_MG_QUEEN * 16;
-    //    }
-    //}
 
     // Having built the swap list, we negamax through it to find the best
     // achievable score from the point of view of the side to move.

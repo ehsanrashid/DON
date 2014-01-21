@@ -173,7 +173,7 @@ namespace {
 
     const Score RookOpenFileBonus       = S( 43, 21);
     const Score RookSemiopenFileBonus   = S( 19, 10);
-    
+
     //const Score RookDoubledOpenBonus    = S( 23, 10);
     //const Score RookDoubledSemiopenBonus= S( 12,  6);
 
@@ -457,6 +457,13 @@ namespace {
             {
                 bonus += bonus / 2;
             }
+            
+            //// Increase bonus more if the piece blocking enemy pawn
+            //if (pos[s + pawn_push(C)] == make_piece(C_, PAWN))
+            //{
+            //    bonus += bonus / 2;
+            //}
+
         }
 
         return mk_score (bonus, bonus);
