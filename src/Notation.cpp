@@ -6,10 +6,12 @@
 #include "xstring.h"
 #include "Position.h"
 #include "MoveGenerator.h"
+#include "Time.h"
 
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
+using namespace Time;
 
 // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
@@ -372,19 +374,19 @@ namespace {
     // time to string
     string time_to_string (int64_t msecs)
     {
-        const int32_t MSecMinute = 1000 * 60;
-        const int32_t MSecHour   = 1000 * 60 * 60;
+        const int32_t MSecMinute = MS_SEC * 60;
+        const int32_t MSecHour   = MS_SEC * 60 * 60;
 
         int64_t hours   =   msecs / MSecHour;
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
+        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / MS_SEC;
 
         stringstream ss;
 
         if (hours) ss << hours << ':';
-        ss << setfill('0') 
-            << setw(2) << minutes << ':' 
-            << setw(2) << seconds;
+        ss << setfill ('0') 
+            << setw (2) << minutes << ':' 
+            << setw (2) << seconds;
 
         return ss.str ();
     }

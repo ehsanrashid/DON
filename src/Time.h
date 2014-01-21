@@ -38,12 +38,12 @@ namespace Time {
 
     //typedef enum point : uint64_t
     //{
-    //    ONE_SEC = 1000,
+    //    MS_SEC = 1000,
     //} point;
     //INLINE point  operator-  (point  p1, point p2) { return point (uint64_t (p1) - uint64_t (p2)); }
 
     typedef int64_t point;
-    const point ONE_SEC = 1000;
+    const point MS_SEC = 1000;
 
     INLINE point now () { return point (system_time_msec ()); }
 
@@ -53,7 +53,7 @@ namespace Time {
 
 #ifdef _WIN32
 
-        time_t time = (t / Time::ONE_SEC);
+        time_t time = (t / MS_SEC);
 
         char str_time[26];
         errno_t err = ctime_s (str_time, sizeof (str_time), &time);
@@ -66,7 +66,7 @@ namespace Time {
             << &str_time[0] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (t % Time::ONE_SEC);
+            << std::setw (3) << (t % MS_SEC);
 
 #else
 
@@ -80,9 +80,9 @@ namespace Time {
 
 template<typename charT, typename Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point t)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point p)
 {
-    os << Time::to_string (t);
+    os << Time::to_string (p);
     return os;
 }
 

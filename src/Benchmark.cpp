@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace Searcher;
+using namespace Time;
 
 namespace {
 
@@ -84,7 +85,7 @@ void benchmark (istream &is, const Position &pos)
     Limits_t limits;
 
     if (false);
-    else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * 1000; // movetime is in ms
+    else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
     else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
     else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
     //if (iequals (limit_type, "depth"))
@@ -122,7 +123,7 @@ void benchmark (istream &is, const Position &pos)
 
     StateInfoStackPtr states;
     uint64_t nodes = 0;
-    Time::point elapsed = Time::now ();
+    point elapsed = now ();
     bool chess960 = *(Options["UCI_Chess960"]);
 
     for (size_t i = 0; i < fens.size (); ++i)
@@ -146,7 +147,7 @@ void benchmark (istream &is, const Position &pos)
         }
     }
 
-    elapsed = Time::now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
+    elapsed = now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
     cerr << "\n===========================\n"
         << "Total time (ms) : " << elapsed << "\n"

@@ -24,6 +24,7 @@ using namespace BitBoard;
 using namespace MoveGenerator;
 using namespace Searcher;
 using namespace Evaluator;
+using namespace Time;
 
 namespace {
 
@@ -58,8 +59,8 @@ namespace {
 
     TimeManager TimeMgr;
 
-    Time::point const   InfoDuration  = 3000; // 3 sec
-    Time::point         IterDuration; // Duration of iteration
+    point const   InfoDuration  = 3000; // 3 sec
+    point         IterDuration; // Duration of iteration
 
     Value       DrawValue[CLR_NO];
 
@@ -121,7 +122,7 @@ namespace {
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    string info_pv      (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed);
+    string info_pv      (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed);
 
     typedef struct Skill
     {
@@ -210,7 +211,7 @@ namespace Searcher {
     Position            RootPos;
     StateInfoStackPtr   SetupStates;
 
-    Time::point         SearchTime;
+    point         SearchTime;
 
     // initialize the PRNG only once
     PolyglotBook book;
@@ -370,7 +371,7 @@ namespace Searcher {
 
         Threads.sleep_idle = *(Options["Idle Threads Sleep"]);
         Threads.timer->run = true;
-        Threads.timer->notify_one();// Wake up the recurring timer
+        Threads.timer->notify_one ();// Wake up the recurring timer
 
         iter_deep_loop (RootPos);   // Let's start searching !
 
@@ -380,7 +381,7 @@ namespace Searcher {
 
 finish:
 
-        Time::point elapsed = Time::now () - SearchTime + 1;
+        point elapsed = now () - SearchTime + 1;
 
         if (write_search_log)
         {
@@ -529,7 +530,7 @@ namespace {
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
                 }
 
-                Time::point elapsed;
+                point elapsed;
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
@@ -561,7 +562,7 @@ namespace {
                     // When failing high/low give some update
                     // (without cluttering the UI) before to research.
                     if ((alpha >= best_value || best_value >= beta) &&
-                        (elapsed = Time::now () - SearchTime + 1) > InfoDuration)
+                        (elapsed = now () - SearchTime + 1) > InfoDuration)
                     {
                         ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
                     }
@@ -594,14 +595,14 @@ namespace {
 
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
-                elapsed = Time::now () - SearchTime + 1;
+                elapsed = now () - SearchTime + 1;
                 if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
                 {
                     ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
                 }
             }
 
-            IterDuration = Time::now () - SearchTime + 1;
+            IterDuration = now () - SearchTime + 1;
 
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
@@ -620,7 +621,7 @@ namespace {
 
                 string fn_search_log  = *(Options["Search Log File"]);
                 Log log (fn_search_log);
-                log << pretty_pv (pos, depth, rm.curr_value, Time::now () - SearchTime, &rm.pv[0]) << endl;
+                log << pretty_pv (pos, depth, rm.curr_value, now () - SearchTime, &rm.pv[0]) << endl;
             }
 
             // Have found a "mate in x"?
@@ -659,7 +660,7 @@ namespace {
                 //    MultiPV == 1 &&
                 //    best_value > VALUE_MATED_IN_MAX_PLY &&
                 //    (RootMoves.size () == 1 ||
-                //    (Time::now () - SearchTime) > TimeMgr.available_time() * 20 / 100))
+                //    (now () - SearchTime) > TimeMgr.available_time() * 20 / 100))
                 //{
                 //    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
                 //
@@ -1005,12 +1006,12 @@ moves_loop: // When in check and at SPNode search starts from here
             (te->bound () & BND_LOWER) &&
             (te->depth () >= depth - 3 * ONE_MOVE);
 
-        Time::point elapsed;
+        point elapsed;
 
         if (RootNode)
         {
             if (thread == Threads.main () && 
-                (elapsed = Time::now () - SearchTime + 1) > InfoDuration)
+                (elapsed = now () - SearchTime + 1) > InfoDuration)
             {
                 ats ()
                     << "info"
@@ -1050,7 +1051,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 Signals.first_root_move = (1 == moves_count);
 
                 if (thread == Threads.main () && 
-                    (elapsed = Time::now () - SearchTime + 1) > InfoDuration)
+                    (elapsed = now () - SearchTime + 1) > InfoDuration)
                 {
                     ats ()
                         << "info"
@@ -1603,7 +1604,7 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         static RKISS rk;
         // PRNG sequence should be not deterministic
-        for (int32_t i = int32_t (Time::now ()) % 50; i > 0; --i) rk.rand64 ();
+        for (int32_t i = int32_t (now ()) % 50; i > 0; --i) rk.rand64 ();
 
         // RootMoves are already sorted by score in descending order
         int32_t variance = min (RootMoves[0].curr_value - RootMoves[MultiPV - 1].curr_value, VALUE_MG_PAWN);
@@ -1637,7 +1638,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // info_pv () formats PV information according to UCI protocol.
     // UCI requires to send all the PV lines also if are still to be searched
     // and so refer to the previous search score.
-    inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed)
+    inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
     {
         ASSERT (elapsed);
 
@@ -1692,11 +1693,11 @@ moves_loop: // When in check and at SPNode search starts from here
 // to detect when we are out of available time and so stop the search.
 void check_time ()
 {
-    static Time::point last_time = Time::now ();
+    static point last_time = now ();
     int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
-    Time::point now_time = Time::now ();
-    if (now_time - last_time >= 1000)
+    point now_time = now ();
+    if (now_time - last_time >= MS_SEC)
     {
         last_time = now_time;
         dbg_print ();
@@ -1731,7 +1732,7 @@ void check_time ()
         Threads.mutex.unlock ();
     }
 
-    Time::point elapsed = now_time - SearchTime + 1;
+    point elapsed = now_time - SearchTime + 1;
 
     bool still_at_first_move = 
         Signals.first_root_move     &&
