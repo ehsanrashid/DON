@@ -502,7 +502,7 @@ namespace {
         // that we will use behind the scenes to retrieve a set of possible moves.
         if (skill.enabled () && MultiPV < 4) MultiPV = 4;
         // Minimum MultiPV & RootMoves.size()
-        if (MultiPV > int32_t (RootMoves.size ())) MultiPV = int32_t (RootMoves.size ());
+        if (MultiPV > uint32_t (RootMoves.size ())) MultiPV = uint32_t (RootMoves.size ());
 
         // Iterative deepening loop until requested to stop or target depth reached
         while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
@@ -682,6 +682,7 @@ namespace {
                     else
                         Signals.stop              = true;
                 }
+
             }
         }
     }
