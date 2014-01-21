@@ -234,6 +234,11 @@ namespace UCI {
             Evaluator::initialize ();
         }
 
+        void on_change_50_move_distance (const Option &opt)
+        {
+            Position::fifty_move_distance = 2 * int32_t (opt);
+        }
+
         void on_log_debug       (const Option &opt)
         {
             log_debug (bool (opt));
@@ -247,13 +252,6 @@ namespace UCI {
 
     void   initialize ()
     {
-
-#pragma region old
-        //int16_t cpu   = min (cpu_count (), MAX_THREADS);
-        // max split depth
-        //int16_t max_spl_depth = cpu < 8 ? 4 : 7;
-
-#pragma endregion
 
 #pragma region Hash Memory Options
 
@@ -459,7 +457,7 @@ namespace UCI {
         //
         // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50));
+        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_change_50_move_distance));
 
         // TODO::
         // Maximum search depth for mate search.

@@ -71,7 +71,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard _dia_rings_bb[SQ_NO][F_NO];
+    CACHE_ALIGN(64) extern Bitboard _dist_rings_bb[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
@@ -242,7 +242,7 @@ namespace BitBoard {
     inline Bitboard front_squares_bb (Color c, Square s) { return _front_squares_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
-    inline Bitboard dia_rings_bb    (Square s, uint8_t d) { return _dia_rings_bb[s][d]; }
+    //inline Bitboard dist_rings_bb   (Square s, uint8_t d) { return _dist_rings_bb[s][d]; }
 
     inline Bitboard brd_edges_bb    (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 

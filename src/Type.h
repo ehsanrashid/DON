@@ -410,7 +410,7 @@ inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x100
 // On Intel 64 bit we have a small speed regression with the standard conforming
 // version, so use a faster code in this case that, although not 100% standard
 // compliant it seems to work for Intel and MSVC.
-#if defined(_WIN64) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
+#if defined(_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
 inline Value eg_value (Score s) { return Value (int16_t (s & 0xFFFF)); }
 

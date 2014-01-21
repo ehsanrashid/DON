@@ -249,7 +249,7 @@ namespace BitBoard {
     // FRONT SQUARES
     CACHE_ALIGN(64) Bitboard _front_squares_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard _dia_rings_bb[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard _dist_rings_bb[SQ_NO][F_NO];
 
     // ---
 
@@ -468,7 +468,7 @@ namespace BitBoard {
                     _square_dist[s1][s2]  = max (dFile, dRank);
                     _taxicab_dist[s1][s2] = (dFile + dRank);
 
-                    _dia_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
+                    _dist_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
             }
         }

@@ -199,6 +199,8 @@ private:
 
 public:
 
+    static uint8_t fifty_move_distance;
+
     static void initialize ();
 
 #pragma region Constructors

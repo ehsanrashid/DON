@@ -11,6 +11,7 @@
 #include "Transposition.h"
 #include "Notation.h"
 #include "Thread.h"
+#include "UCI.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -159,8 +160,12 @@ namespace {
 
 } // namespace
 
+uint8_t Position::fifty_move_distance;
+
 void Position::initialize ()
 {
+    fifty_move_distance = 2 * int32_t (*(Options["Fifty Move Distance"]));  
+
     for (PType pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
@@ -203,8 +208,8 @@ bool Position::draw () const
     }
 
     // Draw by 50 moves Rule?
-    if ( 100 <  _si->clock50 ||
-        (100 == _si->clock50 &&
+    if ( fifty_move_distance <  _si->clock50 ||
+        (fifty_move_distance == _si->clock50 &&
         (!checkers () || MoveList<LEGAL> (*this).size ())))
     {
         return true;
@@ -1887,12 +1892,12 @@ Position::operator string () const
         ;
 
     ss
-        << "\nFen: " << fen()
-        << "\nKey: " << hex << uppercase << setfill ('0') << setw(16) << _si->posi_key;
+        << "\nFen: " << fen ()
+        << "\nKey: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key;
 
     ss  << "\nCheckers: ";
-    Bitboard b = checkers();
-    while (b) ss << to_string (pop_lsq (b)) << " ";
+    Bitboard chks = checkers ();
+    while (chks) ss << to_string (pop_lsq (chks)) << " ";
 
     ss  << "\nLegal moves: ";
     for (MoveList<LEGAL> itr (*this); *itr; ++itr)

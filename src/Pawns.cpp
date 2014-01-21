@@ -276,8 +276,7 @@ namespace Pawns {
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
-            while (!(dia_rings_bb(k_sq, _min_KP_dist[C]++) & pawns))
-            {}
+            while (!(_dist_rings_bb[k_sq][_min_KP_dist[C]++] & pawns));
         }
 
         if (rel_rank(C, k_sq) > R_4)

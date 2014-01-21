@@ -219,8 +219,8 @@ namespace Searcher {
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
-    // allow to always have a ponder move even when we fail high at root, and a
-    // long PV to print that is important for position analysis.
+    // allow to always have a ponder move even when we fail high at root node.
+    // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
         uint8_t ply = 0;
@@ -444,7 +444,7 @@ finish:
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
-
+                // Smoother transition for LMR
                 if (false);
                 else if (Reductions[0][0][hd][mc] > 2 * ONE_MOVE)
                 {

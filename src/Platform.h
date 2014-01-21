@@ -4,7 +4,7 @@
 
 //#define POPCNT
 //#define BSFQ
-//#define NO_PREFETCH
+//#define PREFETCH
 
 //#define __INTEL_COMPILER
 

@@ -162,24 +162,27 @@ namespace {
     };
 
 
-    const Score TempoBonus             = S( 24, 11);
-    //const Score BishopPinBonus         = S( 66, 11);
+    const Score TempoBonus              = S( 24, 11);
+    //const Score BishopPinBonus          = S( 66, 11);
 
-    const Score RookOn7thBonus         = S( 11, 20);
-    const Score QueenOn7thBonus        = S(  3,  8);
+    const Score RookOn7thBonus          = S( 11, 20);
+    const Score QueenOn7thBonus         = S(  3,  8);
 
-    const Score RookOnPawnBonus        = S( 10, 28);
-    const Score QueenOnPawnBonus       = S(  4, 20);
+    const Score RookOnPawnBonus         = S( 10, 28);
+    const Score QueenOnPawnBonus        = S(  4, 20);
 
-    const Score RookOpenFileBonus      = S( 43, 21);
-    const Score RookSemiopenFileBonus  = S( 19, 10);
+    const Score RookOpenFileBonus       = S( 43, 21);
+    const Score RookSemiopenFileBonus   = S( 19, 10);
+    
+    //const Score RookDoubledOpenBonus    = S( 23, 10);
+    //const Score RookDoubledSemiopenBonus= S( 12,  6);
 
-    const Score BishopPawnsPenalty     = S(  8, 12);
-    const Score KnightPawnsPenalty     = S(  8,  4);
-    const Score MinorBehindPawnBonus   = S( 16,  0);
-    const Score UndefendedMinorPenalty = S( 25, 10);
-    const Score TrappedRookPenalty     = S( 90,  0);
-    const Score UnstoppablePawnBonus   = S(  0, 20);
+    const Score BishopPawnsPenalty      = S(  8, 12);
+    const Score KnightPawnsPenalty      = S(  8,  4);
+    const Score MinorBehindPawnBonus    = S( 16,  0);
+    const Score UndefendedMinorPenalty  = S( 25, 10);
+    const Score TrappedRookPenalty      = S( 90,  0);
+    const Score UnstoppablePawnBonus    = S(  0, 20);
 
     // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
     // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -573,7 +576,18 @@ namespace {
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))
                 {
-                    score += ei.pi->semiopen (C_, _file (s)) ? RookOpenFileBonus : RookSemiopenFileBonus;
+                    score += ei.pi->semiopen (C_, _file (s))
+                        ? RookOpenFileBonus
+                        : RookSemiopenFileBonus;
+
+                    //// Give more bonus if the rook is doubled
+                    //if (front_squares_bb (C_, s) & pos.pieces (C, ROOK))
+                    //{
+                    //    score += ei.pi->semiopen (C_, _file (s))
+                    //        ? RookDoubledOpenBonus
+                    //        : RookDoubledSemiopenBonus;
+                    //}
+
                 }
 
                 if (mob > 3 || ei.pi->semiopen (C, _file (s)))
@@ -813,7 +827,7 @@ namespace {
             int32_t r = int32_t (rel_rank (C, s)) - int32_t (R_2);
             int32_t rr = r * (r - 1);
 
-            // Base bonus based on rank
+            // Base bonus depends on rank
             Value mg_bonus = Value (17 * rr);
             Value eg_bonus = Value ( 7 * (rr + r + 1));
 
