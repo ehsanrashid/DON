@@ -1063,7 +1063,7 @@ namespace {
         string do_trace (const Position &pos)
         {
             stream.str ("");
-            stream << showpoint << showpos << fixed << setprecision(2);
+            stream << showpoint << showpos << setprecision (2) << fixed;
             memset (scores, 0, 2 * (TOTAL + 1) * sizeof (Score));
 
             do_evaluate<true> (pos);
@@ -1071,10 +1071,10 @@ namespace {
             string totals = stream.str ();
             stream.str ("");
 
-            stream
-                << setw (21)        << "Eval term |    White    |    Black    |     Total     \n"
-                <<          "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
-                <<          "---------------------+-------------+-------------+---------------\n";
+            stream << setw (20)
+                << "Eval term"      << " |    White    |    Black    |     Total     \n"
+                << "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
+                << "---------------------+-------------+-------------+---------------\n";
 
             row ("Material, PST, Tempo", PST);
             row ("Material imbalance",   IMBALANCE);

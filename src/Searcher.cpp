@@ -121,7 +121,7 @@ namespace {
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
 
-    string pv_info_uci  (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed);
+    string info_pv      (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed);
 
     typedef struct Skill
     {
@@ -522,7 +522,9 @@ namespace {
                 // Reset aspiration window starting size
                 if (depth >= 5)
                 {
-                    delta = Value (16);
+                    //delta = Value (16);
+                    delta = Value (max (16, 25 - depth / 2));
+
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
                 }
@@ -561,8 +563,10 @@ namespace {
                     if ((alpha >= best_value || best_value >= beta) &&
                         (elapsed = Time::now () - SearchTime + 1) > InfoDuration)
                     {
-                        ats () << pv_info_uci (pos, depth, alpha, beta, elapsed) << endl;
+                        ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
                     }
+
+                    //delta = Value (24);
 
                     // In case of failing low/high increase aspiration window and
                     // research, otherwise exit the loop.
@@ -593,7 +597,7 @@ namespace {
                 elapsed = Time::now () - SearchTime + 1;
                 if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
                 {
-                    ats () << pv_info_uci (pos, depth, alpha, beta, elapsed) << endl;
+                    ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
                 }
             }
 
@@ -1630,10 +1634,10 @@ moves_loop: // When in check and at SPNode search starts from here
         return move;
     }
 
-    // pv_info_uci () formats PV information according to UCI protocol.
+    // info_pv () formats PV information according to UCI protocol.
     // UCI requires to send all the PV lines also if are still to be searched
     // and so refer to the previous search score.
-    inline string pv_info_uci (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed)
+    inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, Time::point elapsed)
     {
         ASSERT (elapsed);
 

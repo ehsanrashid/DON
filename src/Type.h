@@ -374,6 +374,10 @@ typedef enum Bound : uint8_t
     // which was confirmed by the search in finding and collecting a principal variation.
     BND_EXACT   = BND_LOWER | BND_UPPER,
 
+    //BND_NODE_ALL  = 4,
+    //BND_UPPER_ALL = BND_LOWER | BND_NODE_ALL,
+    //BND_LOWER_ALL = BND_UPPER | BND_NODE_ALL,
+
 } Bound;
 
 typedef enum Phase : int16_t

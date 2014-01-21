@@ -116,7 +116,7 @@ namespace EndGame {
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
         // KBBKN is retired
-        add<KBBKN>   ("KBBKN");
+        //add<KBBKN>   ("KBBKN");
 
         add<KNPK>    ("KNPK");
         add<KNPKB>   ("KNPKB");
