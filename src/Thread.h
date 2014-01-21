@@ -38,9 +38,8 @@ typedef void*(*pt_start_fn)(void*);
 #else // Windows and MinGW
 
 #   include <intrin.h>
-#   undef NOMINMAX
-#   define NOMINMAX // disable macros min() and max()
 
+#   define NOMINMAX // disable macros min() and max()
 #   define WIN32_LEAN_AND_MEAN
 #   include <windows.h>
 #   undef WIN32_LEAN_AND_MEAN

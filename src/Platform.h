@@ -79,6 +79,7 @@ typedef unsigned __int32 __w64  uint32_t;
 //#   define X64_FORMAT "%016llX"
 
 #else
+
 #   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 typedef   signed char            int8_t;
