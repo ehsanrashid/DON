@@ -76,7 +76,7 @@ namespace {
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
     // after a fail-high of a quiet move.
-    inline void update_stats (Position &pos, Stack ss[], Move move, int32_t depth, Move quiets[], int32_t quiets_count)
+    inline void update_stats (Position &pos, Stack ss[], Move move, int32_t depth, Move quiet_moves[], int32_t quiets_count)
     {
         if (ss->killers[0] != move)
         {
@@ -85,13 +85,14 @@ namespace {
         }
 
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
-        Value bonus = Value (depth * depth);
+        Value bonus = Value (uint32_t (pow (2, depth))); //Value (depth * depth * depth);
         History.update (pos[org_sq (move)], dst_sq (move), bonus);
-        //if (quiets)
+        //if (quiet_moves)
         {
             for (int32_t i = 0; i < quiets_count; ++i)
             {
-                Move m = quiets[i];
+                Move m = quiet_moves[i];
+                if (m == move) continue;
                 History.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
         }
@@ -104,7 +105,7 @@ namespace {
         }
 
         Move prev_own_move = (ss-2)->current_move;
-        if (_ok (prev_own_move) && (ss-1)->current_move == (ss-1)->tt_move)
+        if (_ok (prev_own_move) && prev_move == (ss-1)->tt_move)
         {
             Square prev_own_move_sq = dst_sq (prev_own_move);
             FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
@@ -723,7 +724,7 @@ namespace {
         int32_t     moves_count
             ,       quiets_count;
 
-        Move quiets_searched[64] = {MOVE_NONE};
+        Move quiet_moves[64] = {MOVE_NONE};
 
         // Step 1. Initialize node
         Thread *thread      = pos.thread ();
@@ -762,6 +763,7 @@ namespace {
             if (Signals.stop || pos.draw () || ss->ply > MAX_PLY)
             {
                 return DrawValue[pos.active ()];
+                //+ pos.piece_count (pos.active ()) - pos.piece_count (~pos.active ());
             }
 
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -1159,7 +1161,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             if (!SPNode && !capture_or_promotion)
             {
-                if (quiets_count < 64) quiets_searched[quiets_count++] = move;
+                if (quiets_count < 64) quiet_moves[quiets_count++] = move;
             }
 
             // Step 14. Make the move
@@ -1350,11 +1352,22 @@ moves_loop: // When in check and at SPNode search starts from here
             value_to_tt (best_value, ss->ply),
             ss->static_eval);
 
-        // Quiet best move: update killers, history, counter moves and followup moves
-        if (best_value >= beta && !pos.capture_or_promotion (best_move) && !in_check)
+        // Quiet best move
+        if (best_value >= beta)
         {
-            update_stats (pos, ss, best_move, depth, quiets_searched, quiets_count);
+            // Update killers, history, counter moves and followup moves
+            if (best_move && !pos.capture_or_promotion (best_move) && !in_check)
+            {
+                update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+            }
         }
+        //else
+        //{
+        //    if (best_move && !pos.capture_or_promotion (best_move) && !in_check)
+        //    {
+        //        //update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+        //    }
+        //}
 
         ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
 
@@ -1381,6 +1394,7 @@ moves_loop: // When in check and at SPNode search starts from here
         if (pos.draw () || ss->ply > MAX_PLY)
         {
             return DrawValue[pos.active ()];
+            //+ pos.piece_count (pos.active ()) - pos.piece_count (~pos.active ());
         }
 
         Value       best_value;

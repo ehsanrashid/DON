@@ -480,7 +480,7 @@
       <EnableCOMDATFolding>
       </EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
-      <LinkTimeCodeGeneration>PGOptimization</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <LargeAddressAware>false</LargeAddressAware>
       <HeapReserveSize>2097152</HeapReserveSize>
       <HeapCommitSize>8192</HeapCommitSize>
