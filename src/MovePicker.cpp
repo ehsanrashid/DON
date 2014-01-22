@@ -154,15 +154,20 @@ void MovePicker::value<CAPTURE> ()
     {
         Move m = itr->move;
         int32_t pt = _type (pos[org_sq (m)]);
-        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - (NONE != pt ? pt+1 : 0);
+        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
+            - (NONE != pt ? pt+1 : 0);
+            //+ history[pos[org_sq (m)]][dst_sq (m)];
 
         switch (m_type (m))
         {
         case PROMOTE:
-            itr->value += PieceValue[MG][prom_type (m)] - PieceValue[MG][PAWN];
+            itr->value += PieceValue[MG][prom_type (m)]
+            - PieceValue[MG][PAWN];
+            //+ history[pos[org_sq (m)]][dst_sq (m)];
             break;
         case ENPASSANT:
             itr->value += PieceValue[MG][PAWN];
+            //+ history[pos[org_sq (m)]][dst_sq (m)];
             break;
         }
     }
@@ -175,8 +180,6 @@ void MovePicker::value<QUIET>   ()
     for (ValMove *itr = mlist; itr != end; ++itr)
     {
         m = itr->move;
-        //Value value = history[pos[org_sq (m)]][dst_sq (m)];
-        //itr->value = (value ? value : Value (1));
         itr->value = history[pos[org_sq (m)]][dst_sq (m)];
     }
 }
@@ -193,19 +196,19 @@ void MovePicker::value<EVASION> ()
         int32_t gain = pos.see_sign (m);
         if (gain < 0)
         {
-            itr->value = gain - VALUE_EG_QUEEN; // At the bottom
+            itr->value = gain - VALUE_KNOWN_WIN // At the bottom
+                + history[pos[org_sq (m)]][dst_sq (m)];
         }
         else if (pos.capture (m))
         {
             int32_t pt = _type (pos[org_sq (m)]);
 
             itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - (NONE != pt ? pt+1 : 0) + VALUE_EG_QUEEN;
+            - (NONE != pt ? pt+1 : 0) + VALUE_KNOWN_WIN
+                + history[pos[org_sq (m)]][dst_sq (m)];
         }
         else
         {
-            //Value value = history[pos[org_sq (m)]][dst_sq (m)];
-            //itr->value  = (value ? value : Value (1));
             itr->value = history[pos[org_sq (m)]][dst_sq (m)];
         }
     }
@@ -226,6 +229,7 @@ void MovePicker::generate_next ()
     case CAPTURES_S6:
         end = generate<CAPTURE> (mlist, pos);
         value<CAPTURE> ();
+        insertion_sort  (cur, end);
 
         return;
         //  killer moves usually come right after after the hash move and (good) captures
@@ -292,7 +296,7 @@ void MovePicker::generate_next ()
     case QUIETS_1_S1:
         end = end_quiets = generate<QUIET> (mlist, pos);
         value<QUIET> ();
-        end = partition (cur, end, ValMove ());
+        //end = partition (cur, end, ValMove ());
         insertion_sort  (cur, end);
 
         return;
@@ -300,7 +304,7 @@ void MovePicker::generate_next ()
     case QUIETS_2_S1:
         cur = end;
         end = end_quiets;
-        if (depth >= 3 * ONE_MOVE)
+        //if (depth >= 3 * ONE_MOVE)
         {
             insertion_sort (cur, end);
         }
@@ -319,6 +323,7 @@ void MovePicker::generate_next ()
         if (end > mlist + 1)
         {
             value<EVASION> ();
+            insertion_sort (cur, end);
         }
 
         return;
