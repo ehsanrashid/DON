@@ -155,19 +155,17 @@ void MovePicker::value<CAPTURE> ()
         Move m = itr->move;
         int32_t pt = _type (pos[org_sq (m)]);
         itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - (NONE != pt ? pt+1 : 0);
-            //+ history[pos[org_sq (m)]][dst_sq (m)];
+        - (NONE != pt ? pt+1 : 0)
+            + history[pos[org_sq (m)]][dst_sq (m)];
 
         switch (m_type (m))
         {
         case PROMOTE:
             itr->value += PieceValue[MG][prom_type (m)]
             - PieceValue[MG][PAWN];
-            //+ history[pos[org_sq (m)]][dst_sq (m)];
             break;
         case ENPASSANT:
             itr->value += PieceValue[MG][PAWN];
-            //+ history[pos[org_sq (m)]][dst_sq (m)];
             break;
         }
     }
@@ -228,12 +226,16 @@ void MovePicker::generate_next ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (mlist, pos);
-        value<CAPTURE> ();
-        insertion_sort  (cur, end);
+        if (end > cur + 1)
+        {   
+            value<CAPTURE> ();
+            insertion_sort  (cur, end);
+        }
 
         return;
-        //  killer moves usually come right after after the hash move and (good) captures
+
     case KILLERS_S1:
+        // Killer moves usually come right after after the hash move and (good) captures
         cur = end = killers;
 
         killers[0].move = MOVE_NONE; //killer[0];
@@ -242,7 +244,7 @@ void MovePicker::generate_next ()
         killers[3].move = MOVE_NONE; //counter_moves[1]
         killers[4].move = MOVE_NONE; //followup_moves[0]
         killers[5].move = MOVE_NONE; //followup_moves[1]
-        
+
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)
         {
@@ -305,6 +307,7 @@ void MovePicker::generate_next ()
         cur = end;
         end = end_quiets;
         //if (depth >= 3 * ONE_MOVE)
+        if (depth >= 2 * ONE_MOVE)
         {
             insertion_sort (cur, end);
         }
@@ -320,7 +323,7 @@ void MovePicker::generate_next ()
 
     case EVASIONS_S2:
         end = generate<EVASION> (mlist, pos);
-        if (end > mlist + 1)
+        if (end > cur + 1)
         {
             value<EVASION> ();
             insertion_sort (cur, end);
