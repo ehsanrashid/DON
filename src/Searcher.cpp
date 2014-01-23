@@ -131,16 +131,15 @@ namespace {
         Move    move;
 
         Skill (int32_t lvl)
-            : level(lvl)
-            , move(MOVE_NONE)
+            : level (lvl)
+            , move (MOVE_NONE)
         {}
 
         ~Skill ()
         {
             if (enabled ()) // Swap best PV line with the sub-optimal one
             {
-                //iter_swap (RootMoves.begin (), find (RootMoves.begin (), RootMoves.end (), move ? move : pick_move ()));
-                swap (RootMoves[0], *std::find(RootMoves.begin (), RootMoves.end(), move ? move : pick_move ()));
+                swap (RootMoves[0], *std::find (RootMoves.begin (), RootMoves.end(), move ? move : pick_move ()));
             }
         }
 
@@ -605,24 +604,23 @@ namespace {
 
             IterDuration = now () - SearchTime + 1;
 
+            RootMove &rm = RootMoves[0];
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
             {
                 skill.pick_move ();
+                if (MOVE_NONE != skill.move)
+                {
+                    rm = *find (RootMoves.begin (), RootMoves.end (), skill.move);
+                }
             }
 
             bool write_search_log = *(Options["Write Search Log"]);
             if (write_search_log)
             {
-                RootMove &rm = RootMoves[0];
-                if (MOVE_NONE != skill.move)
-                {
-                    rm = *find (RootMoves.begin (), RootMoves.end (), skill.move);
-                }
-
                 string fn_search_log  = *(Options["Search Log File"]);
                 Log log (fn_search_log);
-                log << pretty_pv (pos, depth, rm.curr_value, now () - SearchTime, &rm.pv[0]) << endl;
+                log << pretty_pv (pos, depth, rm.curr_value, IterDuration, &rm.pv[0]) << endl;
             }
 
             // Have found a "mate in x"?
@@ -1228,6 +1226,7 @@ moves_loop: // When in check and at SPNode search starts from here
                     : -search      <NonPV>        (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
             }
 
+            // Principal Variation Search
             // For PV nodes only, do a full PV search on the first move or after a fail
             // high (in the latter case search only if value < beta), otherwise let the
             // parent node fail low with value <= alpha and to try another move.

@@ -362,6 +362,7 @@ namespace MoveGenerator {
                         {
                             if (ci)
                             {
+                                //if (attacks_bb<NIHT> (dst) & ci->king_sq) (mlist++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (mlist++)->move = mk_move<PROMOTE> (org, dst, BSHP);
                                 if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) (mlist++)->move = mk_move<PROMOTE> (org, dst, ROOK);
                                 if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) (mlist++)->move = mk_move<PROMOTE> (org, dst, QUEN);

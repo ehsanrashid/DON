@@ -163,7 +163,8 @@ namespace {
 
 
     const Score TempoBonus              = S( 24, 11);
-    //const Score BishopPinBonus          = S( 66, 11);
+
+    const Score PinBonus                = S( 18,  6);
 
     const Score RookOn7thBonus          = S( 11, 20);
     const Score QueenOn7thBonus         = S(  3,  8);
@@ -187,7 +188,7 @@ namespace {
     // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
     // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
     // happen in Chess960 games.
-    const Score TrappedBishopA1H1      = S( 50, 50);
+    const Score TrappedBishopA1H1       = S( 50, 50);
 
 #undef S
 #undef V
@@ -261,8 +262,8 @@ namespace {
 
     Value interpolate   (const Score &score, Phase ph, ScaleFactor sf);
     Score apply_weight  (Score score, Score w);
-    Score weight_option (const string &mg_opt, const string &eg_opt, Score internal_weight);
-    double to_cp        (Value value);
+    Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
+    double to_cp        (const Value &value);
 
     namespace Tracing {
 
@@ -457,7 +458,7 @@ namespace {
             {
                 bonus += bonus / 2;
             }
-            
+
             //// Increase bonus more if the piece blocking enemy pawn
             //if (pos[s + pawn_push(C)] == make_piece(C_, PAWN))
             //{
@@ -523,18 +524,17 @@ namespace {
                 score -= ThreatenedByPawnPenalty[PT];
             }
 
-            //// Otherwise give a bonus if we are a bishop and can pin a piece or can
-            //// give a discovered check through an x-ray attack.
-            //else if (    BSHP == PT
-            //    && (attacks_bb<BSHP> (ek_sq) & s)
-            //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-            //{
-            //    score += BishopPinBonus;
-            //}
-
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
             {
+                // Give a bonus if we are a bishop and can pin a piece or
+                // can give a discovered check through an x-ray attack.
+                if ((attacks_bb<BSHP> (ek_sq) & s) &&
+                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                {
+                    score += PinBonus;
+                }
+
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
 
@@ -580,6 +580,14 @@ namespace {
             // Special extra evaluation for rooks
             if (ROOK == PT)
             {
+                // Give a bonus if we are a rook and can pin a piece or
+                // can give a discovered check through an x-ray attack.
+                if ((attacks_bb<ROOK> (ek_sq) & s) &&
+                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                {
+                    score += PinBonus;
+                }
+
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))
                 {
@@ -1018,7 +1026,7 @@ namespace {
 
     // weight_option () computes the value of an evaluation weight, by combining
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
-    inline Score weight_option  (const string &mg_opt, const string &eg_opt, Score internal_weight)
+    inline Score weight_option  (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
     {
         // Scale option value from 100 to 256
         int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
@@ -1026,7 +1034,7 @@ namespace {
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
-    inline double to_cp (Value value) { return double (value) / double (VALUE_MG_PAWN); }
+    inline double to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
 
     namespace Tracing {
 
