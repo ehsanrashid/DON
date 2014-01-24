@@ -174,10 +174,9 @@ void MovePicker::value<CAPTURE> ()
 template<>
 void MovePicker::value<QUIET>   ()
 {
-    Move m;
     for (ValMove *itr = mlist; itr != end; ++itr)
     {
-        m = itr->move;
+        Move m = itr->move;
         itr->value = history[pos[org_sq (m)]][dst_sq (m)];
     }
 }
@@ -298,7 +297,7 @@ void MovePicker::generate_next_stage ()
     case QUIETS_1_S1:
         end = end_quiets = generate<QUIET> (mlist, pos);
         value<QUIET> ();
-        //end = partition (cur, end, ValMove ());
+        end = partition (cur, end, ValMove ());
         insertion_sort  (cur, end);
 
         return;
@@ -380,80 +379,94 @@ Move MovePicker::next_move<false> ()
             return tt_move;
 
         case CAPTURES_S1:
-            move = pick_best (cur++, end)->move;
-            if (move != tt_move)
+            while (cur < end)
             {
-                if (pos.see_sign (move) >= 0) return move;
-                // Losing capture, move it to the tail of the array
-                (end_bad_captures--)->move = move;
+                move = pick_best (cur++, end)->move;
+                if (move != tt_move)
+                {
+                    if (pos.see_sign (move) >= 0) return move;
+                    // Losing capture, move it to the tail of the array
+                    (end_bad_captures--)->move = move;
+                }
             }
-
             break;
 
         case KILLERS_S1:
-            move = (cur++)->move;
-            if (    move != MOVE_NONE
-                &&  pos.pseudo_legal (move)
-                &&  move != tt_move
-                && !pos.capture (move))
+            while (cur < end)
             {
-                return move;
+                move = (cur++)->move;
+                if (    move != MOVE_NONE
+                    &&  pos.pseudo_legal (move)
+                    &&  move != tt_move
+                    && !pos.capture (move))
+                {
+                    return move;
+                }
             }
-
             break;
 
         case QUIETS_1_S1: case QUIETS_2_S1:
-            move = (cur++)->move;
-            if (   move != tt_move
-                && move != killers[0].move
-                && move != killers[1].move
-                && move != killers[2].move
-                && move != killers[3].move
-                && move != killers[4].move
-                && move != killers[5].move)
+            while (cur < end)
             {
-                return move;
+                move = (cur++)->move;
+                if (   move != tt_move
+                    && move != killers[0].move
+                    && move != killers[1].move
+                    && move != killers[2].move
+                    && move != killers[3].move
+                    && move != killers[4].move
+                    && move != killers[5].move)
+                {
+                    return move;
+                }
             }
-
             break;
 
         case BAD_CAPTURES_S1:
             return (cur--)->move;
 
         case EVASIONS_S2: case CAPTURES_S3: case CAPTURES_S4:
-            move = pick_best (cur++, end)->move;
-            if (move != tt_move)
+            while (cur < end)
             {
-                return move;
+                move = pick_best (cur++, end)->move;
+                if (move != tt_move)
+                {
+                    return move;
+                }
             }
-
             break;
 
         case CAPTURES_S5:
-            move = pick_best (cur++, end)->move;
-            if (move != tt_move && pos.see (move) > capture_threshold)
+            while (cur < end)
             {
-                return move;
+                move = pick_best (cur++, end)->move;
+                if (move != tt_move && pos.see (move) > capture_threshold)
+                {
+                    return move;
+                }
             }
-
             break;
 
         case CAPTURES_S6:
-            move = pick_best (cur++, end)->move;
-            if (dst_sq (move) == recapture_sq)
+            while (cur < end)
             {
-                return move;
+                move = pick_best (cur++, end)->move;
+                if (dst_sq (move) == recapture_sq)
+                {
+                    return move;
+                }
             }
-
             break;
 
         case QUIET_CHECKS_S3:
-            move = (cur++)->move;
-            if (move != tt_move)
+            while (cur < end)
             {
-                return move;
+                move = (cur++)->move;
+                if (move != tt_move)
+                {
+                    return move;
+                }
             }
-
             break;
 
         case STOP:

@@ -1136,8 +1136,8 @@ moves_loop: // When in check and at SPNode search starts from here
                         << "info"
                         //<< " depth "          << int32_t (depth / ONE_MOVE)
                         << " time "           << elapsed
+                        << " currmovenumber " << setw (2) << moves_count + IndexPV
                         << " currmove "       << move_to_can (move, pos.chess960 ())
-                        << " currmovenumber " << moves_count + IndexPV
                         << endl;
                 }
             }

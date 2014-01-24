@@ -85,7 +85,7 @@ namespace MoveGenerator {
                     if (CHECK != GT && QUIET_CHECK != GT)
                     {
                         Square org_king= pos.king_sq (clr);
-                        Bitboard moves = attacks_bb<KING> (org_king) & targets;
+                        Bitboard moves = attacks_bb<KING> (org_king) & ~attacks_bb<KING> (pos.king_sq (~clr)) & targets;
                         SERIALIZE (mlist, org_king, moves);
                     }
 
@@ -572,7 +572,8 @@ namespace MoveGenerator {
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard moves = attacks_bb<KING> (org_king) & ~friends & ~slid_attacks;
+        Bitboard moves = attacks_bb<KING> (org_king) & ~friends 
+            &           ~attacks_bb<KING> (pos.king_sq (~active)) & ~slid_attacks;
 
         SERIALIZE (mlist, org_king, moves);
 
@@ -586,6 +587,7 @@ namespace MoveGenerator {
                 :  BLACK == active ? generate_moves<BLACK, EVASION> (mlist, pos, targets)
                 :  mlist;
         }
+        
         return mlist;
     }
 

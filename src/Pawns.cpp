@@ -14,8 +14,8 @@ namespace {
 
     // Doubled pawn penalty by file
     const Score Doubled[F_NO] = {
-        S( 13, 43), S( 20, 48), S( 24, 48), S( 24, 48),
-        S( 24, 48), S( 24, 48), S( 20, 48), S( 13, 43), };
+        S( 13, 43), S( 20, 48), S( 23, 48), S( 23, 48),
+        S( 23, 48), S( 23, 48), S( 20, 48), S( 13, 43), };
 
     // Isolated pawn penalty by opposed flag and file
     const Score Isolated[CLR_NO][F_NO] = {
