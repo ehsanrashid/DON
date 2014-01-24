@@ -309,7 +309,14 @@ namespace Searcher {
             // Don't overwrite correct entries
             if (!te || te->move() != pv[ply])
             {
-                TT.store (pos.posi_key (), pv[ply], DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, VALUE_NONE);
+                TT.store (
+                    pos.posi_key (),
+                    pv[ply],
+                    DEPTH_NONE,
+                    BND_NONE,
+                    pos.game_nodes (),
+                    VALUE_NONE,
+                    VALUE_NONE);
             }
 
             ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
@@ -853,26 +860,37 @@ namespace {
             eval_value = ss->static_eval = VALUE_NONE;
             goto moves_loop;
         }
-        else if (te)
-        {
-            // Never assume anything on values stored in TT
-            Value e_value = te->e_value ();
-            if (VALUE_NONE == e_value) e_value = evaluate (pos);
-            eval_value = ss->static_eval = e_value;
-
-            // Can tt_value be used as a better position evaluation?
-            if (VALUE_NONE != tt_value)
-            {
-                if (te->bound () & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
-                {
-                    eval_value = tt_value;
-                }
-            }
-        }
         else
         {
-            eval_value = ss->static_eval = evaluate (pos);
-            TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BND_NONE, pos.game_nodes (), VALUE_NONE, ss->static_eval);
+            if (te)
+            {
+                // Never assume anything on values stored in TT
+                Value e_value = te->e_value ();
+                if (VALUE_NONE == e_value) e_value = evaluate (pos);
+                eval_value = ss->static_eval = e_value;
+
+                // Can tt_value be used as a better position evaluation?
+                if (VALUE_NONE != tt_value)
+                {
+                    if (te->bound () & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
+                    {
+                        eval_value = tt_value;
+                    }
+                }
+            }
+            else
+            {
+                eval_value = ss->static_eval = evaluate (pos);
+
+                TT.store (
+                    posi_key,
+                    MOVE_NONE,
+                    DEPTH_NONE,
+                    BND_NONE,
+                    pos.game_nodes (),
+                    VALUE_NONE,
+                    ss->static_eval);
+            }
         }
 
         if (pos.cap_type () != NONE &&
@@ -1256,18 +1274,19 @@ moves_loop: // When in check and at SPNode search starts from here
                 Depth reduce_depth = max (new_depth - ss->reduction, ONE_MOVE);
 
                 if (SPNode) alpha = split_point->alpha;
-                
-                ////if (best_value > alpha) alpha = best_value;
 
-                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
-                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, !cut_node);
+                ////if (best_value > alpha) alpha = best_value;
+                // TODO::
+
+                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
+                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, !cut_node);
 
                 // Research at intermediate depth if reduction is very high
                 if (value > alpha && ss->reduction >= 4 * ONE_MOVE)
                 {
                     Depth inter_depth = max (new_depth - 2 * ONE_MOVE, ONE_MOVE);
-                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
-                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, !cut_node);
+                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, !cut_node);
                 }
 
                 full_depth_search = (value > alpha && ss->reduction != DEPTH_ZERO);
@@ -1423,7 +1442,7 @@ moves_loop: // When in check and at SPNode search starts from here
         if (best_value >= beta)
         {
             // Update killers, history, counter moves and followup moves
-            if (best_move && !pos.capture_or_promotion (best_move) && !in_check)
+            if (best_move && !in_check && !pos.capture_or_promotion (best_move))
             {
                 update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
             }
@@ -1457,8 +1476,9 @@ moves_loop: // When in check and at SPNode search starts from here
             return DrawValue[pos.active ()];
         }
 
-        Value       best_value;
-        Value       old_alpha;
+        Value       best_value
+            ,       old_alpha;
+
         StateInfo   si;
 
         // To flag EXACT a node with eval_value above alpha and no available moves
@@ -1527,8 +1547,16 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 if (!te)
                 {
-                    TT.store (pos.posi_key (), MOVE_NONE, DEPTH_NONE, BND_LOWER, pos.game_nodes (), value_to_tt (best_value, ss->ply), ss->static_eval);
+                    TT.store (
+                        pos.posi_key (),
+                        MOVE_NONE,
+                        DEPTH_NONE,
+                        BND_LOWER,
+                        pos.game_nodes (),
+                        value_to_tt (best_value, ss->ply),
+                        ss->static_eval);
                 }
+
                 return best_value;
             }
 
@@ -1622,7 +1650,15 @@ moves_loop: // When in check and at SPNode search starts from here
                     }
                     else // Fail high
                     {
-                        TT.store (posi_key, move, tt_depth, BND_LOWER, pos.game_nodes (), value_to_tt(value, ss->ply), ss->static_eval);
+                        TT.store (
+                            posi_key,
+                            move,
+                            tt_depth,
+                            BND_LOWER,
+                            pos.game_nodes (),
+                            value_to_tt (value, ss->ply),
+                            ss->static_eval);
+
                         return value;
                     }
                 }
