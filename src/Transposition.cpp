@@ -11,6 +11,8 @@ using namespace std;
 // Global Transposition Table
 TranspositionTable TT;
 
+bool ClearHash = false;
+
 void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));

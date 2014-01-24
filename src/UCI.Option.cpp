@@ -195,7 +195,7 @@ namespace UCI {
 
         void on_clear_hash      (const Option &opt)
         {
-            TT.clear ();
+            ClearHash = true;
             ats () << "info string hash cleared." << endl;
         }
 

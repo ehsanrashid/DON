@@ -128,10 +128,18 @@ namespace Searcher {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);
         }
-
+        
         // Ascending Sort
-        bool operator<  (const RootMove &rm) const { return (curr_value > rm.curr_value); }
-        bool operator== (const Move &m) const { return (m == pv[0]); }
+
+        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value >  rm2.curr_value); }
+        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value <  rm2.curr_value); }
+        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value >= rm2.curr_value); }
+        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value <= rm2.curr_value); }
+        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value == rm2.curr_value); }
+        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value != rm2.curr_value); }
+
+        friend bool operator== (const RootMove &rm, const Move &m) { return (rm.pv[0] == m); }
+        friend bool operator!= (const RootMove &rm, const Move &m) { return (rm.pv[0] != m); }
 
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
@@ -152,7 +160,10 @@ namespace Searcher {
         Move        killers[2];
         Depth       reduction;
         Value       static_eval;
-        int32_t     skip_null_move;
+
+        //uint8_t     null_move_count;
+        //uint8_t     null_cut_count; //Keep track of the moves causing a cut-off at d-R
+        bool        skip_null_move;
 
     } Stack;
 
@@ -166,7 +177,7 @@ namespace Searcher {
     extern Time::point           SearchTime;
 
     extern uint64_t perft (Position &pos, Depth depth);
-    
+
     extern void think ();
 
     extern void initialize ();

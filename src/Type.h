@@ -298,6 +298,7 @@ typedef enum Value : int32_t
 
     VALUE_NONE      = _I16_MAX,
     VALUE_INFINITE  = VALUE_NONE - 1,
+    _VALUE_INFINITE = -VALUE_INFINITE,
 
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 2,

@@ -137,7 +137,15 @@ namespace UCI {
             }
             else return;
 
+            Key posi_key = RootPos.posi_key ();
+
             RootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
+
+            if (ClearHash && posi_key != RootPos.posi_key ())
+            {
+                if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+            }
+            ClearHash = false;
 
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
 

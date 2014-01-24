@@ -367,6 +367,7 @@ Move MovePicker::next_move<false> ()
         {
             generate_next_stage ();
         }
+
         switch (stage)
         {
 

@@ -181,14 +181,8 @@ public:
 
     // refresh() updates the 'Generation' of the entry to avoid aging.
     // Normally called after a TranspositionTable hit.
-    inline void refresh (const TranspositionEntry &te) const
-    {
-        const_cast<TranspositionEntry&> (te).gen (_generation);
-    }
-    inline void refresh (const TranspositionEntry *te) const
-    {
-        const_cast<TranspositionEntry*> (te)->gen (_generation);
-    }
+    //inline void refresh (const TranspositionEntry &te) const { const_cast<TranspositionEntry&> (te) .gen (_generation); }
+    inline void refresh (const TranspositionEntry *te) const { const_cast<TranspositionEntry*> (te)->gen (_generation); }
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
@@ -257,5 +251,7 @@ public:
 
 // Global Transposition Table
 extern TranspositionTable TT;
+
+extern bool ClearHash;
 
 #endif
