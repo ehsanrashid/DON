@@ -345,7 +345,6 @@ typedef enum Depth : int16_t
 
 typedef enum Bound : uint8_t
 {
-    // NONE BOUND           - NO
     BND_NONE    = 0,
 
     // UPPER (BETA) BOUND   - ALL

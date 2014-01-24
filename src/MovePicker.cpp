@@ -212,9 +212,9 @@ void MovePicker::value<EVASION> ()
     }
 }
 
-// generate_next_stage () generates, scores and sorts the next bunch of moves,
+// generate_next () generates, scores and sorts the next bunch of moves,
 // when there are no more moves to try for the current phase.
-void MovePicker::generate_next_stage ()
+void MovePicker::generate_next ()
 {
     cur = mlist;
     switch (++stage)
@@ -344,7 +344,7 @@ void MovePicker::generate_next_stage ()
         stage = STOP;
 
     case STOP:
-        end = cur + 1; // Avoid another generate_next_stage() call
+        end = cur + 1; // Avoid another next_phase() call
 
         return;
 
@@ -360,12 +360,13 @@ template<>
 // taking care not returning the tt_move if has already been searched previously.
 Move MovePicker::next_move<false> ()
 {
+    Move move;
+
     while (true)
     {
-        Move move;
         while (cur == end)
         {
-            generate_next_stage ();
+            generate_next ();
         }
         switch (stage)
         {
