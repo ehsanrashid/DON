@@ -1060,10 +1060,10 @@ moves_loop: // When in check and at SPNode search starts from here
             (ss-2)->static_eval == VALUE_NONE;
 
         bool singular_ext_node =
-            !RootNode && NonSPNode  &&
-            depth >= 8 * ONE_MOVE &&
-            tt_move != MOVE_NONE  &&
-            !excluded_move        && // Recursive singular search is not allowed
+            !RootNode && NonSPNode &&
+            depth >= 8 * ONE_MOVE  &&
+            tt_move != MOVE_NONE   &&
+            !excluded_move         && // Recursive singular search is not allowed
             (te->bound () & BND_LOWER) &&
             (te->depth () >= depth - 3 * ONE_MOVE);
 
@@ -1253,13 +1253,14 @@ moves_loop: // When in check and at SPNode search starts from here
                     ss->reduction = max (DEPTH_ZERO, ss->reduction - ONE_MOVE);
                 }
 
-                Depth d = max (new_depth - ss->reduction, ONE_MOVE);
+                Depth reduce_depth = max (new_depth - ss->reduction, ONE_MOVE);
 
                 if (SPNode) alpha = split_point->alpha;
-                //if (best_value > alpha) alpha = best_value;
+                
+                ////if (best_value > alpha) alpha = best_value;
 
-                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, d, true);
-                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, d, !cut_node);
+                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
+                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, !cut_node);
 
                 // Research at intermediate depth if reduction is very high
                 if (value > alpha && ss->reduction >= 4 * ONE_MOVE)
