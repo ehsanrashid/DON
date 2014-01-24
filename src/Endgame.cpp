@@ -900,7 +900,7 @@ namespace EndGame {
                 Bitboard bpawns = pos.pieces (_weak_side, PAWN);
                 if (bpawns && !(bpawns & ~file_bb (wp_f)))
                 {
-                    Square bp_sq = pos.piece_list<PAWN> (_weak_side)[0];
+                    Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
                     int32_t br = rel_rank (_weak_side, bp_sq);
                     int32_t wr = rel_rank (_weak_side, wp_sq);
                     if (br == wr - 1 &&

@@ -29,8 +29,19 @@ using namespace Time;
 namespace {
 
     // Set to true to force running with one thread. Used for debugging
-    const bool FakeSplit            = false;
+    const bool FakeSplit    = false;
 
+    const uint8_t MAX_NULL_REDUCTION = 3;
+    const uint8_t MAX_NULL_MOVE      = 12;
+    const uint8_t MAX_NULL_CUT       = 2;
+
+    // PV, CUT, and ALL nodes, respectively. The root of the tree is a PV node. At a PV
+    // node all the children have to be investigated. The best move found at a PV node
+    // leads to a successor PV node, while all the other investigated children are CUT
+    // nodes. At a CUT node the child causing aβcut-off is an ALL node. In a perfectly
+    // ordered tree only one child of a CUT node has to be explored. At an ALL node all
+    // the children have to be explored. The successors of an ALL node are CUT nodes.
+    // NonPV = CUT + ALL
     // Different node types, used as template parameter
     enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -46,15 +57,15 @@ namespace {
     }
 
     template<bool PVNode>
-    inline Depth reduction (bool imp, Depth d, int32_t mn)
+    inline Depth reduction (bool imp, uint8_t d, int32_t mc)
     {
-        return Depth (Reductions[PVNode][imp][min (int32_t (d) / ONE_MOVE, 63)][min (mn, 63)]);
+        return Depth (Reductions[PVNode][imp][min (d / ONE_MOVE, 63)][min (mc, 63)]);
     }
 
     // Dynamic razoring margin based on depth
-    inline Value razor_margin (Depth d)
+    inline Value razor_margin (uint8_t d)
     {
-        return Value (512 + 16 * int32_t (d));
+        return Value (512 + 16 * d);
     }
 
     TimeManager TimeMgr;
@@ -70,6 +81,7 @@ namespace {
         ,       IndexPV;
 
     GainsStats          Gains;
+    // History heuristic
     HistoryStats        History;
     MovesStats          CounterMoves;
     MovesStats          FollowupMoves;
@@ -85,16 +97,14 @@ namespace {
         }
 
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
-        Value bonus = Value (uint32_t (pow (2, depth))); //Value (depth * depth * depth);
+        Value bonus = Value (1 << depth); //Value (depth * depth * depth);
         History.update (pos[org_sq (move)], dst_sq (move), bonus);
         //if (quiet_moves)
+        for (int32_t i = 0; i < quiets_count; ++i)
         {
-            for (int32_t i = 0; i < quiets_count; ++i)
-            {
-                Move m = quiet_moves[i];
-                if (m == move) continue;
-                History.update (pos[org_sq (m)], dst_sq (m), -bonus);
-            }
+            Move m = quiet_moves[i];
+            if (m == move) continue;
+            History.update (pos[org_sq (m)], dst_sq (m), -bonus);
         }
 
         Move prev_move = (ss-1)->current_move;
@@ -111,6 +121,25 @@ namespace {
             FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
         }
     }
+
+    //// Memory-enhanced Test Driver with Position pos and value guess
+    //inline Value memory_test_driver (Position &pos, Stack ss[], Value alpha, Value beta, Value guess, int32_t depth)
+    //{
+    //    Value bound[2] = { alpha, beta }; // lower, upper
+    //    do
+    //    {
+    //        Value value = guess + (guess == bound[0] ? 1 : 0);
+    //        guess = search<Root> (pos, ss, value-1, value, depth * ONE_MOVE, false);
+    //
+    //        if (guess < value)
+    //            bound[1] = guess;
+    //        else
+    //            bound[0] = guess;
+    //    }
+    //    while (bound[0] < bound[1]);
+    //
+    //    return guess;
+    //}
 
     void iter_deep_loop (Position &pos);
 
@@ -473,6 +502,8 @@ namespace {
     // iter_deep_loop () is the main iterative deepening loop. It calls search() repeatedly
     // with increasing depth until the allocated thinking time has been consumed,
     // user stops the search, or the maximum search depth is reached.
+    // Time management; with iterative deepining enabled you can specify how long
+    // you want the computer to think rather than how deep you want it to think. 
     void iter_deep_loop (Position &pos)
     {
         Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
@@ -483,17 +514,17 @@ namespace {
         TT.new_gen ();
 
         Gains.clear ();
-        History.clear();
-        CounterMoves.clear();
-        FollowupMoves.clear();
+        History.clear ();
+        CounterMoves.clear ();
+        FollowupMoves.clear ();
 
         BestMoveChanges  = 0.0;
 
-        Value best_value = -VALUE_INFINITE;
         Value alpha      = -VALUE_INFINITE;
         Value beta       = +VALUE_INFINITE;
-        Value delta      = -VALUE_INFINITE;
-        Depth depth      = DEPTH_ZERO;
+        Value delta      =  VALUE_ZERO;
+        Value best_value =  VALUE_ZERO;
+        int32_t depth    =  DEPTH_ZERO;
 
         MultiPV = int32_t (*(Options["MultiPV"]));
         Skill skill (*(Options["Skill Level"]));
@@ -523,7 +554,6 @@ namespace {
                 // Reset aspiration window starting size
                 if (depth >= 5)
                 {
-                    //delta = Value (16);
                     delta = Value (max (16, 25 - depth / 2));
 
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
@@ -534,10 +564,11 @@ namespace {
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
-                while (true)
+                while (true) //(alpha < beta)
                 {
-
-                    best_value = search<Root> (pos, ss, alpha, beta, depth * int32_t (ONE_MOVE), false);
+                    //Value value = best_value + (best_value == alpha ? 1 : 0);
+                    //best_value = memory_test_driver (pos, ss, alpha, beta, VALUE_ZERO, depth * ONE_MOVE);
+                    best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
 
                     // Bring to front the best move. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -566,8 +597,6 @@ namespace {
                     {
                         ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
                     }
-
-                    //delta = Value (24);
 
                     // In case of failing low/high increase aspiration window and
                     // research, otherwise exit the loop.
@@ -661,15 +690,15 @@ namespace {
                 //    (RootMoves.size () == 1 ||
                 //    (now () - SearchTime) > TimeMgr.available_time() * 20 / 100))
                 //{
-                //    Value rbeta = best_value - 2 * VALUE_MG_PAWN;
+                //    Value bound = best_value - 2 * VALUE_MG_PAWN;
                 //
                 //    ss->excluded_move  = RootMoves[0].pv[0];
                 //    ss->skip_null_move = true;
-                //    Value v = search<NonPV> (pos, ss, rbeta - 1, rbeta, (depth - 3) * int32_t (ONE_MOVE), true);
+                //    Value v = search<NonPV> (pos, ss, bound-1, bound, (depth - 3) * int32_t (ONE_MOVE), true);
                 //    ss->skip_null_move = false;
                 //    ss->excluded_move  = MOVE_NONE;
                 //
-                //    if (v < rbeta) stop = true;
+                //    if (v < bound) stop = true;
                 //}
 
                 if (stop)
@@ -684,6 +713,7 @@ namespace {
 
             }
         }
+
     }
 
     template <NodeType NT>
@@ -695,9 +725,10 @@ namespace {
     // here: This is taken care of after we return from the split point.
     Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
     {
-        const bool   PVNode = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
-        const bool   SPNode = (NT == SplitPointPV  || NT == SplitPointNonPV || NT == SplitPointRoot);
-        const bool RootNode = (NT == Root || NT == SplitPointRoot);
+        const bool  RootNode = (NT == Root             || NT == SplitPointRoot);
+        const bool    SPNode = (NT == SplitPointPV     || NT == SplitPointNonPV || NT == SplitPointRoot);
+        const bool    PVNode = (NT == PV || NT == Root || NT == SplitPointPV    || NT == SplitPointRoot);
+        const bool NonPVNode = (NT == NonPV            || NT == SplitPointNonPV);
 
         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
         ASSERT (PVNode || (alpha == beta - 1));
@@ -745,6 +776,7 @@ namespace {
 
         moves_count  = 0;
         quiets_count = 0;
+
         best_value  = -VALUE_INFINITE;
         best_move   = ss->current_move = ss->tt_move = (ss+1)->excluded_move = MOVE_NONE;
         (ss)->ply   = (ss-1)->ply + 1;
@@ -806,6 +838,7 @@ namespace {
             {
                 update_stats (pos, ss, tt_move, depth, NULL, 0);
             }
+
             return tt_value;
         }
 
@@ -850,14 +883,14 @@ namespace {
         }
 
         // Step 6. Razoring (skipped when in check)
-        if (!PVNode && depth < 4 * ONE_MOVE &&
+        if (NonPVNode && depth < 4 * ONE_MOVE &&
             eval_value + razor_margin (depth) < beta &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
-            Value rbeta = beta - razor_margin (depth);
-            Value v = search_quien<NonPV, false> (pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
-            if (v < rbeta)
+            Value bound = beta - razor_margin (depth);
+            Value v = search_quien<NonPV, false> (pos, ss, bound-1, bound, DEPTH_ZERO);
+            if (v < bound)
             {
                 // Logically we should return (value + razor_margin (depth)), but
                 // surprisingly this did slightly weaker in tests.
@@ -868,7 +901,7 @@ namespace {
         // Step 7. Futility pruning: child node (skipped when in check)
         /// We're betting that the opponent doesn't have a move that will reduce
         /// the score by more than futility_margin (depth) if we do a null move.
-        if (!PVNode && !ss->skip_null_move &&
+        if (NonPVNode && !ss->skip_null_move &&
             depth < 7 * ONE_MOVE &&
             eval_value - futility_margin (depth) >= beta &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
@@ -879,7 +912,7 @@ namespace {
         }
 
         // Step 8. Null move search with verification search (is omitted in PV nodes)
-        if (!PVNode && !ss->skip_null_move &&
+        if (NonPVNode && !ss->skip_null_move &&
             depth >= 2 * ONE_MOVE &&
             eval_value >= beta &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
@@ -887,52 +920,75 @@ namespace {
         {
             ss->current_move = MOVE_NULL;
 
+            //Value bound  = beta - (cut_node ? 0 : 200);
+
+            //uint8_t null_move_count = 0
+            //    ,   null_cut_count  = 0; //Keep track of the moves causing a cut-off at d-R
+
             // Null move dynamic reduction based on depth
-            Depth red_depth = 3 * ONE_MOVE + depth / 4;
+            Depth rdepth = (MAX_NULL_REDUCTION+0) * ONE_MOVE + depth / 4;
 
             // Null move dynamic reduction based on value
-            if (eval_value - VALUE_MG_PAWN > beta) red_depth += ONE_MOVE;
+            if (eval_value - VALUE_MG_PAWN > beta) rdepth += ONE_MOVE;
 
             // Make null move
             pos.do_null_move (si);
             (ss+1)->skip_null_move = true;
             Value null_value = 
-                (depth-red_depth < ONE_MOVE)
+                (depth-rdepth < ONE_MOVE)
                 ? -search_quien<NonPV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-red_depth, !cut_node);
+                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-rdepth, !cut_node);
+
             (ss+1)->skip_null_move = false;
             // Unmake null move
             pos.undo_null_move ();
 
             if (null_value >= beta)
             {
+                //++null_cut_count;
+                //if (null_value >= VALUE_MATES_IN_MAX_PLY)
+                //{
+                //    return value;
+                //}
+                //else if (null_cut_count >= MAX_NULL_CUT)
+                //{
+                //    return bound;
+                //}
+
                 // Do not return unproven mate scores
                 if (null_value >= VALUE_MATES_IN_MAX_PLY)
                 {
                     null_value = beta;
                 }
 
-                if (depth < 12 * ONE_MOVE) return null_value;
+                if (depth < 12 * ONE_MOVE)
+                {
+                    return null_value;
+                }
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
-                Value v = search<NonPV> (pos, ss, alpha, beta, depth-red_depth, false);
+                Value v = search<NonPV> (pos, ss, alpha, beta, depth-rdepth, false);
                 ss->skip_null_move = false;
 
-                if (v >= beta) return null_value;
+                if (v >= beta)
+                {
+                    return null_value;
+                }
             }
         }
 
-        // Step 9. ProbCut (skipped when in check)
-        // If we have a very good capture (i.e. SEE > seeValues[captured_piece_type])
-        // and a reduced search returns a value much above beta, we can (almost) safely
-        // prune the previous move.
-        if (!PVNode && depth >= 5 * ONE_MOVE &&
+        // Step 9. Multi-Cut at Allnodes (MC-A) ProbCut (skipped when in check)
+        // If we have a very good capture (i.e. SEE > see[captured_piece_type])
+        // and a reduced search returns a value much above beta,
+        // we can (almost) safely prune the previous move.
+        if (NonPVNode && depth >= 5 * ONE_MOVE &&
             !ss->skip_null_move &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY)
         {
-            Value rbeta  = beta + 200;
-            Depth rdepth = depth - ONE_MOVE - 3 * ONE_MOVE;
+            Value bound  = beta + 200;
+
+            Depth rdepth = depth - (MAX_NULL_REDUCTION+1) * ONE_MOVE;
 
             ASSERT (rdepth >= ONE_MOVE);
             ASSERT ((ss-1)->current_move != MOVE_NONE);
@@ -951,11 +1007,14 @@ namespace {
 
                 pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
 
-                value = -search<NonPV> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                value = -search<NonPV> (pos, ss+1, -bound, -bound+1, rdepth, !cut_node);
 
                 pos.undo_move ();
 
-                if (value >= rbeta) return value;
+                if (value >= bound)
+                {
+                    return value;
+                }
             }
         }
 
@@ -994,6 +1053,7 @@ moves_loop: // When in check and at SPNode search starts from here
         CheckInfo  ci (pos);
 
         value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
+
         bool improving = 
             ss->static_eval >= (ss-2)->static_eval ||
             ss->static_eval == VALUE_NONE          ||
@@ -1001,9 +1061,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
         bool singular_ext_node =
             !RootNode && !SPNode  &&
+            !excluded_move        && // Recursive singular search is not allowed
             depth >= 8 * ONE_MOVE &&
             tt_move != MOVE_NONE  &&
-            !excluded_move        && // Recursive singular search is not allowed
             (te->bound () & BND_LOWER) &&
             (te->depth () >= depth - 3 * ONE_MOVE);
 
@@ -1073,7 +1133,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Step 12. Extend checks
             if (gives_check && pos.see_sign (move) >= 0) ext = ONE_MOVE;
 
-            // Singular extension search. If all moves but one fail low on a search of
+            // Singular extension(SE) search. If all moves but one fail low on a search of
             // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
             // is singular and should be extended. To verify this we do a reduced search
             // on all the other moves but the tt_move, if result is lower than tt_value minus
@@ -1086,21 +1146,22 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (tt_value != VALUE_NONE);
 
-                Value rbeta = tt_value - int32_t (depth);
+                Value bound = tt_value - int32_t (depth);
                 ss->excluded_move  = move;
                 ss->skip_null_move = true;
-                value = search<NonPV> (pos, ss, rbeta - 1, rbeta, depth / 2, cut_node);
+                //value = search<NonPV> (pos, ss, bound-1, bound, depth / 2, cut_node);
+                value = search<NonPV> (pos, ss, bound-1, bound, 2*depth / 3, cut_node);
                 ss->skip_null_move = false;
                 ss->excluded_move  = MOVE_NONE;
 
-                if (value < rbeta) ext = ONE_MOVE;
+                if (value < bound) ext = ONE_MOVE;
             }
 
             // Update current move (this must be done after singular extension search)
             Depth new_depth = depth - ONE_MOVE + ext;
 
             // Step 13. Pruning at shallow depth (exclude PV nodes)
-            if (!PVNode &&
+            if (NonPVNode &&
                 !capture_or_promotion &&
                 !in_check &&
                 !dangerous &&
@@ -1165,7 +1226,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Step 14. Make the move
             pos.do_move (move, si, gives_check ? &ci : NULL);
 
-            bool full_depth_search;
+            bool full_depth_search = false;
 
             // Step 15. Reduced depth search (LMR).
             // If the move fails high will be re-searched at full depth.
@@ -1178,7 +1239,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ss->reduction = reduction<PVNode> (improving, depth, moves_count);
 
-                if (!PVNode && cut_node)
+                if (NonPVNode && cut_node)
                 {
                     ss->reduction += ONE_MOVE;
                 }
@@ -1195,14 +1256,17 @@ moves_loop: // When in check and at SPNode search starts from here
                 Depth d = max (new_depth - ss->reduction, ONE_MOVE);
 
                 if (SPNode) alpha = split_point->alpha;
+                if (best_value > alpha) alpha = best_value;
 
-                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, d, true);
+                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, d, true);
+                value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, d, !cut_node);
 
                 // Research at intermediate depth if reduction is very high
                 if (value > alpha && ss->reduction >= 4 * ONE_MOVE)
                 {
                     Depth inter_depth = max (new_depth - 2 * ONE_MOVE, ONE_MOVE);
-                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, !cut_node);
                 }
 
                 full_depth_search = (value > alpha && ss->reduction != DEPTH_ZERO);
@@ -1234,10 +1298,11 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 value =
                     new_depth < ONE_MOVE
-                    ? (gives_check
+                    ? gives_check
                     ? -search_quien<PV,  true> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                    : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
-                    : -search      <PV>        (pos, ss+1, -beta, -alpha, new_depth, false);
+                    : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                    //: -search      <PV>        (pos, ss+1, -beta, -alpha, new_depth, false);
+                    : -search      <PV>        (pos, ss+1, -beta, -alpha, new_depth, cut_node);
             }
 
             // Step 17. Undo move
@@ -1334,9 +1399,11 @@ moves_loop: // When in check and at SPNode search starts from here
         // A split node has at least one move, the one tried before to be splitted.
         if (0 == moves_count)
         {
-            return excluded_move ? alpha :
-                in_check ? mated_in (ss->ply) :
-                DrawValue[pos.active ()];
+            return excluded_move
+                ? alpha
+                : in_check
+                ? mated_in (ss->ply)
+                : DrawValue[pos.active ()];
         }
 
         // If we have pruned all the moves without searching return a fail-low score
@@ -1346,7 +1413,7 @@ moves_loop: // When in check and at SPNode search starts from here
             posi_key,
             best_move,
             depth, 
-            best_value >= beta  ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
+            best_value >= beta ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
             pos.game_nodes (),
             value_to_tt (best_value, ss->ply),
             ss->static_eval);
@@ -1360,13 +1427,6 @@ moves_loop: // When in check and at SPNode search starts from here
                 update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
             }
         }
-        //else
-        //{
-        //    if (best_move && !pos.capture_or_promotion (best_move) && !in_check)
-        //    {
-        //        //update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
-        //    }
-        //}
 
         ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
 
@@ -1378,7 +1438,8 @@ moves_loop: // When in check and at SPNode search starts from here
     // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
     Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
     {
-        const bool PVNode = (NT == PV);
+        const bool    PVNode = (NT == PV);
+        const bool NonPVNode = (NT == NonPV);
 
         ASSERT (NT == PV || NT == NonPV);
         ASSERT (IN_CHECK == !!pos.checkers ());
@@ -1492,7 +1553,7 @@ moves_loop: // When in check and at SPNode search starts from here
             bool gives_check = pos.check (move, ci);
 
             // Futility pruning
-            if (!PVNode && !IN_CHECK &&
+            if (NonPVNode && !IN_CHECK &&
                 !gives_check && move != tt_move &&
                 !pos.advanced_pawn_push (move) &&
                 futility_base > -VALUE_KNOWN_WIN)
@@ -1522,7 +1583,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
-            if (!PVNode && (!IN_CHECK || evasion_prunable) &&
+            if (NonPVNode && (!IN_CHECK || evasion_prunable) &&
                 move != tt_move &&
                 m_type (move) != PROMOTE &&
                 pos.see_sign (move) < 0)
@@ -1781,7 +1842,7 @@ void Thread::idle_loop ()
     {
         // If we are not searching, wait for a condition to be signaled instead of
         // wasting CPU time polling for work.
-        while ((!searching && Threads.sleep_idle) || exit)
+        while (!searching && Threads.sleep_idle || exit)
         {
             if (exit)
             {

@@ -81,7 +81,7 @@ private:
     // The moves with highest scores will be picked first.
     void value ();
 
-    void generate_next ();
+    void generate_next_stage ();
 
     const Position     &pos;
 
