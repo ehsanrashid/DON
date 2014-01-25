@@ -13,16 +13,16 @@ namespace EndGame {
     {
         // Evaluation functions
         KXK,   // Generic "mate lone king" eval
-        KBNK,  // KBN vs K
         KPK,   // KP vs K
+        KBNK,  // KBN vs K
+        KNNK,  // KNN vs K
+        KBPK,  // KBP VS K --- TODO::
         KRKP,  // KR vs KP
         KRKB,  // KR vs KB
         KRKN,  // KR vs KN
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
         KBBKN, // KBB vs KN
-        // DRAW Cases
-        KNNK,  // KNN vs K
 
         // Scaling functions
         SCALE_FUNS,

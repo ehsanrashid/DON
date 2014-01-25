@@ -300,7 +300,10 @@ namespace {
 
         // If we have a specialized evaluation function for the current material
         // configuration, call it and return.
-        if (ei.mi->specialized_eval_exists ()) return ei.mi->evaluate (pos);
+        if (ei.mi->specialized_eval_exists ())
+        {
+            return ei.mi->evaluate (pos);
+        }
 
         // Probe the pawn hash table
         ei.pi = Pawns::probe (pos, thread->pawns_table);
@@ -339,13 +342,14 @@ namespace {
         // Evaluate space for both sides, only in middle-game.
         if (ei.mi->space_weight ())
         {
-            int32_t s = evaluate_space<WHITE> (pos, ei) - evaluate_space<BLACK> (pos, ei);
-            score += apply_weight (s * ei.mi->space_weight(), Weights[Space]);
+            int32_t scr = evaluate_space<WHITE> (pos, ei) - evaluate_space<BLACK> (pos, ei);
+            score += apply_weight (scr * ei.mi->space_weight(), Weights[Space]);
         }
 
         // Scale winning side if position is more drawish than it appears
-        ScaleFactor sf = (eg_value (score) > VALUE_DRAW) ?
-            ei.mi->scale_factor (pos, WHITE) : ei.mi->scale_factor (pos, BLACK);
+        ScaleFactor sf = (eg_value (score) > VALUE_DRAW)
+            ? ei.mi->scale_factor (pos, WHITE)
+            : ei.mi->scale_factor (pos, BLACK);
 
         // If we don't already have an unusual scale factor, check for opposite
         // colored bishop endgames, and use a lower scale for those.
@@ -388,6 +392,7 @@ namespace {
 
             Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
             Tracing::add (TOTAL     , score);
+            
             Tracing::stream
                 << "-------\n"
                 //<< "Uncertainty margin:"
@@ -527,13 +532,13 @@ namespace {
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
             {
-//                // Give a bonus if we are a bishop and can pin a piece or
-//                // can give a discovered check through an x-ray attack.
-//                if ((attacks_bb<BSHP> (ek_sq) & s) &&
-//                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-//                {
-//                    score += PinBonus;
-//                }
+                //                // Give a bonus if we are a bishop and can pin a piece or
+                //                // can give a discovered check through an x-ray attack.
+                //                if ((attacks_bb<BSHP> (ek_sq) & s) &&
+                //                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //                {
+                //                    score += PinBonus;
+                //                }
 
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
@@ -580,13 +585,13 @@ namespace {
             // Special extra evaluation for rooks
             if (ROOK == PT)
             {
-//                // Give a bonus if we are a rook and can pin a piece or
-//                // can give a discovered check through an x-ray attack.
-//                if ((attacks_bb<ROOK> (ek_sq) & s) &&
-//                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-//                {
-//                    score += PinBonus;
-//                }
+                //                // Give a bonus if we are a rook and can pin a piece or
+                //                // can give a discovered check through an x-ray attack.
+                //                if ((attacks_bb<ROOK> (ek_sq) & s) &&
+                //                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //                {
+                //                    score += PinBonus;
+                //                }
 
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))

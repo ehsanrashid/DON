@@ -159,48 +159,58 @@ namespace EndGame {
 
         Value value;
 
+        //if (!pos.piece_count<PAWN> (_stong_side) &&
+        //    pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
+        //{
+        //    value = VALUE_DRAW 
+        //        +   pos.piece_count (_stong_side)
+        //        -   pos.piece_count (_weak_side);
+        //    return (_stong_side == pos.active ()) ? value : -value;
+        //}
+
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
 
-        if (!pos.piece_count<PAWN> (_stong_side) &&
-            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
+        value = pos.non_pawn_material (_stong_side)
+            +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
+            +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+
+        if (pos.piece_count<QUEN> (_stong_side) ||
+            pos.piece_count<ROOK> (_stong_side) ||
+            pos.piece_count<NIHT> (_stong_side) > 2 ||
+            pos.bishops_pair (_stong_side))
         {
-            value = VALUE_DRAW 
-                +   pos.piece_count (_stong_side)
-                -   pos.piece_count (_weak_side);
-        }
-        else
-        {
-            int32_t bishop_count = pos.piece_count<BSHP> (_stong_side);
-
-            value = pos.non_pawn_material (_stong_side)
-                //-   bishop_count * VALUE_MG_BISHOP
-                +   pos.piece_count<PAWN> (_stong_side) * VALUE_EG_PAWN
-                +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
-
-            bool bishop_pair = bishop_count > 1 && pos.bishops_pair (_stong_side);
-            //value += bishop_pair
-            //    ? bishop_count * VALUE_MG_BISHOP
-            //    : bishop_count + VALUE_MG_BISHOP;
-
-            if (pos.piece_count<QUEN> (_stong_side) ||
-                pos.piece_count<ROOK> (_stong_side) ||
-                pos.piece_count<NIHT> (_stong_side) > 2 ||
-                bishop_pair)
-            {
-                value += VALUE_KNOWN_WIN;
-            }
+            value += VALUE_KNOWN_WIN;
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
     template<>
-    Value Endgame<KNNK> ::operator() (const Position &pos) const
+    // KP vs K. This endgame is evaluated with the help of a bitbase.
+    Value Endgame<KPK>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_ZERO, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO, 0));
 
-        Value value = VALUE_DRAW + pos.piece_count<NIHT> (_stong_side);
+        // Assume _stong_side is white and the pawn is on files A-D
+        Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
+        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
+        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN> (_stong_side)[0]);
+
+        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
+
+        Value value;
+
+        if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
+        {
+            value = VALUE_DRAW + pos.piece_count<PAWN> (_stong_side);
+        }
+        else
+        {
+            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
+        }
+
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
@@ -232,10 +242,34 @@ namespace EndGame {
     }
 
     template<>
-    // KR vs KP. This is a somewhat tricky endgame to evaluate precisely without
-    // a bitbase. The function below returns drawish scores when the pawn is
-    // far advanced with support of the king, while the attacking king is far
-    // away.
+    Value Endgame<KNNK> ::operator() (const Position &pos) const
+    {
+        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+
+        Value value = VALUE_DRAW + pos.piece_count<NIHT> (_stong_side);
+        return (_stong_side == pos.active ()) ? value : -value;
+    }
+
+    // TODO::
+    //template<>
+    //// KBP vs K. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
+    //Value Endgame<KBPK>::operator() (const Position &pos) const
+    //{
+    //    ASSERT (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
+    //    ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
+    //    Square wk_sq = rel_sq (_stong_side, pos.king_sq (_stong_side));
+    //    Square bk_sq = rel_sq (_stong_side, pos.king_sq (_weak_side));
+    //    Square wb_sq = rel_sq (_stong_side, pos.piece_list<BSHP> (_stong_side)[0]);
+    //    Square wp_sq = rel_sq (_stong_side, pos.piece_list<PAWN> (_stong_side)[0]);
+    //    Square queening_sq = _file (wp_sq) | R_1;
+    //    Value value = VALUE_DRAW;
+    //    return (_stong_side == pos.active ()) ? value : -value;
+    //}
+
+    template<>
+    // KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
+    // The function below returns drawish scores when the pawn is far advanced
+    // with support of the king, while the attacking king is far away.
     Value Endgame<KRKP>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
@@ -247,6 +281,7 @@ namespace EndGame {
         Square bp_sq = rel_sq (_stong_side, pos.piece_list<PAWN> (_weak_side)[0]);
 
         Square queening_sq = _file (bp_sq) | R_1;
+        
         Value value;
 
         // If the stronger side's king is in front of the pawn, it's a win.
@@ -395,7 +430,6 @@ namespace EndGame {
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
-
 
 
     // ---------------------------------------------------------
@@ -839,7 +873,6 @@ namespace EndGame {
         return SCALE_FACTOR_NONE;
     }
 
-
     // --------------------------------------------------------------
     // Generic Scaling functions
     // --------------------------------------------------------------
@@ -858,7 +891,7 @@ namespace EndGame {
         // be detected even when the weaker side has some materials or pawns.
 
         Bitboard wpawns = pos.pieces (_stong_side, PAWN);
-        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns); //pos.piece_list<PAWN> (_stong_side)[0];
+        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
         File wp_f = _file (wp_sq);
 
         // All pawns are on a single rook file ?
@@ -868,23 +901,6 @@ namespace EndGame {
             Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
             Square wk_sq = pos.king_sq (_stong_side);
             Square bk_sq = pos.king_sq (_weak_side);
-
-            //// The bishop has the wrong color, and the defending king is on the
-            //// file of the pawn(s) or the adjacent file.
-            //if (   opposite_colors (queening_sq, wb_sq)
-            //    && file_dist (_file (bk_sq), wp_f) <= 1)
-            //{
-            //    // Find the rank of the frontmost pawn.
-            //    Square wp_sq = scan_rel_frntmost_sq (_stong_side, pawns);
-            //
-            //    // If the defending king has distance 1 to the promotion square or
-            //    // is placed somewhere in front of the pawn, it's a draw.
-            //    if (   square_dist (bk_sq, queening_sq) <= 1
-            //        || rel_rank (_weak_side, bk_sq) <= rel_rank (_weak_side, wp_sq))
-            //    {
-            //        return SCALE_FACTOR_DRAW;
-            //    }
-            //}
 
             // The bishop has the wrong color.
             if (opposite_colors (queening_sq, wb_sq))
@@ -900,14 +916,13 @@ namespace EndGame {
                 if (bpawns && !(bpawns & ~file_bb (wp_f)))
                 {
                     Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
-                    int32_t br = rel_rank (_weak_side, bp_sq);
-                    int32_t wr = rel_rank (_weak_side, wp_sq);
-                    if (br == wr - 1 &&
+                    if (rel_rank (_weak_side, bp_sq) == R_5 &&
+                        rel_rank (_weak_side, wp_sq) == R_6 &&
                         opposite_colors (bp_sq, wb_sq))
                     {
                         int32_t tempo = (pos.active () == _stong_side);
                         if (square_dist (queening_sq, bk_sq) < 
-                            square_dist (bp_sq, wk_sq) + br - tempo)
+                            square_dist (bp_sq, wk_sq) + 4 - tempo)
                         {
                             return SCALE_FACTOR_DRAW;
                         }
@@ -987,34 +1002,6 @@ namespace EndGame {
         }
 
         return SCALE_FACTOR_NONE;
-    }
-
-    template<>
-    // KP vs K. This endgame is evaluated with the help of a bitbase.
-    Value Endgame<KPK>::operator() (const Position &pos) const
-    {
-        ASSERT (verify_material (pos, _stong_side, VALUE_ZERO, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO, 0));
-
-        // Assume _stong_side is white and the pawn is on files A-D
-        Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_stong_side));
-        Square bk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
-        Square wp_sq = normalize (pos, _stong_side, pos.piece_list<PAWN> (_stong_side)[0]);
-
-        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
-
-        Value value;
-
-        if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
-        {
-            value = VALUE_DRAW + pos.piece_count<PAWN> (_stong_side);
-        }
-        else
-        {
-            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
-        }
-
-        return (_stong_side == pos.active ()) ? value : -value;
     }
 
 }

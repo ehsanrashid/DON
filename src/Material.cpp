@@ -146,6 +146,7 @@ namespace Material {
         {
             return e;
         }
+
         if (is_KXK<WHITE> (pos))
         {
             e->evaluation_func = &EvaluateKXK[WHITE];
@@ -233,15 +234,14 @@ namespace Material {
             else if (pos.piece_count<PAWN> (WHITE) == 0)
             {
                 e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
-                    0 : (pos.piece_count<NIHT> (WHITE) == 0)
-                    &&  (pos.piece_count<BSHP> (WHITE) == 1 || !pos.bishops_pair (WHITE)) ?
+                    0 : !pos.piece_count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
                     2 : 12;
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1)
             {
-                //e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                //    ScaleFactor (4 * (pos.piece_count (WHITE) - 1)) : SCALE_FACTOR_ONEPAWN;
-                e->_factor[WHITE] = SCALE_FACTOR_ONEPAWN;
+                e->_factor[WHITE] = (pos.piece_count<PAWN> (BLACK) == 1) &&
+                    (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+                    4 : SCALE_FACTOR_ONEPAWN;
             }
         }
 
@@ -251,15 +251,14 @@ namespace Material {
             else if (pos.piece_count<PAWN> (BLACK) == 0)
             {
                 e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
-                    0 : (pos.piece_count<NIHT> (BLACK) == 0)
-                    &&  (pos.piece_count<BSHP> (BLACK) == 1 || !pos.bishops_pair (BLACK)) ?
+                    0 : !pos.piece_count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
                     2 : 12;
             }
             else if (pos.piece_count<PAWN> (BLACK) == 1)
             {
-                //e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                //    ScaleFactor (4 * (pos.piece_count (BLACK) - 1)) : SCALE_FACTOR_ONEPAWN;
-                e->_factor[BLACK] = SCALE_FACTOR_ONEPAWN;
+                e->_factor[BLACK] = (pos.piece_count<PAWN> (WHITE) == 1) &&
+                    (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
+                    4 : SCALE_FACTOR_ONEPAWN;
             }
         }
 

@@ -379,7 +379,7 @@ Move MovePicker::next_move<false> ()
             return tt_move;
 
         case CAPTURES_S1:
-            while (cur < end)
+            do
             {
                 move = pick_best (cur++, end)->move;
                 if (move != tt_move)
@@ -389,10 +389,11 @@ Move MovePicker::next_move<false> ()
                     (end_bad_captures--)->move = move;
                 }
             }
+            while (cur < end);
             break;
 
         case KILLERS_S1:
-            while (cur < end)
+            do
             {
                 move = (cur++)->move;
                 if (    move != MOVE_NONE
@@ -403,10 +404,11 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case QUIETS_1_S1: case QUIETS_2_S1:
-            while (cur < end)
+            do
             {
                 move = (cur++)->move;
                 if (   move != tt_move
@@ -420,13 +422,14 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case BAD_CAPTURES_S1:
             return (cur--)->move;
 
         case EVASIONS_S2: case CAPTURES_S3: case CAPTURES_S4:
-            while (cur < end)
+            do
             {
                 move = pick_best (cur++, end)->move;
                 if (move != tt_move)
@@ -434,10 +437,11 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case CAPTURES_S5:
-            while (cur < end)
+            do
             {
                 move = pick_best (cur++, end)->move;
                 if (move != tt_move && pos.see (move) > capture_threshold)
@@ -445,10 +449,11 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case CAPTURES_S6:
-            while (cur < end)
+            do
             {
                 move = pick_best (cur++, end)->move;
                 if (dst_sq (move) == recapture_sq)
@@ -456,10 +461,11 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case QUIET_CHECKS_S3:
-            while (cur < end)
+            do
             {
                 move = (cur++)->move;
                 if (move != tt_move)
@@ -467,6 +473,7 @@ Move MovePicker::next_move<false> ()
                     return move;
                 }
             }
+            while (cur < end);
             break;
 
         case STOP:
