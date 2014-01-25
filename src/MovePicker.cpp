@@ -50,24 +50,24 @@ namespace {
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PType pt)
+
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Move fm[], Stack s[])
     : pos (p)
     , history (h)
+    , depth (d)
+    , counter_moves (cm)
+    , followup_moves (fm)
+    , ss (s)
     , cur (mlist)
     , end (mlist)
 {
-    ASSERT (!pos.checkers ());
+    ASSERT (d > DEPTH_ZERO);
 
-    stage = PROBCUT;
+    end_bad_captures = mlist + MAX_MOVES - 1;
 
-    // In ProbCut we generate only captures better than parent's captured piece
-    capture_threshold = PieceValue[MG][pt];
+    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
-    {
-        tt_move = MOVE_NONE;
-    }
     end += (tt_move != MOVE_NONE);
 }
 
@@ -110,23 +110,24 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Move fm[], Stack s[])
+MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PType pt)
     : pos (p)
     , history (h)
-    , depth (d)
-    , counter_moves (cm)
-    , followup_moves (fm)
-    , ss (s)
     , cur (mlist)
     , end (mlist)
 {
-    ASSERT (d > DEPTH_ZERO);
+    ASSERT (!pos.checkers ());
 
-    end_bad_captures = mlist + MAX_MOVES - 1;
+    stage = PROBCUT;
 
-    stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
+    // In ProbCut we generate only captures better than parent's captured piece
+    capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
+    {
+        tt_move = MOVE_NONE;
+    }
     end += (tt_move != MOVE_NONE);
 }
 
@@ -153,10 +154,7 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = mlist; itr != end; ++itr)
     {
         Move m = itr->move;
-        int32_t pt = _type (pos[org_sq (m)]);
-        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-        - (NONE != pt ? pt+1 : 0)
-            + history[pos[org_sq (m)]][dst_sq (m)];
+        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - _type (pos[org_sq (m)]);
 
         switch (m_type (m))
         {
@@ -193,16 +191,12 @@ void MovePicker::value<EVASION> ()
         int32_t gain = pos.see_sign (m);
         if (gain < 0)
         {
-            itr->value = gain - VALUE_KNOWN_WIN // At the bottom
-                + history[pos[org_sq (m)]][dst_sq (m)];
+            itr->value = gain - VALUE_KNOWN_WIN; // At the bottom
         }
         else if (pos.capture (m))
         {
-            int32_t pt = _type (pos[org_sq (m)]);
-
             itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - (NONE != pt ? pt+1 : 0) + VALUE_KNOWN_WIN
-                + history[pos[org_sq (m)]][dst_sq (m)];
+            - _type (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
         }
         else
         {
@@ -296,17 +290,18 @@ void MovePicker::generate_next_stage ()
 
     case QUIETS_1_S1:
         end = end_quiets = generate<QUIET> (mlist, pos);
-        value<QUIET> ();
-        end = partition (cur, end, ValMove ());
-        insertion_sort  (cur, end);
-
+        if (end > cur)
+        {
+            value<QUIET> ();
+            end = partition (cur, end, ValMove ());
+            insertion_sort  (cur, end);
+        }
         return;
 
     case QUIETS_2_S1:
         cur = end;
         end = end_quiets;
-        //if (depth >= 3 * ONE_MOVE)
-        if (depth >= 2 * ONE_MOVE)
+        if (depth >= 3 * ONE_MOVE)
         {
             insertion_sort (cur, end);
         }
@@ -359,7 +354,7 @@ template<>
 // taking care not returning the tt_move if has already been searched previously.
 Move MovePicker::next_move<false> ()
 {
-    while (true)
+    while (true) // (stage <= STOP)
     {
         Move move;
         while (cur == end)

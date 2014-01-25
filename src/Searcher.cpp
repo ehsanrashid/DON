@@ -564,7 +564,6 @@ namespace {
                 {
                     //delta = Value (16);
                     delta = Value (max (16, 25 - depth));
-                    //delta = Value (max (16, 30 - depth));
 
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
@@ -629,7 +628,7 @@ namespace {
 
                     delta += delta / 2;
 
-                    ASSERT (-VALUE_INFINITE <= alpha && beta <= +VALUE_INFINITE);
+                    ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                 }
 
                 // Sort the PV lines searched so far and update the GUI
