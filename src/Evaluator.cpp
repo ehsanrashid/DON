@@ -164,7 +164,7 @@ namespace {
 
     const Score TempoBonus              = S( 24, 11);
 
-    const Score PinBonus                = S( 18,  6);
+    const Score PinBonus                = S(  0,  0);//S( 18,  6);
 
     const Score RookOn7thBonus          = S( 11, 20);
     const Score QueenOn7thBonus         = S(  3,  8);
@@ -343,7 +343,7 @@ namespace {
             score += apply_weight (s * ei.mi->space_weight(), Weights[Space]);
         }
 
-        // Scale winning side if position is more drawish that what it appears
+        // Scale winning side if position is more drawish than it appears
         ScaleFactor sf = (eg_value (score) > VALUE_DRAW) ?
             ei.mi->scale_factor (pos, WHITE) : ei.mi->scale_factor (pos, BLACK);
 
@@ -527,13 +527,13 @@ namespace {
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
             {
-                // Give a bonus if we are a bishop and can pin a piece or
-                // can give a discovered check through an x-ray attack.
-                if ((attacks_bb<BSHP> (ek_sq) & s) &&
-                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-                {
-                    score += PinBonus;
-                }
+//                // Give a bonus if we are a bishop and can pin a piece or
+//                // can give a discovered check through an x-ray attack.
+//                if ((attacks_bb<BSHP> (ek_sq) & s) &&
+//                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+//                {
+//                    score += PinBonus;
+//                }
 
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
@@ -580,13 +580,13 @@ namespace {
             // Special extra evaluation for rooks
             if (ROOK == PT)
             {
-                // Give a bonus if we are a rook and can pin a piece or
-                // can give a discovered check through an x-ray attack.
-                if ((attacks_bb<ROOK> (ek_sq) & s) &&
-                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-                {
-                    score += PinBonus;
-                }
+//                // Give a bonus if we are a rook and can pin a piece or
+//                // can give a discovered check through an x-ray attack.
+//                if ((attacks_bb<ROOK> (ek_sq) & s) &&
+//                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+//                {
+//                    score += PinBonus;
+//                }
 
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))
@@ -730,12 +730,13 @@ namespace {
             // Analyse enemy's safe rook contact checks. First find undefended
             // squares around the king attacked by enemy rooks...
             undefended_attacked = undefended & ei.attacked_by[C_][ROOK] & ~pos.pieces (C_);
+
             // Consider only squares where the enemy rook gives check
             undefended_attacked &= attacks_bb<ROOK> (k_sq);
 
             if (undefended_attacked)
             {
-                // ...then remove squares not supported by another enemy piece
+                // ...and then remove squares not supported by another enemy piece
                 undefended_attacked &= 
                     (ei.attacked_by[C_][PAWN] | ei.attacked_by[C_][NIHT]
                 |    ei.attacked_by[C_][BSHP] | ei.attacked_by[C_][QUEN]);
@@ -775,10 +776,7 @@ namespace {
             attack_units = min (max (0, attack_units), 99);
 
             // Finally, extract the king danger score from the KingDanger[]
-            // array and subtract the score from evaluation. Set also margins[]
-            // value that will be used for pruning because this value can sometimes
-            // be very big, and so capturing a single attacking piece can therefore
-            // result in a score change far bigger than the value of the captured piece.
+            // array and subtract the score from evaluation.
             score -= KingDanger[C == RootPos.active ()][attack_units];
         }
 
@@ -865,46 +863,46 @@ namespace {
                 if (pos.empty (block_sq))
                 {
                     // squares to queen
-                    Bitboard squares_queen = front_squares_bb (C, s);
+                    Bitboard queen_squares = front_squares_bb (C, s);
 
-                    Bitboard squares_unsafe;
+                    Bitboard unsafe_squares;
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
                     if (UNLIKELY (front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN))
                         &&       (front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
-                        squares_unsafe = squares_queen;
+                        unsafe_squares = queen_squares;
                     }
                     else
                     {
-                        squares_unsafe = squares_queen & (ei.attacked_by[C_][NONE] | pos.pieces (C_));
+                        unsafe_squares = queen_squares & (ei.attacked_by[C_][NONE] | pos.pieces (C_));
                     }
 
-                    Bitboard squares_defended;
+                    Bitboard defended_squares;
                     if (UNLIKELY (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
                         &&       (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
-                        squares_defended = squares_queen;
+                        defended_squares = queen_squares;
                     }
                     else
                     {
-                        squares_defended = squares_queen & ei.attacked_by[C][NONE];
+                        defended_squares = queen_squares & ei.attacked_by[C][NONE];
                     }
 
                     // If there aren't enemy attacks huge bonus, a bit smaller if at
                     // least block square is not attacked, otherwise smallest bonus.
-                    int32_t k = !squares_unsafe ? 15 : !(squares_unsafe & block_sq) ? 9 : 3;
+                    int32_t k = !unsafe_squares ? 15 : !(unsafe_squares & block_sq) ? 9 : 3;
 
                     // Big bonus if the path to queen is fully defended, a bit less
                     // if at least block square is defended.
-                    if (squares_defended == squares_queen)
+                    if (defended_squares == queen_squares)
                     {
                         k += 6;
                     }
-                    else if (squares_defended & block_sq)
+                    else if (defended_squares & block_sq)
                     {
-                        k += ((squares_unsafe & squares_defended) == squares_unsafe) ? 4 : 2;
+                        k += ((unsafe_squares & defended_squares) == unsafe_squares) ? 4 : 2;
                     }
 
                     mg_bonus += Value (k * rr);

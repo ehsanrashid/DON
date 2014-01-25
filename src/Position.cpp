@@ -1086,7 +1086,6 @@ bool Position::can_en_passant (Square ep_sq) const
         {
             return true;
         }
-        ++itr;
     }
 
     return false;

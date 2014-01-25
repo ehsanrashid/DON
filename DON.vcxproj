@@ -619,7 +619,6 @@
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
-    <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\TriLogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />

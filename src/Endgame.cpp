@@ -246,7 +246,7 @@ namespace EndGame {
         Square wr_sq = rel_sq (_stong_side, pos.piece_list<ROOK> (_stong_side)[0]);
         Square bp_sq = rel_sq (_stong_side, pos.piece_list<PAWN> (_weak_side)[0]);
 
-        Square queening_sq = (_file (bp_sq) | R_1);
+        Square queening_sq = _file (bp_sq) | R_1;
         Value value;
 
         // If the stronger side's king is in front of the pawn, it's a win.
@@ -585,7 +585,6 @@ namespace EndGame {
             default: ASSERT (false);
             }
         }
-
         return SCALE_FACTOR_NONE;
     }
 
@@ -704,7 +703,7 @@ namespace EndGame {
             else
             {
                 Bitboard path = front_squares_bb (_stong_side, wp_sq);
-                if (path & pos.pieces (_weak_side, KING) ||
+                if ( path & pos.pieces (_weak_side, KING) ||
                     (pos.attacks_from<BSHP> (bb_sq) & path) &&
                     square_dist (bb_sq, wp_sq) >= 3)
                 {

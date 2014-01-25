@@ -109,7 +109,7 @@ namespace Engine {
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifdef _DEBUG
-        //Tester::main_test ();
+        Tester::main_test ();
         //system ("pause");
         //return;
 #endif

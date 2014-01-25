@@ -31,7 +31,8 @@ namespace {
         {S( 20, 28), S( 29, 31), S( 33, 31), S( 33, 31),
         S( 33, 31), S( 33, 31), S( 29, 31), S( 20, 28), } };
 
-    // Candidate passed pawn bonus by [rank]
+
+    // Candidate passed pawn bonus by [rank] (initialized by formula)
     const Score CandidatePassed[R_NO] = {
         S(  0,  0), S(  6, 13), S(  6, 13), S( 14, 29),
         S( 34, 68), S( 83,166), S(  0,  0), S(  0,  0), };
@@ -159,10 +160,10 @@ namespace {
             if (passed && !doubled) e->_passed_pawns[C] += s;
 
             // Score this pawn
-            if (doubled)    pawn_score -= Doubled[f];
-
             if (isolated)   pawn_score -= Isolated[opposed][f];
 
+            if (doubled)    pawn_score -= Doubled[f];
+            
             if (backward)   pawn_score -= Backward[opposed][f];
 
             if (connected)  pawn_score += Connected[f][r];

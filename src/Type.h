@@ -596,7 +596,7 @@ inline Square operator~(Square s) { return Square (s ^ SQ_A8); }
 // MIRROR => SQ_A1 -> SQ_H1
 inline Square operator!(Square s) { return Square (s ^ SQ_H1); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return Rank (r ^ (c * SQ_H1)); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * SQ_H1)); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
 inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
 
@@ -675,11 +675,11 @@ inline CRight can_castle (CRight cr, Color c, CSide cs) { return (cr & mk_castle
 
 inline bool     _ok (PType pt) { return (PAWN <= pt && pt <= KING); }
 
-inline Piece operator| (Color c, PType pt) { return Piece ((c << 3) | (pt)); }
+inline Piece operator| (Color c, PType pt) { return Piece (c << 3 | pt); }
 //inline Piece mk_piece  (Color c, PType pt) { return c | pt; }
 
 inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PType _type  (Piece p) { return PType ((p & ALLS)); }
+inline PType _type  (Piece p) { return PType (p & ALLS); }
 inline Color _color (Piece p) { return Color (p >> 3); }
 
 inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }

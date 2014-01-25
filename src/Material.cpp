@@ -172,12 +172,12 @@ namespace Material {
         // Generic scaling functions that refer to more then one material distribution.
         // Should be probed after the specialized ones.
         // Note that these ones don't return after setting the function.
-        if (false);
-        else if (is_KBPsKs<WHITE> (pos))
+        
+        if (is_KBPsKs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
         }
-        else if (is_KBPsKs<BLACK> (pos))
+        if (is_KBPsKs<BLACK> (pos))
         {
             e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
         }
@@ -224,19 +224,17 @@ namespace Material {
         }
 
         // No pawns makes it difficult to win, even with a material advantage.
-        // This catches some trivial draws like KK, KBK and KNK
+        // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
+        // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
         if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
             if (false);
             else if (pos.piece_count<PAWN> (WHITE) == 0)
             {
-                //e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
-                //    0 : npm[BLACK] <= VALUE_MG_BISHOP ?
-                //    4 : pos.bishops_pair (WHITE) ?
-                //    12 : 1;
                 e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
-                    0 : !pos.piece_count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
+                    0 : (pos.piece_count<NIHT> (WHITE) == 0)
+                    &&  (pos.piece_count<BSHP> (WHITE) == 1 || !pos.bishops_pair (WHITE)) ?
                     2 : 12;
             }
             else if (pos.piece_count<PAWN> (WHITE) == 1)
@@ -252,12 +250,9 @@ namespace Material {
             if (false);
             else if (pos.piece_count<PAWN> (BLACK) == 0)
             {
-                //e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
-                //    0 : npm[WHITE] <= VALUE_MG_BISHOP ?
-                //    4 : pos.bishops_pair (BLACK) ?
-                //    12 : 1;
                 e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
-                    0 : !pos.piece_count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
+                    0 : (pos.piece_count<NIHT> (BLACK) == 0)
+                    &&  (pos.piece_count<BSHP> (BLACK) == 1 || !pos.bishops_pair (BLACK)) ?
                     2 : 12;
             }
             else if (pos.piece_count<PAWN> (BLACK) == 1)
@@ -281,10 +276,10 @@ namespace Material {
         const int32_t piece_count[CLR_NO][NONE] =
         {
             {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
-            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE), //pos.piece_count<BSHP> (WHITE) > 1
+            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE),
             },
             {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
-            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK), //pos.piece_count<BSHP> (BLACK) > 1,
+            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK),
             },
         };
 

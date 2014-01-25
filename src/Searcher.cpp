@@ -559,11 +559,12 @@ namespace {
             for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
             {
                 // Reset aspiration window starting size
-                //if (depth >= 5)
-                if (depth >= 3)
+                if (depth >= 5)
+                //if (depth >= 3)
                 {
-                    //delta = Value (max (16, 25 - depth/2));
-                    delta = Value (max (16, 30 - depth));
+                    //delta = Value (16);
+                    delta = Value (max (16, 25 - depth));
+                    //delta = Value (max (16, 30 - depth));
 
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
@@ -909,9 +910,9 @@ namespace {
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
-            Value bound = beta - razor_margin (depth);
-            Value v = search_quien<NonPV, false> (pos, ss, bound-1, bound, DEPTH_ZERO);
-            if (v < bound)
+            Value rbeta = beta - razor_margin (depth);
+            Value v = search_quien<NonPV, false> (pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
+            if (v < rbeta)
             {
                 // Logically we should return (value + razor_margin (depth)), but
                 // surprisingly this did slightly weaker in tests.
@@ -941,7 +942,7 @@ namespace {
         {
             ss->current_move = MOVE_NULL;
 
-            //Value bound  = beta - (cut_node ? 0 : 200);
+            //Value rbeta  = beta - (cut_node ? 0 : 200);
 
             //(ss+1)->null_move_count++;
 
@@ -1004,7 +1005,7 @@ namespace {
             !ss->skip_null_move &&
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY)
         {
-            Value bound  = beta + 200;
+            Value rbeta  = beta + 200;
 
             Depth rdepth = depth - (MAX_NULL_REDUCTION+1) * ONE_MOVE;
 
@@ -1025,11 +1026,11 @@ namespace {
 
                 pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
 
-                value = -search<NonPV> (pos, ss+1, -bound, -bound+1, rdepth, !cut_node);
+                value = -search<NonPV> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
 
                 pos.undo_move ();
 
-                if (value >= bound)
+                if (value >= rbeta)
                 {
                     return value;
                 }
@@ -1134,7 +1135,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 {
                     ats ()
                         << "info"
-                        //<< " depth "          << int32_t (depth / ONE_MOVE)
+                        << " depth "          << int32_t (depth / ONE_MOVE)
                         << " time "           << elapsed
                         << " currmovenumber " << setw (2) << moves_count + IndexPV
                         << " currmove "       << move_to_can (move, pos.chess960 ())
@@ -1164,15 +1165,15 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (tt_value != VALUE_NONE);
 
-                Value bound = tt_value - int32_t (depth);
+                Value rbeta = tt_value - int32_t (depth);
                 ss->excluded_move  = move;
                 ss->skip_null_move = true;
-                //value = search<NonPV> (pos, ss, bound-1, bound, depth / 2, cut_node);
-                value = search<NonPV> (pos, ss, bound-1, bound, 2*depth / 3, cut_node);
+                value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
+                //value = search<NonPV> (pos, ss, rbeta-1, rbeta, 2*depth/3, cut_node);
                 ss->skip_null_move = false;
                 ss->excluded_move  = MOVE_NONE;
 
-                if (value < bound) ext = ONE_MOVE;
+                if (value < rbeta) ext = ONE_MOVE;
             }
 
             // Update current move (this must be done after singular extension search)
@@ -1467,7 +1468,7 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
 
-        Move best_move = ss->current_move = MOVE_NONE;
+        
         ss->ply = (ss-1)->ply + 1;
 
         // Check for an instant draw or maximum ply reached
@@ -1476,6 +1477,7 @@ moves_loop: // When in check and at SPNode search starts from here
             return DrawValue[pos.active ()];
         }
 
+        Move best_move = ss->current_move = MOVE_NONE;
         Value       best_value
             ,       old_alpha;
 
@@ -1686,6 +1688,7 @@ moves_loop: // When in check and at SPNode search starts from here
         return best_value;
     }
 
+
     // value_to_tt () adjusts a mate score from "plies to mate from the root" to
     // "plies to mate from the current position". Non-mate scores are unchanged.
     // The function is called before storing a value to the transposition table.
@@ -1708,6 +1711,7 @@ moves_loop: // When in check and at SPNode search starts from here
             v >= VALUE_MATES_IN_MAX_PLY ? v - ply :
             v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
     }
+
 
     // When playing with strength handicap choose best move among the MultiPV set
     // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -1969,7 +1973,6 @@ void Thread::idle_loop ()
             this_sp->mutex.lock ();
             bool finished = !this_sp->slaves_mask; // Retest under lock protection
             this_sp->mutex.unlock ();
-
             if (finished) return;
         }
     }
