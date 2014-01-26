@@ -321,8 +321,7 @@ inline std::ostream& operator<< (std::ostream& os, SyncCout sc)
 {
   static Mutex m;
 
-  if (false);
-  else if (IO_LOCK == sc)
+  if      (IO_LOCK == sc)
       m.lock();
   else if (IO_UNLOCK == sc)
       m.unlock();

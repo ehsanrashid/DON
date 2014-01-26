@@ -183,8 +183,7 @@ namespace Material {
             e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
         }
 
-        if (false);
-        else if (is_KQKRPs<WHITE> (pos))
+        if      (is_KQKRPs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
         }
@@ -202,8 +201,7 @@ namespace Material {
 
         if (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
         {
-            if (false);
-            else if (pos.piece_count<PAWN> (BLACK) == 0
+            if      (pos.piece_count<PAWN> (BLACK) == 0
                 &&   pos.piece_count<PAWN> (WHITE) >= 2)
             {
                 //ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
@@ -230,8 +228,7 @@ namespace Material {
 
         if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
-            if (false);
-            else if (pos.piece_count<PAWN> (WHITE) == 0)
+            if      (pos.piece_count<PAWN> (WHITE) == 0)
             {
                 e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
                     0 : !pos.piece_count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
@@ -247,8 +244,7 @@ namespace Material {
 
         if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
-            if (false);
-            else if (pos.piece_count<PAWN> (BLACK) == 0)
+            if      (pos.piece_count<PAWN> (BLACK) == 0)
             {
                 e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
                     0 : !pos.piece_count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?

@@ -129,7 +129,7 @@ typedef enum Square : int8_t
 } Square;
 
 // Delta of Square
-typedef enum Delta : int16_t
+typedef enum Delta : int8_t
 {
 
     DEL_O =  0,

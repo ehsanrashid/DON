@@ -184,8 +184,8 @@ namespace Zobrist {
             {
                 ch = *fen++;
                 if (!ch) return U64 (0);
-                if (false);
-                else if (isdigit (ch))
+
+                if      (isdigit (ch))
                 {
                     // empty square(s)
                     if ('1' > ch || ch > '8') return U64 (0);

@@ -482,8 +482,7 @@ finish:
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
                 // Smoother transition for LMR
-                if (false);
-                else if (Reductions[0][0][hd][mc] > 2 * ONE_MOVE)
+                if      (Reductions[0][0][hd][mc] > 2 * ONE_MOVE)
                 {
                     Reductions[0][0][hd][mc] += ONE_MOVE;
                 }
@@ -609,8 +608,7 @@ namespace {
 
                     // In case of failing low/high increase aspiration window and
                     // research, otherwise exit the loop.
-                    if (false);
-                    else if (best_value <= alpha)
+                    if      (best_value <= alpha)
                     {
                         alpha = max (best_value - delta, -VALUE_INFINITE);
 

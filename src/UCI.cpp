@@ -139,7 +139,7 @@ namespace UCI {
             Key posi_key = RootPos.posi_key ();
 
             RootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
-            
+
             if (ClearHash && posi_key != RootPos.posi_key ())
             {
                 if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
@@ -185,18 +185,7 @@ namespace UCI {
 
             while (cstm.good () && (cstm >> token))
             {
-                if (false);
-                // parse and validate search moves (if any)
-                else if (iequals (token, "searchmoves"))
-                {
-                    while (cstm.good () && (cstm >> token))
-                    {
-                        Move m = move_from_can (token, RootPos);
-                        if (MOVE_NONE == m) continue;
-                        limits.search_moves.emplace_back (m);
-                    }
-                }
-                else if (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
+                if      (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
                 else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
                 else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
                 else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
@@ -207,6 +196,16 @@ namespace UCI {
                 else if (iequals (token, "mate"))       { cstm >> value; limits.mate_in     = value; }
                 else if (iequals (token, "infinite"))   limits.infinite  = true;
                 else if (iequals (token, "ponder"))     limits.ponder    = true;
+                // parse and validate search moves (if any)
+                else if      (iequals (token, "searchmoves"))
+                {
+                    while (cstm.good () && (cstm >> token))
+                    {
+                        Move m = move_from_can (token, RootPos);
+                        if (MOVE_NONE == m) continue;
+                        limits.search_moves.emplace_back (m);
+                    }
+                }
             }
 
             Threads.start_thinking (RootPos, limits, SetupStates);
@@ -332,8 +331,7 @@ namespace UCI {
                 cmdstream cstm (cmd);
                 cstm >> skipws >> token;
 
-                if (false);
-                else if (iequals (token, "uci"))        exe_uci ();
+                if      (iequals (token, "uci"))        exe_uci ();
                 else if (iequals (token, "ucinewgame")) exe_ucinewgame ();
                 else if (iequals (token, "isready"))    exe_isready ();
                 else if (iequals (token, "register"))   exe_register (cstm);

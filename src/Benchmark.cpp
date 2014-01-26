@@ -84,15 +84,13 @@ void benchmark (istream &is, const Position &pos)
     TT.clear ();
     Limits_t limits;
 
-    if (false);
-    else if (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
+    if      (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
     else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
     else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
     //if (iequals (limit_type, "depth"))
     else                                    limits.depth     = stoi (limit_val);
 
-    if (false);
-    else if (iequals (fn_fen, "default"))
+    if      (iequals (fn_fen, "default"))
     {
         fens.assign (default_fens, default_fens + NUM_FEN);
     }

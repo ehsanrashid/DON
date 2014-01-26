@@ -60,9 +60,9 @@ namespace BitBoard {
 #pragma region LOOKUPs
 
     // FILE & RANK distance
-    Delta _filerank_dist[F_NO][R_NO];
-    Delta   _square_dist[SQ_NO][SQ_NO];
-    Delta  _taxicab_dist[SQ_NO][SQ_NO];
+    uint8_t _filerank_dist[F_NO][R_NO];
+    uint8_t   _square_dist[SQ_NO][SQ_NO];
+    uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
 
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
     const Delta _deltas_pawn[CLR_NO][3] =
@@ -446,8 +446,7 @@ namespace BitBoard {
         {
             for (Rank r = R_1; r <= R_8; ++r)
             {
-                int8_t d = int8_t (f) - int8_t (r);
-                _filerank_dist[f][r] = Delta (abs (d));
+                _filerank_dist[f][r] = abs (int8_t (f) - int8_t (r));
             }
         }
 
@@ -462,8 +461,8 @@ namespace BitBoard {
                     File f2 = _file (s2);
                     Rank r2 = _rank (s2);
 
-                    Delta dFile = _filerank_dist[f1][f2];
-                    Delta dRank = _filerank_dist[r1][r2];
+                    uint8_t dFile = _filerank_dist[f1][f2];
+                    uint8_t dRank = _filerank_dist[r1][r2];
 
                     _square_dist[s1][s2]  = max (dFile, dRank);
                     _taxicab_dist[s1][s2] = (dFile + dRank);

@@ -1163,17 +1163,40 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     PType  ct  = NONE;
 
     MType mt   = m_type (m);
+
     // Pick capture piece and check validation
-    switch (mt)
+    if      (NORMAL == mt)
     {
-    case CASTLE:
+        ASSERT (PAWN == (prom_type (m) - NIHT));
+        if (PAWN == pt)
+        {
+            uint8_t del_f = file_dist (cap, org);
+            ASSERT (0 == del_f || 1 == del_f);
+            if (1 == del_f) ct = _type (piece_on (cap));
+        }
+        else
+        {
+            ct = _type (piece_on (cap));
+        }
+    }
+    else if (CASTLE == mt)
+    {
         ASSERT (KING == pt);
         ASSERT (ROOK == _type (piece_on (dst)));
 
         ct = NONE;
-        break;
+    }
+    else if (PROMOTE == mt)
+    {
+        ASSERT (PAWN == pt);        // Moving type must be PAWN
+        ASSERT (R_7 == rel_rank (active, org));
+        ASSERT (R_8 == rel_rank (active, dst));
 
-    case ENPASSANT:
+        ct = _type (piece_on (cap));
+        ASSERT (PAWN != ct);
+    }
+    else if (ENPASSANT == mt)
+    {
         ASSERT (PAWN == pt);                // Moving type must be pawn
         ASSERT (dst == _si->en_passant);    // Destination must be en-passant
         ASSERT (R_5 == rel_rank (active, org));
@@ -1183,27 +1206,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == piece_on (cap));
         ct = PAWN;
-        break;
-
-    case PROMOTE:
-        ASSERT (PAWN == pt);        // Moving type must be PAWN
-        ASSERT (R_7 == rel_rank (active, org));
-        ASSERT (R_8 == rel_rank (active, dst));
-
-        ct = _type (piece_on (cap));
-        ASSERT (PAWN != ct);
-        break;
-
-    case NORMAL:
-        ASSERT (PAWN == (prom_type (m) - NIHT));
-        if (PAWN == pt)
-        {
-            uint8_t del_f = file_dist (cap, org);
-            ASSERT (0 == del_f || 1 == del_f);
-            if (0 == del_f) break;
-        }
-        ct = _type (piece_on (cap));
-        break;
     }
 
     ASSERT (KING != ct);   // can't capture the KING
@@ -1247,53 +1249,9 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
 
     // do move according to move type
-    switch (mt)
+
+    if (NORMAL == mt || ENPASSANT == mt)
     {
-    case CASTLE:
-        // Move the piece. The tricky Chess960 castle is handled earlier
-        {
-            bool king_side  = (dst > org);
-            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
-            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-
-            ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
-            ASSERT (empty (dst_rook));
-
-            castle_king_rook (org, dst, org_rook, dst_rook);
-
-            posi_k ^= ZobGlob._.psq_k[_active][KING][org     ] ^ ZobGlob._.psq_k[_active][KING][dst     ];
-            posi_k ^= ZobGlob._.psq_k[_active][ROOK][org_rook] ^ ZobGlob._.psq_k[_active][ROOK][dst_rook];
-
-            _si->psq_score += psq[active][KING][dst     ] - psq[active][KING][org     ];
-            _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
-        }
-        break;
-
-    case PROMOTE:
-        {
-            PType ppt = prom_type (m);
-            // Replace the PAWN with the Promoted piece
-            remove_piece (org);
-            place_piece (dst, active, ppt);
-
-            _si->matl_key ^=
-                ZobGlob._.psq_k[active][PAWN][piece_count (active, PAWN)] ^
-                ZobGlob._.psq_k[active][ppt][piece_count (active, ppt) - 1];
-
-            _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org];
-
-            posi_k ^= ZobGlob._.psq_k[active][PAWN][org] ^ ZobGlob._.psq_k[active][ppt][dst];
-
-            // Update incremental score
-            _si->psq_score += psq[active][ppt][dst] - psq[active][PAWN][org];
-            // Update material
-            _si->non_pawn_matl[active] += PieceValue[MG][ppt];
-        }
-        break;
-
-    case ENPASSANT:
-    case NORMAL:
         // Move the piece
         move_piece (org, dst);
 
@@ -1305,8 +1263,45 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
         posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
+    }
+    else if (CASTLE == mt)
+    {
+        // Move the piece. The tricky Chess960 castle is handled earlier
+        bool king_side  = (dst > org);
+        Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+        dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+        Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
 
-        break;
+        ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
+        ASSERT (empty (dst_rook));
+
+        castle_king_rook (org, dst, org_rook, dst_rook);
+
+        posi_k ^= ZobGlob._.psq_k[_active][KING][org     ] ^ ZobGlob._.psq_k[_active][KING][dst     ];
+        posi_k ^= ZobGlob._.psq_k[_active][ROOK][org_rook] ^ ZobGlob._.psq_k[_active][ROOK][dst_rook];
+
+        _si->psq_score += psq[active][KING][dst     ] - psq[active][KING][org     ];
+        _si->psq_score += psq[active][ROOK][dst_rook] - psq[active][ROOK][org_rook];
+    }
+    else if (PROMOTE == mt)
+    {
+        PType ppt = prom_type (m);
+        // Replace the PAWN with the Promoted piece
+        remove_piece (org);
+        place_piece (dst, active, ppt);
+
+        _si->matl_key ^=
+            ZobGlob._.psq_k[active][PAWN][piece_count (active, PAWN)] ^
+            ZobGlob._.psq_k[active][ppt][piece_count (active, ppt) - 1];
+
+        _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org];
+
+        posi_k ^= ZobGlob._.psq_k[active][PAWN][org] ^ ZobGlob._.psq_k[active][ppt][dst];
+
+        // Update incremental score
+        _si->psq_score += psq[active][ppt][dst] - psq[active][PAWN][org];
+        // Update material
+        _si->non_pawn_matl[active] += PieceValue[MG][ppt];
     }
 
     // Update castle rights if needed
@@ -1640,8 +1635,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             Square s = f | r;
             Piece p  = piece_on (s);
 
-            if (false);
-            else if (EMPTY == p)
+            if (EMPTY == p)
             {
                 uint32_t empty_cnt = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
@@ -1749,8 +1743,7 @@ string Position::fen (bool                  c960, bool full) const
     //        Square s = f | r;
     //        Piece p  = piece_on (s);
     //
-    //        if (false);
-    //        else if (EMPTY == p)
+    //        if (EMPTY == p)
     //        {
     //            uint32_t empty_cnt = 0;
     //            for ( ; f <= F_H && empty (s); ++f, ++s)
@@ -1954,8 +1947,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             get_next ();
             if (!ch) return false;
 
-            if (false);
-            else if (isdigit (ch))
+            if      (isdigit (ch))
             {
                 // empty square(s)
                 if ('1' > ch || ch > '8') return false;

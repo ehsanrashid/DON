@@ -829,7 +829,7 @@ namespace {
 
     template<Color C, bool TRACE>
     // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
-    Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
+    inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -990,8 +990,7 @@ namespace {
         // Find the safe squares for our pieces inside the area defined by
         // SpaceMask[]. A square is unsafe if it is attacked by an enemy
         // pawn, or if it is undefended and attacked by an enemy piece.
-        Bitboard safe = 
-            SpaceMask[C] &
+        Bitboard safe = SpaceMask[C] &
             ~pos.pieces (C, PAWN) &
             ~ei.attacked_by[C_][PAWN] &
             (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);

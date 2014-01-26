@@ -81,8 +81,7 @@ namespace {
         double time_ratio1; //= (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
         double time_ratio2; //= (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
 
-        if (false);
-        else if (OPTIMUM_TIME == TT)
+        if      (OPTIMUM_TIME == TT)
         {
             time_ratio1 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
             time_ratio2 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);

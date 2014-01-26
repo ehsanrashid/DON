@@ -44,9 +44,9 @@ namespace BitBoard {
 
 #pragma region LOOKUPs
 
-    extern Delta _filerank_dist[F_NO][R_NO];
-    extern Delta   _square_dist[SQ_NO][SQ_NO];
-    extern Delta  _taxicab_dist[SQ_NO][SQ_NO];
+    extern uint8_t _filerank_dist[F_NO][R_NO];
+    extern uint8_t   _square_dist[SQ_NO][SQ_NO];
+    extern uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
 
     //extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
@@ -141,24 +141,23 @@ namespace BitBoard {
 
 #pragma region Deltas
 
-    inline Delta file_dist (File f1, File f2)     { return _filerank_dist[f1][f2]; }
-    inline Delta file_dist (Square s1, Square s2) { return _filerank_dist[_file (s1)][_file (s2)]; }
+    inline uint8_t file_dist (File f1, File f2)     { return _filerank_dist[f1][f2]; }
+    inline uint8_t file_dist (Square s1, Square s2) { return _filerank_dist[_file (s1)][_file (s2)]; }
 
-    inline Delta rank_dist (Rank r1, Rank r2)     { return _filerank_dist[r1][r2]; }
-    inline Delta rank_dist (Square s1, Square s2) { return _filerank_dist[_rank (s1)][_rank (s2)]; }
+    inline uint8_t rank_dist (Rank r1, Rank r2)     { return _filerank_dist[r1][r2]; }
+    inline uint8_t rank_dist (Square s1, Square s2) { return _filerank_dist[_rank (s1)][_rank (s2)]; }
 
-    inline Delta  square_dist (Square s1, Square s2) { return  _square_dist[s1][s2]; }
-    inline Delta taxicab_dist (Square s1, Square s2) { return _taxicab_dist[s1][s2]; }
+    inline uint8_t  square_dist (Square s1, Square s2) { return  _square_dist[s1][s2]; }
+    inline uint8_t taxicab_dist (Square s1, Square s2) { return _taxicab_dist[s1][s2]; }
 
-    // Absolute difference of file & rank
-    inline Delta abs_file_rank_diff (Square s1, Square s2)
-    {
-        int8_t del_r = (s1 | 7) - (s2 | 7);
-        int8_t del_f = (s1 & 7) - (s2 & 7);
-        return Delta (abs (del_r) + abs (del_f));
-    }
-
-    inline Delta offset_sq (Square s1, Square s2) { return (s2 - s1) / _square_dist[s1][s2]; }
+    //// Absolute difference of file & rank
+    //inline uint8_t abs_file_rank_diff (Square s1, Square s2)
+    //{
+    //    int8_t del_r = (s1 | 7) - (s2 | 7);
+    //    int8_t del_f = (s1 & 7) - (s2 & 7);
+    //    return abs (del_r) + abs (del_f);
+    //}
+    //    inline Delta offset_sq (Square s1, Square s2) { return (s2 - s1) / Delta (_square_dist[s1][s2]); }
 
     // ----------------------------------------------------
 
