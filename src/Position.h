@@ -360,19 +360,19 @@ public:
 
 #pragma region Move properties
 
-    Piece moved_piece (Move m)               const;
-    //Piece captured_piece (Move m)               const;
+    //Piece moved_piece    (Move m)                const;
+    //Piece captured_piece (Move m)                const;
 
-    bool pseudo_legal (Move m)                  const;
-    bool        legal (Move m, Bitboard pinned) const;
-    bool        legal (Move m)                  const;
-    bool capture      (Move m)                  const;
-    bool capture_or_promotion (Move m)          const;
+    bool pseudo_legal (Move m)                   const;
+    bool legal        (Move m, Bitboard pinned)  const;
+    bool legal        (Move m)                   const;
+    bool capture      (Move m)                   const;
+    bool capture_or_promotion (Move m)           const;
     bool check     (Move m, const CheckInfo &ci) const;
     bool checkmate (Move m, const CheckInfo &ci) const;
 
-    //bool   passed_pawn_push (Move m)            const;
-    bool advanced_pawn_push (Move m)            const;
+    //bool   passed_pawn_push (Move m)             const;
+    bool advanced_pawn_push (Move m)             const;
 
 #pragma endregion
 
@@ -689,8 +689,8 @@ inline bool Position::opposite_bishops () const
 
 #pragma region Move properties
 
-// moved_piece() return piece moved on move
-inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
+//// moved_piece() return piece moved on move
+//inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
 
 //// captured_piece() return piece captured by moving piece
 //inline Piece Position::captured_piece (Move m) const
@@ -777,8 +777,7 @@ inline bool Position::capture_or_promotion  (Move m) const
     MType mt = m_type (m);
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
-        :  (ENPASSANT == mt && _ok (_si->en_passant))
-        || (CASTLE != mt);
+        :  (ENPASSANT == mt && _ok (_si->en_passant)) || (CASTLE != mt);
 }
 
 //inline bool Position::  passed_pawn_push (Move m) const
@@ -787,7 +786,7 @@ inline bool Position::capture_or_promotion  (Move m) const
 //}
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == _type (moved_piece (m))) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == _type (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
 #pragma endregion

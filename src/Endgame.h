@@ -34,10 +34,9 @@ namespace EndGame {
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
-        KPsK,    // King and pawns vs king
+        KPsK,    // KPs vs Ks
         KPKP,    // KP vs KP
         KNPK,    // KNP vs K
-        //KBPKP,   // KBP vs KP
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN

@@ -87,7 +87,7 @@ void benchmark (istream &is, const Position &pos)
     if      (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
     else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
     else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
-    //if (iequals (limit_type, "depth"))
+    //else if (iequals (limit_type, "depth"))
     else                                    limits.depth     = stoi (limit_val);
 
     if      (iequals (fn_fen, "default"))
@@ -104,7 +104,7 @@ void benchmark (istream &is, const Position &pos)
 
         if (!fstm_fen.is_open ())
         {
-            TRI_LOG_MSG ("ERROR: Unable to open file ... \'" << fn_fen << "\'");
+            cerr << "ERROR: Unable to open file ... \'" << fn_fen << "\'" << endl;
             return;
         }
 
