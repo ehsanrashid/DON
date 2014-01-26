@@ -23,7 +23,7 @@ namespace {
     // Used for tracing
     enum ExtendedPieceType
     { 
-        PST = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL
+        PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL
     };
 
     // Struct EvalInfo contains various information computed and collected
@@ -427,7 +427,7 @@ namespace {
         {
             ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
             attacks &= ei.attacked_by[C][PAWN];
-            ei.king_attackers_count[C]  = attacks ? pop_count<MAX15> (attacks) / 2 : 0;
+            ei.king_attackers_count[C]  = attacks ? pop_count<MAX15> (attacks) : 0;
             ei.king_zone_attacks_count[C]   = 0;
             ei.king_attackers_weight[C]     = 0;
         }

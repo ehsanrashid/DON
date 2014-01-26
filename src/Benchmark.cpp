@@ -3,8 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-
 #include "xstring.h"
+
 #include "TriLogger.h"
 #include "Searcher.h"
 #include "Transposition.h"

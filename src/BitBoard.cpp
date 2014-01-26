@@ -1,11 +1,11 @@
 ﻿#include "BitBoard.h"
 
 #include <iostream>
+#include "xstring.h"
+
 #include "BitCount.h"
 #include "BitScan.h"
 #include "RKISS.h"
-
-#include "xstring.h"
 
 namespace BitBoard {
 

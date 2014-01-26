@@ -2,8 +2,8 @@
 
 #include <sstream>
 #include <iomanip>
-
 #include "xstring.h"
+
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Time.h"

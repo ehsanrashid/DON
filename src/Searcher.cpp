@@ -559,7 +559,7 @@ namespace {
             {
                 // Reset aspiration window starting size
                 if (depth >= 5)
-                //if (depth >= 3)
+                    //if (depth >= 3)
                 {
                     //delta = Value (16);
                     delta = Value (max (16, 25 - depth));
@@ -937,23 +937,22 @@ namespace {
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             pos.non_pawn_material (pos.active ()))
         {
+            //ASSERT (eval_value >= beta);
+
             ss->current_move = MOVE_NULL;
 
             //Value rbeta  = beta - (cut_node ? 0 : 200);
-
             //(ss+1)->null_move_count++;
 
-            // Null move dynamic reduction based on depth
-            Depth rdepth = (MAX_NULL_REDUCTION+0) * ONE_MOVE + depth / 4;
-
-            // Null move dynamic reduction based on value
-            if (eval_value - VALUE_MG_PAWN > beta) rdepth += ONE_MOVE;
+            // Null move dynamic reduction based on depth and value
+            Depth rdepth = (MAX_NULL_REDUCTION+0) * ONE_MOVE
+                +           depth / (2 * ONE_MOVE)
+                +           int32_t (eval_value - beta) / VALUE_MG_PAWN * ONE_MOVE;
 
             // Do null move
             pos.do_null_move (si);
             (ss+1)->skip_null_move = true;
-            Value null_value = 
-                (depth-rdepth < ONE_MOVE)
+            Value null_value = (depth-rdepth < ONE_MOVE)
                 ? -search_quien<NonPV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                 : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-rdepth, !cut_node);
 
@@ -984,10 +983,14 @@ namespace {
 
                 // Do verification search at high depths
                 ss->skip_null_move = true;
-                Value verify = search<NonPV> (pos, ss, alpha, beta, depth-rdepth, false);
+
+                Value ver_value = (depth-rdepth < ONE_MOVE)
+                    ? search_quien<NonPV, false>(pos, ss, alpha, beta, DEPTH_ZERO)
+                    : search      <NonPV>       (pos, ss, alpha, beta, depth-rdepth, false);
+
                 ss->skip_null_move = false;
-                // Don't return verify value.
-                if (verify >= beta)
+                // Don't return verify value instead return null value.
+                if (ver_value >= beta)
                 {
                     return null_value;
                 }
@@ -1465,7 +1468,7 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (PVNode || (alpha == beta - 1));
         ASSERT (depth <= DEPTH_ZERO);
 
-        
+
         ss->ply = (ss-1)->ply + 1;
 
         // Check for an instant draw or maximum ply reached

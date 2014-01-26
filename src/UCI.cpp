@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <cstdarg>
-
 #include "xstring.h"
 
 #include "Engine.h"
@@ -156,7 +155,7 @@ namespace UCI {
                     Move m = move_from_can (token, RootPos);
                     if (MOVE_NONE == m)
                     {
-                        //TRI_LOG_MSG (string ("ERROR: Illegal Move") + token);
+                        sync_cout << "ERROR: Illegal Move" + token << sync_endl;
                         break;
                     }
                     SetupStates->push (StateInfo ());
