@@ -9,7 +9,6 @@
 #include "MovePicker.h"
 #include "Searcher.h"
 
-
 const int32_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
 const int32_t MAX_THREADS_SPLIT_POINT = 8;  // Maximum threads per split point
 const int32_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
@@ -128,8 +127,8 @@ struct SplitPoint
     volatile bool           cut_off;
 };
 
-// ThreadBase struct is the base of the hierarchy from where we derive all the
-// specialized thread classes.
+// ThreadBase struct is the base of the hierarchy from where
+// we derive all the specialized thread classes.
 struct ThreadBase
 {
     Mutex               mutex;
@@ -322,9 +321,9 @@ inline std::ostream& operator<< (std::ostream& os, SyncCout sc)
   static Mutex m;
 
   if      (IO_LOCK == sc)
-      m.lock();
+      m.lock ();
   else if (IO_UNLOCK == sc)
-      m.unlock();
+      m.unlock ();
 
   return os;
 }

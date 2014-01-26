@@ -25,6 +25,7 @@ void main (int32_t argc, const char* const argv[])
     string args = args_str (argc, argv);
 
     Engine::run (args);
+
     //system ("pause");
     //atexit (report_leak);
     Engine::exit (EXIT_SUCCESS);

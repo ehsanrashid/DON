@@ -31,16 +31,15 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr SetupStates;
 
-        bool running = false;
-
 #pragma region uci-commands
 
         void exe_uci ()
         {
-            cout
-                << Engine::info (true) 
+            sync_cout
+                << Engine::info () 
                 << Options
-                << "uciok" << endl;
+                << "uciok"
+                << sync_endl;
         }
 
         void exe_ucinewgame ()
@@ -50,7 +49,7 @@ namespace UCI {
 
         void exe_isready ()
         {
-            cout << "readyok" << endl;
+            sync_cout << "readyok" << sync_endl;
         }
 
         void exe_setoption (cmdstream &cstm)
@@ -102,7 +101,37 @@ namespace UCI {
         //   "register name Stefan MK code 4359874324"
         void exe_register (cmdstream &cstm)
         {
+            string token;
 
+            if (cstm.good () && (cstm >> token))
+            {
+                if (iequals (token, "name"))
+                {
+                    string name;
+                    // Read name (can contain spaces)
+                    // consume "value" token
+                    while (cstm.good () && (cstm >> token) &&
+                        !iequals (token, "code"))
+                    {
+                        name += whitespace (name) ? token : " " + token;
+                    }
+
+                    string code;
+                    // Read code (can contain spaces)
+                    while (cstm.good () && (cstm >> token))
+                    {
+                        code += whitespace (code) ? token : " " + token;
+                    }
+
+                    // TODO::
+                    cout << name << "\n" << code << endl;
+                }
+                else if (iequals (token, "later"))
+                {
+                    // TODO::
+
+                }
+            }
         }
 
         // position(cmd) is called when engine receives the "position" UCI command.
@@ -222,21 +251,23 @@ namespace UCI {
 
         void exe_print ()
         {
-            cout << RootPos << endl;
+            sync_cout << RootPos << sync_endl;
         }
 
         void exe_key ()
         {
-            cout << hex << uppercase << setfill ('0')
-                << "fen: " << RootPos.fen () << endl
-                << "posi key: " << setw (16) << RootPos.posi_key () << endl
-                << "matl key: " << setw (16) << RootPos.matl_key () << endl
+            sync_cout
+                << hex << uppercase << setfill ('0')
+                << "fen: " << RootPos.fen () << "\n"
+                << "posi key: " << setw (16) << RootPos.posi_key () << "\n"
+                << "matl key: " << setw (16) << RootPos.matl_key () << "\n"
                 << "pawn key: " << setw (16) << RootPos.pawn_key ()
-                << dec << endl;
+                << dec << sync_endl;
         }
 
         void exe_allmoves ()
         {
+            sync_cout;
 
             if (RootPos.checkers ())
             {
@@ -273,7 +304,7 @@ namespace UCI {
                 cout << move_to_san (*itr, RootPos) << " ";
             }
 
-            cout << endl;
+            cout << sync_endl;
         }
 
         void exe_flip ()
@@ -284,7 +315,7 @@ namespace UCI {
         void exe_eval ()
         {
             RootColor = RootPos.active (); // Ensure it is set
-            cout << Evaluator::trace (RootPos) << endl;
+            sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -316,7 +347,7 @@ namespace UCI {
     {
         RootPos.setup (FEN_N, Threads.main (), *(Options["UCI_Chess960"]));
 
-        running = args.empty ();
+        bool running = args.empty ();
         string cmd = args;
         string token;
         do
@@ -361,7 +392,7 @@ namespace UCI {
                     sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
                 }
             }
-            catch (exception &exp) // (...)
+            catch (exception &exp) //(...)
             {
                 sync_cout << exp.what () << sync_endl;
             }
@@ -372,7 +403,6 @@ namespace UCI {
 
     void stop ()
     {
-        running = false;
         exe_stop ();
         Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }

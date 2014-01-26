@@ -85,7 +85,7 @@ namespace Engine {
 
     void run (const std::string &args)
     {
-        cout << Engine::info () << endl;
+        cout << Engine::info (false) << endl;
 
         cout 
             << "info string " << cpu_count () << " processor(s) found."
@@ -124,7 +124,7 @@ namespace Engine {
     // Exit in case of error with error code
     void exit (int32_t code)
     {
-        UCI::stop ();
+        UCI   ::stop ();
         Threads.deinitialize ();
         UCI   ::deinitialize ();
 

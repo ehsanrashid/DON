@@ -132,24 +132,27 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<int32_t PT>
-    INLINE PType min_attacker      (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PType min_attacker       (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
-        if (!b) return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
-
-        occupied -= (b & ~(b - 1));
-
-        if (PAWN == PT || BSHP == PT || QUEN == PT)
+        if (b)
         {
-            attackers |= attacks_bb<BSHP> (dst, occupied) & (bb[BSHP] | bb[QUEN]);
-        }
-        if (ROOK == PT || QUEN == PT)
-        {
-            attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
-        }
-        attackers &= occupied; // After X-ray that may add already processed pieces
+            occupied -= (b & ~(b - 1));
 
-        return PType (PT);
+            if (PAWN == PT || BSHP == PT || QUEN == PT)
+            {
+                attackers |= attacks_bb<BSHP> (dst, occupied) & (bb[BSHP] | bb[QUEN]);
+            }
+            if (ROOK == PT || QUEN == PT)
+            {
+                attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
+            }
+            attackers &= occupied; // After X-ray that may add already processed pieces
+
+            return PType (PT);
+        }
+
+        return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
     }
 
     template<>
