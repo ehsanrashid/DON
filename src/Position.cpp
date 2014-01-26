@@ -898,7 +898,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
 
     Bitboard occ = pieces ();
 
-    if (CASTLE == mt)
+    if      (CASTLE == mt)
     {
         // Castling with check ?
         bool king_side = (dst > org);
@@ -1241,17 +1241,18 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
 
     // Do move according to move type
-    if (NORMAL == mt || ENPASSANT == mt)
+    if      (NORMAL == mt || ENPASSANT == mt)
     {
         // Move the piece
         move_piece (org, dst);
 
         // Update pawns hash key
         if (PAWN == pt)
+        {
             _si->pawn_key ^=
             ZobGlob._.psq_k[active][PAWN][org] ^
             ZobGlob._.psq_k[active][PAWN][dst];
-
+        }
         posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
     }
@@ -1349,8 +1350,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
-        int8_t iorg = org;
-        int8_t idst = dst;
+        uint8_t iorg = org;
+        uint8_t idst = dst;
         if (16 == (idst ^ iorg))
         {
             Square ep_sq = Square ((idst + iorg) / 2);
