@@ -897,38 +897,37 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     if (NORMAL == mt) return false;
 
     Bitboard occ = pieces ();
-    switch (mt)
+
+    if (CASTLE == mt)
     {
-    case CASTLE:
         // Castling with check ?
-        {
-            bool king_side = (dst > org);
-            Square org_rook = dst; // 'King captures the rook' notation
-            dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
-            Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
+        bool king_side = (dst > org);
+        Square org_rook = dst; // 'King captures the rook' notation
+        dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
+        Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
-            return
-                (attacks_bb<ROOK> (dst_rook) & ci.king_sq) &&
-                (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
-        }
-
-    case ENPASSANT:
+        return
+            (attacks_bb<ROOK> (dst_rook) & ci.king_sq) && // First x-ray check then full check
+            (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
+    }
+    else if (PROMOTE == mt)
+    {
+        // Promotion with check ?
+        return (attacks_from (_active | prom_type (m), dst, occ - org + dst) & ci.king_sq);
+    }
+    else if (ENPASSANT == mt)
+    {
         // En passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        {
-            Square cap = _file (dst) | _rank (org);
-            Bitboard mocc = occ - org - cap + dst;
-            return // if any attacker then in check
-                (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) |
-                (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
-        }
-
-    case PROMOTE:
-        // Promotion with check ?
-        return (attacks_from ((_active | prom_type (m)), dst, occ - org + dst) & ci.king_sq);
-
-    default:
+        Square cap = _file (dst) | _rank (org);
+        Bitboard mocc = occ - org - cap + dst;
+        return // if any attacker then in check
+            (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) ||
+            (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
+    }
+    else
+    {
         ASSERT (false);
         return false;
     }
