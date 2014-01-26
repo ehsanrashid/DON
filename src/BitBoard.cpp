@@ -42,18 +42,18 @@ namespace BitBoard {
     const Bitboard D18_bb = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
     const Bitboard D81_bb = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
 
-    const Bitboard LT_SQ_bb = U64 (0x55AA55AA55AA55AA);           // 32 LIGHT squares.
-    const Bitboard DR_SQ_bb = U64 (0xAA55AA55AA55AA55);           // 32 DARK  squares.
+    const Bitboard LTSQ_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
+    const Bitboard DRSQ_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
-    //const Bitboard bb_S_Q  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
-    //const Bitboard bb_S_K  = ~bb_S_Q;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.
+    //const Bitboard QSQ_bb  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
+    //const Bitboard KSQ_bb  = ~QSQ_bb;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.
     //
-    //const Bitboard bb_COR  = U64(0x8100000000000081); // 04 CORNER squares.
-    //const Bitboard bb_BRD  = U64(0xFF818181818181FF); // 28 BORDER squares.
+    //const Bitboard COR_bb  = U64(0x8100000000000081); // 04 CORNER squares.
+    //const Bitboard BOR_bb  = U64(0xFF818181818181FF); // 28 BORDER squares.
     //
-    //const Bitboard bb_CEN    = U64(0x0000001818000000); // 04 CENTER          squares.
-    //const Bitboard bb_CEN_EX = U64(0x00003C3C3C3C0000); // 16 CENTER EXPANDED squares.
-    //const Bitboard bb_HOL_EX = U64(0x00003C24243C0000); // 12 C-HOLE EXPANDED squares.
+    //const Bitboard CEN_bb    = U64(0x0000001818000000); // 04 CENTER          squares.
+    //const Bitboard CEN_EX_bb = U64(0x00003C3C3C3C0000); // 16 CENTER EXPANDED squares.
+    //const Bitboard HOL_EX_bb = U64(0x00003C24243C0000); // 12 C-HOLE EXPANDED squares.
 
 #pragma endregion
 
@@ -80,7 +80,7 @@ namespace BitBoard {
         { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
     };
 
-    //const int8_t _center_dist[SQ_NO] = 
+    //const uint8_t _center_dist[SQ_NO] = 
     //{
     //    3, 3, 3, 3, 3, 3, 3, 3,
     //    3, 2, 2, 2, 2, 2, 2, 3,
@@ -92,7 +92,7 @@ namespace BitBoard {
     //    3, 3, 3, 3, 3, 3, 3, 3,
     //};
 
-    //const int8_t _manhattan_center_dist[SQ_NO] =
+    //const uint8_t _manhattan_center_dist[SQ_NO] =
     //{
     //    6, 5, 4, 3, 3, 4, 5, 6,
     //    5, 4, 3, 2, 2, 3, 4, 5,

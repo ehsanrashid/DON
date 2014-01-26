@@ -37,8 +37,8 @@ namespace BitBoard {
     extern const Bitboard D18_bb;  // 08 DIAG-18 squares.
     extern const Bitboard D81_bb;  // 08 DIAG-81 squares.
 
-    extern const Bitboard LT_SQ_bb; // 32 LIGHT squares.
-    extern const Bitboard DR_SQ_bb; // 32 DARK  squares.
+    extern const Bitboard LTSQ_bb; // 32 LIGHT squares.
+    extern const Bitboard DRSQ_bb; // 32 DARK  squares.
 
 #pragma endregion
 
@@ -161,7 +161,7 @@ namespace BitBoard {
 
     // ----------------------------------------------------
 
-    //inline int8_t center_dist (Square s)
+    //inline uint8_t center_dist (Square s)
     //{
     //    //return _center_dist[s];
     //
@@ -176,10 +176,10 @@ namespace BitBoard {
     //* @param s = square 0...63
     //* @return Manhattan Center Distance
     //*/
-    //inline int8_t manhattan_center_dist (Square s)
+    //inline uint8_t manhattan_center_dist (Square s)
     //{
-    //    int8_t f = _file (s);
-    //    int8_t r = _rank (s);
+    //    uint8_t f = _file (s);
+    //    uint8_t r = _rank (s);
     //    f ^= (f-4) >> 8;
     //    r ^= (r-4) >> 8;
     //    return (f + r) & 7;
@@ -194,10 +194,10 @@ namespace BitBoard {
     //* @return manhattanDistance to the closest corner square
     //*         of the bishop square color
     //*/
-    //inline int8_t manhattan_dist_bishop_sq_closest_corner(Square bs, Square s)
+    //inline uint8_t manhattan_dist_bishop_sq_closest_corner(Square bs, Square s)
     //{
     //    int8_t b = -1879048192*bs >> 31; // 0 | -1 to mirror
-    //    int8_t k;
+    //    uint8_t k;
     //    k = (s>>3) + ((s^b) & 7);        // rank + (mirrored) file
     //    k = (15 * (k>>3) ^ k) - (k>>3);  // if (k > 7) k = 14 - k
     //    return k;
@@ -257,7 +257,7 @@ namespace BitBoard {
     inline Bitboard passer_pawn_span_bb (Color c, Square s) { return _passer_pawn_span_bb[c][s]; }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s) { return (DR_SQ_bb & s) ? DR_SQ_bb : LT_SQ_bb; }
+    inline Bitboard squares_of_color (Square s) { return (DRSQ_bb & s) ? DRSQ_bb : LTSQ_bb; }
 
     // between_bb() returns a bitboard representing all squares between two squares.
     // For instance,

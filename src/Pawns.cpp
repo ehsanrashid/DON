@@ -89,7 +89,7 @@ namespace {
         e->_king_sq       [C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
         e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15> (pawns[0] & DR_SQ_bb);
+        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15> (pawns[0] & DRSQ_bb);
         e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN> (C) - e->_num_pawns_on_sq[C][BLACK];
 
         Score pawn_score = SCORE_ZERO;

@@ -343,8 +343,8 @@ bool Position::ok (int8_t *failed_step) const
                 Bitboard bishops = colors & pieces (BSHP);
                 uint8_t bishop_count[CLR_NO] =
                 {
-                    pop_count<FULL> (LT_SQ_bb & bishops),
-                    pop_count<FULL> (DR_SQ_bb & bishops),
+                    pop_count<FULL> (LTSQ_bb & bishops),
+                    pop_count<FULL> (DRSQ_bb & bishops),
                 };
 
                 if (    (piece_count<PAWN> (c) +
@@ -510,19 +510,19 @@ int32_t Position::see      (Move m) const
 
     Bitboard occupied = pieces () - org;
 
-    switch (m_type (m))
+    MType mt = m_type (m);
+
+    if      (CASTLE == mt)
     {
         // Castle moves are implemented as king capturing the rook so cannot be
         // handled correctly. Simply return 0 that is always the correct value
         // unless in the rare case the rook ends up under attack.
-    case CASTLE:
         return 0;
-        break;
-
-    case ENPASSANT:
+    }
+    else if (ENPASSANT == mt)
+    {
         occupied -= (dst - pawn_push (stm)); // Remove the captured pawn
         swap_list[0] = PieceValue[MG][PAWN];
-        break;
     }
 
     // Find all attackers to the destination square, with the moving piece
@@ -641,76 +641,69 @@ bool Position::pseudo_legal (Move m) const
 
     MType mt = m_type (m);
 
-    switch (mt)
+    if      (NORMAL == mt)
     {
-    case CASTLE:
-        {
-            // Check whether the destination square is attacked by the opponent.
-            // Castling moves are checked for legality during move generation.
-            if (KING != pt) return false;
-            if ((active | ROOK) != piece_on (dst)) return false;
-
-            if (R_1 != r_org || R_1 != r_dst) return false;
-
-            //if (castle_impeded (active)) return false;
-            if (!can_castle (active)) return false;
-            if (checkers ()) return false;
-
-            bool king_side  = (dst > org);
-            if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
-
-            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
-            ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
-
-            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-            Delta step      = king_side ? DEL_E : DEL_W;
-            Bitboard enemies = pieces (pasive);
-            Square s  = org + step;
-            while (s != dst + step)
-            {
-                if (attackers_to (s) & enemies)
-                {
-                    return false;
-                }
-                s += step;
-            }
-
-            //ct = NONE;
-            return true;
-        }
-        break;
-
-    case ENPASSANT:
-        {
-            if (   PAWN != pt
-                || _si->en_passant != dst
-                || R_5 != r_org
-                || R_6 != r_dst
-                || !empty (dst))
-                return false;
-
-            cap += pawn_push (pasive);
-            if ((pasive | PAWN) != piece_on (cap)) return false;
-
-            ct = PAWN;
-        }
-        break;
-
-    case PROMOTE:
-        {
-            if (PAWN != pt) return false;
-            if (R_7 != r_org) return false;
-            if (R_8 != r_dst) return false;
-        }
-        ct = _type (piece_on (cap));
-        break;
-
-    case NORMAL:
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
         ct = _type (piece_on (cap));
-        break;
+    }
+    else if (CASTLE == mt)
+    {
+        // Check whether the destination square is attacked by the opponent.
+        // Castling moves are checked for legality during move generation.
+        if (KING != pt) return false;
+        if ((active | ROOK) != piece_on (dst)) return false;
+
+        if (R_1 != r_org || R_1 != r_dst) return false;
+
+        //if (castle_impeded (active)) return false;
+        if (!can_castle (active)) return false;
+        if (checkers ()) return false;
+
+        bool king_side  = (dst > org);
+        if (castle_impeded (active, king_side ? CS_K : CS_Q)) return false;
+
+        Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+        ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
+
+        dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+        Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+        Delta step      = king_side ? DEL_E : DEL_W;
+        Bitboard enemies = pieces (pasive);
+        Square s  = org + step;
+        while (s != dst + step)
+        {
+            if (attackers_to (s) & enemies)
+            {
+                return false;
+            }
+            s += step;
+        }
+
+        //ct = NONE;
+        return true;
+
+    }
+    else if (PROMOTE == mt)
+    {
+        if (PAWN != pt) return false;
+        if (R_7 != r_org) return false;
+        if (R_8 != r_dst) return false;
+        ct = _type (piece_on (cap));
+    }
+    else if (ENPASSANT == mt)
+    {
+        if (   PAWN != pt
+            || _si->en_passant != dst
+            || R_5 != r_org
+            || R_6 != r_dst
+            || !empty (dst))
+            return false;
+
+        cap += pawn_push (pasive);
+        if ((pasive | PAWN) != piece_on (cap)) return false;
+
+        ct = PAWN;
     }
 
     if (KING == ct) return false;
@@ -833,32 +826,30 @@ bool Position::       legal (Move m, Bitboard pinned) const
     Square ksq = king_sq (active);
 
     MType mt = m_type (m);
-    switch (mt)
+
+    if      (CASTLE == mt)
     {
-    case CASTLE:
         // Castling moves are checked for legality during move generation.
         return (KING == pt);
-        break;
-    case ENPASSANT:
+    }
+    else if (ENPASSANT == mt)
+    {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // we do it simply by testing whether the king is attacked after the move is made.
-        {
-            Square cap = dst + pawn_push (pasive);
+        Square cap = dst + pawn_push (pasive);
 
-            ASSERT (dst == _si->en_passant);
-            ASSERT ((active | PAWN) == piece_on (org));
-            ASSERT ((pasive | PAWN) == piece_on (cap));
-            ASSERT (empty (dst));
-            ASSERT ((pasive | PAWN) == piece_on (cap));
+        ASSERT (dst == _si->en_passant);
+        ASSERT ((active | PAWN) == piece_on (org));
+        ASSERT ((pasive | PAWN) == piece_on (cap));
+        ASSERT (empty (dst));
+        ASSERT ((pasive | PAWN) == piece_on (cap));
 
-            Bitboard mocc = pieces () - org - cap + dst;
+        Bitboard mocc = pieces () - org - cap + dst;
 
-            // if any attacker then in check & not legal
-            return !(
-                (attacks_bb<ROOK> (ksq, mocc) & pieces (pasive, QUEN, ROOK)) ||
-                (attacks_bb<BSHP> (ksq, mocc) & pieces (pasive, QUEN, BSHP)));
-        }
-        break;
+        // If any attacker then in check & not legal
+        return !(
+            (attacks_bb<ROOK> (ksq, mocc) & pieces (pasive, QUEN, ROOK)) ||
+            (attacks_bb<BSHP> (ksq, mocc) & pieces (pasive, QUEN, BSHP)));
     }
 
     // If the moving piece is a king.
@@ -920,7 +911,6 @@ bool Position::check     (Move m, const CheckInfo &ci) const
                 (attacks_bb<ROOK> (dst_rook) & ci.king_sq) &&
                 (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
         }
-        break;
 
     case ENPASSANT:
         // En passant capture with check ?
@@ -933,13 +923,16 @@ bool Position::check     (Move m, const CheckInfo &ci) const
                 (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) |
                 (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
         }
-        break;
 
     case PROMOTE:
         // Promotion with check ?
         return (attacks_from ((_active | prom_type (m)), dst, occ - org + dst) & ci.king_sq);
-        break;
+
+    default:
+        ASSERT (false);
+        return false;
     }
+
     return false;
 }
 
@@ -1248,8 +1241,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         _si->en_passant = SQ_NO;
     }
 
-    // do move according to move type
-
+    // Do move according to move type
     if (NORMAL == mt || ENPASSANT == mt)
     {
         // Move the piece
@@ -1418,37 +1410,10 @@ void Position::undo_move ()
 
     Square cap = dst;
 
-    // undo move according to move type
-    switch (mt)
+    // Undo move according to move type
+    if (NORMAL == mt || ENPASSANT == mt)
     {
-    case CASTLE:
-        {
-            bool king_side = (dst > org);
-            Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
-            dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-            Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-
-            pt  = KING;
-            ct  = NONE;
-            castle_king_rook (dst, org, dst_rook, org_rook);
-        }
-        break;
-
-    case PROMOTE:
-        {
-            PType prom = prom_type (m);
-
-            ASSERT (prom == pt);
-            ASSERT (R_8 == rel_rank (active, dst));
-            ASSERT (NIHT <= prom && prom <= QUEN);
-            // Replace the promoted piece with the PAWN
-            remove_piece (dst);
-            place_piece (org, active, PAWN);
-            pt = PAWN;
-        }
-        break;
-
-    case ENPASSANT:
+        if (ENPASSANT == mt)
         {
             ASSERT (PAWN == pt);
             ASSERT (PAWN == ct);
@@ -1458,12 +1423,30 @@ void Position::undo_move ()
             cap -= pawn_push (active);
             ASSERT (empty (cap));
         }
-        // NOTE:: no break;
-    case NORMAL:
-        {
-            move_piece (dst, org); // Put the piece back at the origin square
-        }
-        break;
+        move_piece (dst, org); // Put the piece back at the origin square
+    }
+    else if (CASTLE == mt)
+    {
+        bool king_side = (dst > org);
+        Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
+        dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+        Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+
+        pt  = KING;
+        ct  = NONE;
+        castle_king_rook (dst, org, dst_rook, org_rook);
+    }
+    else if (PROMOTE == mt)
+    {
+        PType prom = prom_type (m);
+
+        ASSERT (prom == pt);
+        ASSERT (R_8 == rel_rank (active, dst));
+        ASSERT (NIHT <= prom && prom <= QUEN);
+        // Replace the promoted piece with the PAWN
+        remove_piece (dst);
+        place_piece (org, active, PAWN);
+        pt = PAWN;
     }
 
     // If there was any capture piece
