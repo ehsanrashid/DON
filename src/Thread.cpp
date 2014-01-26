@@ -332,8 +332,9 @@ void ThreadPool::start_thinking (const Position &pos, const Limits_t &limits, St
     Signals.failed_low_at_root  = false;
 
     RootMoves.clear();
-    RootPos = pos;
-    Limits  = limits;
+    RootPos     = pos;
+    RootColor   = pos.active ();
+    Limits      = limits;
     if (states.get ()) // If we don't set a new position, preserve current state
     {
         //SetupStates = move (states); // Ownership transfer here

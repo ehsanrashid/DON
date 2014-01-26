@@ -139,7 +139,7 @@ namespace UCI {
             Key posi_key = RootPos.posi_key ();
 
             RootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
-
+            
             if (ClearHash && posi_key != RootPos.posi_key ())
             {
                 if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
@@ -285,6 +285,7 @@ namespace UCI {
 
         void exe_eval ()
         {
+            RootColor = RootPos.active (); // Ensure it is set
             cout << Evaluator::trace (RootPos) << endl;
         }
 

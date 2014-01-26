@@ -306,9 +306,9 @@ namespace EndGame {
         else
         {
             value =  Value (200)
-                - Value (square_dist (wk_sq, bp_sq + DEL_S) * 8)
-                + Value (square_dist (bk_sq, bp_sq + DEL_S) * 8)
-                + Value (square_dist (bp_sq, queening_sq) * 8);
+                - Value (8 * square_dist (wk_sq, bp_sq + DEL_S))
+                + Value (8 * square_dist (bk_sq, bp_sq + DEL_S))
+                + Value (8 * square_dist (bp_sq, queening_sq));
         }
 
         return (_stong_side == pos.active ()) ? value : -value;

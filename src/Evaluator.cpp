@@ -164,7 +164,7 @@ namespace {
 
     const Score TempoBonus              = S( 24, 11);
 
-    const Score PinBonus                = S(  0,  0);//S( 18,  6);
+    const Score PinBonus                = S( 18,  6);
 
     const Score RookOn7thBonus          = S( 11, 20);
     const Score QueenOn7thBonus         = S(  3,  8);
@@ -199,8 +199,8 @@ namespace {
     // friendly minor pieces.
     const Bitboard SpaceMask[CLR_NO] =
     {
-        (FC_bb | FD_bb | FE_bb | FB_bb) & (R2_bb | R3_bb | R4_bb),
-        (FC_bb | FD_bb | FE_bb | FB_bb) & (R7_bb | R6_bb | R5_bb),
+        (FC_bb | FD_bb | FE_bb | FF_bb) & (R2_bb | R3_bb | R4_bb),
+        (FC_bb | FD_bb | FE_bb | FF_bb) & (R7_bb | R6_bb | R5_bb),
     };
 
     // King danger constants and variables. The king danger scores are taken
@@ -392,7 +392,7 @@ namespace {
 
             Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
             Tracing::add (TOTAL     , score);
-            
+
             Tracing::stream
                 << "-------\n"
                 //<< "Uncertainty margin:"
@@ -532,14 +532,13 @@ namespace {
             // Penalty for bishop with same coloured pawns
             if (BSHP == PT)
             {
-                //                // Give a bonus if we are a bishop and can pin a piece or
-                //                // can give a discovered check through an x-ray attack.
-                //                if ((attacks_bb<BSHP> (ek_sq) & s) &&
-                //                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-                //                {
-                //                    score += PinBonus;
-                //                }
-                int x = ei.pi->pawns_on_same_color_squares (C, s);
+                //// Give a bonus if we are a bishop and can pin a piece or
+                //// can give a discovered check through an x-ray attack.
+                //if ((attacks_bb<BSHP> (ek_sq) & s) &&
+                //    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //{
+                //    score += PinBonus;
+                //}
 
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
@@ -586,13 +585,13 @@ namespace {
             // Special extra evaluation for rooks
             if (ROOK == PT)
             {
-                //                // Give a bonus if we are a rook and can pin a piece or
-                //                // can give a discovered check through an x-ray attack.
-                //                if ((attacks_bb<ROOK> (ek_sq) & s) &&
-                //                    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
-                //                {
-                //                    score += PinBonus;
-                //                }
+                //// Give a bonus if we are a rook and can pin a piece or
+                //// can give a discovered check through an x-ray attack.
+                //if ((attacks_bb<ROOK> (ek_sq) & s) &&
+                //    !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //{
+                //    score += PinBonus;
+                //}
 
                 // Give a bonus for a rook on a open or semi-open file
                 if (ei.pi->semiopen (C, _file (s)))
@@ -665,9 +664,9 @@ namespace {
 
         Score score =
             evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
-        +   evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
-        +   evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
-        +   evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
+            +   evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
+            +   evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
+            +   evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
         // Sum up all attacked squares
         ei.attacked_by[C][NONE] = 
@@ -783,7 +782,7 @@ namespace {
 
             // Finally, extract the king danger score from the KingDanger[]
             // array and subtract the score from evaluation.
-            score -= KingDanger[C == RootPos.active ()][attack_units];
+            score -= KingDanger[Searcher::RootColor == C][attack_units];
         }
 
         if (TRACE)
@@ -830,7 +829,7 @@ namespace {
 
     template<Color C, bool TRACE>
     // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
-    inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
+    Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -853,16 +852,17 @@ namespace {
             if (rr)
             {
                 Square block_sq = s + pawn_push (C);
+                Square fk_sq = pos.king_sq (C );
+                Square ek_sq = pos.king_sq (C_);
 
                 // Adjust bonus based on kings proximity
-                eg_bonus +=
-                    Value (square_dist (pos.king_sq (C_), block_sq) * 5 * rr) -
-                    Value (square_dist (pos.king_sq (C ), block_sq) * 2 * rr);
+                eg_bonus += Value (5 * rr * square_dist (ek_sq, block_sq))
+                    -       Value (2 * rr * square_dist (fk_sq, block_sq));
 
                 // If block_sq is not the queening square then consider also a second push
                 if (rel_rank (C, block_sq) != R_8)
                 {
-                    eg_bonus -= Value (square_dist (pos.king_sq (C), block_sq + pawn_push (C)) * rr);
+                    eg_bonus -= Value (rr * square_dist (fk_sq, block_sq + pawn_push (C)));
                 }
 
                 // If the pawn is free to advance, increase bonus

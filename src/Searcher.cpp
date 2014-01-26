@@ -237,6 +237,7 @@ namespace Searcher {
 
     vector<RootMove>    RootMoves;
     Position            RootPos;
+    Color               RootColor;
     StateInfoStackPtr   SetupStates;
 
     point         SearchTime;
@@ -341,7 +342,7 @@ namespace Searcher {
 
     void think ()
     {
-        TimeMgr.initialize (Limits, RootPos.game_ply (), RootPos.active ());
+        TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
         bool write_search_log = *(Options["Write Search Log"]);
         string fn_search_log  = *(Options["Search Log File"]);
@@ -373,8 +374,8 @@ namespace Searcher {
         {
             cf = cf * VALUE_MG_PAWN / 100;                              // From centipawns
             cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME;   // Scale down with phase
-            DrawValue[ RootPos.active ()] = VALUE_DRAW - Value (cf);
-            DrawValue[~RootPos.active ()] = VALUE_DRAW + Value (cf);
+            DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
+            DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
         }
         else
         {
@@ -390,8 +391,8 @@ namespace Searcher {
                 << "fen:       " << RootPos.fen ()                              << "\n"
                 << "infinite:  " << Limits.infinite                             << "\n"
                 << "ponder:    " << Limits.ponder                               << "\n"
-                << "time:      " << Limits.game_clock[RootPos.active ()].time   << "\n"
-                << "increment: " << Limits.game_clock[RootPos.active ()].inc    << "\n"
+                << "time:      " << Limits.game_clock[RootColor].time   << "\n"
+                << "increment: " << Limits.game_clock[RootColor].inc    << "\n"
                 << "movestogo: " << uint32_t (Limits.moves_to_go)               << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
