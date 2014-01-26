@@ -132,7 +132,7 @@ namespace {
         V(0), V(8),V(26),V(35),V(35),V(26), V(8), V(0),
         V(0), V(4),V(17),V(17),V(17),V(17), V(4), V(0),
         V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-        V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+        V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0)
         },
         // BISHOPS
         {V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
@@ -142,7 +142,7 @@ namespace {
         V(0),V(10),V(21),V(21),V(21),V(21),V(10), V(0),
         V(0), V(5), V(8), V(8), V(8), V(8), V(5), V(0),
         V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-        V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+        V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0)
         }
     };
 
@@ -150,15 +150,15 @@ namespace {
     // type attacks which one.
     const Score ThreatBonus[2][NONE] =
     {
-        { S(  0,  0), S(  7, 39), S( 24, 49), S( 24, 49), S( 41,100), S( 41,100) }, // Minor
-        { S(  0,  0), S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49) }, // Major
+        { S(  7, 39), S( 24, 49), S( 24, 49), S( 41,100), S( 41,100), S(  0,  0), }, // Minor
+        { S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49), S(  0,  0), }, // Major
     };
 
     // ThreatenedByPawnPenalty[PType] contains a penalty according to which piece
     // type is attacked by an enemy pawn.
     const Score ThreatenedByPawnPenalty[NONE] =
     {
-        S(  0,  0), S( 56, 70), S( 56, 70), S( 76, 99), S( 86, 118), S(  0,  0),
+        S(  0,  0), S( 56, 70), S( 56, 70), S( 76, 99), S( 86, 118), S(  0,  0)
     };
 
 
@@ -364,7 +364,7 @@ namespace {
             {
                 // Check for KBP vs KB with only a single pawn that is almost
                 // certainly a draw or at least two pawns.
-                bool one_pawn = (pos.piece_count<PAWN> (WHITE) + pos.piece_count<PAWN> (BLACK) == 1);
+                bool one_pawn = (pos.piece_count<PAWN> (WHITE) + pos.piece_count<PAWN> (BLACK)) == 1;
                 sf = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
             }
             else
@@ -387,7 +387,7 @@ namespace {
             Score scr[CLR_NO] =
             {
                 ei.mi->space_weight () * evaluate_space<WHITE> (pos, ei),
-                ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei),
+                ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei)
             };
 
             Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
@@ -539,6 +539,7 @@ namespace {
                 //                {
                 //                    score += PinBonus;
                 //                }
+                int x = ei.pi->pawns_on_same_color_squares (C, s);
 
                 score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
             }
@@ -663,9 +664,9 @@ namespace {
         Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
         Score score =
-            evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area);
-        +   evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area);
-        +   evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area);
+            evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
+        +   evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
+        +   evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
         +   evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
         // Sum up all attacked squares

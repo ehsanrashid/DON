@@ -432,19 +432,20 @@ inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU)
 #undef INC_DEC_OPERATORS
 
 #define ARTHMAT_OPERATORS(T)                                                                \
-    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
-    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
     inline T  operator+  (T  d1, T d2) { return T (int32_t (d1) + int32_t (d2)); }          \
     inline T  operator-  (T  d1, T d2) { return T (int32_t (d1) - int32_t (d2)); }          \
     inline T  operator*  (T  d, int32_t i) { return T (int32_t (d) * i); }                  \
     inline T  operator+  (T  d, int32_t i) { return T (int32_t (d) + i); }                  \
     inline T  operator-  (T  d, int32_t i) { return T (int32_t (d) - i); }                  \
+    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
+    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
     inline T& operator+= (T &d1, T d2) { d1 = T (int32_t (d1) + int32_t (d2)); return d1; } \
     inline T& operator-= (T &d1, T d2) { d1 = T (int32_t (d1) - int32_t (d2)); return d1; } \
     inline T& operator+= (T &d, int32_t i) { d = T (int32_t (d) + i); return d; }           \
     inline T& operator-= (T &d, int32_t i) { d = T (int32_t (d) - i); return d; }           \
     inline T  operator*  (int32_t i, T  d) { return T (i * int32_t (d)); }                  \
     inline T& operator*= (T &d, int32_t i) { d = T (int32_t (d) * i); return d; }
+
 //inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  \
 //inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  \
 //inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 \
@@ -793,8 +794,8 @@ inline std::basic_ostream<charT, Traits>&
 
 #pragma region Value
 
-inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
+inline Value mates_in (int32_t ply) { return (-ply + VALUE_MATE); }
+inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
 
 #pragma endregion
 

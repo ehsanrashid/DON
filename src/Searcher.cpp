@@ -16,7 +16,6 @@
 #include "Evaluator.h"
 #include "Thread.h"
 #include "Notation.h"
-#include "atomicstream.h"
 #include "Log.h"
 
 using namespace std;
@@ -350,10 +349,10 @@ namespace Searcher {
         if (RootMoves.empty ())
         {
             RootMoves.push_back (RootMove (MOVE_NONE));
-            ats ()
+            sync_cout
                 << "info depth 0 score "
                 << score_uci (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
-                << endl;
+                << sync_endl;
 
             goto finish;
         }
@@ -438,13 +437,13 @@ finish:
         }
 
         // When search is stopped this info is not printed
-        ats ()
+        sync_cout
             << "info"
             << " time "     << elapsed
             << " nodes "    << RootPos.game_nodes ()
             << " nps "      << RootPos.game_nodes () * 1000 / elapsed
             << " hashfull " << TT.permill_full ()
-            << endl;
+            << sync_endl;
 
         // When we reach max depth we arrive here even without Signals.stop is raised,
         // but if we are pondering or in infinite search, according to UCI protocol,
@@ -457,12 +456,12 @@ finish:
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        ats () << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
+        sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
         if (RootMoves[0].pv[0])
         {
-            ats () << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
+            cout << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
         }
-        ats () << endl;
+        cout << sync_endl;
 
     }
 
@@ -604,7 +603,7 @@ namespace {
                     if ((alpha >= best_value || best_value >= beta) &&
                         (elapsed = now () - SearchTime + 1) > InfoDuration)
                     {
-                        ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
+                        sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                     }
 
                     // In case of failing low/high increase aspiration window and
@@ -636,7 +635,7 @@ namespace {
                 elapsed = now () - SearchTime + 1;
                 if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
                 {
-                    ats () << info_pv (pos, depth, alpha, beta, elapsed) << endl;
+                    sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                 }
             }
 
@@ -1092,11 +1091,11 @@ moves_loop: // When in check and at SPNode search starts from here
             if (thread == Threads.main () && 
                 (elapsed = now () - SearchTime + 1) > InfoDuration)
             {
-                ats ()
+                sync_cout
                     << "info"
                     << " depth " << int32_t (depth / ONE_MOVE)
                     << " time "  << elapsed
-                    << endl;
+                    << sync_endl;
             }
         }
 
@@ -1132,13 +1131,13 @@ moves_loop: // When in check and at SPNode search starts from here
                 if (thread == Threads.main () && 
                     (elapsed = now () - SearchTime + 1) > InfoDuration)
                 {
-                    ats ()
+                    sync_cout
                         << "info"
                         << " depth "          << int32_t (depth / ONE_MOVE)
                         << " time "           << elapsed
                         << " currmovenumber " << setw (2) << moves_count + IndexPV
                         << " currmove "       << move_to_can (move, pos.chess960 ())
-                        << endl;
+                        << sync_endl;
                 }
             }
 

@@ -12,8 +12,6 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
-
-#include "atomicstream.h"
 #include "DebugLogger.h"
 
 // Global string mapping of options
@@ -196,13 +194,13 @@ namespace UCI {
         void on_clear_hash      (const Option &opt)
         {
             ClearHash = true;
-            ats () << "info string hash cleared." << endl;
+            sync_cout << "info string hash cleared." << sync_endl;
         }
 
         void on_resize_hash     (const Option &opt)
         {
             TT.resize (int32_t (opt));
-            ats () << "info string " << TT.size () << " MB Hash." << endl;
+            sync_cout << "info string " << TT.size () << " MB Hash." << sync_endl;
         }
 
         void on_save_hash       (const Option &opt)

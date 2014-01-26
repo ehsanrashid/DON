@@ -4,7 +4,6 @@
 #include <cstdarg>
 
 #include "xstring.h"
-#include "atomicstream.h"
 
 #include "Engine.h"
 #include "Transposition.h"
@@ -84,7 +83,7 @@ namespace UCI {
                 }
                 else
                 {
-                    ats () << "WHAT??? No such option: \'" << name << "\'" << endl;
+                    sync_cout << "WHAT??? No such option: \'" << name << "\'" << sync_endl;
                 }
             }
         }
@@ -361,13 +360,12 @@ namespace UCI {
                     ||   iequals (token, "quit"))       exe_stop ();
                 else
                 {
-                    //TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
-                    //TRI_LOG_MSG ("WHAT??? No such command: \'" + cmd + "\'");
+                    sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
                 }
             }
-            catch (...)//(exception &exp)
+            catch (exception &exp) // (...)
             {
-                //TRI_LOG_MSG (exp.what ());
+                sync_cout << exp.what () << sync_endl;
             }
         }
         while (running && !iequals (cmd, "quit"));

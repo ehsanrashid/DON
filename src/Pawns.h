@@ -36,7 +36,7 @@ namespace Pawns {
         inline Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
         inline int32_t  pawns_on_same_color_squares(Color c, Square s) const
         {
-            return _num_pawns_on_sq[c][!!(BitBoard::DR_SQ_bb & s)];
+            return _num_pawns_on_sq[c][bool (BitBoard::DR_SQ_bb & BitBoard::_square_bb[s])];
         }
         inline uint8_t  semiopen        (Color c, File f) const
         {
