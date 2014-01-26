@@ -807,7 +807,7 @@ bool Position::pseudo_legal (Move m) const
 }
 
 // legal(m, pinned) tests whether a pseudo-legal move is legal
-bool Position::       legal (Move m, Bitboard pinned) const
+bool Position::legal     (Move m, Bitboard pinned) const
 {
     //ASSERT (_ok (m));
     //ASSERT (pseudo_legal (m));
@@ -1250,8 +1250,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-            ZobGlob._.psq_k[active][PAWN][org] ^
-            ZobGlob._.psq_k[active][PAWN][dst];
+                ZobGlob._.psq_k[active][PAWN][org] ^
+                ZobGlob._.psq_k[active][PAWN][dst];
         }
         posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
@@ -1297,17 +1297,14 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
 
     // Update castle rights if needed
-    if (_si->castle_rights)
+    uint8_t cr = _si->castle_rights & (castle_right (active, org) | castle_right (pasive, dst));
+    if (cr)
     {
-        uint8_t cr = _si->castle_rights & (castle_right (active, org) | castle_right (pasive, dst));
-        if (cr)
+        Bitboard b = cr;
+        _si->castle_rights &= ~cr;
+        while (b)
         {
-            Bitboard b = cr;
-            _si->castle_rights &= ~cr;
-            while (b)
-            {
-                posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];
-            }
+            posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];
         }
     }
 
@@ -1411,18 +1408,8 @@ void Position::undo_move ()
     Square cap = dst;
 
     // Undo move according to move type
-    if (NORMAL == mt || ENPASSANT == mt)
+    if      (NORMAL == mt)
     {
-        if (ENPASSANT == mt)
-        {
-            ASSERT (PAWN == pt);
-            ASSERT (PAWN == ct);
-            ASSERT (R_5 == rel_rank (active, org));
-            ASSERT (R_6 == rel_rank (active, dst));
-            ASSERT (dst == _si->p_si->en_passant);
-            cap -= pawn_push (active);
-            ASSERT (empty (cap));
-        }
         move_piece (dst, org); // Put the piece back at the origin square
     }
     else if (CASTLE == mt)
@@ -1448,6 +1435,17 @@ void Position::undo_move ()
         place_piece (org, active, PAWN);
         pt = PAWN;
     }
+    else if (ENPASSANT == mt)
+    {
+        ASSERT (PAWN == pt);
+        ASSERT (PAWN == ct);
+        ASSERT (R_5 == rel_rank (active, org));
+        ASSERT (R_6 == rel_rank (active, dst));
+        ASSERT (dst == _si->p_si->en_passant);
+        cap -= pawn_push (active);
+        ASSERT (empty (cap));
+        move_piece (dst, org); // Put the piece back at the origin square
+    }
 
     // If there was any capture piece
     if (NONE != ct)
@@ -1467,8 +1465,6 @@ void Position::do_null_move (StateInfo &si_n)
 {
     ASSERT (&si_n != _si);
     ASSERT (!_si->checkers);
-    //if (&si_n == _si)   return;
-    //if (_si->checkers)  return;
 
     // Full copy here
     memcpy (&si_n, _si, sizeof (StateInfo));
@@ -1498,8 +1494,6 @@ void Position::undo_null_move ()
 {
     ASSERT (_si->p_si);
     ASSERT (!_si->checkers);
-    //if (!(_si->p_si))   return;
-    //if (_si->checkers)  return;
 
     _active = ~_active;
     _si     = _si->p_si;
