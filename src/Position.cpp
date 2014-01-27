@@ -876,7 +876,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
 // check(m) tests whether a pseudo-legal move gives a check
 bool Position::check     (Move m, const CheckInfo &ci) const
 {
-    ASSERT (_color (moved_piece (m)) == _active);
+    ASSERT (_color (_piece_arr[org_sq (m)]) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
 
     Square org = org_sq (m);

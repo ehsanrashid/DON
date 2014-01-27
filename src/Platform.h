@@ -43,8 +43,7 @@ typedef unsigned __int32        uint32_t;
 
 #   elif _WIN32
 
-#undef _64BIT
-#define PR_SIZET ""
+#       define PR_SIZET ""
 
 typedef   signed __int32 __w64   int32_t;
 typedef unsigned __int32 __w64  uint32_t;

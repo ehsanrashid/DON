@@ -121,7 +121,7 @@ namespace Engine {
 
     }
 
-    // Exit in case of error with error code
+    // Exit from engine with exit code. (in case of some crash)
     void exit (int32_t code)
     {
         UCI   ::stop ();
