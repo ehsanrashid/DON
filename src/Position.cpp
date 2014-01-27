@@ -1233,7 +1233,14 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
     else
     {
-        _si->clock50 = (PAWN == pt) ? 0 : _si->clock50 + 1;
+        if (PAWN == pt)
+        {
+            _si->clock50 = 0;
+        }
+        else
+        {
+            _si->clock50++;
+        }
     }
 
     // Reset old en-passant square
@@ -1323,17 +1330,20 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             // Discovery check ?
             if (QUEN != pt)
             {
-                if ((ci->discoverers) && (ci->discoverers & org))
+                if (ci->discoverers && (ci->discoverers & org))
                 {
                     if (ROOK != pt)
+                    {
                         _si->checkers |=
                         attacks_from<ROOK> (king_sq (pasive)) &
                         pieces (active, QUEN, ROOK);
-
+                    }
                     if (BSHP != pt)
+                    {
                         _si->checkers |=
                         attacks_from<BSHP> (king_sq (pasive)) &
                         pieces (active, QUEN, BSHP);
+                    }
                 }
             }
         }
