@@ -185,9 +185,9 @@ namespace std {
     inline std::string remove_dup (const std::string &s)
     {
         // unique char set
-        std::unordered_set<char> set_chars (begin (s), end (s));
-        std::string str_unique (begin (set_chars), end (set_chars));
-        return str_unique;
+        std::unordered_set<char> char_set (begin (s), end (s));
+        std::string unique_str (begin (char_set), end (char_set));
+        return unique_str;
     }
 
     inline std::size_t count_substr (const std::string &s, const std::string &sub, bool overlap = true)
@@ -208,7 +208,7 @@ namespace std {
 
     inline std::vector<std::string> str_splits (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
     {
-        std::vector<std::string> list_s;
+        std::vector<std::string> s_list;
 
         //std::istringstream iss (s);
         //std::string part;
@@ -223,7 +223,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //}
         //while (success && iss.good ());
@@ -240,7 +240,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //    if (cmid == cend) break;
         //    cbeg = cmid + 1;
@@ -259,7 +259,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //    if (std::string::npos == p1) break;
         //    dup = dup.substr (p1 + 1);
@@ -279,13 +279,13 @@ namespace std {
             }
             if (keep_empty || !part.empty ())
             {
-                list_s.emplace_back (part);
+                s_list.emplace_back (part);
             }
             if (std::string::npos == p1) break;
             ++p1;
         }
 
-        return list_s;
+        return s_list;
     }
 
     //inline int to_int (const std::string &s)

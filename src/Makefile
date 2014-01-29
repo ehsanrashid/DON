@@ -187,6 +187,7 @@ endif
 ifeq ($(COMP),mingw)
 	comp=mingw
 	CXX=g++
+    # -std=c++0x
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static-libstdc++ -static-libgcc
 endif

@@ -58,12 +58,12 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     , counter_moves (cm)
     , followup_moves (fm)
     , ss (s)
-    , cur (mlist)
-    , end (mlist)
+    , cur (m_list)
+    , end (m_list)
 {
     ASSERT (d > DEPTH_ZERO);
 
-    end_bad_captures = mlist + MAX_MOVES - 1;
+    end_bad_captures = m_list + MAX_MOVES - 1;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
@@ -74,8 +74,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
     : pos (p)
     , history (h)
-    , cur (mlist)
-    , end (mlist)
+    , cur (m_list)
+    , end (m_list)
 {
     ASSERT (d <= DEPTH_ZERO);
 
@@ -113,8 +113,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PType pt)
     : pos (p)
     , history (h)
-    , cur (mlist)
-    , end (mlist)
+    , cur (m_list)
+    , end (m_list)
 {
     ASSERT (!pos.checkers ());
 
@@ -151,7 +151,7 @@ void MovePicker::value<CAPTURE> ()
     // bad_captures[] array, but instead of doing it now we delay till when
     // the move has been picked up in pick_move(), this way we save
     // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
-    for (ValMove *itr = mlist; itr != end; ++itr)
+    for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
         itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - _type (pos[org_sq (m)]);
@@ -172,7 +172,7 @@ void MovePicker::value<CAPTURE> ()
 template<>
 void MovePicker::value<QUIET>   ()
 {
-    for (ValMove *itr = mlist; itr != end; ++itr)
+    for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
         itr->value = history[pos[org_sq (m)]][dst_sq (m)];
@@ -185,7 +185,7 @@ void MovePicker::value<EVASION> ()
     // Try good captures ordered by MVV/LVA, then non-captures if destination square
     // is not under attack, ordered by history value, then bad-captures and quiet
     // moves with a negative SEE. This last group is ordered by the SEE value.
-    for (ValMove *itr = mlist; itr != end; ++itr)
+    for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
         int32_t gain = pos.see_sign (m);
@@ -209,7 +209,7 @@ void MovePicker::value<EVASION> ()
 // when there are no more moves to try for the current phase.
 void MovePicker::generate_next_stage ()
 {
-    cur = mlist;
+    cur = m_list;
     switch (++stage)
     {
 
@@ -218,7 +218,7 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S4:
     case CAPTURES_S5:
     case CAPTURES_S6:
-        end = generate<CAPTURE> (mlist, pos);
+        end = generate<CAPTURE> (m_list, pos);
         if (end > cur + 1)
         {   
             value<CAPTURE> ();
@@ -289,7 +289,7 @@ void MovePicker::generate_next_stage ()
         return;
 
     case QUIETS_1_S1:
-        end = end_quiets = generate<QUIET> (mlist, pos);
+        end = end_quiets = generate<QUIET> (m_list, pos);
         if (end > cur)
         {
             value<QUIET> ();
@@ -310,13 +310,13 @@ void MovePicker::generate_next_stage ()
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
-        cur = mlist + MAX_MOVES - 1;
+        cur = m_list + MAX_MOVES - 1;
         end = end_bad_captures;
 
         return;
 
     case EVASIONS_S2:
-        end = generate<EVASION> (mlist, pos);
+        end = generate<EVASION> (m_list, pos);
         if (end > cur + 1)
         {
             value<EVASION> ();
@@ -326,7 +326,7 @@ void MovePicker::generate_next_stage ()
         return;
 
     case QUIET_CHECKS_S3:
-        end = generate<QUIET_CHECK> (mlist, pos);
+        end = generate<QUIET_CHECK> (m_list, pos);
 
         return;
 

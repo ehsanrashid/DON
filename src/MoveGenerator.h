@@ -48,7 +48,7 @@ namespace MoveGenerator {
 
 
     template<GType GT>
-    extern ValMove* generate (ValMove *mlist, const Position &pos);
+    extern ValMove* generate (ValMove *m_list, const Position &pos);
 
     // The MoveList struct is a simple wrapper around generate(). It sometimes comes
     // in handy to use this class instead of the low level generate() function.
@@ -58,16 +58,16 @@ namespace MoveGenerator {
 
     private:
 
-        ValMove mlist[MAX_MOVES];
+        ValMove m_list[MAX_MOVES];
         ValMove *beg
             ,   *cur
             ,   *end;
 
     public:
         explicit MoveList (const Position &pos)
-            : beg (mlist)
-            , cur (mlist)
-            , end (generate<GT>(mlist, pos))
+            : beg (m_list)
+            , cur (m_list)
+            , end (generate<GT>(m_list, pos))
         {
             end->move = MOVE_NONE;
         }

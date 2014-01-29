@@ -101,7 +101,7 @@ private:
 
     uint8_t             stage;
 
-    ValMove             mlist[MAX_MOVES];
+    ValMove             m_list[MAX_MOVES];
     ValMove            *cur
         ,              *end
         ,              *end_quiets
