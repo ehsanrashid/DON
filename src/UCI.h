@@ -29,14 +29,14 @@ namespace UCI {
             Option (const OnChange on_change = NULL);
             virtual ~Option ();
 
-            virtual std::string operator() ()  const   = NULL;
+            virtual std::string operator() ()  const   = 0;
 
             virtual operator bool ()        const { return bool (); }
             virtual operator int32_t ()     const { return int32_t (); }
             virtual operator std::string () const { return std::string (); }
 
-            //virtual Option& operator= (char   *v) = NULL;
-            virtual Option& operator= (std::string &v) = NULL;
+            //virtual Option& operator= (char        *value) = 0;
+            virtual Option& operator= (std::string &value) = 0;
 
         }       Option;
 
@@ -47,8 +47,8 @@ namespace UCI {
 
             std::string operator() ()  const;
 
-            //Option& operator= (char   *v);
-            Option& operator= (std::string &v);
+            //Option& operator= (char        *value);
+            Option& operator= (std::string &value);
 
         } ButtonOption;
 
@@ -63,8 +63,8 @@ namespace UCI {
             std::string operator() ()  const;
             virtual operator bool () const;
 
-            //Option& operator= (char   *v);
-            Option& operator= (std::string &v);
+            //Option& operator= (char        *value);
+            Option& operator= (std::string &value);
 
         }  CheckOption;
 
@@ -79,8 +79,8 @@ namespace UCI {
             std::string operator() ()  const;
             operator std::string () const;
 
-            //Option& operator= (char   *v);
-            Option& operator= (std::string &v);
+            //Option& operator= (char        *value);
+            Option& operator= (std::string &value);
 
         } StringOption;
 
@@ -97,8 +97,8 @@ namespace UCI {
             std::string operator() ()  const;
             operator int32_t () const;
 
-            //Option& operator= (char   *v);
-            Option& operator= (std::string &v);
+            //Option& operator= (char        *value);
+            Option& operator= (std::string &value);
 
         }   SpinOption;
 
@@ -111,8 +111,8 @@ namespace UCI {
 
             std::string operator() ()  const;
 
-            //Option& operator= (char   *v);
-            Option& operator= (std::string &v);
+            //Option& operator= (char        *value);
+            Option& operator= (std::string &value);
 
         }  ComboOption;
 

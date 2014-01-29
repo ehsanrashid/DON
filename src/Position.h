@@ -203,7 +203,6 @@ public:
 
     static void initialize ();
 
-#pragma region Constructors
 
     Position () { clear (); }
 #ifdef _DEBUG
@@ -220,7 +219,6 @@ public:
     //Position (const Position &pos) { *this = pos; }
     explicit Position (int8_t dummy) {}
 
-#pragma endregion
 
     Position& operator= (const Position &pos);
 
@@ -797,9 +795,9 @@ inline void  Position:: place_piece (Square s, Color c, PType pt)
 {
     ASSERT (empty (s));
     _piece_arr[s]    = (c | pt);
-    Bitboard bb       = BitBoard::_square_bb[s];
-    _color_bb[c]     |= bb;
-    _types_bb[pt]    |= bb;
+    Bitboard bb      = BitBoard::_square_bb[s];
+    _color_bb[c]    |= bb;
+    _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
     _piece_count[c][NONE]++;
     // Update piece list, put piece at [s] index
@@ -824,11 +822,10 @@ inline void  Position::remove_piece (Square s)
     Color c  = _color (p);
     PType pt = _type (p);
 
-    _piece_arr [s]     = EMPTY;
-
-    Bitboard bb       = ~BitBoard::_square_bb[s];
-    _color_bb[c]     &= bb;
-    _types_bb[pt]    &= bb;
+    _piece_arr [s]   = EMPTY;
+    Bitboard bb      = ~BitBoard::_square_bb[s];
+    _color_bb[c]    &= bb;
+    _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
     _piece_count[c][NONE]--;
     _piece_count[c][pt]--;
