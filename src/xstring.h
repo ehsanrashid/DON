@@ -47,13 +47,13 @@ namespace std {
         //to_lower (const_cast<string&> (s2)); //to_upper ();
         //return (s1 == s2);
 
-        return !stricmp (s1.c_str (), s2.c_str ());
+        //return !stricmp (s1.c_str (), s2.c_str ());
 
-        //return (s1.size () == s2.size ()) &&
-        //    std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)
-        //{
-        //    return toupper (c1) == toupper (c2);
-        //});
+        return (s1.size () == s2.size ()) &&
+            std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)
+        {
+            return toupper (c1) == toupper (c2);
+        });
     }
 
     //// char case-sensitive equals
@@ -69,7 +69,7 @@ namespace std {
         //    std::find_if (s.begin (), s.end (),
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))));
 
-        //s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch) { return (ch != c); }));
+        s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch) { return (ch != c); }));
 
         return s;
     }
@@ -80,7 +80,7 @@ namespace std {
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))).base (),
         //    s.end ());
 
-        //s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch) { return (ch != c); }).base (), s.end ());
+        s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch) { return (ch != c); }).base (), s.end ());
 
         return s;
     }
