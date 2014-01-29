@@ -246,6 +246,7 @@ namespace UCI {
 
         void exe_debug (cmdstream &cstm)
         {
+            cstm;
             // debug on/off
         }
 

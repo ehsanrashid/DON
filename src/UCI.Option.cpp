@@ -41,11 +41,13 @@ namespace UCI {
         }
         //Option& ButtonOption::operator= (char *value)
         //{
+        //    value;
         //    if (_on_change) _on_change (*this);
         //    return *this;
         //}
         Option& ButtonOption::operator= (string &value)
         {
+            value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -175,11 +177,13 @@ namespace UCI {
         }
         //Option& ComboOption::operator= (char *value)
         //{
+        //    value;
         //    if (_on_change) _on_change (*this);
         //    return *this;
         //}
         Option& ComboOption::operator= (string &value)
         {
+            value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -192,6 +196,7 @@ namespace UCI {
 
         void on_clear_hash      (const Option &opt)
         {
+            opt;
             ClearHash = true;
             sync_cout << "info string hash cleared." << sync_endl;
         }
@@ -204,30 +209,35 @@ namespace UCI {
 
         void on_save_hash       (const Option &opt)
         {
-            //ofstream ofstm ("hash.dat", ios_base::out | ios_base::binary);
-            //ofstm << tt;
-            //ofstm.close ();
+            opt;
+            ofstream ofstm (*(Options["Hash File"]), ios_base::out | ios_base::binary);
+            ofstm << TT;
+            ofstm.close ();
         }
 
         void on_load_hash       (const Option &opt)
         {
-            //ifstream ifstm ("hash.dat", ios_base::in | ios_base::binary);
-            //ifstm >> tt;
-            //ifstm.close ();
+            opt;
+            ifstream ifstm (*(Options["Hash File"]), ios_base::in | ios_base::binary);
+            ifstm >> TT;
+            ifstm.close ();
         }
 
         void on_change_book     (const Option &opt)
         {
+            opt;
             if (Searcher::book.is_open ()) Searcher::book.close ();
         }
 
         void on_change_threads  (const Option &opt)
         {
+            opt;
             Threads.read_uci_options ();
         }
 
         void on_change_eval     (const Option& opt)
         {
+            opt;
             Evaluator::initialize ();
         }
 
@@ -243,6 +253,7 @@ namespace UCI {
 
         void on_query           (const Option &opt)
         {
+            opt;
         }
 
     }

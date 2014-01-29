@@ -43,7 +43,7 @@ namespace std {
             if ('\n' == last_ch)
             {
                 size_t length = strlen (prefix);
-                if (_fstm->rdbuf ()->sputn (prefix, length) != length)
+                if (size_t (_fstm->rdbuf ()->sputn (prefix, length)) != length)
                 {
                     is_err = true;
                 }

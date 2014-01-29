@@ -35,14 +35,14 @@ inline char* to_lower (char s[])
 {
     assert (s);
     if (!s)     return NULL;
-    while (*s) *s++ = tolower (*s);
+    while (*s) *s++ = char (tolower (*s));
     return s;
 }
 inline char* to_upper (char s[])
 {
     assert (s);
     if (!s)     return NULL;
-    while (*s) *s++ = toupper (*s);
+    while (*s) *s++ = char (toupper (*s));
     return s;
 }
 

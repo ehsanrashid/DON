@@ -206,18 +206,18 @@ public:
 
     Position () { clear (); }
 #ifdef _DEBUG
-    Position (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true)
+    Position (const char        *f, Thread *th = NULL, bool c960 = false, bool full = true)
     {
-        if (!setup (fen, thread, c960, full)) clear ();
+        if (!setup (f, th, c960, full)) clear ();
     }
 #endif
-    Position (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true)
+    Position (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true)
     {
-        if (!setup (fen, thread, c960, full)) clear ();
+        if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Thread *thread = NULL) { *this = pos; _thread = thread; }
+    Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
     //Position (const Position &pos) { *this = pos; }
-    explicit Position (int8_t dummy) {}
+    explicit Position (int8_t dummy) { ++ dummy; }
 
 
     Position& operator= (const Position &pos);

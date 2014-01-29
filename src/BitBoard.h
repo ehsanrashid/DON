@@ -363,10 +363,10 @@ namespace BitBoard {
 
     template<>
     // KNIGHT attacks
-    INLINE Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { return _attacks_type_bb[NIHT][s]; }
+    INLINE Bitboard attacks_bb<NIHT> (Square s, Bitboard occ) { (void)occ; return _attacks_type_bb[NIHT][s]; }
     template<>
     // KING attacks
-    INLINE Bitboard attacks_bb<KING> (Square s, Bitboard occ) { return _attacks_type_bb[KING][s]; }
+    INLINE Bitboard attacks_bb<KING> (Square s, Bitboard occ) { (void)occ; return _attacks_type_bb[KING][s]; }
     // --------------------------------
 
     template<PType PT>

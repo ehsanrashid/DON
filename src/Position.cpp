@@ -157,6 +157,7 @@ namespace {
     template<>
     INLINE PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
+        bb; dst; stm_attackers; occupied; attackers;
         return KING; // No need to update bitboards, it is the last cycle
     }
 
@@ -637,7 +638,7 @@ bool Position::pseudo_legal (Move m) const
     Rank r_dst = rel_rank (active, dst);
 
     PType pt = _type (p);
-    PType ct;
+    PType ct = NONE;
 
     Square cap = dst;
 
@@ -669,7 +670,7 @@ bool Position::pseudo_legal (Move m) const
         ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
 
         dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-        Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+        //Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
         Delta step      = king_side ? DEL_E : DEL_W;
         Bitboard enemies = pieces (pasive);
         Square s  = org + step;
@@ -882,7 +883,6 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    Color pc = _color (p);
     PType pt = _type  (p);
 
     // Direct check ?
@@ -933,8 +933,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         ASSERT (false);
         return false;
     }
-
-    return false;
+    //return false;
 }
 
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
@@ -943,7 +942,8 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     if (!check (m, ci)) return false;
 
     Position pos = *this;
-    pos.do_move (m, StateInfo ());
+    StateInfo si;
+    pos.do_move (m, si);
     return !MoveList<LEGAL> (pos).size ();
 }
 

@@ -197,7 +197,6 @@ namespace MoveGenerator {
                 const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
                 const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
-                Bitboard bbRR8 = rel_rank_bb (C, R_8);
                 Bitboard bbRR7 = rel_rank_bb (C, R_7);
                 Bitboard bbRR3 = rel_rank_bb (C, R_3);
 
@@ -301,6 +300,8 @@ namespace MoveGenerator {
                 // Promotions (queening and under-promotions)
                 if (pawns_on_R7)
                 {
+                    Bitboard bbRR8 = rel_rank_bb (C, R_8);
+
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & bbRR8))
                     {
@@ -531,7 +532,7 @@ namespace MoveGenerator {
         Square org_king  = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
 
-        Square check_sq;
+        Square check_sq = SQ_NO;
         int32_t checker_count = 0;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
@@ -587,7 +588,7 @@ namespace MoveGenerator {
                 :  BLACK == active ? generate_moves<BLACK, EVASION> (m_list, pos, targets)
                 :  m_list;
         }
-        
+
         return m_list;
     }
 

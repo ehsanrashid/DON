@@ -51,7 +51,7 @@ namespace EndGame {
 
 #ifdef _DEBUG
 
-        inline bool verify_material (const Position &pos, Color c, Value npm, uint32_t num_pawns)
+        inline bool verify_material (const Position &pos, Color c, Value npm, int32_t num_pawns)
         {
             return (pos.non_pawn_material(c) == npm) && (pos.piece_count<PAWN> (c) == num_pawns);
         }

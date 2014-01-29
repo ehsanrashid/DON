@@ -37,6 +37,13 @@ public:
         uint16_t weight;
         uint32_t learn;
 
+        //PolyglotBook ()
+        //    : key (U64 (0))
+        //    , move (MOVE_NONE)
+        //    , weight (0)
+        //    , learn (0)
+        //{}
+
         operator std::string () const;
 
         template<class charT, class Traits>
