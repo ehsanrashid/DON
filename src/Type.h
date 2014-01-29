@@ -785,7 +785,7 @@ template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
 {
-    os << move_to_can (m);
+    os << move_to_can (m, false);
     return os;
 }
 

@@ -129,9 +129,9 @@ namespace UCI {
         }
         string SpinOption::operator() () const
         {
-            return string ("type spin default ") + to_string (int64_t (_default)) +
-                string (" min ") + to_string (int64_t (_min_value)) +
-                string (" max ") + to_string (int64_t (_max_value));
+            return string ("type spin default ") + std::to_string (int64_t (_default)) +
+                string (" min ") + std::to_string (int64_t (_min_value)) +
+                string (" max ") + std::to_string (int64_t (_max_value));
         }
         SpinOption::operator int32_t () const
         {
