@@ -15,7 +15,7 @@ class Game;
 #pragma warning (disable: 4250)
 
 // PGN file with *.pgn extension
-typedef class PGN sealed
+typedef class PGN
     : private std::fstream
     , public std::noncopyable
 {

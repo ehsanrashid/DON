@@ -3,6 +3,7 @@
 #define SEARCHER_H_
 
 #include <iomanip>
+#include <memory>
 #include "Type.h"
 #include "Time.h"
 #include "Position.h"

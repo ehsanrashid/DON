@@ -18,7 +18,7 @@ class Position;
 // with the highest byte first (regardless of size).
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
-typedef class PolyglotBook sealed
+typedef class PolyglotBook
     : private std::fstream
     , public std::noncopyable
 {
@@ -30,7 +30,7 @@ public:
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    typedef struct PolyglotEntry sealed
+    typedef struct PolyglotEntry
     {
         uint64_t key;
         uint16_t move;

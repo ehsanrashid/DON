@@ -16,7 +16,7 @@ typedef enum Result : uint8_t
 
 } Result;
 
-typedef struct Tag sealed
+typedef struct Tag
 {
 private:
 
@@ -50,7 +50,7 @@ public:
 } Tag;
 
 
-typedef class Game sealed
+typedef class Game
 {
 public:
 
@@ -58,10 +58,10 @@ public:
 
 private:
 
-    TagMap          _map_tag;
+    TagMap              _map_tag;
 
-    MoveList        _lst_move;
-    StateInfoStack  _stk_state;
+    std::vector<Move>   _lst_move;
+    StateInfoStack      _stk_state;
 
     Position   _last_pos;
     Result     _result;

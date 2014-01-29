@@ -7,7 +7,7 @@
 #include "Time.h"
 
 // Singleton I/O logger class
-typedef class DebugLogger sealed
+typedef class DebugLogger
 {
 
 private:

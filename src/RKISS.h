@@ -21,7 +21,7 @@
 // - Thread safe
 // - small noncryptographic PRNG approach is suited for Zobrist Hashing.
 // http://chessprogramming.wikispaces.com/Bob+Jenkins
-typedef class RKISS sealed
+typedef class RKISS
 {
 
 public:

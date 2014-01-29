@@ -55,8 +55,8 @@ namespace UCI {
         typedef class  CheckOption : public Option
         {
         public:
-            bool default;
-            bool value;
+            bool _default;
+            bool _value;
 
             CheckOption (const bool val, const OnChange on_change = NULL);
 
@@ -71,8 +71,8 @@ namespace UCI {
         typedef class StringOption : public Option
         {
         public:
-            std::string default;
-            std::string value;
+            std::string _default;
+            std::string _value;
 
             StringOption (const char val[], const OnChange on_change = NULL);
 
@@ -87,9 +87,10 @@ namespace UCI {
         typedef class   SpinOption : public Option
         {
         public:
-            int32_t default;
-            int32_t value;
-            int32_t min_value, max_value;
+            int32_t _default;
+            int32_t _value;
+            int32_t _min_value
+                ,   _max_value;
 
             SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
 
@@ -104,7 +105,7 @@ namespace UCI {
         typedef class  ComboOption : public Option
         {
         public:
-            // value;
+            // _value;
 
             ComboOption (const OnChange on_change = NULL);
 

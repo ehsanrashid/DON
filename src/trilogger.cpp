@@ -25,7 +25,7 @@ namespace TrivialLogger {
 
     namespace implementation {
 
-        typedef class TriLoggerImpl sealed
+        typedef class TriLoggerImpl
         {
 
         public:

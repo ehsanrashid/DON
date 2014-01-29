@@ -46,7 +46,7 @@ namespace std {
 
     // generic null output stream class
     template <class charT, class Traits = char_traits<charT> >
-    class basic_null_stream sealed
+    class basic_null_stream
         : private basic_null_buffer<charT, Traits>
         , public basic_ostream<charT, Traits>
     {

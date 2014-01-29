@@ -37,22 +37,20 @@ namespace std {
     // string case-sensitive equals
     inline bool  equals (const std::string &s1, const std::string &s2)
     {
-        //return !strcmp(s1.c_str(), s2.c_str());
+        //return !strcmp(s1.c_str (), s2.c_str ());
         return (s1 == s2);
     }
     // string case-insensitive equals
     inline bool iequals (const std::string &s1, const std::string &s2)
     {
-        //std::string ss1 = s1;
-        //std::string ss2 = s2;
-        //to_lower (ss1); //to_upper (ss1);
-        //to_lower (ss2); //to_upper (ss2);
-        //return (ss1 == ss2);
+        //to_lower (const_cast<string&> (s1)); //to_upper ();
+        //to_lower (const_cast<string&> (s2)); //to_upper ();
+        //return (s1 == s2);
 
-        //return !stricmp(s1.c_str(), s2.c_str());
+        //return !stricmp(s1.c_str (), s2.c_str ());
 
         return (s1.size () == s2.size ()) &&
-            std::equal (s1.cbegin(), s1.cend(), s2.cbegin(), [] (char c1, char c2)
+            std::equal (s1.cbegin (), s1.cend (), s2.cbegin (), [] (char c1, char c2)
         {
             return toupper (c1) == toupper (c2);
         });
@@ -158,15 +156,13 @@ namespace std {
 
     inline std::string& remove_substring (std::string &s, const std::string &sub)
     {
-        auto l = sub.length ();
         const size_t length = sub.length ();
         if (0 < length)
         {
             size_t pos = s.find (sub);
             while (std::string::npos != pos)
             {
-                // erase (start_position_to_erase, number_of_symbols)
-                s.erase (pos, length);
+                s.erase (pos, length); // (start_position, number_of_symbols)
                 pos = s.find (sub, pos);
             }
         }

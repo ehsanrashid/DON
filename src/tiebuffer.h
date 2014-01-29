@@ -9,7 +9,7 @@
 namespace std {
 
     template<class Elem, class Traits>
-    class basic_tie_buf sealed
+    class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
         , public noncopyable
     {

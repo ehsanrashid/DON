@@ -5,7 +5,6 @@
 #include <cctype>
 #include <climits>
 #include <vector>
-//#include <stack>
 
 #include "Platform.h"
 
@@ -780,7 +779,6 @@ inline bool _ok (Move m)
 
     return (org_sq (m) != dst_sq (m));
 }
-
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&

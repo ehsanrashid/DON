@@ -16,8 +16,8 @@
 INLINE uint64_t system_time_msec ()
 {
     _timeb timebuf;
-    //_ftime (&timebuf);
-    _ftime_s (&timebuf);
+    _ftime (&timebuf);
+    //_ftime_s (&timebuf);
     return ((timebuf.time * 1000LL) + timebuf.millitm);
 }
 

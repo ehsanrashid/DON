@@ -39,127 +39,127 @@ namespace UCI {
         {
             return string ("type button");
         }
-        //Option& ButtonOption::operator= (char   *v)
+        //Option& ButtonOption::operator= (char *value)
         //{
         //    if (_on_change) _on_change (*this);
         //    return *this;
         //}
-        Option& ButtonOption::operator= (string &v)
+        Option& ButtonOption::operator= (string &value)
         {
             if (_on_change) _on_change (*this);
             return *this;
         }
 
-        CheckOption::CheckOption (const bool val, const OnChange on_change)
+        CheckOption::CheckOption (const bool value, const OnChange on_change)
             : Option (on_change)
         {
-            default = value = val;
+            _default = _value = value;
         }
         string CheckOption::operator() () const
         {
-            return string ("type check default ") + string ((default) ? "true" : "false");
+            return string ("type check default ") + string (_default ? "true" : "false");
         }
         CheckOption::operator bool () const
         {
-            return value;
+            return _value;
         }
-        //Option& CheckOption::operator= (char   *v)
+        //Option& CheckOption::operator= (char *value)
         //{
-        //    if (whitespace (v)) return *this;
-        //    bool val = iequals (v, "true");
-        //    if (value != val)
+        //    if (whitespace (value)) return *this;
+        //    bool value = iequals (value, "true");
+        //    if (_value != value)
         //    {
-        //        value = val;
+        //        _value = value;
         //        if (_on_change) _on_change (*this);
         //    }
         //    return *this;
         //}
-        Option& CheckOption::operator= (string &v)
+        Option& CheckOption::operator= (string &value)
         {
-            if (whitespace (v)) return *this;
-            bool val = iequals (v, "true");
-            if (value != val)
+            if (whitespace (value)) return *this;
+            bool bol = iequals (value, "true");
+            if (_value != bol)
             {
-                value = val;
+                _value = bol;
                 if (_on_change) _on_change (*this);
             }
             return *this;
         }
 
-        StringOption::StringOption (const char val[], const OnChange on_change)
+        StringOption::StringOption (const char value[], const OnChange on_change)
             : Option (on_change)
         {
-            default = value = val;
+            _default = _value = value;
         }
         string StringOption::operator() () const
         {
-            return string ("type string default ") + string (whitespace (default) ? "<empty>" : value);
+            return string ("type string default ") + string (whitespace (_default) ? "<empty>" : _value);
         }
         StringOption::operator string () const
         {
-            return whitespace (value) ? "<empty>" : value;
+            return whitespace (_value) ? "<empty>" : _value;
         }
-        //Option& StringOption::operator= (char   *v)
+        //Option& StringOption::operator= (char *value)
         //{
-        //    if (value != v)
+        //    if (_value != value)
         //    {
-        //        value = v;
+        //        _value = value;
         //        if (_on_change) _on_change (*this);
         //    }
         //    return *this;
         //}
-        Option& StringOption::operator= (string &v)
+        Option& StringOption::operator= (string &value)
         {
-            if (value != v)
+            if (_value != value)
             {
-                value = v;
+                _value = value;
                 if (_on_change) _on_change (*this);
             }
             return *this;
         }
 
-        SpinOption::SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change)
+        SpinOption::SpinOption (int32_t value, int32_t min_val, int32_t max_val, const OnChange on_change)
             : Option (on_change)
         {
-            default = value = val;
-            min_value = min_val;
-            max_value = max_val;
+            _default = _value = value;
+            _min_value = min_val;
+            _max_value = max_val;
         }
         string SpinOption::operator() () const
         {
-            return string ("type spin default ") + to_string (int64_t (default)) +
-                string (" min ") + to_string (int64_t (min_value)) +
-                string (" max ") + to_string (int64_t (max_value));
+            return string ("type spin default ") + to_string (int64_t (_default)) +
+                string (" min ") + to_string (int64_t (_min_value)) +
+                string (" max ") + to_string (int64_t (_max_value));
         }
         SpinOption::operator int32_t () const
         {
-            return value;
+            return _value;
         }
-        //Option& SpinOption::operator= (char   *v)
+        //Option& SpinOption::operator= (char *value)
         //{
-        //    if (whitespace (v)) return *this;
-        //    int32_t val = to_int (v);
-        //    val = min (max (val, min_value), max_value);
-        //    //if (min_value < val && val < max_value)
+        //    if (whitespace (value)) return *this;
+        //    int32_t value = to_int (value);
+        //    value = min (max (value, _min_value), _max_value);
+        //    //if (_min_value < value && value < _max_value)
         //    {
-        //        if (value != val)
+        //        if (_value != value)
         //        {
-        //            value = val;
+        //            _value = value;
         //            if (_on_change) _on_change (*this);
         //        }
         //    }
         //    return *this;
         //}
-        Option& SpinOption::operator= (string &v)
+        Option& SpinOption::operator= (string &value)
         {
-            if (whitespace (v)) return *this;
-            int32_t val = stoi (v);
-            val = min (max (val, min_value), max_value);
-            //if (min_value < val && val < max_value)
+            if (whitespace (value)) return *this;
+            int32_t val = stoi (value);
+            val = min (max (val, _min_value), _max_value);
+            //if (_min_value < val && val < _max_value)
             {
-                if (value != val)
+                if (_value != val)
                 {
-                    value = val;
+                    _value = val;
                     if (_on_change) _on_change (*this);
                 }
             }
@@ -173,12 +173,12 @@ namespace UCI {
         {
             return string ("type combo");
         }
-        //Option& ComboOption::operator= (char   *v)
+        //Option& ComboOption::operator= (char *value)
         //{
         //    if (_on_change) _on_change (*this);
         //    return *this;
         //}
-        Option& ComboOption::operator= (string &v)
+        Option& ComboOption::operator= (string &value)
         {
             if (_on_change) _on_change (*this);
             return *this;

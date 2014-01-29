@@ -43,7 +43,7 @@ namespace TrivialLogger {
     }
 
     // main trivial logger class
-    typedef class TriLogger sealed
+    typedef class TriLogger
     {
 
     private:

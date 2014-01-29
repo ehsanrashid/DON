@@ -59,7 +59,7 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 //  - Bitboard of all checking pieces.
 //  - Pointer to previous StateInfo. 
 //  - Hash keys for all previous positions in the game for detecting repetition draws.
-typedef struct StateInfo sealed
+typedef struct StateInfo
 {
 public:
 
@@ -112,7 +112,7 @@ public:
 //  - pinned pieces.
 //  - check discoverer pieces.
 //  - enemy king square.
-typedef struct CheckInfo sealed
+typedef struct CheckInfo
 {
 public:
     // Checking squares from which the enemy king can be checked

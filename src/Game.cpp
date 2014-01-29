@@ -14,7 +14,7 @@ Game::Game ()
 Game::Game (int8_t dummy)
 {}
 
-Game::Game (const          char *text)
+Game::Game (const char   *text)
 {
     Game game (int8_t (0));
     if (parse (game, text))
@@ -171,7 +171,7 @@ void Game::print_tags (ostream &ostream) const
     }
 }
 
-bool Game::parse (Game &game, const        char *text)
+bool Game::parse (Game &game, const char   *text)
 {
     bool is_ok = false;
     char *c = strdup (text);

@@ -516,7 +516,6 @@ namespace {
 
 }
 
-
 void get_eco ()
 {
     for (uint16_t i = 0; i < MAX_ECO; ++i)

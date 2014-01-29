@@ -12,7 +12,7 @@ typedef struct ECO
     std::string code;
     std::string name;
     std::string moves;
-    //MoveList    moves;
+    //std::vector<Move>    moves;
 
 } ECO;
 
