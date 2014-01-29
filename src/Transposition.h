@@ -196,7 +196,7 @@ public:
     // It is used to display the "info hashfull ..." information in UCI.
     // "the hash is <x> permill full", the engine should send this info regularly.
     // hash, are using <x>%. of the state of full.
-    inline uint32_t TranspositionTable::permill_full () const
+    inline uint32_t permill_full () const
     {
         return _stored_entry * 1000 / (_hash_mask + NUM_TENTRY_CLUSTER);
     }

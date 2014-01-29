@@ -261,7 +261,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //vector<PolyglotEntry> pe_list;
     //while ((*this >> pe), (pe.key == key) && good ())
     //{
-    //    pe_list.emplace_back (pe);
+    //    pe_list.push_back (pe);
     //    max_weight = max (max_weight, pe.weight);
     //    sum_weight += pe.weight;
     //}
@@ -269,8 +269,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //
     //if (pick_best)
     //{
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
-    //    while (itr != pe_list.cend ())
+    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
     //        if (pe.weight == max_weight)
@@ -289,8 +289,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
     //    uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
-    //    while (itr != pe_list.cend ())
+    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
     //        if (pe.weight > rand)
@@ -396,12 +396,12 @@ string PolyglotBook::read_entries (const Position &pos)
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
     {
-        pe_list.emplace_back (pe);
+        pe_list.push_back (pe);
         sum_weight += pe.weight;
     }
 
     ostringstream ss;
-    for_each (pe_list.cbegin (), pe_list.cend (), [&ss, &sum_weight] (PolyglotEntry pe)
+    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PolyglotEntry pe)
     {
         ss  << setfill ('0')
             << pe << " prob: " << right << fixed << width_prec (6, 2)

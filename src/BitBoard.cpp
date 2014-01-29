@@ -749,13 +749,13 @@ namespace BitBoard {
     //
     //    //for (Square s = SQ_A1; s <= SQ_H8; ++s)
     //    //{
-    //    //    if (bb & s) sq_lst.emplace_back (s);
+    //    //    if (bb & s) sq_lst.push_back (s);
     //    //}
     //
     //    while (bb)
     //    {
     //        Square s = pop_lsq (bb);
-    //        sq_lst.emplace_back (s);
+    //        sq_lst.push_back (s);
     //    }
     //
     //    return sq_lst;

@@ -126,8 +126,8 @@ namespace Searcher {
             : curr_value (-VALUE_INFINITE)
             , last_value (-VALUE_INFINITE)
         {
-            pv.emplace_back (m);
-            pv.emplace_back (MOVE_NONE);
+            pv.push_back (m);
+            pv.push_back (MOVE_NONE);
         }
         
         // Ascending Sort

@@ -150,8 +150,8 @@ namespace UCI {
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator
-                itr = options.cbegin ();
-                itr != options.cend (); ++itr)
+                itr = options.begin ();
+                itr != options.end (); ++itr)
             {
                 if (idx == itr->second->index)
                 {

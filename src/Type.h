@@ -801,7 +801,7 @@ inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_lst)
 //{
-//    std::for_each (sq_lst.cbegin (), sq_lst.cend (), [&os] (Square s) { os << s << std::endl; });
+//    std::for_each (sq_lst.begin (), sq_lst.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
 

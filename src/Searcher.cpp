@@ -262,7 +262,7 @@ namespace Searcher {
 
         do
         {
-            pv.emplace_back (m);
+            pv.push_back (m);
 
             ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
@@ -284,7 +284,7 @@ namespace Searcher {
             && (ply < MAX_PLY)
             && (!pos.draw () || ply < 2));
 
-        pv.emplace_back (MOVE_NONE); // Must be zero-terminating
+        pv.push_back (MOVE_NONE); // Must be zero-terminating
 
         while (ply)
         {

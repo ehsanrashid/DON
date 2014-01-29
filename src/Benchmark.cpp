@@ -96,7 +96,7 @@ void benchmark (istream &is, const Position &pos)
     }
     else if (iequals (fn_fen, "current"))
     {
-        fens.emplace_back (pos.fen ());
+        fens.push_back (pos.fen ());
     }
     else
     {
@@ -113,7 +113,7 @@ void benchmark (istream &is, const Position &pos)
         {
             if (!fen.empty ())
             {
-                fens.emplace_back (fen);
+                fens.push_back (fen);
             }
         }
         fstm_fen.close ();
