@@ -45,7 +45,7 @@ namespace MoveGenerator {
                         if (ci)
                         {
                             if ( (BSHP == PT || ROOK == PT || QUEN == PT) &&
-                                !(attacks_bb<PT> (s) & targets & ci->checking_bb[PT]))
+                                !(attacks_bb<PT> (s) & targets & ci->checking_sq[PT]))
                             {
                                 continue;
                             }
@@ -59,7 +59,7 @@ namespace MoveGenerator {
                     Bitboard moves = attacks_bb<PT> (s, occ) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci) moves &= ci->checking_bb[PT];
+                        if (ci) moves &= ci->checking_sq[PT];
                     }
 
                     SERIALIZE (m_list, s, moves);
@@ -93,7 +93,12 @@ namespace MoveGenerator {
                     {
                         if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
-                            if (NULL == ci) ci = &CheckInfo (pos);
+                        	CheckInfo cc;
+                            if (NULL == ci)
+                            {
+                            	cc = CheckInfo (pos);
+                            	ci = &cc;
+                            }
 
                             if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
                             {
@@ -372,7 +377,7 @@ namespace MoveGenerator {
                     }
                     else
                     {
-                        ci; // silence a warning under MSVC
+                        (void*) ci; // silence a warning under MSVC
                     }
                 }
             }
@@ -385,7 +390,7 @@ namespace MoveGenerator {
         // Generates all pseudo-legal moves of color for targets.
         INLINE ValMove* generate_moves (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
-            Generator<GT, PAWN>::generate<C> (m_list, pos, targets, ci);
+            Generator<GT, PAWN>::generate <C> (m_list, pos, targets, ci);
             Generator<GT, NIHT>::generate (m_list, pos, C, targets, ci);
             Generator<GT, BSHP>::generate (m_list, pos, C, targets, ci);
             Generator<GT, ROOK>::generate (m_list, pos, C, targets, ci);

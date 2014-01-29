@@ -781,11 +781,13 @@ inline bool _ok (Move m)
     return (org_sq (m) != dst_sq (m));
 }
 
+//extern const std::string move_to_can (Move m, bool c960 = false);
+
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
 {
-    os << move_to_can (m, false);
+    os << move_to_can (m);
     return os;
 }
 

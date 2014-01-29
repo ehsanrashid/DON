@@ -47,7 +47,7 @@ namespace UCI {
         //}
         Option& ButtonOption::operator= (string &value)
         {
-            value;
+        	(void) value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -183,7 +183,7 @@ namespace UCI {
         //}
         Option& ComboOption::operator= (string &value)
         {
-            value;
+        	(void) value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -196,7 +196,7 @@ namespace UCI {
 
         void on_clear_hash      (const Option &opt)
         {
-            opt;
+            (void) opt;
             ClearHash = true;
             sync_cout << "info string hash cleared." << sync_endl;
         }
@@ -209,7 +209,7 @@ namespace UCI {
 
         void on_save_hash       (const Option &opt)
         {
-            opt;
+        	(void) opt;
             ofstream ofstm (*(Options["Hash File"]), ios_base::out | ios_base::binary);
             ofstm << TT;
             ofstm.close ();
@@ -217,7 +217,7 @@ namespace UCI {
 
         void on_load_hash       (const Option &opt)
         {
-            opt;
+        	(void) opt;
             ifstream ifstm (*(Options["Hash File"]), ios_base::in | ios_base::binary);
             ifstm >> TT;
             ifstm.close ();
@@ -225,19 +225,19 @@ namespace UCI {
 
         void on_change_book     (const Option &opt)
         {
-            opt;
+        	(void) opt;
             if (Searcher::book.is_open ()) Searcher::book.close ();
         }
 
         void on_change_threads  (const Option &opt)
         {
-            opt;
+        	(void) opt;
             Threads.read_uci_options ();
         }
 
         void on_change_eval     (const Option& opt)
         {
-            opt;
+        	(void) opt;
             Evaluator::initialize ();
         }
 
@@ -253,7 +253,7 @@ namespace UCI {
 
         void on_query           (const Option &opt)
         {
-            opt;
+        	(void) opt;
         }
 
     }

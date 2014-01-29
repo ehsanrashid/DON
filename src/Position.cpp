@@ -886,7 +886,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     PType pt = _type  (p);
 
     // Direct check ?
-    if (ci.checking_bb[pt] & dst) return true;
+    if (ci.checking_sq[pt] & dst) return true;
 
     // Discovery check ?
     if (UNLIKELY (ci.discoverers) && ci.discoverers & org)
@@ -1324,7 +1324,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (NORMAL == mt)
         {
             // Direct check ?
-            if (ci->checking_bb[pt] & dst) _si->checkers += dst;
+            if (ci->checking_sq[pt] & dst) _si->checkers += dst;
 
             // Discovery check ?
             if (QUEN != pt)

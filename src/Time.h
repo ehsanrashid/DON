@@ -11,7 +11,7 @@
 #ifdef _WIN32   // WINDOWS
 
 #   include <sys/timeb.h>
-//#   include <time.h>
+#   include <time.h>
 
 INLINE uint64_t system_time_msec ()
 {
@@ -53,11 +53,14 @@ namespace Time {
 
 #ifdef _WIN32
 
-        time_t time = (t / MS_SEC);
+        time_t tt = (t / MS_SEC);
 
-        char str_time[26];
-        errno_t err = ctime_s (str_time, sizeof (str_time), &time);
-        if (err) return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (time));
+//        char str_time[26];
+//        errno_t err = ctime_s (str_time, sizeof (str_time), &tt);
+//        if (err) return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (tt));
+
+        char *str_time = ctime (&tt);
+
         str_time[10] = '\0';
         str_time[19] = '\0';
         str_time[24] = '\0';

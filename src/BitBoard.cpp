@@ -601,7 +601,7 @@ namespace BitBoard {
     // Convert bin string to hex string
     string to_hex_str (string &sbb)
     {
-        remove_if (sbb, isspace);
+        remove_if (sbb, ::isspace);
 
         size_t length = sbb.length ();
         //ASSERT (SQ_NO == length);
@@ -639,8 +639,10 @@ namespace BitBoard {
 
             char buf[3];
             memset (buf, 0, sizeof (buf));
-            _snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
-            //sprintf_s(buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
+            sprintf (buf, "%02X", to_bitboard (sb, 2));
+            //sprintf_s (buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
+            //_snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
+
             shex += buf;
         }
         return shex;

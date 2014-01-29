@@ -135,8 +135,8 @@ namespace LeakDetector {
     // Writes all info of the unallocated memory into a output file
     void report_memleakage ()
     {
-        FILE *fp_write; // = fopen (FILE_OUTPUT, "wb");
-        errno_t err = fopen_s (&fp_write, FILE_OUTPUT, "wb");
+        FILE *fp_write = fopen (FILE_OUTPUT, "wb");
+        //errno_t err = fopen_s (&fp_write, FILE_OUTPUT, "wb");
 
         if (fp_write)
         {
@@ -146,22 +146,29 @@ namespace LeakDetector {
             leak_info = ptr_head;
 
             size_t x;
-            x = sprintf_s (info_buf, size, "%s\n", "Memory Leak Summary");
+            x = sprintf (info_buf, "%s\n", "Memory Leak Summary");
+            //x = sprintf_s (info_buf, size, "%s\n", "Memory Leak Summary");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-            x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
+            x = sprintf (info_buf, "%s\n", "-----------------------------------");
+            //x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
 
             while (leak_info)
             {
-                x = sprintf_s (info_buf, size, "address : %p\n", leak_info->mem_info.address);
+                x = sprintf (info_buf, "address : %p\n", leak_info->mem_info.address);
+                //x = sprintf_s (info_buf, size, "address : %p\n", leak_info->mem_info.address);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf_s (info_buf, size, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
+                x = sprintf (info_buf, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
+                //x = sprintf_s (info_buf, size, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf_s (info_buf, size, "filename: %s\n", leak_info->mem_info.fn);
+                x = sprintf (info_buf, "filename: %s\n", leak_info->mem_info.fn);
+                //x = sprintf_s (info_buf, size, "filename: %s\n", leak_info->mem_info.fn);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf_s (info_buf, size, "line #  : %u\n", leak_info->mem_info.line_no);
+                x = sprintf (info_buf, "line #  : %u\n", leak_info->mem_info.line_no);
+                //x = sprintf_s (info_buf, size, "line #  : %u\n", leak_info->mem_info.line_no);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
+                x = sprintf (info_buf, "%s\n", "-----------------------------------");
+                //x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
 
                 leak_info = leak_info->next;

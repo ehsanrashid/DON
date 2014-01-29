@@ -18,19 +18,19 @@ namespace std {
         if (s.empty ()) return true;
         for (size_t i = 0; i < s.length (); ++i)
         {
-            if (!isspace (unsigned char (s[i]))) return false;
+            if (!isspace ((unsigned char) (s[i]))) return false;
         }
         return true;
     }
 
     inline std::string& to_lower (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), tolower);
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::tolower);
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), toupper);
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::toupper);
         return s;
     }
 

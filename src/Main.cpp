@@ -20,7 +20,7 @@ namespace {
 
 }
 
-void main (int32_t argc, const char* const argv[])
+int main (int32_t argc, const char* const argv[])
 {
     string args = args_str (argc, argv);
 
