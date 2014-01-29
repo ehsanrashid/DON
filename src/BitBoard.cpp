@@ -1,6 +1,5 @@
 ﻿#include "BitBoard.h"
 
-#include <iostream>
 #include "xstring.h"
 
 #include "BitCount.h"

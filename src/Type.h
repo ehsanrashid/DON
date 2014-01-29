@@ -5,6 +5,7 @@
 #include <cctype>
 #include <climits>
 #include <vector>
+#include <iostream>
 
 #include "Platform.h"
 
@@ -72,38 +73,38 @@ const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 #pragma warning (disable: 4341)
 
 // File of Square
-typedef enum File : int8_t
+typedef enum File
 {
-    F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO,
+    F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO
 
 } File;
 
 // Rank of Square
-typedef enum Rank : int8_t
+typedef enum Rank
 {
-    R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO,
+    R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO
 
 } Rank;
 
 // Diagonal of Square
-typedef enum Diag : int8_t
+typedef enum Diag
 {
     D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
-    D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO,
+    D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO
 
 } Diag;
 
 // Color of Square and Side
-typedef enum Color : uint8_t
+typedef enum Color
 {
-    WHITE, BLACK, CLR_NO,
+    WHITE, BLACK, CLR_NO
 
 } Color;
 
 // Square needs 6-bits (0-5) to be stored
 // bit 0-2: File
 // bit 3-5: Rank
-typedef enum Square : int8_t
+typedef enum Square
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -123,12 +124,12 @@ typedef enum Square : int8_t
     SQ_BK_Q  = SQ_C8,
     SQ_BK_K  = SQ_G8,
     SQ_BR_Q  = SQ_D8,
-    SQ_BR_K  = SQ_F8,
+    SQ_BR_K  = SQ_F8
 
 } Square;
 
 // Delta of Square
-typedef enum Delta : int8_t
+typedef enum Delta
 {
 
     DEL_O =  0,
@@ -158,21 +159,21 @@ typedef enum Delta : int8_t
     DEL_SSW = DEL_SS + DEL_W,
 
     DEL_WWN = DEL_WW + DEL_N,
-    DEL_WWS = DEL_WW + DEL_S,
+    DEL_WWS = DEL_WW + DEL_S
 
 } Delta;
 
 // Castle Side
-typedef enum CSide : uint8_t
+typedef enum CSide
 {
     CS_K ,    // SHORT CASTLE
     CS_Q ,    // LONG  CASTLE
-    CS_NO,
+    CS_NO
 
 } CSide;
 
 // Castle Right
-typedef enum CRight : uint8_t
+typedef enum CRight
 {
     CR_NO ,                 // 0000
     CR_W_K,                 // 0001
@@ -182,12 +183,12 @@ typedef enum CRight : uint8_t
 
     CR_W = CR_W_K | CR_W_Q, // 0011
     CR_B = CR_B_K | CR_B_Q, // 1100
-    CR_A = CR_W   | CR_B,   // 1111
+    CR_A = CR_W   | CR_B    // 1111
 
 } CRight;
 
 // Type of the Piece
-typedef enum PType : uint8_t
+typedef enum PType
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
@@ -196,7 +197,7 @@ typedef enum PType : uint8_t
     QUEN  , // 100 - QUEEN
     KING  , // 101 - KING
     NONE  , // 110 - NONE
-    ALLS  ,
+    ALLS
 
 } PType;
 
@@ -216,7 +217,7 @@ typedef enum PType : uint8_t
 // PAWN  & KING  < 3
 // MINOR & MAJOR > 2
 // ONLY MAJOR    > 5
-typedef enum Piece : uint8_t
+typedef enum Piece
 {
 
     W_PAWN = 0, //  0000
@@ -233,7 +234,7 @@ typedef enum Piece : uint8_t
     B_BSHP    , //  1010
     B_ROOK    , //  1011
     B_QUEN    , //  1100
-    B_KING    , //  1101
+    B_KING      //  1101
 
     // TOTAL piece is 14
     //W_PIEC    = 0x00, //  0...
@@ -241,12 +242,12 @@ typedef enum Piece : uint8_t
 } Piece;
 
 // Type of Move
-typedef enum MType : uint16_t
+typedef enum MType
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
-    PROMOTE   = 3 << 14, //0xC000, // 11xx
+    PROMOTE   = 3 << 14  //0xC000, // 11xx
 } MType;
 
 // Move stored in 16-bits
@@ -260,10 +261,10 @@ typedef enum MType : uint16_t
 // Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
-typedef enum Move : uint16_t
+typedef enum Move
 {
     MOVE_NONE = 0x00,
-    MOVE_NULL = 0x41,
+    MOVE_NULL = 0x41
 
     //MOVE_C2C4 = 0x029A,
     //MOVE_D2D4 = 0x02DB,
@@ -289,7 +290,7 @@ typedef enum Move : uint16_t
 
 } Move;
 
-typedef enum Value : int32_t
+typedef enum Value
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
@@ -312,7 +313,7 @@ typedef enum Value : int32_t
     VALUE_MG_KNIGHT =  817,  VALUE_EG_KNIGHT =  846,
     VALUE_MG_BISHOP =  836,  VALUE_EG_BISHOP =  857,
     VALUE_MG_ROOK   = 1270,  VALUE_EG_ROOK   = 1278,
-    VALUE_MG_QUEEN  = 2521,  VALUE_EG_QUEEN  = 2558,
+    VALUE_MG_QUEEN  = 2521,  VALUE_EG_QUEEN  = 2558
 
 } Value;
 
@@ -320,16 +321,16 @@ typedef enum Value : int32_t
 // first LSB 16 bits are used to store endgame value, while upper bits are used
 // for midgame value. Compiler is free to choose the enum type as long as can
 // keep its data, so ensure Score to be an integer type.
-typedef enum Score : int32_t
+typedef enum Score
 {
     SCORE_ZERO      = 0,
 
     SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX,
-    SCORE_ENSURE_INTEGER_SIZE_N = INT_MIN,
+    SCORE_ENSURE_INTEGER_SIZE_N = INT_MIN
 
 } Score;
 
-typedef enum Depth : int16_t
+typedef enum Depth
 {
     ONE_PLY             =    1,
     ONE_MOVE            =    2 * ONE_PLY,
@@ -339,11 +340,11 @@ typedef enum Depth : int16_t
     DEPTH_QS_NO_CHECKS  =   -1 * ONE_MOVE,
     DEPTH_QS_RECAPTURES =   -5 * ONE_MOVE,
 
-    DEPTH_NONE          = -128 * ONE_MOVE,
+    DEPTH_NONE          = -128 * ONE_MOVE
 
 } Depth;
 
-typedef enum Bound : uint8_t
+typedef enum Bound
 {
     // NONE BOUND           - NO
     BND_NONE    = 0,
@@ -373,7 +374,7 @@ typedef enum Bound : uint8_t
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    BND_EXACT   = BND_LOWER | BND_UPPER,
+    BND_EXACT   = BND_LOWER | BND_UPPER
 
     //BND_NODE_ALL  = 4,
     //BND_UPPER_ALL = BND_LOWER | BND_NODE_ALL,
@@ -381,25 +382,25 @@ typedef enum Bound : uint8_t
 
 } Bound;
 
-typedef enum Phase : int16_t
+typedef enum Phase
 {
     PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
 
     MG = 0,
     EG = 1,
-    PHASE_NO = 2,
+    PHASE_NO = 2
 
 } Phase;
 
-typedef enum ScaleFactor : uint8_t
+typedef enum ScaleFactor
 {
     SCALE_FACTOR_DRAW    =   0,
 
     SCALE_FACTOR_ONEPAWN =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = 255,
+    SCALE_FACTOR_NONE    = 255
 
 } ScaleFactor;
 
@@ -457,14 +458,14 @@ inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU)
     inline T& operator-- (T &d         ) { d = T (int32_t (d) - 1); return d; }
 
 
-INC_DEC_OPERATORS (File);
+INC_DEC_OPERATORS (File)
 inline File  operator+  (File  f, int32_t i) { return File (int32_t (f) + i); }
 inline File  operator-  (File  f, int32_t i) { return File (int32_t (f) - i); }
 inline File& operator+= (File &f, int32_t i) { f = File (int32_t (f) + i); return f; }
 inline File& operator-= (File &f, int32_t i) { f = File (int32_t (f) - i); return f; }
 
 
-INC_DEC_OPERATORS (Rank);
+INC_DEC_OPERATORS (Rank)
 inline Rank  operator+  (Rank  r, int32_t i) { return Rank (int32_t (r) + i); }
 inline Rank  operator-  (Rank  r, int32_t i) { return Rank (int32_t (r) - i); }
 inline Rank& operator+= (Rank &r, int32_t i) { r = Rank (int32_t (r) + i); return r; }
@@ -472,21 +473,21 @@ inline Rank& operator-= (Rank &r, int32_t i) { r = Rank (int32_t (r) - i); retur
 
 //INC_DEC_OPERATORS (Diag);
 
-INC_DEC_OPERATORS (Color);
+INC_DEC_OPERATORS (Color)
 
 // Square operator
-INC_DEC_OPERATORS (Square);
+INC_DEC_OPERATORS (Square)
 inline Square  operator+  (Square  s, Delta d) { return Square (int32_t (s) + int32_t (d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square (int32_t (s) - int32_t (d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square (int32_t (s) + int32_t (d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square (int32_t (s) - int32_t (d)); return s; }
 inline Delta   operator-  (Square s1, Square s2) { return Delta (int32_t (s1) - int32_t (s2)); }
 
-ARTHMAT_OPERATORS (Delta);
+ARTHMAT_OPERATORS (Delta)
 inline Delta  operator/  (Delta  d, int32_t i) { return Delta (int32_t (d) / i); }
 inline Delta& operator/= (Delta &d, int32_t i) { d = Delta (int32_t (d) / i); return d; }
 
-INC_DEC_OPERATORS (CSide);
+INC_DEC_OPERATORS (CSide)
 
 // CRight operator
 inline CRight  operator|  (CRight  cr, int32_t i) { return CRight (int32_t (cr) | i); }
@@ -496,14 +497,14 @@ inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) | 
 inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) & i); return cr; }
 inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) ^ i); return cr; }
 
-INC_DEC_OPERATORS (PType);
+INC_DEC_OPERATORS (PType)
 
 // Move operator
 inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); return m; }
 inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); return m; }
 
-ARTHMAT_OPERATORS (Value);
-INC_DEC_OPERATORS (Value);
+ARTHMAT_OPERATORS (Value)
+INC_DEC_OPERATORS (Value)
 // Added operators for adding integers to a Value
 //inline Value  operator+  (Value v, int32_t i) { return Value (int32_t (v) + i); }
 //inline Value  operator-  (Value v, int32_t i) { return Value (int32_t (v) - i); }
@@ -512,7 +513,7 @@ inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); 
 inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }
 inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
 
-ARTHMAT_OPERATORS (Score);
+ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. We don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
@@ -521,8 +522,8 @@ inline Score operator/ (Score s, int32_t i) { return mk_score (mg_value (s) / i,
 
 //ARTHMAT_OPERATORS (ScaleFactor)
 
-ARTHMAT_OPERATORS (Depth);
-INC_DEC_OPERATORS (Depth);
+ARTHMAT_OPERATORS (Depth)
+INC_DEC_OPERATORS (Depth)
 inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); }
 
 #undef ARTHMAT_OPERATORS
@@ -784,7 +785,7 @@ template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
     operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
 {
-    os << move_to_can (m);
+    os << move_to_can (m, false);
     return os;
 }
 

@@ -40,7 +40,7 @@ namespace EndGame {
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB,   // KNP vs KB
+        KNPKB   // KNP vs KB
 
     } EndgameType;
 

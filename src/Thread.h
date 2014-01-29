@@ -37,12 +37,14 @@ typedef void*(*pt_start_fn)(void*);
 #else // Windows and MinGW
 
 #   include <intrin.h>
-
-#   define NOMINMAX // disable macros min() and max()
-#   define WIN32_LEAN_AND_MEAN
+ // disable macros min() and max()
+#   ifndef  NOMINMAX
+#       define NOMINMAX
+#endif
+#   ifndef  WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#endif
 #   include <windows.h>
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()

@@ -18,19 +18,19 @@ namespace std {
         if (s.empty ()) return true;
         for (size_t i = 0; i < s.length (); ++i)
         {
-            if (!isspace (unsigned char (s[i]))) return false;
+            if (!isspace ((unsigned char) (s[i]))) return false;
         }
         return true;
     }
 
     inline std::string& to_lower (std::string &s)
     {
-        std::transform (s.begin (), s.end (), s.begin (), tolower);
+        std::transform (s.begin (), s.end (), s.begin (), ::tolower);
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
-        std::transform (s.begin (), s.end (), s.begin (), toupper);
+        std::transform (s.begin (), s.end (), s.begin (), ::toupper);
         return s;
     }
 
@@ -47,13 +47,13 @@ namespace std {
         //to_lower (const_cast<string&> (s2)); //to_upper ();
         //return (s1 == s2);
 
-        //return !stricmp(s1.c_str (), s2.c_str ());
+        return !stricmp (s1.c_str (), s2.c_str ());
 
-        return (s1.size () == s2.size ()) &&
-            std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)
-        {
-            return toupper (c1) == toupper (c2);
-        });
+        //return (s1.size () == s2.size ()) &&
+        //    std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)
+        //{
+        //    return toupper (c1) == toupper (c2);
+        //});
     }
 
     //// char case-sensitive equals
@@ -69,18 +69,18 @@ namespace std {
         //    std::find_if (s.begin (), s.end (),
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))));
 
-        s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch) { return (ch != c); }));
+        //s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch) { return (ch != c); }));
 
         return s;
     }
     // trim from tail
     inline std::string& rtrim (std::string &s, char c = ' ')
     {
-        //s.erase (std::find_if (s.crbegin (), s.crend (),
+        //s.erase (std::find_if (s.rbegin (), s.rend (),
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))).base (),
         //    s.end ());
 
-        s.erase (std::find_if (s.crbegin (), s.crend (), [&] (char ch) { return (ch != c); }).base (), s.end ());
+        //s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch) { return (ch != c); }).base (), s.end ());
 
         return s;
     }
@@ -182,13 +182,13 @@ namespace std {
     //    }
     //}
 
-    inline std::string remove_dup (const std::string &s)
-    {
-        // unique char set
-        std::unordered_set<char> char_set (begin (s), end (s));
-        std::string unique_str (begin (char_set), end (char_set));
-        return unique_str;
-    }
+    //inline std::string remove_dup (const std::string &s)
+    //{
+    //    // unique char set
+    //    std::unordered_set<char> char_set (begin (s), end (s));
+    //    std::string unique_str (begin (char_set), end (char_set));
+    //    return unique_str;
+    //}
 
     inline std::size_t count_substr (const std::string &s, const std::string &sub, bool overlap = true)
     {
@@ -301,7 +301,7 @@ namespace std {
     //
     //    //static std::string const sep_fn ( "\\/" );
     //    //std::string::const_iterator pivot
-    //    //    = std::find_first_of (path.crbegin (), path.crend (), sep_fn.crbegin (), sep_fn.crend ());
+    //    //    = std::find_first_of (path.rbegin (), path.rend (), sep_fn.rbegin (), sep_fn.rend ());
     //
     //    return path.find_last_of ("/\\");
     //

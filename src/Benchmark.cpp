@@ -84,11 +84,11 @@ void benchmark (istream &is, const Position &pos)
     TT.clear ();
     Limits_t limits;
 
-    if      (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
-    else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
-    else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
+    if      (iequals (limit_type, "time"))  limits.move_time = atoi (limit_val.c_str ()) * MS_SEC; // movetime is in ms
+    else if (iequals (limit_type, "nodes")) limits.nodes     = atoi (limit_val.c_str ());
+    else if (iequals (limit_type, "mate"))  limits.mate_in   = atoi (limit_val.c_str ());
     //else if (iequals (limit_type, "depth"))
-    else                                    limits.depth     = stoi (limit_val);
+    else                                    limits.depth     = atoi (limit_val.c_str ());
 
     if      (iequals (fn_fen, "default"))
     {
@@ -100,7 +100,7 @@ void benchmark (istream &is, const Position &pos)
     }
     else
     {
-        ifstream fstm_fen (fn_fen);
+        ifstream fstm_fen (fn_fen.c_str ());
 
         if (!fstm_fen.is_open ())
         {
@@ -126,20 +126,20 @@ void benchmark (istream &is, const Position &pos)
 
     for (size_t i = 0; i < fens.size (); ++i)
     {
-        Position pos (fens[i], Threads.main (), chess960);
+        Position root_pos (fens[i], Threads.main (), chess960);
 
         cerr << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << fens.size () << "\n";
 
         if (limit_type == "perft")
         {
-            size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
+            size_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
             cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
             nodes += cnt;
         }
         else
         {
-            Threads.start_thinking (pos, limits, states);
+            Threads.start_thinking (root_pos, limits, states);
             Threads.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();
         }

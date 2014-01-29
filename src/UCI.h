@@ -135,8 +135,12 @@ namespace UCI {
 
     }
 
+    //class OptionType::Option;
+
     //typedef std::shared_ptr<OptionType::Option> OptionPtr;
+    //typedef std::auto_ptr<OptionType::Option> OptionPtr;
     typedef std::unique_ptr<OptionType::Option> OptionPtr;
+    //#define OptionPtr std::unique_ptr<OptionType::Option>
 
     typedef std::map<std::string, OptionPtr, std::string_less_nocase_comparer> OptionMap;
 

@@ -2,7 +2,6 @@
 #ifndef TRANSPOSITION_H_
 #define TRANSPOSITION_H_
 
-#include <iostream>
 #include <cstdlib>
 #include "Type.h"
 //#include "LeakDetector.h"
@@ -50,22 +49,21 @@ public:
     Value      value () const { return Value      (_value); }
     Value    e_value () const { return Value    (_e_value); }
 
-    void save (uint32_t key, Move move, Depth depth, Bound bound,
-        uint8_t gen, uint16_t nodes, Value value, Value e_value)
+    void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value ev)
     {
-        _key     = uint32_t (key);
-        _move    = uint16_t (move);
-        _depth   = uint16_t (depth);
-        _bound   =  uint8_t (bound);
-        _gen     =  uint8_t (gen);
-        _nodes   = uint16_t (nodes);
-        _value   = uint16_t (value);
-        _e_value = uint16_t (e_value);
+        _key     = uint32_t (k);
+        _move    = uint16_t (m);
+        _depth   = uint16_t (d);
+        _bound   =  uint8_t (b);
+        _gen     =  uint8_t (g);
+        _nodes   = uint16_t (n);
+        _value   = uint16_t (v);
+        _e_value = uint16_t (ev);
     }
 
-    void gen (uint8_t gen)
+    void gen (uint8_t g)
     {
-        _gen = gen;
+        _gen = g;
     }
 
 } TranspositionEntry;
