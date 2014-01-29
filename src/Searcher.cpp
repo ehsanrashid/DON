@@ -1,6 +1,5 @@
 ﻿#include "Searcher.h"
 
-#include <iostream>
 #include <cfloat>
 
 #include "UCI.h"

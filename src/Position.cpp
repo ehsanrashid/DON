@@ -1,6 +1,5 @@
 #include "Position.h"
 #include <sstream>
-#include <iostream>
 #include <algorithm>
 
 #include "BitBoard.h"

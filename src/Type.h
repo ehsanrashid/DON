@@ -5,6 +5,7 @@
 #include <cctype>
 #include <climits>
 #include <vector>
+#include <iostream>
 
 #include "Platform.h"
 

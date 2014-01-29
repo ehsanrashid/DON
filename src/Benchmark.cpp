@@ -1,7 +1,6 @@
 #include "Benchmark.h"
 
 #include <fstream>
-#include <iostream>
 #include <vector>
 #include "xstring.h"
 
@@ -126,20 +125,20 @@ void benchmark (istream &is, const Position &pos)
 
     for (size_t i = 0; i < fens.size (); ++i)
     {
-        Position pos (fens[i], Threads.main (), chess960);
+        Position root_pos (fens[i], Threads.main (), chess960);
 
         cerr << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << fens.size () << "\n";
 
         if (limit_type == "perft")
         {
-            size_t cnt = perft (pos, int32_t (limits.depth) * ONE_MOVE);
+            size_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
             cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
             nodes += cnt;
         }
         else
         {
-            Threads.start_thinking (pos, limits, states);
+            Threads.start_thinking (root_pos, limits, states);
             Threads.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();
         }

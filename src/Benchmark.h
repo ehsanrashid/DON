@@ -2,7 +2,7 @@
 #ifndef BENCHMARK_H_
 #define BENCHMARK_H_
 
-#include <istream>
+#include <iosfwd>
 
 #include "Position.h"
 
