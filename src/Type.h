@@ -95,7 +95,7 @@ typedef enum Diag : int8_t
 } Diag;
 
 // Color of Square and Side
-typedef enum Color : uint8_t
+typedef enum Color : int8_t
 {
     WHITE, BLACK, CLR_NO,
 
@@ -188,7 +188,7 @@ typedef enum CRight : uint8_t
 } CRight;
 
 // Type of the Piece
-typedef enum PType : uint8_t
+typedef enum PType : int8_t
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
