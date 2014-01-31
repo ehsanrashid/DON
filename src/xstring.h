@@ -25,12 +25,20 @@ namespace std {
 
     inline std::string& to_lower (std::string &s)
     {
+<<<<<<< HEAD
         std::transform (s.begin (), s.end (), s.begin (), ::tolower);
+=======
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::tolower);
+>>>>>>> origin/PieceList
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
+<<<<<<< HEAD
         std::transform (s.begin (), s.end (), s.begin (), ::toupper);
+=======
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::toupper);
+>>>>>>> origin/PieceList
         return s;
     }
 

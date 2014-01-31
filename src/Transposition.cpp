@@ -145,9 +145,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    //if (!re->move () && move && _stored_entry < (_hash_mask + NUM_TENTRY_CLUSTER)) ++_stored_entry;
     if (!re->move () && move) ++_stored_entry;
     if (re->move () && !move) --_stored_entry;
+
     re->save (key32, move, depth, bound, _generation, nodes/1000, value, e_value);
 }
 

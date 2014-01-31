@@ -94,7 +94,7 @@ PolyglotBook& PolyglotBook::operator>> (T &t)
     t = T ();
     for (size_t i = 0; i < sizeof (T) && good (); ++i)
     {
-        uint8_t byte = get ();
+        uint8_t byte = uint8_t (get ());
         t = T ((t << 8) + byte);
     }
     return *this;
@@ -439,11 +439,12 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 
 void PolyglotBook::import_pgn (const string &fn_pgn)
 {
-
+    fn_pgn;
 }
 
 void PolyglotBook::merge_book (const string &fn_book)
 {
+    fn_book;
 
 }
 

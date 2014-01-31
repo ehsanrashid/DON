@@ -166,7 +166,7 @@ namespace UCI {
 
             Key posi_key = RootPos.posi_key ();
 
-            RootPos.setup (fen, Threads.main (), *(Options["UCI_Chess960"]));
+            RootPos.setup (fen, Threads.main (), bool (*(Options["UCI_Chess960"])));
 
             if (ClearHash && posi_key != RootPos.posi_key ())
             {
@@ -246,6 +246,7 @@ namespace UCI {
 
         void exe_debug (cmdstream &cstm)
         {
+            (void) cstm;
             // debug on/off
         }
 
@@ -325,8 +326,8 @@ namespace UCI {
             if (cstm.good () && (cstm >> token))
             {
                 stringstream ss;
-                ss  << Options["Hash"] << " "
-                    << Options["Threads"] << " "
+                ss  << *(Options["Hash"]) << " "
+                    << *(Options["Threads"]) << " "
                     << token << " current perft";
 
                 benchmark (ss, RootPos);
@@ -345,7 +346,7 @@ namespace UCI {
 
     void start (const string &args)
     {
-        RootPos.setup (FEN_N, Threads.main (), *(Options["UCI_Chess960"]));
+        RootPos.setup (FEN_N, Threads.main (), bool (*(Options["UCI_Chess960"])));
 
         bool running = args.empty ();
         string cmd = args;

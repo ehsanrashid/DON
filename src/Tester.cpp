@@ -1,5 +1,4 @@
 #include "Tester.h"
-#include <iostream>
 
 #ifdef _DEBUG
 #include "xcstring.h"

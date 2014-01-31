@@ -1,6 +1,5 @@
 #include "Position.h"
 #include <sstream>
-#include <iostream>
 #include <algorithm>
 
 #include "BitBoard.h"
@@ -89,14 +88,14 @@ namespace {
         S( -54,-68), S(-19,-53), S(  5,-21), S( 17, 14), S( 17, 14), S(  5,-21), S(-19,-53), S( -54,-68),
         S(-190,-98), S(-55,-83), S(-31,-51), S(-19,-16), S(-19,-16), S(-31,-51), S(-55,-83), S(-190,-98), },
         // Bishop
-        {S(-40,-59), S(-40,-42), S(-35,-35), S(-30,-26), S(-30,-26), S(-35,-35), S(-40,-42), S(-40,-59),
-        S(-17,-42), S(  0,-26), S( -4,-18), S(  0,-11), S(  0,-11), S( -4,-18), S(  0,-26), S(-17,-42),
-        S(-13,-35), S( -4,-18), S(  8,-11), S(  4, -4), S(  4, -4), S(  8,-11), S( -4,-18), S(-13,-35),
-        S( -8,-26), S(  0,-11), S(  4, -4), S( 17,  4), S( 17,  4), S(  4, -4), S(  0,-11), S( -8,-26),
-        S( -8,-26), S(  0,-11), S(  4, -4), S( 17,  4), S( 17,  4), S(  4, -4), S(  0,-11), S( -8,-26),
-        S(-13,-35), S( -4,-18), S(  8,-11), S(  4, -4), S(  4, -4), S(  8,-11), S( -4,-18), S(-13,-35),
-        S(-17,-42), S(  0,-26), S( -4,-18), S(  0,-11), S(  0,-11), S( -4,-18), S(  0,-26), S(-17,-42),
-        S(-17,-59), S(-17,-42), S(-13,-35), S( -8,-26), S( -8,-26), S(-13,-35), S(-17,-42), S(-17,-59), },
+        {S(-44,-65), S(-17,-42), S(-24,-44), S(-33,-26), S(-33,-26), S(-24,-44), S(-17,-42), S(-44,-65),
+        S(-19,-43), S(  8,-20), S(  1,-22), S( -8, -4), S( -8, -4), S(  1,-22), S(  8,-20), S(-19,-43),
+        S(-10,-33), S( 17,-10), S( 10,-12), S(  1,  6), S(  1,  6), S( 10,-12), S( 17,-10), S(-10,-33),
+        S( -9,-35), S( 18,-12), S( 11,-14), S(  2,  4), S(  2,  4), S( 11,-14), S( 18,-12), S( -9,-35),
+        S(-12,-35), S( 15,-12), S(  8,-14), S( -1,  4), S( -1,  4), S(  8,-14), S( 15,-12), S(-12,-35),
+        S(-18,-33), S(  9,-10), S(  2,-12), S( -7,  6), S( -7,  6), S(  2,-12), S(  9,-10), S(-18,-33),
+        S(-22,-43), S(  5,-20), S( -2,-22), S(-11, -4), S(-11, -4), S( -2,-22), S(  5,-20), S(-22,-43),
+        S(-39,-65), S(-12,-42), S(-19,-44), S(-28,-26), S(-28,-26), S(-19,-44), S(-12,-42), S(-39,-65), },
         // Rook
         {S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
         S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
@@ -158,6 +157,7 @@ namespace {
     template<>
     INLINE PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
+        bb; dst; stm_attackers; occupied; attackers;
         return KING; // No need to update bitboards, it is the last cycle
     }
 
@@ -638,7 +638,7 @@ bool Position::pseudo_legal (Move m) const
     Rank r_dst = rel_rank (active, dst);
 
     PType pt = _type (p);
-    PType ct;
+    PType ct = NONE;
 
     Square cap = dst;
 
@@ -670,7 +670,7 @@ bool Position::pseudo_legal (Move m) const
         ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
 
         dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-        Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
+        //Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
         Delta step      = king_side ? DEL_E : DEL_W;
         Bitboard enemies = pieces (pasive);
         Square s  = org + step;
@@ -883,11 +883,10 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    Color pc = _color (p);
     PType pt = _type  (p);
 
     // Direct check ?
-    if (ci.checking_bb[pt] & dst) return true;
+    if (ci.checking_sq[pt] & dst) return true;
 
     // Discovery check ?
     if (UNLIKELY (ci.discoverers) && ci.discoverers & org)
@@ -934,8 +933,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         ASSERT (false);
         return false;
     }
-
-    return false;
+    //return false;
 }
 
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
@@ -944,7 +942,8 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     if (!check (m, ci)) return false;
 
     Position pos = *this;
-    pos.do_move (m, StateInfo ());
+    StateInfo si;
+    pos.do_move (m, si);
     return !MoveList<LEGAL> (pos).size ();
 }
 
@@ -1325,7 +1324,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (NORMAL == mt)
         {
             // Direct check ?
-            if (ci->checking_bb[pt] & dst) _si->checkers += dst;
+            if (ci->checking_sq[pt] & dst) _si->checkers += dst;
 
             // Discovery check ?
             if (QUEN != pt)
@@ -1335,14 +1334,14 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
                     if (ROOK != pt)
                     {
                         _si->checkers |=
-                        attacks_from<ROOK> (king_sq (pasive)) &
-                        pieces (active, QUEN, ROOK);
+                            attacks_from<ROOK> (king_sq (pasive)) &
+                            pieces (active, QUEN, ROOK);
                     }
                     if (BSHP != pt)
                     {
                         _si->checkers |=
-                        attacks_from<BSHP> (king_sq (pasive)) &
-                        pieces (active, QUEN, BSHP);
+                            attacks_from<BSHP> (king_sq (pasive)) &
+                            pieces (active, QUEN, BSHP);
                     }
                 }
             }

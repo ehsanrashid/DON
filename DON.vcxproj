@@ -568,6 +568,7 @@
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
+    <ClCompile Include="src\LeakDetector.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\MoveGenerator.cpp" />
@@ -598,6 +599,7 @@
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\functor.h" />
+    <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Material.h" />

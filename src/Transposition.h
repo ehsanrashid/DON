@@ -49,7 +49,12 @@ public:
     Value      value () const { return Value      (_value); }
     Value    e_value () const { return Value    (_e_value); }
 
+<<<<<<< HEAD
     void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value ev)
+=======
+    void save (uint32_t k, Move m, Depth d, Bound b,
+        uint8_t g, uint16_t n, Value v, Value ev)
+>>>>>>> origin/PieceList
     {
         _key     = uint32_t (k);
         _move    = uint16_t (m);

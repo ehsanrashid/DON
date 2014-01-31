@@ -116,13 +116,15 @@ typedef struct CheckInfo
 {
 public:
     // Checking squares from which the enemy king can be checked
-    Bitboard checking_bb[NONE];
+    Bitboard checking_sq[NONE];
     // Pinned pieces
     Bitboard pinneds;
     // Check discoverer pieces
     Bitboard discoverers;
     // Enemy king square
     Square king_sq;
+
+    CheckInfo () {}
 
     explicit CheckInfo (const Position &pos);
 
@@ -206,9 +208,9 @@ public:
 
     Position () { clear (); }
 #ifdef _DEBUG
-    Position (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true)
+    Position (const char        *f, Thread *th = NULL, bool c960 = false, bool full = true)
     {
-        if (!setup (fen, thread, c960, full)) clear ();
+        if (!setup (f, th, c960, full)) clear ();
     }
 #endif
     Position (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true)
@@ -217,7 +219,11 @@ public:
     }
     Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
     //Position (const Position &pos) { *this = pos; }
+<<<<<<< HEAD
     explicit Position (int8_t dummy) { ++dummy; }
+=======
+    explicit Position (int8_t dummy) { ++ dummy; }
+>>>>>>> origin/PieceList
 
 
     Position& operator= (const Position &pos);
@@ -891,18 +897,18 @@ inline CheckInfo::CheckInfo (const Position &pos)
     pinneds = pos.pinneds (active);
     discoverers = pos.discoverers (active);
 
-    checking_bb[PAWN] = BitBoard::attacks_bb<PAWN> (pasive, king_sq);
-    checking_bb[NIHT] = BitBoard::attacks_bb<NIHT> (king_sq);
-    checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
-    checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
-    checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
-    checking_bb[KING] = U64 (0);
+    checking_sq[PAWN] = BitBoard::attacks_bb<PAWN> (pasive, king_sq);
+    checking_sq[NIHT] = BitBoard::attacks_bb<NIHT> (king_sq);
+    checking_sq[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
+    checking_sq[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
+    checking_sq[QUEN] = checking_sq[BSHP] | checking_sq[ROOK];
+    checking_sq[KING] = U64 (0);
 }
 
 //inline void CheckInfo::clear ()
 //{
-//    //for (PType pt = PAWN; pt <= KING; ++pt) checking_bb[pt] = U64 (0);
-//    fill_n (checking_bb, sizeof (checking_bb) / sizeof (*checking_bb), U64 (0));
+//    //for (PType pt = PAWN; pt <= KING; ++pt) checking_sq[pt] = U64 (0);
+//    fill_n (checking_sq, sizeof (checking_sq) / sizeof (*checking_sq), U64 (0));
 //
 //    king_sq     = SQ_NO;
 //    pinneds     = U64 (0);

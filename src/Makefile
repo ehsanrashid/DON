@@ -171,7 +171,7 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti -std=c++11 $(EXTRACXXFLAGS)
 LDFLAGS += $(EXTRALDFLAGS)
 
 ifeq ($(COMP),)
@@ -187,7 +187,6 @@ endif
 ifeq ($(COMP),mingw)
 	comp=mingw
 	CXX=g++
-    # -std=c++0x
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static-libstdc++ -static-libgcc
 endif

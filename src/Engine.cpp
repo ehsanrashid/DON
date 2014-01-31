@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include <iomanip>
-#include <iostream>
 
 #include "BitBoard.h"
 #include "BitBases.h"

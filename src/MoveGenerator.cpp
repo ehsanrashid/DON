@@ -45,7 +45,7 @@ namespace MoveGenerator {
                         if (ci)
                         {
                             if ( (BSHP == PT || ROOK == PT || QUEN == PT) &&
-                                !(attacks_bb<PT> (s) & targets & ci->checking_bb[PT]))
+                                !(attacks_bb<PT> (s) & targets & ci->checking_sq[PT]))
                             {
                                 continue;
                             }
@@ -59,7 +59,7 @@ namespace MoveGenerator {
                     Bitboard moves = attacks_bb<PT> (s, occ) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci) moves &= ci->checking_bb[PT];
+                        if (ci) moves &= ci->checking_sq[PT];
                     }
 
                     SERIALIZE (m_list, s, moves);
@@ -93,7 +93,12 @@ namespace MoveGenerator {
                     {
                         if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
-                            if (NULL == ci) ci = &CheckInfo (pos);
+                            CheckInfo cc;
+                            if (NULL == ci)
+                            {
+                                cc = CheckInfo (pos);
+                                ci = &cc;
+                            }
 
                             if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
                             {
@@ -197,7 +202,6 @@ namespace MoveGenerator {
                 const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
                 const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
-                Bitboard bbRR8 = rel_rank_bb (C, R_8);
                 Bitboard bbRR7 = rel_rank_bb (C, R_7);
                 Bitboard bbRR3 = rel_rank_bb (C, R_3);
 
@@ -301,6 +305,8 @@ namespace MoveGenerator {
                 // Promotions (queening and under-promotions)
                 if (pawns_on_R7)
                 {
+                    Bitboard bbRR8 = rel_rank_bb (C, R_8);
+
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & bbRR8))
                     {
@@ -371,7 +377,7 @@ namespace MoveGenerator {
                     }
                     else
                     {
-                        ci; // silence a warning under MSVC
+                        (void*) ci; // silence a warning under MSVC
                     }
                 }
             }
@@ -384,7 +390,7 @@ namespace MoveGenerator {
         // Generates all pseudo-legal moves of color for targets.
         INLINE ValMove* generate_moves (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
-            Generator<GT, PAWN>::generate<C> (m_list, pos, targets, ci);
+            Generator<GT, PAWN>::generate <C> (m_list, pos, targets, ci);
             Generator<GT, NIHT>::generate (m_list, pos, C, targets, ci);
             Generator<GT, BSHP>::generate (m_list, pos, C, targets, ci);
             Generator<GT, ROOK>::generate (m_list, pos, C, targets, ci);
@@ -531,7 +537,7 @@ namespace MoveGenerator {
         Square org_king  = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
 
-        Square check_sq;
+        Square check_sq = SQ_NO;
         int32_t checker_count = 0;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
@@ -587,7 +593,7 @@ namespace MoveGenerator {
                 :  BLACK == active ? generate_moves<BLACK, EVASION> (m_list, pos, targets)
                 :  m_list;
         }
-        
+
         return m_list;
     }
 

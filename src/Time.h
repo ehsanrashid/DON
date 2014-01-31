@@ -53,6 +53,7 @@ namespace Time {
 
 #ifdef _WIN32
 
+<<<<<<< HEAD
         time_t time = (t / MS_SEC);
         char *str_time = ctime (&time);
 
@@ -63,6 +64,15 @@ namespace Time {
         //{
         //    return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (time));
         //}
+=======
+        time_t tt = (t / MS_SEC);
+
+//        char str_time[26];
+//        errno_t err = ctime_s (str_time, sizeof (str_time), &tt);
+//        if (err) return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (tt));
+
+        char *str_time = ctime (&tt);
+>>>>>>> origin/PieceList
 
         str_time[10] = '\0';
         str_time[19] = '\0';

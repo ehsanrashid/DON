@@ -1,6 +1,5 @@
 ﻿#include "Searcher.h"
 
-#include <iostream>
 #include <cfloat>
 
 #include "UCI.h"
@@ -361,7 +360,7 @@ namespace Searcher {
         if (*(Options["Own Book"]) && !Limits.infinite && !Limits.mate_in)
         {
             if (!book.is_open ()) book.open (*(Options["Book File"]), ios_base::in);
-            Move book_move = book.probe_move (RootPos, *(Options["Best Book Move"]));
+            Move book_move = book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
             if (book_move && count (RootMoves.begin (), RootMoves.end (), book_move))
             {
                 swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
@@ -532,8 +531,9 @@ namespace {
             , delta      =  VALUE_ZERO;
         int32_t depth    =  DEPTH_ZERO;
 
-        MultiPV = int32_t (*(Options["MultiPV"]));
-        Skill skill (*(Options["Skill Level"]));
+        MultiPV       = int32_t (*(Options["MultiPV"]));
+        int32_t level = int32_t (*(Options["Skill Level"]));
+        Skill skill (level);
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
         // that we will use behind the scenes to retrieve a set of possible moves.
