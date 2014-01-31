@@ -182,7 +182,7 @@ void Position::initialize ()
 // so that why detach the state info pointer from the source one.
 Position& Position::operator= (const Position &pos)
 {
-    memcpy (this, &pos, sizeof (Position));
+    std::memcpy (this, &pos, sizeof (Position));
 
     _sb         = *_si;
     _si         = &_sb;
@@ -940,7 +940,7 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0, sizeof (Position));
+    std::memset (this, 0, sizeof (Position));
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1116,7 +1116,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si_n, _si, SIZE_COPY_STATE);
+    std::memcpy (&si_n, _si, SIZE_COPY_STATE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si    = _si;
@@ -1463,7 +1463,7 @@ void Position::do_null_move (StateInfo &si_n)
     ASSERT (!_si->checkers);
 
     // Full copy here
-    memcpy (&si_n, _si, sizeof (StateInfo));
+    std::memcpy (&si_n, _si, sizeof (StateInfo));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;
@@ -1590,7 +1590,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     ASSERT (ok ());
 
     char *ch = (char*) fen;
-    memset (ch, '\0', MAX_FEN);
+    std::memset (ch, '\0', MAX_FEN);
 
 #undef set_next
 

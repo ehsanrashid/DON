@@ -31,7 +31,7 @@ public:
 
     inline void clear ()
     {
-        memset (_table, 0, sizeof (_table));
+        std::memset (_table, 0, sizeof (_table));
     }
 
     inline void update (Piece p, Square s, Move m)

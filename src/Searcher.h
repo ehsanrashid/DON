@@ -69,7 +69,7 @@ namespace Searcher {
 
         std::vector<Move>  search_moves;   // search these moves only restrict
 
-        Limits_t () { memset (this, 0, sizeof (Limits_t)); }
+        Limits_t () { std::memset (this, 0, sizeof (Limits_t)); }
 
         bool use_time_management () const
         {
@@ -104,7 +104,7 @@ namespace Searcher {
         bool first_root_move;
         bool failed_low_at_root;
 
-        Signals_t () { memset (this, 0, sizeof (Signals_t)); }
+        Signals_t () { std::memset (this, 0, sizeof (Signals_t)); }
 
     } Signals_t;
 

@@ -91,8 +91,7 @@ inline void insert_at (char s[], size_t pos, char c)
     //}
     //s[pos] = c;
 
-    //memmove (s + make_room_at + room_to_make, s + make_room_at, size - (make_room_at + room_to_make) + 1);
-    memmove (s + pos + 1, s + pos, length - pos);
+    std::memmove (s + pos + 1, s + pos, length - pos); // (s + make_room_at + room_to_make, s + make_room_at, size - (make_room_at + room_to_make) + 1)
     s[pos] = c;
 
 }
@@ -117,7 +116,7 @@ inline void remove_at (char s[], size_t pos)
     //}
     //// --- s[length - 1] = '\0';
 
-    memmove (s + pos, s + pos + 1, length - pos);
+    std::memmove (s + pos, s + pos + 1, length - pos);
 }
 
 
@@ -188,7 +187,7 @@ inline char* remove_all (char s[], char c = ' ')
     while (p)
     {
         //strcpy (p, p + 1);
-        memmove (p, p + 1, strlen (p + 1) + 1);
+        std::memmove (p, p + 1, strlen (p + 1) + 1);
         p = strchr (p, c);
     }
     return s;
@@ -203,7 +202,7 @@ inline char* remove_substring (char s[], const char sub[])
     while (p)
     {
         //strcpy (p, p + length);
-        memmove (p, p + length, strlen (p + length) + 1);
+        std::memmove (p, p + length, strlen (p + length) + 1);
         p = strstr (p , sub);
     }
     return s;

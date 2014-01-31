@@ -375,7 +375,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (attacks_bb[s], 0, size * sizeof (Bitboard));
+                    std::memset (attacks_bb[s], 0, size * sizeof (Bitboard));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -627,7 +627,7 @@ namespace BitBoard {
             reverse (sb);
 
             char buf[3];
-            memset (buf, 0, sizeof (buf));
+            std::memset (buf, 0, sizeof (buf));
             sprintf (buf, "%02X", to_bitboard (sb, 2));
             //sprintf_s (buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
             //_snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));

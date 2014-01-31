@@ -4,6 +4,7 @@
 
 #include <cctype>
 #include <climits>
+#include <cstring>
 #include <vector>
 #include <iostream>
 
@@ -22,21 +23,21 @@ const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 //#pragma warning (disable: 4341)
 
 // File of Square
-typedef enum File
+typedef enum File : int8_t
 {
     F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO
 
 } File;
 
 // Rank of Square
-typedef enum Rank
+typedef enum Rank : int8_t
 {
     R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO
 
 } Rank;
 
 // Diagonal of Square
-typedef enum Diag
+typedef enum Diag : int8_t
 {
     D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
     D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO
@@ -44,7 +45,7 @@ typedef enum Diag
 } Diag;
 
 // Color of Square and Side
-typedef enum Color
+typedef enum Color : int8_t
 {
     WHITE, BLACK, CLR_NO
 
@@ -53,7 +54,7 @@ typedef enum Color
 // Square needs 6-bits (0-5) to be stored
 // bit 0-2: File
 // bit 3-5: Rank
-typedef enum Square
+typedef enum Square : int8_t
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -78,7 +79,7 @@ typedef enum Square
 } Square;
 
 // Delta of Square
-typedef enum Delta
+typedef enum Delta : int8_t
 {
 
     DEL_O =  0,
@@ -113,7 +114,7 @@ typedef enum Delta
 } Delta;
 
 // Castle Side
-typedef enum CSide
+typedef enum CSide : int8_t
 {
     CS_K ,    // SHORT CASTLE
     CS_Q ,    // LONG  CASTLE
@@ -122,7 +123,7 @@ typedef enum CSide
 } CSide;
 
 // Castle Right
-typedef enum CRight
+typedef enum CRight : uint8_t
 {
     CR_NO ,                 // 0000
     CR_W_K,                 // 0001
@@ -137,7 +138,7 @@ typedef enum CRight
 } CRight;
 
 // Type of the Piece
-typedef enum PType
+typedef enum PType : int8_t
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
@@ -166,7 +167,7 @@ typedef enum PType
 // PAWN  & KING  < 3
 // MINOR & MAJOR > 2
 // ONLY MAJOR    > 5
-typedef enum Piece
+typedef enum Piece : uint8_t
 {
 
     W_PAWN = 0, //  0000
@@ -191,7 +192,7 @@ typedef enum Piece
 } Piece;
 
 // Type of Move
-typedef enum MType
+typedef enum MType : uint16_t
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
@@ -247,7 +248,7 @@ typedef enum Value : int32_t
 // keep its data, so ensure Score to be an integer type.
 typedef enum Score : int32_t { SCORE_ZERO      = 0 } Score;
 
-typedef enum Depth
+typedef enum Depth : int16_t
 {
     ONE_PLY             =    1,
     ONE_MOVE            =    2 * ONE_PLY,
@@ -261,7 +262,7 @@ typedef enum Depth
 
 } Depth;
 
-typedef enum Bound
+typedef enum Bound : uint8_t
 {
     // NONE BOUND           - NO
     BND_NONE    = 0,
@@ -299,7 +300,7 @@ typedef enum Bound
 
 } Bound;
 
-typedef enum Phase
+typedef enum Phase : int16_t
 {
     PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
@@ -310,7 +311,7 @@ typedef enum Phase
 
 } Phase;
 
-typedef enum ScaleFactor
+typedef enum ScaleFactor : uint8_t
 {
     SCALE_FACTOR_DRAW    =   0,
 

@@ -509,7 +509,7 @@ namespace {
     {
         Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
 
-        memset (ss-2, 0, 5 * sizeof (Stack));
+        std::memset (ss-2, 0, 5 * sizeof (Stack));
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();
@@ -1921,7 +1921,7 @@ void Thread::idle_loop ()
             Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
             Position pos (*sp->pos, this);
 
-            memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
+            std::memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
             ss->split_point = sp;
 
             sp->mutex.lock ();

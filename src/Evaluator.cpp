@@ -1083,7 +1083,7 @@ namespace {
         {
             stream.str ("");
             stream << showpoint << showpos << setprecision (2) << fixed;
-            memset (scores, 0, 2 * (TOTAL + 1) * sizeof (Score));
+            std::memset (scores, 0, 2 * (TOTAL + 1) * sizeof (Score));
 
             do_evaluate<true> (pos);
 
