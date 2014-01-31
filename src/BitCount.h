@@ -4,7 +4,7 @@
 
 #include "Type.h"
 
-#pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
+//#pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 
 typedef enum BitCountType
 {
@@ -52,7 +52,7 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #       endif
 }
 
-#   else
+#   else //if defined(_64BIT)
 
 #       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
@@ -188,8 +188,6 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 #endif
 
 
-#pragma region Extra
-
 //static const uint8_t   _CountByte[_UI8_MAX + 1] =
 //{
 //#undef C_6
@@ -266,7 +264,5 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //{
 //    return( wordbits[w & 0xFFFF] + wordbits[w >> 0x10] );
 //}
-
-#pragma endregion
 
 #endif

@@ -18,8 +18,6 @@ namespace MoveGenerator {
 
     namespace {
 
-#pragma region Move Generators
-
         template<GType GT, PType PT>
         // Move Generator for PIECE
         struct Generator
@@ -384,8 +382,6 @@ namespace MoveGenerator {
 
         };
 
-#pragma endregion
-
         template<Color C, GType GT>
         // Generates all pseudo-legal moves of color for targets.
         INLINE ValMove* generate_moves (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
@@ -426,8 +422,6 @@ namespace MoveGenerator {
         //}
 
     }
-
-#pragma region Generates
 
     template<GType GT>
     // Generates all pseudo-legal moves.
@@ -625,8 +619,6 @@ namespace MoveGenerator {
 
         return end;
     }
-
-#pragma endregion
 
 #undef SERIALIZE
 #undef SERIALIZE_PAWNS

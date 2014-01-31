@@ -9,57 +9,6 @@
 
 #include "Platform.h"
 
-#pragma region LIMITS
-#ifndef   _I8_MIN
-// minimum   signed  8 bit value
-#   define _I8_MIN   (-0x7Fi8 -1)
-#endif
-#ifndef   _I8_MAX
-// maximum   signed  8 bit value
-#   define _I8_MAX   (0x7Fi8)
-#endif
-#ifndef  _UI8_MAX
-// maximum unsigned  8 bit value
-#   define _UI8_MAX  (0x7Fui8)
-#endif
-#ifndef  _I16_MIN
-// minimum   signed 16 bit value
-#   define _I16_MIN  (-0x7FFFi16 -1)
-#endif
-#ifndef  _I16_MAX
-// maximum   signed 16 bit value
-#   define _I16_MAX  (0x7FFFi16)
-#endif
-#ifndef _UI16_MAX
-// maximum unsigned 16 bit value
-#   define _UI16_MAX (0xFFFFui16)
-#endif
-#ifndef  _I32_MIN
-// minimum   signed 32 bit value
-#   define _I32_MIN  (-0x7FFFFFFFi32 -1)
-#endif
-#ifndef  _I32_MAX
-// maximum   signed 32 bit value
-#   define _I32_MAX  (0x7FFFFFFFi32)
-#endif
-#ifndef _UI32_MAX
-// maximum unsigned 32 bit value
-#   define _UI32_MAX (0xFFFFFFFFui32)
-#endif
-#ifndef  _I64_MIN
-// minimum   signed 64 bit value
-#   define _I64_MIN  (-0x7FFFFFFFFFFFFFFFi64 -1)
-#endif
-#ifndef  _I64_MAX
-// maximum   signed 64 bit value
-#   define _I64_MAX  (0x7FFFFFFFFFFFFFFFi64)
-#endif
-#ifndef _UI64_MAX
-// maximum unsigned 64 bit value
-#   define _UI64_MAX (0xFFFFFFFFFFFFFFFFui64)
-#endif
-
-#pragma endregion
 
 #define UNLIKELY(x) (x) // For code annotation purposes
 
@@ -69,8 +18,8 @@ typedef uint64_t   Key;      // Type for Zobrist Hash
 const uint8_t MAX_PLY      = 100;          // Maximum Depth 50
 const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 
-#pragma warning (push)
-#pragma warning (disable: 4341)
+//#pragma warning (push)
+//#pragma warning (disable: 4341)
 
 // File of Square
 typedef enum File
@@ -261,42 +210,20 @@ typedef enum MType
 // Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
-typedef enum Move
+typedef enum Move : uint16_t
 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41
 
-    //MOVE_C2C4 = 0x029A,
-    //MOVE_D2D4 = 0x02DB,
-    //MOVE_E2E4 = 0x031C,
-    //MOVE_F2F4 = 0x035D,
-
-    //MOVE_B1C3 = 0x0052,
-    //MOVE_G1F3 = 0x0195,
-
-    //MOVE_C7C5 = 0x0CA2,
-    //MOVE_D7D5 = 0x0CE3,
-    //MOVE_E7E5 = 0x0D24,
-    //MOVE_F7F5 = 0x0D65,
-
-    //MOVE_NC6  = 0x0E6A,
-    //MOVE_NF6  = 0x0FAD,
-
-    //MOVE_W_CQ = 0xC102,
-    //MOVE_W_CK = 0xC106,
-
-    //MOVE_B_CQ = 0xCF3A,
-    //MOVE_B_CK = 0xCF3E,
-
 } Move;
 
-typedef enum Value
+typedef enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
     VALUE_CHIK      = 5,
 
-    VALUE_NONE      = _I16_MAX,
+    VALUE_NONE      = 32767,
     VALUE_INFINITE  = VALUE_NONE - 1,
     _VALUE_INFINITE = -VALUE_INFINITE,
 
@@ -305,9 +232,6 @@ typedef enum Value
 
     VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - MAX_PLY,
     VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
-
-    VALUE_ENSURE_INTEGER_SIZE_P = _I16_MAX,
-    VALUE_ENSURE_INTEGER_SIZE_N = _I16_MIN,
 
     VALUE_MG_PAWN   =  198,  VALUE_EG_PAWN   =  258,
     VALUE_MG_KNIGHT =  817,  VALUE_EG_KNIGHT =  846,
@@ -321,14 +245,7 @@ typedef enum Value
 // first LSB 16 bits are used to store endgame value, while upper bits are used
 // for midgame value. Compiler is free to choose the enum type as long as can
 // keep its data, so ensure Score to be an integer type.
-typedef enum Score
-{
-    SCORE_ZERO      = 0,
-
-    SCORE_ENSURE_INTEGER_SIZE_P = INT_MAX,
-    SCORE_ENSURE_INTEGER_SIZE_N = INT_MIN
-
-} Score;
+typedef enum Score : int32_t { SCORE_ZERO      = 0 } Score;
 
 typedef enum Depth
 {
@@ -404,7 +321,7 @@ typedef enum ScaleFactor
 
 } ScaleFactor;
 
-#pragma warning (pop)
+//#pragma warning (pop)
 
 inline Score mk_score (int32_t mg, int32_t eg) { return Score ((mg << 16) + eg); }
 
@@ -426,8 +343,6 @@ inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU)
 
 #endif
 
-#pragma region Operators
-
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
@@ -446,9 +361,9 @@ inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU)
     inline T  operator*  (int32_t i, T  d) { return T (i * int32_t (d)); }                  \
     inline T& operator*= (T &d, int32_t i) { d = T (int32_t (d) * i); return d; }
 
-//inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  \
-//inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  \
-//inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 \
+//inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  
+//inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  
+//inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 
 //inline T& operator/= (T &d, int32_t i) { d = T (int32_t (d) / i); return d; }
 
 #define INC_DEC_OPERATORS(T)                                                                \
@@ -529,15 +444,11 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-#pragma endregion
-
 extern const std::string CharPiece;
 extern const std::string CharColor;
 
 extern const Value PieceValue[PHASE_NO][ALLS];
 
-
-#pragma region Color
 
 inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~(Color c) { return Color (c ^ BLACK); }
@@ -550,9 +461,6 @@ inline Color operator~(Color c) { return Color (c ^ BLACK); }
 //    return os;
 //}
 
-#pragma endregion
-
-#pragma region File & Rank
 
 inline bool      _ok (File f) { return !(f & ~int32_t (F_H)); }
 inline File operator~(File f) { return File (f ^ F_H); }
@@ -579,9 +487,6 @@ inline char to_char  (Rank r) { return char (r - R_1) + '1'; }
 //    return os;
 //}
 
-#pragma endregion
-
-#pragma region Square
 
 inline Square operator| (File f, Rank r) { return Square (( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square ((~r << 3) | f); }
@@ -623,9 +528,6 @@ inline std::string to_string (Square s)
 
 inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
 
-#pragma endregion
-
-#pragma region Castle
 
 inline CRight mk_castle_right (Color c) { return CRight (CR_W << (c << BLACK)); }
 inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK))); }
@@ -670,9 +572,6 @@ inline CRight can_castle (CRight cr, Color c, CSide cs) { return (cr & mk_castle
 //    return os;
 //}
 
-#pragma endregion
-
-#pragma region Piece
 
 inline bool     _ok (PType pt) { return (PAWN <= pt && pt <= KING); }
 
@@ -692,10 +591,6 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 //    os << CharPiece[p];
 //    return os;
 //}
-
-#pragma endregion
-
-#pragma region Move
 
 inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
 inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
@@ -781,7 +676,7 @@ inline bool _ok (Move m)
     return (org_sq (m) != dst_sq (m));
 }
 
-//extern const std::string move_to_can (Move m, bool c960 = false);
+extern const std::string move_to_can (Move m, bool c960 = false);
 
 template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
@@ -791,14 +686,9 @@ inline std::basic_ostream<charT, Traits>&
     return os;
 }
 
-#pragma endregion
-
-#pragma region Value
 
 inline Value mates_in (int32_t ply) { return (-ply + VALUE_MATE); }
 inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
-
-#pragma endregion
 
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&

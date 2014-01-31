@@ -24,7 +24,7 @@ extern Move move_from_can (std::string &can, const Position &pos);
 //extern Move move_from_lan (std::string &lan, const Position &pos);
 //extern Move move_from_fan (std::string &lan, const Position &pos);
 
-extern const std::string move_to_can (Move m, bool c960 = false);
+//extern const std::string move_to_can (Move m, bool c960 = false);
 extern const std::string move_to_san (Move m, Position &pos);
 //extern const std::string move_to_lan (Move m, Position &pos);
 //extern Move move_to_fan (std::string &lan, const Position &pos);

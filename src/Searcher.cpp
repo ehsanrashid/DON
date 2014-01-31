@@ -244,8 +244,6 @@ namespace Searcher {
     // initialize the PRNG only once
     PolyglotBook book;
 
-#pragma region Root Move
-
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
     // allow to always have a ponder move even when we fail high at root node.
@@ -331,8 +329,6 @@ namespace Searcher {
             --ply;
         }
     }
-
-#pragma endregion
 
     uint64_t perft (Position &pos, Depth depth)
     {

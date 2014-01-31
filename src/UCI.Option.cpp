@@ -261,7 +261,8 @@ namespace UCI {
     void   initialize ()
     {
 
-#pragma region Hash Memory Options
+        // Hash Memory Options
+        // -------------------
 
         // Amount of hash table memory used by engine, in MB.
         // Default 128, min 4, max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
@@ -289,9 +290,9 @@ namespace UCI {
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
         Options["Never Clear Hash"]             = OptionPtr (new CheckOption (false));
 
-#pragma endregion
+        // Persistent Hash Options
+        // -----------------------
 
-#pragma region Persistent Hash Options
         // Persistent Hash means that the in-memory hash table can be saved to a disk file and reloaded later for continuing the analysis.
         // The goal is to be able to interrupt a long position analysis anytime and save the hash table to a disk file.
         // At a later date you can reload the hash file in memory and continue the analysis at the point where it was interrupted.
@@ -330,28 +331,22 @@ namespace UCI {
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
         Options["Load Hash"]                    = OptionPtr (new ButtonOption (on_load_hash));
 
-#pragma endregion
+        // Position Learning Options
+        // -------------------------
 
-#pragma region Position Learning Options
-
-
-
-#pragma endregion
-
-#pragma region Openings Book Options
-
+        // Openings Book Options
+        // ---------------------
         Options["Own Book"]                     = OptionPtr (new CheckOption (false));
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
-#pragma endregion
+        // End Game Table Bases Options
+        // ----------------------------
+        // 
 
-#pragma region End Game Table Bases Options
 
-
-#pragma endregion
-
-#pragma region Cores and Threads Options
+        // Cores and Threads Options
+        // -------------------------
 
         // Maximum number of threads (cores) used by the analysis.
         // Default is hardware-dependent, min 1, max 6 (Standard) or 32 (Pro).
@@ -370,9 +365,8 @@ namespace UCI {
 
         Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 
-#pragma endregion
-
-#pragma region Game Play Options
+        // Game Play Options
+        // -----------------
 
         // Have the engine think during its opponent's time.
         // Default true.
@@ -506,15 +500,10 @@ namespace UCI {
         //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
 
 
-#pragma endregion
-
-#pragma region Debug Options
-
+        ///Debug Options
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
         Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
         Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
-
-#pragma endregion
 
         // TODO::
         Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));

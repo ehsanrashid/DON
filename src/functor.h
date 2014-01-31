@@ -73,13 +73,8 @@ namespace std {
     //{
     //    bool operator() (const string &s1, const string &s2) const
     //    {
-<<<<<<< HEAD
     //        return stricmp(s1.c_str (), s2.c_str ()) == 0;
     //        //return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), char_equal_nocase_comparer());
-=======
-    //        return stricmp (s1.c_str (), s2.c_str ()) == 0;
-    //        //return lexicographical_compare (s1.cbegin (), s1.cend (), s2.cbegin (), s2.cend (), char_equal_nocase_comparer ());
->>>>>>> origin/PieceList
     //    }
     //};
 

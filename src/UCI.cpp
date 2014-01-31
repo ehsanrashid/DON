@@ -31,8 +31,6 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr SetupStates;
 
-#pragma region uci-commands
-
         void exe_uci ()
         {
             sync_cout
@@ -339,8 +337,6 @@ namespace UCI {
             Signals.stop = true;
             Threads.main ()->notify_one (); // Could be sleeping
         }
-
-#pragma endregion
 
     }
 

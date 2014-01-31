@@ -8,6 +8,7 @@
 #include "Time.h"
 #include "Position.h"
 
+#pragma warning (push)
 #pragma warning (disable: 4805)
 
 class PolyglotBook;
@@ -185,5 +186,7 @@ namespace Searcher {
     extern void initialize ();
 
 }
+
+#pragma warning (pop)
 
 #endif // SEARCHER_H_

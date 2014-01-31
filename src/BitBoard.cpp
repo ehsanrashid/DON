@@ -10,7 +10,6 @@ namespace BitBoard {
 
     using namespace std;
 
-#pragma region Constants
 
     const Bitboard FA_bb = U64 (0x0101010101010101);
     const Bitboard FB_bb = FA_bb << 1;//U64 (0x0202020202020202);
@@ -54,9 +53,6 @@ namespace BitBoard {
     //const Bitboard CEN_EX_bb = U64(0x00003C3C3C3C0000); // 16 CENTER EXPANDED squares.
     //const Bitboard HOL_EX_bb = U64(0x00003C24243C0000); // 12 C-HOLE EXPANDED squares.
 
-#pragma endregion
-
-#pragma region LOOKUPs
 
     // FILE & RANK distance
     uint8_t _filerank_dist[F_NO][R_NO];
@@ -279,7 +275,6 @@ namespace BitBoard {
     CACHE_ALIGN(8) uint8_t      BShift[SQ_NO];
     CACHE_ALIGN(8) uint8_t      RShift[SQ_NO];
 
-#pragma endregion
 
     namespace {
 
@@ -414,8 +409,6 @@ namespace BitBoard {
     void initialize ()
     {
 
-#pragma region Constant LOOKUPs
-
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    _square_bb[s] = U64(1) << s;
@@ -438,8 +431,6 @@ namespace BitBoard {
         //{
         //    _front_rank_bb[WHITE][r] = ~(_front_rank_bb[BLACK][r + 1] = _front_rank_bb[BLACK][r] | _rank_bb[r]);
         //}
-
-#pragma endregion
 
         for (File f = F_A; f <= F_H; ++f)
         {
@@ -585,7 +576,6 @@ namespace BitBoard {
 
     }
 
-#pragma region Printing
 
     // Convert a char arr to a Bitboard (uint64_t) using radix
     Bitboard to_bitboard (const char s[], int32_t radix)
@@ -741,8 +731,6 @@ namespace BitBoard {
 
         cout << sbb;
     }
-
-#pragma endregion
 
     //vector<Square> squares (Bitboard bb)
     //{

@@ -14,7 +14,6 @@ using namespace MoveGenerator;
 
 #define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 
-#pragma region PolyglotEntry Operators
 
 inline bool operator== (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
@@ -85,8 +84,6 @@ PolyglotBook::PolyglotEntry::operator string () const
     return spe.str ();
 }
 
-
-#pragma endregion
 
 template<class T>
 PolyglotBook& PolyglotBook::operator>> (T &t)

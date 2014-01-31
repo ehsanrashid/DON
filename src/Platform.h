@@ -11,17 +11,27 @@
 //POPCNT;BSFQ;%(PreprocessorDefinitions)
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
+//#ifdef __cplusplus
+//// This hack copes with memory.h that does or doesnt provide the extern internally.
+//#   define DONT_USE_EXTERN_C
+//extern "C" {
+//#   include <memory.h>
+//}
+//#   undef DONT_USE_EXTERN_C
+//#else
+//#   include <memory>
+//#endif
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 // Disable some silly and noisy warning from MSVC compiler
-#pragma warning (disable: 4127) // Conditional expression is constant
-#pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
-#pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
-#pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-#pragma warning (disable: 4996) // Function _ftime() may be unsafe
-#pragma warning (disable: 6326) // Constant comparison
+//#pragma warning (disable: 4127) // Conditional expression is constant
+//#pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+//#pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
+//#pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+//#pragma warning (disable: 4996) // Function _ftime() may be unsafe
+//#pragma warning (disable: 6326) // Constant comparison
 
 //#   include <stdint.h>
 
@@ -124,7 +134,7 @@ typedef unsigned long long      uint64_t;
 
 #   define CACHE_ALIGN(x)     __declspec(align(x))
 //#   define CACHE_ALIGN(x)     alignas(x)
-                                
+
 #elif defined(__GNUC__)
 
 #   define CACHE_ALIGN(x)     __attribute__((aligned(x)))

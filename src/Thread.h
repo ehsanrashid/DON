@@ -36,24 +36,14 @@ typedef void*(*pt_start_fn)(void*);
 
 #else // Windows and MinGW
 
-#   include <intrin.h>
-<<<<<<< HEAD
- // disable macros min() and max()
+// disable macros min() and max()
 #   ifndef  NOMINMAX
 #       define NOMINMAX
 #endif
 #   ifndef  WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
 #endif
-=======
 
-#	ifndef NOMINMAX
-#   	define NOMINMAX // disable macros min() and max()
-#	endif
-#	ifndef WIN32_LEAN_AND_MEAN
-#   	define WIN32_LEAN_AND_MEAN
-#	endif
->>>>>>> origin/PieceList
 #   include <windows.h>
 
 // We use critical sections on Windows to support Windows XP and older versions,

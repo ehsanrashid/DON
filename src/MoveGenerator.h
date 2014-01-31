@@ -29,7 +29,7 @@ typedef struct ValMove
 namespace MoveGenerator {
 
     // Type of Generators
-    typedef enum GType : uint8_t
+    typedef enum GType
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -42,7 +42,7 @@ namespace MoveGenerator {
 
         // ------------------------
 
-        LEGAL,       // Legal moves
+        LEGAL        // Legal moves
 
     } GType;
 

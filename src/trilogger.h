@@ -166,15 +166,13 @@ namespace TrivialLogger {
 //}
 //
 //// macro shows how to write macros which using user-defined functions
-//#define TRI_LOG_FN(var)   \
-//    ::TrivialLogger::put_debug_info (TrivialLogger::instance (), __FILE__, __LINE__, #var, (var))
+//#define TRI_LOG_FN(var)   ::TrivialLogger::put_debug_info (TrivialLogger::instance (), __FILE__, __LINE__, #var, (var))
 //
 //// below is a place for user defined logger formating data
 //
 //// ...
 //
-//#define TRI_LOG_INFO(var) \
-//    ::TrivialLogger::put_log_info (TrivialLogger::instance (), (var))
+//#define TRI_LOG_INFO(var) ::TrivialLogger::put_log_info (TrivialLogger::instance (), (var))
 //
 
 

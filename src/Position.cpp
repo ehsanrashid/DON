@@ -26,8 +26,6 @@ const Value PieceValue[PHASE_NO][ALLS] =
 };
 
 
-#pragma region FEN
-
 //const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 //const char *const FEN_X = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -49,9 +47,6 @@ bool _ok (const string &fen, bool c960, bool full)
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 
-#pragma endregion
-
-#pragma region Position
 
 namespace {
 
@@ -195,8 +190,6 @@ Position& Position::operator= (const Position &pos)
 
     return *this;
 }
-
-#pragma region Basic properties
 
 // Draw by: Material, 50 Move Rule, Threefold repetition, [Stalemate].
 // It does not detect stalemates, this must be done by the search.
@@ -611,9 +604,6 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     return chk_blockers;
 }
 
-#pragma endregion
-
-#pragma region Move properties
 
 // pseudo_legal(m) tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
@@ -947,10 +937,6 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
     return !MoveList<LEGAL> (pos).size ();
 }
 
-#pragma endregion
-
-#pragma region Basic methods
-
 // clear() clear the position
 void Position::clear ()
 {
@@ -1119,8 +1105,6 @@ Value Position::compute_non_pawn_material (Color c) const
     }
     return value;
 }
-
-#pragma region Do/Undo Move
 
 // do_move() do the move with checking info
 void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
@@ -1513,9 +1497,6 @@ void Position::undo_null_move ()
     ASSERT (ok ());
 }
 
-#pragma endregion
-
-#pragma endregion
 
 // flip position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
@@ -1601,7 +1582,6 @@ void Position::flip ()
     ASSERT (ok ());
 }
 
-#pragma region Conversions
 
 #ifdef _DEBUG
 bool   Position::fen (const char *fen, bool c960, bool full) const
@@ -1653,7 +1633,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     {
         if (_chess960 || c960)
         {
-#pragma region X-FEN
             if (can_castle (WHITE))
             {
                 if (can_castle (CR_W_K)) set_next (to_char (_file (castle_rook (WHITE, CS_K)), false));
@@ -1664,11 +1643,9 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
                 if (can_castle (CR_B_K)) set_next (to_char (_file (castle_rook (BLACK, CS_K)), true));
                 if (can_castle (CR_B_Q)) set_next (to_char (_file (castle_rook (BLACK, CS_Q)), true));
             }
-#pragma endregion
         }
         else
         {
-#pragma region N-FEN
             if (can_castle (WHITE))
             {
                 if (can_castle (CR_W_K)) set_next ('K');
@@ -1679,7 +1656,6 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
                 if (can_castle (CR_B_K)) set_next ('k');
                 if (can_castle (CR_B_Q)) set_next ('q');
             }
-#pragma endregion
         }
     }
     else
@@ -1774,7 +1750,6 @@ string Position::fen (bool                  c960, bool full) const
     {
         if (_chess960 || c960)
         {
-#pragma region X-FEN
             if (can_castle (WHITE))
             {
                 if (can_castle (CR_W_K)) sfen << to_char (_file (castle_rook (WHITE, CS_K)), false);
@@ -1785,11 +1760,9 @@ string Position::fen (bool                  c960, bool full) const
                 if (can_castle (CR_B_K)) sfen << to_char (_file (castle_rook (BLACK, CS_K)), true);
                 if (can_castle (CR_B_Q)) sfen << to_char (_file (castle_rook (BLACK, CS_Q)), true);
             }
-#pragma endregion
         }
         else
         {
-#pragma region N-FEN
             if (can_castle (WHITE))
             {
                 if (can_castle (CR_W_K)) sfen << 'K';
@@ -1800,7 +1773,6 @@ string Position::fen (bool                  c960, bool full) const
                 if (can_castle (CR_B_K)) sfen << 'k';
                 if (can_castle (CR_B_Q)) sfen << 'q';
             }
-#pragma endregion
         }
     }
     else
@@ -1820,7 +1792,6 @@ string Position::fen (bool                  c960, bool full) const
 Position::operator string () const
 {
 
-#pragma region Board
     const string edge = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
@@ -1846,8 +1817,6 @@ Position::operator string () const
         int8_t f = _file (s);
         board[3 + size_t (row_len * (7.5 - r)) + 4 * f] = CharPiece[piece_on (s)];
     }
-
-#pragma endregion
 
     ostringstream ss;
 
@@ -1994,7 +1963,6 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     {
         if (c960)
         {
-#pragma region X-FEN
             do
             {
                 Square rook;
@@ -2014,11 +1982,9 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 get_next ();
             }
             while (ch && !isspace (ch));
-#pragma endregion
         }
         else
         {
-#pragma region N-FEN
             do
             {
                 Square rook;
@@ -2041,7 +2007,6 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 get_next ();
             }
             while (ch && !isspace (ch));
-#pragma endregion
         }
     }
 
@@ -2157,7 +2122,6 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     sfen >> ch;
     if (c960)
     {
-#pragma region X-FEN
 
         while ((sfen >> ch) && !isspace (ch))
         {
@@ -2175,13 +2139,9 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
                 continue;
             }
         }
-
-#pragma endregion
     }
     else
     {
-#pragma region N-FEN
-
         while ((sfen >> ch) && !isspace (ch))
         {
             Square rook;
@@ -2202,8 +2162,6 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             //if (ROOK != _type (pos[rook])) return false;
             pos.set_castle (c, rook);
         }
-
-#pragma endregion
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
@@ -2247,7 +2205,3 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     return true;
 }
-
-#pragma endregion
-
-#pragma endregion
