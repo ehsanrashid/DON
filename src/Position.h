@@ -214,11 +214,15 @@ public:
     Bitboard pieces (Color c)           const;
     Bitboard pieces (PType pt)          const;
     Bitboard pieces (Color c, PType pt) const;
+    template<PType PT>
+    Bitboard pieces (Color c)           const;
+
     Bitboard pieces (PType p1, PType p2) const;
     Bitboard pieces (Color c, PType p1, PType p2) const;
     Bitboard pieces () const;
     Bitboard empties () const;
     //Bitboard pieces (Piece p) const;
+
 
     template<PType PT>
     int32_t count (Color c)       const;
@@ -427,11 +431,15 @@ inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING]
 inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
 inline Bitboard Position::pieces (PType pt)           const { return _types_bb[pt]; }
 inline Bitboard Position::pieces (Color c, PType pt)  const { return _color_bb[c]  & _types_bb[pt]; }
+template<PType PT>
+inline Bitboard Position::pieces (Color c)             const { return _color_bb[c]  & _types_bb[PT]; }
+
 inline Bitboard Position::pieces (PType p1, PType p2) const { return _types_bb[p1] | _types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PType p1, PType p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 //inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
+
 
 template<PType PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
@@ -601,12 +609,16 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
+    //return
+    //    (count<BSHP> (WHITE) == 1) &&
+    //    (count<BSHP> (BLACK) == 1) &&
+    //    opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
     return
-        (count<BSHP> (WHITE) == 1) &&
-        (count<BSHP> (BLACK) == 1) &&
-        opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
+        count<BSHP> (WHITE) && count<BSHP> (BLACK) &&
+        !(
+        (pieces<BSHP> (WHITE) & BitBoard::LTSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::LTSQ_bb) ||
+        (pieces<BSHP> (WHITE) & BitBoard::DRSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::DRSQ_bb));
 }
-
 
 //// moved_piece() return piece moved on move
 //inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
@@ -736,7 +748,7 @@ inline void  Position::remove_piece (Square s)
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
     Piece p = _piece_arr [s];
-    
+
     Color c  = _color (p);
     PType pt = _type (p);
 

@@ -38,7 +38,9 @@ namespace BitBoard {
 
     extern const Bitboard LTSQ_bb; // 32 LIGHT squares.
     extern const Bitboard DRSQ_bb; // 32 DARK  squares.
-
+    
+    extern const Bitboard CORNER_bb;
+    extern const Bitboard MID_EDGE_bb;
 
     extern uint8_t _filerank_dist[F_NO][R_NO];
     extern uint8_t   _square_dist[SQ_NO][SQ_NO];

@@ -14,9 +14,6 @@ namespace EndGame {
 
     namespace {
 
-        const Bitboard Corner_bb = U64(0x8100000000000081);
-
-
         // Table used to drive the king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
         const int32_t PushToEdges[SQ_NO] =
@@ -231,8 +228,8 @@ namespace EndGame {
         // mirror the kings so to drive enemy toward corners A8 or H1.
         if (opposite_colors (wb_sq, SQ_A1))
         {
-            wk_sq = ~(wk_sq);
-            bk_sq = ~(bk_sq);
+            wk_sq = ~wk_sq;
+            bk_sq = ~bk_sq;
         }
 
         Value value = VALUE_KNOWN_WIN
@@ -245,7 +242,7 @@ namespace EndGame {
     Value Endgame<KNNK> ::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
-        
+
         Square bk_sq = pos.king_sq (_weak_side);
 
         Value value = VALUE_DRAW + pos.count<NIHT> (_stong_side) + PushToEdges[bk_sq] / 2;
@@ -284,7 +281,7 @@ namespace EndGame {
         Square bp_sq = rel_sq (_stong_side, pos.list<PAWN> (_weak_side)[0]);
 
         Square queening_sq = _file (bp_sq) | R_1;
-        
+
         Value value;
 
         // If the stronger side's king is in front of the pawn, it's a win.
@@ -325,18 +322,26 @@ namespace EndGame {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
+        Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
+        Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
-        //// To draw, the weaker side should run towards the corner.
-        //// And not just any corner! Only a corner that's not the same color as the bishop will do.
-        //if (Corner_bb & bk_sq)
-        //{
-        //    Square bb_sq = pos.list<BSHP> (_weak_side)[0];
-        //    if (opposite_colors (bk_sq, bb_sq)) return VALUE_DRAW;
-        //}
+        Value value;
 
-        // when the weaker side ended up in the wrong corner.
-        Value value = Value (PushToEdges[bk_sq]);
+        // To draw, the weaker side should run towards the corner.
+        // And not just any corner! Only a corner that's not the same color as the bishop will do.
+        if ((CORNER_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
+            square_dist (bk_sq, bb_sq) == 1 &&
+            square_dist (wk_sq, bb_sq) >  1)
+        {
+            value = VALUE_DRAW
+                +   pos.count (_stong_side)
+                -   pos.count (_weak_side);
+        }
+        else // when the weaker side ended up in the wrong corner.
+        {
+            value = Value (PushToEdges[bk_sq]);
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -351,6 +356,7 @@ namespace EndGame {
 
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
+
         Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
 
         return (_stong_side == pos.active ()) ? value : -value;

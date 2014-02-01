@@ -42,7 +42,7 @@ namespace UCI {
 
         void exe_ucinewgame ()
         {
-            if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+            TT.clear ();
         }
 
         void exe_isready ()
@@ -168,7 +168,7 @@ namespace UCI {
 
             if (ClearHash && posi_key != RootPos.posi_key ())
             {
-                if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+                TT.clear ();
             }
             ClearHash = false;
 

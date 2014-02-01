@@ -4,7 +4,9 @@
 
 #include <cstdlib>
 #include "Type.h"
+#include "UCI.h"
 //#include "LeakDetector.h"
+
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
@@ -164,7 +166,7 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (_hash_table)
+        if (!bool (*(Options["Never Clear Hash"])) && _hash_table)
         {
             uint64_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
             std::memset (_hash_table, 0, size_byte);

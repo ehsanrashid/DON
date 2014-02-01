@@ -1715,12 +1715,13 @@ moves_loop: // When in check and at SPNode search starts from here
         static RKISS rk;
         // PRNG sequence should be not deterministic
         for (int32_t i = int32_t (now ()) % 50; i > 0; --i) rk.rand64 ();
+        
+        move = MOVE_NONE;
 
         // RootMoves are already sorted by score in descending order
         int32_t variance = min (RootMoves[0].curr_value - RootMoves[MultiPV - 1].curr_value, VALUE_MG_PAWN);
         int32_t weakness = 120 - 2 * level;
         int32_t max_v    = -VALUE_INFINITE;
-        move = MOVE_NONE;
 
         // Choose best move. For each move score we add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
@@ -1830,7 +1831,7 @@ void check_time ()
                 SplitPoint &sp = Threads[i]->split_points[j];
                 sp.mutex.lock ();
                 nodes += sp.nodes;
-                Bitboard sm = sp.slaves_mask;
+                uint64_t sm = sp.slaves_mask;
                 while (sm)
                 {
                     Position *pos = Threads[pop_lsq (sm)]->active_pos;

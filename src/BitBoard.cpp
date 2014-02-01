@@ -43,6 +43,10 @@ namespace BitBoard {
     const Bitboard LTSQ_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
     const Bitboard DRSQ_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
+    const Bitboard CORNER_bb = U64(0x8100000000000081);
+
+    const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
+
     //const Bitboard QSQ_bb  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
     //const Bitboard KSQ_bb  = ~QSQ_bb;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.
     //
