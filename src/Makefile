@@ -66,15 +66,15 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # at the end of the line for flag values.
 
 ### 2.1. General and architecture defaults
-debug = no
+debug   = no
 optimize = yes
 
-os = any
-bits = 32
+os      = any
+bits    = 32
 prefetch = no
-bsfq = no
-popcnt = no
-sse = no
+bsfq    = no
+popcnt  = no
+sse     = no
 
 ### 2.2 Architecture specific
 
@@ -87,9 +87,9 @@ ifeq ($(ARCH),x86-32-old)
 endif
 
 ifeq ($(ARCH),x86-32)
-	arch = i386
+	arch    = i386
 	prefetch = yes
-	sse = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),general-64)
@@ -98,36 +98,36 @@ ifeq ($(ARCH),general-64)
 endif
 
 ifeq ($(ARCH),x86-64)
-	arch = x86_64
-	bits = 64
+	arch    = x86_64
+	bits    = 64
 	prefetch = yes
-	bsfq = yes
-	sse = yes
+	bsfq    = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
-	arch = x86_64
-	bits = 64
+	arch    = x86_64
+	bits    = 64
 	prefetch = yes
-	bsfq = yes
-	popcnt = yes
-	sse = yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),armv7)
-	arch = armv7
+	arch    = armv7
 	prefetch = yes
-	bsfq = yes
+	bsfq    = yes
 endif
 
 ifeq ($(ARCH),osx-ppc-32)
 	arch = ppc
-	os = osx
+	os   = osx
 endif
 
 ifeq ($(ARCH),osx-ppc-64)
 	arch = ppc64
-	os = osx
+	os   = osx
 	bits = 64
 endif
 
@@ -137,31 +137,31 @@ ifeq ($(ARCH),linux-ppc-64)
 endif
 
 ifeq ($(ARCH),osx-x86-64)
-	arch = x86_64
-	os = osx
-	bits = 64
+	arch    = x86_64
+	os      = osx
+	bits    = 64
 	prefetch = yes
-	bsfq = yes
-	sse = yes
+	bsfq    = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),osx-x86-64-modern)
-	arch = x86_64
-	os = osx
-	bits = 64
+	arch    = x86_64
+	os      = osx
+	bits    = 64
 	prefetch = yes
-	bsfq = yes
-	popcnt = yes
-	sse = yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),osx-x86-32)
-	arch = i386
-	os = osx
+	arch    = i386
+	os      = osx
 	prefetch = yes
-	bsfq = no
-	popcnt = no
-	sse = yes
+	bsfq    = no
+	popcnt  = no
+	sse     = yes
 endif
 
 
@@ -174,6 +174,7 @@ endif
 CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti -std=c++11 $(EXTRACXXFLAGS)
 LDFLAGS += $(EXTRALDFLAGS)
 
+# gcc (default)
 ifeq ($(COMP),)
 	COMP=gcc
 endif
@@ -187,7 +188,7 @@ endif
 ifeq ($(COMP),mingw)
 	comp=mingw
 	CXX=g++
-	CXXFLAGS += -Wextra -Wshadow -pedantic
+	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static-libstdc++ -static-libgcc
 endif
 
