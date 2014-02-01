@@ -27,6 +27,7 @@
 
 #include <ostream>
 #include <memory>
+//#include <memory.h>
 #include "Time.h"
 
 //#define CLEANTLOG

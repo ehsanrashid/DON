@@ -170,8 +170,8 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-# -std=c++11 or c++0x or -std=gnu++11 or gnu++0x
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti -std=c++11 $(EXTRACXXFLAGS)
+# -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
+CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -fno-rtti --std=c++11 --std=c++0x $(EXTRACXXFLAGS)
 LDFLAGS += $(EXTRALDFLAGS)
 
 # gcc (default)
