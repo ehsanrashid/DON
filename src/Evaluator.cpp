@@ -366,7 +366,7 @@ namespace {
             {
                 // Check for KBP vs KB with only a single pawn that is almost
                 // certainly a draw or at least two pawns.
-                bool one_pawn = (pos.piece_count<PAWN> (WHITE) + pos.piece_count<PAWN> (BLACK)) == 1;
+                bool one_pawn = (pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK)) == 1;
                 sf = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
             }
             else
@@ -425,7 +425,7 @@ namespace {
         ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks(C);
 
         // Init king safety tables only if we are going to use them
-        if (pos.piece_count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
+        if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
         {
             ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
             attacks &= ei.attacked_by[C][PAWN];
@@ -489,7 +489,7 @@ namespace {
 
         ei.attacked_by[C][PT] = U64 (0);
 
-        const Square *pl = pos.piece_list<PT> (C);
+        const Square *pl = pos.list<PT> (C);
         Square s;
         while ((s = *pl++) != SQ_NO)
         {
@@ -548,7 +548,7 @@ namespace {
             // Penalty for knight when there are few enemy pawns
             if (NIHT == PT)
             {
-                score -= KnightPawnsPenalty * max<int32_t> (5 - pos.piece_count<PAWN> (C_), 0);
+                score -= KnightPawnsPenalty * max<int32_t> (5 - pos.count<PAWN> (C_), 0);
             }
 
             if (BSHP == PT || NIHT == PT)
@@ -948,7 +948,7 @@ namespace {
             }
 
             // Increase the bonus if we have more non-pawn pieces
-            if (pos.piece_count<PAWN> (C) < pos.piece_count<PAWN> (C_))
+            if (pos.count<PAWN> (C) < pos.count<PAWN> (C_))
             {
                 eg_bonus += eg_bonus / 4;
             }

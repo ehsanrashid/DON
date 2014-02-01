@@ -34,7 +34,7 @@ namespace MoveGenerator {
 
                 Bitboard occ = pos.pieces ();
 
-                const Square *pl = pos.piece_list<PT> (c);
+                const Square *pl = pos.list<PT> (c);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {

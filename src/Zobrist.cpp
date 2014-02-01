@@ -58,7 +58,7 @@ namespace Zobrist {
         {
             for (PType pt = PAWN; pt <= QUEN; ++pt)
             {
-                for (int32_t pc = 0; pc < pos.piece_count (c, pt); ++pc)
+                for (int32_t pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= _.psq_k[c][pt][pc];
                 }
@@ -81,7 +81,7 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            const Square *pl = pos.piece_list<PAWN> (c);
+            const Square *pl = pos.list<PAWN> (c);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
