@@ -331,7 +331,7 @@ string score_uci (Value v, Value alpha, Value beta)
     int32_t abs_v = abs (int32_t (v));
     if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
-        if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+        //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
         ss << "cp " << int32_t (v) * 100 / VALUE_MG_PAWN;
     }
     else
@@ -354,7 +354,7 @@ namespace {
         int32_t abs_v = abs (int32_t (v));
         if (abs_v < VALUE_MATES_IN_MAX_PLY)
         {
-            if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+            //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
             ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else

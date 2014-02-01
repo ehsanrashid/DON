@@ -245,6 +245,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
     <TargetName>$(ProjectName)_64bit</TargetName>
+    <GenerateManifest>false</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -473,14 +474,14 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>
       </OptimizeReferences>
       <EnableCOMDATFolding>
       </EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
-      <LinkTimeCodeGeneration>PGInstrument</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>PGOptimization</LinkTimeCodeGeneration>
       <LargeAddressAware>false</LargeAddressAware>
       <HeapReserveSize>2097152</HeapReserveSize>
       <HeapCommitSize>8192</HeapCommitSize>

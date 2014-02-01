@@ -204,7 +204,7 @@ namespace EndGame {
 
         if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
         {
-            value = VALUE_DRAW + pos.piece_count<PAWN> (_stong_side);
+            value = VALUE_DRAW + pos.piece_count<PAWN> (_stong_side) - PushClose[square_dist (wp_sq, bk_sq)] / 10;
         }
         else
         {
@@ -245,8 +245,11 @@ namespace EndGame {
     Value Endgame<KNNK> ::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+        
+        Square bk_sq = pos.king_sq (_weak_side);
 
-        Value value = VALUE_DRAW + pos.piece_count<NIHT> (_stong_side);
+        Value value = VALUE_DRAW + pos.piece_count<NIHT> (_stong_side) + PushToEdges[bk_sq] / 2;
+
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
@@ -632,13 +635,13 @@ namespace EndGame {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
         Square bk_sq = pos.king_sq (_weak_side);
-        Bitboard pawns = pos.pieces (_stong_side, PAWN);
-        Square wp_sq = pos.piece_list<PAWN> (_stong_side)[0];
+        Bitboard wpawns = pos.pieces (_stong_side, PAWN);
+        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (!(pawns & ~front_ranks_bb (_weak_side, _rank (bk_sq))) &&
-            !((pawns & FA_bb_) && (pawns & FH_bb_)) &&
+        if (!(wpawns & ~front_ranks_bb (_weak_side, _rank (bk_sq))) &&
+            !((wpawns & FA_bb_) && (wpawns & FH_bb_)) &&
             file_dist (bk_sq, wp_sq) <= 1)
         {
             return SCALE_FACTOR_DRAW;
