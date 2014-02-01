@@ -337,6 +337,8 @@
       <StackCommitSize>32768</StackCommitSize>
       <HeapReserveSize>4194304</HeapReserveSize>
       <HeapCommitSize>16384</HeapCommitSize>
+      <LinkTimeCodeGeneration>
+      </LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>

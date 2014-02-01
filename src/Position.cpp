@@ -2,6 +2,7 @@
 #include <sstream>
 #include <algorithm>
 
+#include "xstring.h"
 #include "BitBoard.h"
 #include "BitScan.h"
 #include "BitCount.h"
@@ -1568,8 +1569,10 @@ void Position::flip ()
     // 3. Castling availability
     sfen >> ch;
     fen_ += ch + " ";
-    transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)
-    { return char (islower (c) ? toupper (c) : tolower (c)); });
+    toggle (fen_);
+    //transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)
+    //{ return char (islower (c) ? toupper (c) : tolower (c)); });
+
     // 4. En-passant square
     sfen >> ch;
     fen_ += (ch == "-" ? ch : ch.replace (1, 1, ch[1] == '3' ? "6" : "3"));

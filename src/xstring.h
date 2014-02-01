@@ -35,6 +35,15 @@ namespace std {
         return s;
     }
 
+    inline std::string& toggle (std::string &s)
+    {
+        transform (s.begin (), s.end (), s.begin (), [] (char c)
+        {
+            return char (islower (c) ? toupper (c) : tolower (c));
+        });
+        return s;
+    }
+
     // string case-sensitive equals
     inline bool  equals (const std::string &s1, const std::string &s2)
     {

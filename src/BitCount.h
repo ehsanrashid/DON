@@ -4,7 +4,7 @@
 
 #include "Type.h"
 
-//#pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
+#pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 
 typedef enum BitCountType
 {

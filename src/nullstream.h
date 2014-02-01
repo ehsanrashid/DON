@@ -21,7 +21,7 @@
 
 namespace std {
 
-    //#pragma warning (disable: 4355)
+    #pragma warning (disable: 4355)
 
     // generic null stream buffer class
     template <class charT, class Traits = char_traits<charT> >

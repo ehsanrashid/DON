@@ -7,7 +7,7 @@
 #include <cctype>
 #include <cstdlib>
 
-//#pragma warning (disable: 4996) // Function strcpy () may be unsafe use strcpy_s ()
+#pragma warning (disable: 4996) // Function strcpy () may be unsafe use strcpy_s ()
 
 inline bool null (const char s[])
 {

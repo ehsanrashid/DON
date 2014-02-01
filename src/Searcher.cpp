@@ -568,8 +568,10 @@ namespace {
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
-                while (true) //(alpha < beta)
+                while (alpha < beta)
                 {
+                    ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
+
                     //Value value = best_value + (best_value == alpha ? 1 : 0);
                     //best_value = memory_test_driver (pos, ss, alpha, beta, VALUE_ZERO, depth * ONE_MOVE);
                     best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
@@ -621,8 +623,6 @@ namespace {
                     }
 
                     delta += delta / 2;
-
-                    ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                 }
 
                 // Sort the PV lines searched so far and update the GUI
@@ -716,7 +716,6 @@ namespace {
 
             }
         }
-
     }
 
     template <NodeType NT>

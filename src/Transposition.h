@@ -6,8 +6,8 @@
 #include "Type.h"
 //#include "LeakDetector.h"
 
-//#pragma warning (push)
-//#pragma warning (disable : 4244)
+#pragma warning (push)
+#pragma warning (disable : 4244)
 
 // Transposition Entry needs the 16 byte to be stored
 //
@@ -246,7 +246,7 @@ public:
 
 } TranspositionTable;
 
-//#pragma warning (pop)
+#pragma warning (pop)
 
 // Global Transposition Table
 extern TranspositionTable TT;

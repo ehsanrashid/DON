@@ -4,12 +4,10 @@
 
 #include <cctype>
 #include <climits>
-#include <cstring>
 #include <vector>
 #include <iostream>
 
 #include "Platform.h"
-
 
 #define UNLIKELY(x) (x) // For code annotation purposes
 
@@ -45,11 +43,7 @@ typedef enum Diag : int8_t
 } Diag;
 
 // Color of Square and Side
-typedef enum Color : int8_t
-{
-    WHITE, BLACK, CLR_NO
-
-} Color;
+typedef enum Color : int8_t { WHITE, BLACK, CLR_NO } Color;
 
 // Square needs 6-bits (0-5) to be stored
 // bit 0-2: File
@@ -147,7 +141,7 @@ typedef enum PType : int8_t
     QUEN  , // 100 - QUEEN
     KING  , // 101 - KING
     NONE  , // 110 - NONE
-    ALLS
+    ALLS    // 111 - ALLS
 
 } PType;
 
@@ -169,7 +163,6 @@ typedef enum PType : int8_t
 // ONLY MAJOR    > 5
 typedef enum Piece : uint8_t
 {
-
     W_PAWN = 0, //  0000
     W_NIHT    , //  0001
     W_BSHP    , //  0010
@@ -223,8 +216,8 @@ typedef enum Value : int32_t
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
     //VALUE_CHIK      = 5,
-
-    VALUE_NONE      = 32767,
+    
+    VALUE_NONE      = 32767, // std::numeric_limits<int>::max()
     VALUE_INFINITE  = VALUE_NONE - 1,
     _VALUE_INFINITE = -VALUE_INFINITE,
 
