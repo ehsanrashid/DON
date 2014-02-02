@@ -25,7 +25,7 @@ namespace EndGame {
             70,  50,  30,  20,  20,  30,  50,  70,
             80,  60,  40,  30,  30,  40,  60,  80,
             90,  70,  60,  50,  50,  60,  70,  90,
-            100, 90,  80,  70,  70,  80,  90, 100,
+            100, 90,  80,  70,  70,  80,  90, 100
         };
 
         // Table used to drive the king towards a corner square of the
@@ -77,7 +77,7 @@ namespace EndGame {
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
         // and then let a Position object to do the work for us. Note that the
         // fen string could correspond to an illegal position.
-        Key key (const string &code, Color c)
+        inline Key key (const string &code, Color c)
         {
             int32_t length = code.length (); 
             ASSERT (0 < length && length <= 8);
@@ -97,7 +97,7 @@ namespace EndGame {
         }
 
         template<class M>
-        void delete_endgame (const typename M::value_type &p) { delete p.second; }
+        inline void delete_endgame (const typename M::value_type &p) { delete p.second; }
 
     } // namespace
 
@@ -325,7 +325,7 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
-        Value value;
+        Value value = Value (PushToEdges[bk_sq]);
 
         // To draw, the weaker side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
@@ -333,11 +333,10 @@ namespace EndGame {
             square_dist (bk_sq, bb_sq) == 1 &&
             square_dist (wk_sq, bb_sq) >  1)
         {
-            value = Value (PushToEdges[bk_sq] / 8);
+            value /= 8;
         }
-        else // when the weaker side ended up in the wrong corner.
+        else // when the weaker side ended up in the same corner as bishop.
         {
-            value = Value (PushToEdges[bk_sq]);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -354,16 +353,16 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
-        Value value;
+        Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
 
+        // If weaker king is near the knight, it's a draw.
         if (_weak_side == pos.active () &&
             square_dist (bk_sq, bn_sq) <= 3)
         {
-            value = VALUE_DRAW;
+            value /= 8;
         }
         else
         {
-            value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -430,8 +429,8 @@ namespace EndGame {
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
         Value value = Value (PushToCorners[bk_sq]
-        + PushClose[square_dist (wk_sq, bk_sq)]
-        + PushAway[square_dist (bk_sq, bn_sq)]);
+        +       PushClose[square_dist (wk_sq, bk_sq)]
+        +       PushAway [square_dist (bk_sq, bn_sq)]);
 
         if (pos.bishops_pair (_stong_side))
         {
