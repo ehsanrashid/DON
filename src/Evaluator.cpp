@@ -90,7 +90,7 @@ namespace {
         S(289,344), S(233,201), S(221,273), S( 46,  0), S(271,  0), S(307,  0)
     };
 
-    // MobilityBonus[PType][attacked] contains bonuses for middle and end game,
+    // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
     // indexed by piece type and number of attacked squares not occupied by friendly pieces.
     const Score MobilityBonus[NONE][32] =
     {
@@ -119,7 +119,7 @@ namespace {
         },
     };
 
-    // OutpostBonus[PType][Square] contains bonuses of knights and bishops, indexed
+    // OutpostBonus[PieceT][Square] contains bonuses of knights and bishops, indexed
     // by piece type and square (from white's point of view).
     const Value OutpostBonus[2][SQ_NO] =
     { // A     B     C     D     E     F     G     H
@@ -154,7 +154,7 @@ namespace {
         { S( 15, 39), S( 15, 45), S( 15, 45), S( 15, 45), S( 24, 49), S(  0,  0), }, // Major
     };
 
-    // ThreatenedByPawnPenalty[PType] contains a penalty according to which piece
+    // ThreatenedByPawnPenalty[PieceT] contains a penalty according to which piece
     // type is attacked by an enemy pawn.
     const Score ThreatenedByPawnPenalty[NONE] =
     {
@@ -208,7 +208,7 @@ namespace {
     // the strength of the enemy attack are added up into an integer, which
     // is used as an index to KingDanger[].
     //
-    // KingAttackWeights[PType] contains king attack weights by piece type
+    // KingAttackWeights[PieceT] contains king attack weights by piece type
     const int32_t KingAttackWeights[NONE] = { 0, 2, 2, 3, 5, 0, };
 
     // Bonuses for enemy's safe checks
@@ -440,7 +440,7 @@ namespace {
         }
     }
 
-    template<PType PT, Color C>
+    template<PieceT PT, Color C>
     // evaluate_outposts() evaluates bishop and knight outposts squares
     inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
     {
@@ -477,7 +477,7 @@ namespace {
         return mk_score (bonus, bonus);
     }
 
-    template<PType PT, Color C, bool TRACE>
+    template<PieceT PT, Color C, bool TRACE>
     // evaluate_pieces<> () assigns bonuses and penalties to the pieces of a given color except PAWN
     inline Score evaluate_ptype    (const Position &pos, EvalInfo &ei, Score mobility[CLR_NO], Bitboard mobility_area)
     {

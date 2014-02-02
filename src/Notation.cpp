@@ -22,7 +22,7 @@ AmbType ambiguity (Move m, const Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PType pt  = _type (p);
+    PieceT pt  = _type (p);
 
 
     //uint8_t n = 0;
@@ -165,7 +165,7 @@ const string move_to_can (Move m, bool c960)
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    MType mt   = m_type (m);
+    MoveT mt   = m_type (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
@@ -183,7 +183,7 @@ const string move_to_san (Move m, Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PType pt  = _type (p);
+    PieceT pt  = _type (p);
 
     //    switch (pt)
     //    {
@@ -260,7 +260,7 @@ const string move_to_san (Move m, Position &pos)
     //        san += (legalmove ? '+' : '#');
     //    }
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
     switch (mt)
     {
     case CASTLE:

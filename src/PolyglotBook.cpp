@@ -70,7 +70,7 @@ PolyglotBook::PolyglotEntry::operator string () const
     ostringstream spe;
 
     Move m = Move (move);
-    PType pt = PType ((m >> 12) & 0x7);
+    PieceT pt = PieceT ((m >> 12) & 0x7);
     // Set new type for promotion piece
     if (pt) prom_type (m, pt);
 
@@ -355,7 +355,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     // in all the other cases we can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
     // Polyglot use 3 bits while we use 2 bits
-    PType pt = PType ((move >> 12) & 0x7);
+    PieceT pt = PieceT ((move >> 12) & 0x7);
     // Set new type for promotion piece
     if (pt) prom_type (move, pt);
 

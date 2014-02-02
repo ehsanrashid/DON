@@ -110,7 +110,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PType pt)
+MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PieceT pt)
     : pos (p)
     , history (h)
     , cur (m_list)

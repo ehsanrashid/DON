@@ -76,7 +76,7 @@ class MovePicker
 
 private:
 
-    template<MoveGenerator::GType>
+    template<MoveGenerator::GenT>
     // value() assign a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
     void value ();
@@ -111,7 +111,7 @@ private:
 
 public:
 
-    MovePicker (const Position &, Move,        const HistoryStats &, PType);
+    MovePicker (const Position &, Move,        const HistoryStats &, PieceT);
     MovePicker (const Position &, Move, Depth, const HistoryStats &, Square);
     MovePicker (const Position &, Move, Depth, const HistoryStats &, Move[], Move[], Searcher::Stack[]);
 

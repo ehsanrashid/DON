@@ -210,7 +210,7 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="PType" Collapsed="true">
+  <Enum Name="PieceT" Collapsed="true">
     <Position X="14.5" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAgAAAAAAAQAAAAAAAAAgAAAAIAAAEABEAAg=</HashCode>
@@ -224,7 +224,7 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="MType" Collapsed="true">
+  <Enum Name="MoveT" Collapsed="true">
     <Position X="18" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAACAAAAAAAEAAAAAAIAAAAAAEAAAAAAAAAAA=</HashCode>
