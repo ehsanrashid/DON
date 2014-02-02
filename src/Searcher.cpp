@@ -1263,8 +1263,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 if (SPNode) alpha = split_point->alpha;
 
-                ////if (best_value > alpha) alpha = best_value;
                 // TODO::
+
+                //if (best_value > alpha) alpha = best_value;
 
                 value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
                 //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, !cut_node);
