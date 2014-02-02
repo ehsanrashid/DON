@@ -231,12 +231,12 @@ void MovePicker::generate_next_stage ()
         // Killer moves usually come right after after the hash move and (good) captures
         cur = end = killers;
 
-        killers[0].move = MOVE_NONE; //killer[0];
-        killers[1].move = MOVE_NONE; //killer[1];
-        killers[2].move = MOVE_NONE; //counter_moves[0]
-        killers[3].move = MOVE_NONE; //counter_moves[1]
-        killers[4].move = MOVE_NONE; //followup_moves[0]
-        killers[5].move = MOVE_NONE; //followup_moves[1]
+        killers[0].move =               //killer[0];
+            killers[1].move =           //killer[1];
+            killers[2].move =           //counter_moves[0]
+            killers[3].move =           //counter_moves[1]
+            killers[4].move =           //followup_moves[0]
+            killers[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)

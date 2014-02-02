@@ -320,19 +320,17 @@ typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream& os, SyncCout sc)
 {
-  static Mutex m;
+    static Mutex m;
 
-  if      (IO_LOCK == sc)
-      m.lock ();
-  else if (IO_UNLOCK == sc)
-      m.unlock ();
-
-  return os;
+    if      (IO_LOCK == sc)
+        m.lock ();
+    else if (IO_UNLOCK == sc)
+        m.unlock ();
+    return os;
 }
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
-
 
 extern ThreadPool Threads;
 

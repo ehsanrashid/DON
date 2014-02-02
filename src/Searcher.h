@@ -7,11 +7,11 @@
 #include "Type.h"
 #include "Time.h"
 #include "Position.h"
+#include "PolyglotBook.h"
 
 #pragma warning (push)
 #pragma warning (disable: 4805)
 
-class PolyglotBook;
 struct SplitPoint;
 
 //typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;

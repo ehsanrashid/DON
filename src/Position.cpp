@@ -1207,7 +1207,11 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         }
         // Update Hash key of material situation and prefetch access to material_table
         _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][count (pasive, ct)];
-        if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
+
+#ifdef _DEBUG
+        if (_thread)
+#endif
+            prefetch ((char*) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
         posi_k ^= ZobGlob._.psq_k[pasive][ct][cap];
         // Update incremental scores
@@ -1356,7 +1360,10 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             }
         }
 
-        if (_thread) prefetch ((char*) _thread->pawns_table[_si->pawn_key]);
+#ifdef _DEBUG
+        if (_thread)
+#endif
+            prefetch ((char*) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Update the key with the final value

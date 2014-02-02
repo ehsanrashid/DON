@@ -3,10 +3,7 @@
 #include <cfloat>
 
 #include "UCI.h"
-#include "Time.h"
 #include "TimeManager.h"
-#include "Position.h"
-#include "PolyglotBook.h"
 #include "Transposition.h"
 #include "MoveGenerator.h"
 #include "MovePicker.h"
@@ -47,23 +44,23 @@ namespace {
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
 
     // Reduction lookup tables (initialized at startup) and their access function
-    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_number]
+    int8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_num]
 
-    inline Value futility_margin (Depth d)
+    inline Value futility_margin (uint8_t depth)
     {
-        return Value (100 * int32_t (d));
+        return Value (100 * depth);
     }
 
     template<bool PVNode>
-    inline Depth reduction (bool imp, uint8_t d, int32_t mc)
+    inline Depth reduction (bool imp, uint8_t depth, int32_t move_num)
     {
-        return Depth (Reductions[PVNode][imp][min (d / ONE_MOVE, 63)][min (mc, 63)]);
+        return Depth (Reductions[PVNode][imp][min (depth / ONE_MOVE, 63)][min (move_num, 63)]);
     }
 
     // Dynamic razoring margin based on depth
-    inline Value razor_margin (uint8_t d)
+    inline Value razor_margin (uint8_t depth)
     {
-        return Value (512 + 16 * d);
+        return Value (512 + 16 * depth);
     }
 
     TimeManager TimeMgr;
@@ -86,7 +83,7 @@ namespace {
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
     // after a fail-high of a quiet move.
-    inline void update_stats (Position &pos, Stack ss[], Move move, int32_t depth, Move quiet_moves[], int32_t quiets_count)
+    inline void update_stats (Position &pos, Stack ss[], Move move, uint8_t depth, Move quiet_moves[], int32_t quiets_count)
     {
         if (ss->killers[0] != move)
         {
@@ -95,7 +92,7 @@ namespace {
         }
 
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
-        Value bonus = Value (1 << depth); //Value (depth * depth * depth);
+        Value bonus = Value (1 << depth); //Value (1 * depth * depth * depth);
         History.update (pos[org_sq (move)], dst_sq (move), bonus);
         //if (quiet_moves)
         for (int32_t i = 0; i < quiets_count; ++i)
@@ -253,7 +250,6 @@ namespace Searcher {
         uint8_t ply = 0;
         Move m = pv[ply];
         pv.clear ();
-
         const TranspositionEntry *te;
         StateInfo states[MAX_PLY_6], *si = states;
 
@@ -296,7 +292,6 @@ namespace Searcher {
     void RootMove::insert_pv_into_tt (Position &pos)
     {
         uint8_t ply = 0;
-
         const TranspositionEntry *te;
         StateInfo states[MAX_PLY_6], *si = states;
 
@@ -319,7 +314,6 @@ namespace Searcher {
             ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *si++);
-
         }
         while (MOVE_NONE != pv[ply]);
 
@@ -374,8 +368,7 @@ namespace Searcher {
         }
         else
         {
-            DrawValue[WHITE] = VALUE_DRAW;
-            DrawValue[BLACK] = VALUE_DRAW;
+            DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
         }
 
         if (write_search_log)
@@ -408,7 +401,6 @@ namespace Searcher {
 
         Threads.timer->run = false; // Stop the timer
         Threads.sleep_idle = true;  // Send idle threads to sleep
-
 
 finish:
 
@@ -545,7 +537,7 @@ namespace {
 
             // Save last iteration's scores before first PV line is searched and all
             // the move scores but the (new) PV are set to -VALUE_INFINITE.
-            for (uint32_t i = 0; i < RootMoves.size (); ++i)
+            for (uint8_t i = 0; i < RootMoves.size (); ++i)
             {
                 RootMoves[i].last_value = RootMoves[i].curr_value;
             }
@@ -665,8 +657,7 @@ namespace {
 
             // Do we have time for the next iteration? Can we stop searching now?
             if (Limits.use_time_management () &&
-                !Signals.stop &&
-                !Signals.stop_on_ponderhit)
+                !Signals.stop && !Signals.stop_on_ponderhit)
             {
                 bool stop = false; // Local variable, not the volatile Signals.stop
 
@@ -676,8 +667,9 @@ namespace {
                     TimeMgr.pv_instability (BestMoveChanges);
                 }
 
-                // Stop the search if there is only one legal move available or 
-                // most of the available time has been used.
+                // Stop the search early:
+                // If there is only one legal move available or 
+                // If most of the available time has been used.
                 // We probably don't have enough time to search the first move at the next iteration anyway.
                 if (RootMoves.size () == 1 ||
                     IterDuration > TimeMgr.available_time () * 62 / 100)
@@ -716,6 +708,7 @@ namespace {
 
             }
         }
+
     }
 
     template <NodeType NT>
@@ -777,8 +770,7 @@ namespace {
             goto moves_loop;
         }
 
-        moves_count  = 0;
-        quiets_count = 0;
+        moves_count = quiets_count = 0;
 
         best_value  = -VALUE_INFINITE;
         best_move   = ss->current_move = ss->tt_move = (ss+1)->excluded_move = MOVE_NONE;

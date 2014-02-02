@@ -7,7 +7,6 @@
 #include "xstring.h"
 
 #include "Transposition.h"
-#include "PolyglotBook.h"
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
