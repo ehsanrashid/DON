@@ -148,36 +148,35 @@ namespace EndGame {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
         ASSERT (!pos.checkers ()); // Eval is never called when in check
 
-        // Stalemate detection with lone king
-        if (pos.active () == _weak_side && !MoveList<LEGAL> (pos).size ())
+        // Stalemate detection with lone weak king
+        if (_weak_side == pos.active () && !MoveList<LEGAL> (pos).size ())
         {
             return VALUE_DRAW;
         }
 
-        Value value;
-
-        //if (!pos.count<PAWN> (_stong_side) &&
-        //    pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
-        //{
-        //    value = VALUE_DRAW 
-        //        +   pos.count (_stong_side)
-        //        -   pos.count (_weak_side);
-        //    return (_stong_side == pos.active ()) ? value : -value;
-        //}
-
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
 
-        value = pos.non_pawn_material (_stong_side)
-            +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
-            +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+        Value value;
 
-        if (pos.count<QUEN> (_stong_side) ||
-            pos.count<ROOK> (_stong_side) ||
-            pos.count<NIHT> (_stong_side) > 2 ||
-            pos.bishops_pair (_stong_side))
+        if (!pos.count<PAWN> (_stong_side) &&
+            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
         {
-            value += VALUE_KNOWN_WIN;
+            value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
+        }
+        else
+        {
+            value = pos.non_pawn_material (_stong_side)
+                +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
+                +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+
+            if (pos.count<QUEN> (_stong_side) ||
+                pos.count<ROOK> (_stong_side) ||
+                pos.count<NIHT> (_stong_side) > 2 ||
+                pos.bishops_pair (_stong_side))
+            {
+                value += VALUE_KNOWN_WIN;
+            }
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -199,13 +198,16 @@ namespace EndGame {
 
         Value value;
 
-        if (!BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
+        if (BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq))
         {
-            value = VALUE_DRAW + pos.count<PAWN> (_stong_side) - PushClose[square_dist (wp_sq, bk_sq)] / 10;
+            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
         }
         else
         {
-            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (wp_sq));
+            value = Value ((
+                PushClose[square_dist (wk_sq, bk_sq)] + 
+                PushClose[square_dist (wp_sq, wk_sq)] + 
+                PushAway[square_dist (wp_sq, bk_sq)]) / 10);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -245,7 +247,7 @@ namespace EndGame {
 
         Square bk_sq = pos.king_sq (_weak_side);
 
-        Value value = VALUE_DRAW + pos.count<NIHT> (_stong_side) + PushToEdges[bk_sq] / 2;
+        Value value = Value (PushToEdges[bk_sq] / 8);
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -284,14 +286,11 @@ namespace EndGame {
 
         Value value;
 
-        // If the stronger side's king is in front of the pawn, it's a win.
-        if (wk_sq < bp_sq && _file (wk_sq) == _file (bp_sq))
-        {
-            value = VALUE_EG_ROOK - Value (square_dist (wk_sq, bp_sq));
-        }
+        // If the stronger side's king is in front of the pawn, it's a win. or
         // If the weaker side's king is too far from the pawn and the rook, it's a win.
-        else if (square_dist (bk_sq, bp_sq) >= 3 + (pos.active () == _weak_side)
-            &&   square_dist (bk_sq, wr_sq) >= 3)
+        if (   (wk_sq < bp_sq && _file (wk_sq) == _file (bp_sq))
+            || (square_dist (bk_sq, bp_sq) >= 3 + (_weak_side == pos.active ())
+            &&  square_dist (bk_sq, wr_sq) >= 3))
         {
             value = VALUE_EG_ROOK - Value (square_dist (wk_sq, bp_sq));
         }
@@ -299,7 +298,7 @@ namespace EndGame {
         else if (_rank (bk_sq) <= R_3 
             &&   square_dist (bk_sq, bp_sq) == 1
             &&   _rank (wk_sq) >= R_4
-            &&   square_dist (wk_sq, bp_sq) > 2 + (pos.active () == _stong_side))
+            &&   square_dist (wk_sq, bp_sq) > 2 + (_stong_side == pos.active ()))
         {
             value = Value (80 - square_dist (wk_sq, bp_sq) * 8);
         }
@@ -334,9 +333,7 @@ namespace EndGame {
             square_dist (bk_sq, bb_sq) == 1 &&
             square_dist (wk_sq, bb_sq) >  1)
         {
-            value = VALUE_DRAW
-                +   pos.count (_stong_side)
-                -   pos.count (_weak_side);
+            value = Value (PushToEdges[bk_sq] / 8);
         }
         else // when the weaker side ended up in the wrong corner.
         {
@@ -357,7 +354,17 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
-        Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
+        Value value;
+
+        if (_weak_side == pos.active () &&
+            square_dist (bk_sq, bn_sq) <= 3)
+        {
+            value = VALUE_DRAW;
+        }
+        else
+        {
+            value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -422,19 +429,17 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
-        Value value;
+        Value value = Value (PushToCorners[bk_sq]
+        + PushClose[square_dist (wk_sq, bk_sq)]
+        + PushAway[square_dist (bk_sq, bn_sq)]);
 
-        if (!pos.bishops_pair (_stong_side))
+        if (pos.bishops_pair (_stong_side))
         {
-            value = VALUE_DRAW
-                + pos.count (_stong_side)
-                - pos.count (_weak_side);
+            value += VALUE_MG_KNIGHT;
         }
         else
         {
-            value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
-            + PushClose[square_dist (wk_sq, bk_sq)]
-            + PushAway[square_dist (bk_sq, bn_sq)];
+            value /= 8;
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
