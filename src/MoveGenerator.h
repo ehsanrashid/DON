@@ -28,8 +28,8 @@ typedef struct ValMove
 
 namespace MoveGenerator {
 
-    // Type of Generators
-    typedef enum GType : uint8_t
+    // Types of Generator
+    typedef enum GenT : uint8_t
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -44,15 +44,15 @@ namespace MoveGenerator {
 
         LEGAL        // Legal moves
 
-    } GType;
+    } GenT;
 
 
-    template<GType GT>
+    template<GenT GT>
     extern ValMove* generate (ValMove *m_list, const Position &pos);
 
     // The MoveList struct is a simple wrapper around generate(). It sometimes comes
     // in handy to use this class instead of the low level generate() function.
-    template<GType GT>
+    template<GenT GT>
     struct MoveList
     {
 
@@ -89,7 +89,7 @@ namespace MoveGenerator {
             return false;
         }
 
-        //template<class charT, class Traits, GType GT>
+        //template<class charT, class Traits, GenT GT>
         //friend std::basic_ostream<charT, Traits>&
         //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &mov_lst)
         //{

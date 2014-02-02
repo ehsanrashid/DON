@@ -305,7 +305,7 @@ namespace BitBoard {
         return attacks_slid;
     }
 
-    template<PType PT>
+    template<PieceT PT>
     // Attacks of the PAWN
     extern INLINE Bitboard attacks_bb (Color c, Square s);
 
@@ -314,12 +314,12 @@ namespace BitBoard {
     INLINE Bitboard attacks_bb<PAWN> (Color c, Square s) { return _attacks_pawn_bb[c][s]; }
 
     // --------------------------------
-    template<PType PT>
-    // Attacks of the PType
+    template<PieceT PT>
+    // Attacks of the PieceT
     extern INLINE Bitboard attacks_bb (Square s);
 
-    template<PType PT>
-    // Attacks of the PType
+    template<PieceT PT>
+    // Attacks of the PieceT
     INLINE Bitboard attacks_bb (Square s) { return _attacks_type_bb[PT][s]; }
     // --------------------------------
     // explicit template instantiations
@@ -330,8 +330,8 @@ namespace BitBoard {
     template Bitboard attacks_bb<KING> (Square s);
     // --------------------------------
 
-    template<PType PT>
-    // Attacks of the PType with occupancy
+    template<PieceT PT>
+    // Attacks of the PieceT with occupancy
     extern INLINE Bitboard attacks_bb (Square s, Bitboard occ);
 
     template<>
@@ -342,7 +342,7 @@ namespace BitBoard {
     INLINE Bitboard attacks_bb<KING> (Square s, Bitboard occ) { (void)occ; return _attacks_type_bb[KING][s]; }
     // --------------------------------
 
-    template<PType PT>
+    template<PieceT PT>
     // Function 'indexer(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.

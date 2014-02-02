@@ -1077,14 +1077,17 @@ moves_loop: // When in check and at SPNode search starts from here
 
         if (RootNode)
         {
-            if (thread == Threads.main () && 
-                (elapsed = now () - SearchTime + 1) > InfoDuration)
+            if (Threads.main () == thread)
             {
-                sync_cout
-                    << "info"
-                    << " depth " << int32_t (depth / ONE_MOVE)
-                    << " time "  << elapsed
-                    << sync_endl;
+                elapsed = now () - SearchTime + 1;
+                if (elapsed > InfoDuration)
+                {
+                    sync_cout
+                        << "info"
+                        << " depth " << int32_t (depth / ONE_MOVE)
+                        << " time "  << elapsed
+                        << sync_endl;
+                }
             }
         }
 
@@ -1117,16 +1120,19 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 Signals.first_root_move = (1 == moves_count);
 
-                if (thread == Threads.main () && 
-                    (elapsed = now () - SearchTime + 1) > InfoDuration)
+                if (Threads.main () == thread)
                 {
-                    sync_cout
-                        << "info"
-                        << " depth "          << int32_t (depth / ONE_MOVE)
-                        << " time "           << elapsed
-                        << " currmovenumber " << setw (2) << moves_count + IndexPV
-                        << " currmove "       << move_to_can (move, pos.chess960 ())
-                        << sync_endl;
+                    elapsed = now () - SearchTime + 1;
+                    if (elapsed > InfoDuration)
+                    {
+                        sync_cout
+                            << "info"
+                            //<< " depth "          << int32_t (depth / ONE_MOVE)
+                            << " time "           << elapsed
+                            << " currmovenumber " << setw (2) << moves_count + IndexPV
+                            << " currmove "       << move_to_can (move, pos.chess960 ())
+                            << sync_endl;
+                    }
                 }
             }
 
@@ -1708,7 +1714,7 @@ moves_loop: // When in check and at SPNode search starts from here
         static RKISS rk;
         // PRNG sequence should be not deterministic
         for (int32_t i = int32_t (now ()) % 50; i > 0; --i) rk.rand64 ();
-        
+
         move = MOVE_NONE;
 
         // RootMoves are already sorted by score in descending order

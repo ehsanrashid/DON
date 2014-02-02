@@ -127,7 +127,7 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<int32_t PT>
-    INLINE PType min_attacker       (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PieceT min_attacker       (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (b)
@@ -144,14 +144,14 @@ namespace {
             }
             attackers &= occupied; // After X-ray that may add already processed pieces
 
-            return PType (PT);
+            return PieceT (PT);
         }
 
         return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
     }
 
     template<>
-    INLINE PType min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PieceT min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         bb; dst; stm_attackers; occupied; attackers;
         return KING; // No need to update bitboards, it is the last cycle
@@ -165,7 +165,7 @@ void Position::initialize ()
 {
     fifty_move_distance = 2 * int32_t (*(Options["Fifty Move Distance"]));  
 
-    for (PType pt = PAWN; pt <= KING; ++pt)
+    for (PieceT pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
@@ -304,7 +304,7 @@ bool Position::ok (int8_t *failed_step) const
         }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType pt = PAWN; pt <= KING; ++pt)
+            for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
                 if (count (c, pt) != pop_count<FULL> (pieces (c, pt)))
                 {
@@ -366,9 +366,9 @@ bool Position::ok (int8_t *failed_step) const
         if ((pieces (WHITE) ^ pieces (BLACK)) != occ) return false;
 
         // The intersection of separate piece type must be empty
-        for (PType pt1 = PAWN; pt1 <= KING; ++pt1)
+        for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
         {
-            for (PType pt2 = PAWN; pt2 <= KING; ++pt2)
+            for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
             {
                 if (pt1 != pt2 && (pieces (pt1) & pieces (pt2))) return false;
             }
@@ -389,7 +389,7 @@ bool Position::ok (int8_t *failed_step) const
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType pt = PAWN; pt <= KING; ++pt)
+            for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
                 for (int32_t i = 0; i < count (c, pt); ++i)
                 {
@@ -507,7 +507,7 @@ int32_t Position::see      (Move m) const
 
     Bitboard occupied = pieces () - org;
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
 
     if      (CASTLE == mt)
     {
@@ -537,7 +537,7 @@ int32_t Position::see      (Move m) const
     // destination square, where the sides alternately capture, and always
     // capture with the least valuable piece. After each capture, we look for
     // new X-ray attacks from behind the capturing piece.
-    PType ct = _type (piece_on (org));
+    PieceT ct = _type (piece_on (org));
 
     do
     {
@@ -628,12 +628,12 @@ bool Position::pseudo_legal (Move m) const
     Rank r_org = rel_rank (active, org);
     Rank r_dst = rel_rank (active, dst);
 
-    PType pt = _type (p);
-    PType ct = NONE;
+    PieceT pt = _type (p);
+    PieceT ct = NONE;
 
     Square cap = dst;
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
 
     if      (NORMAL == mt)
     {
@@ -814,12 +814,12 @@ bool Position::legal     (Move m, Bitboard pinned) const
 
     Piece p  = piece_on (org);
     Color pc = _color (p);
-    PType pt = _type  (p);
+    PieceT pt = _type  (p);
     ASSERT ((active == pc) && (NONE != pt));
 
     Square ksq = king_sq (active);
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
 
     if      (CASTLE == mt)
     {
@@ -874,7 +874,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    PType pt = _type  (p);
+    PieceT pt = _type  (p);
 
     // Direct check ?
     if (ci.checking_sq[pt] & dst) return true;
@@ -885,7 +885,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
@@ -950,7 +950,7 @@ void Position::clear ()
     }
     for (Color c = WHITE; c <= BLACK; ++c)
     {
-        for (PType pt = PAWN; pt <= KING; ++pt)
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
             for (int32_t i = 0; i < 16; ++i)
             {
@@ -1100,7 +1100,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
-    for (PType pt = NIHT; pt <= QUEN; ++pt)
+    for (PieceT pt = NIHT; pt <= QUEN; ++pt)
     {
         value += PieceValue[MG][pt] * count (c, pt);
     }
@@ -1129,7 +1129,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Square org   = org_sq (m);
     Square dst   = dst_sq (m);
     Piece p      = piece_on (org);
-    PType pt     = _type (p);
+    PieceT pt     = _type (p);
 
     ASSERT ((EMPTY != p) &&
         (active == _color (p)) &&
@@ -1139,9 +1139,9 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         (CASTLE == m_type (m)));
 
     Square cap = dst;
-    PType  ct  = NONE;
+    PieceT  ct  = NONE;
 
-    MType mt   = m_type (m);
+    MoveT mt   = m_type (m);
 
     // Pick capture piece and check validation
     if      (NORMAL == mt)
@@ -1275,7 +1275,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
     else if (PROMOTE == mt)
     {
-        PType ppt = prom_type (m);
+        PieceT ppt = prom_type (m);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
         place_piece (dst, active, ppt);
@@ -1401,12 +1401,12 @@ void Position::undo_move ()
     Color active = _active = ~_active; // Switch
 
     Piece p  = piece_on (dst);
-    PType pt = _type (p);
+    PieceT pt = _type (p);
 
-    MType mt = m_type (m);
+    MoveT mt = m_type (m);
     ASSERT (empty (org) || CASTLE == mt);
 
-    PType ct = _si->cap_type;
+    PieceT ct = _si->cap_type;
     ASSERT (KING != ct);
 
     Square cap = dst;
@@ -1429,7 +1429,7 @@ void Position::undo_move ()
     }
     else if (PROMOTE == mt)
     {
-        PType prom = prom_type (m);
+        PieceT prom = prom_type (m);
 
         ASSERT (prom == pt);
         ASSERT (R_8 == rel_rank (active, dst));

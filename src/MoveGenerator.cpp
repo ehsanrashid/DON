@@ -18,13 +18,13 @@ namespace MoveGenerator {
 
     namespace {
 
-        template<GType GT, PType PT>
+        template<GenT GT, PieceT PT>
         // Move Generator for PIECE
         struct Generator
         {
 
         public:
-            // template<GType GT, PType PT>
+            // template<GenT GT, PieceT PT>
             // void Generator<GT, PT>::generate()
             // Generates piece common move
             static INLINE void generate (ValMove *&m_list, const Position &pos, Color c, Bitboard targets, const CheckInfo *ci = NULL)
@@ -66,13 +66,13 @@ namespace MoveGenerator {
 
         };
 
-        template<GType GT>
+        template<GenT GT>
         // Move Generator for KING
         struct Generator<GT, KING>
         {
 
         public:
-            // template<GType GT>
+            // template<GenT GT>
             // void Generator<GT, KING>::generate()
             // Generates KING common move
             static INLINE void generate (ValMove *&m_list, const Position &pos, Color clr, Bitboard targets, const CheckInfo *ci = NULL)
@@ -115,7 +115,7 @@ namespace MoveGenerator {
                 }
             }
 
-            // template<GType GT>
+            // template<GenT GT>
             // template<CSide SIDE, bool CHESS960>
             // void Generator<GT, KING>::generate_castling()
             template<CSide SIDE, bool CHESS960>
@@ -182,13 +182,13 @@ namespace MoveGenerator {
 
         };
 
-        template<GType GT>
+        template<GenT GT>
         // Move Generator for PAWN
         struct Generator<GT, PAWN>
         {
 
         public:
-            // template<GType GT>
+            // template<GenT GT>
             // template<Color C>
             // void Generator<GT, PAWN>::generate()
             template<Color C>
@@ -326,7 +326,7 @@ namespace MoveGenerator {
                 }
             }
 
-            // template<GType GT>
+            // template<GenT GT>
             // template<Delta D>
             // void Generator<GT, PAWN>::generate_promotion()
             template<Delta D>
@@ -382,7 +382,7 @@ namespace MoveGenerator {
 
         };
 
-        template<Color C, GType GT>
+        template<Color C, GenT GT>
         // Generates all pseudo-legal moves of color for targets.
         INLINE ValMove* generate_moves (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
@@ -423,7 +423,7 @@ namespace MoveGenerator {
 
     }
 
-    template<GType GT>
+    template<GenT GT>
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *m_list, const Position &pos)
     {
@@ -473,7 +473,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType pt   = _type (pos[org]);
+            PieceT pt   = _type (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
@@ -502,7 +502,7 @@ namespace MoveGenerator {
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PType pt   = _type (pos[org]);
+            PieceT pt   = _type (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 

@@ -20,7 +20,7 @@ namespace Zobrist {
 
         //for (Color c = WHITE; c <= BLACK; ++c)
         //{
-        //    for (PType pt = PAWN; pt <= KING; ++pt)
+        //    for (PieceT pt = PAWN; pt <= KING; ++pt)
         //    {
         //        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //        {
@@ -56,7 +56,7 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType pt = PAWN; pt <= QUEN; ++pt)
+            for (PieceT pt = PAWN; pt <= QUEN; ++pt)
             {
                 for (int32_t pc = 0; pc < pos.count (c, pt); ++pc)
                 {
@@ -105,7 +105,7 @@ namespace Zobrist {
 
         //for (Color c = WHITE; c <= BLACK; ++c)
         //{
-        //    for (PType pt = PAWN; pt <= KING; ++pt)
+        //    for (PieceT pt = PAWN; pt <= KING; ++pt)
         //    {
         //        vector<Square> sq_lst = squares (pos[c] & pos[pt]);
         //        for (int32_t pc = 0; pc < sq_lst.size (); ++pc)
@@ -126,7 +126,7 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PType pt = PAWN; pt <= KING; ++pt)
+            for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
                 const Square *pl = pos[(c | pt)];
                 Square s;

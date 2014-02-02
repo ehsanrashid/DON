@@ -131,8 +131,8 @@ typedef enum CRight : uint8_t
 
 } CRight;
 
-// Type of the Piece
-typedef enum PType : int8_t
+// Types of Piece
+typedef enum PieceT : int8_t
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
@@ -143,7 +143,7 @@ typedef enum PType : int8_t
     NONE  , // 110 - NONE
     ALLS    // 111 - ALLS
 
-} PType;
+} PieceT;
 
 // Piece needs 4 bits to be stored
 // bit 0-2: TYPE of piece
@@ -184,14 +184,14 @@ typedef enum Piece : uint8_t
     //B_PIEC    = 0x08, //  1...
 } Piece;
 
-// Type of Move
-typedef enum MType : uint16_t
+// Types of Move
+typedef enum MoveT : uint16_t
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
     PROMOTE   = 3 << 14  //0xC000, // 11xx
-} MType;
+} MoveT;
 
 // Move stored in 16-bits
 //
@@ -406,7 +406,7 @@ inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) | 
 inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) & i); return cr; }
 inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) ^ i); return cr; }
 
-INC_DEC_OPERATORS (PType)
+INC_DEC_OPERATORS (PieceT)
 
 // Move operator
 inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); return m; }
@@ -567,13 +567,13 @@ inline CRight can_castle (CRight cr, Color c, CSide cs) { return (cr & mk_castle
 //}
 
 
-inline bool     _ok (PType pt) { return (PAWN <= pt && pt <= KING); }
+inline bool     _ok (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 
-inline Piece operator| (Color c, PType pt) { return Piece (c << 3 | pt); }
-//inline Piece mk_piece  (Color c, PType pt) { return c | pt; }
+inline Piece operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
+//inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
 
 inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PType _type  (Piece p) { return PType (p & ALLS); }
+inline PieceT _type  (Piece p) { return PieceT (p & ALLS); }
 inline Color _color (Piece p) { return Color (p >> 3); }
 
 inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
@@ -588,8 +588,8 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 
 inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
 inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
-inline PType prom_type (Move m) { return PType (((m >> 12) & ROOK) + NIHT); }
-inline MType m_type (Move m)    { return MType (PROMOTE & m); }
+inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
+inline MoveT m_type (Move m)    { return MoveT (PROMOTE & m); }
 
 inline void org_sq (Move &m, Square org)
 {
@@ -601,12 +601,12 @@ inline void dst_sq (Move &m, Square dst)
     m &= 0xFFC0;
     m |= (dst << 0);
 }
-inline void prom_type (Move &m, PType pt)
+inline void prom_type (Move &m, PieceT pt)
 {
     m &= 0x0FFF;
     m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
 }
-inline void m_type (Move &m, MType mt)
+inline void m_type (Move &m, MoveT mt)
 {
     m &= ~PROMOTE;
     m |= mt;
@@ -620,17 +620,17 @@ inline Move operator~ (Move m)
     return mm;
 }
 
-template<MType M>
-extern Move mk_move (Square org, Square dst, PType pt);
-template<MType M>
+template<MoveT M>
+extern Move mk_move (Square org, Square dst, PieceT pt);
+template<MoveT M>
 extern Move mk_move (Square org, Square dst);
 
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PType pt)
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt)
 {
     return Move (PROMOTE | ((pt - NIHT) << 12) | (org << 6) | (dst << 0));
 }
-template<MType M>
+template<MoveT M>
 inline Move mk_move (Square org, Square dst)
 {
     return Move (M | (org << 6) | (dst << 0));
