@@ -882,7 +882,7 @@ namespace {
             ss->static_eval != VALUE_NONE &&
             (ss-1)->static_eval != VALUE_NONE &&
             (move = (ss-1)->current_move) != MOVE_NULL &&
-            m_type (move) == NORMAL)
+            mtype (move) == NORMAL)
         {
             Square dst = dst_sq (move);
             Gains.update (pos[dst], dst, -((ss-1)->static_eval + ss->static_eval));
@@ -1140,7 +1140,7 @@ moves_loop: // When in check and at SPNode search starts from here
             bool capture_or_promotion = pos.capture_or_promotion (move);
             bool gives_check          = pos.check (move, ci);
 
-            bool dangerous = gives_check || NORMAL != m_type (move) || pos.advanced_pawn_push (move);
+            bool dangerous = gives_check || NORMAL != mtype (move) || pos.advanced_pawn_push (move);
 
             // Step 12. Extend checks
             if (gives_check && pos.see_sign (move) >= 0) ext = ONE_MOVE;
@@ -1582,9 +1582,9 @@ moves_loop: // When in check and at SPNode search starts from here
                 !pos.advanced_pawn_push (move) &&
                 futility_base > -VALUE_KNOWN_WIN)
             {
-                ASSERT (m_type (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
+                ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
-                Value futility_value = futility_base + PieceValue[EG][_type (pos[dst_sq (move)])];
+                Value futility_value = futility_base + PieceValue[EG][_ptype (pos[dst_sq (move)])];
 
                 if (futility_value < beta)
                 {
@@ -1609,7 +1609,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Don't search moves with negative SEE values
             if (NonPVNode && (!IN_CHECK || evasion_prunable) &&
                 move != tt_move &&
-                m_type (move) != PROMOTE &&
+                mtype (move) != PROMOTE &&
                 pos.see_sign (move) < 0)
             {
                 continue;

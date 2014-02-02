@@ -428,6 +428,15 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
+        uint8_t diag18_dist = min (square_dist (bk_sq, SQ_A1), square_dist (bk_sq, SQ_H8));
+        uint8_t diag81_dist = min (square_dist (bk_sq, SQ_A8), square_dist (bk_sq, SQ_H1));
+        if (diag81_dist < diag18_dist)
+        {
+            wk_sq = ~wk_sq;
+            bk_sq = ~bk_sq;
+            bn_sq = ~bn_sq;
+        }
+
         Value value = Value (PushToCorners[bk_sq]
         +       PushClose[square_dist (wk_sq, bk_sq)]
         +       PushAway [square_dist (bk_sq, bn_sq)]);
@@ -563,7 +572,7 @@ namespace EndGame {
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
         // Test for a rook pawn
-        if (pos.pieces (PAWN) & (FA_bb | FH_bb))
+        if (pos.pieces<PAWN> () & (FA_bb | FH_bb))
         {
             Square bk_sq = pos.king_sq(_weak_side);
             Square bb_sq = pos.list<BSHP> (_weak_side)[0];
@@ -645,7 +654,7 @@ namespace EndGame {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
         Square bk_sq = pos.king_sq (_weak_side);
-        Bitboard wpawns = pos.pieces (_stong_side, PAWN);
+        Bitboard wpawns = pos.pieces<PAWN> (_stong_side);
         Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
@@ -750,7 +759,7 @@ namespace EndGame {
             else
             {
                 Bitboard path = front_squares_bb (_stong_side, wp_sq);
-                if ( path & pos.pieces (_weak_side, KING) ||
+                if ( path & pos.pieces<KING> (_weak_side) ||
                     (pos.attacks_from<BSHP> (bb_sq) & path) &&
                     square_dist (bb_sq, wp_sq) >= 3)
                 {
@@ -816,7 +825,7 @@ namespace EndGame {
             if (bk_sq == block_sq1 &&
                 opposite_colors (bk_sq, wb_sq) &&
                 (bb_sq == block_sq2 ||
-                (pos.attacks_from<BSHP> (block_sq2) & pos.pieces (_weak_side, BSHP)) ||
+                (pos.attacks_from<BSHP> (block_sq2) & pos.pieces<BSHP> (_weak_side)) ||
                 rank_dist (r1, r2) >= 2))
             {
                 return SCALE_FACTOR_DRAW;
@@ -824,7 +833,7 @@ namespace EndGame {
             else if (bk_sq == block_sq2 &&
                 opposite_colors (bk_sq, wb_sq) &&
                 (bb_sq == block_sq1 ||
-                (pos.attacks_from<BSHP> (block_sq1) & pos.pieces (_weak_side, BSHP))))
+                (pos.attacks_from<BSHP> (block_sq1) & pos.pieces<BSHP> (_weak_side))))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -903,7 +912,7 @@ namespace EndGame {
         // No assertions about the material of _weak_side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
-        Bitboard wpawns = pos.pieces (_stong_side, PAWN);
+        Bitboard wpawns = pos.pieces<PAWN> (_stong_side);
         Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
         File wp_f = _file (wp_sq);
 
@@ -925,7 +934,7 @@ namespace EndGame {
                 }
 
                 // If the defending king has some pawns
-                Bitboard bpawns = pos.pieces (_weak_side, PAWN);
+                Bitboard bpawns = pos.pieces<PAWN> (_weak_side);
                 if (bpawns && !(bpawns & ~file_bb (wp_f)))
                 {
                     Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
@@ -947,12 +956,12 @@ namespace EndGame {
         }
 
         // All pawns on same B or G file? Then potential draw
-        if ((wp_f == F_B || wp_f == F_G) && !(pos.pieces (PAWN) & ~file_bb (wp_f)) &&
+        if ((wp_f == F_B || wp_f == F_G) && !(pos.pieces<PAWN> () & ~file_bb (wp_f)) &&
             (pos.non_pawn_material (_weak_side) == 0) &&
             (pos.count<PAWN> (_weak_side) >= 1))
         {
             // Get _weak_side pawn that is closest to home rank
-            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces (_weak_side, PAWN));
+            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
 
             Square wk_sq = pos.king_sq (_stong_side);
             Square bk_sq = pos.king_sq (_weak_side);
@@ -968,7 +977,7 @@ namespace EndGame {
             // There's potential for a draw if our pawn is blocked on the 7th rank
             // the bishop cannot attack it or they only have one pawn left
             if ((rel_rank (_stong_side, bp_sq) == R_7) &&
-                (pos.pieces (_stong_side, PAWN) & (bp_sq + pawn_push (_weak_side))) &&
+                (pos.pieces<PAWN> (_stong_side) & (bp_sq + pawn_push (_weak_side))) &&
                 (opposite_colors (wb_sq, bp_sq) || pos.count<PAWN> (_stong_side) == 1))
             {
                 int32_t wk_dist = square_dist (bp_sq, wk_sq);
@@ -1007,7 +1016,7 @@ namespace EndGame {
         if (rel_rank (_weak_side, bk_sq) <= R_2 &&
             rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4 &&
             rel_rank (_weak_side, br_sq) == R_3 &&
-            ( pos.pieces (_weak_side, PAWN)
+            ( pos.pieces<PAWN> (_weak_side)
             & pos.attacks_from<KING> (bk_sq)
             & pos.attacks_from<PAWN> (_stong_side, br_sq)))
         {

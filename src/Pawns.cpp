@@ -122,17 +122,16 @@ namespace {
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | connected)
                 || (pawns[0] & pawn_attack_span_bb (C_, s))
-                || (pos.attacks_from<PAWN> (C, s) & pawns[1]))
+                || (pawns[1] & pos.attacks_from<PAWN> (C, s)))
             {
                 backward = false;
             }
             else
             {
                 Bitboard b;
-                // We now know that there are no friendly pawns beside or behind this
-                // pawn on adjacent files. We now check whether the pawn is
-                // backward by looking in the forward direction on the adjacent
-                // files, and picking the closest pawn there.
+                // We now know that there are no friendly pawns beside or behind this pawn on adjacent files.
+                // We now check whether the pawn is backward by looking in the forward direction on the
+                // adjacent files, and picking the closest pawn there.
                 b = pawn_attack_span_bb (C, s) & (pawns[0] | pawns[1]);
                 b = pawn_attack_span_bb (C, s) & rank_bb (scan_rel_backmost_sq (C, b));
 
@@ -252,11 +251,10 @@ namespace Pawns {
             else
             {
                 mid_pawns = pawns[0] & file_bb (f);
-                Rank w_rk = mid_pawns ? rel_rank (C, scan_rel_backmost_sq (C, mid_pawns)) : R_1;
-
-                safety -= 
-                    ShelterWeakness[w_rk] +
-                    StormDanger[(w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0][b_rk];
+                Rank w_rk = mid_pawns ? rel_rank (C, scan_rel_backmost_sq (C , mid_pawns)) : R_1;
+                int8_t danger = (w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
+                safety -= ShelterWeakness[w_rk]
+                +         StormDanger[danger][b_rk];
             }
         }
 
@@ -302,6 +300,5 @@ namespace Pawns {
     // -------------------------------
     template Score Entry::update_safety<WHITE> (const Position &pos, Square k_sq);
     template Score Entry::update_safety<BLACK> (const Position &pos, Square k_sq);
-
 
 } // namespace Pawns

@@ -197,7 +197,7 @@ Position& Position::operator= (const Position &pos)
 bool Position::draw () const
 {
     // Draw by Material?
-    if (!pieces (PAWN) &&
+    if (!pieces<PAWN> () &&
         (non_pawn_material (WHITE) + non_pawn_material (BLACK)
         <= VALUE_MG_BISHOP))
     {
@@ -274,16 +274,16 @@ bool Position::ok (int8_t *failed_step) const
     // step 4
     if (++(*step), debug_king_count)
     {
-        uint8_t king_count[CLR_NO] = {};
+        uint8_t king_count[CLR_NO] = {0};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Piece p = piece_on (s);
-            if (KING == _type (p)) ++king_count[_color (p)];
+            if (KING == _ptype (p)) ++king_count[_color (p)];
         }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (count<KING> (c) != pop_count<FULL> (pieces (c, KING))) return false;
+            if (count<KING> (c) != pop_count<FULL> (pieces<KING> (c))) return false;
         }
     }
 
@@ -337,7 +337,7 @@ bool Position::ok (int8_t *failed_step) const
 
             if (count<BSHP> (c) > 1)
             {
-                Bitboard bishops = colors & pieces (BSHP);
+                Bitboard bishops = colors & pieces<BSHP> ();
                 uint8_t bishop_count[CLR_NO] =
                 {
                     pop_count<FULL> (LTSQ_bb & bishops),
@@ -353,7 +353,7 @@ bool Position::ok (int8_t *failed_step) const
             }
 
             // There should be one and only one KING of color
-            Bitboard kings = colors & pieces (KING);
+            Bitboard kings = colors & pieces<KING> ();
             if (!kings || more_than_one (kings)) return false;
         }
 
@@ -375,13 +375,13 @@ bool Position::ok (int8_t *failed_step) const
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if ( (pieces (PAWN) | pieces (NIHT) | pieces (BSHP)
-            | pieces (ROOK) | pieces (QUEN) | pieces (KING)) != occ) return false;
-        if ( (pieces (PAWN) ^ pieces (NIHT) ^ pieces (BSHP)
-            ^ pieces (ROOK) ^ pieces (QUEN) ^ pieces (KING)) != occ) return false;
+        if ( (pieces<PAWN> () | pieces<NIHT> () | pieces<BSHP> ()
+            | pieces<ROOK> () | pieces<QUEN> () | pieces<KING> ()) != occ) return false;
+        if ( (pieces<PAWN> () ^ pieces<NIHT> () ^ pieces<BSHP> ()
+            ^ pieces<ROOK> () ^ pieces<QUEN> () ^ pieces<KING> ()) != occ) return false;
 
         // PAWN rank should not be 1/8
-        if ((pieces (PAWN) & (R1_bb | R8_bb))) return false;
+        if ((pieces<PAWN> () & (R1_bb | R8_bb))) return false;
     }
 
     // step 7
@@ -503,11 +503,11 @@ int32_t Position::see      (Move m) const
     // Gain list
     int32_t swap_list[32];
     int8_t depth = 1;
-    swap_list[0] = PieceValue[MG][_type (piece_on (dst))];
+    swap_list[0] = PieceValue[MG][_ptype (piece_on (dst))];
 
     Bitboard occupied = pieces () - org;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
 
     if      (CASTLE == mt)
     {
@@ -537,7 +537,7 @@ int32_t Position::see      (Move m) const
     // destination square, where the sides alternately capture, and always
     // capture with the least valuable piece. After each capture, we look for
     // new X-ray attacks from behind the capturing piece.
-    PieceT ct = _type (piece_on (org));
+    PieceT ct = _ptype (piece_on (org));
 
     do
     {
@@ -573,8 +573,8 @@ int32_t Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][_type (piece_on (org_sq (m)))]
-    <=  PieceValue[MG][_type (piece_on (dst_sq (m)))])
+    if (PieceValue[MG][_ptype (piece_on (org_sq (m)))]
+    <=  PieceValue[MG][_ptype (piece_on (dst_sq (m)))])
     {
         return 1;
     }
@@ -628,18 +628,18 @@ bool Position::pseudo_legal (Move m) const
     Rank r_org = rel_rank (active, org);
     Rank r_dst = rel_rank (active, dst);
 
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
     PieceT ct = NONE;
 
     Square cap = dst;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
 
     if      (NORMAL == mt)
     {
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
-        ct = _type (piece_on (cap));
+        ct = _ptype (piece_on (cap));
     }
     else if (CASTLE == mt)
     {
@@ -683,7 +683,7 @@ bool Position::pseudo_legal (Move m) const
         if (PAWN != pt) return false;
         if (R_7 != r_org) return false;
         if (R_8 != r_dst) return false;
-        ct = _type (piece_on (cap));
+        ct = _ptype (piece_on (cap));
     }
     else if (ENPASSANT == mt)
     {
@@ -814,12 +814,12 @@ bool Position::legal     (Move m, Bitboard pinned) const
 
     Piece p  = piece_on (org);
     Color pc = _color (p);
-    PieceT pt = _type  (p);
+    PieceT pt = _ptype  (p);
     ASSERT ((active == pc) && (NONE != pt));
 
     Square ksq = king_sq (active);
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
 
     if      (CASTLE == mt)
     {
@@ -874,7 +874,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
     Square dst = dst_sq (m);
 
     Piece p  = piece_on (org);
-    PieceT pt = _type  (p);
+    PieceT pt = _ptype  (p);
 
     // Direct check ?
     if (ci.checking_sq[pt] & dst) return true;
@@ -885,7 +885,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
         if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
@@ -1042,10 +1042,10 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (R_6 == rel_rank (active, ep_sq));
 
     Square cap = ep_sq + pawn_push (pasive);
-    //if (!(pieces (pasive, PAWN) & cap)) return false;
-    if ((pasive | PAWN) != piece_on (cap)) return false;
+    if (!(pieces<PAWN> (pasive) & cap)) return false;
+    //if ((pasive | PAWN) != piece_on (cap)) return false;
 
-    Bitboard pawns_ep = attacks_bb<PAWN> (pasive, ep_sq) & pieces (active, PAWN);
+    Bitboard pawns_ep = attacks_bb<PAWN> (pasive, ep_sq) & pieces<PAWN> (active);
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 
@@ -1088,7 +1088,7 @@ Score Position::compute_psq_score () const
     {
         Square s = pop_lsq (occ);
         Piece  p = piece_on (s);
-        score += psq[_color (p)][_type (p)][s];
+        score += psq[_color (p)][_ptype (p)][s];
     }
     return score;
 }
@@ -1129,19 +1129,19 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Square org   = org_sq (m);
     Square dst   = dst_sq (m);
     Piece p      = piece_on (org);
-    PieceT pt     = _type (p);
+    PieceT pt     = _ptype (p);
 
     ASSERT ((EMPTY != p) &&
         (active == _color (p)) &&
         (NONE != pt));
     ASSERT (empty (dst) ||
         (pasive == _color (piece_on (dst))) ||
-        (CASTLE == m_type (m)));
+        (CASTLE == mtype (m)));
 
     Square cap = dst;
     PieceT  ct  = NONE;
 
-    MoveT mt   = m_type (m);
+    MoveT mt   = mtype (m);
 
     // Pick capture piece and check validation
     if      (NORMAL == mt)
@@ -1151,17 +1151,17 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         {
             uint8_t del_f = file_dist (cap, org);
             ASSERT (0 == del_f || 1 == del_f);
-            if (1 == del_f) ct = _type (piece_on (cap));
+            if (1 == del_f) ct = _ptype (piece_on (cap));
         }
         else
         {
-            ct = _type (piece_on (cap));
+            ct = _ptype (piece_on (cap));
         }
     }
     else if (CASTLE == mt)
     {
         ASSERT (KING == pt);
-        ASSERT (ROOK == _type (piece_on (dst)));
+        ASSERT (ROOK == _ptype (piece_on (dst)));
 
         ct = NONE;
     }
@@ -1171,7 +1171,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         ASSERT (R_7 == rel_rank (active, org));
         ASSERT (R_8 == rel_rank (active, dst));
 
-        ct = _type (piece_on (cap));
+        ct = _ptype (piece_on (cap));
         ASSERT (PAWN != ct);
     }
     else if (ENPASSANT == mt)
@@ -1401,9 +1401,9 @@ void Position::undo_move ()
     Color active = _active = ~_active; // Switch
 
     Piece p  = piece_on (dst);
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     ASSERT (empty (org) || CASTLE == mt);
 
     PieceT ct = _si->cap_type;
@@ -1981,7 +1981,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 if ('a' <= sym && sym <= 'h')
                 {
                     rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != _type (pos[rook])) return false;
+                    if (ROOK != _ptype (pos[rook])) return false;
                     pos.set_castle (c, rook);
                 }
                 else
@@ -2003,15 +2003,15 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 {
                 case 'K':
                     rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _type (pos[rook]))) --rook;
+                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _ptype (pos[rook]))) --rook;
                     break;
                 case 'Q':
                     rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _type (pos[rook]))) ++rook;
+                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
                     break;
                 default: return false;
                 }
-                if (ROOK != _type (pos[rook])) return false;
+                if (ROOK != _ptype (pos[rook])) return false;
                 pos.set_castle (c, rook);
 
                 get_next ();
@@ -2110,7 +2110,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
-            pos.place_piece (s, _color (p), _type (p));
+            pos.place_piece (s, _color (p), _ptype (p));
             ++s;
         }
         else if (ch == '/')
@@ -2141,7 +2141,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             if ('a' <= sym && sym <= 'h')
             {
                 rook = (to_file (sym) | rel_rank (c, R_1));
-                //if (ROOK != _type (pos[rook])) return false;
+                //if (ROOK != _ptype (pos[rook])) return false;
                 pos.set_castle (c, rook);
             }
             else
@@ -2160,16 +2160,16 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             {
             case 'K':
                 rook = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _type (pos[rook]))) --rook;
+                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != _ptype (pos[rook]))) --rook;
                 break;
             case 'Q':
                 rook = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _type (pos[rook]))) ++rook;
+                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
                 break;
             default: continue;
             }
 
-            //if (ROOK != _type (pos[rook])) return false;
+            //if (ROOK != _ptype (pos[rook])) return false;
             pos.set_castle (c, rook);
         }
     }

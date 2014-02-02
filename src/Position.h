@@ -204,15 +204,21 @@ public:
     Piece    operator[] (Square s)      const;
     Bitboard operator[] (Color  c)      const;
     Bitboard operator[] (PieceT pt)      const;
-    const Square* operator[] (Piece p)  const;
+    const Square* operator[] (Piece p)   const;
 
-    bool empty     (Square s)           const;
-    Piece piece_on (Square s)           const;
+    bool empty     (Square s)            const;
+    Piece piece_on (Square s)            const;
 
-    Square king_sq (Color c)            const;
+    Square king_sq (Color c)             const;
 
-    Bitboard pieces (Color c)           const;
+    Bitboard pieces (Color c)            const;
+    //template<Color C>
+    //Bitboard pieces ()                   const;
+
     Bitboard pieces (PieceT pt)          const;
+    template<PieceT PT>
+    Bitboard pieces ()                   const;
+
     Bitboard pieces (Color c, PieceT pt) const;
     template<PieceT PT>
     Bitboard pieces (Color c)           const;
@@ -421,15 +427,21 @@ public:
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_type (p)]; }
+inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
 inline bool     Position::empty   (Square s) const { return EMPTY == _piece_arr[s]; }
 inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
+inline Bitboard Position::pieces (Color  c)            const { return _color_bb[c];  }
+//template<Color C>
+//inline Bitboard Position::pieces ()                    const { return _color_bb[C];  }
+
 inline Bitboard Position::pieces (PieceT pt)           const { return _types_bb[pt]; }
+template<PieceT PT>
+inline Bitboard Position::pieces ()                    const { return _types_bb[PT]; }
+
 inline Bitboard Position::pieces (Color c, PieceT pt)  const { return _color_bb[c]  & _types_bb[pt]; }
 template<PieceT PT>
 inline Bitboard Position::pieces (Color c)             const { return _color_bb[c]  & _types_bb[PT]; }
@@ -438,7 +450,7 @@ inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
-//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
 
 
 template<PieceT PT>
@@ -549,12 +561,12 @@ inline Bitboard Position::attacks_from (Piece p, Square s) const
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return
-        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces (BLACK, PAWN)) |
-        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces (WHITE, PAWN)) |
-        (BitBoard::attacks_bb<NIHT> (s)        & pieces (NIHT))        |
+        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces<PAWN> (BLACK)) |
+        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces<PAWN> (WHITE)) |
+        (BitBoard::attacks_bb<NIHT> (s)        & pieces<NIHT> ())      |
         (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))  |
         (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))  |
-        (BitBoard::attacks_bb<KING> (s)        & pieces (KING));
+        (BitBoard::attacks_bb<KING> (s)        & pieces<KING> ());
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
@@ -583,15 +595,14 @@ inline Bitboard Position::discoverers (Color c) const
     return check_blockers (c, ~c); // blockers for opp king
 }
 
-
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(pieces (~c, PAWN) & BitBoard::passer_pawn_span_bb (c, s));
+    return !(pieces<PAWN> (~c) & BitBoard::passer_pawn_span_bb (c, s));
 }
 
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
+    return pieces<PAWN> (c) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -630,11 +641,11 @@ inline bool Position::opposite_bishops () const
 //    Square dst  = dst_sq (m);
 //
 //    Piece p     = piece_on (org);
-//    PieceT pt    = _type (p);
+//    PieceT pt    = _ptype (p);
 //
 //    Square cap = dst;
 //
-//    switch (m_type (m))
+//    switch (mtype (m))
 //    {
 //    case CASTLE:
 //        return EMPTY;
@@ -642,7 +653,7 @@ inline bool Position::opposite_bishops () const
 //        if (PAWN == pt)
 //        {
 //            cap += ((WHITE == _active) ? DEL_S : DEL_N);
-//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN)) ?
+//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces<PAWN> (_active)) ?
 //                piece_on (cap) : EMPTY;
 //        }
 //        return EMPTY;
@@ -673,7 +684,7 @@ inline bool Position::legal        (Move m) const { return legal (m, pinneds (_a
 // capture(m) tests move is capture
 inline bool Position::capture               (Move m) const
 {
-    //MoveT mt = m_type (m);
+    //MoveT mt = mtype (m);
     //switch (mt)
     //{
     //case CASTLE:
@@ -686,7 +697,7 @@ inline bool Position::capture               (Move m) const
     //}
     //return false;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     //return (!empty (dst_sq (m)) && CASTLE != mt)
     //    || (ENPASSANT == mt && _ok (_si->en_passant));
     return (NORMAL == mt || PROMOTE == mt)
@@ -696,16 +707,16 @@ inline bool Position::capture               (Move m) const
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    //switch (m_type (m))
+    //switch (mtype (m))
     //{
     //case CASTLE:    return false;
     //case PROMOTE:   return true;
     //case ENPASSANT: return _ok (_si->en_passant);
-    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _type (p));
+    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _ptype (p));
     //}
     //return false;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt && _ok (_si->en_passant)) || (CASTLE != mt);
@@ -713,11 +724,11 @@ inline bool Position::capture_or_promotion  (Move m) const
 
 //inline bool Position::  passed_pawn_push (Move m) const
 //{
-//    return (PAWN == _type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
+//    return (PAWN == _ptype (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
 //}
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == _type (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == _ptype (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
 
@@ -736,7 +747,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    place_piece (s, _color (p), _type (p));
+    place_piece (s, _color (p), _ptype (p));
 }
 inline void  Position::remove_piece (Square s)
 {
@@ -750,7 +761,7 @@ inline void  Position::remove_piece (Square s)
     Piece p = _piece_arr [s];
 
     Color c  = _color (p);
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
 
     _piece_arr [s]   = EMPTY;
     Bitboard bb      = ~BitBoard::_square_bb[s];
@@ -778,14 +789,14 @@ inline void  Position::  move_piece (Square s1, Square s2)
     Piece p = _piece_arr[s1];
 
     Color c = _color (p);
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
 
     _piece_arr[s1] = EMPTY;
     _piece_arr[s2] = p;
 
     Bitboard bb = BitBoard::_square_bb[s1] ^ BitBoard::_square_bb[s2];
-    _color_bb[c]     ^= bb;
-    _types_bb[pt]    ^= bb;
+    _color_bb[c]    ^= bb;
+    _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
 
     // _piece_index[s1] is not updated and becomes stale. This works as long

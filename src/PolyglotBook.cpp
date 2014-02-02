@@ -28,7 +28,7 @@ inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     return !(pe1 == pe2);
 }
 
-inline bool operator> (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator>  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return 
         (pe1.key != pe2.key) ?
@@ -37,7 +37,7 @@ inline bool operator> (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBoo
     //(pe1.weight > pe2.weight);  // order by weight value
 }
 
-inline bool operator< (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator<  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return
         (pe1.key != pe2.key) ?
@@ -69,8 +69,8 @@ PolyglotBook::PolyglotEntry::operator string () const
     ostringstream spe;
 
     Move m = Move (move);
-    PieceT pt = PieceT ((m >> 12) & 0x7);
     // Set new type for promotion piece
+    PieceT pt = PieceT ((m >> 12) & 0x7);
     if (pt) prom_type (m, pt);
 
     spe << setfill ('0')
@@ -360,7 +360,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        //if ((m ^ m_type (m)) == move)
+        //if ((m ^ mtype (m)) == move)
         if ((m & 0x3FFF) == move)
         {
             return m;

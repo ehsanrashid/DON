@@ -572,9 +572,9 @@ inline bool     _ok (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 inline Piece operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
 
-inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceT _type  (Piece p) { return PieceT (p & ALLS); }
-inline Color _color (Piece p) { return Color (p >> 3); }
+inline bool      _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline PieceT _ptype (Piece p) { return PieceT (p & ALLS); }
+inline Color  _color (Piece p) { return Color (p >> 3); }
 
 inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 
@@ -589,7 +589,7 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
 inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
 inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
-inline MoveT m_type (Move m)    { return MoveT (PROMOTE & m); }
+inline MoveT mtype   (Move m)    { return MoveT (PROMOTE & m); }
 
 inline void org_sq (Move &m, Square org)
 {
@@ -606,7 +606,7 @@ inline void prom_type (Move &m, PieceT pt)
     m &= 0x0FFF;
     m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
 }
-inline void m_type (Move &m, MoveT mt)
+inline void mtype (Move &m, MoveT mt)
 {
     m &= ~PROMOTE;
     m |= mt;

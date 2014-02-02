@@ -22,7 +22,7 @@ AmbType ambiguity (Move m, const Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PieceT pt  = _type (p);
+    PieceT pt  = _ptype (p);
 
 
     //uint8_t n = 0;
@@ -82,10 +82,10 @@ AmbType ambiguity (Move m, const Position &pos)
     //{
     //case PAWN:
     //case KING: return AMB_NONE; break;
-    //case NIHT: ambiguous &= attacks_bb<NIHT> (dst) & pos.pieces (NIHT); break;
-    //case BSHP: ambiguous &= attacks_bb<BSHP> (dst, occ) & pos.pieces (BSHP); break;
-    //case ROOK: ambiguous &= attacks_bb<ROOK> (dst, occ) & pos.pieces (ROOK); break;
-    //case QUEN: ambiguous &= attacks_bb<QUEN> (dst, occ) & pos.pieces (QUEN); break;
+    //case NIHT: ambiguous &= attacks_bb<NIHT> (dst     ) & pos.pieces<NIHT> (); break;
+    //case BSHP: ambiguous &= attacks_bb<BSHP> (dst, occ) & pos.pieces<BSHP> (); break;
+    //case ROOK: ambiguous &= attacks_bb<ROOK> (dst, occ) & pos.pieces<ROOK> (); break;
+    //case QUEN: ambiguous &= attacks_bb<QUEN> (dst, occ) & pos.pieces<QUEN> (); break;
     //}
     //if (!(ambiguous)) return AMB_NONE;
     //if (!(ambiguous & file_bb (org))) return AMB_RANK;
@@ -165,7 +165,7 @@ const string move_to_can (Move m, bool c960)
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    MoveT mt   = m_type (m);
+    MoveT mt   = mtype (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
@@ -183,7 +183,7 @@ const string move_to_san (Move m, Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PieceT pt  = _type (p);
+    PieceT pt  = _ptype (p);
 
     //    switch (pt)
     //    {
@@ -197,7 +197,7 @@ const string move_to_san (Move m, Position &pos)
     //
     //        san += to_string (dst);
     //
-    //        if (PROMOTE == m_type (m))
+    //        if (PROMOTE == mtype (m))
     //        {
     //            switch (prom_type (m))
     //            {
@@ -211,7 +211,7 @@ const string move_to_san (Move m, Position &pos)
     //        goto move_marker;
     //
     //    case KING:
-    //        if (CASTLE == m_type (m))
+    //        if (CASTLE == mtype (m))
     //        {
     //            CSide cs = ((WHITE == pos.active ()) ?
     //                (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
@@ -260,7 +260,7 @@ const string move_to_san (Move m, Position &pos)
     //        san += (legalmove ? '+' : '#');
     //    }
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     switch (mt)
     {
     case CASTLE:

@@ -456,8 +456,8 @@ namespace {
         // no minor piece which can exchange the outpost piece.
         if (bonus && (ei.attacked_by[C][PAWN] & s))
         {
-            if ( !pos.pieces (C_, NIHT) &&
-                !(pos.pieces (C_, BSHP) & squares_of_color (s)))
+            if ( !pos.pieces<NIHT> (C_) &&
+                !(pos.pieces<BSHP> (C_) & squares_of_color (s)))
             {
                 bonus += bonus + bonus / 2;
             }
@@ -554,13 +554,13 @@ namespace {
             if (BSHP == PT || NIHT == PT)
             {
                 // Bishop and knight outposts squares
-                if (!(pos.pieces (C_, PAWN) & pawn_attack_span_bb (C, s)))
+                if (!(pos.pieces<PAWN> (C_) & pawn_attack_span_bb (C, s)))
                 {
                     score += evaluate_outposts<PT, C> (pos, ei, s);
                 }
                 // Bishop or knight behind a pawn
                 if (rel_rank (C, s) < R_5 &&
-                    (pos.pieces (PAWN) & (s + pawn_push (C))))
+                    (pos.pieces<PAWN> () & (s + pawn_push (C))))
                 {
                     score += MinorBehindPawnBonus;
                 }
@@ -577,7 +577,7 @@ namespace {
                 }
 
                 // Major piece attacking enemy pawns on the same rank/file
-                Bitboard pawns = pos.pieces (C_, PAWN) & attacks_bb<ROOK> (s);
+                Bitboard pawns = pos.pieces<PAWN> (C_) & attacks_bb<ROOK> (s);
                 if (pawns)
                 {
                     score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15> (pawns));
@@ -603,7 +603,7 @@ namespace {
                         : RookSemiopenFileBonus;
 
                     //// Give more bonus if the rook is doubled
-                    //if (front_squares_bb (C_, s) & pos.pieces (C, ROOK))
+                    //if (front_squares_bb (C_, s) & pos.pieces<ROOK> (C))
                     //{
                     //    score += ei.pi->semiopen (C_, _file (s))
                     //        ? RookDoubledOpenBonus
@@ -814,10 +814,10 @@ namespace {
         {
             Bitboard attacked_enemies;
             attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
-            if (attacked_enemies) score += ThreatBonus[0][_type (pos[scan_lsq (attacked_enemies)])];
+            if (attacked_enemies) score += ThreatBonus[0][_ptype (pos[scan_lsq (attacked_enemies)])];
 
             attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
-            if (attacked_enemies) score += ThreatBonus[1][_type (pos[scan_lsq (attacked_enemies)])];
+            if (attacked_enemies) score += ThreatBonus[1][_ptype (pos[scan_lsq (attacked_enemies)])];
         }
 
         if (TRACE)
@@ -919,7 +919,7 @@ namespace {
 
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
-            Bitboard sup_passed_pawns = pos.pieces (C, PAWN) & adj_files_bb (_file (s));
+            Bitboard sup_passed_pawns = pos.pieces<PAWN> (C) & adj_files_bb (_file (s));
             if (sup_passed_pawns & rank_bb (s))
             {
                 eg_bonus += Value (r * 20);
@@ -992,12 +992,12 @@ namespace {
         // SpaceMask[]. A square is unsafe if it is attacked by an enemy
         // pawn, or if it is undefended and attacked by an enemy piece.
         Bitboard safe = SpaceMask[C] &
-            ~pos.pieces (C, PAWN) &
+            ~pos.pieces<PAWN> (C) &
             ~ei.attacked_by[C_][PAWN] &
             (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);
 
         // Find all squares which are at most three squares behind some friendly pawn
-        Bitboard behind = pos.pieces (C, PAWN);
+        Bitboard behind = pos.pieces<PAWN> (C);
         behind |= ((WHITE == C) ? behind >> 0x08 : behind << 0x08);
         behind |= ((WHITE == C) ? behind >> 0x10 : behind << 0x10);
 

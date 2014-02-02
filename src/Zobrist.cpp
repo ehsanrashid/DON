@@ -100,7 +100,7 @@ namespace Zobrist {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_ptype (p)][s];
         //}
 
         //for (Color c = WHITE; c <= BLACK; ++c)
@@ -121,7 +121,7 @@ namespace Zobrist {
         //{
         //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_ptype (p)][s];
         //}
 
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -202,9 +202,9 @@ namespace Zobrist {
                     {
                         Piece p = Piece (idx);
                         if (EMPTY == p) return U64 (0);
-                        if (KING == _type (p))  king[_color (p)] = f;
+                        if (KING == _ptype (p))  king[_color (p)] = f;
 
-                        fen_key ^= _.psq_k[_color (p)][_type (p)][(f | r)];
+                        fen_key ^= _.psq_k[_color (p)][_ptype (p)][(f | r)];
                     }
                     ++f;
                 }
@@ -325,7 +325,7 @@ namespace Zobrist {
             else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
-                fen_key ^= _.psq_k[_color (p)][_type (p)][s];
+                fen_key ^= _.psq_k[_color (p)][_ptype (p)][s];
                 ++s;
             }
             else if (ch == '/')
