@@ -97,14 +97,14 @@ namespace std {
     //    }
     //
     //} ats;
-
+    //
     //template<class T>
     //ats& operator<< (ats &os, T& (*manip) (T &))
     //{
     //    //manip (os._os_stm);
     //    return os;
     //}
-
+    //
     //typedef ostream& (*ostream_manipulator)(ostream &);
     //template<>
     //ats& operator<< (ats &os, ostream_manipulator pf)
@@ -112,7 +112,6 @@ namespace std {
     //    //os.operator<< <ostream_manipulator> (os, pf);
     //    return os;
     //}
-
 
     typedef class atomic_stream sealed
         : public ostringstream
@@ -139,11 +138,11 @@ namespace std {
         inline atomic_stream& operator() ()
         {
             {
-                // acquire lock
+                // Acquire lock
                 //unique_lock<mutex> lock;
                 _out_stm << str () << std::flush;
-                clear ();
-                // release lock
+                //clear ();
+                // Release lock
             }
             return *this;
         }
