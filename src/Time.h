@@ -8,10 +8,11 @@
 
 #include "Platform.h"
 
+#include <ctime>
+
 #ifdef _WIN32   // WINDOWS
 
 #   include <sys/timeb.h>
-#   include <time.h>
 
 INLINE uint64_t system_time_msec ()
 {
@@ -40,20 +41,20 @@ namespace Time {
     //{
     //    MS_SEC = 1000,
     //} point;
-    //INLINE point  operator-  (point  p1, point p2) { return point (uint64_t (p1) - uint64_t (p2)); }
+    //INLINE point  operator-  (const point &p1, const point &p2) { return point (uint64_t (p1) - uint64_t (p2)); }
 
     typedef int64_t point;
     const point MS_SEC = 1000;
 
     INLINE point now () { return point (system_time_msec ()); }
 
-    inline std::string to_string (const point t)
+    inline std::string to_string (const point &p)
     {
         std::ostringstream stime;
 
-#ifdef _WIN32
+//#ifdef _WIN32
 
-        time_t time = (t / MS_SEC);
+        time_t time = (p / MS_SEC);
         char *str_time = ctime (&time);
 
         //char str_time[26];
@@ -69,16 +70,16 @@ namespace Time {
         str_time[24] = '\0';
 
         stime << std::setfill ('0')
-            << &str_time[0] << " "
+            << &str_time[00] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (t % MS_SEC);
+            << std::setw (3) << (p % MS_SEC);
 
-#else
-
-        // TODO::
-
-#endif
+//#else
+//
+//        // TODO::
+//
+//#endif
 
         return stime.str ();
     }
@@ -86,7 +87,7 @@ namespace Time {
 
 template<typename charT, typename Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point p)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point &p)
 {
     os << Time::to_string (p);
     return os;
