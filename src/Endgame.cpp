@@ -90,7 +90,7 @@ namespace EndGame {
             transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
             string empty = string ("") + char ('0' + 8 - length);
             if ("0" == empty) empty = "";
-            string fen = sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 10";
+            string fen = sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 1";
             return Position (fen).matl_key ();
         }
 
