@@ -1,8 +1,6 @@
 #include "Tester.h"
 
-#ifdef _DEBUG
-#include "xcstring.h"
-#endif
+//#include "xcstring.h"
 #include "xstring.h"
 
 #include "BitBoard.h"
@@ -12,7 +10,7 @@
 
 namespace Tester {
 
-#ifdef _DEBUG
+//#ifndef NDEBUG
     using namespace std;
 
     namespace {
@@ -639,6 +637,6 @@ namespace Tester {
         test_uci ();
     }
 
-#endif
+//#endif
 
 }

@@ -80,7 +80,7 @@ public:
     // Returns the index of the 1st book entry with the same key as the input.
     size_t find_index (const Key key);
     size_t find_index (const Position &pos);
-#ifdef _DEBUG
+#ifndef NDEBUG
     size_t find_index (const        char *fen, bool c960 = false);
 #endif
     size_t find_index (const std::string &fen, bool c960 = false);
@@ -89,13 +89,13 @@ public:
 
     PolyglotBook();
     // mode = std::ios_base::in | std::ios_base::out
-#ifdef _DEBUG
+#ifndef NDEBUG
     PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
 #endif
     PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
-#ifdef _DEBUG
+#ifndef NDEBUG
     bool open (const        char *fn_book, std::ios_base::openmode mode);
 #endif
     bool open (const std::string &fn_book, std::ios_base::openmode mode);

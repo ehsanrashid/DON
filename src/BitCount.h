@@ -52,22 +52,22 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #       endif
 }
 
-#   else //if defined(_64BIT)
+#   else
 
 #       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
 template<>
 INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#   ifdef _64BIT
+#      ifdef _64BIT
     {
         return (__popcnt64 (bb));
     }
-#   else
+#      else
     {
         return (__popcnt (bb) + __popcnt (bb >> 32));
     }
-#   endif
+#      endif
 }
 
 #   endif

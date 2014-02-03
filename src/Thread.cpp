@@ -248,7 +248,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     sp.node_type    = node_type;
     sp.cut_node     = cut_node;
     sp.move_picker  = move_picker;
-    sp.moves_count   = moves_count;
+    sp.moves_count  = moves_count;
     sp.pos          = &pos;
     sp.nodes        = 0;
     sp.cut_off      = false;

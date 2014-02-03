@@ -148,7 +148,7 @@ typedef unsigned long long      uint64_t;
 #undef ASSERT
 #undef ASSERT_MSG
 
-#ifndef _DEBUG
+#ifdef NDEBUG
 
 #   define ASSERT(condition)          ((void) 0)
 #   define ASSERT_MSG(condition, msg) ((void) 0)
@@ -164,15 +164,15 @@ typedef unsigned long long      uint64_t;
 
 #   ifdef TRI_LOGGER
 
-#   include "TriLogger.h"
+#       include "TriLogger.h"
 
-#   define ASSERT(condition)                    \
+#       define ASSERT(condition)                \
     do {                                        \
     if (!(condition)) {                         \
     TRI_LOG_MSG ("ASSERT: \'" #condition "\'"); \
     } } while (false)
 
-#   define ASSERT_MSG(condition, msg)           \
+#       define ASSERT_MSG(condition, msg)       \
     do {                                        \
     if (!(condition)) {                         \
     TRI_LOG_MSG ("ASSERT: \'" msg "\'");        \
@@ -180,10 +180,10 @@ typedef unsigned long long      uint64_t;
 
 #   else
 
-#   include <cassert>
+#       include <cassert>
 
-#   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
-#   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
+#       define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
+#       define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
 
 #   endif
 

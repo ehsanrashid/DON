@@ -38,7 +38,7 @@ namespace {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV = CUT + ALL
     // Different node types, used as template parameter
-    enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
+    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
@@ -138,10 +138,10 @@ namespace {
 
     void iter_deep_loop (Position &pos);
 
-    template <NodeType NT>
+    template <NodeT NT>
     Value search        (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
 
-    template <NodeType NT, bool IN_CHECK>
+    template <NodeT NT, bool IN_CHECK>
     Value search_quien  (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
@@ -711,7 +711,7 @@ namespace {
 
     }
 
-    template <NodeType NT>
+    template <NodeT NT>
     // search<> () is the main search function for both PV and non-PV nodes and for
     // normal and SplitPoint nodes. When called just after a split point the search
     // is simpler because we have already probed the hash table, done a null move
@@ -1448,7 +1448,7 @@ moves_loop: // When in check and at SPNode search starts from here
         return best_value;
     }
 
-    template <NodeType NT, bool IN_CHECK>
+    template <NodeT NT, bool IN_CHECK>
     // search_quien() is the quiescence search function, which is called by the main search function
     // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
     Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)

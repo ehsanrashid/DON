@@ -46,13 +46,11 @@ namespace EndGame {
         const int32_t PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const int32_t PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-#ifdef _DEBUG
-
+#ifndef NDEBUG
         inline bool verify_material (const Position &pos, Color c, Value npm, int32_t num_pawns)
         {
             return (pos.non_pawn_material(c) == npm) && (pos.count<PAWN> (c) == num_pawns);
         }
-
 #endif
 
         // Map the square as if strong_side is white and

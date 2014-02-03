@@ -11,11 +11,13 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "UCI.h"
-#include "Tester.h"
 #include "DebugLogger.h"
-
 //#include <thread>
 #include "Thread.h"
+
+#ifndef NDEBUG
+#   include "Tester.h"
+#endif
 
 namespace Engine {
 
@@ -107,7 +109,7 @@ namespace Engine {
             << "info string " << Threads.size () << " thread(s)." << "\n"
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
         //Tester::main_test ();
         //system ("pause");
         //return;
