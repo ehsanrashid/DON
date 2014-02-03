@@ -894,13 +894,13 @@ namespace {
             abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
             !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
-            Value rbeta = beta - razor_margin (depth);
-            Value v = search_quien<NonPV, false> (pos, ss, rbeta-1, rbeta, DEPTH_ZERO);
-            if (v < rbeta)
+            Value ralpha = alpha - razor_margin (depth);
+            Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+            if (ver_value <= ralpha)
             {
-                // Logically we should return (value + razor_margin (depth)), but
-                // surprisingly this did slightly weaker in tests.
-                return v;
+                // Logically we should return (ver_value + razor_margin (depth)),
+                // but surprisingly this did slightly weaker in tests.
+                return ver_value;
             }
         }
 
