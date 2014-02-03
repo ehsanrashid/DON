@@ -132,7 +132,7 @@ PolyglotBook::PolyglotBook()
     , _rkiss ()
 {}
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
@@ -158,7 +158,7 @@ PolyglotBook::~PolyglotBook ()
 // mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
-#ifdef _DEBUG
+#ifndef NDEBUG
 bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
 {
     close ();
@@ -226,7 +226,7 @@ size_t PolyglotBook::find_index (const Position &pos)
     return find_index (ZobPG.compute_posi_key (pos));
 }
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 size_t PolyglotBook::find_index (const        char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));

@@ -16,7 +16,6 @@ namespace EndGame {
 
         const Bitboard Corner_bb = U64(0x8100000000000081);
 
-
         // Table used to drive the king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
         const int32_t PushToEdges[SQ_NO] =
@@ -49,13 +48,11 @@ namespace EndGame {
         const int32_t PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const int32_t PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-#ifdef _DEBUG
-
+#ifndef NDEBUG
         inline bool verify_material (const Position &pos, Color c, Value npm, int32_t num_pawns)
         {
             return (pos.non_pawn_material(c) == npm) && (pos.piece_count<PAWN> (c) == num_pawns);
         }
-
 #endif
 
         // Map the square as if strong_side is white and
@@ -134,7 +131,7 @@ namespace EndGame {
         for_each (m2.begin (), m2.end (), delete_endgame<M2>);
     }
 
-    template<EndgameType E>
+    template<EndgameT E>
     void Endgames::add (const string &code)
     {
         map ((Endgame<E>*) 0)[key (code, WHITE)] = new Endgame<E> (WHITE);

@@ -107,7 +107,7 @@ namespace Engine {
             << "info string " << Threads.size () << " thread(s)." << "\n"
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
         //Tester::main_test ();
         //system ("pause");
         //return;

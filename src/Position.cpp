@@ -33,7 +33,7 @@ const Value PieceValue[PHASE_NO][ALLS] =
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 bool _ok (const   char *fen, bool c960, bool full)
 {
     if (!fen)   return false;
@@ -984,7 +984,7 @@ void Position::clear ()
     _si = &_sb;
 }
 // setup() sets the fen on the position
-#ifdef _DEBUG
+#ifndef NDEBUG
 bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 {
     //Position pos (int8_t (0));
@@ -1603,7 +1603,7 @@ void Position::flip ()
 
 #pragma region Conversions
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 bool   Position::fen (const char *fen, bool c960, bool full) const
 {
     ASSERT (fen);
@@ -1910,7 +1910,7 @@ Position::operator string () const
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #undef SKIP_WHITESPACE
 #define SKIP_WHITESPACE()  while (isspace (uint8_t (*fen))) ++fen
 

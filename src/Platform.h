@@ -138,7 +138,7 @@ typedef unsigned long long      uint64_t;
 #undef ASSERT
 #undef ASSERT_MSG
 
-#ifndef _DEBUG
+#ifdef NDEBUG
 
 #   define ASSERT(condition)          ((void) 0)
 #   define ASSERT_MSG(condition, msg) ((void) 0)

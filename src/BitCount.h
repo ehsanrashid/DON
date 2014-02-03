@@ -6,7 +6,7 @@
 
 #pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 
-typedef enum BitCountType
+typedef enum BitCountT
 {
     CNT_64_FULL,
     CNT_64_MAX15,
@@ -14,9 +14,9 @@ typedef enum BitCountType
     CNT_32_MAX15,
     CNT_HW_POPCNT,
 
-} BitCountType;
+} BitCountT;
 
-template<BitCountType CNT>
+template<BitCountT CNT>
 // pop_count () counts the number of set bits in a Bitboard
 INLINE uint8_t pop_count (Bitboard bb);
 
@@ -27,8 +27,8 @@ INLINE uint8_t pop_count (Bitboard bb);
 
 #ifdef POPCNT
 
-const BitCountType FULL  = CNT_HW_POPCNT;
-const BitCountType MAX15 = CNT_HW_POPCNT;
+const BitCountT FULL  = CNT_HW_POPCNT;
+const BitCountT MAX15 = CNT_HW_POPCNT;
 
 #if defined(_MSC_VER)
 
@@ -59,15 +59,15 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#   ifdef _64BIT
+#       ifdef _64BIT
     {
         return (__popcnt64 (bb));
     }
-#   else
+#       else
     {
         return (__popcnt (bb) + __popcnt (bb >> 32));
     }
-#   endif
+#       endif
 }
 
 #   endif
@@ -89,8 +89,8 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #   ifdef _64BIT
 
-const BitCountType FULL  = CNT_64_FULL;
-const BitCountType MAX15 = CNT_64_MAX15;
+const BitCountT FULL  = CNT_64_FULL;
+const BitCountT MAX15 = CNT_64_MAX15;
 
 const Bitboard M1_64 = U64 (0x5555555555555555);
 const Bitboard M2_64 = U64 (0x3333333333333333);
@@ -126,8 +126,8 @@ INLINE uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
 
 #   else
 
-const BitCountType FULL  = CNT_32_FULL;
-const BitCountType MAX15 = CNT_32_MAX15;
+const BitCountT FULL  = CNT_32_FULL;
+const BitCountT MAX15 = CNT_32_MAX15;
 
 const uint32_t M1_32 = U32 (0x55555555);
 const uint32_t M2_32 = U32 (0x33333333);
