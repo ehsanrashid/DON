@@ -11,11 +11,13 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "UCI.h"
-#include "Tester.h"
 #include "DebugLogger.h"
-
 //#include <thread>
 #include "Thread.h"
+
+#ifndef NDEBUG
+#   include "Tester.h"
+#endif
 
 namespace Engine {
 
@@ -112,6 +114,7 @@ namespace Engine {
         //system ("pause");
         //return;
 #endif
+
         //log_debug (true);
 
         UCI   ::start (args);
