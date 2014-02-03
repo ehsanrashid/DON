@@ -1,15 +1,16 @@
 #include "Tester.h"
-#include <iostream>
-#include "xcstring.h"
+
+//#include "xcstring.h"
 #include "xstring.h"
 
-#include "Castle.h"
 #include "BitBoard.h"
 #include "BitCount.h"
 #include "Position.h"
 #include "Zobrist.h"
 
 namespace Tester {
+
+//#ifndef NDEBUG
 
     using namespace std;
 
@@ -19,6 +20,12 @@ namespace Tester {
 
         void test_type ()
         {
+
+            //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            //{
+            //    ASSERT (_ok (s));
+            //}
+
             ASSERT (CR_W == mk_castle_right (WHITE));
             ASSERT (CR_B == mk_castle_right (BLACK));
 
@@ -35,7 +42,7 @@ namespace Tester {
             ASSERT (CR_B == ~CR_W);
             ASSERT (CR_W == ~CR_B);
 
-            cout << "Type done !!!" << endl;
+            cout << "Type     ...done !!!" << endl;
         }
 
         void test_bitboard ()
@@ -50,9 +57,9 @@ namespace Tester {
             ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
             ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
 
-            ASSERT (0x09 == taxi_dist (SQ_B2, SQ_F7));
-            ASSERT (0x08 == taxi_dist (SQ_G3, SQ_B6));
-            ASSERT (0x04 == taxi_dist (SQ_H5, SQ_E4));
+            ASSERT (0x09 == taxicab_dist (SQ_B2, SQ_F7));
+            ASSERT (0x08 == taxicab_dist (SQ_G3, SQ_B6));
+            ASSERT (0x04 == taxicab_dist (SQ_H5, SQ_E4));
 
             Bitboard b;
 
@@ -87,29 +94,30 @@ namespace Tester {
             //ASSERT (BitShiftGap (94, F_H) == 1);
             //ASSERT (BitShiftGap (37, F_E) == 1);
 
-            ////assert(getNextSquare(&b) == SQ_NO);
+            ////ASSERT(getNextSquare(&b) == SQ_NO);
             ////setSquare(b, SQ_H8);
-            ////assert(getNextSquare(&b) == SQ_H8);
-            ////assert(getNextSquare(&b) == SQ_NO);
+            ////ASSERT(getNextSquare(&b) == SQ_H8);
+            ////ASSERT(getNextSquare(&b) == SQ_NO);
 
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_E5));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_F6));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_G7));
-            ////assert(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_H8));
-            ////assert(getNumberOfSetSquares(squaresBehind[ SQ_D4 ][ SQ_C3 ]) == 4);
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_E5));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_F6));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_G7));
+            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_H8));
+            ////ASSERT(getNumberOfSetSquares(squaresBehind[ SQ_D4 ][ SQ_C3 ]) == 4);
 
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_C4));
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_D5));
-            ////assert(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_E6));
-            ////assert(getNumberOfSetSquares(squaresBetween[ SQ_B3 ][ SQ_F7 ]) == 3);
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_C4));
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_D5));
+            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_E6));
+            ////ASSERT(getNumberOfSetSquares(squaresBetween[ SQ_B3 ][ SQ_F7 ]) == 3);
 
-            ////assert(IsSquareOn(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C4));
-            ////assert(IsSquareOff(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C5));
-            ////assert(IsSquareOn(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E2));
-            ////assert(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
-            ////assert(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
-            ////assert(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C4));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C5));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E2));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
+            ////ASSERT(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
+            ////ASSERT(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
 
+            cout << "Bitboard ...done !!!" << endl;
         }
 
         void test_attacks ()
@@ -214,7 +222,7 @@ namespace Tester {
 
             ASSERT (pop_count<FULL> (attacks) == count);
 
-            cout << "Attacks done !!!" << endl;
+            cout << "Attacks  ...done !!!" << endl;
         }
 
         void test_fen ()
@@ -224,8 +232,8 @@ namespace Tester {
             Position pos (int8_t (0));
             Square s;
 
-            fen = FEN_N;
-            Position::parse (pos, fen);
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            Position::parse (pos, string (fen));
             pos.fen (buf);
 
             ASSERT (equals (buf, fen));
@@ -244,7 +252,7 @@ namespace Tester {
             }
             for (s = SQ_A3; s <= SQ_H6; ++s)
             {
-                ASSERT (pos[s] == PS_NO);
+                ASSERT (pos[s] == EMPTY);
             }
             for (s = SQ_A7; s <= SQ_H7; ++s)
             {
@@ -268,7 +276,7 @@ namespace Tester {
             // ----
 
             fen = "rn3rk1/pbppq1pp/1p2pb2/4N2Q/3PN3/3B4/PPP2PPP/R3K2R w KQ - 4 11";
-            Position::parse (pos, fen);
+            Position::parse (pos, string (fen));
             pos.fen (buf);
 
             ASSERT (equals (buf, fen));
@@ -312,7 +320,7 @@ namespace Tester {
             // ----
 
             fen = "8/8/1R5p/q5pk/PR3pP1/7P/8/7K b - g3 2 10";
-            Position::parse (pos, fen);
+            Position::parse (pos, string (fen));
             pos.fen (buf);
 
             //ASSERT (!equals (buf, fen));
@@ -326,7 +334,7 @@ namespace Tester {
             //----
 
             fen = "r4r2/3b1pk1/p1p5/4p1p1/1PQbPq1p/P2P4/3RBP1P/2R3K1 w - - 1 25";
-            Position::parse (pos, fen);
+            Position::parse (pos, string (fen));
             pos.fen (buf);
 
             ASSERT (equals (buf, fen));
@@ -364,7 +372,7 @@ namespace Tester {
             // ----
 
             fen = "r1bqr1k1/p1p2ppp/2p5/3p4/2PQn3/1B6/P1P2PPP/R1B2RK1 b - - 3 12";
-            Position::parse (pos, fen);
+            Position::parse (pos, string (fen));
             pos.fen (buf);
 
             ASSERT (equals (buf, fen));
@@ -407,12 +415,12 @@ namespace Tester {
             // =========
 
             fen = "rkbnrnqb/pppppppp/8/8/8/8/PPPPPPPP/RKBNRNQB w EAea - 0 1";
-            Position::parse (pos, fen, true);
+            Position::parse (pos, string (fen), NULL, true);
             pos.fen (buf, true);
 
             ASSERT (equals (buf, fen));
 
-            cout << "FEN done !!!" << endl;
+            cout << "FEN      ...done !!!" << endl;
 
         }
 
@@ -428,9 +436,9 @@ namespace Tester {
 
             fen = "8/1q6/8/1k3BR1/p1p4P/8/5K2/8 w - - 0 1";
             pos.setup (fen);
-            ASSERT (U64 (0x0000002000000000) == pos.check_discovers (pos.active ()));
+            ASSERT (U64 (0x0000002000000000) == pos.discoverers (pos.active ()));
 
-            cout << "Position done !!!" << endl;
+            cout << "Position ...done !!!" << endl;
         }
 
         // Test polyglot zobrist
@@ -445,7 +453,7 @@ namespace Tester {
             const char *fen;
             Position pos (int8_t (0));
 
-            fen = FEN_N;
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             Position::parse (pos, fen);
 
             ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
@@ -453,8 +461,8 @@ namespace Tester {
             ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
             ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen));
 
-            fen = FEN_X;
-            Position::parse (pos, fen, true);
+            fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
+            Position::parse (pos, fen, NULL, true);
 
             ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
             ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));
@@ -478,79 +486,66 @@ namespace Tester {
             ASSERT (U64 (0xE230E747697ABB10) == ZobPG.compute_posi_key (pos));
             ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.compute_fen_key (fen));
 
-            cout << "Zobrist done !!!" << endl;
+            cout << "Zobrist  ...done !!!" << endl;
         }
 
         void test_move ()
         {
             string fen;
             Position pos (int8_t (0));
-            StateInfoStack stk_si;
-
+            StateInfo states[50], *si; 
             Move m;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             pos.setup (fen);
+            si = states;
 
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
+            ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             m =  mk_move (SQ_E2, SQ_E4);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
 
             m =  mk_move (SQ_D7, SQ_D5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
 
             m = mk_move (SQ_E4, SQ_E5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
 
             m = mk_move (SQ_F7, SQ_F5);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
 
             m = mk_move (SQ_E1, SQ_E2);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
 
             m = mk_move (SQ_E8, SQ_F7);
-            stk_si.push (StateInfo ());
-            pos.do_move (m, stk_si.top ());
-            //ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
+            pos.do_move (m, *si++);
+            ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
 
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
+            ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
+            ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
+            ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
+            ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
+            ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
             pos.undo_move ();
-            stk_si.pop ();
-            //ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
+            ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             // castling do/undo
             ////"rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
+            //si = states;
             //m = mk_move<CASTLE> (SQ_E1, SQ_H1);
-            //stk_si.push (StateInfo ());
-            //pos.do_move (m, stk_si.top ());
+            //pos.do_move (m, *si++);
             //m = mk_move<CASTLE> (SQ_E8, SQ_H8);
-            //stk_si.push (StateInfo ());
-            //pos.do_move (m, stk_si.top ());
+            //pos.do_move (m, *si++);
             //pos.undo_move ();
             //pos.undo_move ();
 
@@ -559,51 +554,69 @@ namespace Tester {
 
             for (uint32_t i = 0; i < 50; ++i)
             {
+                si = states;
+
                 m = mk_move (SQ_F2, SQ_F4);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_A5, SQ_B3);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_A1, SQ_A3);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_B3, SQ_A5);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_G3, SQ_F5);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
                 m = mk_move (SQ_G8, SQ_H8);
-                stk_si.push (StateInfo ());
-                pos.do_move (m, stk_si.top ());
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_D3, SQ_B1);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_D7, SQ_A4);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_A3, SQ_A4);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_A5, SQ_C4);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E3, SQ_C5);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E8, SQ_C7);
+                pos.do_move (m, *si++);
+
+                //cout << pos;
 
                 pos.undo_move ();
-                stk_si.pop ();
                 pos.undo_move ();
-                stk_si.pop ();
-                pos.undo_move ();
-                stk_si.pop ();
-                pos.undo_move ();
-                stk_si.pop ();
-                pos.undo_move ();
-                stk_si.pop ();
-                pos.undo_move ();
-                stk_si.pop ();
 
+                m = mk_move (SQ_E2, SQ_C2);
+                pos.do_move (m, *si++);
+                m = mk_move (SQ_E8, SQ_C7);
+                pos.do_move (m, *si++);
+
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+                pos.undo_move ();
+
+                //cout << pos;
             }
 
-            cout << "Move done !!!" << endl;
+            cout << "Move     ...done !!!" << endl;
         }
 
         void test_uci ()
         {
 
-            cout << "UCI done !!!" << endl;
+            cout << "UCI      ...done !!!" << endl;
         }
 
     }
-
 
     void main_test ()
     {
@@ -623,4 +636,7 @@ namespace Tester {
 
         test_uci ();
     }
+
+//#endif
+
 }

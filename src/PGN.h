@@ -15,7 +15,7 @@ class Game;
 #pragma warning (disable: 4250)
 
 // PGN file with *.pgn extension
-typedef class PGN sealed
+typedef class PGN
     : private std::fstream
     , public std::noncopyable
 {
@@ -24,7 +24,6 @@ private:
 
     typedef enum PGN_State : int8_t
     {
-        PGN_ERR = -1,
 
         PGN_NEW = 0,
 
@@ -38,6 +37,8 @@ private:
 
         PGN_VAR_LST,
         PGN_VAR_COM,
+        
+        PGN_ERR = 32,
 
     } PGN_State;
 

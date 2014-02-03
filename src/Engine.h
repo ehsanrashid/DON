@@ -7,13 +7,11 @@
 
 namespace Engine {
 
-    extern ::std::string info (bool uci = false);
+    extern std::string info (bool uci = true);
 
-    extern void start ();
+    extern void run (const std::string &args);
 
-    extern void stop ();
-
-    extern void exit (int32_t exit_code);
+    extern void exit (int32_t code);
 
 }
 

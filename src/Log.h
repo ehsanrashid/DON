@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-typedef class Log sealed
+typedef class Log
     : public std::ofstream
 {
 

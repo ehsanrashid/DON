@@ -4,7 +4,7 @@
 
 #include <sstream>
 #include <iostream>
-#include <mutex>
+//#include <mutex>
 #include "noncopyable.h"
 //#include "functor.h"
 
@@ -135,12 +135,16 @@ namespace std {
             (*this) ();
         }
 
-        // Write the whole shebang in one go & also flush
-        atomic_stream& operator() ()
+        // Write the whole shebang in one go and also flush
+        inline atomic_stream& operator() ()
         {
             {
                 // acquire lock
+<<<<<<< HEAD
                 unique_lock<mutex> lock;
+=======
+                //unique_lock<mutex> lock;
+>>>>>>> origin/PieceList
                 _out_stm << str () << std::flush;
                 clear ();
                 // release lock

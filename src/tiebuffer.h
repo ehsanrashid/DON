@@ -9,7 +9,7 @@
 namespace std {
 
     template<class Elem, class Traits>
-    class basic_tie_buf sealed
+    class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
         , public noncopyable
     {
@@ -30,12 +30,12 @@ namespace std {
             , _fstm (fstm)
         {}
 
-        basic_streambuf<Elem, Traits>* sbuf () const
+        inline basic_streambuf<Elem, Traits>* sbuf () const
         {
             return _sbuf;
         }
 
-        int_type log (int_type c, const Elem prefix[])
+        inline int_type log (int_type c, const Elem prefix[])
         {
             static int_type last_ch = '\n';
 
@@ -43,7 +43,7 @@ namespace std {
             if ('\n' == last_ch)
             {
                 size_t length = strlen (prefix);
-                if (_fstm->rdbuf ()->sputn (prefix, length) != length)
+                if (size_t (_fstm->rdbuf ()->sputn (prefix, length)) != length)
                 {
                     is_err = true;
                 }
@@ -67,7 +67,6 @@ namespace std {
         {
             return log (_sbuf->sputc (Elem (c)), "<< ");
         }
-
 
         virtual int_type underflow () override
         {

@@ -2,27 +2,18 @@
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
-//#pragma comment (linker, "/stack:xxx /heap:yyy")
+//#define POPCNT
+//#define BSFQ
+//#define PREFETCH
 
-#define POPCNT
 //#define __INTEL_COMPILER
 
-#define BSFQ
-
-//#define TRI_LOGGER
-
-//#define CLEANTLOG
-//#define OTLOG
-//#define ETLOG
-#define FTLOG   log_eng
+//POPCNT;BSFQ;%(PreprocessorDefinitions)
+//#pragma comment (linker, "/stack:xxx /heap:yyy")
 
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-#ifndef NOMINMAX
-#   define NOMINMAX // disable macros min() and max()
-#endif
 
 // Disable some silly and noisy warning from MSVC compiler
 #pragma warning (disable: 4127) // Conditional expression is constant
@@ -32,7 +23,6 @@
 #pragma warning (disable: 4996) // Function _ftime() may be unsafe
 #pragma warning (disable: 6326) // Constant comparison
 
-// MSVC does not support <inttypes.h>
 //#   include <stdint.h>
 
 typedef   signed __int8          int8_t;
@@ -53,8 +43,7 @@ typedef unsigned __int32        uint32_t;
 
 #   elif _WIN32
 
-#undef _64BIT
-#define PR_SIZET ""
+#       define PR_SIZET ""
 
 typedef   signed __int32 __w64   int32_t;
 typedef unsigned __int32 __w64  uint32_t;
@@ -74,6 +63,7 @@ typedef unsigned __int32 __w64  uint32_t;
 #elif defined(__GNUC__)
 
 #   include <inttypes.h>
+#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 #   define S32(X) (X## L )
 #   define U32(X) (X##UL )
@@ -88,6 +78,8 @@ typedef unsigned __int32 __w64  uint32_t;
 //#   define X64_FORMAT "%016llX"
 
 #else
+
+#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 typedef   signed char            int8_t;
 typedef unsigned char           uint8_t;
@@ -112,17 +104,19 @@ typedef unsigned long long      uint64_t;
 
 #endif
 
+#   undef INLINE
+
 #if defined(_MSC_VER)
 
-#   define F_INLINE     __forceinline
+#   define INLINE     __forceinline
 
 #elif defined(__GNUC__)
 
-#   define F_INLINE     inline __attribute__((always_inline))
+#   define INLINE     inline __attribute__((always_inline))
 
 #else
 
-#   define F_INLINE     inline
+#   define INLINE     inline
 
 #endif
 
@@ -151,6 +145,12 @@ typedef unsigned long long      uint64_t;
 
 #else
 
+//#define TRI_LOGGER
+
+//#define CLEANTLOG
+//#define OTLOG
+//#define ETLOG
+#define FTLOG   except_log
 
 #   ifdef TRI_LOGGER
 
@@ -178,7 +178,5 @@ typedef unsigned long long      uint64_t;
 #   endif
 
 #endif
-
-//#define _snprintf_s(buf, size_buf, count, ...) _snprintf(buf, size_buf, __VA_ARGS__)
 
 #endif

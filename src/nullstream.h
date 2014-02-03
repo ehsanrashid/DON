@@ -3,7 +3,7 @@
 //
 // Distributed under the Boost Software License, Version 1.0.
 // ( copy at http://www.boost.org/LICENSE_1_0.txt )
-
+//
 // Copyright Maciej Sobczak, 2002
 //
 // Permission to copy, use, modify, sell and distribute this software
@@ -20,6 +20,8 @@
 #include "noncopyable.h"
 
 namespace std {
+
+    #pragma warning (disable: 4355)
 
     // generic null stream buffer class
     template <class charT, class Traits = char_traits<charT> >
@@ -42,13 +44,11 @@ namespace std {
         }
     };
 
-
     // generic null output stream class
     template <class charT, class Traits = char_traits<charT> >
-    class basic_null_stream sealed
+    class basic_null_stream
         : private basic_null_buffer<charT, Traits>
         , public basic_ostream<charT, Traits>
-        , public noncopyable
     {
 
     public:
@@ -56,11 +56,10 @@ namespace std {
         basic_null_stream()
             // C++98 standard allows that construction
             // 12.6.2/7
-            : basic_ostream<charT, Traits>(this)
+            : basic_ostream<charT, Traits> (this)
         {}
 
     };
-
 
     template<class charT, class Traits, class T>
     inline basic_null_stream<charT, Traits>& operator<< (
@@ -82,4 +81,5 @@ namespace std {
     typedef basic_null_stream<wchar_t>  null_wstream;
 
 }
+
 #endif // NULLSTREAM_H_

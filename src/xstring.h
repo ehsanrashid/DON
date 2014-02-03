@@ -18,41 +18,39 @@ namespace std {
         if (s.empty ()) return true;
         for (size_t i = 0; i < s.length (); ++i)
         {
-            if (!isspace (unsigned char (s[i]))) return false;
+            if (!isspace ((unsigned char) (s[i]))) return false;
         }
         return true;
     }
 
     inline std::string& to_lower (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), tolower);
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::tolower);
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), toupper);
+        std::transform (s.cbegin (), s.cend (), s.begin (), ::toupper);
         return s;
     }
 
     // string case-sensitive equals
     inline bool  equals (const std::string &s1, const std::string &s2)
     {
-        //return !strcmp(s1.c_str(), s2.c_str());
+        //return !strcmp(s1.c_str (), s2.c_str ());
         return (s1 == s2);
     }
     // string case-insensitive equals
     inline bool iequals (const std::string &s1, const std::string &s2)
     {
-        //std::string ss1 = s1;
-        //std::string ss2 = s2;
-        //to_lower (ss1); //to_upper (ss1);
-        //to_lower (ss2); //to_upper (ss2);
-        //return (ss1 == ss2);
+        //to_lower (const_cast<string&> (s1)); //to_upper ();
+        //to_lower (const_cast<string&> (s2)); //to_upper ();
+        //return (s1 == s2);
 
-        //return !stricmp(s1.c_str(), s2.c_str());
+        //return !stricmp(s1.c_str (), s2.c_str ());
 
         return (s1.size () == s2.size ()) &&
-            std::equal (s1.cbegin(), s1.cend(), s2.cbegin(), [] (char c1, char c2)
+            std::equal (s1.cbegin (), s1.cend (), s2.cbegin (), [] (char c1, char c2)
         {
             return toupper (c1) == toupper (c2);
         });
@@ -158,15 +156,13 @@ namespace std {
 
     inline std::string& remove_substring (std::string &s, const std::string &sub)
     {
-        auto l = sub.length ();
         const size_t length = sub.length ();
         if (0 < length)
         {
             size_t pos = s.find (sub);
             while (std::string::npos != pos)
             {
-                // erase (start_position_to_erase, number_of_symbols)
-                s.erase (pos, length);
+                s.erase (pos, length); // (start_position, number_of_symbols)
                 pos = s.find (sub, pos);
             }
         }
@@ -189,9 +185,9 @@ namespace std {
     inline std::string remove_dup (const std::string &s)
     {
         // unique char set
-        std::unordered_set<char> set_chars (begin (s), end (s));
-        std::string str_unique (begin (set_chars), end (set_chars));
-        return str_unique;
+        std::unordered_set<char> char_set (begin (s), end (s));
+        std::string unique_str (begin (char_set), end (char_set));
+        return unique_str;
     }
 
     inline std::size_t count_substr (const std::string &s, const std::string &sub, bool overlap = true)
@@ -212,7 +208,7 @@ namespace std {
 
     inline std::vector<std::string> str_splits (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
     {
-        std::vector<std::string> list_s;
+        std::vector<std::string> s_list;
 
         //std::istringstream iss (s);
         //std::string part;
@@ -227,7 +223,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //}
         //while (success && iss.good ());
@@ -244,7 +240,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //    if (cmid == cend) break;
         //    cbeg = cmid + 1;
@@ -263,7 +259,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        list_s.emplace_back (part);
+        //        s_list.emplace_back (part);
         //    }
         //    if (std::string::npos == p1) break;
         //    dup = dup.substr (p1 + 1);
@@ -283,13 +279,13 @@ namespace std {
             }
             if (keep_empty || !part.empty ())
             {
-                list_s.emplace_back (part);
+                s_list.emplace_back (part);
             }
             if (std::string::npos == p1) break;
             ++p1;
         }
 
-        return list_s;
+        return s_list;
     }
 
     //inline int to_int (const std::string &s)

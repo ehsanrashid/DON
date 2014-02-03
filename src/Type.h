@@ -3,9 +3,11 @@
 #define TYPE_H_
 
 #include <cctype>
-#include "Platform.h"
 #include <climits>
 #include <vector>
+#include <iostream>
+
+#include "Platform.h"
 
 #pragma region LIMITS
 #ifndef   _I8_MIN
@@ -64,13 +66,8 @@
 typedef uint64_t   Bitboard; // Type for Bitboard
 typedef uint64_t   Key;      // Type for Zobrist Hash
 
-const uint16_t MAX_MOVES    = 192;
-const uint16_t MAX_PLY      = 100;
-const uint16_t MAX_PLY_6    = MAX_PLY + 6;
-
-const uint8_t MAX_THREADS                 = 64;
-const uint8_t MAX_SPLITPOINTS_PER_THREAD  = 8;
-const uint8_t MAX_SPLIT_DEPTH             = 99;
+const uint8_t MAX_PLY      = 100;          // Maximum Depth 50
+const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 
 #pragma warning (push)
 #pragma warning (disable: 4341)
@@ -78,61 +75,29 @@ const uint8_t MAX_SPLIT_DEPTH             = 99;
 // File of Square
 typedef enum File : int8_t
 {
-    F_A,
-    F_B,
-    F_C,
-    F_D,
-    F_E,
-    F_F,
-    F_G,
-    F_H,
-    F_NO,
+    F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO,
 
 } File;
 
 // Rank of Square
 typedef enum Rank : int8_t
 {
-    R_1,
-    R_2,
-    R_3,
-    R_4,
-    R_5,
-    R_6,
-    R_7,
-    R_8,
-    R_NO,
+    R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO,
 
 } Rank;
 
 // Diagonal of Square
 typedef enum Diag : int8_t
 {
-    D_01,
-    D_02,
-    D_03,
-    D_04,
-    D_05,
-    D_06,
-    D_07,
-    D_08,
-    D_09,
-    D_10,
-    D_11,
-    D_12,
-    D_13,
-    D_14,
-    D_15,
-    D_NO,
+    D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
+    D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO,
 
 } Diag;
 
 // Color of Square and Side
-typedef enum Color : uint8_t
+typedef enum Color : int8_t
 {
-    WHITE,
-    BLACK,
-    CLR_NO,
+    WHITE, BLACK, CLR_NO,
 
 } Color;
 
@@ -201,39 +166,41 @@ typedef enum Delta : int8_t
 // Castle Side
 typedef enum CSide : uint8_t
 {
-    CS_K  = 0,    // SHORT CASTLE
-    CS_Q  = 1,    // LONG  CASTLE
-    CS_NO = 2,
+    CS_K ,    // SHORT CASTLE
+    CS_Q ,    // LONG  CASTLE
+    CS_NO,
 
 } CSide;
 
 // Castle Right
 typedef enum CRight : uint8_t
 {
-    CR_NO  = 0,             // 0000
-    CR_W_K = 1,             // 0001
+    CR_NO ,                 // 0000
+    CR_W_K,                 // 0001
     CR_W_Q = CR_W_K << 1,   // 0010
     CR_B_K = CR_W_K << 2,   // 0100
     CR_B_Q = CR_W_K << 3,   // 1000
 
     CR_W = CR_W_K | CR_W_Q, // 0011
     CR_B = CR_B_K | CR_B_Q, // 1100
-    CR_A = CR_W | CR_B,     // 1111
+    CR_A = CR_W   | CR_B,   // 1111
 
 } CRight;
 
-// Type of the Piece
-typedef enum PType : int8_t
+// Types of Piece
+typedef enum PieceT : int8_t
 {
-    PAWN   = 0, // 000 - PAWN
-    NIHT   = 1, // 001 - KNIGHT
-    BSHP   = 2, // 010 - BISHOP
-    ROOK   = 3, // 011 - ROOK
-    QUEN   = 4, // 100 - QUEEN
-    KING   = 5, // 101 - KING
-    PT_NO  = 6, // 110 - PT_NO
+    PAWN  , // 000 - PAWN
+    NIHT  , // 001 - KNIGHT
+    BSHP  , // 010 - BISHOP
+    ROOK  , // 011 - ROOK
+    QUEN  , // 100 - QUEEN
+    KING  , // 101 - KING
+    NONE  , // 110 - NONE
+    ALLS  ,
 
-} PType;
+} PieceT;
+
 // Piece needs 4 bits to be stored
 // bit 0-2: TYPE of piece
 // bit   3: COLOR of piece
@@ -252,34 +219,36 @@ typedef enum PType : int8_t
 // ONLY MAJOR    > 5
 typedef enum Piece : uint8_t
 {
-    PS_NO  = 0, //  0000
 
-    W_PAWN = 1, //  0001
-    W_KING    , //  0010
-    W_NIHT    , //  0011
-    W_BSHP = 5, //  0101
-    W_ROOK    , //  0110
-    W_QUEN    , //  0111
+    W_PAWN = 0, //  0000
+    W_NIHT    , //  0001
+    W_BSHP    , //  0010
+    W_ROOK    , //  0011
+    W_QUEN    , //  0100
+    W_KING    , //  0101
 
-    B_PAWN = 9, //  1001
-    B_KING    , //  1010
-    B_NIHT    , //  1011
-    B_BSHP =13, //  1101
-    B_ROOK    , //  1110
-    B_QUEN    , //  1111
+    EMPTY  = 6, //  0110
 
+    B_PAWN = 8, //  1000
+    B_NIHT    , //  1001
+    B_BSHP    , //  1010
+    B_ROOK    , //  1011
+    B_QUEN    , //  1100
+    B_KING    , //  1101
+
+    // TOTAL piece is 14
     //W_PIEC    = 0x00, //  0...
     //B_PIEC    = 0x08, //  1...
 } Piece;
 
-// Type of Move
-typedef enum MType : uint16_t
+// Types of Move
+typedef enum MoveT : uint16_t
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
     PROMOTE   = 3 << 14, //0xC000, // 11xx
-} MType;
+} MoveT;
 
 // Move stored in 16-bits
 //
@@ -321,17 +290,18 @@ typedef enum Move : uint16_t
 
 } Move;
 
-
-typedef enum Value : int16_t
+typedef enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
+    VALUE_CHIK      = 5,
 
     VALUE_NONE      = _I16_MAX,
     VALUE_INFINITE  = VALUE_NONE - 1,
+    _VALUE_INFINITE = -VALUE_INFINITE,
 
     VALUE_MATE      = 32000,
-    VALUE_KNOWN_WIN = VALUE_MATE / 2,
+    VALUE_KNOWN_WIN = VALUE_MATE / 3,
 
     VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - MAX_PLY,
     VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
@@ -363,7 +333,7 @@ typedef enum Score : int32_t
 typedef enum Depth : int16_t
 {
     ONE_PLY             =    1,
-    ONE_MOVE            =    2,
+    ONE_MOVE            =    2 * ONE_PLY,
 
     DEPTH_ZERO          =    0 * ONE_MOVE,
     DEPTH_QS_CHECKS     =    0 * ONE_MOVE,
@@ -376,14 +346,8 @@ typedef enum Depth : int16_t
 
 typedef enum Bound : uint8_t
 {
+    // NONE BOUND           - NO
     BND_NONE    = 0,
-
-    // LOWER (ALPHA) BOUND  - CUT
-    // ALPHA evaluation, when exceed BETA the move is too good.
-    // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
-    // Since some of the search is cut off, What the actual evaluation of the position was?
-    // It was atleast BETA or higher.
-    BND_LOWER   = 1,
 
     // UPPER (BETA) BOUND   - ALL
     // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
@@ -393,7 +357,14 @@ typedef enum Bound : uint8_t
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    BND_UPPER   = 2,
+    BND_UPPER   = 1,
+
+    // LOWER (ALPHA) BOUND  - CUT
+    // ALPHA evaluation, when exceed BETA the move is too good.
+    // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
+    // Since some of the search is cut off, What the actual evaluation of the position was?
+    // It was atleast BETA or higher.
+    BND_LOWER   = 2,
 
     // EXACT (-) BOUND      - PV
     // EXACT evaluation, when receive a definite evaluation,
@@ -405,11 +376,15 @@ typedef enum Bound : uint8_t
     // which was confirmed by the search in finding and collecting a principal variation.
     BND_EXACT   = BND_LOWER | BND_UPPER,
 
+    //BND_NODE_ALL  = 4,
+    //BND_UPPER_ALL = BND_LOWER | BND_NODE_ALL,
+    //BND_LOWER_ALL = BND_UPPER | BND_NODE_ALL,
+
 } Bound;
 
-typedef enum Phase
+typedef enum Phase : int16_t
 {
-    PHASE_ENDGAME,
+    PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
 
     MG = 0,
@@ -420,40 +395,34 @@ typedef enum Phase
 
 typedef enum ScaleFactor : uint8_t
 {
-    SCALE_FACTOR_DRAW   = 0,
-    SCALE_FACTOR_NORMAL = 64,
-    SCALE_FACTOR_MAX    = 128,
-    SCALE_FACTOR_NONE   = 255
+    SCALE_FACTOR_DRAW    =   0,
+
+    SCALE_FACTOR_ONEPAWN =  48,
+    SCALE_FACTOR_NORMAL  =  64,
+    SCALE_FACTOR_MAX     = 128,
+    SCALE_FACTOR_NONE    = 255,
+
 } ScaleFactor;
 
 #pragma warning (pop)
 
-inline Score mk_score (int16_t mg, int16_t eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (int32_t mg, int32_t eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
-inline Value mg_value (Score s)
-{
-    return Value (((uint32_t (s) + 0x8000) & ~0xFFFF) / 0x10000);
-}
+inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x10000); }
 
-// On Intel 64 bit we have a small speed regression with the standard conforming version.
-// Therefore, in this case we use faster code that, although not 100%
-// standard compliant, seems to work for Intel and MSVC.
-#if defined(_WIN64) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
+// On Intel 64 bit we have a small speed regression with the standard conforming
+// version, so use a faster code in this case that, although not 100% standard
+// compliant it seems to work for Intel and MSVC.
+#if defined(_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
-inline Value eg_value (Score s)
-{
-    return Value (uint32_t (s) & 0xFFFF);
-}
+inline Value eg_value (Score s) { return Value (int16_t (s & 0xFFFF)); }
 
 #else
 
-inline Value eg_value (Score s)
-{
-    return Value (int16_t (uint32_t (s) & 0x7FFFU) - int16_t (uint32_t (s) & 0x8000U));
-}
+inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU) - int32_t (uint32_t (s) & 0x8000U)); }
 
 #endif
 
@@ -463,19 +432,20 @@ inline Value eg_value (Score s)
 #undef INC_DEC_OPERATORS
 
 #define ARTHMAT_OPERATORS(T)                                                                \
-    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
-    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
     inline T  operator+  (T  d1, T d2) { return T (int32_t (d1) + int32_t (d2)); }          \
     inline T  operator-  (T  d1, T d2) { return T (int32_t (d1) - int32_t (d2)); }          \
     inline T  operator*  (T  d, int32_t i) { return T (int32_t (d) * i); }                  \
     inline T  operator+  (T  d, int32_t i) { return T (int32_t (d) + i); }                  \
     inline T  operator-  (T  d, int32_t i) { return T (int32_t (d) - i); }                  \
+    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
+    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
     inline T& operator+= (T &d1, T d2) { d1 = T (int32_t (d1) + int32_t (d2)); return d1; } \
     inline T& operator-= (T &d1, T d2) { d1 = T (int32_t (d1) - int32_t (d2)); return d1; } \
     inline T& operator+= (T &d, int32_t i) { d = T (int32_t (d) + i); return d; }           \
     inline T& operator-= (T &d, int32_t i) { d = T (int32_t (d) - i); return d; }           \
     inline T  operator*  (int32_t i, T  d) { return T (i * int32_t (d)); }                  \
     inline T& operator*= (T &d, int32_t i) { d = T (int32_t (d) * i); return d; }
+
 //inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  \
 //inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  \
 //inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 \
@@ -527,7 +497,7 @@ inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) | 
 inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) & i); return cr; }
 inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) ^ i); return cr; }
 
-INC_DEC_OPERATORS (PType);
+INC_DEC_OPERATORS (PieceT);
 
 // Move operator
 inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); return m; }
@@ -536,40 +506,310 @@ inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); retur
 ARTHMAT_OPERATORS (Value);
 INC_DEC_OPERATORS (Value);
 // Added operators for adding integers to a Value
-//inline Value operator+ (Value v, int32_t i) { return Value (int32_t (v) + i); }
-//inline Value operator- (Value v, int32_t i) { return Value (int32_t (v) - i); }
+//inline Value  operator+  (Value v, int32_t i) { return Value (int32_t (v) + i); }
+//inline Value  operator-  (Value v, int32_t i) { return Value (int32_t (v) - i); }
 inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
 inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
 inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }
 inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
 
 ARTHMAT_OPERATORS (Score);
-// Only declared but not defined. We don't want to multiply two scores due to
-// a very high risk of overflow. So user should explicitly convert to integer.
+/// Only declared but not defined. We don't want to multiply two scores due to
+/// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
-// Division of a Score must be handled separately for each term
-inline Score operator/ (Score s, int32_t i)
-{
-    return mk_score (mg_value (s) / i, eg_value (s) / i);
-}
+/// Division of a Score must be handled separately for each term
+inline Score operator/ (Score s, int32_t i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+
+//ARTHMAT_OPERATORS (ScaleFactor)
 
 ARTHMAT_OPERATORS (Depth);
 INC_DEC_OPERATORS (Depth);
 inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); }
-
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
 #pragma endregion
 
-typedef std::vector<Move>   MoveList;
+extern const std::string CharPiece;
+extern const std::string CharColor;
 
-inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
+extern const Value PieceValue[PHASE_NO][ALLS];
 
-template<class Entry, int SIZE>
-class HashTable sealed
+
+#pragma region Color
+
+inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
+inline Color operator~(Color c) { return Color (c ^ BLACK); }
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
+//{
+//    os << CharColor[c];
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region File & Rank
+
+inline bool      _ok (File f) { return !(f & ~int32_t (F_H)); }
+inline File operator~(File f) { return File (f ^ F_H); }
+inline File to_file  (char f) { return File (f - 'a'); }
+inline char to_char  (File f, bool lower = true) { return char (f - F_A) + (lower ? 'a' : 'A'); }
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, File f)
+//{
+//    os << to_char (f);
+//    return os;
+//}
+
+
+inline bool      _ok (Rank r) { return !(r & ~int32_t (R_8)); }
+inline Rank operator~(Rank r) { return Rank (r ^ R_8); }
+inline Rank to_rank  (char r) { return Rank (r - '1'); }
+inline char to_char  (Rank r) { return char (r - R_1) + '1'; }
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
+//{
+//    os << to_char (r);
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Square
+
+inline Square operator| (File f, Rank r) { return Square (( r << 3) | f); }
+inline Square operator| (Rank r, File f) { return Square ((~r << 3) | f); }
+inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
+inline bool _ok     (Square s) { return !(s & ~int32_t (SQ_H8)); }
+inline File _file   (Square s) { return File (s & SQ_H1); }
+inline Rank _rank   (Square s) { return Rank (s >> 3); }
+inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & SQ_H1) + SQ_H1); } // R - F + 7
+inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & SQ_H1)); }         // R + F
+inline Color _color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
+// FLIP   => SQ_A1 -> SQ_A8
+inline Square operator~(Square s) { return Square (s ^ SQ_A8); }
+// MIRROR => SQ_A1 -> SQ_H1
+inline Square operator!(Square s) { return Square (s ^ SQ_H1); }
+
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * SQ_H1)); }
+inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
+inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
+
+inline bool opposite_colors (Square s1, Square s2)
+{
+    int8_t s = s1 ^ s2;
+    return ((s >> 3) ^ s) & BLACK;
+}
+
+inline std::string to_string (Square s)
+{
+    char sq[3] = { to_char (_file (s)), to_char (_rank (s)), '\0' };
+    return sq;
+    //return { to_char (_file (s)), to_char (_rank (s)), '\0' };
+}
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, Square s)
+//{
+//    os << to_string (s);
+//    return os;
+//}
+
+inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
+
+#pragma endregion
+
+#pragma region Castle
+
+inline CRight mk_castle_right (Color c) { return CRight (CR_W << (c << BLACK)); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK))); }
+
+inline CRight operator~  (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
+
+inline CRight can_castle (CRight cr, CRight crx) { return (cr & crx); }
+inline CRight can_castle (CRight cr, Color c)    { return (cr & mk_castle_right (c)); }
+inline CRight can_castle (CRight cr, Color c, CSide cs) { return (cr & mk_castle_right (c, cs)); }
+
+//inline std::string to_string (CRight cr)
+//{
+//    std::string scastle;
+//    if (can_castle (cr, CR_A))
+//    {
+//        if (can_castle (cr, CR_W))
+//        {
+//            scastle += "W:";
+//            if (can_castle (cr, CR_W_K)) scastle += " OO";
+//            if (can_castle (cr, CR_W_Q)) scastle += " OOO";
+//            scastle += " - ";
+//        }
+//        if (can_castle (cr, CR_B))
+//        {
+//            scastle += "B:";
+//            if (can_castle (cr, CR_B_K)) scastle += " OO";
+//            if (can_castle (cr, CR_B_Q)) scastle += " OOO";
+//        }
+//    }
+//    else
+//    {
+//        scastle = "-";
+//    }
+//    return scastle;
+//}
+//
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//operator<< (std::basic_ostream<charT, Traits> &os, const CRight cr)
+//{
+//    os << to_string (cr);
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Piece
+
+inline bool     _ok (PieceT pt) { return (PAWN <= pt && pt <= KING); }
+
+inline Piece operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
+//inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
+
+inline bool     _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline PieceT _type  (Piece p) { return PieceT (p & ALLS); }
+inline Color _color (Piece p) { return Color (p >> 3); }
+
+inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
+//{
+//    os << CharPiece[p];
+//    return os;
+//}
+
+#pragma endregion
+
+#pragma region Move
+
+inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
+inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
+inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
+inline MoveT m_type (Move m)    { return MoveT (PROMOTE & m); }
+
+inline void org_sq (Move &m, Square org)
+{
+    m &= 0xF03F;
+    m |= (org << 6);
+}
+inline void dst_sq (Move &m, Square dst)
+{
+    m &= 0xFFC0;
+    m |= (dst << 0);
+}
+inline void prom_type (Move &m, PieceT pt)
+{
+    m &= 0x0FFF;
+    m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
+}
+inline void m_type (Move &m, MoveT mt)
+{
+    m &= ~PROMOTE;
+    m |= mt;
+}
+
+inline Move operator~ (Move m)
+{
+    Move mm = m;
+    org_sq (mm, ~org_sq (m));
+    dst_sq (mm, ~dst_sq (m));
+    return mm;
+}
+
+template<MoveT M>
+extern Move mk_move (Square org, Square dst, PieceT pt);
+template<MoveT M>
+extern Move mk_move (Square org, Square dst);
+
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt)
+{
+    return Move (PROMOTE | ((pt - NIHT) << 12) | (org << 6) | (dst << 0));
+}
+template<MoveT M>
+inline Move mk_move (Square org, Square dst)
+{
+    return Move (M | (org << 6) | (dst << 0));
+}
+// --------------------------------
+// explicit template instantiations
+template Move mk_move<NORMAL> (Square org, Square dst);
+template Move mk_move<CASTLE> (Square org, Square dst);
+template Move mk_move<ENPASSANT> (Square org, Square dst);
+// --------------------------------
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst)
+{
+    return mk_move<PROMOTE> (org, dst, QUEN);
+}
+inline Move mk_move (Square org, Square dst)
+{
+    return mk_move<NORMAL> (org, dst);
+}
+
+inline bool _ok (Move m)
+{
+    //if (MOVE_NONE == m || MOVE_NULL == m) return false;
+    //
+    //Square org = org_sq (m);
+    //Square dst = dst_sq (m);
+    //if (org == dst) return false;
+    //
+    //uint8_t del_f = BitBoard::file_dist (org, dst);
+    //uint8_t del_r = BitBoard::rank_dist (org, dst);
+    //if (del_f == del_r ||
+    //    0 == del_f || 0 == del_r ||
+    //    5 == del_f*del_f + del_r*del_r) return true;
+    //
+    //return false;
+
+    return (org_sq (m) != dst_sq (m));
+}
+
+//extern const std::string move_to_can (Move m, bool c960 = false);
+
+template<class charT, class Traits>
+inline std::basic_ostream<charT, Traits>&
+    operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
+{
+    os << move_to_can (m);
+    return os;
+}
+
+#pragma endregion
+
+#pragma region Value
+
+inline Value mates_in (int32_t ply) { return (-ply + VALUE_MATE); }
+inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
+
+#pragma endregion
+
+//template<class charT, class Traits>
+//inline std::basic_ostream<charT, Traits>&
+//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_lst)
+//{
+//    std::for_each (sq_lst.cbegin (), sq_lst.cend (), [&os] (Square s) { os << s << std::endl; });
+//    return os;
+//}
+
+template<class Entry, int32_t SIZE>
+struct HashTable
 {
 
 private:
@@ -580,10 +820,7 @@ public:
         : _table (SIZE, Entry ())
     {}
 
-    Entry* operator[] (Key k)
-    {
-        return &_table[uint32_t (k) & (SIZE - 1)];
-    }
+    inline Entry* operator[] (Key k) { return &_table[uint32_t (k) & (SIZE - 1)]; }
 
 };
 

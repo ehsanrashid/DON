@@ -13,11 +13,11 @@
 #   include <sys/timeb.h>
 #   include <time.h>
 
-inline uint64_t system_time_msec ()
+INLINE uint64_t system_time_msec ()
 {
     _timeb timebuf;
-    //_ftime (&timebuf);
-    _ftime_s (&timebuf);
+    _ftime (&timebuf);
+    //_ftime_s (&timebuf);
     return ((timebuf.time * 1000LL) + timebuf.millitm);
 }
 
@@ -25,7 +25,7 @@ inline uint64_t system_time_msec ()
 
 #   include <sys/time.h>
 
-inline uint64_t system_time_msec ()
+INLINE uint64_t system_time_msec ()
 {
     timeval timebuf;
     gettimeofday (&timebuf, NULL);
@@ -36,14 +36,16 @@ inline uint64_t system_time_msec ()
 
 namespace Time {
 
-    typedef enum point : uint64_t
-    {
-        ONE_SEC = 1000,
-    } point;
+    //typedef enum point : uint64_t
+    //{
+    //    MS_SEC = 1000,
+    //} point;
+    //INLINE point  operator-  (point  p1, point p2) { return point (uint64_t (p1) - uint64_t (p2)); }
 
-    inline int64_t  operator-  (point  p1, point p2) { return (int64_t (p1) - int64_t (p2)); }
+    typedef int64_t point;
+    const point MS_SEC = 1000;
 
-    inline point now () { return point (system_time_msec ()); }
+    INLINE point now () { return point (system_time_msec ()); }
 
     inline std::string to_string (const point t)
     {
@@ -51,11 +53,14 @@ namespace Time {
 
 #ifdef _WIN32
 
-        time_t time = (t / Time::ONE_SEC);
+        time_t tt = (t / MS_SEC);
 
-        char str_time[26];
-        errno_t err = ctime_s (str_time, sizeof (str_time), &time);
-        if (err) return std::string ("ERROR: Invalid time ") + std::to_string (time);
+//        char str_time[26];
+//        errno_t err = ctime_s (str_time, sizeof (str_time), &tt);
+//        if (err) return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (tt));
+
+        char *str_time = ctime (&tt);
+
         str_time[10] = '\0';
         str_time[19] = '\0';
         str_time[24] = '\0';
@@ -64,7 +69,7 @@ namespace Time {
             << &str_time[0] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (t % Time::ONE_SEC);
+            << std::setw (3) << (t % MS_SEC);
 
 #else
 
@@ -78,9 +83,9 @@ namespace Time {
 
 template<typename charT, typename Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point t)
+    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point p)
 {
-    os << Time::to_string (t);
+    os << Time::to_string (p);
     return os;
 }
 

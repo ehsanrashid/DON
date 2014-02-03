@@ -18,7 +18,7 @@ class Position;
 // with the highest byte first (regardless of size).
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
-typedef class PolyglotBook sealed
+typedef class PolyglotBook
     : private std::fstream
     , public std::noncopyable
 {
@@ -30,12 +30,19 @@ public:
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    typedef struct PolyglotEntry sealed
+    typedef struct PolyglotEntry
     {
         uint64_t key;
         uint16_t move;
         uint16_t weight;
         uint32_t learn;
+
+        //PolyglotBook ()
+        //    : key (U64 (0))
+        //    , move (MOVE_NONE)
+        //    , weight (0)
+        //    , learn (0)
+        //{}
 
         operator std::string () const;
 
@@ -73,18 +80,24 @@ public:
     // Returns the index of the 1st book entry with the same key as the input.
     size_t find_index (const Key key);
     size_t find_index (const Position &pos);
+#ifndef NDEBUG
     size_t find_index (const        char *fen, bool c960 = false);
+#endif
     size_t find_index (const std::string &fen, bool c960 = false);
 
 public:
 
     PolyglotBook();
     // mode = std::ios_base::in | std::ios_base::out
+#ifndef NDEBUG
     PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
+#endif
     PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
+#ifndef NDEBUG
     bool open (const        char *fn_book, std::ios_base::openmode mode);
+#endif
     bool open (const std::string &fn_book, std::ios_base::openmode mode);
     void close ();
 

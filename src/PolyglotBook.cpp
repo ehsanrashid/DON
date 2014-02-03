@@ -70,7 +70,7 @@ PolyglotBook::PolyglotEntry::operator string () const
     ostringstream spe;
 
     Move m = Move (move);
-    PType pt = PType ((m >> 12) & 0x7);
+    PieceT pt = PieceT ((m >> 12) & 0x7);
     // Set new type for promotion piece
     if (pt) prom_type (m, pt);
 
@@ -94,7 +94,7 @@ PolyglotBook& PolyglotBook::operator>> (T &t)
     t = T ();
     for (size_t i = 0; i < sizeof (T) && good (); ++i)
     {
-        uint8_t byte = get ();
+        uint8_t byte = uint8_t (get ());
         t = T ((t << 8) + byte);
     }
     return *this;
@@ -131,6 +131,8 @@ PolyglotBook::PolyglotBook()
     , _size_book (0)
     , _rkiss ()
 {}
+
+#ifndef NDEBUG
 PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
@@ -138,6 +140,7 @@ PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     , _size_book (0)
     , _rkiss ()
 {}
+#endif
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode | ios_base::binary)
     , _fn_book (fn_book)
@@ -151,9 +154,11 @@ PolyglotBook::~PolyglotBook ()
     close ();
 }
 
-// open the file in mode
+// open() tries to open a book file with the given name after closing any existing one.
+// mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
+#ifndef NDEBUG
 bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
 {
     close ();
@@ -163,6 +168,7 @@ bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
     _mode    = mode;
     return fstream::is_open ();
 }
+#endif
 bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 {
     close ();
@@ -219,10 +225,13 @@ size_t PolyglotBook::find_index (const Position &pos)
 {
     return find_index (ZobPG.compute_posi_key (pos));
 }
+
+#ifndef NDEBUG
 size_t PolyglotBook::find_index (const        char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
+#endif
 size_t PolyglotBook::find_index (const string &fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
@@ -346,16 +355,15 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     // in all the other cases we can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
     // Polyglot use 3 bits while we use 2 bits
-    PType pt = PType ((move >> 12) & 0x7);
+    PieceT pt = PieceT ((move >> 12) & 0x7);
     // Set new type for promotion piece
     if (pt) prom_type (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    MoveList mov_lst = generate<LEGAL> (pos);
-    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
+    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        //if ((m ^ _mtype (m)) == move)
+        //if ((m ^ m_type (m)) == move)
         if ((m & 0x3FFF) == move)
         {
             return m;
@@ -375,7 +383,8 @@ string PolyglotBook::read_entries (const Position &pos)
     if (ERROR_INDEX == index)
     {
         cerr << "ERROR: no such key... "
-            << hex << uppercase << key << endl;
+            << hex << uppercase << key
+            << endl;
         return "";
     }
 
@@ -391,15 +400,16 @@ string PolyglotBook::read_entries (const Position &pos)
         sum_weight += pe.weight;
     }
 
-    ostringstream sread;
-    for_each (pe_list.cbegin (), pe_list.cend (), [&sread, &sum_weight] (PolyglotEntry pe)
+    ostringstream ss;
+    for_each (pe_list.cbegin (), pe_list.cend (), [&ss, &sum_weight] (PolyglotEntry pe)
     {
-        sread << setfill ('0')
+        ss  << setfill ('0')
             << pe << " prob: " << right << fixed << width_prec (6, 2)
-            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0) << endl;
+            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0)
+            << endl;
     });
 
-    return sread.str ();
+    return ss.str ();
 }
 
 void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
@@ -429,11 +439,12 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 
 void PolyglotBook::import_pgn (const string &fn_pgn)
 {
-
+    fn_pgn;
 }
 
 void PolyglotBook::merge_book (const string &fn_book)
 {
+    fn_book;
 
 }
 

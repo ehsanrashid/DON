@@ -1,370 +1,282 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="HashTable&lt;Entry, SIZE&gt;">
-    <Position X="2.25" Y="8" Width="1.5" />
-    <AssociationLine Name="_table" Type="std::vector&lt;_Ty, _Alloc&gt;" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="2.969" Y="8" />
-        <Point X="2.969" Y="7.125" />
-        <Point X="3" Y="7.125" />
-        <Point X="3" Y="6.372" />
-      </Path>
-    </AssociationLine>
-    <TypeIdentifier>
-      <HashCode>AAAAAAAgAAAAAgAAAAAAAAAAAAEAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
-    </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="_table" />
-    </ShowAsAssociation>
-  </Class>
   <Class Name="TimeManager" Collapsed="true">
-    <Position X="20" Y="0.5" Width="1.5" />
+    <Position X="16.25" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>CBAAAAAAAAAAAAAAAAEAAAAAAEAAAAACAAAgACAAAAA=</HashCode>
       <FileName>src\TimeManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
-    <Position X="7" Y="3.5" Width="1.5" />
+    <Position X="5.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AgAAAAAAAIAAAAAAAgAICAAAAAACAAAAAAAAAIgQAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Worker" Collapsed="true">
-    <Position X="14.75" Y="1.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAABAAAAAAAAAAEAAAAAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
-      <FileName>src\ThreadPool.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="ThreadPool" Collapsed="true">
-    <Position X="18.25" Y="0.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAIACAAAAAAAAAAAAAAIAAAAgACgAAABgAAAAIAA=</HashCode>
-      <FileName>src\ThreadPool.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="std::noncopyable" Collapsed="true">
-    <Position X="7" Y="2.25" Width="1.5" />
+    <Position X="5.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAgQAAAAAA=</HashCode>
       <FileName>src\noncopyable.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="MovePicker" Collapsed="true">
-    <Position X="16.5" Y="0.5" Width="1.5" />
+    <Position X="14.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AQABAAgGAgABgAAAgAAAAIQAQgAACCAQAAAgIAAAAiA=</HashCode>
+      <HashCode>AwABAAgGAgABgBAAgAAAAIQAAgAACCAQAAAgIAAAEgA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Tree&lt;T&gt;" Collapsed="true">
-    <Position X="13" Y="1.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AMQAAAAABACQAAUEBAAgAQACAAEAAAAAAAEQQACAAAA=</HashCode>
-      <FileName>src\Tree.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="PolyglotBook" Collapsed="true">
-    <Position X="4" Y="3.5" Width="1.5" />
+    <Position X="2.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAQAABAAEAACAASAqCAAwAAAAAACABAAYAEEEAAAQA=</HashCode>
       <FileName>src\PolyglotBook.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Log" Collapsed="true">
-    <Position X="14.75" Y="0.5" Width="1.5" />
+    <Position X="12.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAgAAIAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Log.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="IOLogger" Collapsed="true">
-    <Position X="13" Y="0.5" Width="1.5" />
+  <Class Name="DebugLogger" Collapsed="true">
+    <Position X="11" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAIAIAAAAAgAAAAAABgAQBgAAAAAAAgAAAQAAA=</HashCode>
-      <FileName>src\IOLogger.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="PGN" Collapsed="true">
-    <Position X="10.25" Y="3.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AQAAwIBAAIAAAAAACqAAAACAECAAABAgAIBAIIQAAAA=</HashCode>
-      <FileName>src\PGN.h</FileName>
+      <HashCode>AAEAAAAIAAEAAAAgAAAAAAAgAQBgAAAAAAAgAAAQAAA=</HashCode>
+      <FileName>src\DebugLogger.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
-    <Position X="2.25" Y="5.75" Width="1.5" />
+    <Position X="18" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="Pawns::Entry" Collapsed="true">
-    <Position X="2.25" Y="11.5" Width="1.5" />
+    <Position X="14.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAEAACAABAAAAgAAAAEgCgAAMERAgAEBAIAAABAAYA=</HashCode>
+      <HashCode>AAAEAACAABAAABAAAAAEgCgAAMERAgAEBAIAAABAAYA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="ValMove" Collapsed="true">
-    <Position X="14.75" Y="3.75" Width="1.5" />
+    <Position X="11" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAACAAAAAAAAAAAAAACAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\MovePicker.h</FileName>
+      <HashCode>AAAAAAAAAAAAAACAEAAAAAAAAAAAACAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Stats&lt;Gain, T&gt;">
-    <Position X="7.75" Y="7.5" Width="1.5" />
+  <Struct Name="Stats&lt;GAIN, T&gt;">
+    <Position X="0.5" Y="4.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAAAAgAAAAAAAAAAAAEAAAAAAAAgAAAEAAA=</HashCode>
+      <HashCode>AEAAAAAAAAAAAgAAAAAAAAAAAAEAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="ECO" Collapsed="true">
-    <Position X="17.75" Y="2.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAQAAAAAAAAAAAEAAAAAAYAAEAAAAAAgAAAAAAAA=</HashCode>
-      <FileName>src\ECO.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
-    <Position X="13" Y="3.75" Width="1.5" />
+    <Position X="18" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::binary_nullfunctor&lt;T&gt;" Collapsed="true">
-    <Position X="13" Y="2.75" Width="1.5" />
+    <Position X="11" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::char_less_nocase_comparer" Collapsed="true">
-    <Position X="14.75" Y="2.75" Width="1.5" />
+    <Position X="12.75" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::string_less_nocase_comparer" Collapsed="true">
-    <Position X="20" Y="2.75" Width="1.5" />
+    <Position X="16.25" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="Bitboard" Collapsed="true">
-    <Position X="13" Y="8.25" Width="1.5" />
+    <Position X="11" Y="7.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Key" Collapsed="true">
-    <Position X="14.75" Y="8.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="MoveList" Collapsed="true">
-    <Position X="0.5" Y="7.5" Width="1.5" />
+    <Position X="12.75" Y="7.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_buf" Collapsed="true">
-    <Position X="8" Y="5.5" Width="1.5" />
+    <Position X="5.5" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_wbuf" Collapsed="true">
-    <Position X="6" Y="5.5" Width="1.5" />
+    <Position X="8" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Pawns::Table" Collapsed="true">
-    <Position X="2.25" Y="10.25" Width="1.5" />
+    <Position X="14.5" Y="7.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="ValMoveList" Collapsed="true">
-    <Position X="4.25" Y="7.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="ValMoveSet" Collapsed="true">
-    <Position X="18.25" Y="8.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
   <Typedef Name="GainsStats" Collapsed="true">
-    <Position X="9.75" Y="10.5" Width="1.5" />
+    <Position X="0.5" Y="7.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="HistoryStats" Collapsed="true">
-    <Position X="7.75" Y="10.5" Width="1.5" />
+    <Position X="0.5" Y="3.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="CountermovesStats" Collapsed="true">
-    <Position X="5.75" Y="10.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="LeakDetector::uint" Collapsed="true">
-    <Position X="16.5" Y="8.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\leakdetector.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Enum Name="File" Collapsed="true">
-    <Position X="16.5" Y="5.75" Width="1.5" />
+    <Position X="14.5" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAQAAAAACAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Rank" Collapsed="true">
-    <Position X="18.25" Y="6.5" Width="1.5" />
+    <Position X="16.25" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Diag" Collapsed="true">
-    <Position X="14.75" Y="5.75" Width="1.5" />
+    <Position X="12.75" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAABAOB/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Color" Collapsed="true">
-    <Position X="14.75" Y="5" Width="1.5" />
+    <Position X="12.75" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAABA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Square" Collapsed="true">
-    <Position X="14.75" Y="7.25" Width="1.5" />
+    <Position X="12.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>fwAAAAgAAKAAQQCAXyAAAADA7xcIAAAABPr9CEDw+4U=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Delta" Collapsed="true">
-    <Position X="20" Y="5" Width="1.5" />
+    <Position X="18" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>SgAAAQAAAAAAAAAAAAIAAAkCggQAAAAAAAAAAACAABA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="CSide" Collapsed="true">
-    <Position X="18.25" Y="5" Width="1.5" />
+    <Position X="16.25" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="CRight" Collapsed="true">
-    <Position X="16.5" Y="5" Width="1.5" />
+    <Position X="14.5" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAQABJAAgAAAAAAAAEAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="PType" Collapsed="true">
-    <Position X="16.5" Y="6.5" Width="1.5" />
+  <Enum Name="PieceT" Collapsed="true">
+    <Position X="14.5" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AIAAAAAAAgAAAAAAAAAAAAAAAAAgAAAAIAAAAABEAAg=</HashCode>
+      <HashCode>AAAAAAAAAgAAAAAAAQAAAAAAAAAgAAAAIAAAEABEAAg=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Piece" Collapsed="true">
-    <Position X="14.75" Y="6.5" Width="1.5" />
+    <Position X="12.75" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAQAAAIAAgAQMAAAgAgRRAAAAIAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAIAAgAQMAAAgAgRTAAAAIAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="MType" Collapsed="true">
-    <Position X="20" Y="5.75" Width="1.5" />
+  <Enum Name="MoveT" Collapsed="true">
+    <Position X="18" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAACAAAAAAAEAAAAAAIAAAAAAEAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Move" Collapsed="true">
-    <Position X="18.25" Y="5.75" Width="1.5" />
+    <Position X="16.25" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAACAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Value" Collapsed="true">
-    <Position X="16.5" Y="7.25" Width="1.5" />
+    <Position X="14.5" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAwICAAQAAAgAAQEAAAAAIICAwgEBAAAAAAAACAA=</HashCode>
+      <HashCode>IAAQAwMCAAQAAAgAAQEAAAAAIICAwgEBAAAAAAAACAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Score" Collapsed="true">
-    <Position X="13" Y="7.25" Width="1.5" />
+    <Position X="11" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AIAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Depth" Collapsed="true">
-    <Position X="13" Y="5.75" Width="1.5" />
+    <Position X="11" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAMAAAAAACAAAgAAAAgAAAAAAAAAAAAAAAAAAACAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Bound" Collapsed="true">
-    <Position X="13" Y="5" Width="1.5" />
+    <Position X="11" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAACAAAAAAAAAAEAAAAAAAAAAAAQAAACAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Phase" Collapsed="true">
-    <Position X="13" Y="6.5" Width="1.5" />
+    <Position X="11" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAQEAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAoAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="ScaleFactor" Collapsed="true">
-    <Position X="20" Y="6.5" Width="1.5" />
+    <Position X="18" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAgAA=</HashCode>
+      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>

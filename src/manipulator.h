@@ -54,13 +54,14 @@ namespace std {
 
     public:
         manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
-            : _fp_manip(fp_manip), _val(val)
+            : _fp_manip (fp_manip)
+            , _val (val)
         {}
 
         void operator() (basic_ostream<C>& os) const
         {
             // Invoke the function pointer with the stream and value
-            _fp_manip(os, _val);
+            _fp_manip (os, _val);
         }  
 
         friend basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
@@ -88,7 +89,7 @@ namespace std {
     // Manipulator function itself. This is what is used by client code
     inline manip_infra<int, char> set_width (int n)
     {
-        return (manip_infra<int, char>(set_width, n));
+        return (manip_infra<int, char> (set_width, n));
     }
 
     // Another helper that takes a char argument
@@ -100,7 +101,7 @@ namespace std {
 
     inline manip_infra<char, char> set_fill(char c)
     {
-        return (manip_infra<char, char>(set_fill, c));
+        return (manip_infra<char, char> (set_fill, c));
     }
 
 
@@ -111,7 +112,7 @@ namespace std {
     //    ...
     //};
 
-    //istream &operator>>(istream &, eat);
+    //istream &operator>> (istream &, eat);
 
 
 }

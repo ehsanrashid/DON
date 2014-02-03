@@ -5,165 +5,163 @@
 #include "Type.h"
 
 // Rotate RIGHT (toward LSB)
-inline Bitboard rotate_R (Bitboard bb, int8_t k)
-{
-    return (bb >> k) | (bb << (int8_t (SQ_NO) - k));
-}
+inline Bitboard rotate_R (Bitboard bb, int8_t k) { return (bb >> k) | (bb << (int8_t (SQ_NO) - k)); }
 // Rotate LEFT (toward MSB)
-inline Bitboard rotate_L (Bitboard bb, int8_t k)
-{
-    return (bb << k) | (bb >> (int8_t (SQ_NO) - k));
-}
+inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
 
-// Flip a bitboard vertically about the centre ranks.
-inline Bitboard flip_verti (Bitboard bb)
-{
-    //return ((bb << 0x38)                          ) |
-    //       ((bb << 0x28) & U64(0x00FF000000000000)) |
-    //       ((bb << 0x18) & U64(0x0000FF0000000000)) |
-    //       ((bb << 0x08) & U64(0x000000FF00000000)) |
-    //       ((bb >> 0x08) & U64(0x00000000FF000000)) |
-    //       ((bb >> 0x18) & U64(0x0000000000FF0000)) |
-    //       ((bb >> 0x28) & U64(0x000000000000FF00)) |
-    //       ((bb >> 0x38));
+#pragma region Rotate Flip Mirror
 
-    Bitboard K1 = U64 (0x00FF00FF00FF00FF);
-    Bitboard K2 = U64 (0x0000FFFF0000FFFF);
-    //Bitboard K4 = U64 (0x00000000FFFFFFFF);
-    bb = ((bb >> 0x08) & K1) | ((bb & K1) << 0x08);
-    bb = ((bb >> 0x10) & K2) | ((bb & K2) << 0x10);
-    //bb = ((bb >> 0x20) & K4) | ((bb & K4) << 0x20);
-    bb = ((bb >> 0x20)) | ((bb) << 0x20);
-    return bb;
-}
-// Mirror a bitboard horizontally about the center files.
-inline Bitboard mirror_hori (Bitboard bb)
-{
+//// Flip a bitboard vertically about the centre ranks.
+//inline Bitboard  flip_verti (Bitboard bb)
+//{
+//    //return ((bb << 0x38)                          ) |
+//    //       ((bb << 0x28) & U64(0x00FF000000000000)) |
+//    //       ((bb << 0x18) & U64(0x0000FF0000000000)) |
+//    //       ((bb << 0x08) & U64(0x000000FF00000000)) |
+//    //       ((bb >> 0x08) & U64(0x00000000FF000000)) |
+//    //       ((bb >> 0x18) & U64(0x0000000000FF0000)) |
+//    //       ((bb >> 0x28) & U64(0x000000000000FF00)) |
+//    //       ((bb >> 0x38));
+//
+//    Bitboard K1 = U64 (0x00FF00FF00FF00FF);
+//    Bitboard K2 = U64 (0x0000FFFF0000FFFF);
+//    //Bitboard K4 = U64 (0x00000000FFFFFFFF);
+//    bb = ((bb >> 0x08) & K1) | ((bb & K1) << 0x08);
+//    bb = ((bb >> 0x10) & K2) | ((bb & K2) << 0x10);
+//    //bb = ((bb >> 0x20) & K4) | ((bb & K4) << 0x20);
+//    bb = ((bb >> 0x20)) | ((bb) << 0x20);
+//    return bb;
+//}
+//// Mirror a bitboard horizontally about the center files.
+//inline Bitboard mirror_hori (Bitboard bb)
+//{
+//
+//    Bitboard K1 = U64 (0x5555555555555555);
+//    Bitboard K2 = U64 (0x3333333333333333);
+//    Bitboard K4 = U64 (0x0F0F0F0F0F0F0F0F);
+//
+//    bb ^= K4 & (bb ^ rotate_L (bb, 8));
+//    bb ^= K2 & (bb ^ rotate_L (bb, 4));
+//    bb ^= K1 & (bb ^ rotate_L (bb, 2));
+//    bb = rotate_R (bb, 7);
+//    // ---
+//    bb = ((bb >> 1) & K1) | ((bb & K1) << 1);
+//    bb = ((bb >> 2) & K2) | ((bb & K2) << 2);
+//    bb = ((bb >> 4) & K4) | ((bb & K4) << 4);
+//
+//    // ===
+//
+//    //uint8_t *p = (uint8_t*) (&bb);
+//    //p[0] = reverse (p[0]);
+//    //p[1] = reverse (p[1]);
+//    //p[2] = reverse (p[2]);
+//    //p[3] = reverse (p[3]);
+//    //p[4] = reverse (p[4]);
+//    //p[5] = reverse (p[5]);
+//    //p[6] = reverse (p[6]);
+//    //p[7] = reverse (p[7]);
+//
+//    return bb;
+//}
+//
+//// Flip a bitboard about the diagonal A1-H8.
+//inline Bitboard flip_A1H8 (Bitboard bb)
+//{
+//    Bitboard t;
+//    Bitboard K1 = U64 (0x5500550055005500);
+//    Bitboard K2 = U64 (0x3333000033330000);
+//    Bitboard K4 = U64 (0x0F0F0F0F00000000);
+//    t = K4 & (bb ^ (bb << 0x1C));
+//    bb ^= (t  ^ (t >> 0x1C));
+//    t = K2 & (bb ^ (bb << 0x0E));
+//    bb ^= (t  ^ (t >> 0x0E));
+//    t = K1 & (bb ^ (bb << 0x07));
+//    bb ^= (t  ^ (t >> 0x07));
+//    return bb;
+//}
+//// Flip a bitboard about the antidiagonal A8-H1.
+//inline Bitboard flip_A8H1 (Bitboard bb)
+//{
+//    Bitboard t;
+//    Bitboard K1 = U64 (0xAA00AA00AA00AA00);
+//    Bitboard K2 = U64 (0xCCCC0000CCCC0000);
+//    Bitboard K4 = U64 (0xF0F0F0F00F0F0F0F);
+//    t = (bb ^ (bb << 0x24));
+//    bb ^= K4 & (t  ^ (bb >> 0x24));
+//    t = K2 & (bb ^ (bb << 0x12));
+//    bb ^= (t  ^ (t >> 0x12));
+//    t = K1 & (bb ^ (bb << 0x09));
+//    bb ^= (t  ^ (t >> 0x09));
+//    return bb;
+//}
+//
+//// Rotate a bitboard by 90 degrees clockwise.
+//inline Bitboard rotate_90C (Bitboard bb)
+//{
+//    return flip_verti (flip_A1H8 (bb));
+//    //return flip_A8H1 (flip_verti (bb));
+//}
+//// Rotate a bitboard by 90 degrees anticlockwise.
+//inline Bitboard rotate_90A (Bitboard bb)
+//{
+//    return flip_verti (flip_A8H1 (bb));
+//    //return flip_A1H8 (flip_verti (bb));
+//}
+//
+//// Rotate a bitboard by 45 degrees clockwise.
+//inline Bitboard rotate_45C (Bitboard bb)
+//{
+//    Bitboard K1 = U64 (0xAAAAAAAAAAAAAAAA);
+//    Bitboard K2 = U64 (0xCCCCCCCCCCCCCCCC);
+//    Bitboard K4 = U64 (0xF0F0F0F0F0F0F0F0);
+//    bb ^= K1 & (bb ^ rotate_R (bb, 0x08));
+//    bb ^= K2 & (bb ^ rotate_R (bb, 0x10));
+//    bb ^= K4 & (bb ^ rotate_R (bb, 0x20));
+//    return bb;
+//}
+//// Rotate a bitboard by 45 degrees anticlockwise.
+//inline Bitboard rotate_45A (Bitboard bb)
+//{
+//    Bitboard K1 = U64 (0x5555555555555555);
+//    Bitboard K2 = U64 (0x3333333333333333);
+//    Bitboard K4 = U64 (0x0F0F0F0F0F0F0F0F);
+//    bb ^= K1 & (bb ^ rotate_R (bb, 0x08));
+//    bb ^= K2 & (bb ^ rotate_R (bb, 0x10));
+//    bb ^= K4 & (bb ^ rotate_R (bb, 0x20));
+//    return bb;
+//}
+//
+//// Rotate a bitboard by 180 degrees.
+//inline Bitboard rotate_180 (Bitboard bb)
+//{
+//    Bitboard H1 = U64 (0x5555555555555555);
+//    Bitboard H2 = U64 (0x3333333333333333);
+//    Bitboard H4 = U64 (0x0F0F0F0F0F0F0F0F);
+//    Bitboard V1 = U64 (0x00FF00FF00FF00FF);
+//    Bitboard V2 = U64 (0x0000FFFF0000FFFF);
+//    bb = ((bb >> 0x01) & H1) | ((bb & H1) << 0x01);
+//    bb = ((bb >> 0x02) & H2) | ((bb & H2) << 0x02);
+//    bb = ((bb >> 0x04) & H4) | ((bb & H4) << 0x04);
+//    bb = ((bb >> 0x08) & V1) | ((bb & V1) << 0x08);
+//    bb = ((bb >> 0x10) & V2) | ((bb & V2) << 0x10);
+//    bb = ((bb >> 0x20)) | (bb << 0x20);
+//    return bb;
+//}
+//
+//// Flip, mirror or reverse a bitboard
+//inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
+//{
+//    for (int8_t i = 3 * !uint8_t (mirror); i < 3 * (1 + uint8_t (flip)); ++i)
+//    {
+//        uint16_t s  = ((1) << i);
+//        Bitboard F  = (U64 (+1) << s);
+//        Bitboard K  = (U64 (-1) / (F + 1));
+//        bb = ((bb >> s) & K) + F * (bb & K);
+//    }
+//    return bb;
+//}
 
-    Bitboard K1 = U64 (0x5555555555555555);
-    Bitboard K2 = U64 (0x3333333333333333);
-    Bitboard K4 = U64 (0x0F0F0F0F0F0F0F0F);
-
-    bb ^= K4 & (bb ^ rotate_L (bb, 8));
-    bb ^= K2 & (bb ^ rotate_L (bb, 4));
-    bb ^= K1 & (bb ^ rotate_L (bb, 2));
-    bb = rotate_R (bb, 7);
-    // ---
-    bb = ((bb >> 1) & K1) | ((bb & K1) << 1);
-    bb = ((bb >> 2) & K2) | ((bb & K2) << 2);
-    bb = ((bb >> 4) & K4) | ((bb & K4) << 4);
-
-    // ===
-
-    //uint8_t *p = (uint8_t*) (&bb);
-    //p[0] = reverse (p[0]);
-    //p[1] = reverse (p[1]);
-    //p[2] = reverse (p[2]);
-    //p[3] = reverse (p[3]);
-    //p[4] = reverse (p[4]);
-    //p[5] = reverse (p[5]);
-    //p[6] = reverse (p[6]);
-    //p[7] = reverse (p[7]);
-
-    return bb;
-}
-
-// Flip a bitboard about the diagonal A1-H8.
-inline Bitboard flip_A1H8 (Bitboard bb)
-{
-    Bitboard t;
-    Bitboard K1 = U64 (0x5500550055005500);
-    Bitboard K2 = U64 (0x3333000033330000);
-    Bitboard K4 = U64 (0x0F0F0F0F00000000);
-    t = K4 & (bb ^ (bb << 0x1C));
-    bb ^= (t  ^ (t >> 0x1C));
-    t = K2 & (bb ^ (bb << 0x0E));
-    bb ^= (t  ^ (t >> 0x0E));
-    t = K1 & (bb ^ (bb << 0x07));
-    bb ^= (t  ^ (t >> 0x07));
-    return bb;
-}
-// Flip a bitboard about the antidiagonal A8-H1.
-inline Bitboard flip_A8H1 (Bitboard bb)
-{
-    Bitboard t;
-    Bitboard K1 = U64 (0xAA00AA00AA00AA00);
-    Bitboard K2 = U64 (0xCCCC0000CCCC0000);
-    Bitboard K4 = U64 (0xF0F0F0F00F0F0F0F);
-    t = (bb ^ (bb << 0x24));
-    bb ^= K4 & (t  ^ (bb >> 0x24));
-    t = K2 & (bb ^ (bb << 0x12));
-    bb ^= (t  ^ (t >> 0x12));
-    t = K1 & (bb ^ (bb << 0x09));
-    bb ^= (t  ^ (t >> 0x09));
-    return bb;
-}
-
-// Rotate a bitboard by 90 degrees clockwise.
-inline Bitboard rotate_90C (Bitboard bb)
-{
-    return flip_verti (flip_A1H8 (bb));
-    //return flip_A8H1 (flip_verti (bb));
-}
-// Rotate a bitboard by 90 degrees anticlockwise.
-inline Bitboard rotate_90A (Bitboard bb)
-{
-    return flip_verti (flip_A8H1 (bb));
-    //return flip_A1H8 (flip_verti (bb));
-}
-
-// Rotate a bitboard by 45 degrees clockwise.
-inline Bitboard rotate_45C (Bitboard bb)
-{
-    Bitboard K1 = U64 (0xAAAAAAAAAAAAAAAA);
-    Bitboard K2 = U64 (0xCCCCCCCCCCCCCCCC);
-    Bitboard K4 = U64 (0xF0F0F0F0F0F0F0F0);
-    bb ^= K1 & (bb ^ rotate_R (bb, 0x08));
-    bb ^= K2 & (bb ^ rotate_R (bb, 0x10));
-    bb ^= K4 & (bb ^ rotate_R (bb, 0x20));
-    return bb;
-}
-// Rotate a bitboard by 45 degrees anticlockwise.
-inline Bitboard rotate_45A (Bitboard bb)
-{
-    Bitboard K1 = U64 (0x5555555555555555);
-    Bitboard K2 = U64 (0x3333333333333333);
-    Bitboard K4 = U64 (0x0F0F0F0F0F0F0F0F);
-    bb ^= K1 & (bb ^ rotate_R (bb, 0x08));
-    bb ^= K2 & (bb ^ rotate_R (bb, 0x10));
-    bb ^= K4 & (bb ^ rotate_R (bb, 0x20));
-    return bb;
-}
-
-// Rotate a bitboard by 180 degrees.
-inline Bitboard rotate_180 (Bitboard bb)
-{
-    Bitboard H1 = U64 (0x5555555555555555);
-    Bitboard H2 = U64 (0x3333333333333333);
-    Bitboard H4 = U64 (0x0F0F0F0F0F0F0F0F);
-    Bitboard V1 = U64 (0x00FF00FF00FF00FF);
-    Bitboard V2 = U64 (0x0000FFFF0000FFFF);
-    bb = ((bb >> 0x01) & H1) | ((bb & H1) << 0x01);
-    bb = ((bb >> 0x02) & H2) | ((bb & H2) << 0x02);
-    bb = ((bb >> 0x04) & H4) | ((bb & H4) << 0x04);
-    bb = ((bb >> 0x08) & V1) | ((bb & V1) << 0x08);
-    bb = ((bb >> 0x10) & V2) | ((bb & V2) << 0x10);
-    bb = ((bb >> 0x20)) | (bb << 0x20);
-    return bb;
-}
-
-// Flip, mirror or reverse a bitboard
-inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
-{
-    for (int8_t i = 3 * !uint8_t (mirror); i < 3 * (1 + uint8_t (flip)); ++i)
-    {
-        uint16_t s  = ((1) << i);
-        Bitboard F  = (U64 (+1) << s);
-        Bitboard K  = (U64 (-1) / (F + 1));
-        bb = ((bb >> s) & K) + F * (bb & K);
-    }
-    return bb;
-}
+#pragma endregion
 
 #pragma region Index
 //
@@ -377,7 +375,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 #pragma endregion
 
 
-//static const uint8_t _ReverseByte[_UI8_MAX + 1] =
+//static const uint8_t _reverse_byte[_UI8_MAX + 1] =
 //{
 //#undef R_6
 //#undef R_4
@@ -409,7 +407,7 @@ inline Bitboard flip_mirror_reverse (Bitboard bb, bool flip, bool mirror)
 //    //return uint8_t((b * U64(0x202020202) & U64(0x10884422010)) % 0x3FF); // 1023
 //
 //    // reverse Lookup
-//    return _ReverseByte[b];
+//    return _reverse_byte[b];
 //}
 
 //// reverse() reverse the bits in a Bitboard

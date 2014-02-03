@@ -2,14 +2,16 @@
 
 #include <sstream>
 #include <iomanip>
-
 #include "xstring.h"
+
 #include "Position.h"
 #include "MoveGenerator.h"
+#include "Time.h"
 
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
+using namespace Time;
 
 // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
@@ -17,35 +19,33 @@ AmbType ambiguity (Move m, const Position &pos)
 {
     ASSERT (pos.legal (m));
 
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
-    Piece mp   = pos[org];
-    PType mpt  = _ptype (mp);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    Piece p   = pos[org];
+    PieceT pt  = _type (p);
 
-    //MoveList mov_lst = generate<LEGAL> (pos);
+
     //uint8_t n = 0;
     //uint8_t f = 0;
     //uint8_t r = 0;
-    //MoveList::const_iterator itr = mov_lst.cbegin ();
-    //while (itr != mov_lst.cend ())
+    //for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     //{
     //    Move mm = *itr;
-    //    if (sq_org (mm) != org)
+    //    if (org_sq (mm) != org)
     //    {
-    //        if (pos[sq_org (mm)] == mp && sq_dst (mm) == dst)
+    //        if (pos[org_sq (mm)] == p && dst_sq (mm) == dst)
     //        {
     //            ++n;
-    //            if (_file (sq_org (mm)) == _file (org))
+    //            if (_file (org_sq (mm)) == _file (org))
     //            {
     //                ++f;
     //            }
-    //            if (_rank (sq_org (mm)) == _rank (org))
+    //            if (_rank (org_sq (mm)) == _rank (org))
     //            {
     //                ++r;
     //            }
     //        }
     //    }
-    //    ++itr;
     //}
     //if (!n) return AMB_NONE;
     //if (!f) return AMB_RANK;
@@ -78,7 +78,7 @@ AmbType ambiguity (Move m, const Position &pos)
     //Bitboard occ = pos.pieces ();
     ////Bitboard friends = pos.pieces (pos.active ());
     //Bitboard ambiguous = pos.pieces (pos.active ()) & ~pos.pinneds () - org;
-    //switch (mpt)
+    //switch (pt)
     //{
     //case PAWN:
     //case KING: return AMB_NONE; break;
@@ -92,23 +92,30 @@ AmbType ambiguity (Move m, const Position &pos)
     //if (!(ambiguous & rank_bb (org))) return AMB_FILE;
     //return AMB_SQR;
 
-    Bitboard others, b;
-    others = b = (pos.attacks_from (mp, dst) & pos.pieces (pos.active (), mpt)) - org;
     Bitboard pinneds = pos.pinneds (pos.active ());
+    Bitboard others, b;
+    others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
     while (b)
     {
         Move move = mk_move (pop_lsq (b), dst);
         if (!pos.legal (move, pinneds))
         {
-            others -= sq_org (move);
+            others -= org_sq (move);
         }
     }
 
-    if (!(others)) return AMB_NONE;
-    if (!(others & file_bb (org))) return AMB_RANK;
-    if (!(others & rank_bb (org))) return AMB_FILE;
-    return AMB_SQR;
+    //if (!(others)) return AMB_NONE;
+    //if (!(others & file_bb (org))) return AMB_RANK;
+    //if (!(others & rank_bb (org))) return AMB_FILE;
+    //return AMB_SQR;
 
+    if (others)
+    {
+        if (!(others & file_bb (org))) return AMB_RANK;
+        if (!(others & rank_bb (org))) return AMB_FILE;
+        return AMB_SQR;
+    }
+    return AMB_NONE;
 }
 
 // move_from_can(can, pos) takes a position and a string representing a move in
@@ -118,14 +125,13 @@ Move move_from_can (string &can, const Position &pos)
     if (5 == can.length ())
     {
         // promotion piece in lowercase
-        if (isupper ((unsigned char) can[4]))
+        if (isupper (uint8_t (can[4])))
         {
-            can[4] = char (tolower (can[4]));
+            can[4] = uint8_t (tolower (can[4]));
         }
     }
 
-    MoveList mov_lst = generate<LEGAL>(pos);
-    for (MoveList::const_iterator itr = mov_lst.cbegin (); itr != mov_lst.cend (); ++itr)
+    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
         if (iequals (can, move_to_can (m, pos.chess960 ())))
@@ -136,49 +142,50 @@ Move move_from_can (string &can, const Position &pos)
     return MOVE_NONE;
 }
 
-Move move_from_san (string &san, const Position &pos)
-{
-    return MOVE_NONE;
-}
-
-Move move_from_lan (string &lan, const Position &pos)
-{
-    return MOVE_NONE;
-}
+//Move move_from_san (string &san, const Position &pos)
+//{
+//    return MOVE_NONE;
+//}
+//
+//Move move_from_lan (string &lan, const Position &pos)
+//{
+//    return MOVE_NONE;
+//}
 
 // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
 // The only special case is castling moves,
 //  - e1g1 notation in normal chess mode,
 //  - e1h1 notation in chess960 mode.
 // Internally castle moves are always coded as "king captures rook".
-string move_to_can (Move m, bool c960)
+const string move_to_can (Move m, bool c960)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
-    if (!_ok (m))      return "(xxxx)";
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
-    MType mt   = _mtype (m);
+    //if (!_ok (m))       return "(xxxx)";
+
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    MoveT mt   = m_type (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
-    if (PROMOTE == mt) can += to_char (BLACK | prom_type (m)); // lower case
+    if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
     return can;
 }
 
 // move_to_san(m, pos) takes a position and a legal move as input
 // and returns its short algebraic notation representation.
-string move_to_san (Move m, Position &pos)
+const string move_to_san (Move m, Position &pos)
 {
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
     ASSERT (pos.legal (m));
     string san;
-    Square org = sq_org (m);
-    Square dst = sq_dst (m);
-    Piece mp   = pos[org];
-    PType mpt  = _ptype (mp);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    Piece p   = pos[org];
+    PieceT pt  = _type (p);
 
-    //    switch (mpt)
+    //    switch (pt)
     //    {
     //    case PAWN:
     //        san = "";
@@ -190,7 +197,7 @@ string move_to_san (Move m, Position &pos)
     //
     //        san += to_string (dst);
     //
-    //        if (PROMOTE == _mtype (m))
+    //        if (PROMOTE == m_type (m))
     //        {
     //            switch (prom_type (m))
     //            {
@@ -204,7 +211,7 @@ string move_to_san (Move m, Position &pos)
     //        goto move_marker;
     //
     //    case KING:
-    //        if (CASTLE == _mtype (m))
+    //        if (CASTLE == m_type (m))
     //        {
     //            CSide cs = ((WHITE == pos.active ()) ?
     //                (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
@@ -220,7 +227,7 @@ string move_to_san (Move m, Position &pos)
     //        // NOTE: no break
     //    default:
     //        // piece notation
-    //        san = to_char (mpt);
+    //        san = to_char (pt);
     //
     //        break;
     //    }
@@ -253,7 +260,7 @@ string move_to_san (Move m, Position &pos)
     //        san += (legalmove ? '+' : '#');
     //    }
 
-    MType mt = _mtype (m);
+    MoveT mt = m_type (m);
     switch (mt)
     {
     case CASTLE:
@@ -261,114 +268,127 @@ string move_to_san (Move m, Position &pos)
         break;
 
     default:
-        if (PAWN == mpt)
         {
-            if (pos.capture (m)) san = to_char (_file (org));
-        }
-        else
-        {
-            san = to_char (mpt);
-            // Disambiguation if we have more then one piece of type 'mpt'
-            // that can reach 'dst' with a legal move.
-            switch (ambiguity (m, pos))
+            bool capture = pos.capture (m);
+            if (PAWN == pt)
             {
-            case AMB_NONE:                               break;
-            case AMB_RANK: san += to_char (_file (org)); break;
-            case AMB_FILE: san += to_char (_rank (org)); break;
-            case AMB_SQR:  san += to_string (org);       break;
-            default:       ASSERT (false);               break;
+                if (capture) san = to_char (_file (org));
             }
+            else
+            {
+                san = CharPiece[pt];
+                // Disambiguation if we have more then one piece of type 'pt'
+                // that can reach 'dst' with a legal move.
+                switch (ambiguity (m, pos))
+                {
+                case AMB_NONE:                               break;
+                case AMB_RANK: san += to_char (_file (org)); break;
+                case AMB_FILE: san += to_char (_rank (org)); break;
+                case AMB_SQR:  san += to_string (org);       break;
+                default:       ASSERT (false);               break;
+                }
+            }
+
+            if (capture) san += 'x';
+            san += to_string (dst);
+            if (PROMOTE == mt && PAWN == pt) san += string ("=") + CharPiece[prom_type (m)];
         }
-        if (pos.capture (m)) san += 'x';
-        san += to_string (dst);
-        if (PROMOTE == mt && PAWN == mpt) san += "=" + to_char (prom_type (m));
         break;
     }
 
     // Move marker for check & checkmate
     if (pos.check (m, CheckInfo (pos)))
     {
-        pos.do_move (m, StateInfo());
-        san += (generate<EVASION> (pos).size () ? "+" : "#");
+        StateInfo si;
+        pos.do_move (m, si);
+        san += MoveList<LEGAL> (pos).size () ? "+" : "#";
         pos.undo_move ();
     }
 
     return san;
 }
 
-// move_to_lan(m, pos) takes a position and a legal move as input
-// and returns its long algebraic notation representation.
-string move_to_lan (Move m, Position &pos)
-{
-    string lan;
-
-
-    return lan;
-}
-
-// score_uci() converts a value to a string suitable for use with the UCI
-// protocol specifications:
+//// move_to_lan(m, pos) takes a position and a legal move as input
+//// and returns its long algebraic notation representation.
+//const string move_to_lan (Move m, Position &pos)
+//{
+//    string lan;
 //
-// cp <x>     The score from the engine's point of view in centipawns.
-// mate <y>   Mate in y moves, not plies. If the engine is getting mated
-//            use negative values for y.
+//
+//    return lan;
+//}
+
+// score_uci() converts a value to a string suitable
+// for use with the UCI protocol specifications:
+//
+// cp <x>     The score x from the engine's point of view in centipawns.
+// mate <y>   Mate in y moves, not plies.
+//            If the engine is getting mated use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
-    stringstream sscore;
+    stringstream ss;
 
-    if (abs(v) < VALUE_MATES_IN_MAX_PLY)
+    int32_t abs_v = abs (int32_t (v));
+    if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
-        sscore << "cp " << v * 100 / int32_t (VALUE_MG_PAWN);
+        if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+        ss << "cp " << int32_t (v) * 100 / VALUE_MG_PAWN;
     }
     else
     {
-        sscore << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
+        ss << "mate " << int32_t (v > VALUE_ZERO ? VALUE_MATE - v + 1 : -(VALUE_MATE + v)) / 2;
     }
-    sscore << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
-    return sscore.str();
+
+    ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+
+    return ss.str ();
 }
 
 namespace {
 
-    // score to string
-    string score_to_string (Value v)
+    // value to string
+    string value_to_string (Value v)
     {
-        stringstream s;
+        stringstream ss;
 
-        if (false);
-        else if (v >= VALUE_MATES_IN_MAX_PLY)
+        int32_t abs_v = abs (int32_t (v));
+        if (abs_v < VALUE_MATES_IN_MAX_PLY)
         {
-            s <<  "#" << (VALUE_MATE - v + 1) / 2;
-        }
-        else if (v <= VALUE_MATED_IN_MAX_PLY)
-        {
-            s << "-#" << (VALUE_MATE + v) / 2;
+            if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+            ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else
         {
-            s << setprecision(2) << fixed << showpos << double(v) / VALUE_MG_PAWN;
+            if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
+            {
+                ss <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+            }
+            else                //if (v <= VALUE_MATED_IN_MAX_PLY)
+            {
+                ss << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+            }
         }
-        return s.str();
+        return ss.str ();
     }
 
     // time to string
-    string time_to_string(int64_t msecs)
+    string time_to_string (int64_t msecs)
     {
-        const int MSecMinute = 1000 * 60;
-        const int MSecHour   = 1000 * 60 * 60;
+        const int32_t MSecMinute = MS_SEC * 60;
+        const int32_t MSecHour   = MS_SEC * 60 * 60;
 
         int64_t hours   =   msecs / MSecHour;
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / 1000;
+        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / MS_SEC;
 
-        stringstream s;
+        stringstream ss;
 
-        if (hours) s << hours << ':';
-        s << setfill('0') 
-            << setw(2) << minutes << ':' 
-            << setw(2) << seconds;
+        if (hours) ss << hours << ':';
+        ss << setfill ('0') 
+            << setw (2) << minutes << ':' 
+            << setw (2) << seconds;
 
-        return s.str();
+        return ss.str ();
     }
 
 }
@@ -376,56 +396,56 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, int16_t depth, Value value, int64_t msecs, const MoveList &pv)
+string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const Move pv[])
 {
     const int64_t K = 1000;
     const int64_t M = 1000000;
-    
+
     stringstream spv;
 
-    spv << setw(2) << depth
-        << setw(8) << score_to_string (value)
-        << setw(8) << time_to_string (msecs);
+    spv << setw (3) << uint32_t (depth)
+        << setw (8) << value_to_string (value)
+        << setw (8) << time_to_string (msecs);
 
     if (pos.game_nodes () < M)
     {
-        spv << setw(8) << pos.game_nodes () / 1 << "  ";
+        spv << setw (8) << pos.game_nodes () / 1 << "  ";
     }
     else if (pos.game_nodes () < K * M)
     {
-        spv << setw(7) << pos.game_nodes () / K << "K  ";
+        spv << setw (7) << pos.game_nodes () / K << "K  ";
     }
     else
     {
-        spv << setw(7) << pos.game_nodes () / M << "M  ";
+        spv << setw (7) << pos.game_nodes () / M << "M  ";
     }
 
-    string padding = string (spv.str().length(), ' ');
-    size_t length = padding.length();
-    StateInfoStack st;
+    string padding = string (spv.str ().length (), ' ');
+    size_t length  = padding.length ();
+    StateInfoStack states;
 
-    for_each (pv.cbegin (), pv.cend (), [&] (Move m)
+    const Move *m = pv;
+
+    while (*m != MOVE_NONE)
     {
-        string san = move_to_san (m, pos);
-
-        if (length + san.length() > 80)
+        string san = move_to_san (*m, pos);
+        if (length + san.length () > 80)
         {
             spv << "\n" + padding;
-            length = padding.length();
+            length = padding.length ();
         }
-
         spv << san << ' ';
-        length += san.length() + 1;
+        length += san.length () + 1;
+        states.push (StateInfo ());
+        pos.do_move (*m, states.top ());
+        ++m;
+    }
 
-        st.push (StateInfo());
-        pos.do_move (m, st.top ());
-
-    });
-
-    for_each (pv.crbegin (), pv.crend (), [&] (Move m)
+    while (m != pv)
     {
-        pos.undo_move ();
-    });
+        pos.undo_move();
+        --m;
+    }
 
     return spv.str();
 }

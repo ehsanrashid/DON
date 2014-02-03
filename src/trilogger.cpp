@@ -25,7 +25,7 @@ namespace TrivialLogger {
 
     namespace implementation {
 
-        typedef class TriLoggerImpl sealed
+        typedef class TriLoggerImpl
         {
 
         public:
@@ -129,8 +129,8 @@ namespace TrivialLogger {
 
     namespace implementation {
 
-        /// Function calculates length of C string
-        /// It can be used with wide characters
+        // Function calculates length of C string
+        // It can be used with wide characters
         template < typename Char_type >
         size_t const str_len (const Char_type s[])
         {
@@ -143,10 +143,10 @@ namespace TrivialLogger {
             return length;
         }
 
-        /// Function paste rhs C string to the lhs C string.
-        /// lhs should be long enough for that operation.
-        /// Additionally coping is stared from the point which
-        /// points lhs.
+        // Function paste rhs C string to the lhs C string.
+        // lhs should be long enough for that operation.
+        // Additionally coping is stared from the point which
+        // points lhs.
         template < typename Char_type >
         size_t const str_cat (Char_type *&lhs, const Char_type *rhs)
         {
@@ -161,12 +161,12 @@ namespace TrivialLogger {
             return length;
         }
 
-        /// Function copy rhs C string in to the lhs.
-        /// It do not check size of target C string
-        /// It starts to copy from the beginning of the C string,
-        /// but it begins put characters at the point where lhs points,
-        /// so there can be a problem when lhs points on the end of lhs
-        /// C string.
+        // Function copy rhs C string in to the lhs.
+        // It do not check size of target C string
+        // It starts to copy from the beginning of the C string,
+        // but it begins put characters at the point where lhs points,
+        // so there can be a problem when lhs points on the end of lhs
+        // C string.
         template < typename Char_type >
         size_t const str_cpy (Char_type *&lhs, const Char_type *rhs)
         {
@@ -182,11 +182,11 @@ namespace TrivialLogger {
             return length + 1;
         }
 
-        /// Function converts existing file name to the file name
-        /// which has no non-printable signs and 
-        /// at the end is added extension.
-        /// The space sign in file name is converted to the underscore.
-        /// Lengths of C strings has to be proper.
+        // Function converts existing file name to the file name
+        // which has no non-printable signs and 
+        // at the end is added extension.
+        // The space sign in file name is converted to the underscore.
+        // Lengths of C strings has to be proper.
         template<typename Char_type>
         const size_t
             create_filename (
@@ -203,7 +203,7 @@ namespace TrivialLogger {
                 {
                     // check if characters have grapnical
                     // reprasentation
-                    if (0 != ::isgraph (unsigned char (*fn_log)))
+                    if (0 != isgraph (uint8_t (*fn_log)))
                     {
                         *filename = *fn_log;
                         ++filename;
@@ -242,7 +242,7 @@ namespace TrivialLogger {
         //T const max (T const x1, T const x2) { return (x1 > x2 ? x1 : x2); }
 
         const char_type* get_fn_log()   { return XSTR(FTLOG); }
-        const char_type* get_fn_def()   { return "log_eng"; }
+        const char_type* get_fn_def()   { return "except_log"; }
         // extension C string
         const char_type* get_ext_log()  { return ".txt"; }
 

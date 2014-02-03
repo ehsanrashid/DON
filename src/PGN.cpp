@@ -140,7 +140,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
 
     while (offset < length)
     {
-        unsigned char c;
+        uint8_t c;
 
         SKIP_WHITESPACE ();
 

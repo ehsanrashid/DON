@@ -13,7 +13,7 @@
 #   include <intrin.h> // MSVC popcnt and bsfq instrinsics
 // _BitScanForward64() & _BitScanReverse64()
 
-inline Square scan_lsq (Bitboard bb)
+INLINE Square scan_lsq (Bitboard bb)
 {
     unsigned long index;
 
@@ -38,7 +38,7 @@ inline Square scan_lsq (Bitboard bb)
     return Square (index);
 }
 
-inline Square scan_msq (Bitboard bb)
+INLINE Square scan_msq (Bitboard bb)
 {
     unsigned long index;
 
@@ -67,7 +67,7 @@ inline Square scan_msq (Bitboard bb)
 
 #ifndef _64BIT
 
-inline uint8_t scan_lsb32 (uint32_t w)
+INLINE uint8_t scan_lsb32 (uint32_t w)
 {
     __asm__ ("rbit %0, %1" : "=r" (w) : "r" (w));
     return __builtin_clz (w);
@@ -75,7 +75,7 @@ inline uint8_t scan_lsb32 (uint32_t w)
 
 #endif
 
-inline Square scan_lsq (Bitboard bb)
+INLINE Square scan_lsq (Bitboard bb)
 {
 
 #ifdef _64BIT
@@ -91,7 +91,7 @@ inline Square scan_lsq (Bitboard bb)
 #endif
 }
 
-inline Square scan_msq (Bitboard bb)
+INLINE Square scan_msq (Bitboard bb)
 {
 #ifdef _64BIT
 
@@ -109,13 +109,13 @@ inline Square scan_msq (Bitboard bb)
 #   else
 
 // Assembly code by Heinz van Saanen
-inline Square scan_lsq (Bitboard bb)
+INLINE Square scan_lsq (Bitboard bb)
 {
     uint8_t index;
     __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
     return Square (index);
 }
-inline Square scan_msq (Bitboard bb)
+INLINE Square scan_msq (Bitboard bb)
 {
     uint8_t index;
     __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
@@ -126,7 +126,7 @@ inline Square scan_msq (Bitboard bb)
 
 #else
 
-inline Square  scan_lsq (Bitboard bb)
+INLINE Square  scan_lsq (Bitboard bb)
 {
 
     // ---> (X & -X) == X & (~X + 1) != (X ^ (X - 1))
@@ -137,7 +137,7 @@ inline Square  scan_lsq (Bitboard bb)
     //// Modulo operation of the isolated LS1B by the prime number 67.
     //// The remainder 0..66 can be used to perfectly hash the bit - index table. Three gaps are 0, 17, and 34
     //const uint8_t Prime_67 = 0x43; // 67
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const int8_t BSF_Table[Prime_67 + 1] =
     //{
     //    64, 00, 01, 39, 02, 15, 40, 23,
@@ -158,7 +158,7 @@ inline Square  scan_lsq (Bitboard bb)
 
     //// * DeBruijn (U32 (0x01)) = U64 (0X0218A392CD3D5DBF)
     //if (!bb) return SQ_NO;
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const uint8_t BSF_Table[SQ_NO] =
     //{
     //    00, 01, 02, 07, 03, 13,  8, 19,
@@ -180,7 +180,7 @@ inline Square  scan_lsq (Bitboard bb)
     //// *@author Martin Läuter (1997), Charles E.Leiserson, Harald Prokop, Keith H.Randall
     //// * DeBruijn (U32 (0x4000000)) = U64 (0X03F79D71B4CB0A89)
     //if (!bb) return SQ_NO;
-    //CACHE_ALIGN8
+    //CACHE_ALIGN(8)
     //    const uint8_t BSF_Table[SQ_NO] =
     //{
     //    00, 01, 48, 02, 57, 49, 28, 03,
@@ -202,7 +202,7 @@ inline Square  scan_lsq (Bitboard bb)
     // * @author Kim Walisch (2012)
     // * DeBruijn(U32(0x4000000)) = U64(0X03F79D71B4CB0A89)
     if (!bb) return SQ_NO;
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
@@ -220,7 +220,7 @@ inline Square  scan_lsq (Bitboard bb)
     return Square (BSF_Table[index]);
 
 #else
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         63, 30, 03, 32, 25, 41, 22, 33,
@@ -251,7 +251,7 @@ inline Square  scan_msq (Bitboard bb)
     // * @authors Kim Walisch, Mark Dickinson (2012)
     // * DeBruijn(U32(0x4000000)) = U64(0X03F79D71B4CB0A89)
     if (!bb) return SQ_NO;
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
@@ -278,7 +278,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #else
 
-    CACHE_ALIGN8
+    CACHE_ALIGN(8)
         const uint8_t MSB_Table[_UI8_MAX + 1] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -340,15 +340,15 @@ inline Square  scan_msq (Bitboard bb)
 
 #endif
 
-// scan_rel_lsq() finds least significant bit relative to the given color
-inline Square scan_rel_lsq         (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
+//// scan_rel_lsq() finds least significant bit relative to the given color
+//INLINE Square scan_rel_lsq         (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
 
 // scan_rel_frntmost_sq() and scan_rel_backmost_sq() find the square
 // corresponding to the most/least advanced bit relative to the given color.
-inline Square scan_rel_frntmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_msq (bb) : scan_lsq (bb); }
-inline Square scan_rel_backmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
+INLINE Square scan_rel_frntmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_msq (bb) : scan_lsq (bb); }
+INLINE Square scan_rel_backmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
 
-inline Square pop_lsq (Bitboard &bb)
+INLINE Square pop_lsq (Bitboard &bb)
 {
     Square s = scan_lsq (bb);
     bb &= (bb - 1); // reset the LS1B

@@ -33,7 +33,7 @@
 
 //#define OTLOG
 //#define ETLOG
-//#define FTLOG   log_eng
+//#define FTLOG   except_log
 
 namespace TrivialLogger {
 
@@ -43,7 +43,7 @@ namespace TrivialLogger {
     }
 
     // main trivial logger class
-    typedef class TriLogger sealed
+    typedef class TriLogger
     {
 
     private:

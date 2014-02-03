@@ -5,31 +5,9 @@
 #include <vector>
 #include <set>
 #include "Type.h"
-#include "Searcher.h"
 #include "MoveGenerator.h"
-
-class Position;
-
-typedef struct ValMove
-{
-    Move    move;
-    Value   value;
-
-    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
-    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
-    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
-    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
-    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
-    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
-
-} ValMove;
-
-
-typedef std::vector<ValMove>     ValMoveList;
-typedef std::set<ValMove>        ValMoveSet;
-
-extern void order (ValMoveList &vm_list, bool full = true);
-
+#include "Position.h"
+#include "Searcher.h"
 
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.
@@ -45,20 +23,18 @@ struct Stats
 {
 
 private:
-    T _table[PT_NO][SQ_NO];
+    T _table[14][SQ_NO];
 
 public:
-    static const Value MaxValue = Value (2000);
 
-    const T* operator[] (Piece p) const { return &_table[p][0]; }
-    //const T& operator[] (Piece p) const { return  _table[p][0]; }
+    inline const T* operator[] (Piece p) const { return _table[p]; }
 
-    void clear ()
+    inline void clear ()
     {
         memset (_table, 0, sizeof (_table));
     }
 
-    void update (Piece p, Square s, Move m)
+    inline void update (Piece p, Square s, Move m)
     {
         if (m == _table[p][s].first) return;
 
@@ -66,15 +42,18 @@ public:
         _table[p][s].first = m;
     }
 
-    void update (Piece p, Square s, Value v)
+    inline void update (Piece p, Square s, Value v)
     {
         if (GAIN)
         {
-            _table[p][s] = std::max (v, _table[p][s] - 1);
+            _table[p][s] = std::max (v, _table[p][s]);
         }
-        else if (abs (_table[p][s] + v) < MaxValue)
+        else
         {
-            _table[p][s] += v;
+            if (abs (int32_t (_table[p][s] + v)) < VALUE_KNOWN_WIN)
+            {
+                _table[p][s] += v;
+            }
         }
     }
 
@@ -82,7 +61,8 @@ public:
 
 typedef Stats< true, Value> GainsStats;
 typedef Stats<false, Value> HistoryStats;
-typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
+
+typedef Stats<false, std::pair<Move, Move> > MovesStats;
 
 
 // MovePicker class is used to pick one pseudo legal move at a time from the
@@ -96,39 +76,44 @@ class MovePicker
 
 private:
 
-    template<MoveGenerator::GType>
+    template<MoveGenerator::GenT>
     // value() assign a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
     void value ();
 
-    void generate_next ();
+    void generate_next_stage ();
 
     const Position     &pos;
+
     const HistoryStats &history;
+
     Searcher::Stack    *ss;
-    Move               *counter_moves;
+
+    ValMove             killers[6];
+    Move               *counter_moves
+        ,              *followup_moves;
 
     Move                tt_move;
     Depth               depth;
 
-    ValMove             killers[4];
     Square              recapture_sq;
     int32_t             capture_threshold;
-    int32_t             stage;
-    
-    ValMove             moves[MAX_MOVES];
-    ValMove            *cur;
-    ValMove            *end;
-    ValMove            *end_quiets;
-    ValMove            *end_bad_captures;
+
+    uint8_t             stage;
+
+    ValMove             m_list[MAX_MOVES];
+    ValMove            *cur
+        ,              *end
+        ,              *end_quiets
+        ,              *end_bad_captures;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
 public:
 
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Square);
-    MovePicker(const Position &, Move, const HistoryStats &, PType);
-    MovePicker(const Position &, Move, Depth, const HistoryStats &, Move*, Searcher::Stack*);
+    MovePicker (const Position &, Move,        const HistoryStats &, PieceT);
+    MovePicker (const Position &, Move, Depth, const HistoryStats &, Square);
+    MovePicker (const Position &, Move, Depth, const HistoryStats &, Move[], Move[], Searcher::Stack[]);
 
     template<bool SpNode>
     Move next_move ();

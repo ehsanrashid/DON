@@ -2,8 +2,8 @@
 #ifndef ZOBRIST_H_
 #define ZOBRIST_H_
 
-#include <string>
 #include "Type.h"
+#include <string>
 
 class RKISS;
 class Position;
@@ -30,7 +30,7 @@ namespace Zobrist {
 
         struct _
         {
-            Key ps_sq[CLR_NO][PT_NO][SQ_NO]; // [COLOR][PIECE][SQUARE]
+            Key psq_k[CLR_NO][NONE][SQ_NO]; // [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO]; // [COLOR][CASTLE SIDE]
             Key en_passant[F_NO];            // [ENPASSANT FILE]
             Key mover_side;                   // COLOR
@@ -50,7 +50,9 @@ namespace Zobrist {
         Key compute_posi_key (const Position &pos) const;
 
         // Hash key of the FEN
+#ifndef NDEBUG
         Key compute_fen_key (const        char *fen, bool c960 = false) const;
+#endif
         Key compute_fen_key (const std::string &fen, bool c960 = false) const;
 
     } Zob;

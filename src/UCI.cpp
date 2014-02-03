@@ -2,10 +2,7 @@
 
 #include <iostream>
 #include <cstdarg>
-
-#include "xcstring.h"
 #include "xstring.h"
-#include "atomicstream.h"
 
 #include "Engine.h"
 #include "Transposition.h"
@@ -14,67 +11,67 @@
 #include "Benchmark.h"
 #include "Notation.h"
 #include "TriLogger.h"
-//#include "Thread.h"
+#include "Thread.h"
 
 namespace UCI {
 
     using namespace std;
     using namespace Searcher;
+    using namespace MoveGenerator;
 
     typedef istringstream cmdstream;
 
     namespace {
 
         // Root position
-        Position            rootPos = Position (int8_t (0));
+        Position RootPos (int8_t (0));
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
         // Needed by repetition draw detection.
-        StateInfoStackPtr   setupStates;
-
-        bool active = false;
+        StateInfoStackPtr SetupStates;
 
 #pragma region uci-commands
 
         void exe_uci ()
         {
-            ats ()
-                << Engine::info (true) << '\n' 
-                << (Options) << '\n'
-                << "uciok" << endl;
+            sync_cout
+                << Engine::info () 
+                << Options
+                << "uciok"
+                << sync_endl;
         }
 
         void exe_ucinewgame ()
         {
-            TT.clear ();
+            if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
         }
 
         void exe_isready ()
         {
-            ats () << "readyok" << endl;
+            sync_cout << "readyok" << sync_endl;
         }
 
         void exe_setoption (cmdstream &cstm)
         {
             string token;
-            if (!(cstm >> token)) return; // consume "name" token
-            if (iequals (token, "name"))
+            // consume "name" token
+            if (cstm.good () && (cstm >> token) &&
+                iequals (token, "name"))
             {
                 string name;
                 // Read option-name (can contain spaces)
-                while (cstm.good ())
+                // consume "value" token
+                while (cstm.good () && (cstm >> token) &&
+                    !iequals (token, "value"))
                 {
-                    if (!(cstm >> token)) return;
-                    if (iequals (token, "value")) break;
                     name += whitespace (name) ? token : " " + token;
                 }
 
                 string value;
                 // Read option-value (can contain spaces)
-                while (cstm.good ())
+                while (cstm.good () && (cstm >> token))
                 {
-                    if (!(cstm >> token)) return;
                     value += whitespace (value) ? token : " " + token;
                 }
 
@@ -84,7 +81,7 @@ namespace UCI {
                 }
                 else
                 {
-                    //ats () << "WHAT??? No such option: \'" << name << "\'";
+                    sync_cout << "WHAT??? No such option: \'" << name << "\'" << sync_endl;
                 }
             }
         }
@@ -104,7 +101,37 @@ namespace UCI {
         //   "register name Stefan MK code 4359874324"
         void exe_register (cmdstream &cstm)
         {
+            string token;
 
+            if (cstm.good () && (cstm >> token))
+            {
+                if (iequals (token, "name"))
+                {
+                    string name;
+                    // Read name (can contain spaces)
+                    // consume "value" token
+                    while (cstm.good () && (cstm >> token) &&
+                        !iequals (token, "code"))
+                    {
+                        name += whitespace (name) ? token : " " + token;
+                    }
+
+                    string code;
+                    // Read code (can contain spaces)
+                    while (cstm.good () && (cstm >> token))
+                    {
+                        code += whitespace (code) ? token : " " + token;
+                    }
+
+                    // TODO::
+                    cout << name << "\n" << code << endl;
+                }
+                else if (iequals (token, "later"))
+                {
+                    // TODO::
+
+                }
+            }
         }
 
         // position(cmd) is called when engine receives the "position" UCI command.
@@ -116,46 +143,52 @@ namespace UCI {
         void exe_position (cmdstream &cstm)
         {
             string token;
-            // consume "startpos" or "fen" token
-            if (!(cstm >> token)) return;
             string fen;
-            // consume "moves" token if any
-            if (iequals (token, "startpos"))
+            // consume "startpos" or "fen" token
+            if (cstm.good () && (cstm >> token) &&
+                iequals (token, "startpos"))
             {
                 fen = FEN_N;
-                if (!(cstm >> token)) return;
+                cstm >> token; // Consume "moves" token if any
             }
             else if (iequals (token, "fen"))
             {
-                while (cstm.good () && (cstm >> token))
+                // consume "moves" token if any
+                while (cstm.good () && (cstm >> token) &&
+                    !iequals (token, "moves"))
                 {
-                    if (iequals (token, "moves")) break;
                     fen += whitespace (fen) ? token : " " + token;
                 }
 
-                bool ok_fen = _ok (fen);
-                ASSERT (ok_fen);
-                if (!ok_fen) return;
+                ASSERT (_ok (fen));
             }
             else return;
 
-            rootPos.setup (fen, *(Options["UCI_Chess960"]));
+            Key posi_key = RootPos.posi_key ();
 
+            RootPos.setup (fen, Threads.main (), bool (*(Options["UCI_Chess960"])));
+
+            if (ClearHash && posi_key != RootPos.posi_key ())
+            {
+                if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+            }
+            ClearHash = false;
+
+            SetupStates = StateInfoStackPtr (new StateInfoStack ());
+
+            // parse and validate game moves (if any)
             if (iequals (token, "moves"))
             {
-                setupStates = StateInfoStackPtr (new StateInfoStack ());
-
-                // parse move list (if any)
                 while (cstm.good () && (cstm >> token))
                 {
-                    Move m = move_from_can (token, rootPos);
+                    Move m = move_from_can (token, RootPos);
                     if (MOVE_NONE == m)
                     {
-                        TRI_LOG_MSG ("ERROR: Illegal Move" << token);
+                        sync_cout << "ERROR: Illegal Move" + token << sync_endl;
                         break;
                     }
-                    setupStates->push (StateInfo ());
-                    rootPos.do_move (m, setupStates->top ());
+                    SetupStates->push (StateInfo ());
+                    RootPos.do_move (m, SetupStates->top ());
                 }
             }
         }
@@ -174,70 +207,116 @@ namespace UCI {
         // and starts the search.
         void exe_go (cmdstream &cstm)
         {
-            Limits limits;
-            string token;
+            Limits_t limits;
+            string  token;
+            int32_t value;
 
             while (cstm.good () && (cstm >> token))
             {
-                if (false);
-                else if (iequals (token, "searchmoves"))
+                if      (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
+                else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
+                else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
+                else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
+                else if (iequals (token, "movetime"))   { cstm >> value; limits.move_time   = value; }
+                else if (iequals (token, "movestogo"))  { cstm >> value; limits.moves_to_go = value; }
+                else if (iequals (token, "depth"))      { cstm >> value; limits.depth       = value; }
+                else if (iequals (token, "nodes"))      { cstm >> value; limits.nodes       = value; }
+                else if (iequals (token, "mate"))       { cstm >> value; limits.mate_in     = value; }
+                else if (iequals (token, "infinite"))   limits.infinite  = true;
+                else if (iequals (token, "ponder"))     limits.ponder    = true;
+                // parse and validate search moves (if any)
+                else if      (iequals (token, "searchmoves"))
                 {
                     while (cstm.good () && (cstm >> token))
                     {
-                        Move m = move_from_can (token, rootPos);
+                        Move m = move_from_can (token, RootPos);
                         if (MOVE_NONE == m) continue;
                         limits.search_moves.emplace_back (m);
                     }
                 }
-                else if (iequals (token, "wtime"))      cstm >> limits.game_clock[WHITE].time;
-                else if (iequals (token, "btime"))      cstm >> limits.game_clock[BLACK].time;
-                else if (iequals (token, "winc"))       cstm >> limits.game_clock[WHITE].inc;
-                else if (iequals (token, "binc"))       cstm >> limits.game_clock[BLACK].inc;
-                else if (iequals (token, "movetime"))   cstm >> limits.move_time;
-                else if (iequals (token, "movestogo"))  cstm >> limits.moves_to_go;
-                else if (iequals (token, "depth"))      cstm >> limits.depth;
-                else if (iequals (token, "nodes"))      cstm >> limits.nodes;
-                else if (iequals (token, "mate"))       cstm >> limits.mate_in;
-                else if (iequals (token, "infinite"))   limits.infinite  = true;
-                else if (iequals (token, "ponder"))     limits.ponder    = true;
             }
 
-            //Threads.start_thinking (rootPos, limits, setupStates);
+            Threads.start_thinking (RootPos, limits, SetupStates);
         }
 
         void exe_ponderhit ()
         {
-            limits.ponder = false;
+            Limits.ponder = false;
         }
 
         void exe_debug (cmdstream &cstm)
         {
+            (void) cstm;
             // debug on/off
         }
 
         void exe_print ()
         {
-            ats () << rootPos << endl;
+            sync_cout << RootPos << sync_endl;
         }
 
         void exe_key ()
         {
-            ats () << hex << uppercase << setfill('0')
-                << "fen: " << rootPos.fen () << '\n'
-                << "posi key: " << setw (16) << rootPos.posi_key () << '\n'
-                << "matl key: " << setw (16) << rootPos.matl_key () << '\n'
-                << "pawn key: " << setw (16) << rootPos.pawn_key ()
-                << dec << endl;
+            sync_cout
+                << hex << uppercase << setfill ('0')
+                << "fen: " << RootPos.fen () << "\n"
+                << "posi key: " << setw (16) << RootPos.posi_key () << "\n"
+                << "matl key: " << setw (16) << RootPos.matl_key () << "\n"
+                << "pawn key: " << setw (16) << RootPos.pawn_key ()
+                << dec << sync_endl;
+        }
+
+        void exe_allmoves ()
+        {
+            sync_cout;
+
+            if (RootPos.checkers ())
+            {
+                cout << "\nEvasion moves: ";
+                for (MoveList<EVASION> itr (RootPos); *itr; ++itr)
+                {
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
+            }
+            else
+            {
+                cout << "\nQuiet moves: ";
+                for (MoveList<QUIET> itr (RootPos); *itr; ++itr)
+                {
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
+
+                cout << "\nCheck moves: ";
+                for (MoveList<CHECK> itr (RootPos); *itr; ++itr)
+                {
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
+
+                cout << "\nQuiet Check moves: ";
+                for (MoveList<QUIET_CHECK> itr (RootPos); *itr; ++itr)
+                {
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
+            }
+
+            cout << "\nLegal moves: ";
+            for (MoveList<LEGAL> itr (RootPos); *itr; ++itr)
+            {
+                cout << move_to_san (*itr, RootPos) << " ";
+            }
+
+            cout << sync_endl;
         }
 
         void exe_flip ()
         {
-            rootPos.flip ();
+            RootPos.flip ();
         }
 
         void exe_eval ()
         {
-            ats () << Evaluator::trace (rootPos) << endl;
+            RootColor = RootPos.active (); // Ensure it is set
+            sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
         void exe_perft (cmdstream &cstm)
@@ -247,26 +326,18 @@ namespace UCI {
             if (cstm.good () && (cstm >> token))
             {
                 stringstream ss;
-                ss << Options["Hash"] << " " << Options["Threads"] << " " << token << " current perft";
-                benchmark (ss, rootPos);
+                ss  << *(Options["Hash"]) << " "
+                    << *(Options["Threads"]) << " "
+                    << token << " current perft";
+
+                benchmark (ss, RootPos);
             }
         }
 
         void exe_stop ()
         {
-            signals.stop = true;
-            // Could be sleeping
-            //Threads.main ()->notify_one();
-        }
-
-        void exe_quit ()
-        {
-            stop ();
-            //Search::stop ();
-            //Trans::destroy ();
-            //Thread::destroy ();
-            //Book::close ();
-            //GTB::close ();
+            Signals.stop = true;
+            Threads.main ()->notify_one (); // Could be sleeping
         }
 
 #pragma endregion
@@ -275,26 +346,23 @@ namespace UCI {
 
     void start (const string &args)
     {
-        init_options ();
+        RootPos.setup (FEN_N, Threads.main (), bool (*(Options["UCI_Chess960"])));
 
-        rootPos.setup (FEN_N, *(Options["UCI_Chess960"]));
-
-        active = args.empty ();
+        bool running = args.empty ();
         string cmd = args;
         string token;
         do
         {
             // Block here waiting for input
-            if (active && !getline (cin, cmd, '\n')) cmd = "quit";
+            if (running && !getline (cin, cmd, '\n')) cmd = "quit";
             if (whitespace (cmd)) continue;
-            
+
             try
             {
                 cmdstream cstm (cmd);
                 cstm >> skipws >> token;
 
-                if (false);
-                else if (iequals (token, "uci"))        exe_uci ();
+                if      (iequals (token, "uci"))        exe_uci ();
                 else if (iequals (token, "ucinewgame")) exe_ucinewgame ();
                 else if (iequals (token, "isready"))    exe_isready ();
                 else if (iequals (token, "register"))   exe_register (cstm);
@@ -308,36 +376,36 @@ namespace UCI {
                     // waiting for 'ponderhit' to stop the search (for instance because we
                     // already ran out of time), otherwise we should continue searching but
                     // switching from pondering to normal search.
-                    signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
+                    Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
                 }
                 else if (iequals (token, "debug"))      exe_debug (cstm);
                 else if (iequals (token, "print"))      exe_print ();
                 else if (iequals (token, "key"))        exe_key ();
+                else if (iequals (token, "allmoves"))   exe_allmoves ();
                 else if (iequals (token, "flip"))       exe_flip ();
                 else if (iequals (token, "eval"))       exe_eval ();
                 else if (iequals (token, "perft"))      exe_perft (cstm);
-                else if (iequals (token, "bench"))      benchmark (cstm, rootPos);
-                else if (iequals (token, "quit")
-                    || iequals (token, "stop"))         exe_stop ();
+                else if (iequals (token, "bench"))      benchmark (cstm, RootPos);
+                else if (iequals (token, "stop")
+                    ||   iequals (token, "quit"))       exe_stop ();
                 else
                 {
-                    TRI_LOG_MSG ("WHAT??? No such command: \'" << cmd << "\'");
+                    sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
                 }
             }
-            catch (exception &exp)
+            catch (exception &exp) //(...)
             {
-                TRI_LOG_MSG (exp.what ());
+                sync_cout << exp.what () << sync_endl;
             }
         }
-        while (active && !iequals (cmd, "quit"));
+        while (running && !iequals (cmd, "quit"));
 
-        // Cannot quit while search stream active
-        //Threads.wait_for_think_finished (); 
     }
 
     void stop ()
     {
-        active = false;
+        exe_stop ();
+        Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
 
     //void send_responce (const char format[], ...)
@@ -355,7 +423,7 @@ namespace UCI {
     //        if (copied != -1)
     //        {
     //            buf[copied] = '\0';
-    //            ats () << buf << endl;
+    //            cout << buf << endl;
     //        }
     //    }
     //    catch (...)

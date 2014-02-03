@@ -2,22 +2,27 @@
 #ifndef SEARCHER_H_
 #define SEARCHER_H_
 
-#include "Time.h"
 #include <iomanip>
-
-#include "Move.h"
+#include <memory>
+#include "Type.h"
+#include "Time.h"
 #include "Position.h"
+
+#pragma warning (disable: 4805)
 
 class PolyglotBook;
 struct SplitPoint;
+
+//typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;
 
 namespace Searcher {
 
     const uint16_t MAX_DEPTH = 64;
 
-    const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
-    const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
-    const uint16_t MAX_THREAT = 90;
+    //const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
+    //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
+    //const uint16_t MAX_THREAT = 90;
 
     extern PolyglotBook book;
 
@@ -30,7 +35,7 @@ namespace Searcher {
 
         GameClock ()
         {
-            time  = 5 * 60 * 1000; // 5 mins default time
+            time  = 0; //5 * 60 * MS_SEC; // 5 mins default time
             inc   = 0;
         }
 
@@ -49,7 +54,7 @@ namespace Searcher {
     //  - Search move list
     //  - if in analysis mode.
     //  - if have to ponder while is opponent's side to move.
-    typedef struct Limits
+    typedef struct Limits_t
     {
         GameClock game_clock[CLR_NO];
 
@@ -58,15 +63,16 @@ namespace Searcher {
         uint8_t   depth;          // search <x> depth (plies) only
         uint16_t  nodes;          // search <x> nodes only
         uint8_t   mate_in;        // search mate in <x> moves
-        MoveList  search_moves;   // search these moves only restrict
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
 
-        Limits() { memset (this, 0, sizeof (Limits)); }
+        std::vector<Move>  search_moves;   // search these moves only restrict
+
+        Limits_t () { memset (this, 0, sizeof (Limits_t)); }
 
         bool use_time_management () const
         {
-            return !(infinite || mate_in || move_time || depth || nodes);
+            return !(infinite | mate_in | move_time | depth | nodes);
         }
 
         // Determines how much time it should search
@@ -82,7 +88,7 @@ namespace Searcher {
         //    return cpu_time / 30 + cpu_inc / 2;
         //}
 
-    } Limits;
+    } Limits_t;
 
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
@@ -90,16 +96,16 @@ namespace Searcher {
     //  - Stop on ponderhit.
     //  - On first root move.
     //  - Falied low at root.
-    typedef struct Signals
+    typedef struct Signals_t
     {
         bool stop;
         bool stop_on_ponderhit;
         bool first_root_move;
         bool failed_low_at_root;
 
-        Signals() { memset (this, 0, sizeof (Signals)); }
+        Signals_t () { memset (this, 0, sizeof (Signals_t)); }
 
-    } Signals;
+    } Signals_t;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -114,24 +120,33 @@ namespace Searcher {
         Value last_value;
         //uint64_t nodes;
 
-        MoveList pv;
+        std::vector<Move> pv;
 
-        RootMove(Move m)
-            : curr_value(-VALUE_INFINITE)
-            , last_value(-VALUE_INFINITE)
+        RootMove (Move m)
+            : curr_value (-VALUE_INFINITE)
+            , last_value (-VALUE_INFINITE)
         {
             pv.emplace_back (m);
             pv.emplace_back (MOVE_NONE);
         }
-
+        
         // Ascending Sort
-        bool operator< (const RootMove &rm) const { return curr_value > rm.curr_value; }
-        bool operator== (const Move &m) const { return m == pv[0]; }
+
+        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value >  rm2.curr_value); }
+        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value <  rm2.curr_value); }
+        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value >= rm2.curr_value); }
+        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value <= rm2.curr_value); }
+        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value == rm2.curr_value); }
+        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value != rm2.curr_value); }
+
+        friend bool operator== (const RootMove &rm, const Move &m) { return (rm.pv[0] == m); }
+        friend bool operator!= (const RootMove &rm, const Move &m) { return (rm.pv[0] != m); }
 
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
 
     };
+
 
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
@@ -139,27 +154,31 @@ namespace Searcher {
     typedef struct Stack
     {
         SplitPoint *split_point;
-        int32_t     ply;
+        uint8_t     ply;
         Move        current_move;
+        Move        tt_move;
         Move        excluded_move;
         Move        killers[2];
         Depth       reduction;
         Value       static_eval;
-        int32_t     skip_null_move;
+
+        //uint8_t     null_move_count;
+        //uint8_t     null_cut_count; //Keep track of the moves causing a cut-off at d-R
+        bool        skip_null_move;
+
     } Stack;
 
+    extern Limits_t              Limits;
+    extern volatile Signals_t    Signals;
 
-    extern Limits                limits;
-    extern volatile Signals      signals;
+    extern std::vector<RootMove> RootMoves;
+    extern Position              RootPos;
+    extern Color                 RootColor;
+    extern StateInfoStackPtr     SetupStates;
 
-    extern std::vector<RootMove> rootMoves;
-    extern Position              rootPos;
-    extern Color                 rootColor;
-    extern StateInfoStackPtr     setupStates;
+    extern Time::point           SearchTime;
 
-    extern Time::point           searchTime;
-
-    extern size_t perft (Position &pos, Depth depth);
+    extern uint64_t perft (Position &pos, Depth depth);
 
     extern void think ();
 

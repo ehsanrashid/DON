@@ -4,7 +4,6 @@
 
 #include "Type.h"
 #include "Endgame.h"
-#include "position.h"
 
 namespace Material {
 
@@ -16,26 +15,26 @@ namespace Material {
     // The scale factors are used to scale the evaluation score up or down.
     // For instance, in KRB vs KR endgames, the score is scaled down by a factor
     // of 4, which will result in scores of absolute value less than one pawn.
-    struct Entry
+    typedef struct Entry
     {
         Key _key;
         int16_t _value;
         uint8_t _factor[CLR_NO];
         Score _space_weight;
         Phase _game_phase;
-        EndGame::EndgameBase<Value> *evaluation_func;
-        EndGame::EndgameBase<ScaleFactor> *scaling_func[CLR_NO];
+        EndGame::EndgameBase<Value>         *evaluation_func;
+        EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
-        Score material_score () const { return mk_score (_value, _value); }
-        Score space_weight ()   const { return _space_weight; }
-        Phase game_phase ()     const { return _game_phase; }
+        inline Score material_score () const { return mk_score (_value, _value); }
+        inline Score space_weight ()   const { return _space_weight; }
+        inline Phase game_phase ()     const { return _game_phase; }
 
-        bool specialized_eval_exists ()      const { return evaluation_func != NULL; }
-        Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
+        inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
+        inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
 
         ScaleFactor scale_factor (const Position &pos, Color c) const;
 
-    };
+    } Entry;
 
     // Entry::scale_factor takes a position and a color as input, and
     // returns a scale factor for the given color. We have to provide the
@@ -45,13 +44,19 @@ namespace Material {
     // which checks for draws with rook pawns and wrong-colored bishops.
     inline ScaleFactor Entry::scale_factor (const Position &pos, Color c) const
     {
-        return (!scaling_func[c] || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE) ?
-            ScaleFactor (_factor[c]) : (*scaling_func[c]) (pos);
+        if (scaling_func[c] != NULL)
+        {
+            ScaleFactor sf = (*scaling_func[c]) (pos);
+            return (SCALE_FACTOR_NONE == sf) ? ScaleFactor (_factor[c]) : sf;
+        }
+        return ScaleFactor (_factor[c]);
     }
+
 
     typedef HashTable<Entry, 8192> Table;
 
-    Entry* probe (const Position &pos, Table &table, EndGame::Endgames &endgames);
+    Entry* probe     (const Position &pos, Table &table, EndGame::Endgames &endgames);
+    
     Phase game_phase (const Position &pos);
 
 }

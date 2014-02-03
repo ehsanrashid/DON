@@ -2,13 +2,20 @@
 
 #include <sstream>
 #include <iomanip>
-#include <iostream>
+
 #include "BitBoard.h"
-#include "Zobrist.h"
+#include "BitBases.h"
 #include "Pawns.h"
-#include "Position.h"
+#include "Material.h"
+#include "Evaluator.h"
+#include "Searcher.h"
+#include "Transposition.h"
 #include "UCI.h"
 #include "Tester.h"
+#include "DebugLogger.h"
+
+//#include <thread>
+#include "Thread.h"
 
 namespace Engine {
 
@@ -16,11 +23,11 @@ namespace Engine {
 
     namespace {
 
-        const string Engine    = "DON";
+        const string Name      = "DON";
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "1.0";
+        const string Version   = "1.0b";
         const string Author    = "Ehsan Rashid";
 
         const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
@@ -29,10 +36,10 @@ namespace Engine {
 
     string info (bool uci)
     {
-        stringstream sinfo;
+        ostringstream ss;
 
-        if (uci) sinfo << "id name ";
-        sinfo << Engine << ' ';
+        if (uci) ss << "id name ";
+        ss << Name << " ";
 
         if (Version.empty ())
         {
@@ -48,66 +55,79 @@ namespace Engine {
                 >> day
                 >> year;
 
-            sinfo << setfill ('0')
-                << setw (2) << day << '-'
-                << setw (2) << (Months.find (month) / 4 + 1) << '-'
+            ss  << setfill ('0')
+                << setw (2) << day //<< '-'
+                << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
                 << setw (2) << year.substr (2);
         }
         else
         {
-            sinfo << Version;
+            ss << Version;
         }
 
 #ifdef _64BIT
-        sinfo << " x64";
+        ss << " x64";
 #else
-        sinfo << " x86";
+        ss << " w32";
 #endif
 
+        //#ifdef POPCNT
+        //        ss << " SSE4.2";
+        //#endif
+
+        ss  << "\n" 
+            << ((uci) ? "id author " : "(c) 2014 ")
+            << Author << "\n";
+
+        return ss.str ();
+    }
+
+    void run (const std::string &args)
+    {
+        cout << Engine::info (false) << endl;
+
+        cout 
+            << "info string " << cpu_count () << " processor(s) found."
 #ifdef POPCNT
-
-        sinfo << " SSE4.2";
-
+            << " POPCNT available."
 #endif
+            << endl;
 
-        sinfo << ((uci) ? "\nid author " : " by ");
+        UCI      ::initialize ();
+        BitBoard ::initialize ();
+        Zobrist  ::initialize ();
+        Position ::initialize ();
+        BitBases ::initialize ();
+        Searcher ::initialize ();
+        Pawns    ::initialize ();
+        Evaluator::initialize ();
+        Threads   .initialize ();
 
-        sinfo << Author;
+        cout
+            << "info string " << Threads.size () << " thread(s)." << "\n"
+            << "info string " << TT.size ()      << " MB Hash."   << endl;
 
-        return sinfo.str ();
-    }
-
-    void start ()
-    {
-
-        BitBoard::initialize ();
-        Zobrist ::initialize ();
-        Pawns   ::initialize ();
-        Position::initialize ();
-
-        cout << Engine::info () << endl;
-
-#ifdef _DEBUG
-
-        Tester::main_test ();
-
+#ifndef NDEBUG
+        //Tester::main_test ();
+        //system ("pause");
+        //return;
 #endif
+        //log_debug (true);
 
-        //UCI::start ();
+        UCI   ::start (args);
 
+        //log_debug (false);
 
     }
 
-    void stop ()
+    // Exit from engine with exit code. (in case of some crash)
+    void exit (int32_t code)
     {
-        UCI::stop ();
-    }
+        UCI   ::stop ();
+        Threads.deinitialize ();
+        UCI   ::deinitialize ();
 
-    void exit (int32_t exit_code)
-    {
-        stop ();
-        ::exit (exit_code);
+        ::exit (code);
     }
-
 
 }

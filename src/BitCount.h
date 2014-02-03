@@ -6,7 +6,7 @@
 
 #pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 
-typedef enum BitCountType
+typedef enum BitCountT
 {
     CNT_64_FULL,
     CNT_64_MAX15,
@@ -14,11 +14,11 @@ typedef enum BitCountType
     CNT_32_MAX15,
     CNT_HW_POPCNT,
 
-} BitCountType;
+} BitCountT;
 
-template<BitCountType CNT>
+template<BitCountT CNT>
 // pop_count () counts the number of set bits in a Bitboard
-inline uint8_t pop_count (Bitboard bb);
+INLINE uint8_t pop_count (Bitboard bb);
 
 // Determine at compile time the best pop_count<> specialization 
 // according if platform is 32 or 64 bit,
@@ -27,8 +27,8 @@ inline uint8_t pop_count (Bitboard bb);
 
 #ifdef POPCNT
 
-const BitCountType FULL  = CNT_HW_POPCNT;
-const BitCountType MAX15 = CNT_HW_POPCNT;
+const BitCountT FULL  = CNT_HW_POPCNT;
+const BitCountT MAX15 = CNT_HW_POPCNT;
 
 #if defined(_MSC_VER)
 
@@ -39,7 +39,7 @@ const BitCountType MAX15 = CNT_HW_POPCNT;
 // _mm_popcnt_u64() & _mm_popcnt_u32()
 
 template<>
-inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
 #       ifdef _64BIT
     {
@@ -57,17 +57,17 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
 template<>
-inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#   ifdef _64BIT
+#       ifdef _64BIT
     {
         return (__popcnt64 (bb));
     }
-#   else
+#       else
     {
         return (__popcnt (bb) + __popcnt (bb >> 32));
     }
-#   endif
+#       endif
 }
 
 #   endif
@@ -76,7 +76,7 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #else
 
 template<>
-inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
     __asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
@@ -89,8 +89,8 @@ inline uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #   ifdef _64BIT
 
-const BitCountType FULL  = CNT_64_FULL;
-const BitCountType MAX15 = CNT_64_MAX15;
+const BitCountT FULL  = CNT_64_FULL;
+const BitCountT MAX15 = CNT_64_MAX15;
 
 const Bitboard M1_64 = U64 (0x5555555555555555);
 const Bitboard M2_64 = U64 (0x3333333333333333);
@@ -101,7 +101,7 @@ const Bitboard H8_64 = U64 (0x0101010101010101);
 
 template<>
 // Pop count of the Bitboard (64-bit)
-inline uint8_t pop_count<CNT_64_FULL> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_64_FULL> (Bitboard bb)
 {
     //Bitboard w0 = (bb & MX_64) + ((bb + bb) & MX_64);
     //Bitboard w1 = (bb >> 1 & MX_64) + (bb >> 2 & MX_64);
@@ -117,7 +117,7 @@ inline uint8_t pop_count<CNT_64_FULL> (Bitboard bb)
 
 template<>
 // Pop count max 15 of the Bitboard (64-bit)
-inline uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
 {
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
@@ -126,8 +126,8 @@ inline uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
 
 #   else
 
-const BitCountType FULL  = CNT_32_FULL;
-const BitCountType MAX15 = CNT_32_MAX15;
+const BitCountT FULL  = CNT_32_FULL;
+const BitCountT MAX15 = CNT_32_MAX15;
 
 const uint32_t M1_32 = U32 (0x55555555);
 const uint32_t M2_32 = U32 (0x33333333);
@@ -137,7 +137,7 @@ const uint32_t H8_32 = U32 (0x01010101);
 
 template<>
 // Pop count of the Bitboard (32-bit)
-inline uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
 {
     //uint32_t *p = (uint32_t*) (&bb);
     //uint32_t *w0 = p+0;
@@ -163,7 +163,7 @@ inline uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
 
 template<>
 // Pop count max 15 of the Bitboard (32-bit)
-inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
+INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 {
     //uint32_t *p = (uint32_t*) (&bb);
     //uint32_t *w0 = p+0;
@@ -187,17 +187,6 @@ inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 
 #endif
 
-//inline uint8_t pop_count (Bitboard bb)
-//{
-//    uint8_t count = 0;
-//    while (bb)
-//    {
-//        ++count;
-//        bb &= (bb - 1);
-//    }
-//    return count;
-//}
-
 
 #pragma region Extra
 
@@ -215,7 +204,7 @@ inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //#undef C_2
 //};
 
-//inline uint8_t countBit (uint8_t b)
+//INLINE uint8_t bit_count (uint8_t b)
 //{
 //    /////"Counting in parallel"
 //    //uint8_t M1 = 0x55;
@@ -234,7 +223,18 @@ inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //    return _CountByte[b];
 //}
 
-//inline uint8_t pop_count (Bitboard bb)
+//INLINE uint8_t pop_count (Bitboard bb)
+//{
+//    uint8_t count = 0;
+//    while (bb)
+//    {
+//        ++count;
+//        bb &= (bb - 1);
+//    }
+//    return count;
+//}
+
+//INLINE uint8_t pop_count (Bitboard bb)
 //{
 //    //Bitboard M1 = U64(0x5555555555555555);
 //    //Bitboard M2 = U64(0x3333333333333333);
@@ -251,19 +251,18 @@ inline uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //
 //    uint8_t* p = (uint8_t*) (&bb);
 //    return
-//        countBit (p[0]) +
-//        countBit (p[1]) +
-//        countBit (p[2]) +
-//        countBit (p[3]) +
-//        countBit (p[4]) +
-//        countBit (p[5]) +
-//        countBit (p[6]) +
-//        countBit (p[7]);
+//        bit_count (p[0]) +
+//        bit_count (p[1]) +
+//        bit_count (p[2]) +
+//        bit_count (p[3]) +
+//        bit_count (p[4]) +
+//        bit_count (p[5]) +
+//        bit_count (p[6]) +
+//        bit_count (p[7]);
 //}
 
-
-//static unsigned char wordbits[65536] = { bitcounts of ints between 0 and 65535 };
-//inline uint8_t pop_count (uint32_t w)
+//static uint8_t wordbits[65536] = { bitcounts of ints between 0 and 65535 };
+//INLINE uint8_t pop_count (uint32_t w)
 //{
 //    return( wordbits[w & 0xFFFF] + wordbits[w >> 0x10] );
 //}

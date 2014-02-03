@@ -2,11 +2,7 @@
 #ifndef RKISS_H_
 #define RKISS_H_
 
-
 #include "Type.h"
-
-//#include <ctime>
-//#include <cstdlib>
 #include "Time.h"
 
 // RKISS is our pseudo random number generator (PRNG) used to compute hash keys.
@@ -25,21 +21,12 @@
 // - Thread safe
 // - small noncryptographic PRNG approach is suited for Zobrist Hashing.
 // http://chessprogramming.wikispaces.com/Bob+Jenkins
-typedef class RKISS sealed
+typedef class RKISS
 {
 
 public:
-
     // Rand keep variables always together
-    typedef struct Rand sealed
-    {
-        uint64_t
-            A,
-            B,
-            C,
-            D;
-
-    } Rand;
+    typedef struct Rand { uint64_t A, B, C, D; } Rand;
 
 private:
     Rand S;
@@ -56,7 +43,7 @@ public:
         //srand (uint32_t (time (NULL)));
         //uint32_t seed = rand ();
 
-        uint32_t seed = Time::now () % 10000;
+        uint32_t seed = uint64_t (Time::now ()) % 10000;
 
         init (seed);
     }

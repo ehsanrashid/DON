@@ -29,25 +29,25 @@ namespace BitBoard {
         Bitboard*BAttack_bb[SQ_NO];
         Bitboard*RAttack_bb[SQ_NO];
 
-        Bitboard BMask_bb[SQ_NO];
-        Bitboard RMask_bb[SQ_NO];
+        Bitboard   BMask_bb[SQ_NO];
+        Bitboard   RMask_bb[SQ_NO];
 
-        Bitboard BMagic_bb[SQ_NO];
-        Bitboard RMagic_bb[SQ_NO];
+        Bitboard  BMagic_bb[SQ_NO];
+        Bitboard  RMagic_bb[SQ_NO];
 
-        uint8_t BShift[SQ_NO];
-        uint8_t RShift[SQ_NO];
+        uint8_t      BShift[SQ_NO];
+        uint8_t      RShift[SQ_NO];
 
         typedef uint16_t (*Indexer) (Square s, Bitboard occ);
 
-        template<PType T>
+        template<PType PT>
         // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
-        // and returns a bitboard representing all squares attacked by T (BISHOP or ROOK) on the given square.
+        // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
         uint16_t attack_index (Square s, Bitboard occ);
 
         template<>
-        uint16_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint16_t attack_index<BSHP> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -61,7 +61,7 @@ namespace BitBoard {
         }
 
         template<>
-        uint16_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint16_t attack_index<ROOK> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -73,7 +73,6 @@ namespace BitBoard {
 #endif
 
         }
-
 
         void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer);
 
@@ -87,23 +86,17 @@ namespace BitBoard {
 
     template<>
     // Attacks of the BISHOP with occupancy
-    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
-    {
-        return BAttack_bb[s][attack_index<BSHP>(s, occ)];
-    }
+    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][attack_index<BSHP> (s, occ)]; }
     template<>
     // Attacks of the ROOK with occupancy
-    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
-    {
-        return RAttack_bb[s][attack_index<ROOK>(s, occ)];
-    }
+    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][attack_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occ
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return 
-            BAttack_bb[s][attack_index<BSHP>(s, occ)] |
-            RAttack_bb[s][attack_index<ROOK>(s, occ)];
+            BAttack_bb[s][attack_index<BSHP> (s, occ)] |
+            RAttack_bb[s][attack_index<ROOK> (s, occ)];
     }
 
     namespace {
@@ -117,7 +110,6 @@ namespace BitBoard {
 #else
             { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
 #endif
-
 
             Bitboard occupancy[MAX_MOVES];
             Bitboard reference[MAX_MOVES];
@@ -150,7 +142,7 @@ namespace BitBoard {
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
                 uint32_t size   = 0;
-                Bitboard occ    = 0;
+                Bitboard occ    = U64 (0);
                 do
                 {
                     occupancy[size] = occ;
@@ -175,10 +167,10 @@ namespace BitBoard {
 
                 do
                 {
-                    uint8_t index;
+                    uint16_t index;
                     do
                     {
-                        magics_bb[s] = rkiss.rand_boost<Bitboard>(booster);
+                        magics_bb[s] = rkiss.rand_boost<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
                         //if (pop_count<MAX15> (index) >= 6) break;
                     }
@@ -205,8 +197,6 @@ namespace BitBoard {
 
             }
         }
-
     }
-
 
 }

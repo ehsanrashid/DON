@@ -8,46 +8,46 @@
 
 namespace EndGame {
 
-    // EndgameType lists all supported endgames
-    typedef enum EndgameType
+    // EndgameT lists all supported endgames
+    typedef enum EndgameT
     {
         // Evaluation functions
-        KNNK,  // KNN vs K
         KXK,   // Generic "mate lone king" eval
-        KBNK,  // KBN vs K
         KPK,   // KP vs K
+        KBNK,  // KBN vs K
+        KNNK,  // KNN vs K
+        KBPK,  // KBP VS K --- TODO::
         KRKP,  // KR vs KP
         KRKB,  // KR vs KB
         KRKN,  // KR vs KN
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
         KBBKN, // KBB vs KN
-        KmmKm, // K and two minors vs K and one or two minors
-
 
         // Scaling functions
         SCALE_FUNS,
 
-        KBPsK,   // KB+pawns vs K
+        // Generic Scaling functions
+        KBPsKs,  // KB+pawns vs K+s
         KQKRPs,  // KQ vs KR+pawns
+
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
-        KPsK,    // King and pawns vs king
-        //KBPKP,   // KBP vs KP
+        KPsK,    // KPs vs Ks
+        KPKP,    // KP vs KP
+        KNPK,    // KNP vs K
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPK,    // KNP vs K
         KNPKB,   // KNP vs KB
-        KPKP     // KP vs KP
 
-    } EndgameType;
+    } EndgameT;
 
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<int>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
-    template<int> struct eg_fun;
+    // Type eg_fun<int32_t>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
+    template<int32_t> struct eg_fun;
     template<> struct eg_fun<0> { typedef Value type; };
     template<> struct eg_fun<1> { typedef ScaleFactor type; };
 
@@ -65,7 +65,7 @@ namespace EndGame {
 
     };
 
-    template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
+    template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
     struct Endgame
         : public EndgameBase<T>
     {
@@ -79,12 +79,11 @@ namespace EndGame {
             , _weak_side(~c)
         {}
 
-        Color color() const { return _stong_side; }
+        inline Color color () const { return _stong_side; }
 
         T operator() (const Position &pos) const;
 
     };
-
 
     // Endgames class stores in two std::map the pointers to endgame evaluation
     // and scaling base objects. Then we use polymorphism to invoke the actual
@@ -98,10 +97,10 @@ namespace EndGame {
         M1 m1;
         M2 m2;
 
-        M1& map (M1::mapped_type) { return m1; }
-        M2& map (M2::mapped_type) { return m2; }
+        inline M1& map (M1::mapped_type) { return m1; }
+        inline M2& map (M2::mapped_type) { return m2; }
 
-        template<EndgameType E>
+        template<EndgameT E>
         void add (const std::string &code);
 
     public:
@@ -110,7 +109,10 @@ namespace EndGame {
         ~Endgames ();
 
         template<class T>
-        T probe (Key key, T &eg) { return eg = map (eg).count (key) ? map (eg)[key] : NULL; }
+        inline T probe (Key key, T &eg)
+        {
+            return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
+        }
 
     } Endgames;
 

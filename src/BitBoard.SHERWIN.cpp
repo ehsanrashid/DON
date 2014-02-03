@@ -57,14 +57,14 @@ namespace BitBoard {
 
         typedef uint32_t (*Indexer) (Square s, Bitboard occ);
 
-        template<PType T>
+        template<PType PT>
         // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
-        // and returns a bitboard representing all squares attacked by T (BISHOP or ROOK) on the given square.
+        // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
         uint32_t attack_index (Square s, Bitboard occ);
 
         template<>
-        uint32_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint32_t attack_index<BSHP> (Square s, Bitboard occ)
         {
             const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (x)-rays
@@ -104,7 +104,7 @@ namespace BitBoard {
         }
 
         template<>
-        uint32_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint32_t attack_index<ROOK> (Square s, Bitboard occ)
         {
             const Bitboard edges = brd_edges_bb (s);
             // remaining blocking pieces in the (+)-rays
@@ -163,16 +163,10 @@ namespace BitBoard {
 
     template<>
     // BISHOP Attacks with occupancy
-    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
-    {
-        return BTable_bb[attack_index<BSHP> (s, occ)];
-    }
+    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BTable_bb[attack_index<BSHP> (s, occ)]; }
     template<>
     // ROOK Attacks with occupancy
-    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
-    {
-        return RTable_bb[attack_index<ROOK> (s, occ)];
-    }
+    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RTable_bb[attack_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occupancy
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
@@ -252,7 +246,7 @@ namespace BitBoard {
                     //}
 
                     uint32_t index = 0;
-                    Bitboard occ = 0;
+                    Bitboard occ = U64 (0);
                     do
                     {
                         BTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[BSHP], occ);
@@ -317,7 +311,7 @@ namespace BitBoard {
                     //uint32_t size = (1 << b);
                     //for (uint32_t index = 0; index < size; ++index)
                     //{
-                    //    Bitboard occ = 0;
+                    //    Bitboard occ = U64 (0);
                     //
                     //    uint32_t i = index;
                     //    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
@@ -335,7 +329,7 @@ namespace BitBoard {
                     //}
 
                     uint32_t index = 0;
-                    Bitboard occ = 0;
+                    Bitboard occ = U64 (0);
                     do
                     {
                         RTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[ROOK], occ);
