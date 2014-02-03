@@ -895,18 +895,17 @@ namespace {
             !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
             Value ralpha = alpha - razor_margin (depth);
+
             Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
             if (ver_value <= ralpha)
             {
-                // Logically we should return (ver_value + razor_margin (depth)),
-                // but surprisingly this did slightly weaker in tests.
                 return ver_value;
             }
         }
 
         // Step 7. Futility pruning: child node (skipped when in check)
-        /// We're betting that the opponent doesn't have a move that will reduce
-        /// the score by more than futility_margin (depth) if we do a null move.
+        // We're betting that the opponent doesn't have a move that will reduce
+        // the score by more than futility_margin (depth) if we do a null move.
         if (NonPVNode && !ss->skip_null_move &&
             depth < 7 * ONE_MOVE &&
             eval_value - futility_margin (depth) >= beta &&
@@ -1159,6 +1158,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 ASSERT (tt_value != VALUE_NONE);
 
                 Value rbeta = tt_value - int32_t (depth);
+
                 ss->excluded_move  = move;
                 ss->skip_null_move = true;
                 value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
@@ -1166,7 +1166,10 @@ moves_loop: // When in check and at SPNode search starts from here
                 ss->skip_null_move = false;
                 ss->excluded_move  = MOVE_NONE;
 
-                if (value < rbeta) ext = ONE_MOVE;
+                if (value < rbeta)
+                {
+                    ext = ONE_MOVE;
+                }
             }
 
             // Update current move (this must be done after singular extension search)
