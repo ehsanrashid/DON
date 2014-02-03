@@ -21,7 +21,7 @@ using namespace Searcher;
 namespace {
 
     // Used for tracing
-    enum ExtendedPieceType
+    enum ExtendedPieceT
     { 
         PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL
     };

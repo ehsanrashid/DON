@@ -114,6 +114,7 @@ namespace Engine {
         //system ("pause");
         //return;
 #endif
+
         //log_debug (true);
 
         UCI   ::start (args);

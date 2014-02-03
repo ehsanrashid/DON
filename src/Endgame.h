@@ -8,8 +8,8 @@
 
 namespace EndGame {
 
-    // EndgameType lists all supported endgames
-    typedef enum EndgameType
+    // Endgame Type lists all supported endgames
+    typedef enum EndgameT
     {
         // Evaluation functions
         KXK,   // Generic "mate lone king" eval
@@ -42,7 +42,7 @@ namespace EndGame {
         KBPKN,   // KBP vs KN
         KNPKB   // KNP vs KB
 
-    } EndgameType;
+    } EndgameT;
 
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
@@ -65,7 +65,7 @@ namespace EndGame {
 
     };
 
-    template<EndgameType E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
+    template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
     struct Endgame
         : public EndgameBase<T>
     {
@@ -100,7 +100,7 @@ namespace EndGame {
         inline M1& map (M1::mapped_type) { return m1; }
         inline M2& map (M2::mapped_type) { return m2; }
 
-        template<EndgameType E>
+        template<EndgameT E>
         void add (const std::string &code);
 
     public:

@@ -8,7 +8,7 @@ using namespace MoveGenerator;
 
 namespace {
 
-    enum Stages : uint8_t
+    enum StageT : uint8_t
     {
         MAIN_STAGE,  CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS,    EVASIONS_S2,
