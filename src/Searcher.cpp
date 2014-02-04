@@ -727,7 +727,7 @@ namespace {
         const bool NonSPNode = (NT == Root || NT == PV || NT == NonPV);
 
         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-        ASSERT (PVNode || (alpha == beta - 1));
+        ASSERT (PVNode || (alpha == beta-1));
         ASSERT (depth > DEPTH_ZERO);
 
         StateInfo   si;
@@ -938,9 +938,10 @@ namespace {
             // Do null move
             pos.do_null_move (si);
             (ss+1)->skip_null_move = true;
+            // (alpha, beta) = (beta-1, beta):
             Value null_value = (depth-rdepth < ONE_MOVE)
-                ? -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -beta+1, depth-rdepth, !cut_node);
+                ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
+                : -search      <NonPV>        (pos, ss+1, -beta, -(beta-1), depth-rdepth, !cut_node);
 
             (ss+1)->skip_null_move = false;
             // Undo null move
@@ -1462,7 +1463,7 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (NT == PV || NT == NonPV);
         ASSERT (IN_CHECK == !!pos.checkers ());
         ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-        ASSERT (PVNode || (alpha == beta - 1));
+        ASSERT (PVNode || (alpha == beta-1));
         ASSERT (depth <= DEPTH_ZERO);
 
 
