@@ -325,17 +325,17 @@ namespace EndGame {
 
         Value value = Value (PushToEdges[bk_sq]);
 
-        // To draw, the weaker side should run towards the corner.
-        // And not just any corner! Only a corner that's not the same color as the bishop will do.
-        if ((CORNER_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
-            square_dist (bk_sq, bb_sq) == 1 &&
-            square_dist (wk_sq, bb_sq) >  1)
-        {
-            value /= 8;
-        }
-        else // when the weaker side ended up in the same corner as bishop.
-        {
-        }
+        //// To draw, the weaker side should run towards the corner.
+        //// And not just any corner! Only a corner that's not the same color as the bishop will do.
+        //if ((CORNER_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
+        //    square_dist (bk_sq, bb_sq) == 1 &&
+        //    square_dist (wk_sq, bb_sq) >  1)
+        //{
+        //    value /= 8;
+        //}
+        //else // when the weaker side ended up in the same corner as bishop.
+        //{
+        //}
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -353,15 +353,15 @@ namespace EndGame {
 
         Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
 
-        // If weaker king is near the knight, it's a draw.
-        if (_weak_side == pos.active () &&
-            square_dist (bk_sq, bn_sq) <= 3)
-        {
-            value /= 8;
-        }
-        else
-        {
-        }
+        //// If weaker king is near the knight, it's a draw.
+        //if (_weak_side == pos.active () &&
+        //    square_dist (bk_sq, bn_sq) <= 3)
+        //{
+        //    value /= 8;
+        //}
+        //else
+        //{
+        //}
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -426,26 +426,26 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bn_sq = pos.list<NIHT> (_weak_side)[0];
 
-        uint8_t diag18_dist = min (square_dist (bk_sq, SQ_A1), square_dist (bk_sq, SQ_H8));
-        uint8_t diag81_dist = min (square_dist (bk_sq, SQ_A8), square_dist (bk_sq, SQ_H1));
-        if (diag81_dist < diag18_dist)
-        {
-            wk_sq = ~wk_sq;
-            bk_sq = ~bk_sq;
-            bn_sq = ~bn_sq;
-        }
-
-        Value value = Value (PushToCorners[bk_sq]
-        +       PushClose[square_dist (wk_sq, bk_sq)]
-        +       PushAway [square_dist (bk_sq, bn_sq)]);
+        Value value;
 
         if (pos.bishops_pair (_stong_side))
         {
-            value += VALUE_MG_KNIGHT;
+            uint8_t diag18_dist = min (square_dist (bk_sq, SQ_A1), square_dist (bk_sq, SQ_H8));
+            uint8_t diag81_dist = min (square_dist (bk_sq, SQ_A8), square_dist (bk_sq, SQ_H1));
+            if (diag81_dist < diag18_dist)
+            {
+                wk_sq = ~wk_sq;
+                bk_sq = ~bk_sq;
+                bn_sq = ~bn_sq;
+            }
+
+            value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
+            +       PushClose[square_dist (wk_sq, bk_sq)]
+            +       PushAway [square_dist (bk_sq, bn_sq)];
         }
         else
         {
-            value /= 8;
+            value = VALUE_DRAW;
         }
 
         return (_stong_side == pos.active ()) ? value : -value;

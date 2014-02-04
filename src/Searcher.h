@@ -55,7 +55,7 @@ namespace Searcher {
     //  - Search move list
     //  - if in analysis mode.
     //  - if have to ponder while is opponent's side to move.
-    typedef struct Limits_t
+    typedef struct LimitsT
     {
         GameClock game_clock[CLR_NO];
 
@@ -69,7 +69,7 @@ namespace Searcher {
 
         std::vector<Move>  search_moves;   // search these moves only restrict
 
-        Limits_t () { std::memset (this, 0, sizeof (Limits_t)); }
+        LimitsT () { std::memset (this, 0, sizeof (LimitsT)); }
 
         bool use_time_management () const
         {
@@ -89,7 +89,7 @@ namespace Searcher {
         //    return cpu_time / 30 + cpu_inc / 2;
         //}
 
-    } Limits_t;
+    } LimitsT;
 
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
@@ -97,16 +97,26 @@ namespace Searcher {
     //  - Stop on ponderhit.
     //  - On first root move.
     //  - Falied low at root.
-    typedef struct Signals_t
+    typedef struct SignalsT
     {
         bool stop;
         bool stop_on_ponderhit;
         bool first_root_move;
         bool failed_low_at_root;
 
-        Signals_t () { std::memset (this, 0, sizeof (Signals_t)); }
+        SignalsT () { std::memset (this, 0, sizeof (SignalsT)); }
 
-    } Signals_t;
+    } SignalsT;
+
+    // PV, CUT, and ALL nodes, respectively. The root of the tree is a PV node. At a PV
+    // node all the children have to be investigated. The best move found at a PV node
+    // leads to a successor PV node, while all the other investigated children are CUT
+    // nodes. At a CUT node the child causing aﬂcut-off is an ALL node. In a perfectly
+    // ordered tree only one child of a CUT node has to be explored. At an ALL node all
+    // the children have to be explored. The successors of an ALL node are CUT nodes.
+    // NonPV = CUT + ALL
+    // Different node types, used as template parameter
+    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -130,7 +140,7 @@ namespace Searcher {
             pv.push_back (m);
             pv.push_back (MOVE_NONE);
         }
-        
+
         // Ascending Sort
 
         friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.curr_value >  rm2.curr_value); }
@@ -148,7 +158,6 @@ namespace Searcher {
 
     };
 
-
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
@@ -162,15 +171,15 @@ namespace Searcher {
         Move        killers[2];
         Depth       reduction;
         Value       static_eval;
+        bool        skip_null_move;
 
         //uint8_t     null_move_count;
         //uint8_t     null_cut_count; //Keep track of the moves causing a cut-off at d-R
-        bool        skip_null_move;
 
     } Stack;
 
-    extern Limits_t              Limits;
-    extern volatile Signals_t    Signals;
+    extern LimitsT              Limits;
+    extern volatile SignalsT    Signals;
 
     extern std::vector<RootMove> RootMoves;
     extern Position              RootPos;

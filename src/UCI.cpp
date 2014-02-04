@@ -205,7 +205,7 @@ namespace UCI {
         // and starts the search.
         void exe_go (cmdstream &cstm)
         {
-            Limits_t limits;
+            LimitsT limits;
             string  token;
             int32_t value;
 

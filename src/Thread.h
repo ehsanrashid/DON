@@ -111,7 +111,7 @@ struct SplitPoint
     Thread                 *master_thread;
     Depth                   depth;
     Value                   beta;
-    int8_t                  node_type;
+    Searcher::NodeT         node_type;
     bool                    cut_node;
 
     // Const pointers to shared data
@@ -168,13 +168,15 @@ struct Thread
 
     Thread ();
 
-    virtual void idle_loop();
-    bool cutoff_occurred() const;
-    bool available_to(const Thread* master) const;
+    virtual void idle_loop ();
+
+    bool cutoff_occurred () const;
+    
+    bool available_to (const Thread *master) const;
 
     template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value* best_value, Move* best_move,
-        Depth depth, int32_t moves_count, MovePicker *move_picker, int8_t node_type, bool cut_node);
+    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+        Depth depth, int32_t moves_count, MovePicker *move_picker, Searcher::NodeT node_type, bool cut_node);
 
 };
 
@@ -189,6 +191,7 @@ struct MainThread
         : thinking (true) {} // Avoid a race with start_thinking()
 
     virtual void idle_loop ();
+
 };
 
 struct TimerThread
@@ -221,7 +224,7 @@ struct ThreadPool
 
     // No c'tor and d'tor, threads rely on globals that should
     // be initialized and valid during the whole thread lifetime.
-    void initialize (); 
+    void   initialize (); 
     void deinitialize (); 
 
     MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
@@ -230,7 +233,7 @@ struct ThreadPool
 
     Thread* available_slave (const Thread *master) const;
 
-    void start_thinking (const Position &pos, const Searcher::Limits_t &limit, StateInfoStackPtr &states);
+    void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateInfoStackPtr &states);
 
     void wait_for_think_finished ();
 };

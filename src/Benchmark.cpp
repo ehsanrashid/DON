@@ -81,7 +81,7 @@ void benchmark (istream &is, const Position &pos)
     *Options["Threads"] = num_threads;
 
     TT.clear ();
-    Limits_t limits;
+    LimitsT limits;
 
     if      (iequals (limit_type, "time"))  limits.move_time = atoi (limit_val.c_str ()) * MS_SEC; // movetime is in ms
     else if (iequals (limit_type, "nodes")) limits.nodes     = atoi (limit_val.c_str ());
