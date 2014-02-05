@@ -157,13 +157,13 @@ namespace EndGame {
 
         Value value;
 
-        if (!pos.count<PAWN> (_stong_side) &&
-            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
-        {
-            value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
-        }
-        else
-        {
+//        if (!pos.count<PAWN> (_stong_side) &&
+//            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
+//        {
+//            value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
+//        }
+//        else
+//        {
             value = pos.non_pawn_material (_stong_side)
                 +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
                 +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
@@ -175,7 +175,7 @@ namespace EndGame {
             {
                 value += VALUE_KNOWN_WIN;
             }
-        }
+//        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -323,6 +323,7 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
+        // when the weaker side ended up in the same corner as bishop.
         Value value = Value (PushToEdges[bk_sq]);
 
         //// To draw, the weaker side should run towards the corner.
@@ -332,9 +333,6 @@ namespace EndGame {
         //    square_dist (wk_sq, bb_sq) >  1)
         //{
         //    value /= 8;
-        //}
-        //else // when the weaker side ended up in the same corner as bishop.
-        //{
         //}
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -353,15 +351,12 @@ namespace EndGame {
 
         Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
 
-        //// If weaker king is near the knight, it's a draw.
-        //if (_weak_side == pos.active () &&
-        //    square_dist (bk_sq, bn_sq) <= 3)
-        //{
-        //    value /= 8;
-        //}
-        //else
-        //{
-        //}
+        // If weaker king is near the knight, it's a draw.
+        if (_weak_side == pos.active () &&
+            square_dist (bk_sq, bn_sq) <= 3)
+        {
+            value /= 8;
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
