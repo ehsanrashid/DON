@@ -734,8 +734,7 @@ namespace {
 
         Value       best_value
             ,       tt_value
-            ,       eval_value
-            ,       value;
+            ,       eval_value;
 
         int32_t     moves_count
             ,       quiets_count;
@@ -1003,7 +1002,7 @@ namespace {
 
                 pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
 
-                value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
+                Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
 
                 pos.undo_move ();
 
@@ -1048,7 +1047,7 @@ moves_loop: // When in check and at SPNode search starts from here
         MovePicker mp (pos, tt_move, depth, History, cm, fm, ss);
         CheckInfo  ci (pos);
 
-        value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
+        Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
         bool improving = 
             ss->static_eval >= (ss-2)->static_eval ||
