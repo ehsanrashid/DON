@@ -939,8 +939,8 @@ namespace {
             pos.do_null_move (si);
             (ss+1)->skip_null_move = true;
             Value null_value = (depth-rdepth < ONE_MOVE)
-                ? -search_quien<NonPV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -alpha, depth-rdepth, !cut_node);
+                ? -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO)
+                : -search      <NonPV>        (pos, ss+1, -beta, -beta+1, depth-rdepth, !cut_node);
 
             (ss+1)->skip_null_move = false;
             // Undo null move
@@ -971,8 +971,8 @@ namespace {
                 ss->skip_null_move = true;
 
                 Value ver_value = (depth-rdepth < ONE_MOVE)
-                    ? search_quien<NonPV, false>(pos, ss, alpha, beta, DEPTH_ZERO)
-                    : search      <NonPV>       (pos, ss, alpha, beta, depth-rdepth, false);
+                    ? search_quien<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
+                    : search      <NonPV>       (pos, ss, beta-1, beta, depth-rdepth, false);
 
                 ss->skip_null_move = false;
                 // Don't return verify value instead return null value.
