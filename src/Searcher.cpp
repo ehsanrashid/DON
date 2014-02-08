@@ -31,7 +31,6 @@ namespace {
     //const uint8_t MAX_NULL_CUT       = 2;
 
 
-
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
 
@@ -180,7 +179,7 @@ namespace {
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
-            pos.do_move (m, si, pos.check (m, ci) ? &ci : NULL);
+            pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
             cnt += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
         };
@@ -879,14 +878,14 @@ namespace {
 
         // Step 6. Razoring (skipped when in check)
         if (!PVNode && depth < 4 * ONE_MOVE &&
-            eval_value + razor_margin (depth) < beta &&
-            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
+            eval_value + razor_margin (depth) <= alpha &&
+            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
             !tt_move && !pos.pawn_on_7thR (pos.active ()))
         {
             Value ralpha = alpha - razor_margin (depth);
 
             Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-            
+
             if (ver_value <= ralpha)
             {
                 return ver_value;
@@ -937,39 +936,9 @@ namespace {
             // Undo null move
             pos.undo_null_move ();
 
-            if (null_value >= beta)
+            if (null_value >= beta) // Do not return unproven mate scores
             {
-                //(ss+1)->null_cut_count++;
-
-                // Do not return unproven mate scores
-                if (null_value >= VALUE_MATES_IN_MAX_PLY)
-                {
-                    null_value = beta;
-                }
-                //else if ((ss+1)->null_cut_count >= MAX_NULL_CUT)
-                //{
-                //    return beta;
-                //}
-
-                if (depth < 12 * ONE_MOVE)
-                {
-                    return null_value;
-                }
-
-                // Do verification search at high depths
-                ss->skip_null_move = true;
-
-                Value ver_value = (depth-rdepth < ONE_MOVE)
-                    ? search_quien<NonPV, false>(pos, ss, beta-1, beta, DEPTH_ZERO)
-                    : search      <NonPV>       (pos, ss, beta-1, beta, depth-rdepth, false);
-
-                ss->skip_null_move = false;
-
-                // If verify value exceeds beta.
-                if (ver_value >= beta)
-                {
-                    return null_value;
-                }
+                return null_value >= VALUE_MATES_IN_MAX_PLY ? beta : null_value;
             }
         }
 
@@ -1000,7 +969,7 @@ namespace {
 
                 ss->current_move = move;
 
-                pos.do_move (move, si, pos.check (move, ci) ? &ci : NULL);
+                pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
 
                 Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
 
@@ -1127,7 +1096,9 @@ moves_loop: // When in check and at SPNode search starts from here
 
             Depth ext = DEPTH_ZERO;
             bool capture_or_promotion = pos.capture_or_promotion (move);
-            bool gives_check          = pos.check (move, ci);
+            bool gives_check          = mtype (move) == NORMAL && !ci.discoverers
+                ? ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                : pos.gives_check (move, ci);
 
             bool dangerous = gives_check || NORMAL != mtype (move) || pos.advanced_pawn_push (move);
 
@@ -1454,7 +1425,6 @@ moves_loop: // When in check and at SPNode search starts from here
         ASSERT (PVNode || (alpha == beta-1));
         ASSERT (depth <= DEPTH_ZERO);
 
-
         ss->ply = (ss-1)->ply + 1;
 
         // Check for an instant draw or maximum ply reached
@@ -1566,7 +1536,9 @@ moves_loop: // When in check and at SPNode search starts from here
         {
             ASSERT (_ok (move));
 
-            bool gives_check = pos.check (move, ci);
+            bool gives_check = mtype (move) == NORMAL && !ci.discoverers
+                ? ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                : pos.gives_check (move, ci);
 
             // Futility pruning
             if (!PVNode && !IN_CHECK &&

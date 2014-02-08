@@ -250,7 +250,7 @@ const string move_to_san (Move m, Position &pos)
     //    // promote ????????
     //move_marker:
     //    // Marker for check & checkmate
-    //    if (pos.check (m, CheckInfo (pos)))
+    //    if (pos.gives_check (m, CheckInfo (pos)))
     //    {
     //        StateInfo sinfo;
     //        Position p = pos;
@@ -297,7 +297,7 @@ const string move_to_san (Move m, Position &pos)
     }
 
     // Move marker for check & checkmate
-    if (pos.check (m, CheckInfo (pos)))
+    if (pos.gives_check (m, CheckInfo (pos)))
     {
         StateInfo si;
         pos.do_move (m, si);

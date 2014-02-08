@@ -246,11 +246,11 @@ void MovePicker::generate_next_stage ()
                 (end++)->move = ss->killers[i];
             }
         }
-        // If killer moves are same
-        if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If killer moves are same
+        //if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (int32_t i = 0; i < 2; ++i)
@@ -262,11 +262,11 @@ void MovePicker::generate_next_stage ()
                 (end++)->move = counter_moves[i];
             }
         }
-        // If counter moves are same
-        if (counter_moves[1] && counter_moves[1] == counter_moves[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If counter moves are same
+        //if (counter_moves[1] && counter_moves[1] == counter_moves[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         // Be sure followup moves are not MOVE_NONE & different from killers and countermoves
         for (int32_t i = 0; i < 2; ++i)
@@ -280,11 +280,11 @@ void MovePicker::generate_next_stage ()
                 (end++)->move = followup_moves[i];
             }
         }
-        // If followup moves are same
-        if (followup_moves[1] && followup_moves[1] == followup_moves[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If followup moves are same
+        //if (followup_moves[1] && followup_moves[1] == followup_moves[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         return;
 

@@ -877,7 +877,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
 }
 
 // check(m) tests whether a pseudo-legal move gives a check
-bool Position::check     (Move m, const CheckInfo &ci) const
+bool Position::gives_check     (Move m, const CheckInfo &ci) const
 {
     ASSERT (_color (_piece_arr[org_sq (m)]) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
@@ -942,7 +942,7 @@ bool Position::check     (Move m, const CheckInfo &ci) const
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
 bool Position::checkmate (Move m, const CheckInfo &ci) const
 {
-    if (!check (m, ci)) return false;
+    if (!gives_check (m, ci)) return false;
 
     Position pos = *this;
     StateInfo si;
@@ -1391,7 +1391,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 void Position::do_move (Move m, StateInfo &si_n)
 {
     CheckInfo ci (*this);
-    do_move (m, si_n, check (m, ci) ? &ci : NULL);
+    do_move (m, si_n, gives_check (m, ci) ? &ci : NULL);
 }
 // do_move() do the move from string (CAN)
 void Position::do_move (string &can, StateInfo &si_n)

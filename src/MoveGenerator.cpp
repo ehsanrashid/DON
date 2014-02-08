@@ -167,7 +167,7 @@ namespace MoveGenerator {
                 case QUIET_CHECK:
                     if (UNLIKELY (ci))
                     {
-                        if (pos.check (m, *ci))
+                        if (pos.gives_check (m, *ci))
                         {
                             (m_list++)->move = m;
                         }
