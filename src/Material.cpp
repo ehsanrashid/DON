@@ -237,9 +237,8 @@ namespace Material {
             }
             else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = (pos.count<PAWN> (BLACK) == 1) &&
-                    (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                    4 : SCALE_FACTOR_ONEPAWN;
+                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
+                    2 : (pos.count<PAWN> (BLACK) <= 1) ? SCALE_FACTOR_ONEPAWN/8 : SCALE_FACTOR_ONEPAWN;
             }
         }
 
@@ -253,9 +252,8 @@ namespace Material {
             }
             else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = (pos.count<PAWN> (WHITE) == 1) &&
-                    (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                    4 : SCALE_FACTOR_ONEPAWN;
+                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
+                    2 : (pos.count<PAWN> (WHITE) <= 1) ? SCALE_FACTOR_ONEPAWN/8 : SCALE_FACTOR_ONEPAWN;
             }
         }
 
@@ -271,11 +269,13 @@ namespace Material {
         // this allow us to be more flexible in defining bishop pair bonuses.
         const int32_t count[CLR_NO][NONE] =
         {
-            {pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-            pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
+            {
+                pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
+                pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
             },
-            {pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-            pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
+            {
+                pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
+                pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
             },
         };
 

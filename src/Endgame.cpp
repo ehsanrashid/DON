@@ -748,16 +748,18 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-            else
+
+            Bitboard path = front_squares_bb (_stong_side, wp_sq);
+            if ( path & pos.pieces<KING> (_weak_side) ||
+                (pos.attacks_from<BSHP> (bb_sq) & path) &&
+                square_dist (bb_sq, wp_sq) >= 3)
             {
-                Bitboard path = front_squares_bb (_stong_side, wp_sq);
-                if ( path & pos.pieces<KING> (_weak_side) ||
-                    (pos.attacks_from<BSHP> (bb_sq) & path) &&
-                    square_dist (bb_sq, wp_sq) >= 3)
-                {
-                    return SCALE_FACTOR_DRAW;
-                }
+                return SCALE_FACTOR_DRAW;
             }
+        }
+        else
+        {
+            // TODO:: position fen 8/6K1/5P2/6kb/2B5/8/8/8 w - - 0 1
         }
 
         return SCALE_FACTOR_NONE;
@@ -773,7 +775,10 @@ namespace EndGame {
         Square wb_sq = pos.list<BSHP> (_stong_side)[0];
         Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
-        if (!opposite_colors (wb_sq, bb_sq)) return SCALE_FACTOR_NONE;
+        if (!opposite_colors (wb_sq, bb_sq))
+        {
+            return SCALE_FACTOR_NONE;
+        }
 
         Square bk_sq = pos.king_sq (_weak_side);
         Square wp_sq1 = pos.list<PAWN> (_stong_side)[0];
@@ -804,10 +809,7 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-            else
-            {
-                return SCALE_FACTOR_NONE;
-            }
+            
             break;
 
         case 1:
@@ -822,24 +824,22 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-            else if (bk_sq == block_sq2 &&
+            if (bk_sq == block_sq2 &&
                 opposite_colors (bk_sq, wb_sq) &&
                 (bb_sq == block_sq1 ||
                 (pos.attacks_from<BSHP> (block_sq1) & pos.pieces<BSHP> (_weak_side))))
             {
                 return SCALE_FACTOR_DRAW;
             }
-            else
-            {
-                return SCALE_FACTOR_NONE;
-            }
+
             break;
 
         default:
             // The pawns are not on the same file or adjacent files. No scaling.
-            return SCALE_FACTOR_NONE;
             break;
         }
+
+        return SCALE_FACTOR_NONE;
     }
 
     template<>
@@ -892,7 +892,7 @@ namespace EndGame {
     // --------------------------------------------------------------
 
     template<>
-    // KB and one or more pawns vs K.
+    // KB and one or more pawns vs K and zero or more pawns.
     // It checks for draws with rook pawns and a bishop of the wrong color.
     // If such a draw is detected, SCALE_FACTOR_DRAW is returned.
     // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
@@ -942,9 +942,7 @@ namespace EndGame {
                         }
                     }
                 }
-
             }
-
         }
 
         // All pawns on same B or G file? Then potential draw
