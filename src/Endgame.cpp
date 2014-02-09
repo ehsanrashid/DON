@@ -323,7 +323,7 @@ namespace EndGame {
         Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
         // when the weaker side ended up in the same corner as bishop.
-        Value value = Value (PushToEdges[bk_sq]);
+        Value value = Value (PushToEdges[bk_sq] / 4);
 
         //// To draw, the weaker side should run towards the corner.
         //// And not just any corner! Only a corner that's not the same color as the bishop will do.

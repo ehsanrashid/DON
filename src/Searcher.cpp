@@ -93,18 +93,18 @@ namespace {
             History.update (pos[org_sq (m)], dst_sq (m), -bonus);
         }
 
-        Move prev_move = (ss-1)->current_move;
-        if (_ok (prev_move))
+        Move opp_move = (ss-1)->current_move;
+        if (_ok (opp_move))
         {
-            Square prev_move_sq = dst_sq (prev_move);
-            CounterMoves.update (pos[prev_move_sq], prev_move_sq, move);
+            Square opp_move_sq = dst_sq (opp_move);
+            CounterMoves.update (pos[opp_move_sq], opp_move_sq, move);
         }
 
-        Move prev_own_move = (ss-2)->current_move;
-        if (_ok (prev_own_move) && prev_move == (ss-1)->tt_move)
+        Move own_move = (ss-2)->current_move;
+        if (_ok (own_move) && opp_move == (ss-1)->tt_move)
         {
-            Square prev_own_move_sq = dst_sq (prev_own_move);
-            FollowupMoves.update (pos[prev_own_move_sq], prev_own_move_sq, move);
+            Square own_move_sq = dst_sq (own_move);
+            FollowupMoves.update (pos[own_move_sq], own_move_sq, move);
         }
     }
 
@@ -142,10 +142,10 @@ namespace {
 
     typedef struct Skill
     {
-        int32_t level;
+        int8_t level;
         Move    move;
 
-        Skill (int32_t lvl)
+        Skill (int8_t lvl)
             : level (lvl)
             , move (MOVE_NONE)
         {}
@@ -159,7 +159,7 @@ namespace {
         }
 
         bool enabled ()                   const { return (level < 20); }
-        bool time_to_pick (uint8_t depth) const { return depth == (1 + level); }
+        bool time_to_pick (uint8_t depth) const { return (depth == (1 + level)); }
 
         Move pick_move ();
 
@@ -242,7 +242,8 @@ namespace Searcher {
         Move m = pv[ply];
         pv.clear ();
         const TranspositionEntry *te;
-        StateInfo states[MAX_PLY_6], *si = states;
+        StateInfo states[MAX_PLY_6]
+        ,        *si = states;
 
         do
         {
@@ -284,7 +285,8 @@ namespace Searcher {
     {
         uint8_t ply = 0;
         const TranspositionEntry *te;
-        StateInfo states[MAX_PLY_6], *si = states;
+        StateInfo states[MAX_PLY_6]
+        ,        *si = states;
 
         do
         {
@@ -490,9 +492,11 @@ namespace {
     // you want the computer to think rather than how deep you want it to think. 
     void iter_deep_loop (Position &pos)
     {
-        Stack stack[MAX_PLY_6], *ss = stack+2; // To allow referencing (ss-2)
+        Stack stack[MAX_PLY_6]
+        ,     *ss = stack+2; // To allow referencing (ss-2)
 
         std::memset (ss-2, 0, 5 * sizeof (Stack));
+
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();
@@ -508,10 +512,11 @@ namespace {
             , alpha      = -VALUE_INFINITE
             , beta       = +VALUE_INFINITE
             , delta      =  VALUE_ZERO;
+
         int32_t depth    =  DEPTH_ZERO;
 
-        MultiPV       = int32_t (*(Options["MultiPV"]));
-        int32_t level = int32_t (*(Options["Skill Level"]));
+        MultiPV     = int32_t (*(Options["MultiPV"]));
+        int8_t level= int32_t (*(Options["Skill Level"]));
         Skill skill (level);
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
@@ -537,10 +542,8 @@ namespace {
             for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
             {
                 // Reset aspiration window starting size
-                if (depth >= 5)
-                    //if (depth >= 3)
+                if (depth >= 5) // 3
                 {
-                    //delta = Value (16);
                     delta = Value (max (16, 25 - depth));
 
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
@@ -692,9 +695,13 @@ namespace {
                     // If we are allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "ponderhit" or "stop".
                     if (Limits.ponder)
+                    {
                         Signals.stop_on_ponderhit = true;
+                    }
                     else
+                    {
                         Signals.stop              = true;
+                    }
                 }
 
             }
@@ -767,7 +774,6 @@ namespace {
         (ss+1)->skip_null_move = false;
         (ss+1)->reduction      = DEPTH_ZERO;
         (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
-        //(ss+1)->null_cut_count = 0;
 
         // Used to send sel_depth info to GUI
         if (PVNode && thread->max_ply < ss->ply) thread->max_ply = ss->ply;
@@ -916,9 +922,6 @@ namespace {
 
             ss->current_move = MOVE_NULL;
 
-            //Value rbeta  = beta - (cut_node ? 0 : 200);
-            //(ss+1)->null_move_count++;
-
             // Null move dynamic (variable) reduction based on depth and value
             Depth rdepth = (MAX_NULL_REDUCTION+0) * ONE_MOVE
                 +           depth / 4
@@ -998,18 +1001,18 @@ namespace {
 
 moves_loop: // When in check and at SPNode search starts from here
 
-        Square prev_move_sq = dst_sq ((ss-1)->current_move);
+        Square opp_move_sq = dst_sq ((ss-1)->current_move);
         Move cm[CLR_NO] = 
         {
-            CounterMoves[pos[prev_move_sq]][prev_move_sq].first,
-            CounterMoves[pos[prev_move_sq]][prev_move_sq].second,
+            CounterMoves[pos[opp_move_sq]][opp_move_sq].first,
+            CounterMoves[pos[opp_move_sq]][opp_move_sq].second,
         };
 
-        Square prev_own_move_sq = dst_sq ((ss-2)->current_move);
+        Square own_move_sq = dst_sq ((ss-2)->current_move);
         Move fm[CLR_NO] =
         { 
-            FollowupMoves[pos[prev_own_move_sq]][prev_own_move_sq].first,
-            FollowupMoves[pos[prev_own_move_sq]][prev_own_move_sq].second,
+            FollowupMoves[pos[own_move_sq]][own_move_sq].first,
+            FollowupMoves[pos[own_move_sq]][own_move_sq].second,
         };
 
 
@@ -1122,8 +1125,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 ss->excluded_move  = move;
                 ss->skip_null_move = true;
-                value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
-                //value = search<NonPV> (pos, ss, rbeta-1, rbeta, 2*depth/3, cut_node);
+                value = search<NonPV> (pos, ss, rbeta-1, rbeta, /*2*depth/3*/ depth/2, cut_node);
                 ss->skip_null_move = false;
                 ss->excluded_move  = MOVE_NONE;
 
@@ -1233,19 +1235,13 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 if (SPNode) alpha = split_point->alpha;
 
-                // TODO::
-
-                //if (best_value > alpha) alpha = best_value;
-
                 value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
-                //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, !cut_node);
 
                 // Research at intermediate depth if reduction is very high
                 if (value > alpha && ss->reduction >= 4 * ONE_MOVE)
                 {
                     Depth inter_depth = max (new_depth - 2 * ONE_MOVE, ONE_MOVE);
                     value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
-                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, !cut_node);
                 }
 
                 full_depth_search = (value > alpha && ss->reduction != DEPTH_ZERO);
@@ -1281,7 +1277,6 @@ moves_loop: // When in check and at SPNode search starts from here
                     ? -search_quien<PV,  true> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                     : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                     : -search      <PV>        (pos, ss+1, -beta, -alpha, new_depth, false);
-                //: -search      <PV>        (pos, ss+1, -beta, -alpha, new_depth, cut_node);
             }
 
             // Step 17. Undo move
@@ -1714,7 +1709,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // and so refer to the previous search score.
     inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
     {
-        ASSERT (elapsed);
+        ASSERT (elapsed > 0);
 
         stringstream spv;
 
@@ -1777,7 +1772,10 @@ void check_time ()
         dbg_print ();
     }
 
-    if (Limits.ponder) return;
+    if (Limits.ponder)
+    {
+        return;
+    }
 
     if (Limits.nodes)
     {
@@ -1895,8 +1893,8 @@ void Thread::idle_loop ()
 
             switch (sp->node_type)
             {
-            case Root : search<SplitPointRoot>  (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
-            case PV   : search<SplitPointPV>    (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+            case Root : search<SplitPointRoot > (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+            case PV   : search<SplitPointPV   > (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
             case NonPV: search<SplitPointNonPV> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
             default   : ASSERT (false);
             }
