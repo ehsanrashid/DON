@@ -110,8 +110,7 @@ namespace EndGame {
         add<KRKN>    ("KRKN");
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
-        // KBBKN is retired
-        //add<KBBKN>   ("KBBKN");
+        add<KBBKN>   ("KBBKN"); // retired
 
         add<KNPK>    ("KNPK");
         add<KNPKB>   ("KNPKB");
@@ -157,25 +156,25 @@ namespace EndGame {
 
         Value value;
 
-//        if (!pos.count<PAWN> (_stong_side) &&
-//            pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
-//        {
-//            value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
-//        }
-//        else
-//        {
-            value = pos.non_pawn_material (_stong_side)
-                +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
-                +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+        //if (!pos.count<PAWN> (_stong_side) &&
+        //    pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
+        //{
+        //    value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
+        //}
+        //else
+        //{
+        value = pos.non_pawn_material (_stong_side)
+            +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
+            +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
 
-            if (pos.count<QUEN> (_stong_side) ||
-                pos.count<ROOK> (_stong_side) ||
-                pos.count<NIHT> (_stong_side) > 2 ||
-                pos.bishops_pair (_stong_side))
-            {
-                value += VALUE_KNOWN_WIN;
-            }
-//        }
+        if (pos.count<QUEN> (_stong_side) ||
+            pos.count<ROOK> (_stong_side) ||
+            pos.count<NIHT> (_stong_side) > 2 ||
+            pos.bishops_pair (_stong_side))
+        {
+            value += VALUE_KNOWN_WIN;
+        }
+        //}
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -435,12 +434,12 @@ namespace EndGame {
             }
 
             value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
-            +       PushClose[square_dist (wk_sq, bk_sq)]
-            +       PushAway [square_dist (bk_sq, bn_sq)];
+            +         PushClose[square_dist (wk_sq, bk_sq)]
+            +         PushAway [square_dist (bk_sq, bn_sq)];
         }
         else
         {
-            value = VALUE_DRAW;
+            value = Value (PushClose[square_dist (wk_sq, bk_sq)] / 2);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;

@@ -256,8 +256,8 @@ void MovePicker::generate_next_stage ()
         for (int32_t i = 0; i < 2; ++i)
         {
             if (counter_moves[i] &&
-                counter_moves[i] != (cur+0)->move &&
-                counter_moves[i] != (cur+1)->move)
+                counter_moves[i] != cur[0].move &&
+                counter_moves[i] != cur[1].move)
             {
                 (end++)->move = counter_moves[i];
             }
@@ -272,10 +272,10 @@ void MovePicker::generate_next_stage ()
         for (int32_t i = 0; i < 2; ++i)
         {
             if (followup_moves[i] &&
-                followup_moves[i] != (cur+0)->move &&
-                followup_moves[i] != (cur+1)->move &&
-                followup_moves[i] != (cur+2)->move &&
-                followup_moves[i] != (cur+3)->move)
+                followup_moves[i] != cur[0].move &&
+                followup_moves[i] != cur[1].move &&
+                followup_moves[i] != cur[2].move &&
+                followup_moves[i] != cur[3].move)
             {
                 (end++)->move = followup_moves[i];
             }
