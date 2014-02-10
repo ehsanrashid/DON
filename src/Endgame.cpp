@@ -251,22 +251,6 @@ namespace EndGame {
         return (_stong_side == pos.active ()) ? value : -value;
     }
 
-    // TODO::
-    //template<>
-    //// KBP vs K. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
-    //Value Endgame<KBPK>::operator() (const Position &pos) const
-    //{
-    //    ASSERT (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
-    //    ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
-    //    Square wk_sq = rel_sq (_stong_side, pos.king_sq (_stong_side));
-    //    Square bk_sq = rel_sq (_stong_side, pos.king_sq (_weak_side));
-    //    Square wb_sq = rel_sq (_stong_side, pos.list<BSHP> (_stong_side)[0]);
-    //    Square wp_sq = rel_sq (_stong_side, pos.list<PAWN> (_stong_side)[0]);
-    //    Square queening_sq = _file (wp_sq) | R_1;
-    //    Value value = VALUE_DRAW;
-    //    return (_stong_side == pos.active ()) ? value : -value;
-    //}
-
     template<>
     // KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
     // The function below returns drawish scores when the pawn is far advanced

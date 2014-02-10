@@ -16,7 +16,6 @@ namespace EndGame {
         KPK,   // KP vs K
         KBNK,  // KBN vs K
         KNNK,  // KNN vs K
-        KBPK,  // KBP VS K --- TODO::
         KRKP,  // KR vs KP
         KRKB,  // KR vs KB
         KRKN,  // KR vs KN
@@ -40,7 +39,7 @@ namespace EndGame {
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB   // KNP vs KB
+        KNPKB    // KNP vs KB
 
     } EndgameT;
 
