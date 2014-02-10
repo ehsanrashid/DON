@@ -191,45 +191,45 @@ namespace TrivialLogger {
         const size_t
             create_filename (
             Char_type filename[],
-            const Char_type fn_log[],
-            const Char_type ext_log[],
-            const Char_type fn_def[])
+            const Char_type log_fn[],
+            const Char_type log_ext[],
+            const Char_type def_fn[])
         {
             size_t length = 0; 
 
-            if (str_len (fn_log) > 1)
+            if (str_len (log_fn) > 1)
             {
-                while (*fn_log)
+                while (*log_fn)
                 {
                     // check if characters have grapnical
                     // reprasentation
-                    if (0 != isgraph (uint8_t (*fn_log)))
+                    if (0 != isgraph (uint8_t (*log_fn)))
                     {
-                        *filename = *fn_log;
+                        *filename = *log_fn;
                         ++filename;
                         ++length;
                     }
                     else
                     {
                         // convert space to underscore
-                        if (' ' == *fn_log)
+                        if (' ' == *log_fn)
                         {
                             *filename = '_';
                             ++filename;
                             ++length;
                         }
                     }
-                    ++fn_log;
+                    ++log_fn;
                 }
             }
             else
             {
                 //filename = &filename[0];
-                length   = str_cpy (filename, fn_def);
+                length   = str_cpy (filename, def_fn);
             }
 
             // add extension
-            str_cat (filename, ext_log);
+            str_cat (filename, log_ext);
             *filename = '\0';
 
             return length;
@@ -241,22 +241,22 @@ namespace TrivialLogger {
         //template<typename T>
         //T const max (T const x1, T const x2) { return (x1 > x2 ? x1 : x2); }
 
-        const char_type* get_fn_log()   { return XSTR(FTLOG); }
-        const char_type* get_fn_def()   { return "except_log"; }
+        const char_type* get_log_fn()   { return XSTR(FTLOG); }
+        const char_type* get_def_fn()   { return "except_log"; }
         // extension C string
-        const char_type* get_ext_log()  { return ".txt"; }
+        const char_type* get_log_ext()  { return ".txt"; }
 
     }
 
     // convert definition of the FTLOG to the C string
-    const char_type *fn_log  = implementation::get_fn_log();
-    const char_type *fn_def  = implementation::get_fn_def();
-    const char_type *ext_log = implementation::get_ext_log();
+    const char_type *log_fn  = implementation::get_log_fn();
+    const char_type *def_fn  = implementation::get_def_fn();
+    const char_type *log_ext = implementation::get_log_ext();
 
     // container for final file name
-    char_type filename[(MAX (sizeof (fn_log), sizeof(fn_def)) + sizeof (ext_log)) / sizeof(char_type)];
+    char_type filename[(MAX (sizeof (log_fn), sizeof(def_fn)) + sizeof (log_ext)) / sizeof(char_type)];
     // create file name
-    size_t const length = implementation::create_filename (filename, implementation::get_fn_log(), implementation::get_ext_log(), implementation::get_fn_def());
+    size_t const length = implementation::create_filename (filename, implementation::get_log_fn(), implementation::get_log_ext(), implementation::get_def_fn());
 
 #       undef STR
 #       undef XSTR

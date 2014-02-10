@@ -121,7 +121,7 @@ struct SplitPoint
     // Shared data
     Mutex                   mutex;
     volatile uint64_t       slaves_mask;
-    volatile int64_t        nodes;
+    volatile uint64_t       nodes;
     volatile Value          alpha;
     volatile Value          best_value;
     volatile Move           best_move;

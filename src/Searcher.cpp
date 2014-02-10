@@ -326,8 +326,8 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        bool write_search_log = *(Options["Write Search Log"]);
-        string fn_search_log  = *(Options["Search Log File"]);
+        bool search_log_write = *(Options["Write Search Log"]);
+        string search_log_fn  = *(Options["Search Log File"]);
 
         if (RootMoves.empty ())
         {
@@ -364,9 +364,9 @@ namespace Searcher {
             DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
         }
 
-        if (write_search_log)
+        if (search_log_write)
         {
-            Log log (fn_search_log);
+            Log log (search_log_fn);
 
             log << "----------->\n" << boolalpha
                 << "fen:       " << RootPos.fen ()                              << "\n"
@@ -399,9 +399,9 @@ finish:
 
         point elapsed = now () - SearchTime + 1;
 
-        if (write_search_log)
+        if (search_log_write)
         {
-            Log log (fn_search_log);
+            Log log (search_log_fn);
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                 << "Nodes/sec.:  " << RootPos.game_nodes () * 1000 / elapsed    << "\n"
@@ -634,11 +634,11 @@ namespace {
                 }
             }
 
-            bool write_search_log = *(Options["Write Search Log"]);
-            if (write_search_log)
+            bool search_log_write = *(Options["Write Search Log"]);
+            if (search_log_write)
             {
-                string fn_search_log  = *(Options["Search Log File"]);
-                Log log (fn_search_log);
+                string search_log_fn  = *(Options["Search Log File"]);
+                Log log (search_log_fn);
                 log << pretty_pv (pos, depth, rm.curr_value, IterDuration, &rm.pv[0]) << endl;
             }
 
@@ -1765,10 +1765,11 @@ moves_loop: // When in check and at SPNode search starts from here
 void check_time ()
 {
     static point last_time = now ();
-    int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
+    
+    uint64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
     point now_time = now ();
-    if (now_time - last_time >= MS_SEC)
+    if (now_time - last_time >= M_SEC)
     {
         last_time = now_time;
         dbg_print ();
@@ -1787,7 +1788,7 @@ void check_time ()
 
         // Loop across all split points and sum accumulated SplitPoint nodes plus
         // all the currently active positions nodes.
-        for (uint32_t i = 0; i < Threads.size (); ++i)
+        for (uint8_t i = 0; i < Threads.size (); ++i)
         {
             for (uint8_t j = 0; j < Threads[i]->threads_split_point; ++j)
             {

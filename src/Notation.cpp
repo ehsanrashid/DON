@@ -374,12 +374,12 @@ namespace {
     // time to string
     string time_to_string (int64_t msecs)
     {
-        const int32_t MSecMinute = MS_SEC * 60;
-        const int32_t MSecHour   = MS_SEC * 60 * 60;
+        const int32_t MSecMinute = M_SEC * 60;
+        const int32_t MSecHour   = M_SEC * 60 * 60;
 
         int64_t hours   =   msecs / MSecHour;
         int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / MS_SEC;
+        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
         stringstream ss;
 
