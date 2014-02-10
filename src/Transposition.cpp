@@ -1,8 +1,6 @@
 #include "Transposition.h"
 
-#include <iostream>
 //#include <cmath>
-
 #include "BitScan.h"
 #include "Engine.h"
 

@@ -20,11 +20,11 @@ public:
 
     inline void pv_instability (double best_move_changes)
     {
-        _unstable_pv_extra_time = int32_t (best_move_changes * _optimum_search_time / 1.4);
+        _unstable_pv_extra_time = best_move_changes * _optimum_search_time / 1.4;
     }
 
-    void initialize (const Searcher::Limits_t &limits, int32_t current_ply, Color c);
+    void initialize (const Searcher::LimitsT &limits, int32_t current_ply, Color c);
     
 } TimeManager;
 
-#endif
+#endif // TIME_MANAGER_H_

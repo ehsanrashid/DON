@@ -100,7 +100,7 @@ namespace Zobrist {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_ptype (p)][s];
         //}
 
         //for (Color c = WHITE; c <= BLACK; ++c)
@@ -121,7 +121,7 @@ namespace Zobrist {
         //{
         //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
-        //    posi_key ^= _.psq_k[_color (p)][_type (p)][s];
+        //    posi_key ^= _.psq_k[_color (p)][_ptype (p)][s];
         //}
 
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -202,9 +202,9 @@ namespace Zobrist {
                     {
                         Piece p = Piece (idx);
                         if (EMPTY == p) return U64 (0);
-                        if (KING == _type (p))  king[_color (p)] = f;
+                        if (KING == _ptype (p))  king[_color (p)] = f;
 
-                        fen_key ^= _.psq_k[_color (p)][_type (p)][(f | r)];
+                        fen_key ^= _.psq_k[_color (p)][_ptype (p)][(f | r)];
                     }
                     ++f;
                 }
@@ -235,7 +235,6 @@ namespace Zobrist {
         {
             if (c960)
             {
-#pragma region X-FEN
                 do
                 {
                     Color c = isupper (ch) ? WHITE : BLACK;
@@ -252,11 +251,9 @@ namespace Zobrist {
                     get_next ();
                 }
                 while (ch && !isspace (ch));
-#pragma endregion
             }
             else
             {
-#pragma region Normal-FEN
                 do
                 {
                     //switch (ch)
@@ -279,7 +276,6 @@ namespace Zobrist {
                     get_next ();
                 }
                 while (ch && !isspace (ch));
-#pragma endregion
             }
         }
 
@@ -329,7 +325,7 @@ namespace Zobrist {
             else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
-                fen_key ^= _.psq_k[_color (p)][_type (p)][s];
+                fen_key ^= _.psq_k[_color (p)][_ptype (p)][s];
                 ++s;
             }
             else if (ch == '/')
@@ -344,8 +340,6 @@ namespace Zobrist {
         sfen >> ch;
         if (c960)
         {
-#pragma region X-FEN
-
             while ((sfen >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
@@ -359,13 +353,9 @@ namespace Zobrist {
                     return U64 (0);
                 }
             }
-
-#pragma endregion
         }
         else
         {
-#pragma region N-FEN
-
             while ((sfen >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
@@ -376,8 +366,6 @@ namespace Zobrist {
                 default : return U64 (0); break;
                 }
             }
-
-#pragma endregion
         }
 
         uint8_t col, row;
@@ -399,13 +387,9 @@ namespace Zobrist {
 
 }
 
-#pragma region PolyGlot Randoms
-
 // Random numbers from PolyGlot, used to compute book hash keys
 const Zobrist::Zob ZobPG =
 {
-
-#pragma region WHITE
 
     // WHITE_PAWN
     U64 (0x5355F900C2A82DC7), U64 (0x07FB9F855A997142), U64 (0x5093417AA8A7ED5E), U64 (0x7BCBC38DA25A7F3C),
@@ -514,9 +498,6 @@ const Zobrist::Zob ZobPG =
     U64 (0x0C335248857FA9E7), U64 (0x0A9C32D5EAE45305), U64 (0xE6C42178C4BBB92E), U64 (0x71F1CE2490D20B07),
     U64 (0xF1BCC3D275AFE51A), U64 (0xE728E8C83C334074), U64 (0x96FBF83A12884624), U64 (0x81A1549FD6573DA5),
     U64 (0x5FA7867CAF35E149), U64 (0x56986E2EF3ED091B), U64 (0x917F1DD5F8886C61), U64 (0xD20D8C88C8FFE65F),
-#pragma endregion
-
-#pragma region BLACK
 
     // BLACK_PAWN
     U64 (0x9D39247E33776D41), U64 (0x2AF7398005AAA5C7), U64 (0x44DB015024623547), U64 (0x9C15F73E62A76AE2),
@@ -625,7 +606,6 @@ const Zobrist::Zob ZobPG =
     U64 (0xC7F6AA2DE59AEA61), U64 (0x352787BAA0D7C22F), U64 (0x9853EAB63B5E0B35), U64 (0xABBDCDD7ED5C0860),
     U64 (0xCF05DAF5AC8D77B0), U64 (0x49CAD48CEBF4A71E), U64 (0x7A4C10EC2158C4A6), U64 (0xD9E92AA246BF719E),
     U64 (0x13AE978D09FE5557), U64 (0x730499AF921549FF), U64 (0x4E4B705B92903BA4), U64 (0xFF577222C14F0A3A),
-#pragma endregion
 
     // CASTLE_RIGHTS
     U64 (0x31D71DCE64B2C310), U64 (0xF165B587DF898190), U64 (0xA57E6339DD2CF3A0), U64 (0x1EF6E6DBB1961EC9),
@@ -639,13 +619,7 @@ const Zobrist::Zob ZobPG =
 
 };
 
-#pragma endregion
-
-#pragma region ZobRand Randoms
-
 //Zobrist::Zob ZobRand;
-
-#pragma endregion
 
 const Zobrist::Zob &ZobGlob =
     //ZobRand;

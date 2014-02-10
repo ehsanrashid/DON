@@ -20,10 +20,10 @@ namespace LeakDetector {
             // Memory Allocation Info
             typedef struct MEM_INFO
             {
-                void   *address;
-                size_t  size;
-                char    fn[LEN_FILENAME];
-                uint    line_no;
+                void     *address;
+                uint32_t  size;
+                char      fn[LEN_FILENAME];
+                uint32_t  line_no;
 
             } MEM_INFO;
 
@@ -38,7 +38,7 @@ namespace LeakDetector {
         LEAK_INFO *ptr_curr = NULL;
 
         // Makes and appends the allocated memory info to the list
-        void append_mem_info (void *mem_ref, size_t size, const char fn[], uint line_no)
+        void append_mem_info (void *mem_ref, uint32_t size, const char fn[], uint32_t line_no)
         {
             // append the above info to the list
             LEAK_INFO *ptr_new = (LEAK_INFO *) std::malloc (sizeof (LEAK_INFO));
@@ -105,7 +105,7 @@ namespace LeakDetector {
     }
 
     // Replacement of malloc
-    void* xmalloc (size_t size, const char fn[], uint line_no)
+    void* xmalloc (uint32_t size, const char fn[], uint32_t line_no)
     {
         void *mem_ref = std::malloc (size);
         if (mem_ref)
@@ -115,12 +115,12 @@ namespace LeakDetector {
         return mem_ref;
     }
     // Replacement of calloc
-    void* xcalloc (size_t count, size_t size_elem, const char fn[], uint line_no)
+    void* xcalloc (uint32_t count, uint32_t size_elem, const char fn[], uint32_t line_no)
     {
         void *mem_ref = std::calloc (count, size_elem);
         if (mem_ref)
         {
-            size_t size = count * size_elem;
+            uint32_t size = count * size_elem;
             append_mem_info (mem_ref, size, fn, line_no);
         }
         return mem_ref;
@@ -140,12 +140,12 @@ namespace LeakDetector {
 
         if (fp_write)
         {
-            const size_t size = 1024;
+            const uint32_t size = 1024;
             char info_buf[size];
             LEAK_INFO *leak_info;
             leak_info = ptr_head;
 
-            size_t x;
+            uint32_t x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");
             //x = sprintf_s (info_buf, size, "%s\n", "Memory Leak Summary");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);

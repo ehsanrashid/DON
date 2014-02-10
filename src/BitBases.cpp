@@ -160,7 +160,7 @@ namespace BitBases {
         // Initialize db with known win / draw positions
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
-            db.emplace_back (KPKPosition (idx));
+            db.push_back (KPKPosition (idx));
         }
 
         bool repeat;

@@ -13,8 +13,6 @@
 class Position;
 struct Thread;
 
-#pragma region FEN
-
 // FORSYTH–EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
 
@@ -37,11 +35,6 @@ extern bool _ok (const        char *fen, bool c960 = false, bool full = true);
 #endif
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
-#pragma endregion
-
-#pragma region State Information
-
-//#pragma pack (push, 4)
 
 // StateInfo stores information to restore Position object to its previous state when retracting a move.
 // Whenever a move is made on the board (do_move), a StateInfo object must be passed as a parameter.
@@ -98,13 +91,6 @@ public:
 
 } StateInfo;
 
-//#pragma pack (pop)
-
-#pragma endregion
-
-#pragma region Check Inforamtion
-
-//#pragma pack (push, 4)
 
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
@@ -132,13 +118,6 @@ public:
 
 } CheckInfo;
 
-//#pragma pack (pop)
-
-#pragma endregion
-
-#pragma region Position
-
-//#pragma pack (push, 4)
 
 // The position data structure. A position consists of the following data:
 //
@@ -163,8 +142,6 @@ typedef class Position
 {
 
 private:
-
-#pragma region Fields
 
     // Board for storing pieces.
     Piece    _piece_arr[SQ_NO];
@@ -197,7 +174,6 @@ private:
 
     Thread  *_thread;
 
-#pragma endregion
 
 public:
 
@@ -219,28 +195,34 @@ public:
     }
     Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
     //Position (const Position &pos) { *this = pos; }
-    explicit Position (int8_t dummy) { ++ dummy; }
 
+    explicit Position (int8_t dummy) { ++dummy; }
 
     Position& operator= (const Position &pos);
 
-#pragma region Basic properties
-
-#pragma region Board properties
 
     Piece    operator[] (Square s)      const;
     Bitboard operator[] (Color  c)      const;
     Bitboard operator[] (PieceT pt)      const;
-    const Square* operator[] (Piece p)  const;
+    const Square* operator[] (Piece p)   const;
 
-    bool empty     (Square s)           const;
-    Piece piece_on (Square s)           const;
+    bool empty     (Square s)            const;
+    Piece piece_on (Square s)            const;
 
-    Square king_sq (Color c)            const;
+    Square king_sq (Color c)             const;
 
-    Bitboard pieces (Color c)           const;
+    Bitboard pieces (Color c)            const;
+    //template<Color C>
+    //Bitboard pieces ()                   const;
+
     Bitboard pieces (PieceT pt)          const;
+    template<PieceT PT>
+    Bitboard pieces ()                   const;
+
     Bitboard pieces (Color c, PieceT pt) const;
+    template<PieceT PT>
+    Bitboard pieces (Color c)           const;
+
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
     Bitboard pieces () const;
@@ -260,9 +242,6 @@ public:
     template<PieceT PT>
     const Square* list (Color c)  const;
 
-#pragma endregion
-
-#pragma region StateInfo properties
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -294,9 +273,6 @@ public:
 
     Score psq_score () const;
 
-#pragma endregion
-
-#pragma region Castling properties
 
     CRight can_castle (CRight cr) const;
     CRight can_castle (Color   c) const;
@@ -308,7 +284,6 @@ public:
     Square castle_rook (Color c, CSide cs) const;
     bool castle_impeded (Color c, CSide cs = CS_NO) const;
 
-#pragma endregion
 
     Color    active    ()               const;
     uint32_t game_ply  ()               const;
@@ -327,9 +302,6 @@ public:
     int32_t see      (Move m) const;
     int32_t see_sign (Move m) const;
 
-#pragma endregion
-
-#pragma region Attack properties
 
 private:
 
@@ -356,9 +328,6 @@ public:
     Bitboard pinneds     (Color c) const;
     Bitboard discoverers (Color c) const;
 
-#pragma endregion
-
-#pragma region Move properties
 
     //Piece moved_piece    (Move m)                const;
     //Piece captured_piece (Move m)                const;
@@ -368,24 +337,17 @@ public:
     bool legal        (Move m)                   const;
     bool capture      (Move m)                   const;
     bool capture_or_promotion (Move m)           const;
-    bool check     (Move m, const CheckInfo &ci) const;
-    bool checkmate (Move m, const CheckInfo &ci) const;
+    bool gives_check  (Move m, const CheckInfo &ci) const;
+    bool checkmate    (Move m, const CheckInfo &ci) const;
 
     //bool   passed_pawn_push (Move m)             const;
     bool advanced_pawn_push (Move m)             const;
 
-#pragma endregion
-
-#pragma region Piece specific properties
 
     bool passed_pawn (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
     bool bishops_pair (Color c) const;
     bool opposite_bishops ()    const;
-
-#pragma endregion
-
-#pragma region Basic methods
 
 private:
 
@@ -413,7 +375,6 @@ public:
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
-#pragma region Do/Undo Move
 
 private:
     void castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook);
@@ -428,11 +389,6 @@ public:
     void do_null_move (StateInfo &si_n);
     void undo_null_move ();
 
-#pragma endregion
-
-#pragma endregion
-
-#pragma region Conversions
 
 #ifndef NDEBUG
     bool        fen (const char *fen, bool c960 = false, bool full = true) const;
@@ -446,7 +402,6 @@ public:
 #endif
     static bool parse (Position &pos, const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
 
-#pragma endregion
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -466,36 +421,35 @@ public:
 
 } Position;
 
-//#pragma pack (pop)
-
-#pragma endregion
-
 // -------------------------------
-
-#pragma region Position Def
-
-#pragma region Basic properties
-
-#pragma region Board properties
 
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_type (p)]; }
+inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
 inline bool     Position::empty   (Square s) const { return EMPTY == _piece_arr[s]; }
 inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
+inline Bitboard Position::pieces (Color  c)            const { return _color_bb[c];  }
+//template<Color C>
+//inline Bitboard Position::pieces ()                    const { return _color_bb[C];  }
+
 inline Bitboard Position::pieces (PieceT pt)           const { return _types_bb[pt]; }
+template<PieceT PT>
+inline Bitboard Position::pieces ()                    const { return _types_bb[PT]; }
+
 inline Bitboard Position::pieces (Color c, PieceT pt)  const { return _color_bb[c]  & _types_bb[pt]; }
+template<PieceT PT>
+inline Bitboard Position::pieces (Color c)             const { return _color_bb[c]  & _types_bb[PT]; }
+
 inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb[p1] | _types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
-//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
+//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
 
 template<PieceT PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
@@ -507,10 +461,6 @@ inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[
 
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
-
-#pragma endregion
-
-#pragma region StateInfo properties
 
 // Castling rights for both side
 inline CRight   Position::castle_rights () const { return _si->castle_rights; }
@@ -542,9 +492,6 @@ inline Value    Position::non_pawn_material (Color c) const { return _si->non_pa
 
 //inline Value Position::pawn_material (Color c) const { return int32_t (count<PAWN> (c)) * VALUE_EG_PAWN; }
 
-#pragma endregion
-
-#pragma region Castling properties
 
 inline CRight Position::can_castle (CRight cr)           const { return ::can_castle (_si->castle_rights, cr); }
 inline CRight Position::can_castle (Color   c)           const { return ::can_castle (_si->castle_rights, c); }
@@ -563,7 +510,6 @@ inline bool Position::castle_impeded (Color c, CSide cs) const
         && (_castle_paths[c][CS_Q] & pieces ());
 }
 
-#pragma endregion
 
 // Color of the side on move
 inline Color    Position::active    () const { return _active; }
@@ -582,9 +528,6 @@ inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
 inline Thread*  Position::thread    () const { return _thread; }
 
-#pragma endregion
-
-#pragma region Attack properties
 
 template<>
 // Attacks of the PAWN from the square
@@ -616,12 +559,12 @@ inline Bitboard Position::attacks_from (Piece p, Square s) const
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return
-        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces (BLACK, PAWN)) |
-        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces (WHITE, PAWN)) |
-        (BitBoard::attacks_bb<NIHT> (s)        & pieces (NIHT))        |
+        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces<PAWN> (BLACK)) |
+        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces<PAWN> (WHITE)) |
+        (BitBoard::attacks_bb<NIHT> (s)        & pieces<NIHT> ())      |
         (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))  |
         (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))  |
-        (BitBoard::attacks_bb<KING> (s)        & pieces (KING));
+        (BitBoard::attacks_bb<KING> (s)        & pieces<KING> ());
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
@@ -650,18 +593,14 @@ inline Bitboard Position::discoverers (Color c) const
     return check_blockers (c, ~c); // blockers for opp king
 }
 
-#pragma endregion
-
-#pragma region Piece properties
-
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(pieces (~c, PAWN) & BitBoard::passer_pawn_span_bb (c, s));
+    return !(pieces<PAWN> (~c) & BitBoard::passer_pawn_span_bb (c, s));
 }
 
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return pieces (c, PAWN) & BitBoard::rel_rank_bb (c, R_7);
+    return pieces<PAWN> (c) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -679,15 +618,16 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
+    //return
+    //    (count<BSHP> (WHITE) == 1) &&
+    //    (count<BSHP> (BLACK) == 1) &&
+    //    opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
     return
-        (count<BSHP> (WHITE) == 1) &&
-        (count<BSHP> (BLACK) == 1) &&
-        opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
+        count<BSHP> (WHITE) && count<BSHP> (BLACK) &&
+        !(
+        (pieces<BSHP> (WHITE) & BitBoard::LTSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::LTSQ_bb) ||
+        (pieces<BSHP> (WHITE) & BitBoard::DRSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::DRSQ_bb));
 }
-
-#pragma endregion
-
-#pragma region Move properties
 
 //// moved_piece() return piece moved on move
 //inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
@@ -699,11 +639,11 @@ inline bool Position::opposite_bishops () const
 //    Square dst  = dst_sq (m);
 //
 //    Piece p     = piece_on (org);
-//    PieceT pt    = _type (p);
+//    PieceT pt    = _ptype (p);
 //
 //    Square cap = dst;
 //
-//    switch (m_type (m))
+//    switch (mtype (m))
 //    {
 //    case CASTLE:
 //        return EMPTY;
@@ -711,7 +651,7 @@ inline bool Position::opposite_bishops () const
 //        if (PAWN == pt)
 //        {
 //            cap += ((WHITE == _active) ? DEL_S : DEL_N);
-//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces (_active, PAWN)) ?
+//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces<PAWN> (_active)) ?
 //                piece_on (cap) : EMPTY;
 //        }
 //        return EMPTY;
@@ -742,7 +682,7 @@ inline bool Position::legal        (Move m) const { return legal (m, pinneds (_a
 // capture(m) tests move is capture
 inline bool Position::capture               (Move m) const
 {
-    //MoveT mt = m_type (m);
+    //MoveT mt = mtype (m);
     //switch (mt)
     //{
     //case CASTLE:
@@ -755,7 +695,7 @@ inline bool Position::capture               (Move m) const
     //}
     //return false;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     //return (!empty (dst_sq (m)) && CASTLE != mt)
     //    || (ENPASSANT == mt && _ok (_si->en_passant));
     return (NORMAL == mt || PROMOTE == mt)
@@ -765,16 +705,16 @@ inline bool Position::capture               (Move m) const
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    //switch (m_type (m))
+    //switch (mtype (m))
     //{
     //case CASTLE:    return false;
     //case PROMOTE:   return true;
     //case ENPASSANT: return _ok (_si->en_passant);
-    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _type (p));
+    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _ptype (p));
     //}
     //return false;
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt && _ok (_si->en_passant)) || (CASTLE != mt);
@@ -782,16 +722,13 @@ inline bool Position::capture_or_promotion  (Move m) const
 
 //inline bool Position::  passed_pawn_push (Move m) const
 //{
-//    return (PAWN == _type (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
+//    return (PAWN == _ptype (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
 //}
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == _type (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == _ptype (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
-#pragma endregion
-
-#pragma region Basic methods
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
@@ -808,7 +745,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    place_piece (s, _color (p), _type (p));
+    place_piece (s, _color (p), _ptype (p));
 }
 inline void  Position::remove_piece (Square s)
 {
@@ -820,9 +757,9 @@ inline void  Position::remove_piece (Square s)
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
     Piece p = _piece_arr [s];
-    
+
     Color c  = _color (p);
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
 
     _piece_arr [s]   = EMPTY;
     Bitboard bb      = ~BitBoard::_square_bb[s];
@@ -850,7 +787,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     Piece p = _piece_arr[s1];
 
     Color c = _color (p);
-    PieceT pt = _type (p);
+    PieceT pt = _ptype (p);
 
     _piece_arr[s1] = EMPTY;
     _piece_arr[s2] = p;
@@ -878,11 +815,6 @@ inline void Position::castle_king_rook (Square org_king, Square dst_king, Square
     place_piece (dst_rook, _active, ROOK);
 }
 
-#pragma endregion
-
-#pragma endregion
-
-#pragma region Check Inforamtion Def
 
 inline CheckInfo::CheckInfo (const Position &pos)
 {
@@ -910,8 +842,6 @@ inline CheckInfo::CheckInfo (const Position &pos)
 //    pinneds     = U64 (0);
 //    discoverers = U64 (0);
 //}
-
-#pragma endregion
 
 typedef std::stack<StateInfo>   StateInfoStack;
 

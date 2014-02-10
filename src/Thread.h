@@ -36,17 +36,15 @@ typedef void*(*pt_start_fn)(void*);
 
 #else // Windows and MinGW
 
-#   include <intrin.h>
+// disable macros min() and max()
+#   ifndef  NOMINMAX
+#       define NOMINMAX
+#endif
+#   ifndef  WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#endif
 
-#	ifndef NOMINMAX
-#   	define NOMINMAX // disable macros min() and max()
-#	endif
-#	ifndef WIN32_LEAN_AND_MEAN
-#   	define WIN32_LEAN_AND_MEAN
-#	endif
 #   include <windows.h>
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
@@ -113,7 +111,7 @@ struct SplitPoint
     Thread                 *master_thread;
     Depth                   depth;
     Value                   beta;
-    int8_t                  node_type;
+    Searcher::NodeT         node_type;
     bool                    cut_node;
 
     // Const pointers to shared data
@@ -123,7 +121,7 @@ struct SplitPoint
     // Shared data
     Mutex                   mutex;
     volatile uint64_t       slaves_mask;
-    volatile int64_t        nodes;
+    volatile uint64_t       nodes;
     volatile Value          alpha;
     volatile Value          best_value;
     volatile Move           best_move;
@@ -142,9 +140,9 @@ struct ThreadBase
 
     ThreadBase()
         : exit(false) {}
-    virtual ~ThreadBase() {}
+    virtual ~ThreadBase () {}
 
-    virtual void idle_loop() = 0;
+    virtual void idle_loop () = 0;
 
     void notify_one ();
     void wait_for (volatile const bool &b);
@@ -170,13 +168,15 @@ struct Thread
 
     Thread ();
 
-    virtual void idle_loop();
-    bool cutoff_occurred() const;
-    bool available_to(const Thread* master) const;
+    virtual void idle_loop ();
+
+    bool cutoff_occurred () const;
+    
+    bool available_to (const Thread *master) const;
 
     template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value* best_value, Move* best_move,
-        Depth depth, int32_t moves_count, MovePicker *move_picker, int8_t node_type, bool cut_node);
+    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+        Depth depth, int32_t moves_count, MovePicker *move_picker, Searcher::NodeT node_type, bool cut_node);
 
 };
 
@@ -191,6 +191,7 @@ struct MainThread
         : thinking (true) {} // Avoid a race with start_thinking()
 
     virtual void idle_loop ();
+
 };
 
 struct TimerThread
@@ -216,14 +217,14 @@ struct ThreadPool
 {
     bool                sleep_idle;
     Depth               split_depth;
-    size_t              threads_split_point;
+    uint8_t             threads_split_point;
     Mutex               mutex;
     ConditionVariable   sleep_condition;
     TimerThread        *timer;
 
     // No c'tor and d'tor, threads rely on globals that should
     // be initialized and valid during the whole thread lifetime.
-    void initialize (); 
+    void   initialize (); 
     void deinitialize (); 
 
     MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
@@ -232,7 +233,7 @@ struct ThreadPool
 
     Thread* available_slave (const Thread *master) const;
 
-    void start_thinking (const Position &pos, const Searcher::Limits_t &limit, StateInfoStackPtr &states);
+    void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateInfoStackPtr &states);
 
     void wait_for_think_finished ();
 };
@@ -276,7 +277,7 @@ inline int32_t cpu_count ()
 #   elif defined(MACOS)
 
     uint32_t count;
-    size_t len = sizeof (count);
+    uint32_t len = sizeof (count);
 
     int32_t nm[2];
     nm[0] = CTL_HW;
@@ -322,19 +323,17 @@ typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream& os, SyncCout sc)
 {
-  static Mutex m;
+    static Mutex m;
 
-  if      (IO_LOCK == sc)
-      m.lock ();
-  else if (IO_UNLOCK == sc)
-      m.unlock ();
-
-  return os;
+    if      (IO_LOCK == sc)
+        m.lock ();
+    else if (IO_UNLOCK == sc)
+        m.unlock ();
+    return os;
 }
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
-
 
 extern ThreadPool Threads;
 

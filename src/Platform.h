@@ -11,6 +11,16 @@
 //POPCNT;BSFQ;%(PreprocessorDefinitions)
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
+//#ifdef __cplusplus
+//// This hack copes with memory.h that does or doesnt provide the extern internally.
+//#   define DONT_USE_EXTERN_C
+//extern "C" {
+//#   include <memory.h>
+//}
+//#   undef DONT_USE_EXTERN_C
+//#else
+//#   include <memory>
+//#endif
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
@@ -21,7 +31,7 @@
 #pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
 #pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 #pragma warning (disable: 4996) // Function _ftime() may be unsafe
-#pragma warning (disable: 6326) // Constant comparison
+//#pragma warning (disable: 6326) // Constant comparison
 
 //#   include <stdint.h>
 
@@ -124,7 +134,7 @@ typedef unsigned long long      uint64_t;
 
 #   define CACHE_ALIGN(x)     __declspec(align(x))
 //#   define CACHE_ALIGN(x)     alignas(x)
-                                
+
 #elif defined(__GNUC__)
 
 #   define CACHE_ALIGN(x)     __attribute__((aligned(x)))
@@ -154,15 +164,15 @@ typedef unsigned long long      uint64_t;
 
 #   ifdef TRI_LOGGER
 
-#   include "TriLogger.h"
+#       include "TriLogger.h"
 
-#   define ASSERT(condition)                    \
+#       define ASSERT(condition)                \
     do {                                        \
     if (!(condition)) {                         \
     TRI_LOG_MSG ("ASSERT: \'" #condition "\'"); \
     } } while (false)
 
-#   define ASSERT_MSG(condition, msg)           \
+#       define ASSERT_MSG(condition, msg)       \
     do {                                        \
     if (!(condition)) {                         \
     TRI_LOG_MSG ("ASSERT: \'" msg "\'");        \
@@ -170,10 +180,10 @@ typedef unsigned long long      uint64_t;
 
 #   else
 
-#   include <cassert>
+#       include <cassert>
 
-#   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
-#   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
+#       define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
+#       define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
 
 #   endif
 

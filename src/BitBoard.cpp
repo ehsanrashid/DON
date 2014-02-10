@@ -1,6 +1,5 @@
 ﻿#include "BitBoard.h"
 
-#include <iostream>
 #include "xstring.h"
 
 #include "BitCount.h"
@@ -11,7 +10,6 @@ namespace BitBoard {
 
     using namespace std;
 
-#pragma region Constants
 
     const Bitboard FA_bb = U64 (0x0101010101010101);
     const Bitboard FB_bb = FA_bb << 1;//U64 (0x0202020202020202);
@@ -45,6 +43,10 @@ namespace BitBoard {
     const Bitboard LTSQ_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
     const Bitboard DRSQ_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
+    const Bitboard CORNER_bb = U64(0x8100000000000081);
+
+    const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
+
     //const Bitboard QSQ_bb  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
     //const Bitboard KSQ_bb  = ~QSQ_bb;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.
     //
@@ -55,9 +57,6 @@ namespace BitBoard {
     //const Bitboard CEN_EX_bb = U64(0x00003C3C3C3C0000); // 16 CENTER EXPANDED squares.
     //const Bitboard HOL_EX_bb = U64(0x00003C24243C0000); // 12 C-HOLE EXPANDED squares.
 
-#pragma endregion
-
-#pragma region LOOKUPs
 
     // FILE & RANK distance
     uint8_t _filerank_dist[F_NO][R_NO];
@@ -280,7 +279,6 @@ namespace BitBoard {
     CACHE_ALIGN(8) uint8_t      BShift[SQ_NO];
     CACHE_ALIGN(8) uint8_t      RShift[SQ_NO];
 
-#pragma endregion
 
     namespace {
 
@@ -381,7 +379,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (attacks_bb[s], 0, size * sizeof (Bitboard));
+                    std::memset (attacks_bb[s], 0, size * sizeof (Bitboard));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -415,8 +413,6 @@ namespace BitBoard {
     void initialize ()
     {
 
-#pragma region Constant LOOKUPs
-
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    _square_bb[s] = U64(1) << s;
@@ -439,8 +435,6 @@ namespace BitBoard {
         //{
         //    _front_rank_bb[WHITE][r] = ~(_front_rank_bb[BLACK][r + 1] = _front_rank_bb[BLACK][r] | _rank_bb[r]);
         //}
-
-#pragma endregion
 
         for (File f = F_A; f <= F_H; ++f)
         {
@@ -586,7 +580,6 @@ namespace BitBoard {
 
     }
 
-#pragma region Printing
 
     // Convert a char arr to a Bitboard (uint64_t) using radix
     Bitboard to_bitboard (const char s[], int32_t radix)
@@ -603,7 +596,7 @@ namespace BitBoard {
     {
         remove_if (sbb, ::isspace);
 
-        size_t length = sbb.length ();
+        uint8_t length = sbb.length ();
         //ASSERT (SQ_NO == length);
         if (SQ_NO != length) return "";
 
@@ -638,7 +631,7 @@ namespace BitBoard {
             reverse (sb);
 
             char buf[3];
-            memset (buf, 0, sizeof (buf));
+            std::memset (buf, 0, sizeof (buf));
             sprintf (buf, "%02X", to_bitboard (sb, 2));
             //sprintf_s (buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
             //_snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
@@ -714,7 +707,7 @@ namespace BitBoard {
         //sbb.append ("\n");
 
         const string row   = "|. . . . . . . .|\n";
-        const size_t row_len = row.length () + 1;
+        const uint8_t row_len = row.length () + 1;
         //" <--------------->\n"
         sbb = " /---------------\\\n";
 
@@ -743,21 +736,19 @@ namespace BitBoard {
         cout << sbb;
     }
 
-#pragma endregion
-
     //vector<Square> squares (Bitboard bb)
     //{
     //    vector<Square> sq_lst;
     //
     //    //for (Square s = SQ_A1; s <= SQ_H8; ++s)
     //    //{
-    //    //    if (bb & s) sq_lst.emplace_back (s);
+    //    //    if (bb & s) sq_lst.push_back (s);
     //    //}
     //
     //    while (bb)
     //    {
     //        Square s = pop_lsq (bb);
-    //        sq_lst.emplace_back (s);
+    //        sq_lst.push_back (s);
     //    }
     //
     //    return sq_lst;

@@ -31,8 +31,6 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr SetupStates;
 
-#pragma region uci-commands
-
         void exe_uci ()
         {
             sync_cout
@@ -44,7 +42,7 @@ namespace UCI {
 
         void exe_ucinewgame ()
         {
-            if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+            TT.clear ();
         }
 
         void exe_isready ()
@@ -170,7 +168,7 @@ namespace UCI {
 
             if (ClearHash && posi_key != RootPos.posi_key ())
             {
-                if (!bool (*(Options["Never Clear Hash"]))) TT.clear ();
+                TT.clear ();
             }
             ClearHash = false;
 
@@ -207,7 +205,7 @@ namespace UCI {
         // and starts the search.
         void exe_go (cmdstream &cstm)
         {
-            Limits_t limits;
+            LimitsT limits;
             string  token;
             int32_t value;
 
@@ -231,7 +229,7 @@ namespace UCI {
                     {
                         Move m = move_from_can (token, RootPos);
                         if (MOVE_NONE == m) continue;
-                        limits.search_moves.emplace_back (m);
+                        limits.search_moves.push_back (m);
                     }
                 }
             }
@@ -340,8 +338,6 @@ namespace UCI {
             Threads.main ()->notify_one (); // Could be sleeping
         }
 
-#pragma endregion
-
     }
 
     void start (const string &args)
@@ -415,7 +411,7 @@ namespace UCI {
     //        static char buf[1024];
     //        size_t size  =   sizeof (buf);
     //        size_t count = _countof (buf);
-    //        memset (buf, 0, size);
+    //        std::memset (buf, 0, size);
     //        va_list args;
     //        va_start (args, format);
     //        int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);

@@ -14,15 +14,15 @@ private:
     std::ofstream _fstm;
     std::tie_buf  _inbuf;
     std::tie_buf  _outbuf;
-    std::string   _fn_log;
+    std::string   _log_fn;
 
 protected:
 
     // Constructor should be protected !!!
-    DebugLogger (std::string fn_log)
+    DebugLogger (std::string log_fn)
         : _inbuf (std::cin.rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
-        , _fn_log (fn_log)
+        , _log_fn (log_fn)
     {}
 
     // Don't forget to declare these functions.
@@ -54,7 +54,7 @@ public:
     {
         if (!_fstm.is_open ())
         {
-            _fstm.open (_fn_log, std::ios_base::out | std::ios_base::app);
+            _fstm.open (_log_fn, std::ios_base::out | std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
             std::cin.rdbuf (&_inbuf);

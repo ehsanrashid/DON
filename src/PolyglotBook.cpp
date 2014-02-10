@@ -14,7 +14,6 @@ using namespace MoveGenerator;
 
 #define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 
-#pragma region PolyglotEntry Operators
 
 inline bool operator== (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
@@ -29,7 +28,7 @@ inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     return !(pe1 == pe2);
 }
 
-inline bool operator> (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator>  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return 
         (pe1.key != pe2.key) ?
@@ -38,7 +37,7 @@ inline bool operator> (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBoo
     //(pe1.weight > pe2.weight);  // order by weight value
 }
 
-inline bool operator< (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator<  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
     return
         (pe1.key != pe2.key) ?
@@ -70,8 +69,8 @@ PolyglotBook::PolyglotEntry::operator string () const
     ostringstream spe;
 
     Move m = Move (move);
-    PieceT pt = PieceT ((m >> 12) & 0x7);
     // Set new type for promotion piece
+    PieceT pt = PieceT ((m >> 12) & 0x7);
     if (pt) prom_type (m, pt);
 
     spe << setfill ('0')
@@ -85,8 +84,6 @@ PolyglotBook::PolyglotEntry::operator string () const
     return spe.str ();
 }
 
-
-#pragma endregion
 
 template<class T>
 PolyglotBook& PolyglotBook::operator>> (T &t)
@@ -261,7 +258,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //vector<PolyglotEntry> pe_list;
     //while ((*this >> pe), (pe.key == key) && good ())
     //{
-    //    pe_list.emplace_back (pe);
+    //    pe_list.push_back (pe);
     //    max_weight = max (max_weight, pe.weight);
     //    sum_weight += pe.weight;
     //}
@@ -269,8 +266,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //
     //if (pick_best)
     //{
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
-    //    while (itr != pe_list.cend ())
+    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
     //        if (pe.weight == max_weight)
@@ -289,8 +286,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
     //    uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.cbegin ();
-    //    while (itr != pe_list.cend ())
+    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
     //        if (pe.weight > rand)
@@ -363,7 +360,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        //if ((m ^ m_type (m)) == move)
+        //if ((m ^ mtype (m)) == move)
         if ((m & 0x3FFF) == move)
         {
             return m;
@@ -396,12 +393,12 @@ string PolyglotBook::read_entries (const Position &pos)
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
     {
-        pe_list.emplace_back (pe);
+        pe_list.push_back (pe);
         sum_weight += pe.weight;
     }
 
     ostringstream ss;
-    for_each (pe_list.cbegin (), pe_list.cend (), [&ss, &sum_weight] (PolyglotEntry pe)
+    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PolyglotEntry pe)
     {
         ss  << setfill ('0')
             << pe << " prob: " << right << fixed << width_prec (6, 2)

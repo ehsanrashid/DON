@@ -112,4 +112,4 @@ inline T RKISS::rand_boost (uint16_t booster)
     return T (r & randX<T> ());
 }
 
-#endif
+#endif // RKISS_H_

@@ -59,15 +59,15 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-#       ifdef _64BIT
+#      ifdef _64BIT
     {
         return (__popcnt64 (bb));
     }
-#       else
+#      else
     {
         return (__popcnt (bb) + __popcnt (bb >> 32));
     }
-#       endif
+#      endif
 }
 
 #   endif
@@ -188,8 +188,6 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 #endif
 
 
-#pragma region Extra
-
 //static const uint8_t   _CountByte[_UI8_MAX + 1] =
 //{
 //#undef C_6
@@ -266,7 +264,5 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 //{
 //    return( wordbits[w & 0xFFFF] + wordbits[w >> 0x10] );
 //}
-
-#pragma endregion
 
 #endif

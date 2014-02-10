@@ -6,7 +6,6 @@
 
 namespace BitBoard {
 
-#pragma region Constants
 
     extern const Bitboard FA_bb;
     extern const Bitboard FB_bb;
@@ -39,10 +38,9 @@ namespace BitBoard {
 
     extern const Bitboard LTSQ_bb; // 32 LIGHT squares.
     extern const Bitboard DRSQ_bb; // 32 DARK  squares.
-
-#pragma endregion
-
-#pragma region LOOKUPs
+    
+    extern const Bitboard CORNER_bb;
+    extern const Bitboard MID_EDGE_bb;
 
     extern uint8_t _filerank_dist[F_NO][R_NO];
     extern uint8_t   _square_dist[SQ_NO][SQ_NO];
@@ -76,13 +74,10 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
 
-#pragma region Attacks
 
     // attacks of the pieces
     CACHE_ALIGN(64) extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard _attacks_type_bb[NONE][SQ_NO];
-
-#pragma region MAGIC
 
     CACHE_ALIGN(64) extern Bitboard*BAttack_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard*RAttack_bb[SQ_NO];
@@ -96,13 +91,6 @@ namespace BitBoard {
     CACHE_ALIGN(8) extern uint8_t      BShift[SQ_NO];
     CACHE_ALIGN(8) extern uint8_t      RShift[SQ_NO];
 
-#pragma endregion
-
-#pragma endregion
-
-#pragma endregion
-
-#pragma region Operators
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  _square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  _square_bb[s]; }
@@ -136,10 +124,6 @@ namespace BitBoard {
     inline Bitboard& operator^= (Bitboard &bb, Rank   r) { return bb ^= _rank_bb[r]; }
     inline Bitboard& operator+= (Bitboard &bb, Rank   r) { return bb |= _rank_bb[r]; }
     inline Bitboard& operator-= (Bitboard &bb, Rank   r) { return bb &=~_rank_bb[r]; }
-
-#pragma endregion
-
-#pragma region Deltas
 
     inline uint8_t file_dist (File f1, File f2)     { return _filerank_dist[f1][f2]; }
     inline uint8_t file_dist (Square s1, Square s2) { return _filerank_dist[_file (s1)][_file (s2)]; }
@@ -202,10 +186,6 @@ namespace BitBoard {
     //    k = (15 * (k>>3) ^ k) - (k>>3);  // if (k > 7) k = 14 - k
     //    return k;
     //}
-
-#pragma endregion
-
-#pragma region Masks
 
     inline Bitboard square_bb  (Square s) { return  _square_bb[s]; }
     inline Bitboard square_bb_ (Square s) { return ~_square_bb[s]; }
@@ -270,9 +250,6 @@ namespace BitBoard {
 
     inline bool more_than_one (Bitboard bb) { return bool ((bb) & (bb - 1)); }
 
-#pragma endregion
-
-#pragma region Shifts using Delta
 
     //template<Delta DELTA>
     //extern Bitboard shift_del (Bitboard bb, int8_t x);
@@ -308,10 +285,6 @@ namespace BitBoard {
     inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (7); } //(bb << 7) & FH_bb_;
     template<>
     inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (9); } //(bb >> 9) & FH_bb_;
-
-#pragma endregion
-
-#pragma region Attacks
 
     inline Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0))
     {
@@ -422,7 +395,7 @@ namespace BitBoard {
     // Piece attacks from square
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        switch (_type (p))
+        switch (_ptype (p))
         {
         case PAWN: return attacks_bb<PAWN> (_color (p), s);
         case BSHP: return attacks_bb<BSHP> (s, occ);
@@ -436,11 +409,7 @@ namespace BitBoard {
         return U64 (0);
     }
 
-#pragma endregion
-
     extern void initialize ();
-
-#pragma region Printing
 
     extern Bitboard to_bitboard (const char s[], int32_t radix = 16);
     extern Bitboard to_bitboard (const std::string &s, int32_t radix = 16);
@@ -450,8 +419,6 @@ namespace BitBoard {
     extern void print_bit (Bitboard bb, uint8_t x = 64, char p = 'o');
     extern void print_bin (Bitboard bb);
     extern void print (Bitboard bb, char p = 'o');
-
-#pragma endregion
 
     //extern std::vector<Square> squares (Bitboard  bb);
 

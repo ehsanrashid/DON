@@ -28,7 +28,7 @@ typedef struct ValMove
 
 namespace MoveGenerator {
 
-    // Type of Generators
+    // Types of Generator
     typedef enum GenT : uint8_t
     {
         // PSEUDO-LEGAL MOVES
@@ -38,14 +38,11 @@ namespace MoveGenerator {
         QUIET,       // Do not change material, thus no captures nor promotions.
         CHECK,       // Any way checks the enemy King.
         QUIET_CHECK, // Do not change material and only checks the enemy King.
-        //DESPERADO,   // Where pieces seem determined to give itself up to bring up stalemate if it is captured.
 
         // ------------------------
-
-        LEGAL,       // Legal moves
+        LEGAL        // Legal moves
 
     } GenT;
-
 
     template<GenT GT>
     extern ValMove* generate (ValMove *m_list, const Position &pos);
@@ -90,7 +87,7 @@ namespace MoveGenerator {
         }
 
         //template<class charT, class Traits, GenT GT>
-        //friend std::basic_ostream<charT, Traits>&
+        //inline friend std::basic_ostream<charT, Traits>&
         //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &mov_lst)
         //{
         //    ValMove *cur = mov_lst.cur;

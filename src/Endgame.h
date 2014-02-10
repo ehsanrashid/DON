@@ -8,7 +8,7 @@
 
 namespace EndGame {
 
-    // EndgameT lists all supported endgames
+    // Endgame Type lists all supported endgames
     typedef enum EndgameT
     {
         // Evaluation functions
@@ -40,7 +40,7 @@ namespace EndGame {
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB,   // KNP vs KB
+        KNPKB   // KNP vs KB
 
     } EndgameT;
 

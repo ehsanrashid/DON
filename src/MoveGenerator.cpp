@@ -18,8 +18,6 @@ namespace MoveGenerator {
 
     namespace {
 
-#pragma region Move Generators
-
         template<GenT GT, PieceT PT>
         // Move Generator for PIECE
         struct Generator
@@ -93,11 +91,11 @@ namespace MoveGenerator {
                     {
                         if (!pos.castle_impeded (clr) && pos.can_castle (clr) && !pos.checkers ())
                         {
-                        	CheckInfo cc;
+                            CheckInfo cc;
                             if (NULL == ci)
                             {
-                            	cc = CheckInfo (pos);
-                            	ci = &cc;
+                                cc = CheckInfo (pos);
+                                ci = &cc;
                             }
 
                             if (!pos.castle_impeded (clr, CS_K) && pos.can_castle (clr, CS_K))
@@ -130,7 +128,7 @@ namespace MoveGenerator {
 
                 Square org_king = pos.king_sq (clr);
                 Square org_rook = pos.castle_rook (clr, SIDE);
-                if (ROOK != _type (pos[org_rook])) return;
+                if (ROOK != _ptype (pos[org_rook])) return;
 
                 Square dst_king = rel_sq (clr, (CS_Q == SIDE) ? SQ_WK_Q : SQ_WK_K);
 
@@ -169,7 +167,7 @@ namespace MoveGenerator {
                 case QUIET_CHECK:
                     if (UNLIKELY (ci))
                     {
-                        if (pos.check (m, *ci))
+                        if (pos.gives_check (m, *ci))
                         {
                             (m_list++)->move = m;
                         }
@@ -205,7 +203,7 @@ namespace MoveGenerator {
                 Bitboard bbRR7 = rel_rank_bb (C, R_7);
                 Bitboard bbRR3 = rel_rank_bb (C, R_3);
 
-                Bitboard pawns = pos.pieces (C, PAWN);
+                Bitboard pawns = pos.pieces<PAWN> (C);
                 Bitboard pawns_on_R7 = pawns &  bbRR7;
                 Bitboard pawns_on_Rx = pawns & ~bbRR7;
                 Bitboard occ = pos.pieces ();
@@ -384,8 +382,6 @@ namespace MoveGenerator {
 
         };
 
-#pragma endregion
-
         template<Color C, GenT GT>
         // Generates all pseudo-legal moves of color for targets.
         INLINE ValMove* generate_moves (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
@@ -408,13 +404,13 @@ namespace MoveGenerator {
         //    //m_list.erase (
         //    //    remove_if (m_list.begin (), m_list.end (), [&] (Move m)
         //    //{
-        //    //    return ((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds); 
+        //    //    return ((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m))) && !pos.legal (m, pinneds); 
         //    //}), m_list.end ());
         //
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == m_type (m))) && !pos.legal (m, pinneds))
+        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m))) && !pos.legal (m, pinneds))
         //        {
         //            beg->move = (--end)->move;
         //        }
@@ -426,8 +422,6 @@ namespace MoveGenerator {
         //}
 
     }
-
-#pragma region Generates
 
     template<GenT GT>
     // Generates all pseudo-legal moves.
@@ -475,11 +469,11 @@ namespace MoveGenerator {
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
 
-        Bitboard discovers = ci.discoverers & ~pos.pieces (active, PAWN);
+        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PieceT pt   = _type (pos[org]);
+            PieceT pt   = _ptype (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
@@ -504,11 +498,11 @@ namespace MoveGenerator {
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
 
-        Bitboard discovers = ci.discoverers & ~pos.pieces (active, PAWN);
+        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PieceT pt   = _type (pos[org]);
+            PieceT pt   = _ptype (pos[org]);
 
             if (PAWN == pt) continue; // Will be generated together with direct checks
 
@@ -571,7 +565,7 @@ namespace MoveGenerator {
 
             ASSERT (_color (pos[check_sq]) == ~active);
 
-            if (_type (pos[check_sq]) > NIHT) // A slider
+            if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
                 slid_attacks |= _lines_sq_bb[check_sq][org_king] - check_sq;
             }
@@ -612,7 +606,7 @@ namespace MoveGenerator {
         while (cur != end)
         {
             Move m = cur->move;
-            if ((org_sq (m) == k_sq || pinneds || ENPASSANT == m_type (m)) &&
+            if ((org_sq (m) == k_sq || pinneds || ENPASSANT == mtype (m)) &&
                 !pos.legal (m, pinneds))
             {
                 cur->move = (--end)->move;
@@ -625,8 +619,6 @@ namespace MoveGenerator {
 
         return end;
     }
-
-#pragma endregion
 
 #undef SERIALIZE
 #undef SERIALIZE_PAWNS

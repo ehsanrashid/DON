@@ -9,8 +9,6 @@ inline Bitboard rotate_R (Bitboard bb, int8_t k) { return (bb >> k) | (bb << (in
 // Rotate LEFT (toward MSB)
 inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
 
-#pragma region Rotate Flip Mirror
-
 //// Flip a bitboard vertically about the centre ranks.
 //inline Bitboard  flip_verti (Bitboard bb)
 //{
@@ -161,10 +159,7 @@ inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (in
 //    return bb;
 //}
 
-#pragma endregion
 
-#pragma region Index
-//
 //// Collapse all FILEs to 1st RANK (File overlay)
 //inline uint8_t CollapsedRANKsIndex (Bitboard bb)
 //{
@@ -257,9 +252,7 @@ inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (in
 //{
 //    return bb >> IndexRank (s);
 //}
-#pragma endregion
 
-#pragma region Binary operations
 //inline Bitboard   Include(Bitboard &bb, Bitboard include)
 //{
 //    return bb |=  include;
@@ -280,9 +273,7 @@ inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (in
 //{
 //    return bb ^=  toggle;
 //}
-#pragma endregion
 
-#pragma region Kogge-Stone Algorithm
 
 // gen = generator  (sliders),
 // pro = propagator (empty)
@@ -371,8 +362,6 @@ inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (in
 //    gen |= pro &    (gen >> 36);
 //    return gen;
 //}
-
-#pragma endregion
 
 
 //static const uint8_t _reverse_byte[_UI8_MAX + 1] =

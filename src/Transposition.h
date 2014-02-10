@@ -2,10 +2,11 @@
 #ifndef TRANSPOSITION_H_
 #define TRANSPOSITION_H_
 
-#include <iostream>
 #include <cstdlib>
 #include "Type.h"
+#include "UCI.h"
 //#include "LeakDetector.h"
+
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
@@ -50,8 +51,8 @@ public:
     Value      value () const { return Value      (_value); }
     Value    e_value () const { return Value    (_e_value); }
 
-    void save (uint32_t k, Move m, Depth d, Bound b,
-        uint8_t g, uint16_t n, Value v, Value ev)
+
+    void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value ev)
     {
         _key     = uint32_t (k);
         _move    = uint16_t (m);
@@ -165,10 +166,10 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (_hash_table)
+        if (!bool (*(Options["Never Clear Hash"])) && _hash_table)
         {
             uint64_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
-            memset (_hash_table, 0, size_byte);
+            std::memset (_hash_table, 0, size_byte);
             _stored_entry = 0;
             _generation   = 0;
         }

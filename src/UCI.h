@@ -135,6 +135,8 @@ namespace UCI {
 
     }
 
+    //class OptionType::Option;
+
     //typedef std::shared_ptr<OptionType::Option> OptionPtr;
     typedef std::unique_ptr<OptionType::Option> OptionPtr;
 
@@ -150,8 +152,8 @@ namespace UCI {
         for (size_t idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator
-                itr = options.cbegin ();
-                itr != options.cend (); ++itr)
+                itr = options.begin ();
+                itr != options.end (); ++itr)
             {
                 if (idx == itr->second->index)
                 {

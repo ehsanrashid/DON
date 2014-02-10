@@ -8,7 +8,7 @@ using namespace MoveGenerator;
 
 namespace {
 
-    enum Stages : uint8_t
+    enum StageT : uint8_t
     {
         MAIN_STAGE,  CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS,    EVASIONS_S2,
@@ -153,9 +153,9 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][_type (pos[dst_sq (m)])] - _type (pos[org_sq (m)]);
+        itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])] - _ptype (pos[org_sq (m)]);
 
-        switch (m_type (m))
+        switch (mtype (m))
         {
         case PROMOTE:
             itr->value += PieceValue[MG][prom_type (m)]
@@ -194,8 +194,8 @@ void MovePicker::value<EVASION> ()
         }
         else if (pos.capture (m))
         {
-            itr->value = PieceValue[MG][_type (pos[dst_sq (m)])]
-            - _type (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
+            itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])]
+            - _ptype (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
         }
         else
         {
@@ -230,12 +230,12 @@ void MovePicker::generate_next_stage ()
         // Killer moves usually come right after after the hash move and (good) captures
         cur = end = killers;
 
-        killers[0].move = MOVE_NONE; //killer[0];
-        killers[1].move = MOVE_NONE; //killer[1];
-        killers[2].move = MOVE_NONE; //counter_moves[0]
-        killers[3].move = MOVE_NONE; //counter_moves[1]
-        killers[4].move = MOVE_NONE; //followup_moves[0]
-        killers[5].move = MOVE_NONE; //followup_moves[1]
+        killers[0].move =               //killer[0];
+            killers[1].move =           //killer[1];
+            killers[2].move =           //counter_moves[0]
+            killers[3].move =           //counter_moves[1]
+            killers[4].move =           //followup_moves[0]
+            killers[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)
@@ -245,45 +245,45 @@ void MovePicker::generate_next_stage ()
                 (end++)->move = ss->killers[i];
             }
         }
-        // If killer moves are same
-        if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If killer moves are same
+        //if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (int32_t i = 0; i < 2; ++i)
         {
             if (counter_moves[i] &&
-                counter_moves[i] != (cur+0)->move &&
-                counter_moves[i] != (cur+1)->move)
+                counter_moves[i] != cur[0].move &&
+                counter_moves[i] != cur[1].move)
             {
                 (end++)->move = counter_moves[i];
             }
         }
-        // If counter moves are same
-        if (counter_moves[1] && counter_moves[1] == counter_moves[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If counter moves are same
+        //if (counter_moves[1] && counter_moves[1] == counter_moves[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         // Be sure followup moves are not MOVE_NONE & different from killers and countermoves
         for (int32_t i = 0; i < 2; ++i)
         {
             if (followup_moves[i] &&
-                followup_moves[i] != (cur+0)->move &&
-                followup_moves[i] != (cur+1)->move &&
-                followup_moves[i] != (cur+2)->move &&
-                followup_moves[i] != (cur+3)->move)
+                followup_moves[i] != cur[0].move &&
+                followup_moves[i] != cur[1].move &&
+                followup_moves[i] != cur[2].move &&
+                followup_moves[i] != cur[3].move)
             {
                 (end++)->move = followup_moves[i];
             }
         }
-        // If followup moves are same
-        if (followup_moves[1] && followup_moves[1] == followup_moves[0]) // Due to SMP races
-        {
-            (--end)->move = MOVE_NONE;
-        }
+        //// If followup moves are same
+        //if (followup_moves[1] && followup_moves[1] == followup_moves[0]) // Due to SMP races
+        //{
+        //    (--end)->move = MOVE_NONE;
+        //}
 
         return;
 

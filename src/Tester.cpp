@@ -11,7 +11,6 @@
 namespace Tester {
 
 //#ifndef NDEBUG
-
     using namespace std;
 
     namespace {

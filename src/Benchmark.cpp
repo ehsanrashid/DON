@@ -73,7 +73,7 @@ void benchmark (istream &is, const Position &pos)
     // Assign default values to missing arguments
     string size_tt    = (is >> token) ? token : "32";
     string num_threads= (is >> token) ? token : "1";
-    string fn_fen     = (is >> token) ? token : "default";
+    string fen_fn     = (is >> token) ? token : "default";
     string limit_val  = (is >> token) ? token : "13";
     string limit_type = (is >> token) ? token : "depth";
 
@@ -81,29 +81,29 @@ void benchmark (istream &is, const Position &pos)
     *Options["Threads"] = num_threads;
 
     TT.clear ();
-    Limits_t limits;
+    LimitsT limits;
 
-    if      (iequals (limit_type, "time"))  limits.move_time = stoi (limit_val) * MS_SEC; // movetime is in ms
-    else if (iequals (limit_type, "nodes")) limits.nodes     = stoi (limit_val);
-    else if (iequals (limit_type, "mate"))  limits.mate_in   = stoi (limit_val);
+    if      (iequals (limit_type, "time"))  limits.move_time = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
+    else if (iequals (limit_type, "nodes")) limits.nodes     = atoi (limit_val.c_str ());
+    else if (iequals (limit_type, "mate"))  limits.mate_in   = atoi (limit_val.c_str ());
     //else if (iequals (limit_type, "depth"))
-    else                                    limits.depth     = stoi (limit_val);
+    else                                    limits.depth     = atoi (limit_val.c_str ());
 
-    if      (iequals (fn_fen, "default"))
+    if      (iequals (fen_fn, "default"))
     {
         fens.assign (default_fens, default_fens + NUM_FEN);
     }
-    else if (iequals (fn_fen, "current"))
+    else if (iequals (fen_fn, "current"))
     {
-        fens.emplace_back (pos.fen ());
+        fens.push_back (pos.fen ());
     }
     else
     {
-        ifstream fstm_fen (fn_fen);
+        ifstream fstm_fen (fen_fn.c_str ());
 
         if (!fstm_fen.is_open ())
         {
-            cerr << "ERROR: Unable to open file ... \'" << fn_fen << "\'" << endl;
+            cerr << "ERROR: Unable to open file ... \'" << fen_fn << "\'" << endl;
             return;
         }
 
@@ -112,7 +112,7 @@ void benchmark (istream &is, const Position &pos)
         {
             if (!fen.empty ())
             {
-                fens.emplace_back (fen);
+                fens.push_back (fen);
             }
         }
         fstm_fen.close ();
@@ -123,16 +123,17 @@ void benchmark (istream &is, const Position &pos)
     point elapsed = now ();
     bool chess960 = *(Options["UCI_Chess960"]);
 
-    for (size_t i = 0; i < fens.size (); ++i)
+    uint32_t total = fens.size ();
+    for (uint32_t i = 0; i < total; ++i)
     {
         Position root_pos (fens[i], Threads.main (), chess960);
 
         cerr << "\n--------------\n" 
-            << "Position: " << (i + 1) << "/" << fens.size () << "\n";
+            << "Position: " << (i + 1) << "/" << total << "\n";
 
         if (limit_type == "perft")
         {
-            size_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
+            uint64_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
             cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
             nodes += cnt;
         }

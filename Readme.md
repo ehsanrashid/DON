@@ -1,17 +1,24 @@
 ### Overview
 
+<<<<<<< HEAD
 DON is a free UCI chess engine derived from Glaurung 2.1.
 It is not a complete chess program and requires some UCI-compatible GUI
 (e.g. XBoard with PolyGlot, eboard, Arena, Sigma Chess, Shredder, Chess
 Partner or Fritz) in order to be used comfortably.
 Read the documentation for your GUI of choice for information
 about how to use DON with it.
+=======
+DON is a free UCI chess engine. It is not a complete chess program and requires some UCI-compatible GUI (e.g. XBoard with PolyGlot, eboard, Arena, Sigma Chess, Shredder, Chess
+Partner or Fritz) in order to be used comfortably.
+Read the documentation for your GUI of choice for information about how to use DON with it.
+>>>>>>> origin/minGW
 
 This version of DON supports up to 64 CPUs. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the *Threads* UCI parameter,
 and to make sure it equals the number of CPU cores on your computer.
 
 
+<<<<<<< HEAD
 ### Files
 
 This distribution of DON consists of the following files:
@@ -62,3 +69,5 @@ source code, these changes must also be made available under the GPL.
 
 For full details, read the copy of the GPL found in the file named
 *Copying.txt*
+=======
+>>>>>>> origin/minGW

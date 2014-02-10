@@ -12,6 +12,7 @@
 *.bin
 *.pgn
 *.dat
+*.prefs
 .depend
 
 extra/

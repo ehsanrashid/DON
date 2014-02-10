@@ -15,14 +15,14 @@ using namespace Time;
 
 // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
-AmbType ambiguity (Move m, const Position &pos)
+AmbT ambiguity (Move m, const Position &pos)
 {
     ASSERT (pos.legal (m));
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PieceT pt  = _type (p);
+    PieceT pt  = _ptype (p);
 
 
     //uint8_t n = 0;
@@ -52,55 +52,44 @@ AmbType ambiguity (Move m, const Position &pos)
     //if (!r) return AMB_FILE;
     //return AMB_SQR;
 
-    // Disambiguation if we have more then one piece with destination 'to'
+    // Disambiguation if we have more then one piece with destination 'dst'
     // note that for pawns is not needed because starting file is explicit.
-    //bool
-    //    ambiguousMove = false,
-    //    ambiguousFile = false,
-    //    ambiguousRank = false;
-    //
-    //Bitboard attackers = (pos.attacks_bb(pc, to) & pos.pieces (us, pt)) ^ from;
-    //while (attackers)
-    //{
-    //    Square sq = pop_lsq(&attackers);
-    //    // Pinned pieces are not included in the possible sub-set
-    //    if (!pos.pl_move_is_legal(make_move(sq, to), pos.pinned_pieces()))
-    //        continue;
-    //    ambiguousFile |= file_of(sq) == file_of(from);
-    //    ambiguousRank |= rank_of(sq) == rank_of(from);
-    //    ambiguousMove = true;
-    //}
-    //if (!ambiguousMove) return AMB_NONE;
-    //if (!ambiguousFile) return AMB_RANK;
-    //if (!ambiguousRank) return AMB_FILE;
-    //return AMB_SQR;
-
-    //Bitboard occ = pos.pieces ();
-    ////Bitboard friends = pos.pieces (pos.active ());
-    //Bitboard ambiguous = pos.pieces (pos.active ()) & ~pos.pinneds () - org;
-    //switch (pt)
-    //{
-    //case PAWN:
-    //case KING: return AMB_NONE; break;
-    //case NIHT: ambiguous &= attacks_bb<NIHT> (dst) & pos.pieces (NIHT); break;
-    //case BSHP: ambiguous &= attacks_bb<BSHP> (dst, occ) & pos.pieces (BSHP); break;
-    //case ROOK: ambiguous &= attacks_bb<ROOK> (dst, occ) & pos.pieces (ROOK); break;
-    //case QUEN: ambiguous &= attacks_bb<QUEN> (dst, occ) & pos.pieces (QUEN); break;
-    //}
-    //if (!(ambiguous)) return AMB_NONE;
-    //if (!(ambiguous & file_bb (org))) return AMB_RANK;
-    //if (!(ambiguous & rank_bb (org))) return AMB_FILE;
-    //return AMB_SQR;
 
     Bitboard pinneds = pos.pinneds (pos.active ());
+
+    // Disambiguation if we have more then one piece with destination 'dst'
+    // note that for pawns is not needed because starting file is explicit.
+    //bool
+    //    amb_move = false,
+    //    amb_file = false,
+    //    amb_rank = false;
+    //Bitboard b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
+    //while (b)
+    //{
+    //    Square sq = pop_lsq (b);
+    //    // Pinned pieces are not included in the possible sub-set
+    //    if (!pos.legal (mk_move (sq, dst), pinneds))
+    //    {
+    //        continue;
+    //    }
+    //    amb_file |= (_file (sq) == _file (org));
+    //    amb_rank |= (_rank (sq) == _rank (org));
+    //    amb_move = true;
+    //}
+    //if (!amb_move) return AMB_NONE;
+    //if (!amb_file) return AMB_RANK;
+    //if (!amb_rank) return AMB_FILE;
+    //return AMB_SQR;
+
     Bitboard others, b;
     others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
     while (b)
     {
-        Move move = mk_move (pop_lsq (b), dst);
+        org = pop_lsq (b);
+        Move move = mk_move (org, dst);
         if (!pos.legal (move, pinneds))
         {
-            others -= org_sq (move);
+            others -= org;
         }
     }
 
@@ -165,7 +154,7 @@ const string move_to_can (Move m, bool c960)
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    MoveT mt   = m_type (m);
+    MoveT mt   = mtype (m);
     if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
     string can = to_string (org) + to_string (dst);
     if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
@@ -183,7 +172,7 @@ const string move_to_san (Move m, Position &pos)
     Square org = org_sq (m);
     Square dst = dst_sq (m);
     Piece p   = pos[org];
-    PieceT pt  = _type (p);
+    PieceT pt  = _ptype (p);
 
     //    switch (pt)
     //    {
@@ -197,7 +186,7 @@ const string move_to_san (Move m, Position &pos)
     //
     //        san += to_string (dst);
     //
-    //        if (PROMOTE == m_type (m))
+    //        if (PROMOTE == mtype (m))
     //        {
     //            switch (prom_type (m))
     //            {
@@ -211,7 +200,7 @@ const string move_to_san (Move m, Position &pos)
     //        goto move_marker;
     //
     //    case KING:
-    //        if (CASTLE == m_type (m))
+    //        if (CASTLE == mtype (m))
     //        {
     //            CSide cs = ((WHITE == pos.active ()) ?
     //                (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
@@ -250,17 +239,17 @@ const string move_to_san (Move m, Position &pos)
     //    // promote ????????
     //move_marker:
     //    // Marker for check & checkmate
-    //    if (pos.check (m, CheckInfo (pos)))
+    //    if (pos.gives_check (m, CheckInfo (pos)))
     //    {
     //        StateInfo sinfo;
     //        Position p = pos;
     //        p.do_move (m, sinfo);
-    //        size_t legalmove = generate<LEGAL> (p).size ();
+    //        uint8_t legalmove = generate<LEGAL> (p).size ();
     //
     //        san += (legalmove ? '+' : '#');
     //    }
 
-    MoveT mt = m_type (m);
+    MoveT mt = mtype (m);
     switch (mt)
     {
     case CASTLE:
@@ -297,7 +286,7 @@ const string move_to_san (Move m, Position &pos)
     }
 
     // Move marker for check & checkmate
-    if (pos.check (m, CheckInfo (pos)))
+    if (pos.gives_check (m, CheckInfo (pos)))
     {
         StateInfo si;
         pos.do_move (m, si);
@@ -331,7 +320,7 @@ string score_uci (Value v, Value alpha, Value beta)
     int32_t abs_v = abs (int32_t (v));
     if (abs_v < VALUE_MATES_IN_MAX_PLY)
     {
-        if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+        //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
         ss << "cp " << int32_t (v) * 100 / VALUE_MG_PAWN;
     }
     else
@@ -354,7 +343,7 @@ namespace {
         int32_t abs_v = abs (int32_t (v));
         if (abs_v < VALUE_MATES_IN_MAX_PLY)
         {
-            if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
+            //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
             ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else
@@ -372,14 +361,14 @@ namespace {
     }
 
     // time to string
-    string time_to_string (int64_t msecs)
+    string time_to_string (uint64_t msecs)
     {
-        const int32_t MSecMinute = MS_SEC * 60;
-        const int32_t MSecHour   = MS_SEC * 60 * 60;
+        const uint32_t MSecMinute = M_SEC * 60;
+        const uint32_t MSecHour   = MSecMinute * 60;
 
-        int64_t hours   =   msecs / MSecHour;
-        int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / MS_SEC;
+        uint64_t hours   =   msecs / MSecHour;
+        uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
+        uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
         stringstream ss;
 
@@ -396,10 +385,10 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const Move pv[])
+string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
 {
-    const int64_t K = 1000;
-    const int64_t M = 1000000;
+    const uint64_t K = 1000;
+    const uint64_t M = 1000000;
 
     stringstream spv;
 
@@ -421,7 +410,7 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, cons
     }
 
     string padding = string (spv.str ().length (), ' ');
-    size_t length  = padding.length ();
+    uint16_t length  = padding.length ();
     StateInfoStack states;
 
     const Move *m = pv;

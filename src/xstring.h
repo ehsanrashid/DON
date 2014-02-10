@@ -7,7 +7,8 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-#include <unordered_set>
+
+//#include <unordered_set>
 //#include <sstream>  // stringstream in trim
 //#include <stack>    // stack<> in reverse
 
@@ -25,12 +26,21 @@ namespace std {
 
     inline std::string& to_lower (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), ::tolower);
+        std::transform (s.begin (), s.end (), s.begin (), ::tolower);
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
-        std::transform (s.cbegin (), s.cend (), s.begin (), ::toupper);
+        std::transform (s.begin (), s.end (), s.begin (), ::toupper);
+        return s;
+    }
+
+    inline std::string& toggle (std::string &s)
+    {
+        transform (s.begin (), s.end (), s.begin (), [] (char c)
+        {
+            return char (islower (c) ? toupper (c) : tolower (c));
+        });
         return s;
     }
 
@@ -47,40 +57,39 @@ namespace std {
         //to_lower (const_cast<string&> (s2)); //to_upper ();
         //return (s1 == s2);
 
-        //return !stricmp(s1.c_str (), s2.c_str ());
+        //return !stricmp (s1.c_str (), s2.c_str ());
 
+        return (s1.size () == s2.size ()) && std::equal (s1.begin (), s1.end (), s2.begin ());
         return (s1.size () == s2.size ()) &&
-            std::equal (s1.cbegin (), s1.cend (), s2.cbegin (), [] (char c1, char c2)
+            std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)->bool
         {
             return toupper (c1) == toupper (c2);
         });
     }
 
-    //// char case-sensitive equals
-    //inline bool equals (int c1, int c2)
-    //{
-    //    return (c1 == c2);
-    //}
+    // char case-sensitive equals
+    inline bool equals (int c1, int c2)     { return (c1 == c2); }
+    //inline bool notequals (int c1, int c2)  { return (c1 != c2); }
 
     // trim from head
     inline std::string& ltrim (std::string &s, char c = ' ')
     {
-        //s.erase (s.cbegin (),
-        //    std::find_if (s.cbegin (), s.cend (),
+        //s.erase (s.begin (),
+        //    std::find_if (s.begin (), s.end (),
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))));
 
-        s.erase (s.cbegin (), std::find_if (s.cbegin (), s.cend (), [&] (char ch) { return (ch != c); }));
+        s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch)->bool { return (ch != c); }));
 
         return s;
     }
     // trim from tail
     inline std::string& rtrim (std::string &s, char c = ' ')
     {
-        //s.erase (std::find_if (s.crbegin (), s.crend (),
+        //s.erase (std::find_if (s.rbegin (), s.rend (),
         //    std::not1 (std::bind2nd (std::ptr_fun<int, int, bool> (equals), c))).base (),
-        //    s.cend ());
+        //    s.end ());
 
-        s.erase (std::find_if (s.crbegin (), s.crend (), [&] (char ch) { return (ch != c); }).base (), s.cend ());
+        s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch)->bool { return (ch != c); }).base (), s.end ());
 
         return s;
     }
@@ -145,12 +154,12 @@ namespace std {
     template<class Pred>
     inline bool check_if (std::string &s, Pred &pred)
     {
-        return (std::count_if (s.cbegin (), s.cend (), pred) == s.length ());
+        return (std::count_if (s.begin (), s.end (), pred) == s.length ());
     }
     template<class Pred>
     inline std::string& remove_if (std::string &s, Pred &pred)
     {
-        s.erase (std::remove_if (s.begin (), s.end (), pred), s.cend ());
+        s.erase (std::remove_if (s.begin (), s.end (), pred), s.end ());
         return s;
     }
 
@@ -182,13 +191,13 @@ namespace std {
     //    }
     //}
 
-    inline std::string remove_dup (const std::string &s)
-    {
-        // unique char set
-        std::unordered_set<char> char_set (begin (s), end (s));
-        std::string unique_str (begin (char_set), end (char_set));
-        return unique_str;
-    }
+    //inline std::string remove_dup (const std::string &s)
+    //{
+    //    // unique char set
+    //    std::unordered_set<char> char_set (begin (s), end (s));
+    //    std::string unique_str (begin (char_set), end (char_set));
+    //    return unique_str;
+    //}
 
     inline std::size_t count_substr (const std::string &s, const std::string &sub, bool overlap = true)
     {
@@ -223,16 +232,16 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        s_list.emplace_back (part);
+        //        s_list.push_back (part);
         //    }
         //}
         //while (success && iss.good ());
 
-        //std::string::const_iterator cbeg = s.cbegin ();
-        //std::string::const_iterator cend = s.cend ();
-        //while (cbeg <= cend)
+        //std::string::const_iterator cbeg = s.begin ();
+        //std::string::const_iterator end = s.end ();
+        //while (cbeg <= end)
         //{
-        //    std::string::const_iterator cmid = find (cbeg, cend, delim); // find_if(cbeg, cend, isspace);
+        //    std::string::const_iterator cmid = find (cbeg, end, delim); // find_if(cbeg, end, isspace);
         //    std::string part = string (cbeg, cmid);
         //    if (trim_entry)
         //    {
@@ -240,9 +249,9 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        s_list.emplace_back (part);
+        //        s_list.push_back (part);
         //    }
-        //    if (cmid == cend) break;
+        //    if (cmid == end) break;
         //    cbeg = cmid + 1;
         //}
 
@@ -259,7 +268,7 @@ namespace std {
         //    }
         //    if (keep_empty || !empty (part))
         //    {
-        //        s_list.emplace_back (part);
+        //        s_list.push_back (part);
         //    }
         //    if (std::string::npos == p1) break;
         //    dup = dup.substr (p1 + 1);
@@ -279,7 +288,7 @@ namespace std {
             }
             if (keep_empty || !part.empty ())
             {
-                s_list.emplace_back (part);
+                s_list.push_back (part);
             }
             if (std::string::npos == p1) break;
             ++p1;
@@ -301,7 +310,7 @@ namespace std {
     //
     //    //static std::string const sep_fn ( "\\/" );
     //    //std::string::const_iterator pivot
-    //    //    = std::find_first_of (path.crbegin (), path.crend (), sep_fn.crbegin (), sep_fn.crend ());
+    //    //    = std::find_first_of (path.rbegin (), path.rend (), sep_fn.rbegin (), sep_fn.rend ());
     //
     //    return path.find_last_of ("/\\");
     //
