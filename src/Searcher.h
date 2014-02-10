@@ -97,10 +97,10 @@ namespace Searcher {
     //  - Falied low at root.
     typedef struct SignalsT
     {
-        bool stop;
-        bool stop_on_ponderhit;
-        bool first_root_move;
-        bool failed_low_at_root;
+        bool  stop
+            , stop_on_ponderhit
+            , first_root_move
+            , failed_low_at_root;
 
         SignalsT () { std::memset (this, 0, sizeof (SignalsT)); }
 
@@ -125,8 +125,9 @@ namespace Searcher {
     // Score is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        Value curr_value;
-        Value last_value;
+        Value curr_value
+            , last_value;
+
         //uint64_t nodes;
 
         std::vector<Move> pv;
@@ -163,10 +164,13 @@ namespace Searcher {
     {
         SplitPoint *split_point;
         uint8_t     ply;
-        Move        current_move;
-        Move        tt_move;
-        Move        excluded_move;
+
+        Move        current_move
+            ,       tt_move
+            ,       excluded_move;
+
         Move        killers[2];
+
         Depth       reduction;
         Value       static_eval;
         bool        skip_null_move;
@@ -176,8 +180,8 @@ namespace Searcher {
 
     } Stack;
 
-    extern LimitsT              Limits;
-    extern volatile SignalsT    Signals;
+    extern LimitsT               Limits;
+    extern volatile SignalsT     Signals;
 
     extern std::vector<RootMove> RootMoves;
     extern Position              RootPos;

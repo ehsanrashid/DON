@@ -564,7 +564,10 @@ int32_t Position::see      (Move m) const
         // Stop before processing a king capture
         if (KING == ct)
         {
-            if (stm_attackers == attackers) ++depth;
+            if (stm_attackers == attackers)
+            {
+                ++depth;
+            }
             break;
         }
 
