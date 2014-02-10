@@ -163,11 +163,9 @@ void ThreadPool::deinitialize ()
 {
     delete_thread (timer); // As first because check_time() accesses threads data
 
-    iterator itr = begin ();
-    while (itr != end ())
+    for (iterator itr = begin (); itr != end (); ++itr)
     {
         delete_thread (*itr);
-        ++itr;
     }
 }
 
@@ -264,7 +262,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     active_split_point = &sp;
     active_pos = NULL;
 
-    size_t slaves_count = 1; // This thread is always included
+    uint8_t slaves_count = 1; // This thread is always included
     Thread *slave;
 
     while ((slave = Threads.available_slave (this)) != NULL

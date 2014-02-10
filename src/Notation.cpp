@@ -372,14 +372,14 @@ namespace {
     }
 
     // time to string
-    string time_to_string (int64_t msecs)
+    string time_to_string (uint64_t msecs)
     {
-        const int32_t MSecMinute = M_SEC * 60;
-        const int32_t MSecHour   = M_SEC * 60 * 60;
+        const uint32_t MSecMinute = M_SEC * 60;
+        const uint32_t MSecHour   = MSecMinute * 60;
 
-        int64_t hours   =   msecs / MSecHour;
-        int64_t minutes =  (msecs % MSecHour) / MSecMinute;
-        int64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
+        uint64_t hours   =   msecs / MSecHour;
+        uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
+        uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
         stringstream ss;
 
@@ -396,10 +396,10 @@ namespace {
 // pretty_pv() formats human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
 // format time and score respectively.
-string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, const Move pv[])
+string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
 {
-    const int64_t K = 1000;
-    const int64_t M = 1000000;
+    const uint64_t K = 1000;
+    const uint64_t M = 1000000;
 
     stringstream spv;
 
@@ -421,7 +421,7 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, int64_t msecs, cons
     }
 
     string padding = string (spv.str ().length (), ' ');
-    size_t length  = padding.length ();
+    uint16_t length  = padding.length ();
     StateInfoStack states;
 
     const Move *m = pv;

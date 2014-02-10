@@ -651,13 +651,12 @@ namespace {
             }
 
             // Do we have time for the next iteration? Can we stop searching now?
-            if (Limits.use_time_management () &&
-                !Signals.stop && !Signals.stop_on_ponderhit)
+            if (Limits.use_time_management () && !Signals.stop && !Signals.stop_on_ponderhit)
             {
                 bool stop = false; // Local variable, not the volatile Signals.stop
 
                 // Take in account some extra time if the best move has changed
-                if (4 < depth && depth < 50 && 1 == MultiPV)
+                if ((4 < depth && depth < 50) && (1 == MultiPV))
                 {
                     TimeMgr.pv_instability (BestMoveChanges);
                 }
@@ -666,8 +665,7 @@ namespace {
                 // If there is only one legal move available or 
                 // If most of the available time has been used.
                 // We probably don't have enough time to search the first move at the next iteration anyway.
-                if (RootMoves.size () == 1 ||
-                    IterDuration > TimeMgr.available_time () * 62 / 100)
+                if ((1 == RootMoves.size ()) || IterDuration > TimeMgr.available_time () * 62 / 100)
                 {
                     stop = true;
                 }

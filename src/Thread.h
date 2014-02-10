@@ -140,9 +140,9 @@ struct ThreadBase
 
     ThreadBase()
         : exit(false) {}
-    virtual ~ThreadBase() {}
+    virtual ~ThreadBase () {}
 
-    virtual void idle_loop() = 0;
+    virtual void idle_loop () = 0;
 
     void notify_one ();
     void wait_for (volatile const bool &b);
@@ -217,7 +217,7 @@ struct ThreadPool
 {
     bool                sleep_idle;
     Depth               split_depth;
-    size_t              threads_split_point;
+    uint8_t             threads_split_point;
     Mutex               mutex;
     ConditionVariable   sleep_condition;
     TimerThread        *timer;
