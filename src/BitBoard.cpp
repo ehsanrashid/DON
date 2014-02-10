@@ -390,7 +390,9 @@ namespace BitBoard {
                         Bitboard &attacks = attacks_bb[s][indexer (s, occupancy[i])];
 
                         if (attacks && (attacks != reference[i]))
+                        {
                             break;
+                        }
 
                         ASSERT (reference[i]);
                         attacks = reference[i];

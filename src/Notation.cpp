@@ -21,7 +21,7 @@ AmbT ambiguity (Move m, const Position &pos)
 
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    Piece p   = pos[org];
+    Piece p    = pos[org];
     PieceT pt  = _ptype (p);
 
 
@@ -171,7 +171,7 @@ const string move_to_san (Move m, Position &pos)
     string san;
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    Piece p   = pos[org];
+    Piece p    = pos[org];
     PieceT pt  = _ptype (p);
 
     //    switch (pt)
@@ -290,7 +290,7 @@ const string move_to_san (Move m, Position &pos)
     {
         StateInfo si;
         pos.do_move (m, si);
-        san += MoveList<LEGAL> (pos).size () ? "+" : "#";
+        san += (MoveList<LEGAL> (pos).size () ? "+" : "#");
         pos.undo_move ();
     }
 
@@ -414,7 +414,6 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
     StateInfoStack states;
 
     const Move *m = pv;
-
     while (*m != MOVE_NONE)
     {
         string san = move_to_san (*m, pos);
@@ -429,7 +428,6 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
         pos.do_move (*m, states.top ());
         ++m;
     }
-
     while (m != pv)
     {
         pos.undo_move();

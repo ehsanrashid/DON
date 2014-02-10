@@ -939,12 +939,9 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
             (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) ||
             (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
     }
-    else
-    {
-        ASSERT (false);
-        return false;
-    }
-    //return false;
+
+    ASSERT (false);
+    return false;
 }
 
 // checkmate(m) tests whether a pseudo-legal move gives a checkmate
@@ -978,7 +975,6 @@ void Position::clear ()
             }
         }
     }
-
 
     fill (
         _castle_rooks[0] + 0,
