@@ -15,7 +15,7 @@ using namespace Time;
 
 // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
-AmbType ambiguity (Move m, const Position &pos)
+AmbT ambiguity (Move m, const Position &pos)
 {
     ASSERT (pos.legal (m));
 
@@ -60,23 +60,25 @@ AmbType ambiguity (Move m, const Position &pos)
     // Disambiguation if we have more then one piece with destination 'dst'
     // note that for pawns is not needed because starting file is explicit.
     //bool
-    //    ambiguousMove = false,
-    //    ambiguousFile = false,
-    //    ambiguousRank = false;
-    //Bitboard b = (pos.attacks_bb(p, dst) & pos.pieces (pos.active (), pt)) - org;
+    //    amb_move = false,
+    //    amb_file = false,
+    //    amb_rank = false;
+    //Bitboard b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
     //while (b)
     //{
     //    Square sq = pop_lsq (b);
     //    // Pinned pieces are not included in the possible sub-set
-    //    if (!pos.legal (make_move(sq, dst), pinneds))
+    //    if (!pos.legal (mk_move (sq, dst), pinneds))
+    //    {
     //        continue;
-    //    ambiguousFile |= _file (sq) == _file (org);
-    //    ambiguousRank |= _rank (sq) == _rank (org);
-    //    ambiguousMove = true;
+    //    }
+    //    amb_file |= (_file (sq) == _file (org));
+    //    amb_rank |= (_rank (sq) == _rank (org));
+    //    amb_move = true;
     //}
-    //if (!ambiguousMove) return AMB_NONE;
-    //if (!ambiguousFile) return AMB_RANK;
-    //if (!ambiguousRank) return AMB_FILE;
+    //if (!amb_move) return AMB_NONE;
+    //if (!amb_file) return AMB_RANK;
+    //if (!amb_rank) return AMB_FILE;
     //return AMB_SQR;
 
     Bitboard others, b;
@@ -242,7 +244,7 @@ const string move_to_san (Move m, Position &pos)
     //        StateInfo sinfo;
     //        Position p = pos;
     //        p.do_move (m, sinfo);
-    //        size_t legalmove = generate<LEGAL> (p).size ();
+    //        uint8_t legalmove = generate<LEGAL> (p).size ();
     //
     //        san += (legalmove ? '+' : '#');
     //    }

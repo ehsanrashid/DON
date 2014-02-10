@@ -8,16 +8,16 @@
 class Position;
 
 // Type of the Ambiguity
-typedef enum AmbType : uint8_t
+typedef enum AmbT : uint8_t
 {
     AMB_NONE = 0,
     AMB_RANK = 1,
     AMB_FILE = 2,
     AMB_SQR  = 3,
 
-} AmbType;
+} AmbT;
 
-extern AmbType ambiguity (Move m, const Position &pos);
+extern AmbT ambiguity (Move m, const Position &pos);
 
 extern Move move_from_can (std::string &can, const Position &pos);
 //extern Move move_from_san (std::string &san, const Position &pos);

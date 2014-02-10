@@ -1824,7 +1824,7 @@ Position::operator string () const
     const string edge = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
-    const size_t row_len = row_1.length () + 1;
+    const uint8_t row_len = row_1.length () + 1;
 
     string board = edge;
 
@@ -1844,7 +1844,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
-        board[3 + size_t (row_len * (7.5 - r)) + 4 * f] = CharPiece[piece_on (s)];
+        board[3 + uint8_t (row_len * (7.5 - r)) + 4 * f] = CharPiece[piece_on (s)];
     }
 
     ostringstream ss;

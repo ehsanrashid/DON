@@ -299,11 +299,11 @@ inline Square  scan_msq (Bitboard bb)
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
     };
 
-    //size_t i = 0;
+    //uint16_t i = 0;
     //uint8_t k = 0;
     //while (i <= _UI8_MAX) // k < 8
     //{
-    //    const size_t size = (2 << k);
+    //    const uint8_t size = (2 << k);
     //    while (i < size)
     //    {
     //        MSB_Table[i] = k;

@@ -2,12 +2,12 @@
 #ifndef LEAK_DETECTOR_H_
 #define LEAK_DETECTOR_H_
 
+#include "Type.h"
+
 namespace LeakDetector {
 
-    typedef unsigned int    uint;
-
-    extern void* xmalloc (size_t size, const char fn[], uint line_no);
-    extern void* xcalloc (size_t count, size_t size_elem, const char fn[], uint line_no);
+    extern void* xmalloc (uint32_t size, const char fn[], uint32_t line_no);
+    extern void* xcalloc (uint32_t count, uint32_t size_elem, const char fn[], uint32_t line_no);
     extern void  xfree (void *mem_ref);
 
     extern void report_memleakage ();

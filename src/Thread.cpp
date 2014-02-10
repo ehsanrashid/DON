@@ -177,7 +177,7 @@ void ThreadPool::read_uci_options ()
 {
     split_depth         = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
     threads_split_point = int32_t (*(Options["Threads per Split Point"]));
-    size_t req_threads  = int32_t (*(Options["Threads"]));
+    uint8_t req_threads = int32_t (*(Options["Threads"]));
 
     ASSERT (req_threads > 0);
 

@@ -277,7 +277,7 @@ inline int32_t cpu_count ()
 #   elif defined(MACOS)
 
     uint32_t count;
-    size_t len = sizeof (count);
+    uint32_t len = sizeof (count);
 
     int32_t nm[2];
     nm[0] = CTL_HW;

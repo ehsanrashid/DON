@@ -596,7 +596,7 @@ namespace BitBoard {
     {
         remove_if (sbb, ::isspace);
 
-        size_t length = sbb.length ();
+        uint8_t length = sbb.length ();
         //ASSERT (SQ_NO == length);
         if (SQ_NO != length) return "";
 
@@ -707,7 +707,7 @@ namespace BitBoard {
         //sbb.append ("\n");
 
         const string row   = "|. . . . . . . .|\n";
-        const size_t row_len = row.length () + 1;
+        const uint8_t row_len = row.length () + 1;
         //" <--------------->\n"
         sbb = " /---------------\\\n";
 
