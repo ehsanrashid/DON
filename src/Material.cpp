@@ -174,7 +174,7 @@ namespace Material {
         // Generic scaling functions that refer to more then one material distribution.
         // Should be probed after the specialized ones.
         // Note that these ones don't return after setting the function.
-        
+
         if (is_KBPsKs<WHITE> (pos))
         {
             e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
@@ -231,14 +231,15 @@ namespace Material {
         {
             if      (pos.count<PAWN> (WHITE) == 0)
             {
-                e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
+                e->_factor[WHITE] = npm[WHITE] <= VALUE_MG_BISHOP ?
                     0 : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
-                    2 : 12;
+                    1 : npm[BLACK] <= VALUE_MG_BISHOP ? 
+                    4 : 12;
             }
             else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
-                    2 : (pos.count<PAWN> (BLACK) <= 1) ? SCALE_FACTOR_ONEPAWN/8 : SCALE_FACTOR_ONEPAWN;
+                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BISHOP) ?
+                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1);
             }
         }
 
@@ -246,14 +247,15 @@ namespace Material {
         {
             if      (pos.count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
+                e->_factor[BLACK] = npm[BLACK] <= VALUE_MG_BISHOP ?
                     0 : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
-                    2 : 12;
+                    1 : npm[WHITE] <= VALUE_MG_BISHOP ? 
+                    4 : 12;
             }
             else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
-                    2 : (pos.count<PAWN> (WHITE) <= 1) ? SCALE_FACTOR_ONEPAWN/8 : SCALE_FACTOR_ONEPAWN;
+                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BISHOP) ?
+                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1);
             }
         }
 
@@ -271,12 +273,12 @@ namespace Material {
         {
             {
                 pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
+                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
             },
             {
                 pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
-            },
+                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
+                },
         };
 
         e->_value = int16_t ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);

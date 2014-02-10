@@ -238,7 +238,7 @@ namespace Searcher {
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        uint8_t ply = 0;
+        int8_t ply = 0;
         Move m = pv[ply];
         pv.clear ();
         const TranspositionEntry *te;
@@ -283,7 +283,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        uint8_t ply = 0;
+        int8_t ply = 0;
         const TranspositionEntry *te;
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
@@ -1748,7 +1748,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 << " pv";
             for (uint8_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
             {
-                spv << ' ' << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
+                spv << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
             }
         }
 

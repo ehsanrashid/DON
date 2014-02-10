@@ -156,25 +156,26 @@ namespace EndGame {
 
         Value value;
 
-        //if (!pos.count<PAWN> (_stong_side) &&
-        //    pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK)
-        //{
-        //    value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
-        //}
-        //else
-        //{
-        value = pos.non_pawn_material (_stong_side)
-            +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
-            +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
-
-        if (pos.count<QUEN> (_stong_side) ||
-            pos.count<ROOK> (_stong_side) ||
-            pos.count<NIHT> (_stong_side) > 2 ||
-            pos.bishops_pair (_stong_side))
+        if (!pos.count<PAWN> (_stong_side) &&
+            (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK ||
+            (!pos.count<NIHT> (WHITE) && !pos.bishops_pair (_stong_side))))
         {
-            value += VALUE_KNOWN_WIN;
+            value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
         }
-        //}
+        else
+        {
+            value = pos.non_pawn_material (_stong_side)
+                +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
+                +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
+
+            if (pos.count<QUEN> (_stong_side) ||
+                pos.count<ROOK> (_stong_side) ||
+                pos.count<NIHT> (_stong_side) > 2 ||
+                pos.bishops_pair (_stong_side))
+            {
+                value += VALUE_KNOWN_WIN;
+            }
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }
@@ -809,7 +810,7 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-            
+
             break;
 
         case 1:
@@ -940,7 +941,10 @@ namespace EndGame {
                         {
                             return SCALE_FACTOR_DRAW;
                         }
+
+                        return ScaleFactor (square_dist (queening_sq, bk_sq));
                     }
+
                 }
             }
         }
