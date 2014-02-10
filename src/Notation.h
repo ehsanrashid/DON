@@ -34,4 +34,4 @@ extern inline std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Val
 extern inline std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[]);
 
 
-#endif
+#endif // NOTATION_H_

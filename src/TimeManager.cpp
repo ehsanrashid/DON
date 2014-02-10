@@ -63,9 +63,9 @@ namespace {
 
     typedef enum TimeType { OPTIMUM_TIME, MAXIMUM_TIME } TimeType;
 
-    // remaining() calculate the time remaining
+    // remaining_time() calculate the time remaining
     template<TimeType TT>
-    inline int32_t remaining (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
+    inline int32_t remaining_time (int32_t time, int32_t moves_to_go, int32_t current_ply, int32_t slow_mover)
     {
         //const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         //const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);
@@ -124,7 +124,7 @@ void TimeManager::initialize (const LimitsT &limits, int32_t current_ply, Color 
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_extra_time = 0;
-    _optimum_search_time    = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
+    _optimum_search_time = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
 
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
@@ -138,8 +138,8 @@ void TimeManager::initialize (const LimitsT &limits, int32_t current_ply, Color 
 
         if (hyp_time < 0) hyp_time = 0;
 
-        int32_t opt_time = min_thinking_time + remaining<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
-        int32_t max_time = min_thinking_time + remaining<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t opt_time = min_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        int32_t max_time = min_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
 
         _optimum_search_time = min (_optimum_search_time, opt_time);
         _maximum_search_time = min (_maximum_search_time, max_time);

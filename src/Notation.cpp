@@ -52,22 +52,26 @@ AmbType ambiguity (Move m, const Position &pos)
     //if (!r) return AMB_FILE;
     //return AMB_SQR;
 
-    // Disambiguation if we have more then one piece with destination 'to'
+    // Disambiguation if we have more then one piece with destination 'dst'
+    // note that for pawns is not needed because starting file is explicit.
+
+    Bitboard pinneds = pos.pinneds (pos.active ());
+
+    // Disambiguation if we have more then one piece with destination 'dst'
     // note that for pawns is not needed because starting file is explicit.
     //bool
     //    ambiguousMove = false,
     //    ambiguousFile = false,
     //    ambiguousRank = false;
-    //
-    //Bitboard attackers = (pos.attacks_bb(pc, to) & pos.pieces (us, pt)) ^ from;
-    //while (attackers)
+    //Bitboard b = (pos.attacks_bb(p, dst) & pos.pieces (pos.active (), pt)) - org;
+    //while (b)
     //{
-    //    Square sq = pop_lsq(&attackers);
+    //    Square sq = pop_lsq (b);
     //    // Pinned pieces are not included in the possible sub-set
-    //    if (!pos.pl_move_is_legal(make_move(sq, to), pos.pinned_pieces()))
+    //    if (!pos.legal (make_move(sq, dst), pinneds))
     //        continue;
-    //    ambiguousFile |= file_of(sq) == file_of(from);
-    //    ambiguousRank |= rank_of(sq) == rank_of(from);
+    //    ambiguousFile |= _file (sq) == _file (org);
+    //    ambiguousRank |= _rank (sq) == _rank (org);
     //    ambiguousMove = true;
     //}
     //if (!ambiguousMove) return AMB_NONE;
@@ -75,32 +79,15 @@ AmbType ambiguity (Move m, const Position &pos)
     //if (!ambiguousRank) return AMB_FILE;
     //return AMB_SQR;
 
-    //Bitboard occ = pos.pieces ();
-    ////Bitboard friends = pos.pieces (pos.active ());
-    //Bitboard ambiguous = pos.pieces (pos.active ()) & ~pos.pinneds () - org;
-    //switch (pt)
-    //{
-    //case PAWN:
-    //case KING: return AMB_NONE; break;
-    //case NIHT: ambiguous &= attacks_bb<NIHT> (dst     ) & pos.pieces<NIHT> (); break;
-    //case BSHP: ambiguous &= attacks_bb<BSHP> (dst, occ) & pos.pieces<BSHP> (); break;
-    //case ROOK: ambiguous &= attacks_bb<ROOK> (dst, occ) & pos.pieces<ROOK> (); break;
-    //case QUEN: ambiguous &= attacks_bb<QUEN> (dst, occ) & pos.pieces<QUEN> (); break;
-    //}
-    //if (!(ambiguous)) return AMB_NONE;
-    //if (!(ambiguous & file_bb (org))) return AMB_RANK;
-    //if (!(ambiguous & rank_bb (org))) return AMB_FILE;
-    //return AMB_SQR;
-
-    Bitboard pinneds = pos.pinneds (pos.active ());
     Bitboard others, b;
     others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
     while (b)
     {
-        Move move = mk_move (pop_lsq (b), dst);
+        org = pop_lsq (b);
+        Move move = mk_move (org, dst);
         if (!pos.legal (move, pinneds))
         {
-            others -= org_sq (move);
+            others -= org;
         }
     }
 

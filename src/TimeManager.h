@@ -27,4 +27,4 @@ public:
     
 } TimeManager;
 
-#endif
+#endif // TIME_MANAGER_H_
