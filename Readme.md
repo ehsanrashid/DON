@@ -1,6 +1,6 @@
 ### Overview
 
-DON is a commercial UCI chess engine. It is not a complete chess program and requires some UCI-compatible GUI (e.g. XBoard with PolyGlot, eboard, Arena, Sigma Chess, Shredder, Chess
+DON is a free UCI chess engine. It is not a complete chess program and requires some UCI-compatible GUI (e.g. XBoard with PolyGlot, eboard, Arena, Sigma Chess, Shredder, Chess
 Partner or Fritz) in order to be used comfortably.
 Read the documentation for your GUI of choice for information about how to use DON with it.
 
