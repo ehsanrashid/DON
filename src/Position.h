@@ -248,17 +248,17 @@ public:
     //Bitboard pieces (Piece p) const;
 
     template<PieceT PT>
-    int32_t piece_count (Color c)       const;
+    int32_t count (Color c)       const;
     template<PieceT PT>
-    int32_t piece_count ()              const;
-    int32_t piece_count (Color c)       const;
-    int32_t piece_count ()              const;
-    int32_t piece_count (Color c, PieceT pt) const;
-    //int32_t piece_count (Piece p) const;
-    //int32_t piece_count (PieceT pt) const;
+    int32_t count ()              const;
+    int32_t count (Color c)       const;
+    int32_t count ()              const;
+    int32_t count (Color c, PieceT pt) const;
+    //int32_t count (Piece p) const;
+    //int32_t count (PieceT pt) const;
 
     template<PieceT PT>
-    const Square* piece_list (Color c)  const;
+    const Square* list (Color c)  const;
 
 #pragma endregion
 
@@ -498,15 +498,15 @@ inline Bitboard Position::empties ()                  const { return ~_types_bb[
 //inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _type (p)); }
 
 template<PieceT PT>
-inline int32_t Position::piece_count (Color c) const { return _piece_count[c][PT]; }
+inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
 template<PieceT PT>
-inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
-inline int32_t Position::piece_count (Color c) const { return _piece_count[c][NONE]; }
-inline int32_t Position::piece_count ()        const { return _piece_count[WHITE][NONE] + _piece_count[BLACK][NONE]; }
-inline int32_t Position::piece_count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
+inline int32_t Position::count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
+inline int32_t Position::count (Color c) const { return _piece_count[c][NONE]; }
+inline int32_t Position::count ()        const { return _piece_count[WHITE][NONE] + _piece_count[BLACK][NONE]; }
+inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
 
 template<PieceT PT>
-inline const Square* Position::piece_list (Color c) const { return _piece_list[c][PT]; }
+inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
 
 #pragma endregion
 
@@ -540,7 +540,7 @@ inline Score    Position::psq_score     () const { return _si->psq_score; }
 
 inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-//inline Value Position::pawn_material (Color c) const { return int32_t (piece_count<PAWN> (c)) * VALUE_EG_PAWN; }
+//inline Value Position::pawn_material (Color c) const { return int32_t (count<PAWN> (c)) * VALUE_EG_PAWN; }
 
 #pragma endregion
 
@@ -666,12 +666,12 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    int32_t bishop_count = piece_count<BSHP> (c);
+    int32_t bishop_count = count<BSHP> (c);
     if (bishop_count > 1)
     {
         for (int32_t pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (piece_list<BSHP> (c)[pc], piece_list<BSHP> (c)[pc+1])) return true;
+            if (opposite_colors (list<BSHP> (c)[pc], list<BSHP> (c)[pc+1])) return true;
         }
     }
     return false;
@@ -680,9 +680,9 @@ inline bool Position::bishops_pair (Color c) const
 inline bool Position::opposite_bishops () const
 {
     return
-        (piece_count<BSHP> (WHITE) == 1) &&
-        (piece_count<BSHP> (BLACK) == 1) &&
-        opposite_colors (piece_list<BSHP> (WHITE)[0], piece_list<BSHP> (BLACK)[0]);
+        (count<BSHP> (WHITE) == 1) &&
+        (count<BSHP> (BLACK) == 1) &&
+        opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
 }
 
 #pragma endregion

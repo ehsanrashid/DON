@@ -58,15 +58,15 @@ namespace {
 
         return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
             && pos.non_pawn_material (C_) == VALUE_ZERO
-            && pos.piece_count<PAWN> (C_) == 0;
+            && pos.count<PAWN> (C_) == 0;
     }
 
     template<Color C> 
     inline bool is_KBPsKs(const Position &pos)
     {
         return pos.non_pawn_material (C ) == VALUE_MG_BISHOP
-            && pos.piece_count<BSHP> (C ) == 1
-            && pos.piece_count<PAWN> (C ) >= 1;
+            && pos.count<BSHP> (C ) == 1
+            && pos.count<PAWN> (C ) >= 1;
     }
 
     template<Color C>
@@ -75,17 +75,17 @@ namespace {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
-            && pos.piece_count<QUEN> (C ) == 1
-            && pos.piece_count<PAWN> (C ) == 0
-            && pos.piece_count<ROOK> (C_) == 1
-            && pos.piece_count<PAWN> (C_) >= 1;
+            && pos.count<QUEN> (C ) == 1
+            && pos.count<PAWN> (C ) == 0
+            && pos.count<ROOK> (C_) == 1
+            && pos.count<PAWN> (C_) >= 1;
     }
 
     template<Color C>
     // imbalance<> () calculates imbalance comparing
     // piece count of each piece type for both colors.
     // KING == BISHOP PAIR
-    inline int32_t imbalance (const int32_t piece_count[CLR_NO][NONE])
+    inline int32_t imbalance (const int32_t count[CLR_NO][NONE])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -96,22 +96,22 @@ namespace {
         // Second-degree polynomial material imbalance by Tord Romstad
         for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
         {
-            int32_t pc = piece_count[C][pt1];
+            int32_t pc = count[C][pt1];
             if (!pc) continue;
 
             int32_t v = LinearCoefficients[pt1];
 
             for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
             {
-                v += piece_count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
-                +    piece_count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
+                v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
+                +    count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
             }
-            v += piece_count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
-            +    piece_count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+            v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
+            +    count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
 
             value += pc * v;
         }
-        value += piece_count[C][KING] * LinearCoefficients[KING];
+        value += count[C][KING] * LinearCoefficients[KING];
 
         return value;
     }
@@ -202,20 +202,20 @@ namespace Material {
 
         if (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
         {
-            if      (pos.piece_count<PAWN> (BLACK) == 0
-                &&   pos.piece_count<PAWN> (WHITE) >= 2)
+            if      (pos.count<PAWN> (BLACK) == 0
+                &&   pos.count<PAWN> (WHITE) >= 2)
             {
-                //ASSERT (pos.piece_count<PAWN> (WHITE) >= 2);
+                //ASSERT (pos.count<PAWN> (WHITE) >= 2);
                 e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 0
-                &&   pos.piece_count<PAWN> (BLACK) >= 2)
+            else if (pos.count<PAWN> (WHITE) == 0
+                &&   pos.count<PAWN> (BLACK) >= 2)
             {
-                //ASSERT (pos.piece_count<PAWN> (BLACK) >= 2);
+                //ASSERT (pos.count<PAWN> (BLACK) >= 2);
                 e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 1
-                &&   pos.piece_count<PAWN> (BLACK) == 1)
+            else if (pos.count<PAWN> (WHITE) == 1
+                &&   pos.count<PAWN> (BLACK) == 1)
             {
                 // This is a special case because we set scaling functions for both colors instead of only one.
                 e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
@@ -229,15 +229,15 @@ namespace Material {
 
         if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
         {
-            if      (pos.piece_count<PAWN> (WHITE) == 0)
+            if      (pos.count<PAWN> (WHITE) == 0)
             {
                 e->_factor[WHITE] = npm[WHITE] < VALUE_MG_ROOK ?
-                    0 : !pos.piece_count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
+                    0 : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
                     2 : 12;
             }
-            else if (pos.piece_count<PAWN> (WHITE) == 1)
+            else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = (pos.piece_count<PAWN> (BLACK) == 1) &&
+                e->_factor[WHITE] = (pos.count<PAWN> (BLACK) == 1) &&
                     (npm[WHITE] == npm[BLACK] || npm[WHITE] < VALUE_MG_ROOK) ?
                     4 : SCALE_FACTOR_ONEPAWN;
             }
@@ -245,15 +245,15 @@ namespace Material {
 
         if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
         {
-            if      (pos.piece_count<PAWN> (BLACK) == 0)
+            if      (pos.count<PAWN> (BLACK) == 0)
             {
                 e->_factor[BLACK] = npm[BLACK] < VALUE_MG_ROOK ?
-                    0 : !pos.piece_count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
+                    0 : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
                     2 : 12;
             }
-            else if (pos.piece_count<PAWN> (BLACK) == 1)
+            else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = (pos.piece_count<PAWN> (WHITE) == 1) &&
+                e->_factor[BLACK] = (pos.count<PAWN> (WHITE) == 1) &&
                     (npm[BLACK] == npm[WHITE] || npm[BLACK] < VALUE_MG_ROOK) ?
                     4 : SCALE_FACTOR_ONEPAWN;
             }
@@ -262,24 +262,24 @@ namespace Material {
         // Compute the space weight
         if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
         {
-            int32_t minor_piece_count = pos.piece_count<NIHT> () + pos.piece_count<BSHP> ();
+            int32_t minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
             e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
         }
 
         // Evaluate the material imbalance.
         // We use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const int32_t piece_count[CLR_NO][NONE] =
+        const int32_t count[CLR_NO][NONE] =
         {
-            {pos.piece_count<PAWN> (WHITE), pos.piece_count<NIHT> (WHITE), pos.piece_count<BSHP> (WHITE),
-            pos.piece_count<ROOK> (WHITE), pos.piece_count<QUEN> (WHITE), pos.bishops_pair (WHITE),
+            {pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
+            pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
             },
-            {pos.piece_count<PAWN> (BLACK), pos.piece_count<NIHT> (BLACK), pos.piece_count<BSHP> (BLACK),
-            pos.piece_count<ROOK> (BLACK), pos.piece_count<QUEN> (BLACK), pos.bishops_pair (BLACK),
+            {pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
+            pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
             },
         };
 
-        e->_value = int16_t ((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
+        e->_value = int16_t ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
         return e;
     }
 

@@ -289,7 +289,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (piece_count<KING> (c) != pop_count<FULL> (pieces (c, KING))) return false;
+            if (count<KING> (c) != pop_count<FULL> (pieces (c, KING))) return false;
         }
     }
 
@@ -300,11 +300,11 @@ bool Position::ok (int8_t *failed_step) const
         {
             return false;
         }
-        if (piece_count () > 32)
+        if (count () > 32)
         {
             return false;
         }
-        if (piece_count () != pop_count<FULL> (pieces ()))
+        if (count () != pop_count<FULL> (pieces ()))
         {
             return false;
         }
@@ -312,7 +312,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                if (piece_count (c, pt) != pop_count<FULL> (pieces (c, pt)))
+                if (count (c, pt) != pop_count<FULL> (pieces (c, pt)))
                 {
                     return false;
                 }
@@ -332,16 +332,16 @@ bool Position::ok (int8_t *failed_step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (    (piece_count<PAWN> (c) +
-                max (piece_count<NIHT> (c) - 2, 0) +
-                max (piece_count<BSHP> (c) - 2, 0) +
-                max (piece_count<ROOK> (c) - 2, 0) +
-                max (piece_count<QUEN> (c) - 1, 0)) > 8)
+            if (    (count<PAWN> (c) +
+                max (count<NIHT> (c) - 2, 0) +
+                max (count<BSHP> (c) - 2, 0) +
+                max (count<ROOK> (c) - 2, 0) +
+                max (count<QUEN> (c) - 1, 0)) > 8)
             {
                 return false; // Too many Promoted Piece of color
             }
 
-            if (piece_count<BSHP> (c) > 1)
+            if (count<BSHP> (c) > 1)
             {
                 Bitboard bishops = colors & pieces (BSHP);
                 uint8_t bishop_count[CLR_NO] =
@@ -350,7 +350,7 @@ bool Position::ok (int8_t *failed_step) const
                     pop_count<FULL> (DRSQ_bb & bishops),
                 };
 
-                if (    (piece_count<PAWN> (c) +
+                if (    (count<PAWN> (c) +
                     max (bishop_count[WHITE] - 1, 0) +
                     max (bishop_count[BLACK] - 1, 0)) > 8)
                 {
@@ -397,7 +397,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (int32_t i = 0; i < piece_count (c, pt); ++i)
+                for (int32_t i = 0; i < count (c, pt); ++i)
                 {
                     if (!_ok (_piece_list[c][pt][i])) return false;
                     if (piece_on (_piece_list[c][pt][i]) != (c | pt)) return false;
@@ -1117,7 +1117,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PieceT pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += PieceValue[MG][pt] * piece_count (c, pt);
+        value += PieceValue[MG][pt] * count (c, pt);
     }
     return value;
 }
@@ -1223,7 +1223,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
         }
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][piece_count (pasive, ct)];
+        _si->matl_key ^= ZobGlob._.psq_k[pasive][ct][count (pasive, ct)];
         if (_thread) prefetch ((char*) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
         posi_k ^= ZobGlob._.psq_k[pasive][ct][cap];
@@ -1294,8 +1294,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         place_piece (dst, active, ppt);
 
         _si->matl_key ^=
-            ZobGlob._.psq_k[active][PAWN][piece_count (active, PAWN)] ^
-            ZobGlob._.psq_k[active][ppt][piece_count (active, ppt) - 1];
+            ZobGlob._.psq_k[active][PAWN][count (active, PAWN)] ^
+            ZobGlob._.psq_k[active][ppt][count (active, ppt) - 1];
 
         _si->pawn_key ^= ZobGlob._.psq_k[active][PAWN][org];
 
@@ -1974,7 +1974,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         {
             for (Color c = WHITE; c <= BLACK; ++c)
             {
-                if (1 != pos.piece_count<KING> (c)) return false;
+                if (1 != pos.count<KING> (c)) return false;
             }
         }
     }

@@ -90,11 +90,11 @@ namespace {
         e->_semiopen_files[C] = 0xFF;
         e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
         e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15> (pawns[0] & DRSQ_bb);
-        e->_num_pawns_on_sq[C][WHITE] = pos.piece_count<PAWN> (C) - e->_num_pawns_on_sq[C][BLACK];
+        e->_num_pawns_on_sq[C][WHITE] = pos.count<PAWN> (C) - e->_num_pawns_on_sq[C][BLACK];
 
         Score pawn_score = SCORE_ZERO;
 
-        const Square *pl = pos.piece_list<PAWN> (C);
+        const Square *pl = pos.list<PAWN> (C);
         Square s;
         // Loop through all pawns of the current color and score each pawn
         while ((s = *pl++) != SQ_NO)
@@ -178,7 +178,7 @@ namespace {
 
         // In endgame it's better to have pawns on both wings. So give a bonus according
         // to file distance between left and right outermost pawns.
-        if (pos.piece_count<PAWN> (C) > 1)
+        if (pos.count<PAWN> (C) > 1)
         {
             Bitboard b = e->_semiopen_files[C] ^ 0xFF;
             pawn_score += PawnsFileSpan * int32_t (scan_msq (b) - scan_lsq (b));
