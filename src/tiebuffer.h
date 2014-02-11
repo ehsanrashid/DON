@@ -35,20 +35,20 @@ namespace std {
             return _sbuf;
         }
 
-        inline int_type log (int_type c, const Elem prefix[])
+        inline int_type write (int_type c, const Elem prefix[])
         {
             static int_type last_ch = '\n';
 
-            bool is_err = false;
+            bool error = false;
             if ('\n' == last_ch)
             {
                 size_t length = strlen (prefix);
                 if (size_t (_fstm->rdbuf ()->sputn (prefix, length)) != length)
                 {
-                    is_err = true;
+                    error = true;
                 }
             }
-            if (is_err) return EOF;
+            if (error) return EOF;
 
             last_ch = _fstm->rdbuf ()->sputc (Elem (c));
 
@@ -65,7 +65,7 @@ namespace std {
 
         virtual int_type overflow (int_type c) override
         {
-            return log (_sbuf->sputc (Elem (c)), "<< ");
+            return write (_sbuf->sputc (Elem (c)), "<< ");
         }
 
         virtual int_type underflow () override
@@ -75,7 +75,7 @@ namespace std {
 
         virtual int_type uflow () override
         {
-            return log (_sbuf->sbumpc (), ">> ");
+            return write (_sbuf->sbumpc (), ">> ");
         }
 
     };
