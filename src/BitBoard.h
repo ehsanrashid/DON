@@ -36,10 +36,10 @@ namespace BitBoard {
     extern const Bitboard D18_bb;  // 08 DIAG-18 squares.
     extern const Bitboard D81_bb;  // 08 DIAG-81 squares.
 
-    extern const Bitboard LTSQ_bb; // 32 LIGHT squares.
-    extern const Bitboard DRSQ_bb; // 32 DARK  squares.
+    extern const Bitboard LIHT_bb; // 32 LIGHT squares.
+    extern const Bitboard DARK_bb; // 32 DARK  squares.
     
-    extern const Bitboard CORNER_bb;
+    extern const Bitboard CRNR_bb;
     extern const Bitboard MID_EDGE_bb;
 
     extern uint8_t _filerank_dist[F_NO][R_NO];
@@ -237,7 +237,7 @@ namespace BitBoard {
     inline Bitboard passer_pawn_span_bb (Color c, Square s) { return _passer_pawn_span_bb[c][s]; }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s) { return (DRSQ_bb & s) ? DRSQ_bb : LTSQ_bb; }
+    inline Bitboard squares_of_color (Square s) { return (DARK_bb & s) ? DARK_bb : LIHT_bb; }
 
     // between_bb() returns a bitboard representing all squares between two squares.
     // For instance,
@@ -411,14 +411,14 @@ namespace BitBoard {
 
     extern void initialize ();
 
-    extern Bitboard to_bitboard (const char s[], int32_t radix = 16);
-    extern Bitboard to_bitboard (const std::string &s, int32_t radix = 16);
+    //extern Bitboard to_bitboard (const char s[], int32_t radix = 16);
+    //extern Bitboard to_bitboard (const std::string &s, int32_t radix = 16);
 
-    extern std::string to_hex_str (std::string &sbitboard);
+    //extern std::string to_hex_str (std::string &sbitboard);
 
-    extern void print_bit (Bitboard bb, uint8_t x = 64, char p = 'o');
-    extern void print_bin (Bitboard bb);
-    extern void print (Bitboard bb, char p = 'o');
+    //extern void print_bit (Bitboard bb, uint8_t x = 64, char p = 'o');
+    //extern void print_bin (Bitboard bb);
+    //extern void print (Bitboard bb, char p = 'o');
 
     //extern std::vector<Square> squares (Bitboard  bb);
 

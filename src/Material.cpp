@@ -47,6 +47,7 @@ namespace {
 
     Endgame<KBPsKs> ScaleKBPsKs [CLR_NO] = { Endgame<KBPsKs> (WHITE), Endgame<KBPsKs> (BLACK) };
     Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
+
     Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
     Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
@@ -57,8 +58,10 @@ namespace {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
-            && pos.non_pawn_material (C_) == VALUE_ZERO
-            && pos.count<PAWN> (C_) == 0;
+            //&& pos.non_pawn_material (C_) == VALUE_ZERO
+            //&& pos.count<PAWN> (C_) == 0
+            //&& pos.count (C ) >= 1
+            && pos.count (C_) == 1;
     }
 
     template<Color C> 
@@ -75,6 +78,7 @@ namespace {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
+            && pos.non_pawn_material (C_) == VALUE_MG_ROOK
             && pos.count<QUEN> (C ) == 1
             && pos.count<PAWN> (C ) == 0
             && pos.count<ROOK> (C_) == 1

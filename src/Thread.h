@@ -140,6 +140,7 @@ struct ThreadBase
 
     ThreadBase()
         : exit(false) {}
+
     virtual ~ThreadBase () {}
 
     virtual void idle_loop () = 0;
@@ -159,8 +160,10 @@ struct Thread
     Material::Table      material_table;
     Pawns   ::Table      pawns_table;
     EndGame ::Endgames   endgames;
+
     Position            *active_pos;
-    uint32_t             idx;
+    
+    uint8_t              idx;
     uint8_t              max_ply;
     SplitPoint* volatile active_split_point;
     volatile uint8_t     threads_split_point;

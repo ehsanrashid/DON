@@ -40,18 +40,16 @@ namespace BitBoard {
     const Bitboard D18_bb = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
     const Bitboard D81_bb = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
 
-    const Bitboard LTSQ_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard DRSQ_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
+    const Bitboard LIHT_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
+    const Bitboard DARK_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
-    const Bitboard CORNER_bb = U64(0x8100000000000081);
+    const Bitboard CRNR_bb = U64(0x8100000000000081);             // 04 CORNER squares.
+    //const Bitboard BORD_bb  = U64(0xFF818181818181FF);            // 28 BORDER squares.
 
     const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
 
-    //const Bitboard QSQ_bb  = U64(0x0F0F0F0F0F0F0F0F); // 32 QUEEN side squares.
-    //const Bitboard KSQ_bb  = ~QSQ_bb;//U64(0xF0F0F0F0F0F0F0F0); // 32 KING  side squares.
-    //
-    //const Bitboard COR_bb  = U64(0x8100000000000081); // 04 CORNER squares.
-    //const Bitboard BOR_bb  = U64(0xFF818181818181FF); // 28 BORDER squares.
+    //const Bitboard QSQ_bb  = U64(0x0F0F0F0F0F0F0F0F);             // 32 QUEEN side squares.
+    //const Bitboard KSQ_bb  = ~QSQ_bb;//U64(0xF0F0F0F0F0F0F0F0);   // 32 KING  side squares.
     //
     //const Bitboard CEN_bb    = U64(0x0000001818000000); // 04 CENTER          squares.
     //const Bitboard CEN_EX_bb = U64(0x00003C3C3C3C0000); // 16 CENTER EXPANDED squares.
@@ -407,7 +405,6 @@ namespace BitBoard {
         {
             initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], indexer<BSHP>);
             initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], indexer<ROOK>);
-
         }
 
     }
@@ -583,160 +580,160 @@ namespace BitBoard {
     }
 
 
-    // Convert a char arr to a Bitboard (uint64_t) using radix
-    Bitboard to_bitboard (const char s[], int32_t radix)
-    {
-        return _strtoui64 (s, NULL, radix);
-    }
-    // Convert a string to a Bitboard (uint64_t) using radix
-    Bitboard to_bitboard (const string &s, int32_t radix)
-    {
-        return _strtoui64 (s.c_str (), NULL, radix);
-    }
-    // Convert bin string to hex string
-    string to_hex_str (string &sbb)
-    {
-        remove_if (sbb, ::isspace);
+    //// Convert a char arr to a Bitboard (uint64_t) using radix
+    //Bitboard to_bitboard (const char s[], int32_t radix)
+    //{
+    //    return _strtoui64 (s, NULL, radix);
+    //}
+    //// Convert a string to a Bitboard (uint64_t) using radix
+    //Bitboard to_bitboard (const string &s, int32_t radix)
+    //{
+    //    return _strtoui64 (s.c_str (), NULL, radix);
+    //}
+    //// Convert bin string to hex string
+    //string to_hex_str (string &sbb)
+    //{
+    //    remove_if (sbb, ::isspace);
 
-        uint8_t length = sbb.length ();
-        //ASSERT (SQ_NO == length);
-        if (SQ_NO != length) return "";
+    //    uint8_t length = sbb.length ();
+    //    //ASSERT (SQ_NO == length);
+    //    if (SQ_NO != length) return "";
 
-        string shex = "0x";
-        for (Rank r = R_1; r <= R_8; ++r)
-        {
-            string sb = sbb.substr (r * 8, 8);
+    //    string shex = "0x";
+    //    for (Rank r = R_1; r <= R_8; ++r)
+    //    {
+    //        string sb = sbb.substr (r * 8, 8);
 
-            //for (int8_t n = 1; n >= 0; --n)
-            //{
-            //    string nibble_s = sb.substr(n * 4, 4);
-            //    if (empty(nibble_s)) break;
-            //    else if (nibble_s == "0000") shex += "0";
-            //    else if (nibble_s == "1000") shex += "1";
-            //    else if (nibble_s == "0100") shex += "2";
-            //    else if (nibble_s == "1100") shex += "3";
-            //    else if (nibble_s == "0010") shex += "4";
-            //    else if (nibble_s == "1010") shex += "5";
-            //    else if (nibble_s == "0110") shex += "6";
-            //    else if (nibble_s == "1110") shex += "7";
-            //    else if (nibble_s == "0001") shex += "8";
-            //    else if (nibble_s == "1001") shex += "9";
-            //    else if (nibble_s == "0101") shex += "A";
-            //    else if (nibble_s == "1101") shex += "B";
-            //    else if (nibble_s == "0011") shex += "C";
-            //    else if (nibble_s == "1011") shex += "D";
-            //    else if (nibble_s == "0111") shex += "E";
-            //    else if (nibble_s == "1111") shex += "F";
-            //    else break;
-            //}
+    //        //for (int8_t n = 1; n >= 0; --n)
+    //        //{
+    //        //    string nibble_s = sb.substr(n * 4, 4);
+    //        //    if (empty(nibble_s)) break;
+    //        //    else if (nibble_s == "0000") shex += "0";
+    //        //    else if (nibble_s == "1000") shex += "1";
+    //        //    else if (nibble_s == "0100") shex += "2";
+    //        //    else if (nibble_s == "1100") shex += "3";
+    //        //    else if (nibble_s == "0010") shex += "4";
+    //        //    else if (nibble_s == "1010") shex += "5";
+    //        //    else if (nibble_s == "0110") shex += "6";
+    //        //    else if (nibble_s == "1110") shex += "7";
+    //        //    else if (nibble_s == "0001") shex += "8";
+    //        //    else if (nibble_s == "1001") shex += "9";
+    //        //    else if (nibble_s == "0101") shex += "A";
+    //        //    else if (nibble_s == "1101") shex += "B";
+    //        //    else if (nibble_s == "0011") shex += "C";
+    //        //    else if (nibble_s == "1011") shex += "D";
+    //        //    else if (nibble_s == "0111") shex += "E";
+    //        //    else if (nibble_s == "1111") shex += "F";
+    //        //    else break;
+    //        //}
 
-            reverse (sb);
+    //        reverse (sb);
 
-            char buf[3];
-            std::memset (buf, 0, sizeof (buf));
-            sprintf (buf, "%02X", to_bitboard (sb, 2));
-            //sprintf_s (buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
-            //_snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
+    //        char buf[3];
+    //        std::memset (buf, 0, sizeof (buf));
+    //        sprintf (buf, "%02X", to_bitboard (sb, 2));
+    //        //sprintf_s (buf, sizeof (buf), "%02X", to_bitboard (sb, 2));
+    //        //_snprintf_s (buf, _countof (buf), sizeof (buf), "%02X", uint32_t (to_bitboard (sb, 2)));
 
-            shex += buf;
-        }
-        return shex;
-    }
+    //        shex += buf;
+    //    }
+    //    return shex;
+    //}
 
-    // Convert x-bits of Bitboard to string
-    void print_bit (Bitboard bb, uint8_t x, char p)
-    {
-        //string sbit;
-        string sbit (x + (x-1) / CHAR_BIT, '.');
+    //// Convert x-bits of Bitboard to string
+    //void print_bit (Bitboard bb, uint8_t x, char p)
+    //{
+    //    //string sbit;
+    //    string sbit (x + (x-1) / CHAR_BIT, '.');
 
-        //size_t x = sizeof (bb) * CHAR_BIT; // if uint32_t
-        uint64_t mask = U64 (1) << (x - 1);
-        uint8_t sep = 0;
-        for (uint8_t i = 0; i < x; ++i)
-        {
-            //sbit.append (1, (bb & mask) ? p : '.');
-            if (bb & mask) sbit[i + sep] = p;
+    //    //size_t x = sizeof (bb) * CHAR_BIT; // if uint32_t
+    //    uint64_t mask = U64 (1) << (x - 1);
+    //    uint8_t sep = 0;
+    //    for (uint8_t i = 0; i < x; ++i)
+    //    {
+    //        //sbit.append (1, (bb & mask) ? p : '.');
+    //        if (bb & mask) sbit[i + sep] = p;
 
-            if ((x - (i + 1)) % CHAR_BIT == 0 && (i + sep + 1) < (x))
-            {
-                //sbit.append (1, ' ');
-                ++sep;
-                sbit[i + sep] = ' ';
-            }
+    //        if ((x - (i + 1)) % CHAR_BIT == 0 && (i + sep + 1) < (x))
+    //        {
+    //            //sbit.append (1, ' ');
+    //            ++sep;
+    //            sbit[i + sep] = ' ';
+    //        }
 
-            mask >>= 1;
-        }
-        cout << sbit << " = " << bb;
-    }
+    //        mask >>= 1;
+    //    }
+    //    cout << sbit << " = " << bb;
+    //}
 
-    // Convert a Bitboard (uint64_t) to Bitboard (bin-string)
-    void print_bin (Bitboard bb)
-    {
-        string sbin;
-        for (Rank r = R_8; r >= R_1; --r)
-        {
-            for (File f = F_A; f <= F_H; ++f)
-            {
-                sbin.append (bb & (f | r) ? "1" : "0");
-            }
-            sbin.append ("\n");
-        }
-        cout << sbin;
-    }
+    //// Convert a Bitboard (uint64_t) to Bitboard (bin-string)
+    //void print_bin (Bitboard bb)
+    //{
+    //    string sbin;
+    //    for (Rank r = R_8; r >= R_1; --r)
+    //    {
+    //        for (File f = F_A; f <= F_H; ++f)
+    //        {
+    //            sbin.append (bb & (f | r) ? "1" : "0");
+    //        }
+    //        sbin.append ("\n");
+    //    }
+    //    cout << sbin;
+    //}
 
-    // Print a Bitboard (uint64_t) to console output
-    // Bitboard in an easily readable format. This is sometimes useful for debugging.
-    void print (Bitboard bb, char p)
-    {
-        string sbb;
+    //// Print a Bitboard (uint64_t) to console output
+    //// Bitboard in an easily readable format. This is sometimes useful for debugging.
+    //void print (Bitboard bb, char p)
+    //{
+    //    string sbb;
 
-        //const string h_line = " -----------------";
-        //const string v_line = "|";
-        //sbb.append (h_line).append ("\n");
-        //for (Rank r = R_8; r >= R_1; --r)
-        //{
-        //    sbb.append (1, to_char (r)).append (v_line);
-        //    // print byte of rank [bitrank]
-        //    for (File f = F_A; f <= F_H; ++f)
-        //    {
-        //        sbb.append (1, (bb & (f | r)) ? p1 : p0);
-        //        if (F_H > f) sbb.append (" ");
-        //    }
-        //    sbb.append (v_line).append ("\n");
-        //}
-        //sbb.append (h_line).append ("\n").append (" ");
-        //for (File f = F_A; f <= F_H; ++f) sbb.append (" ").append (1, to_char (f, false));
-        //sbb.append ("\n");
+    //    //const string h_line = " -----------------";
+    //    //const string v_line = "|";
+    //    //sbb.append (h_line).append ("\n");
+    //    //for (Rank r = R_8; r >= R_1; --r)
+    //    //{
+    //    //    sbb.append (1, to_char (r)).append (v_line);
+    //    //    // print byte of rank [bitrank]
+    //    //    for (File f = F_A; f <= F_H; ++f)
+    //    //    {
+    //    //        sbb.append (1, (bb & (f | r)) ? p1 : p0);
+    //    //        if (F_H > f) sbb.append (" ");
+    //    //    }
+    //    //    sbb.append (v_line).append ("\n");
+    //    //}
+    //    //sbb.append (h_line).append ("\n").append (" ");
+    //    //for (File f = F_A; f <= F_H; ++f) sbb.append (" ").append (1, to_char (f, false));
+    //    //sbb.append ("\n");
 
-        const string row   = "|. . . . . . . .|\n";
-        const uint8_t row_len = row.length () + 1;
-        //" <--------------->\n"
-        sbb = " /---------------\\\n";
+    //    const string row   = "|. . . . . . . .|\n";
+    //    const uint8_t row_len = row.length () + 1;
+    //    //" <--------------->\n"
+    //    sbb = " /---------------\\\n";
 
-        for (Rank r = R_8; r >= R_1; --r)
-        {
-            sbb += to_char (r) + row;
-        }
+    //    for (Rank r = R_8; r >= R_1; --r)
+    //    {
+    //        sbb += to_char (r) + row;
+    //    }
 
-        sbb += " \\---------------/\n ";
+    //    sbb += " \\---------------/\n ";
 
-        for (File f = F_A; f <= F_H; ++f)
-        {
-            sbb += " "; sbb += to_char (f);
-        }
+    //    for (File f = F_A; f <= F_H; ++f)
+    //    {
+    //        sbb += " "; sbb += to_char (f);
+    //    }
 
-        sbb += "\n";
+    //    sbb += "\n";
 
-        while (bb)
-        {
-            Square s = pop_lsq (bb);
-            int8_t r = _rank (s);
-            int8_t f = _file (s);
-            sbb[2 + row_len * (8 - r) + 2 * f] = p;
-        }
+    //    while (bb)
+    //    {
+    //        Square s = pop_lsq (bb);
+    //        int8_t r = _rank (s);
+    //        int8_t f = _file (s);
+    //        sbb[2 + row_len * (8 - r) + 2 * f] = p;
+    //    }
 
-        cout << sbb;
-    }
+    //    cout << sbb;
+    //}
 
     //vector<Square> squares (Bitboard bb)
     //{

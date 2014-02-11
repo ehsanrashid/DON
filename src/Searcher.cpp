@@ -325,7 +325,7 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        bool search_log_write = *(Options["Write Search Log"]);
+        bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
 
         if (RootMoves.empty ())
@@ -363,7 +363,7 @@ namespace Searcher {
             DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
         }
 
-        if (search_log_write)
+        if (write_search_log)
         {
             Log log (search_log_fn);
 
@@ -380,7 +380,7 @@ namespace Searcher {
         }
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (uint32_t i = 0; i < Threads.size (); ++i)
+        for (uint8_t i = 0; i < Threads.size (); ++i)
         {
             Threads[i]->max_ply = 0;
         }
@@ -398,7 +398,7 @@ finish:
 
         point elapsed = now () - SearchTime + 1;
 
-        if (search_log_write)
+        if (write_search_log)
         {
             Log log (search_log_fn);
             log << "Time:        " << elapsed                                   << "\n"
@@ -622,23 +622,25 @@ namespace {
 
             IterDuration = now () - SearchTime + 1;
 
-            RootMove &rm = RootMoves[0];
+            //RootMove &rm = RootMoves[0];
+            
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
             {
                 skill.pick_move ();
                 if (MOVE_NONE != skill.move)
                 {
-                    rm = *find (RootMoves.begin (), RootMoves.end (), skill.move);
+                    //rm = *find (RootMoves.begin (), RootMoves.end (), skill.move);
+                    swap (RootMoves[0], *std::find (RootMoves.begin (), RootMoves.end(), skill.move));
                 }
             }
 
-            bool search_log_write = *(Options["Write Search Log"]);
-            if (search_log_write)
+            bool write_search_log = *(Options["Write Search Log"]);
+            if (write_search_log)
             {
                 string search_log_fn  = *(Options["Search Log File"]);
                 Log log (search_log_fn);
-                log << pretty_pv (pos, depth, rm.curr_value, IterDuration, &rm.pv[0]) << endl;
+                log << pretty_pv (pos, depth, RootMoves[0].curr_value, IterDuration, &RootMoves[0].pv[0]) << endl;
             }
 
             // Have found a "mate in x"?
@@ -701,10 +703,8 @@ namespace {
                         Signals.stop              = true;
                     }
                 }
-
             }
         }
-
     }
 
     template <NodeT NT>

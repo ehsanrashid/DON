@@ -625,8 +625,8 @@ inline bool Position::opposite_bishops () const
     return
         count<BSHP> (WHITE) && count<BSHP> (BLACK) &&
         !(
-        (pieces<BSHP> (WHITE) & BitBoard::LTSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::LTSQ_bb) ||
-        (pieces<BSHP> (WHITE) & BitBoard::DRSQ_bb) && (pieces<BSHP> (BLACK) & BitBoard::DRSQ_bb));
+        (pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb) ||
+        (pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb));
 }
 
 //// moved_piece() return piece moved on move

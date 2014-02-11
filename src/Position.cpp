@@ -352,8 +352,8 @@ bool Position::ok (int8_t *failed_step) const
                 Bitboard bishops = colors & pieces<BSHP> ();
                 uint8_t bishop_count[CLR_NO] =
                 {
-                    pop_count<FULL> (LTSQ_bb & bishops),
-                    pop_count<FULL> (DRSQ_bb & bishops),
+                    pop_count<FULL> (LIHT_bb & bishops),
+                    pop_count<FULL> (DARK_bb & bishops),
                 };
 
                 if (    (count<PAWN> (c) +

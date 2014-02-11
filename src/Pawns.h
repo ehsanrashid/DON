@@ -15,15 +15,16 @@ namespace Pawns {
     // returns a pointer to an Entry object.
     typedef struct Entry
     {
-        Key _pawn_key;
-        Score _pawn_score;
+        Key     _pawn_key;
+        Score   _pawn_score;
 
         Bitboard _pawn_attacks   [CLR_NO];
         Bitboard _passed_pawns   [CLR_NO];
         Bitboard _candidate_pawns[CLR_NO];
         
         Square  _king_sq        [CLR_NO];
-        uint8_t _num_pawns_on_sq[CLR_NO][CLR_NO];
+        // Count of pawns on LIGHT and DARK squares
+        uint8_t _pawn_count_sq  [CLR_NO][CLR_NO];
         uint8_t _min_KP_dist    [CLR_NO];
         uint8_t _castle_rights  [CLR_NO];
         uint8_t _semiopen_files [CLR_NO];
@@ -36,7 +37,7 @@ namespace Pawns {
         inline Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
         inline int32_t  pawns_on_same_color_squares(Color c, Square s) const
         {
-            return _num_pawns_on_sq[c][bool (BitBoard::DRSQ_bb & BitBoard::_square_bb[s])];
+            return _pawn_count_sq[c][bool (BitBoard::DARK_bb & BitBoard::_square_bb[s])];
         }
         inline uint8_t  semiopen        (Color c, File f) const
         {

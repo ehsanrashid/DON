@@ -71,7 +71,7 @@ namespace {
     // Evaluation weights, initialized from UCI options
     // Cowardice  -> KingDangerUs
     // Aggressive -> KingDangerThem
-    enum EvalWeights { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
+    enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
 
     Score Weights[6];
 

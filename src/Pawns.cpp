@@ -87,8 +87,8 @@ namespace {
         e->_king_sq       [C] = SQ_NO;
         e->_semiopen_files[C] = 0xFF;
         e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-        e->_num_pawns_on_sq[C][BLACK] = pop_count<MAX15> (pawns[0] & DRSQ_bb);
-        e->_num_pawns_on_sq[C][WHITE] = pos.count<PAWN> (C) - e->_num_pawns_on_sq[C][BLACK];
+        e->_pawn_count_sq [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
+        e->_pawn_count_sq [C][WHITE] = pos.count<PAWN> (C) - e->_pawn_count_sq[C][BLACK];
 
         Score pawn_score = SCORE_ZERO;
 

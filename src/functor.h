@@ -26,9 +26,9 @@ namespace std {
 
 
     // char case-insensitive less comparator
-    struct   char_less_nocase_comparer : public binary_function<unsigned char, unsigned char, bool>
+    struct   char_less_nocase_comparer : public binary_function<const unsigned char &, const unsigned char &, bool>
     {
-        bool operator() (unsigned char c1, unsigned char c2) const
+        bool operator() (const unsigned char &c1, const unsigned char &c2) const
         {
             //return toupper (c1) < toupper (c2);
             return tolower (c1) < tolower (c2);
@@ -59,9 +59,9 @@ namespace std {
     };
 
     //// case-insensitive equal comparator for char
-    //struct   char_equal_nocase_comparer : public binary_function<unsigned char, unsigned char, bool>
+    //struct   char_equal_nocase_comparer : public binary_function<const unsigned char &, const unsigned char &, bool>
     //{
-    //    bool operator() (unsigned char c1, unsigned char c2) const
+    //    bool operator() (const unsigned char &c1, const unsigned char &c2) const
     //    {
     //        //return toupper (c1) == toupper (c2);
     //        return tolower (c1) == tolower (c2);

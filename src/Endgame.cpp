@@ -159,7 +159,8 @@ namespace EndGame {
 
         if (!pos.count<PAWN> (_stong_side) &&
             (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK ||
-            (!pos.count<NIHT> (WHITE) && !pos.bishops_pair (_stong_side))))
+            ((pos.count (_stong_side) - pos.count<BSHP> (_stong_side) == 1) && !pos.bishops_pair (_stong_side)) ||
+            ((pos.count (_stong_side) - pos.count<NIHT> (_stong_side) == 1) && pos.count<NIHT> (_stong_side) <= 2)))
         {
             value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
         }
@@ -313,7 +314,7 @@ namespace EndGame {
 
         //// To draw, the weaker side should run towards the corner.
         //// And not just any corner! Only a corner that's not the same color as the bishop will do.
-        //if ((CORNER_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
+        //if ((CRNR_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
         //    square_dist (bk_sq, bb_sq) == 1 &&
         //    square_dist (wk_sq, bb_sq) >  1)
         //{
@@ -418,7 +419,7 @@ namespace EndGame {
                 bn_sq = ~bn_sq;
             }
 
-            value = VALUE_MG_KNIGHT + PushToCorners[bk_sq]
+            value = VALUE_MG_BISHOP + PushToCorners[bk_sq]
             +         PushClose[square_dist (wk_sq, bk_sq)]
             +         PushAway [square_dist (bk_sq, bn_sq)];
         }
@@ -671,7 +672,8 @@ namespace EndGame {
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
         return BitBases::probe_kpk (c, wk_sq, wp_sq, bk_sq)
-            ? SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+            ? SCALE_FACTOR_NONE
+            : SCALE_FACTOR_DRAW;
     }
 
     template<>
