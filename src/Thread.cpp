@@ -237,7 +237,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 
     sp.master_thread = this;
     sp.parent_split_point = active_split_point;
-    sp.slaves_mask  = 1ULL << idx;
+    sp.slaves_mask  = (1ULL << idx);
     sp.depth        = depth;
     sp.best_value   = best_value;
     sp.best_move    = best_move;
@@ -268,7 +268,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     while ((slave = Threads.available_slave (this)) != NULL
         && ++slaves_count <= Threads.threads_split_point && !FAKE)
     {
-        sp.slaves_mask |= (1ULL) << slave->idx;
+        sp.slaves_mask |= (1ULL << slave->idx);
         slave->active_split_point = &sp;
         slave->searching = true; // Slave leaves idle_loop()
         slave->notify_one (); // Could be sleeping

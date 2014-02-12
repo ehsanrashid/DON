@@ -1945,7 +1945,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             }
             else if (isalpha (ch))
             {
-                size_t idx = CharPiece.find (ch);
+                uint32_t idx = CharPiece.find (ch);
                 if (idx != string::npos)
                 {
                     Piece p = Piece (idx);
@@ -2116,7 +2116,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     sfen >> noskipws;
 
     // 1. Piece placement on Board
-    size_t idx;
+    uint32_t idx;
     Square s = SQ_A8;
     while ((sfen >> ch) && !isspace (ch))
     {

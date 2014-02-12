@@ -2,6 +2,7 @@
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
+//#undef POPCNT
 //#define POPCNT
 //#define BSFQ
 //#define PREFETCH

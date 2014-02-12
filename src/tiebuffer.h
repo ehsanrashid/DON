@@ -42,8 +42,8 @@ namespace std {
             bool error = false;
             if ('\n' == last_ch)
             {
-                size_t length = strlen (prefix);
-                if (size_t (_fstm->rdbuf ()->sputn (prefix, length)) != length)
+                uint32_t length = strlen (prefix);
+                if (_fstm->rdbuf ()->sputn (prefix, length) != length)
                 {
                     error = true;
                 }

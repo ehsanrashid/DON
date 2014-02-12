@@ -8,10 +8,10 @@ using namespace std;
 
 namespace {
 
-    string args_str (size_t argc, const char* const argv[])
+    string args_str (int32_t argc, const char* const argv[])
     {
         string args = "";
-        for (size_t i = 1; i < argc; ++i)
+        for (int32_t i = 1; i < argc; ++i)
         {
             args += whitespace (args) ? string (argv[i]) : " " + string (argv[i]);
         }

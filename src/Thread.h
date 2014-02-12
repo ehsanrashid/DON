@@ -39,10 +39,10 @@ typedef void*(*pt_start_fn)(void*);
 // disable macros min() and max()
 #   ifndef  NOMINMAX
 #       define NOMINMAX
-#endif
+#   endif
 #   ifndef  WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
-#endif
+#   endif
 
 #   include <windows.h>
 
@@ -165,6 +165,7 @@ struct Thread
     
     uint8_t              idx;
     uint8_t              max_ply;
+
     SplitPoint* volatile active_split_point;
     volatile uint8_t     threads_split_point;
     volatile bool        searching;
@@ -324,7 +325,7 @@ inline int32_t cpu_count ()
 typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream& os, SyncCout sc)
+inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 {
     static Mutex m;
 

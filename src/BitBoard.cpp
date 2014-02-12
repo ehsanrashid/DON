@@ -646,7 +646,7 @@ namespace BitBoard {
     //    //string sbit;
     //    string sbit (x + (x-1) / CHAR_BIT, '.');
 
-    //    //size_t x = sizeof (bb) * CHAR_BIT; // if uint32_t
+    //    //uint32_t x = sizeof (bb) * CHAR_BIT; // if uint32_t
     //    uint64_t mask = U64 (1) << (x - 1);
     //    uint8_t sep = 0;
     //    for (uint8_t i = 0; i < x; ++i)
