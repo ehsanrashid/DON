@@ -41,6 +41,7 @@ namespace TrivialLogger {
     namespace implementation {
 
         class TriLoggerImpl;
+
     }
 
     // main trivial logger class
