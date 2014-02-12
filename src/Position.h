@@ -605,10 +605,10 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    int32_t bishop_count = count<BSHP> (c);
+    uint8_t bishop_count = count<BSHP> (c);
     if (bishop_count > 1)
     {
-        for (int32_t pc = 0; pc < bishop_count-1; ++pc)
+        for (uint8_t pc = 0; pc < bishop_count-1; ++pc)
         {
             if (opposite_colors (list<BSHP> (c)[pc], list<BSHP> (c)[pc+1])) return true;
         }
@@ -625,8 +625,8 @@ inline bool Position::opposite_bishops () const
     return
         count<BSHP> (WHITE) && count<BSHP> (BLACK) &&
         !(
-        (pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb) ||
-        (pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb));
+        ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb)) ||
+        ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
 }
 
 //// moved_piece() return piece moved on move

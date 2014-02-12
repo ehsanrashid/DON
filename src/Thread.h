@@ -260,7 +260,7 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 }
 
 #if __cplusplus > 199711L
-#   include<thread>
+#   include <thread>
 #endif
 
 inline int32_t cpu_count ()
@@ -329,9 +329,9 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 {
     static Mutex m;
 
-    if      (IO_LOCK == sc)
+    if      (sc == IO_LOCK)
         m.lock ();
-    else if (IO_UNLOCK == sc)
+    else if (sc == IO_UNLOCK)
         m.unlock ();
     return os;
 }

@@ -3,6 +3,7 @@
 #define XSTRING_H_
 
 #include <cctype>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <algorithm>
