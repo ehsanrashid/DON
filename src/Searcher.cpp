@@ -627,7 +627,7 @@ namespace {
             IterDuration = now () - SearchTime + 1;
 
             //RootMove &rm = RootMoves[0];
-            
+
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
             {
@@ -925,7 +925,7 @@ namespace {
             (ss+0)->current_move = MOVE_NULL;
 
             // Null move dynamic (variable) reduction based on depth and value
-            Depth rdepth = (MAX_NULL_REDUCTION+0) * ONE_MOVE
+            Depth R = (MAX_NULL_REDUCTION+0) * ONE_MOVE
                 +           depth / 4
                 +           int32_t (eval_value - beta) / VALUE_MG_PAWN * ONE_MOVE;
 
@@ -933,9 +933,9 @@ namespace {
             pos.do_null_move (si);
             (ss+1)->skip_null_move = true;
             // Null window (alpha, beta) = (beta-1, beta):
-            Value null_value = (depth-rdepth < ONE_MOVE)
+            Value null_value = (depth-R < ONE_MOVE)
                 ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
-                : -search      <NonPV>        (pos, ss+1, -beta, -(beta-1), depth-rdepth, !cut_node);
+                : -search      <NonPV>        (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
 
             (ss+1)->skip_null_move = false;
             // Undo null move
@@ -944,6 +944,30 @@ namespace {
             if (null_value >= beta) // Do not return unproven mate scores
             {
                 return null_value >= VALUE_MATES_IN_MAX_PLY ? beta : null_value;
+            }
+            if (null_value >= beta)
+            {
+                // Do not return unproven mate scores
+                if (null_value >= VALUE_MATES_IN_MAX_PLY)
+                {
+                    null_value = beta;
+                }
+                if (depth < 12 * ONE_PLY)
+                {
+                    return null_value;
+                }
+
+                // Do verification search at high depths
+                ss->skip_null_move = true;
+                Value veri_value = depth-R < ONE_MOVE
+                    ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
+                    : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false);
+                ss->skip_null_move = false;
+
+                if (veri_value >= beta)
+                {
+                    return null_value;
+                }
             }
         }
 
@@ -1766,7 +1790,7 @@ moves_loop: // When in check and at SPNode search starts from here
 void check_time ()
 {
     static point last_time = now ();
-    
+
     uint64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
     point now_time = now ();
