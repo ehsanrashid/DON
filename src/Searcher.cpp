@@ -186,14 +186,16 @@ namespace {
         return cnt;
     }
 
+#pragma region Debug
+
     // Debug functions used mainly to collect run-time statistics
     uint64_t
         hits [2] = { U64(0), U64(0), },
         means[2] = { U64(0), U64(0), };
 
-    void dbg_hit_on  (bool b)           { ++hits[0]; if (b) ++hits[1]; }
-    void dbg_hit_on_c(bool c, bool b)   { if (c) dbg_hit_on (b);       }
-    void dbg_mean_of (int32_t v)        { ++means[0]; means[1] += v;   }
+    //void dbg_hit_on  (bool h)           { ++hits[0]; if (h) ++hits[1]; }
+    //void dbg_hit_on_c(bool c, bool h)   { if (c) dbg_hit_on (h);       }
+    //void dbg_mean_of (uint64_t v)       { ++means[0]; means[1] += v;   }
 
     inline void dbg_print ()
     {
@@ -213,6 +215,8 @@ namespace {
                 << endl;
         }
     }
+
+#pragma endregion
 
 } // namespace
 
@@ -316,7 +320,7 @@ namespace Searcher {
         }
     }
 
-    uint64_t perft (Position &pos, Depth depth)
+    uint64_t perft (Position &pos, const Depth &depth)
     {
         return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
     }

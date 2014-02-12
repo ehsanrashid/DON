@@ -191,7 +191,7 @@ namespace Searcher {
     extern PolyglotBook          Book;
 
 
-    extern uint64_t perft (Position &pos, Depth depth);
+    extern uint64_t perft (Position &pos, const Depth &depth);
 
     extern void think ();
 

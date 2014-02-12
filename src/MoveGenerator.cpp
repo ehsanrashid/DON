@@ -410,7 +410,8 @@ namespace MoveGenerator {
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m))) && !pos.legal (m, pinneds))
+        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m))) &&
+        //            !pos.legal (m, pinneds))
         //        {
         //            beg->move = (--end)->move;
         //        }
