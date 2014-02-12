@@ -75,7 +75,7 @@ namespace MoveGenerator {
 
         Move operator* () const { return cur->move; }
 
-        size_t size () const { return end - beg; }
+        uint32_t size () const { return end - beg; }
 
         bool contains (Move m) const
         {

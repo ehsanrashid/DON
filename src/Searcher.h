@@ -23,8 +23,6 @@ namespace Searcher {
     //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
     //const uint16_t MAX_THREAT = 90;
 
-    extern PolyglotBook book;
-
     // GameClock stores the available time and time-gain per move
     typedef struct GameClock
     {
@@ -114,7 +112,7 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV = CUT + ALL
     // Different node types, used as template parameter
-    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
+    typedef enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV } NodeT;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -123,7 +121,7 @@ namespace Searcher {
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).
     // Score is normally set at -VALUE_INFINITE for all non-pv moves.
-    struct RootMove
+    typedef struct RootMove
     {
         Value curr_value
             , last_value;
@@ -155,7 +153,7 @@ namespace Searcher {
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
 
-    };
+    } RootMove;
 
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
@@ -189,6 +187,9 @@ namespace Searcher {
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;
+
+    extern PolyglotBook          Book;
+
 
     extern uint64_t perft (Position &pos, Depth depth);
 

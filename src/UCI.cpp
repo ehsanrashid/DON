@@ -409,8 +409,8 @@ namespace UCI {
     //    try
     //    {
     //        static char buf[1024];
-    //        size_t size  =   sizeof (buf);
-    //        size_t count = _countof (buf);
+    //        uint32_t size  =   sizeof (buf);
+    //        uint32_t count = _countof (buf);
     //        std::memset (buf, 0, size);
     //        va_list args;
     //        va_start (args, format);

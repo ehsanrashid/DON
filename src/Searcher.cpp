@@ -167,14 +167,14 @@ namespace {
 
     // _perft() is our utility to verify move generation. All the leaf nodes
     // up to the given depth are generated and counted and the sum returned.
-    inline uint64_t _perft (Position &pos, Depth depth)
+    inline uint64_t _perft (Position &pos, const Depth &depth)
     {
         const bool leaf = (depth == 2*ONE_MOVE);
 
         uint64_t cnt = 0;
+
         StateInfo si;
         CheckInfo ci (pos);
-
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
@@ -229,7 +229,7 @@ namespace Searcher {
     point				SearchTime;
 
     // initialize the PRNG only once
-    PolyglotBook		book;
+    PolyglotBook		Book;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
@@ -341,8 +341,8 @@ namespace Searcher {
 
         if (*(Options["Own Book"]) && !Limits.infinite && !Limits.mate_in)
         {
-            if (!book.is_open ()) book.open (*(Options["Book File"]), ios_base::in);
-            Move book_move = book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
+            if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in);
+            Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
             if (book_move && count (RootMoves.begin (), RootMoves.end (), book_move))
             {
                 swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));

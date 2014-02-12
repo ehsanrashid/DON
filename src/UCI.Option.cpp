@@ -225,7 +225,7 @@ namespace UCI {
         void on_change_book     (const Option &opt)
         {
         	(void) opt;
-            if (Searcher::book.is_open ()) Searcher::book.close ();
+            if (Searcher::Book.is_open ()) Searcher::Book.close ();
         }
 
         void on_change_threads  (const Option &opt)

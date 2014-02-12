@@ -302,7 +302,7 @@ inline int32_t cpu_count ()
 #   elif defined(__HPUX)
 
     pst_dynamic psd;
-    return (pstat_getdynamic (&psd, sizeof (psd), size_t (1), 0) == -1) ?
+    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1) ?
         1 : psd.psd_proc_cnt;
 
     //return mpctl (MPC_GETNUMSPUS, NULL, NULL);

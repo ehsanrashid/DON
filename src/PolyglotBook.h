@@ -59,7 +59,7 @@ public:
     static const uint8_t SIZE_PGENTRY   = sizeof (PolyglotEntry);
     static const uint8_t SIZE_PGHEADER  = 0*SIZE_PGENTRY;
 
-    static const size_t  ERROR_INDEX      = size_t (-1);
+    static const uint64_t  ERROR_INDEX  = uint64_t (-1);
 
 private:
 
@@ -78,12 +78,12 @@ private:
 public:
     // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
-    size_t find_index (const Key key);
-    size_t find_index (const Position &pos);
+    uint64_t find_index (const Key key);
+    uint64_t find_index (const Position &pos);
 #ifndef NDEBUG
-    size_t find_index (const        char *fen, bool c960 = false);
+    uint64_t find_index (const        char *fen, bool c960 = false);
 #endif
-    size_t find_index (const std::string &fen, bool c960 = false);
+    uint64_t find_index (const std::string &fen, bool c960 = false);
 
 public:
 

@@ -89,7 +89,7 @@ template<class T>
 PolyglotBook& PolyglotBook::operator>> (T &t)
 {
     t = T ();
-    for (size_t i = 0; i < sizeof (T) && good (); ++i)
+    for (uint8_t i = 0; i < sizeof (T) && good (); ++i)
     {
         uint8_t byte = uint8_t (get ());
         t = T ((t << 8) + byte);
@@ -106,8 +106,8 @@ PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    size_t size = sizeof (T);
-    for (size_t i = 0; i < size && good (); ++i)
+    uint8_t size = sizeof (T);
+    for (uint8_t i = 0; i < size && good (); ++i)
     {
         uint8_t byte = uint8_t (t >> (8*(size - 1 - i)));
         put (byte);
@@ -178,12 +178,12 @@ bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 
 void PolyglotBook::close () { if (fstream::is_open ()) fstream::close (); }
 
-size_t PolyglotBook::find_index (const Key key)
+uint64_t PolyglotBook::find_index (const Key key)
 {
     if (!fstream::is_open ()) return ERROR_INDEX;
 
-    size_t beg = size_t (0);
-    size_t end = size_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
+    uint64_t beg = uint64_t (0);
+    uint64_t end = uint64_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
 
     PolyglotEntry pe;
 
@@ -198,7 +198,7 @@ size_t PolyglotBook::find_index (const Key key)
     {
         while (beg < end && good ())
         {
-            size_t mid = (beg + end) / 2;
+            uint64_t mid = (beg + end) / 2;
             ASSERT (mid >= beg && mid < end);
 
             seekg (STM_POS (mid));
@@ -218,18 +218,18 @@ size_t PolyglotBook::find_index (const Key key)
     ASSERT (beg == end);
     return (key == pe.key) ? beg : ERROR_INDEX;
 }
-size_t PolyglotBook::find_index (const Position &pos)
+uint64_t PolyglotBook::find_index (const Position &pos)
 {
     return find_index (ZobPG.compute_posi_key (pos));
 }
 
 #ifndef NDEBUG
-size_t PolyglotBook::find_index (const        char *fen, bool c960)
+uint64_t PolyglotBook::find_index (const        char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
 #endif
-size_t PolyglotBook::find_index (const string &fen, bool c960)
+uint64_t PolyglotBook::find_index (const string &fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
@@ -243,7 +243,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     Key key = ZobPG.compute_posi_key (pos);
 
-    size_t index = find_index (key);
+    uint64_t index = find_index (key);
     if (ERROR_INDEX == index) return MOVE_NONE;
 
     seekg (STM_POS (index));
@@ -376,7 +376,7 @@ string PolyglotBook::read_entries (const Position &pos)
 
     Key key = ZobPG.compute_posi_key (pos);
 
-    size_t index = find_index (key);
+    uint64_t index = find_index (key);
     if (ERROR_INDEX == index)
     {
         cerr << "ERROR: no such key... "
@@ -413,7 +413,7 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 {
     if (!fstream::is_open () || !(_mode & ios_base::out)) return;
 
-    size_t index = find_index (pe.key);
+    uint64_t index = find_index (pe.key);
     if (ERROR_INDEX == index)
     {
 

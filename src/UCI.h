@@ -19,7 +19,7 @@ namespace UCI {
         public:
             typedef void (*OnChange) (const Option &);
 
-            size_t index;
+            uint8_t index;
 
         protected:
             OnChange _on_change;
@@ -149,7 +149,7 @@ namespace UCI {
     inline std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
-        for (size_t idx = 0; idx < options.size (); ++idx)
+        for (uint8_t idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator
                 itr = options.begin ();

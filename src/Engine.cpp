@@ -127,7 +127,7 @@ namespace Engine {
     void exit (int32_t code)
     {
         UCI   ::stop ();
-        if (Searcher::book.is_open ()) Searcher::book.close ();
+        if (Searcher::Book.is_open ()) Searcher::Book.close ();
         Threads.deinitialize ();
         UCI   ::deinitialize ();
 
