@@ -103,15 +103,6 @@ template<class T>
 // known to be optimal to quickly find a good magic candidate.
 inline T RKISS::rand_boost (uint16_t s)
 {
-    //uint8_t s1 = (s >> 0) & 0x3F;
-    //uint8_t s2 = (s >> 6) & 0x3F;
-    //T r;
-    //r = randX<T> ();
-    //r = rotate_R (r, s1);
-    //r &= randX<T> ();
-    //r = rotate_R (r, s2);
-    //return T (r & randX<T> ());
-
     //return rotate_R (rotate_R (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
     //    ,                                  (s >> 6) & 0x3F) & randX<T>();
 
