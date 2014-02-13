@@ -37,15 +37,9 @@ public:
 
     RKISS ()
     {
-        // Make random number generation less deterministic by using random seed
-        uint32_t seed;
 
-        //srand (uint32_t (time (NULL)));
-        //seed = rand ();
 
-        seed = Time::now () % 10000;
-
-        init (seed);
+        //init (seed);
     }
 
     RKISS (uint32_t seed)
