@@ -123,7 +123,7 @@ void TimeManager::initialize (const LimitsT &limits, int32_t current_ply, Color 
     int32_t slow_mover             = *(Options["Slow Mover"]);
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
-    _unstable_pv_extra_time = 0;
+    _unstable_pv_factor = 1;
     _optimum_search_time = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
 
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the

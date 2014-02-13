@@ -532,7 +532,7 @@ namespace {
         while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
         {
             // Age out PV variability metric
-            BestMoveChanges *= 0.8;
+            BestMoveChanges *= 0.5;
 
             // Save last iteration's scores before first PV line is searched and all
             // the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -668,9 +668,8 @@ namespace {
 
                 // Stop the search early:
                 // If there is only one legal move available or 
-                // If most of the available time has been used.
-                // We probably don't have enough time to search the first move at the next iteration anyway.
-                if ((1 == RootMoves.size ()) || IterDuration > TimeMgr.available_time () * 62 / 100)
+                // If all of the available time has been used.
+                if ((1 == RootMoves.size ()) || IterDuration > TimeMgr.available_time ())
                 {
                     stop = true;
                 }
@@ -1835,11 +1834,10 @@ void check_time ()
     point elapsed = now_time - SearchTime + 1;
 
     bool still_at_first_move = 
-        Signals.first_root_move     &&
-        !Signals.failed_low_at_root &&
-        (elapsed > TimeMgr.available_time ()
-        || (   elapsed > TimeMgr.available_time() * 62 / 100
-        &&     elapsed > IterDuration * 1.4));
+         Signals.first_root_move     &&
+        !Signals.failed_low_at_root  &&
+        elapsed > TimeMgr.available_time () &&
+        elapsed > IterDuration * 1.4;
 
     bool no_more_time = 
         elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution ||
@@ -1961,4 +1959,5 @@ void Thread::idle_loop ()
             if (finished) return;
         }
     }
+
 }

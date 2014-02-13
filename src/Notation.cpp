@@ -24,7 +24,6 @@ AmbT ambiguity (Move m, const Position &pos)
     Piece p    = pos[org];
     PieceT pt  = _ptype (p);
 
-
     //uint8_t n = 0;
     //uint8_t f = 0;
     //uint8_t r = 0;
@@ -396,7 +395,7 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
         << setw (8) << value_to_string (value)
         << setw (8) << time_to_string (msecs);
 
-    if (pos.game_nodes () < M)
+    if      (pos.game_nodes () < M)
     {
         spv << setw (8) << pos.game_nodes () / 1 << "  ";
     }
@@ -434,5 +433,5 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
         --m;
     }
 
-    return spv.str();
+    return spv.str ();
 }
