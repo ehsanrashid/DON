@@ -197,7 +197,7 @@ namespace Zobrist {
                 }
                 else if (isalpha (ch))
                 {
-                    uint32_t idx = CharPiece.find (ch);
+                    size_t idx = CharPiece.find (ch);
                     if (idx != string::npos)
                     {
                         Piece p = Piece (idx);
@@ -314,7 +314,7 @@ namespace Zobrist {
 
         sfen >> noskipws;
 
-        uint32_t idx;
+        size_t idx;
         Square s = SQ_A8;
         while ((sfen >> ch) && !isspace (ch))
         {

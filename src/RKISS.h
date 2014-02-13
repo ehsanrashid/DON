@@ -61,7 +61,7 @@ public:
     T randX ();
 
     template<class T>
-    T rand_boost (uint16_t booster);
+    T rand_boost (uint16_t s);
 
 } RKISS;
 
@@ -98,18 +98,25 @@ template<class T>
 inline T RKISS::randX () { return T (rand64 ()); }
 
 template<class T>
-inline T RKISS::rand_boost (uint16_t booster)
+// Special generator used to fast init magic numbers.
+// Here the trick is to rotate the randoms of a given quantity 's'
+// known to be optimal to quickly find a good magic candidate.
+inline T RKISS::rand_boost (uint16_t s)
 {
-    // s1 and s2 are used to rotate the candidate magic of a
-    // quantity known to be the optimal to quickly find the magics.
-    uint8_t s1 = (booster >> 0) & 0x3F;
-    uint8_t s2 = (booster >> 6) & 0x3F;
-    T r;
-    r = randX<T> ();
-    r = rotate_R (r, s1);
-    r &= randX<T> ();
-    r = rotate_R (r, s2);
-    return T (r & randX<T> ());
+    //uint8_t s1 = (s >> 0) & 0x3F;
+    //uint8_t s2 = (s >> 6) & 0x3F;
+    //T r;
+    //r = randX<T> ();
+    //r = rotate_R (r, s1);
+    //r &= randX<T> ();
+    //r = rotate_R (r, s2);
+    //return T (r & randX<T> ());
+
+    //return rotate_R (rotate_R (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
+    //    ,                                  (s >> 6) & 0x3F) & randX<T>();
+
+    return rotate_L (rotate_L (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
+        ,                                  (s >> 6) & 0x3F) & randX<T>();
 }
 
 #endif // RKISS_H_

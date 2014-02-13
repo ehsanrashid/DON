@@ -158,7 +158,8 @@ namespace UCI {
                     fen += whitespace (fen) ? token : " " + token;
                 }
 
-                ASSERT (_ok (fen));
+                //ASSERT (_ok (fen));
+                //if (!_ok (fen)) return;
             }
             else return;
 

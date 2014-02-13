@@ -305,11 +305,16 @@ namespace BitBoard {
         void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer)
         {
 
-            uint16_t _bMagicBoosters[R_NO] =
-#if defined(_64BIT)
-            { 0x423, 0xE18, 0x25D, 0xCA2, 0xCFE, 0x026, 0x7ED, 0xBE3, }; // 64-bit
+            const uint16_t _bMagicBoosters[R_NO] =
+//#ifdef _64BIT
+//            { 0x423, 0xE18, 0x25D, 0xCA2, 0xCFE, 0x026, 0x7ED, 0xBE3, }; // 64-bit
+//#else
+//            { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
+//#endif
+#ifdef _64BIT
+            { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x101A, 0x853, 0x45D }; // 64-bit
 #else
-            { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
+            { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815,  0xB24, 0x6AC, 0x0A4 }; // 32-bit
 #endif
 
             Bitboard occupancy[MAX_MOVES];
@@ -706,7 +711,7 @@ namespace BitBoard {
     //    //sbb.append ("\n");
 
     //    const string row   = "|. . . . . . . .|\n";
-    //    const uint8_t row_len = row.length () + 1;
+    //    const uint16_t row_len = row.length () + 1;
     //    //" <--------------->\n"
     //    sbb = " /---------------\\\n";
 

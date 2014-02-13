@@ -43,12 +43,12 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
     void **ptr = 
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
-    
+
     _hash_table = (TranspositionEntry*) (ptr);
 
     ASSERT (0 == (size & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
-    
+
     ptr[-1] = mem;
 }
 
@@ -76,16 +76,17 @@ uint32_t TranspositionTable::resize (uint32_t size_mb)
 
     total_entry     = uint32_t (1) << bit_hash;
     uint64_t size   = total_entry * SIZE_TENTRY;
-    
-    if (_hash_mask == (total_entry - NUM_TENTRY_CLUSTER)) return (size >> 20);
 
-    erase ();
+    if (_hash_mask != (total_entry - NUM_TENTRY_CLUSTER))
+    {
+        erase ();
 
-    aligned_memory_alloc (size, SIZE_CACHE_LINE); 
+        aligned_memory_alloc (size, SIZE_CACHE_LINE); 
 
-    _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
-    _stored_entry   = 0;
-    _generation     = 0;
+        _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
+        _stored_entry   = 0;
+        _generation     = 0;
+    }
 
     return (size >> 20);
 }

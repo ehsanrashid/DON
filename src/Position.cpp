@@ -1822,7 +1822,7 @@ Position::operator string () const
     const string edge = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
-    const uint8_t row_len = row_1.length () + 1;
+    const uint16_t row_len = row_1.length () + 1;
 
     string board = edge;
 
@@ -1842,7 +1842,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
-        board[3 + uint8_t (row_len * (7.5 - r)) + 4 * f] = CharPiece[piece_on (s)];
+        board[3 + row_len * (7.5 - r) + 4 * f] = CharPiece[piece_on (s)];
     }
 
     ostringstream ss;
@@ -1945,7 +1945,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             }
             else if (isalpha (ch))
             {
-                uint32_t idx = CharPiece.find (ch);
+                size_t idx = CharPiece.find (ch);
                 if (idx != string::npos)
                 {
                     Piece p = Piece (idx);
@@ -2116,7 +2116,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     sfen >> noskipws;
 
     // 1. Piece placement on Board
-    uint32_t idx;
+    size_t idx;
     Square s = SQ_A8;
     while ((sfen >> ch) && !isspace (ch))
     {
@@ -2134,6 +2134,10 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += DEL_SS;
         }
+        //else
+        //{
+        //    return false;
+        //}
     }
 
     // 2. Active color
