@@ -37,13 +37,13 @@ public:
 
     RKISS ()
     {
-        // Make random number generation less deterministic
-        // by using random seed
+        // Make random number generation less deterministic by using random seed
+        uint32_t seed;
 
         //srand (uint32_t (time (NULL)));
-        //uint32_t seed = rand ();
+        //seed = rand ();
 
-        uint32_t seed = uint64_t (Time::now ()) % 10000;
+        seed = Time::now () % 10000;
 
         init (seed);
     }
@@ -84,12 +84,11 @@ inline void RKISS::init (uint32_t seed)
 inline uint64_t RKISS::rand64 (Rand &S)
 {
     const uint64_t
-        E = S.A - rotate_L (S.B, 7);
+      E = S.A - rotate_L (S.B, 7);
     S.A = S.B ^ rotate_L (S.C, 13);
     S.B = S.C + rotate_L (S.D, 37);
     S.C = S.D + E;
-    S.D = E + S.A;
-    return S.D;
+    return S.D = E + S.A;
 }
 
 inline uint64_t RKISS::rand64 () { return rand64 (S); }
