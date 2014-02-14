@@ -15,9 +15,9 @@ using namespace Time;
 
 namespace {
 
-    const uint16_t NUM_FEN = 30;
+    const uint16_t TOT_FEN = 30;
 
-    const char* default_fens[NUM_FEN] =
+    const char* default_fens[TOT_FEN] =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -90,7 +90,7 @@ void benchmark (istream &is, const Position &pos)
 
     if      (iequals (fen_fn, "default"))
     {
-        fens.assign (default_fens, default_fens + NUM_FEN);
+        fens.assign (default_fens, default_fens + TOT_FEN);
     }
     else if (iequals (fen_fn, "current"))
     {

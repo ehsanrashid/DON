@@ -30,12 +30,13 @@ EXE = DON
 PREFIX = /usr/local
 # Haiku has a non-standard filesystem layout
 ifeq ($(UNAME),Haiku)
-	PREFIX=/boot/common
+	PREFIX = /boot/common
 endif
+
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds and signature
-PGOBENCH = ./$(EXE) bench 32 1 10 default depth
+PGOBENCH  = ./$(EXE) bench 32 1 10 default depth
 SIGNBENCH = ./$(EXE) bench
 
 ### Object files
@@ -47,19 +48,19 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 ### Section 2. High-level Configuration
 ### ==========================================================================
 #
-# flag                --- Comp switch --- Description
+# flag                --- Comp switch      --- Description
 # ----------------------------------------------------------------------------
 #
-# debug = yes/no      --- -DNDEBUG         --- Enable/Disable debug mode
-# optimize = yes/no   --- (-O3/-fast etc.) --- Enable/Disable optimizations
-# arch = (name)       --- (-arch)          --- Target architecture
-# os = (name)         ---                  --- Target operating system
-# bits = 64/32        --- -D_64BIT         --- 64-/32-bit operating system
-# prefetch = yes/no   --- -DPREFETCH       --- Use prefetch x86 asm-instruction
-# bsfq = yes/no       --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
+# debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
+# optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
+# arch    = (name)    --- (-arch)          --- Target architecture
+# os      = (name)    ---                  --- Target operating system
+# bits    = 64/32     --- -D_64BIT         --- 64-/32-bit operating system
+# prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
+# bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
-# popcnt = yes/no     --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
-# sse = yes/no        --- -msse            --- Use Intel Streaming SIMD Extensions
+# popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
+# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -67,11 +68,11 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 
 ### 2.1. General and architecture defaults
 debug   = no
-optimize = yes
+optimize= yes
 
 os      = any
 bits    = 32
-prefetch = no
+prefetch= no
 bsfq    = no
 popcnt  = no
 sse     = no
@@ -88,7 +89,7 @@ endif
 
 ifeq ($(ARCH),x86-32)
 	arch    = i386
-	prefetch = yes
+	prefetch= yes
 	sse     = yes
 endif
 
@@ -100,7 +101,7 @@ endif
 ifeq ($(ARCH),x86-64)
 	arch    = x86_64
 	bits    = 64
-	prefetch = yes
+	prefetch= yes
 	bsfq    = yes
 	sse     = yes
 endif
@@ -108,7 +109,7 @@ endif
 ifeq ($(ARCH),x86-64-modern)
 	arch    = x86_64
 	bits    = 64
-	prefetch = yes
+	prefetch= yes
 	bsfq    = yes
 	popcnt  = yes
 	sse     = yes
@@ -116,7 +117,7 @@ endif
 
 ifeq ($(ARCH),armv7)
 	arch    = armv7
-	prefetch = yes
+	prefetch= yes
 	bsfq    = yes
 endif
 
@@ -140,7 +141,7 @@ ifeq ($(ARCH),osx-x86-64)
 	arch    = x86_64
 	os      = osx
 	bits    = 64
-	prefetch = yes
+	prefetch= yes
 	bsfq    = yes
 	sse     = yes
 endif
@@ -149,7 +150,7 @@ ifeq ($(ARCH),osx-x86-64-modern)
 	arch    = x86_64
 	os      = osx
 	bits    = 64
-	prefetch = yes
+	prefetch= yes
 	bsfq    = yes
 	popcnt  = yes
 	sse     = yes
@@ -158,7 +159,7 @@ endif
 ifeq ($(ARCH),osx-x86-32)
 	arch    = i386
 	os      = osx
-	prefetch = yes
+	prefetch= yes
 	bsfq    = no
 	popcnt  = no
 	sse     = yes
@@ -172,54 +173,54 @@ endif
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
-CXXFLAGS += -std=gnu++0x -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
-LDFLAGS += $(EXTRALDFLAGS)
+CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)
-	COMP=gcc
+	COMP= gcc
 endif
 
 ifeq ($(COMP),gcc)
-	comp=gcc
-	CXX=g++
+	comp= gcc
+	CXX = g++
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(COMP),mingw)
-	comp=mingw
-	CXX=g++
+	comp= mingw
+	CXX = g++
 	CXXFLAGS += -Wextra -Wshadow
-	LDFLAGS += -static-libstdc++ -static-libgcc
+	LDFLAGS  += -static-libstdc++ -static-libgcc
 endif
 
 ifeq ($(COMP),icc)
-	comp=icc
-	CXX=icpc
+	comp= icc
+	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP),clang)
-	comp=clang
-	CXX=clang++
+	comp= clang
+	CXX = clang++
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(comp),icc)
 	profile_prepare = icc-profile-prepare
-	profile_make = icc-profile-make
-	profile_use = icc-profile-use
-	profile_clean = icc-profile-clean
+	profile_make    = icc-profile-make
+	profile_use     = icc-profile-use
+	profile_clean   = icc-profile-clean
 else
 	profile_prepare = gcc-profile-prepare
-	profile_make = gcc-profile-make
-	profile_use = gcc-profile-use
-	profile_clean = gcc-profile-clean
+	profile_make    = gcc-profile-make
+	profile_use     = gcc-profile-use
+	profile_clean   = gcc-profile-clean
 endif
 
 ifeq ($(os),osx)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
-	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.6
+	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.6
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
@@ -244,6 +245,7 @@ endif
 ifeq ($(optimize),yes)
 
 	ifeq ($(comp),gcc)
+
 		CXXFLAGS += -O3
 
 		ifeq ($(os),osx)
@@ -258,21 +260,27 @@ ifeq ($(optimize),yes)
 		ifeq ($(arch),armv7)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
+
 	endif
 
 	ifeq ($(comp),mingw)
+
 		CXXFLAGS += -O3
+
 	endif
 
 	ifeq ($(comp),icc)
+
 		ifeq ($(os),osx)
 			CXXFLAGS += -fast -mdynamic-no-pic
 		else
 			CXXFLAGS += -fast
 		endif
+
 	endif
 
 	ifeq ($(comp),clang)
+
 		ifeq ($(os),osx)
 			# Clang on OS X supports LTO
 			CXXFLAGS += -O4
@@ -288,10 +296,12 @@ ifeq ($(optimize),yes)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
+
 	endif
+
 endif
 
-### 3.6. Bits
+### 3.6 Bits
 ifeq ($(bits),64)
 	CXXFLAGS += -D_64BIT
 endif
@@ -325,7 +335,7 @@ ifeq ($(comp),gcc)
 		GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
 		ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
 			CXXFLAGS += -flto
-			LDFLAGS += $(CXXFLAGS)
+			LDFLAGS  += $(CXXFLAGS)
 		endif
 	endif
 	endif
@@ -376,7 +386,7 @@ help:
 	@echo ""
 	@echo "Non-standard targets:"
 	@echo ""
-	@echo "make hpux               >  Compile for HP-UX. Compiler = aCC"
+	@echo "make hpux               > Compile for HP-UX. Compiler = aCC"
 	@echo ""
 	@echo "Examples. If you don't know what to do, you likely want to run: "
 	@echo ""
@@ -443,21 +453,21 @@ all: $(EXE) .depend
 
 config-sanity:
 	@echo ""
-	@echo "Config:"
-	@echo "debug: '$(debug)'"
+	@echo "Config  :"
+	@echo "debug   : '$(debug)'"
 	@echo "optimize: '$(optimize)'"
-	@echo "arch: '$(arch)'"
-	@echo "os: '$(os)'"
-	@echo "bits: '$(bits)'"
+	@echo "arch    : '$(arch)'"
+	@echo "os      : '$(os)'"
+	@echo "bits    : '$(bits)'"
 	@echo "prefetch: '$(prefetch)'"
-	@echo "bsfq: '$(bsfq)'"
-	@echo "popcnt: '$(popcnt)'"
-	@echo "sse: '$(sse)'"
+	@echo "bsfq    : '$(bsfq)'"
+	@echo "popcnt  : '$(popcnt)'"
+	@echo "sse     : '$(sse)'"
 	@echo ""
-	@echo "Flags:"
-	@echo "CXX: $(CXX)"
+	@echo "Flags   :"
+	@echo "CXX     : $(CXX)"
 	@echo "CXXFLAGS: $(CXXFLAGS)"
-	@echo "LDFLAGS: $(LDFLAGS)"
+	@echo "LDFLAGS : $(LDFLAGS)"
 	@echo ""
 	@echo "Testing config sanity. If this fails, try 'make help' ..."
 	@echo ""
@@ -477,35 +487,35 @@ $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 gcc-profile-prepare:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) gcc-profile-clean
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) gcc-profile-clean
 
 gcc-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate' \
-	EXTRALDFLAGS='-lgcov' \
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS= '-fprofile-generate' \
+	EXTRALDFLAGS = '-lgcov' \
 	all
 
 gcc-profile-use:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-use' \
-	EXTRALDFLAGS='-lgcov' \
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS= '-fprofile-use' \
+	EXTRALDFLAGS = '-lgcov' \
 	all
 
 gcc-profile-clean:
 	@rm -rf *.gcda *.gcno bench.txt
 
 icc-profile-prepare:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) icc-profile-clean
 	@mkdir profdir
 
 icc-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-prof-gen=srcpos -prof_dir ./profdir' \
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS= '-prof-gen=srcpos -prof_dir ./profdir' \
 	all
 
 icc-profile-use:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
+	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS= '-prof_use -prof_dir ./profdir' \
 	all
 
 icc-profile-clean:
@@ -523,8 +533,8 @@ icc-profile-clean:
 
 hpux:
 	$(MAKE) \
-	CXX='/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG' \
-	CXXFLAGS="" \
-	LDFLAGS="" \
+	CXX = '/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG' \
+	CXXFLAGS= "" \
+	LDFLAGS = "" \
 	all
 
