@@ -17,7 +17,7 @@ UCI::OptionMap Options;
 
 namespace UCI {
 
-    using namespace std;
+    using namespace ::std;
 
     namespace OptionType {
 

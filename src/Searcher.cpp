@@ -925,8 +925,8 @@ namespace {
 
             // Null move dynamic (variable) reduction based on depth and value
             Depth R = (MAX_NULL_REDUCTION+0) * ONE_MOVE
-                +           depth / 4
-                +           int32_t (eval_value - beta) / VALUE_MG_PAWN * ONE_MOVE;
+                +     depth / 4
+                +     int32_t (eval_value - beta) / VALUE_MG_PAWN * ONE_MOVE;
 
             // Do null move
             pos.do_null_move (si);

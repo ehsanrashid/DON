@@ -38,12 +38,7 @@ public:
     RKISS ()
     {
         // Make random number generation less deterministic by using random seed
-        uint32_t seed;
-
-        //srand (uint32_t (time (NULL)));
-        //seed = rand ();
-
-        seed = Time::now () % 10000;
+        uint32_t seed = Time::now () % 10000;
 
         init (seed);
     }
@@ -102,9 +97,6 @@ template<class T>
 // known to be optimal to quickly find a good magic candidate.
 inline T RKISS::rand_boost (uint16_t s)
 {
-    //return rotate_R (rotate_R (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
-    //    ,                                  (s >> 6) & 0x3F) & randX<T>();
-
     return rotate_L (rotate_L (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
         ,                                  (s >> 6) & 0x3F) & randX<T>();
 }

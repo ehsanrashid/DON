@@ -21,7 +21,7 @@
 
 namespace TrivialLogger {
 
-    using namespace std;
+    using namespace ::std;
 
     namespace implementation {
 

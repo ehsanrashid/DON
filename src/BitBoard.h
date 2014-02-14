@@ -6,7 +6,6 @@
 
 namespace BitBoard {
 
-
     extern const Bitboard FA_bb;
     extern const Bitboard FB_bb;
     extern const Bitboard FC_bb;
@@ -25,9 +24,6 @@ namespace BitBoard {
     extern const Bitboard R7_bb;
     extern const Bitboard R8_bb;
 
-    //extern const Bitboard NULL_bb;
-    //extern const Bitboard FULL_bb;
-
     extern const Bitboard R1_bb_;  // 56 Not RANK-1
     extern const Bitboard R8_bb_;  // 56 Not RANK-8
     extern const Bitboard FA_bb_;  // 56 Not FILE-A
@@ -45,8 +41,6 @@ namespace BitBoard {
     extern uint8_t _filerank_dist[F_NO][R_NO];
     extern uint8_t   _square_dist[SQ_NO][SQ_NO];
     extern uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
-
-    //extern uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
 
     extern const Delta _deltas_pawn[CLR_NO][3];
     extern const Delta _deltas_type[NONE][9];
@@ -79,17 +73,17 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard _attacks_type_bb[NONE][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard*BAttack_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard*RAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard *BAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard *RAttack_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard   BMask_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard   RMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard    BMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard    RMask_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard  BMagic_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard  RMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(8) extern uint8_t      BShift[SQ_NO];
-    CACHE_ALIGN(8) extern uint8_t      RShift[SQ_NO];
+    CACHE_ALIGN(8) extern uint8_t        BShift[SQ_NO];
+    CACHE_ALIGN(8) extern uint8_t        RShift[SQ_NO];
 
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  _square_bb[s]; }
@@ -134,58 +128,7 @@ namespace BitBoard {
     inline uint8_t  square_dist (Square s1, Square s2) { return  _square_dist[s1][s2]; }
     inline uint8_t taxicab_dist (Square s1, Square s2) { return _taxicab_dist[s1][s2]; }
 
-    //// Absolute difference of file & rank
-    //inline uint8_t abs_file_rank_diff (Square s1, Square s2)
-    //{
-    //    int8_t del_r = (s1 | 7) - (s2 | 7);
-    //    int8_t del_f = (s1 & 7) - (s2 & 7);
-    //    return abs (del_r) + abs (del_f);
-    //}
-    //    inline Delta offset_sq (Square s1, Square s2) { return (s2 - s1) / Delta (_square_dist[s1][s2]); }
-
     // ----------------------------------------------------
-
-    //inline uint8_t center_dist (Square s)
-    //{
-    //    //return _center_dist[s];
-    //
-    //    const Bitboard bit0 = U64 (0xFF81BDA5A5BD81FF);
-    //    const Bitboard bit1 = U64 (0xFFFFC3C3C3C3FFFF);
-    //    return 2 * ((bit1 >> s) & 1) + ((bit0 >> s) & 1); 
-    //}
-
-    ///**
-    //* manhattan_center_dist
-    //* @author Gerd Isenberg
-    //* @param s = square 0...63
-    //* @return Manhattan Center Distance
-    //*/
-    //inline uint8_t manhattan_center_dist (Square s)
-    //{
-    //    uint8_t f = _file (s);
-    //    uint8_t r = _rank (s);
-    //    f ^= (f-4) >> 8;
-    //    r ^= (r-4) >> 8;
-    //    return (f + r) & 7;
-    //}
-
-    ///**
-    //* manhattan_dist_bishop_sq_closest_corner
-    //*   for KBNK purpose
-    //* @author Gerd Isenberg
-    //* @param bs bishop square (to determine its square color)
-    //* @param s opponent king square (0..63)
-    //* @return manhattanDistance to the closest corner square
-    //*         of the bishop square color
-    //*/
-    //inline uint8_t manhattan_dist_bishop_sq_closest_corner(Square bs, Square s)
-    //{
-    //    int8_t b = -1879048192*bs >> 31; // 0 | -1 to mirror
-    //    uint8_t k;
-    //    k = (s>>3) + ((s^b) & 7);        // rank + (mirrored) file
-    //    k = (15 * (k>>3) ^ k) - (k>>3);  // if (k > 7) k = 14 - k
-    //    return k;
-    //}
 
     inline Bitboard square_bb  (Square s) { return  _square_bb[s]; }
     inline Bitboard square_bb_ (Square s) { return ~_square_bb[s]; }
@@ -212,7 +155,6 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Square s)
     {
         return _rank_bb[rel_rank (c, s)];
-        //return rel_rank_bb (c, _rank (s));
     }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
@@ -249,21 +191,6 @@ namespace BitBoard {
     inline bool sqrs_aligned    (Square s1, Square s2, Square s3) { return _lines_sq_bb[s1][s2] & s3; }
 
     inline bool more_than_one (Bitboard bb) { return bool ((bb) & (bb - 1)); }
-
-
-    //template<Delta DELTA>
-    //extern Bitboard shift_del (Bitboard bb, int8_t x);
-    //
-    //template<>
-    //inline Bitboard shift_del<DEL_N> (Bitboard bb, int8_t x)
-    //{
-    //    return (bb) << (x << 3);
-    //}
-    //template<>
-    //inline Bitboard shift_del<DEL_S> (Bitboard bb, int8_t x)
-    //{
-    //    return (bb) >> (x << 3);
-    //}
 
     template<Delta D>
     // Shift the Bitboard using delta
@@ -410,17 +337,6 @@ namespace BitBoard {
     }
 
     extern void initialize ();
-
-    //extern Bitboard to_bitboard (const char s[], int32_t radix = 16);
-    //extern Bitboard to_bitboard (const std::string &s, int32_t radix = 16);
-
-    //extern std::string to_hex_str (std::string &sbitboard);
-
-    //extern void print_bit (Bitboard bb, uint8_t x = 64, char p = 'o');
-    //extern void print_bin (Bitboard bb);
-    //extern void print (Bitboard bb, char p = 'o');
-
-    //extern std::vector<Square> squares (Bitboard  bb);
 
 }
 
