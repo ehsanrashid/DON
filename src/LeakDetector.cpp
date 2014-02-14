@@ -18,16 +18,14 @@ namespace LeakDetector {
         typedef struct LEAK_INFO
         {
             // Memory Allocation Info
-            typedef struct MEM_INFO
+            struct MEM_INFO
             {
                 void     *address;
                 uint32_t  size;
                 char      fn[LEN_FILENAME];
                 uint32_t  line_no;
 
-            } MEM_INFO;
-
-            MEM_INFO   mem_info;
+            } mem_info;
 
             LEAK_INFO *next;
 
@@ -158,7 +156,7 @@ namespace LeakDetector {
                 x = sprintf (info_buf, "address : %p\n", leak_info->mem_info.address);
                 //x = sprintf_s (info_buf, size, "address : %p\n", leak_info->mem_info.address);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf (info_buf, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
+                x = sprintf (info_buf, "size mem: %u bytes\n", leak_info->mem_info.size);
                 //x = sprintf_s (info_buf, size, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
                 x = sprintf (info_buf, "filename: %s\n", leak_info->mem_info.fn);

@@ -6,22 +6,9 @@
 //#define POPCNT
 //#define BSFQ
 //#define PREFETCH
-
 //#define __INTEL_COMPILER
 
-//POPCNT;BSFQ;%(PreprocessorDefinitions)
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
-
-//#ifdef __cplusplus
-//// This hack copes with memory.h that does or doesnt provide the extern internally.
-//#   define DONT_USE_EXTERN_C
-//extern "C" {
-//#   include <memory.h>
-//}
-//#   undef DONT_USE_EXTERN_C
-//#else
-//#   include <memory>
-//#endif
 
 // STD TYPES
 #if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
@@ -40,36 +27,19 @@ typedef   signed __int8          int8_t;
 typedef unsigned __int8         uint8_t;
 typedef   signed __int16         int16_t;
 typedef unsigned __int16        uint16_t;
+typedef   signed __int32         int32_t;
+typedef unsigned __int32        uint32_t;
 typedef   signed __int64         int64_t;
 typedef unsigned __int64        uint64_t;
 
 #   ifdef _WIN64
-
 #       define _64BIT
-#       define PR_SIZET "I"
-
-typedef   signed __int32         int32_t;
-typedef unsigned __int32        uint32_t;
-
-
-#   elif _WIN32
-
-#       define PR_SIZET ""
-
-typedef   signed __int32 __w64   int32_t;
-typedef unsigned __int32 __w64  uint32_t;
-
 #   endif
 
 #   define  S32(X) (X## i32)
 #   define  U32(X) (X##ui32)
 #   define  S64(X) (X## i64)
 #   define  U64(X) (X##ui64)
-
-//#   define S64_FORMAT "%I64d"
-//#   define U64_FORMAT "%I64u"
-//#   define x64_FORMAT "%016I64x"
-//#   define X64_FORMAT "%016I64X"
 
 #elif defined(__GNUC__)
 
@@ -80,13 +50,6 @@ typedef unsigned __int32 __w64  uint32_t;
 #   define U32(X) (X##UL )
 #   define S64(X) (X## LL)
 #   define U64(X) (X##ULL)
-
-#define PR_SIZET "z"
-
-//#   define S64_FORMAT "%lld"
-//#   define U64_FORMAT "%llu"
-//#   define x64_FORMAT "%016llx"
-//#   define X64_FORMAT "%016llX"
 
 #else
 
@@ -105,13 +68,6 @@ typedef unsigned long long      uint64_t;
 #   define U32(X) (X##UL )
 #   define S64(X) (X## LL)
 #   define U64(X) (X##ULL)
-
-#define PR_SIZET "z"
-
-//#   define S64_FORMAT "%lld"
-//#   define U64_FORMAT "%llu"
-//#   define x64_FORMAT "%016llx"
-//#   define X64_FORMAT "%016llX"
 
 #endif
 
