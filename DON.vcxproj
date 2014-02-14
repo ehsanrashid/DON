@@ -640,7 +640,9 @@
     </None>
     <None Include="src\makeall-modern.bat" />
     <None Include="src\makeall.bat" />
+    <None Include="src\makeclean.bat" />
     <None Include="src\Makefile" />
+    <None Include="src\makehelp.bat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
