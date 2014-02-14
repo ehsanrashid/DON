@@ -7,10 +7,9 @@
 namespace BitBases {
 
     using namespace std;
+    using namespace BitBoard;
 
     namespace {
-
-        using namespace BitBoard;
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const uint32_t MAX_INDEX = 2*24*64*64; // stm * p_sq * wk_sq * bk_sq = 196608

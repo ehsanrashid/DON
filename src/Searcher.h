@@ -29,17 +29,15 @@ namespace Searcher {
         int32_t time;   // time left
         int32_t inc;    // time gain
 
-        GameClock ()
-        {
-            time  = 0; //5 * 60 * M_SEC; // 5 mins default time
-            inc   = 0;
-        }
+        //GameClock ()
+        //    : time (0) //5 * 60 * M_SEC; // 5 mins default time
+        //    , inc (0)
+        //{}
 
-        GameClock (int32_t tm, int32_t in)
-        {
-            time  = tm;
-            inc   = in;
-        }
+        //GameClock (int32_t tm, int32_t in)
+        //    : time (tm)
+        //    , inc (in)
+        //{}
 
     } GameClock;
 
@@ -70,19 +68,6 @@ namespace Searcher {
         {
             return !(infinite | mate_in | move_time | depth | nodes);
         }
-
-        // Determines how much time it should search
-        //int32_t time_to_search ()
-        //{
-        //    int32_t cpu_time = board->turn == WHITE ? wTime : bTime;
-        //    int32_t human_time = board->turn == WHITE ? bTime : wTime;
-        //    int32_t cpu_inc = board->turn == WHITE ? wInc : bInc;
-        //    if (moves_to_go > 0)
-        //    {
-        //      return cpu_time / moves_to_go + cpu_inc / 2 + (cpu_time - human_time) / 2;
-        //    }
-        //    return cpu_time / 30 + cpu_inc / 2;
-        //}
 
     } LimitsT;
 
@@ -160,22 +145,21 @@ namespace Searcher {
     typedef struct Stack
     {
         SplitPoint *split_point;
-        uint8_t     ply;
 
-        Move        current_move
-            ,       tt_move
-            ,       excluded_move;
+        Move    current_move
+            ,   tt_move
+            ,   excluded_move;
 
-        Move        killers[2];
+        Move    killers[2];
+        
+        uint8_t ply;
 
-        Depth       reduction;
-        Value       static_eval;
-        bool        skip_null_move;
-
-        //uint8_t     null_move_count;
-        //uint8_t     null_cut_count; //Keep track of the moves causing a cut-off at d-R
+        Depth   reduction;
+        Value   static_eval;
+        bool    skip_null_move;
 
     } Stack;
+
 
     extern LimitsT               Limits;
     extern volatile SignalsT     Signals;

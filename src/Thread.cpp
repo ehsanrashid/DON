@@ -335,8 +335,10 @@ void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, Sta
     Limits      = limits;
     if (states.get ()) // If we don't set a new position, preserve current state
     {
-        //SetupStates = move (states); // Ownership transfer here
-        SetupStates = states; // Ownership transfer here
+        // Ownership transfer here
+        //SetupStates = move (states);
+        SetupStates = states;
+        
         ASSERT (!states.get ());
     }
 
