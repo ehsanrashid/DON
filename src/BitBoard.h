@@ -34,7 +34,7 @@ namespace BitBoard {
 
     extern const Bitboard LIHT_bb; // 32 LIGHT squares.
     extern const Bitboard DARK_bb; // 32 DARK  squares.
-    
+
     extern const Bitboard CRNR_bb;
     extern const Bitboard MID_EDGE_bb;
 
@@ -163,7 +163,7 @@ namespace BitBoard {
     inline Bitboard front_squares_bb (Color c, Square s) { return _front_squares_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
-    //inline Bitboard dist_rings_bb   (Square s, uint8_t d) { return _dist_rings_bb[s][d]; }
+    inline Bitboard dist_rings_bb   (Square s, uint8_t d) { return _dist_rings_bb[s][d]; }
 
     inline Bitboard brd_edges_bb    (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
@@ -212,6 +212,12 @@ namespace BitBoard {
     inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (7); } //(bb << 7) & FH_bb_;
     template<>
     inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (9); } //(bb >> 9) & FH_bb_;
+
+    // Rotate RIGHT (toward LSB)
+    inline Bitboard rotate_R (Bitboard bb, int8_t k) { return (bb >> k) | (bb << (int8_t (SQ_NO) - k)); }
+    // Rotate LEFT (toward MSB)
+    inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
+
 
     inline Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0))
     {

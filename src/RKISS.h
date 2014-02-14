@@ -61,7 +61,7 @@ public:
 } RKISS;
 
 
-#include "BitRotate.h"
+#include "BitBoard.h"
 
 // initialize given seed and scramble a few rounds
 inline void RKISS::init (uint32_t seed)
@@ -78,6 +78,8 @@ inline void RKISS::init (uint32_t seed)
 // Return 64 bit unsigned integer in between [0, 2^64 - 1]
 inline uint64_t RKISS::rand64 (Rand &S)
 {
+    using namespace BitBoard;
+
     const uint64_t
       E = S.A - rotate_L (S.B, 7);
     S.A = S.B ^ rotate_L (S.C, 13);
@@ -97,6 +99,8 @@ template<class T>
 // known to be optimal to quickly find a good magic candidate.
 inline T RKISS::rand_boost (uint16_t s)
 {
+    using namespace BitBoard;
+
     return rotate_L (rotate_L (randX<T>(), (s >> 0) & 0x3F) & randX<T>()
         ,                                  (s >> 6) & 0x3F) & randX<T>();
 }

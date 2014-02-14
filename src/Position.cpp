@@ -6,7 +6,6 @@
 #include "BitBoard.h"
 #include "BitScan.h"
 #include "BitCount.h"
-#include "BitRotate.h"
 #include "MoveGenerator.h"
 #include "Transposition.h"
 #include "Notation.h"

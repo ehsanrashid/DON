@@ -10,7 +10,6 @@
 #include "Evaluator.h"
 #include "Benchmark.h"
 #include "Notation.h"
-#include "TriLogger.h"
 #include "Thread.h"
 
 namespace UCI {

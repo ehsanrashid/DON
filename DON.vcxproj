@@ -597,7 +597,6 @@
     <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />
     <ClInclude Include="src\BitCount.h" />
-    <ClInclude Include="src\BitRotate.h" />
     <ClInclude Include="src\BitScan.h" />
     <ClInclude Include="src\DebugLogger.h" />
     <ClInclude Include="src\Endgame.h" />
@@ -639,6 +638,9 @@
     <None Include="IncludeFileDependencies.dgml">
       <SubType>Designer</SubType>
     </None>
+    <None Include="src\makeall-modern.bat" />
+    <None Include="src\makeall.bat" />
+    <None Include="src\Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
