@@ -40,6 +40,7 @@ PGOBENCH  = ./$(EXE) bench 32 1 10 default depth
 SIGNBENCH = ./$(EXE) bench
 
 ### Object files
+# 
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
     MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o \
 	Tester.o Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o
@@ -80,11 +81,11 @@ sse     = no
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH),general-32)
-	arch = any
+	arch    = any
 endif
 
 ifeq ($(ARCH),x86-32-old)
-	arch = i386
+	arch    = i386
 endif
 
 ifeq ($(ARCH),x86-32)
@@ -94,8 +95,8 @@ ifeq ($(ARCH),x86-32)
 endif
 
 ifeq ($(ARCH),general-64)
-	arch = any
-	bits = 64
+	arch    = any
+	bits    = 64
 endif
 
 ifeq ($(ARCH),x86-64)
@@ -122,19 +123,19 @@ ifeq ($(ARCH),armv7)
 endif
 
 ifeq ($(ARCH),osx-ppc-32)
-	arch = ppc
-	os   = osx
+	arch    = ppc
+	os      = osx
 endif
 
 ifeq ($(ARCH),osx-ppc-64)
-	arch = ppc64
-	os   = osx
-	bits = 64
+	arch    = ppc64
+	os      = osx
+	bits    = 64
 endif
 
 ifeq ($(ARCH),linux-ppc-64)
-	arch = ppc64
-	bits = 64
+	arch    = ppc64
+	bits    = 64
 endif
 
 ifeq ($(ARCH),osx-x86-64)
@@ -178,53 +179,70 @@ LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)
+
 	COMP= gcc
+
 endif
 
 ifeq ($(COMP),gcc)
+
 	comp= gcc
 	CXX = g++
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+
 endif
 
 ifeq ($(COMP),mingw)
+
 	comp= mingw
 	CXX = g++
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS  += -static-libstdc++ -static-libgcc
+
 endif
 
 ifeq ($(COMP),icc)
+
 	comp= icc
 	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
+
 endif
 
 ifeq ($(COMP),clang)
+
 	comp= clang
 	CXX = clang++
 	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+
 endif
 
 ifeq ($(comp),icc)
+
 	profile_prepare = icc-profile-prepare
 	profile_make    = icc-profile-make
 	profile_use     = icc-profile-use
 	profile_clean   = icc-profile-clean
+
 else
+
 	profile_prepare = gcc-profile-prepare
 	profile_make    = gcc-profile-make
 	profile_use     = gcc-profile-use
 	profile_clean   = gcc-profile-clean
+
 endif
 
 ifeq ($(os),osx)
+
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
 	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.6
+
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
+
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(arch),armv7)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
@@ -232,13 +250,18 @@ ifneq ($(comp),mingw)
 			LDFLAGS += -lpthread
 		endif
 	endif
+
 endif
 
 ### 3.4 Debugging
 ifeq ($(debug),no)
+
 	CXXFLAGS += -DNDEBUG
+
 else
+
 	CXXFLAGS += -g
+
 endif
 
 ### 3.5 Optimization
@@ -303,42 +326,54 @@ endif
 
 ### 3.6 Bits
 ifeq ($(bits),64)
+
 	CXXFLAGS += -D_64BIT
+
 endif
 
 ### 3.7 prefetch
 ifeq ($(prefetch),yes)
+
     CXXFLAGS += -DPREFETCH
 	ifeq ($(sse),yes)
 		CXXFLAGS += -msse
 		DEPENDFLAGS += -msse
 	endif
+
 endif
 
 ### 3.8 bsfq
 ifeq ($(bsfq),yes)
+
 	CXXFLAGS += -DBSFQ
+
 endif
 
 ### 3.9 popcnt
 ifeq ($(popcnt),yes)
+
 	CXXFLAGS += -msse3 -DPOPCNT
+
 endif
 
 ### 3.10 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
+
 	ifeq ($(optimize),yes)
-	ifeq ($(debug),no)
-		GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
-		GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
-		ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
-			CXXFLAGS += -flto
-			LDFLAGS  += $(CXXFLAGS)
-		endif
+
+	    ifeq ($(debug),no)
+		    GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
+		    GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
+		    ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
+			    CXXFLAGS += -flto
+			    LDFLAGS  += $(CXXFLAGS)
+		    endif
+	    endif
+
 	endif
-	endif
+
 endif
 
 ### ==========================================================================
@@ -348,11 +383,11 @@ endif
 help:
 	@echo ""
 	@echo "To compile DON, type: "
-	@echo ""
+	@echo "----------------------"
 	@echo "make target ARCH=arch [COMP=comp]"
 	@echo ""
 	@echo "Supported targets:"
-	@echo ""
+	@echo "------------------"
 	@echo "build                   > Standard build"
 	@echo "signature-build         > Standard build with embedded signature"
 	@echo "profile-build           > PGO build"
@@ -362,7 +397,7 @@ help:
 	@echo "clean                   > Clean up"
 	@echo ""
 	@echo "Supported archs:"
-	@echo ""
+	@echo "----------------"
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
 	@echo "x86-32                  > x86 32-bit with SSE support"
@@ -378,18 +413,18 @@ help:
 	@echo "general-32              > unspecified 32-bit"
 	@echo ""
 	@echo "Supported compilers:"
-	@echo ""
+	@echo "--------------------"
 	@echo "gcc                     > Gnu compiler (default)"
 	@echo "mingw                   > Gnu compiler with MinGW under Windows"
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
 	@echo "Non-standard targets:"
-	@echo ""
+	@echo "---------------------"
 	@echo "make hpux               > Compile for HP-UX. Compiler = aCC"
 	@echo ""
 	@echo "Examples. If you don't know what to do, you likely want to run: "
-	@echo ""
+	@echo "----------------------------------------------------------------"
 	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
 	@echo "make build ARCH=x86-32    (This is for 32-bit systems)"
 	@echo ""
@@ -453,7 +488,8 @@ all: $(EXE) .depend
 
 config-sanity:
 	@echo ""
-	@echo "Config  :"
+	@echo "Config:"
+	@echo "---------"
 	@echo "debug   : '$(debug)'"
 	@echo "optimize: '$(optimize)'"
 	@echo "arch    : '$(arch)'"
@@ -464,7 +500,8 @@ config-sanity:
 	@echo "popcnt  : '$(popcnt)'"
 	@echo "sse     : '$(sse)'"
 	@echo ""
-	@echo "Flags   :"
+	@echo "Flags:"
+	@echo "---------"
 	@echo "CXX     : $(CXX)"
 	@echo "CXXFLAGS: $(CXXFLAGS)"
 	@echo "LDFLAGS : $(LDFLAGS)"
@@ -537,4 +574,3 @@ hpux:
 	CXXFLAGS= "" \
 	LDFLAGS = "" \
 	all
-
