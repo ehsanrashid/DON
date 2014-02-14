@@ -27,18 +27,20 @@ namespace std {
 
     inline std::string& to_lower (std::string &s)
     {
+        //std::transform (s.begin (), s.end (), std::back_inserter (s), ::tolower);
         std::transform (s.begin (), s.end (), s.begin (), ::tolower);
         return s;
     }
     inline std::string& to_upper (std::string &s)
     {
+        //std::transform (s.begin (), s.end (), std::back_inserter (s), ::toupper);
         std::transform (s.begin (), s.end (), s.begin (), ::toupper);
         return s;
     }
 
     inline std::string& toggle (std::string &s)
     {
-        transform (s.begin (), s.end (), s.begin (), [] (char c)
+        transform (s.begin (), s.end (), s.begin (), [] (char c)->char
         {
             return char (islower (c) ? toupper (c) : tolower (c));
         });

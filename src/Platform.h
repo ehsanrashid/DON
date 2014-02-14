@@ -34,7 +34,7 @@
 #pragma warning (disable: 4996) // Function _ftime() may be unsafe
 //#pragma warning (disable: 6326) // Constant comparison
 
-//#   include <stdint.h>
+#   include <cstdint>
 
 typedef   signed __int8          int8_t;
 typedef unsigned __int8         uint8_t;

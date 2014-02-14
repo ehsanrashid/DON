@@ -10,7 +10,6 @@ namespace BitBoard {
 
     using namespace std;
 
-
     const Bitboard FA_bb = U64 (0x0101010101010101);
     const Bitboard FB_bb = FA_bb << 1;//U64 (0x0202020202020202);
     const Bitboard FC_bb = FA_bb << 2;//U64 (0x0404040404040404);
