@@ -205,7 +205,7 @@ void MovePicker::value<EVASION> ()
 }
 
 // generate_next_stage () generates, scores and sorts the next bunch of moves,
-// when there are no more moves to try for the current phase.
+// when there are no more moves to try for the current stage.
 void MovePicker::generate_next_stage ()
 {
     cur = m_list;

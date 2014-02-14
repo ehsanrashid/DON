@@ -138,14 +138,13 @@ namespace MoveGenerator {
                     dst_king < org_king ? DEL_W : DEL_E :
                     (CS_Q == SIDE)      ? DEL_W : DEL_E;
 
-                Square s  = org_king + step;
-                while (s != dst_king + step)
+                for (Square s = org_king + step;
+                    s != dst_king + step; s += step)
                 {
                     if (pos.attackers_to (s) & enemies)
                     {
                         return;
                     }
-                    s += step;
                 }
 
                 if (CHESS960)

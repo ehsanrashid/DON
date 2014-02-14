@@ -199,7 +199,7 @@ typedef enum MoveT : uint16_t
 // bit 06-11:  origin square: (0...63)
 // bit 12-13: promotion piece: (KNIGHT...QUEEN) - 1
 // bit 14-15: special move flag: (1) CASTLE, (2) EN-PASSANT, (3) PROMOTION
-// NOTE: EN-PASSANT is set when capturing the pawn
+// NOTE: EN-PASSANT bit is set only when a pawn can be captured
 //
 // Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 // any normal move destination square is always different from origin square
@@ -414,7 +414,7 @@ inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); retur
 
 ARTHMAT_OPERATORS (Value)
 INC_DEC_OPERATORS (Value)
-// Added operators for adding integers to a Value
+// Additional operators to add integers to a Value
 //inline Value  operator+  (Value v, int32_t i) { return Value (int32_t (v) + i); }
 //inline Value  operator-  (Value v, int32_t i) { return Value (int32_t (v) - i); }
 inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
