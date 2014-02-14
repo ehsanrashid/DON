@@ -6,8 +6,8 @@
 
 namespace LeakDetector {
 
-    extern void* xmalloc (uint32_t size, const char fn[], uint32_t line_no);
-    extern void* xcalloc (uint32_t count, uint32_t size_elem, const char fn[], uint32_t line_no);
+    extern void* xmalloc (size_t size, const char filename[], uint32_t line_no);
+    extern void* xcalloc (size_t count, size_t size, const char filename[], uint32_t line_no);
     extern void  xfree (void *mem_ref);
 
     extern void report_memleakage ();

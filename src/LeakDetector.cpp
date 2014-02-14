@@ -21,8 +21,8 @@ namespace LeakDetector {
             struct MEM_INFO
             {
                 void     *address;
-                uint32_t  size;
-                char      fn[LEN_FILENAME];
+                size_t    size;
+                char      filename[LEN_FILENAME];
                 uint32_t  line_no;
 
             } mem_info;
@@ -36,7 +36,7 @@ namespace LeakDetector {
         LEAK_INFO *ptr_curr = NULL;
 
         // Makes and appends the allocated memory info to the list
-        void append_mem_info (void *mem_ref, uint32_t size, const char fn[], uint32_t line_no)
+        void append_mem_info (void *mem_ref, size_t size, const char filename[], uint32_t line_no)
         {
             // append the above info to the list
             LEAK_INFO *ptr_new = (LEAK_INFO *) std::malloc (sizeof (LEAK_INFO));
@@ -44,7 +44,7 @@ namespace LeakDetector {
             {
                 ptr_new->mem_info.address   = mem_ref;
                 ptr_new->mem_info.size      = size;
-                strncpy_s (ptr_new->mem_info.fn, LEN_FILENAME, fn, LEN_FILENAME);
+                strncpy_s (ptr_new->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
                 ptr_new->mem_info.line_no   = line_no;
                 ptr_new->next = NULL;
 
@@ -103,23 +103,22 @@ namespace LeakDetector {
     }
 
     // Replacement of malloc
-    void* xmalloc (uint32_t size, const char fn[], uint32_t line_no)
+    void* xmalloc (size_t size, const char filename[], uint32_t line_no)
     {
         void *mem_ref = std::malloc (size);
         if (mem_ref)
         {
-            append_mem_info (mem_ref, size, fn, line_no);
+            append_mem_info (mem_ref, size, filename, line_no);
         }
         return mem_ref;
     }
     // Replacement of calloc
-    void* xcalloc (uint32_t count, uint32_t size_elem, const char fn[], uint32_t line_no)
+    void* xcalloc (size_t count, size_t size, const char filename[], uint32_t line_no)
     {
-        void *mem_ref = std::calloc (count, size_elem);
+        void *mem_ref = std::calloc (count, size);
         if (mem_ref)
         {
-            uint32_t size = count * size_elem;
-            append_mem_info (mem_ref, size, fn, line_no);
+            append_mem_info (mem_ref, count * size, filename, line_no);
         }
         return mem_ref;
     }
@@ -138,35 +137,35 @@ namespace LeakDetector {
 
         if (fp_write)
         {
-            const uint32_t size = 1024;
-            char info_buf[size];
+#           define BUF_SIZE 1024
+            char info_buf[BUF_SIZE];
             LEAK_INFO *leak_info;
             leak_info = ptr_head;
 
-            uint32_t x;
+            int32_t x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");
-            //x = sprintf_s (info_buf, size, "%s\n", "Memory Leak Summary");
+            //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "Memory Leak Summary");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
             x = sprintf (info_buf, "%s\n", "-----------------------------------");
-            //x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
+            //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "-----------------------------------");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
 
             while (leak_info)
             {
-                x = sprintf (info_buf, "address : %p\n", leak_info->mem_info.address);
-                //x = sprintf_s (info_buf, size, "address : %p\n", leak_info->mem_info.address);
+                x = sprintf (info_buf, "Address : %p\n", leak_info->mem_info.address);
+                //x = sprintf_s (info_buf, BUF_SIZE, "Address : %p\n", leak_info->mem_info.address);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf (info_buf, "size mem: %u bytes\n", leak_info->mem_info.size);
-                //x = sprintf_s (info_buf, size, "size mem: %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
+                x = sprintf (info_buf, "Size    : %u bytes\n", leak_info->mem_info.size);
+                //x = sprintf_s (info_buf, BUF_SIZE, "Size    : %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf (info_buf, "filename: %s\n", leak_info->mem_info.fn);
-                //x = sprintf_s (info_buf, size, "filename: %s\n", leak_info->mem_info.fn);
+                x = sprintf (info_buf, "Filename: %s\n", leak_info->mem_info.filename);
+                //x = sprintf_s (info_buf, BUF_SIZE, "Filename: %s\n", leak_info->mem_info.filename);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
-                x = sprintf (info_buf, "line #  : %u\n", leak_info->mem_info.line_no);
-                //x = sprintf_s (info_buf, size, "line #  : %u\n", leak_info->mem_info.line_no);
+                x = sprintf (info_buf, "Line #  : %u\n", leak_info->mem_info.line_no);
+                //x = sprintf_s (info_buf, BUF_SIZE, "Line #  : %u\n", leak_info->mem_info.line_no);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
                 x = sprintf (info_buf, "%s\n", "-----------------------------------");
-                //x = sprintf_s (info_buf, size, "%s\n", "-----------------------------------");
+                //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "-----------------------------------");
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
 
                 leak_info = leak_info->next;
