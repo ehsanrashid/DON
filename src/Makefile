@@ -24,7 +24,7 @@
 UNAME = $(shell uname)
 
 ### Executable name
-EXE = don
+EXE = DON
 
 ### Installation dir definitions
 PREFIX = /usr/local
@@ -171,8 +171,8 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
-# -Wall
-CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fabi-version=6 -fno-access-control -fno-strict-enums -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
+CXXFLAGS += -std=gnu++0x -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS += $(EXTRALDFLAGS)
 
 # gcc (default)
@@ -337,7 +337,7 @@ endif
 
 help:
 	@echo ""
-	@echo "To compile don, type: "
+	@echo "To compile DON, type: "
 	@echo ""
 	@echo "make target ARCH=arch [COMP=comp]"
 	@echo ""
@@ -412,8 +412,8 @@ profile-build:
 embed-signature:
 	@echo "Running benchmark for getting the signature ..."
 	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\/string Version\/s\/"\\(.*\\)"\/"sig-\1"\//p' > sign.txt
-	@sed -f sign.txt misc.cpp > misc2.cpp
-	@mv misc2.cpp misc.cpp
+	@sed -f sign.txt Engine.cpp > Engine_.cpp
+	@mv Engine_.cpp Engine.cpp
 	@rm sign.txt
 
 signature-build: build embed-signature
