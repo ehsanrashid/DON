@@ -46,7 +46,7 @@ namespace UCI {
         //}
         Option& ButtonOption::operator= (string &value)
         {
-        	(void) value;
+            (void) value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -182,7 +182,7 @@ namespace UCI {
         //}
         Option& ComboOption::operator= (string &value)
         {
-        	(void) value;
+            (void) value;
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -208,7 +208,7 @@ namespace UCI {
 
         void on_save_hash       (const Option &opt)
         {
-        	(void) opt;
+            (void) opt;
             ofstream ofstm (*(Options["Hash File"]), ios_base::out | ios_base::binary);
             ofstm << TT;
             ofstm.close ();
@@ -216,7 +216,7 @@ namespace UCI {
 
         void on_load_hash       (const Option &opt)
         {
-        	(void) opt;
+            (void) opt;
             ifstream ifstm (*(Options["Hash File"]), ios_base::in | ios_base::binary);
             ifstm >> TT;
             ifstm.close ();
@@ -224,19 +224,19 @@ namespace UCI {
 
         void on_change_book     (const Option &opt)
         {
-        	(void) opt;
+            (void) opt;
             if (Searcher::Book.is_open ()) Searcher::Book.close ();
         }
 
         void on_change_threads  (const Option &opt)
         {
-        	(void) opt;
+            (void) opt;
             Threads.read_uci_options ();
         }
 
         void on_change_eval     (const Option& opt)
         {
-        	(void) opt;
+            (void) opt;
             Evaluator::initialize ();
         }
 
@@ -252,7 +252,7 @@ namespace UCI {
 
         void on_query           (const Option &opt)
         {
-        	(void) opt;
+            (void) opt;
         }
 
     }
@@ -300,14 +300,14 @@ namespace UCI {
         // For that purpose the following procedure can be used.
         // 
         // To save a Hash file to disk:
-        // .	End the analysis
-        // .	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
-        // .	Press the Save Hash to File button, and OK in the options window.
+        // .    End the analysis
+        // .    Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .    Press the Save Hash to File button, and OK in the options window.
         // 
         // To load a Hash file from disk:
-        // .	Load the correspondence game
-        // .	Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
-        // .	Press the Load Hash from File button, and OK in the options window.
+        // .    Load the correspondence game
+        // .    Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .    Press the Load Hash from File button, and OK in the options window.
         // -----------------------------------------------------------------------------------------
 
         // File name for saving or loading the hash file with the Save Hash to File or Load Hash from File buttons.
@@ -394,16 +394,16 @@ namespace UCI {
         //// The notion of "contempt" implies that engine will try to avoid draws by evaluating its own position slightly too optimistically.
         //// The Contempt level can be chosen between 0 (none) and 2 (aggressive), the default value of 1 should be a good compromise in most situations.
         ////
-        //// .	0 = No Contempt
+        //// .    0 = No Contempt
         //// The evaluations are accurate and identical for both sides. This is recommended for position analysis in which you analyze alternatively for White and Black.
         //// The starting position evaluates as approx. +0.15.
         ////
-        //// .	1 = Default Contempt
+        //// .    1 = Default Contempt
         //// Contempt 1 is primarily based on piece value imbalance, engine will value its own pieces higher than the opponent pieces, so will only exchange them if there's a clear positional advantage in doing so.
         //// This also means that the score is evaluated optimistically for the side to move (at most 0.15 pawn). For example, the starting position evaluates as approx. +0.30 when analyzing for White and +0.00 when viewed from Black.
         //// This is only recommended for position analysis if you always analyze for the same side.
         ////
-        //// .	2 = Aggressive
+        //// .    2 = Aggressive
         //// Contempt 2 adds some king safety imbalance, leading to a more attacking style.
         //// It would draw less, It will also lose more, especially if your opponent is strong.
         ////

@@ -26,7 +26,7 @@ namespace {
     // Set to true to force running with one thread. Used for debugging
     const bool FakeSplit            = false;
 
-    const uint8_t MAX_NULL_REDUCTION = 3;
+    const int8_t MAX_NULL_REDUCTION = 3;
 
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
@@ -200,18 +200,18 @@ namespace {
 
 namespace Searcher {
 
-    LimitsT				Limits;
-    volatile SignalsT	Signals;
+    LimitsT             Limits;
+    volatile SignalsT   Signals;
 
     vector<RootMove>    RootMoves;
     Position            RootPos;
     Color               RootColor;
     StateInfoStackPtr   SetupStates;
 
-    point				SearchTime;
+    point               SearchTime;
 
     // initialize the PRNG only once
-    PolyglotBook		Book;
+    PolyglotBook        Book;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to

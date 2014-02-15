@@ -61,12 +61,12 @@ void ThreadBase::wait_for (volatile const bool &b)
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
 Thread::Thread () /* : split_points() */  // Value-initialization bug in MSVC
-    : split_points ()
+    //: split_points ()
 {
     searching = false;
     max_ply = threads_split_point = 0;
     active_split_point = NULL;
-    active_pos = NULL;
+    active_pos         = NULL;
     idx = Threads.size ();
 }
 
