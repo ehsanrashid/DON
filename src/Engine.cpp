@@ -12,7 +12,6 @@
 #include "Transposition.h"
 #include "UCI.h"
 #include "DebugLogger.h"
-//#include <thread>
 #include "Thread.h"
 
 #ifndef NDEBUG
@@ -120,11 +119,7 @@ namespace Engine {
         //return;
 #endif
 
-        //log_debug (true);
-
         UCI   ::start (args);
-
-        //log_debug (false);
 
     }
 

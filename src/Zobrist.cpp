@@ -15,38 +15,12 @@ namespace Zobrist {
     RKISS   rkiss;
     Key     exclusion;
 
-    void Zob::initialize (RKISS rkiss)
+    void Zob::initialize (RKISS rk)
     {
-
-        //for (Color c = WHITE; c <= BLACK; ++c)
-        //{
-        //    for (PieceT pt = PAWN; pt <= KING; ++pt)
-        //    {
-        //        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        //        {
-        //            _.psq_k[c][pt][s] = rkiss.rand64();
-        //        }
-        //    }
-        //}
-        //for (File f = F_A; f <= F_H; ++f)
-        //{
-        //    _.en_passant[f] = rkiss.rand64();
-        //}
-        //for (Color c = WHITE; c <= BLACK; ++c)
-        //{
-        //    for (CSide cs = CS_K; cs <= CS_Q; ++cs)
-        //    {
-        //        _.castle_right[c][cs] = rkiss.rand64();
-        //    }
-        //}
-        //_.mover_side = rkiss.rand64();
-
-
         for (uint16_t i = 0; i < SIZE_RANDOM; ++i)
         {
-            random[i] = rkiss.rand64 ();
+            random[i] = rk.rand64 ();
         }
-
     }
 
     // Hash key of the material situation.
@@ -137,19 +111,6 @@ namespace Zobrist {
             }
         }
 
-        //if (pos.can_castle (CR_A))
-        //{
-        //    for (Color c = WHITE; c <= BLACK; ++c)
-        //    {
-        //        if (pos.can_castle (c))
-        //        {
-        //            for (CSide cs = CS_K; cs <= CS_Q; ++cs)
-        //            {
-        //                if (pos.can_castle (c, cs)) posi_key ^= _.castle_right[c][cs];
-        //            }
-        //        }
-        //    }
-        //}
         Bitboard b = pos.castle_rights ();
         while (b) posi_key ^= _.castle_right[0][pop_lsq (b)];
 
@@ -256,15 +217,6 @@ namespace Zobrist {
             {
                 do
                 {
-                    //switch (ch)
-                    //{
-                    //case 'K': fen_key ^= _.castle_right[WHITE][CS_K]; break;
-                    //case 'Q': fen_key ^= _.castle_right[WHITE][CS_Q]; break;
-                    //case 'k': fen_key ^= _.castle_right[BLACK][CS_K]; break;
-                    //case 'q': fen_key ^= _.castle_right[BLACK][CS_Q]; break;
-                    //default:  return U64(0); break;
-                    //}
-
                     Color c = isupper (ch) ? WHITE : BLACK;
                     switch (toupper (ch))
                     {

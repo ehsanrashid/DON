@@ -27,8 +27,6 @@ namespace {
     const bool FakeSplit            = false;
 
     const uint8_t MAX_NULL_REDUCTION = 3;
-    //const uint8_t MAX_NULL_MOVE      = 12;
-    //const uint8_t MAX_NULL_CUT       = 2;
 
     // Futility lookup tables (initialized at startup) and their access functions
     int32_t FutilityMoveCounts[2][32];  // [improving][depth]
@@ -84,7 +82,6 @@ namespace {
         // Increase history value of the cut-off move and decrease all the other played quiet moves.
         Value bonus = Value (1 << depth); //Value (1 * depth * depth * depth);
         History.update (pos[org_sq (move)], dst_sq (move), bonus);
-        //if (quiet_moves)
         for (int32_t i = 0; i < quiets_count; ++i)
         {
             Move m = quiet_moves[i];
@@ -106,25 +103,6 @@ namespace {
             FollowupMoves.update (pos[own_move_sq], own_move_sq, move);
         }
     }
-
-    //// Memory-enhanced Test Driver with Position pos and value guess
-    //inline Value memory_test_driver (Position &pos, Stack ss[], Value alpha, Value beta, Value guess, int32_t depth)
-    //{
-    //    Value bound[2] = { alpha, beta }; // lower, upper
-    //    do
-    //    {
-    //        Value value = guess + (guess == bound[0] ? 1 : 0);
-    //        guess = search<Root> (pos, ss, value-1, value, depth * ONE_MOVE, false);
-    //
-    //        if (guess < value)
-    //            bound[1] = guess;
-    //        else
-    //            bound[0] = guess;
-    //    }
-    //    while (bound[0] < bound[1]);
-    //
-    //    return guess;
-    //}
 
     void iter_deep_loop (Position &pos);
 
@@ -257,13 +235,6 @@ namespace Searcher {
             pos.do_move (pv[ply++], *si++);
             te = TT.retrieve (pos.posi_key ());
 
-            //// Local copy, TT could change
-            //if (!te || MOVE_NONE == (m = te->move ()) ||
-            //    !pos.pseudo_legal (m) || !pos.legal (m) ||
-            //    !(ply < MAX_PLY) || (pos.draw () && ply >= 1))
-            //{
-            //    break;
-            //}
         }
         while (te // Local copy, TT could change
             && (m = te->move ())
@@ -562,8 +533,6 @@ namespace {
                 {
                     ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
 
-                    //Value value = best_value + (best_value == alpha ? 1 : 0);
-                    //best_value = memory_test_driver (pos, ss, alpha, beta, VALUE_ZERO, depth * ONE_MOVE);
                     best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
 
                     // Bring to front the best move. It is critical that sorting is
@@ -627,15 +596,12 @@ namespace {
 
             IterDuration = now () - SearchTime + 1;
 
-            //RootMove &rm = RootMoves[0];
-
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
             {
                 skill.pick_move ();
                 if (MOVE_NONE != skill.move)
                 {
-                    //rm = *find (RootMoves.begin (), RootMoves.end (), skill.move);
                     swap (RootMoves[0], *std::find (RootMoves.begin (), RootMoves.end(), skill.move));
                 }
             }
@@ -674,25 +640,6 @@ namespace {
                 {
                     stop = true;
                 }
-
-                //// Stop the search early if one move seems to be much better than others
-                //if (!stop && depth >= 12 &&
-                //    BestMoveChanges <= DBL_EPSILON &&
-                //    MultiPV == 1 &&
-                //    best_value > VALUE_MATED_IN_MAX_PLY &&
-                //    (RootMoves.size () == 1 ||
-                //    (now () - SearchTime) > TimeMgr.available_time() * 20 / 100))
-                //{
-                //    Value bound = best_value - 2 * VALUE_MG_PAWN;
-                //
-                //    (ss)->excluded_move  = RootMoves[0].pv[0];
-                //    (ss)->skip_null_move = true;
-                //    Value v = search<NonPV> (pos, ss, bound-1, bound, (depth - 3) * int32_t (ONE_MOVE), true);
-                //    (ss)->skip_null_move = false;
-                //    (ss)->excluded_move  = MOVE_NONE;
-                //
-                //    if (v < bound) stop = true;
-                //}
 
                 if (stop)
                 {
@@ -785,7 +732,9 @@ namespace {
             // Step 2. Check for aborted search and immediate draw
             if (Signals.stop || pos.draw () || (ss)->ply > MAX_PLY)
             {
-                return DrawValue[pos.active ()];
+                return ss->ply > MAX_PLY && !in_check
+                    ? evaluate (pos)
+                    : DrawValue[pos.active ()];
             }
 
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -794,8 +743,8 @@ namespace {
             // further, we will never beat current alpha. Same logic but with reversed signs
             // applies also in the opposite condition of being mated instead of giving mate,
             // in this case return a fail-high score.
-            alpha = max (mated_in ((ss)->ply)  , alpha);
-            beta  = min (mates_in ((ss)->ply +1), beta);
+            alpha = max (mated_in ((ss)->ply +0), alpha);
+            beta  = min (mates_in ((ss)->ply +1),  beta);
 
             if (alpha >= beta) return alpha;
         }
@@ -874,7 +823,7 @@ namespace {
             }
         }
 
-        if (pos.cap_type () != NONE &&
+        if (pos.cap_type () == NONE &&
             (ss)->static_eval != VALUE_NONE &&
             (ss-1)->static_eval != VALUE_NONE &&
             (move = (ss-1)->current_move) != MOVE_NULL &&
@@ -971,7 +920,7 @@ namespace {
             }
         }
 
-        // Step 9. Multi-Cut at Allnodes (MC-A) ProbCut (skipped when in check)
+        // Step 9. Multi-Cut at Allnodes (MC-A) (skipped when in check)
         // If we have a very good capture (i.e. SEE > see[captured_piece_type])
         // and a reduced search returns a value much above beta,
         // we can (almost) safely prune the previous move.
@@ -1013,7 +962,8 @@ namespace {
 
         // Step 10. Internal iterative deepening (skipped when in check)
         if (depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE) &&
-            !tt_move && (PVNode || (ss)->static_eval + Value (256) >= beta))
+            !tt_move &&
+            (PVNode || (ss)->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
@@ -1169,7 +1119,6 @@ moves_loop: // When in check and at SPNode search starts from here
                 !capture_or_promotion &&
                 !in_check &&
                 !dangerous &&
-                // move != tt_move &&  // Already implicit in the next condition 
                 best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
@@ -1451,7 +1400,9 @@ moves_loop: // When in check and at SPNode search starts from here
         // Check for an instant draw or maximum ply reached
         if (pos.draw () || (ss)->ply > MAX_PLY)
         {
-            return DrawValue[pos.active ()];
+            return ss->ply > MAX_PLY && !IN_CHECK
+                ? evaluate (pos)
+                : DrawValue[pos.active ()];
         }
 
         StateInfo   si;
@@ -1563,8 +1514,10 @@ moves_loop: // When in check and at SPNode search starts from here
                 : pos.gives_check (move, ci);
 
             // Futility pruning
-            if (!PVNode && !IN_CHECK &&
-                !gives_check && move != tt_move &&
+            if (!PVNode         &&
+                !IN_CHECK       &&
+                !gives_check    &&
+                move != tt_move &&
                 !pos.advanced_pawn_push (move) &&
                 futility_base > -VALUE_KNOWN_WIN)
             {
@@ -1579,7 +1532,7 @@ moves_loop: // When in check and at SPNode search starts from here
                 }
                 // Prune moves with negative or equal SEE and also moves with positive
                 // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                if (futility_base < beta && pos.see (move) <= 0)
+                if (futility_base < beta && pos.see (move) <= VALUE_ZERO)
                 {
                     if (futility_base > best_value) best_value = futility_base;
                     continue;
@@ -1593,8 +1546,9 @@ moves_loop: // When in check and at SPNode search starts from here
                 !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
-            if (!PVNode && (!IN_CHECK || evasion_prunable) &&
-                move != tt_move &&
+            if (!PVNode                 &&
+                (!IN_CHECK || evasion_prunable) &&
+                move != tt_move         &&
                 mtype (move) != PROMOTE &&
                 pos.see_sign (move) < 0)
             {

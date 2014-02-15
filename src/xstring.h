@@ -38,14 +38,20 @@ namespace std {
         return s;
     }
 
-    inline char toggle_c (char c)
-    {
-        return char (islower (c) ? toupper (c) : tolower (c));
-    }
+    //inline char toggle_c (char c)
+    //{
+    //    return char (islower (c) ? toupper (c) : tolower (c));
+    //}
 
     inline std::string& toggle (std::string &s)
     {
-        transform (s.begin (), s.end (), s.begin (), toggle_c);
+        //transform (s.begin (), s.end (), s.begin (), toggle_c);
+
+        transform (s.begin (), s.end (), s.begin (), [] (char c)->char
+        {
+            return char (islower (c) ? toupper (c) : tolower (c));
+        });
+
         return s;
     }
 
@@ -57,7 +63,7 @@ namespace std {
     }
 
     // char case-sensitive equals
-    inline bool equals_c (char c1, char c2)     { return (c1 == c2); }
+    //inline bool equals_c (char c1, char c2)     { return (c1 == c2); }
     //inline bool notequals (char c1, char c2)  { return (c1 != c2); }
 
     // string case-insensitive equals
@@ -70,34 +76,35 @@ namespace std {
         //return !stricmp (s1.c_str (), s2.c_str ());
 
         //return (s1.size () == s2.size ()) &&
-        //    std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)->bool
-        //{
-        //    return toupper (c1) == toupper (c2);
-        //});
+        //    std::equal (s1.begin (), s1.end (), s2.begin (), equals_c);
 
         return (s1.size () == s2.size ()) &&
-            std::equal (s1.begin (), s1.end (), s2.begin (), equals_c);
+            std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)->bool
+        {
+            return toupper (c1) == toupper (c2);
+        });
+
     }
 
     // trim from head
     inline std::string& ltrim (std::string &s, char c = ' ')
     {
-        s.erase (s.begin (),
-            std::find_if (s.begin (), s.end (),
-            std::not1 (std::bind2nd (std::ptr_fun<char, char, bool> (equals_c), c))));
+        //s.erase (s.begin (),
+        //    std::find_if (s.begin (), s.end (),
+        //    std::not1 (std::bind2nd (std::ptr_fun<char, char, bool> (equals_c), c))));
 
-        //s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch)->bool { return (ch != c); }));
+        s.erase (s.begin (), std::find_if (s.begin (), s.end (), [&] (char ch)->bool { return (ch != c); }));
 
         return s;
     }
     // trim from tail
     inline std::string& rtrim (std::string &s, char c = ' ')
     {
-        s.erase (std::find_if (s.rbegin (), s.rend (),
-            std::not1 (std::bind2nd (std::ptr_fun<char, char, bool> (equals_c), c))).base (),
-            s.end ());
+        //s.erase (std::find_if (s.rbegin (), s.rend (),
+        //    std::not1 (std::bind2nd (std::ptr_fun<char, char, bool> (equals_c), c))).base (),
+        //    s.end ());
 
-        //s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch)->bool { return (ch != c); }).base (), s.end ());
+        s.erase (std::find_if (s.rbegin (), s.rend (), [&] (char ch)->bool { return (ch != c); }).base (), s.end ());
 
         return s;
     }

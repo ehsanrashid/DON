@@ -14,7 +14,7 @@ namespace {
         EVASIONS,    EVASIONS_S2,
         QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
         QSEARCH_1,   CAPTURES_S4,
-        PROBCUT,     CAPTURES_S5,
+        MULTICUT,     CAPTURES_S5,
         RECAPTURE,   CAPTURES_S6,
         STOP,
     };
@@ -117,9 +117,9 @@ MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats
 {
     ASSERT (!pos.checkers ());
 
-    stage = PROBCUT;
+    stage = MULTICUT;
 
-    // In ProbCut we generate only captures better than parent's captured piece
+    // In MultiCut we generate only captures better than parent's captured piece
     capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
@@ -230,12 +230,12 @@ void MovePicker::generate_next_stage ()
         // Killer moves usually come right after after the hash move and (good) captures
         cur = end = killers;
 
-        killers[0].move =               //killer[0];
-            killers[1].move =           //killer[1];
-            killers[2].move =           //counter_moves[0]
-            killers[3].move =           //counter_moves[1]
-            killers[4].move =           //followup_moves[0]
-            killers[5].move = MOVE_NONE;//followup_moves[1]
+        killers[0].move =           //killer[0];
+        killers[1].move =           //killer[1];
+        killers[2].move =           //counter_moves[0]
+        killers[3].move =           //counter_moves[1]
+        killers[4].move =           //followup_moves[0]
+        killers[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)
@@ -332,7 +332,7 @@ void MovePicker::generate_next_stage ()
     case EVASIONS:
     case QSEARCH_0:
     case QSEARCH_1:
-    case PROBCUT:
+    case MULTICUT:
     case RECAPTURE:
         stage = STOP;
 
@@ -368,7 +368,7 @@ Move MovePicker::next_move<false> ()
         case EVASIONS:
         case QSEARCH_0:
         case QSEARCH_1:
-        case PROBCUT:
+        case MULTICUT:
             ++cur;
             return tt_move;
 

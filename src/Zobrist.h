@@ -39,7 +39,7 @@ namespace Zobrist {
 
     public:
 
-        void initialize (RKISS rkiss);
+        void initialize (RKISS rk);
 
     public:
         // Hash key of the material situation.
