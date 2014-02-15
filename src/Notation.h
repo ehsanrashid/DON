@@ -29,9 +29,9 @@ extern const std::string move_to_san (Move m, Position &pos);
 //extern const std::string move_to_lan (Move m, Position &pos);
 //extern Move move_to_fan (std::string &lan, const Position &pos);
 
-extern inline std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
+extern std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
-extern inline std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[]);
+extern std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[]);
 
 
 #endif // NOTATION_H_

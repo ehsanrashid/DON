@@ -458,4 +458,35 @@ namespace BitBoard {
 
     }
 
+    // Print a Bitboard (uint64_t) to console output
+    // Bitboard in an easily readable format. This is sometimes useful for debugging.
+    void print (Bitboard bb, char p)
+    {
+        string sbb;
+
+        const string row   = "|. . . . . . . .|\n";
+        const uint16_t row_len = row.length () + 1;
+        sbb = " /---------------\\\n";
+        for (Rank r = R_8; r >= R_1; --r)
+        {
+            sbb += to_char (r) + row;
+        }
+        sbb += " \\---------------/\n ";
+        for (File f = F_A; f <= F_H; ++f)
+        {
+            sbb += " "; sbb += to_char (f);
+        }
+        sbb += "\n";
+        while (bb)
+        {
+            Square s = pop_lsq (bb);
+            int8_t r = _rank (s);
+            int8_t f = _file (s);
+            sbb[2 + row_len * (8 - r) + 2 * f] = p;
+        }
+
+        cout << sbb;
+    }
+
+
 }

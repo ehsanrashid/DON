@@ -331,6 +331,7 @@ namespace Searcher {
 
         bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
+        int32_t cf;
 
         if (RootMoves.empty ())
         {
@@ -343,7 +344,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (*(Options["Own Book"]) && !Limits.infinite && !Limits.mate_in)
+        if (bool (*(Options["Own Book"])) && !Limits.infinite && !Limits.mate_in)
         {
             if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in);
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
@@ -354,7 +355,7 @@ namespace Searcher {
             }
         }
 
-        int32_t cf = int32_t (*(Options["Contempt Factor"]));
+        cf = int32_t (*(Options["Contempt Factor"]));
         if (cf && !bool (*(Options["UCI_AnalyseMode"])))
         {
             cf = cf * VALUE_MG_PAWN / 100;                              // From centipawns
@@ -372,12 +373,12 @@ namespace Searcher {
             Log log (search_log_fn);
 
             log << "----------->\n" << boolalpha
-                << "fen:       " << RootPos.fen ()                              << "\n"
-                << "infinite:  " << Limits.infinite                             << "\n"
-                << "ponder:    " << Limits.ponder                               << "\n"
+                << "fen:       " << RootPos.fen ()                      << "\n"
+                << "infinite:  " << Limits.infinite                     << "\n"
+                << "ponder:    " << Limits.ponder                       << "\n"
                 << "time:      " << Limits.game_clock[RootColor].time   << "\n"
                 << "increment: " << Limits.game_clock[RootColor].inc    << "\n"
-                << "movestogo: " << uint32_t (Limits.moves_to_go)               << "\n"
+                << "movestogo: " << uint32_t (Limits.moves_to_go)       << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;

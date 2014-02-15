@@ -422,7 +422,11 @@ bool Position::ok (int8_t *failed_step) const
     // step 8
     if (++(*step), debug_king_capture)
     {
-        if (checkers (~_active)) return false;
+        if (checkers (~_active))
+        {
+            cout << *this;
+            return false;
+        }
     }
 
     // step 9
@@ -1391,6 +1395,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
+    int8_t step;
+    if (!ok(&step))
+    {
+        cout << int32_t (step);
+
+    }
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)

@@ -37,11 +37,11 @@ namespace std {
 
     private:
 
-        virtual int_type overflow (int_type c) override
-        {
-            // just ignore the character
-            return typename Traits::not_eof (c);
-        }
+        //virtual int_type overflow (int_type c) override
+        //{
+        //    // just ignore the character
+        //    return typename Traits::not_eof (c);
+        //}
     };
 
     // generic null output stream class

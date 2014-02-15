@@ -7,7 +7,6 @@
 #include "UCI.h"
 //#include "LeakDetector.h"
 
-
 #pragma warning (push)
 #pragma warning (disable : 4244)
 
@@ -73,10 +72,12 @@ public:
 
 #pragma pack (pop)
 
+extern bool ClearHash;
+
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of NUM_TENTRY_CLUSTER number of entry.
+// and each cluster consists of CLUSTER_SIZE number of entry.
 // Each non-empty entry contains information of exactly one position.
-// Size of a cluster shall not be bigger than a SIZE_CACHE_LINE.
+// Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
 typedef class TranspositionTable
 {
@@ -108,31 +109,25 @@ private:
 public:
 
     // Total size for Transposition entry in byte
-    static const uint8_t SIZE_TENTRY        = sizeof (TranspositionEntry);  // 16
+    static const uint8_t TENTRY_SIZE;
     // Number of entry in a cluster
-    static const uint8_t NUM_TENTRY_CLUSTER = 4;
+    static const uint8_t CLUSTER_SIZE;
 
     // Max power of hash for cluster
-#ifdef _64BIT
-    static const uint32_t MAX_BIT_HASH       = 0x20; // 32
-    //static const uint32_t MAX_BIT_HASH       = 0x24; // 36
-#else
-    static const uint32_t MAX_BIT_HASH       = 0x20; // 32
-#endif
-
+    static const uint32_t MAX_HASH_BIT;
 
     // Default size for Transposition table in mega-byte
-    static const uint32_t DEF_SIZE_TT        = 128;
+    static const uint32_t DEF_TT_SIZE;
 
     // Minimum size for Transposition table in mega-byte
-    static const uint32_t SIZE_MIN_TT        = 4;
+    static const uint32_t MIN_TT_SIZE;
 
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> WIN64
     // 032768 MB = 032 GB   -> WIN32
-    static const uint32_t SIZE_MAX_TT        = (uint32_t (1) << (MAX_BIT_HASH - 20 - 1)) * SIZE_TENTRY;
+    static const uint32_t MAX_TT_SIZE;
 
-    static const uint32_t SIZE_CACHE_LINE    = 0x40; // 64
+    static const uint32_t CACHE_LINE_SIZE;
 
 
     TranspositionTable ()
@@ -141,16 +136,16 @@ public:
         , _stored_entry (0)
         , _generation (0)
     {
-        resize (DEF_SIZE_TT);
+        resize (DEF_TT_SIZE);
     }
 
-    TranspositionTable (uint32_t size_mb)
+    TranspositionTable (uint32_t mem_size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
         , _stored_entry (0)
         , _generation (0)
     {
-        resize (size_mb);
+        resize (mem_size_mb);
     }
 
     ~TranspositionTable ()
@@ -158,7 +153,7 @@ public:
         erase ();
     }
 
-    inline uint32_t size () const { return (uint64_t (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY) >> 20; }
+    inline uint32_t size () const { return (uint64_t (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE) >> 20; }
 
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,
@@ -166,14 +161,15 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (!bool (*(Options["Never Clear Hash"])) && _hash_table)
+        if (ClearHash && !bool (*(Options["Never Clear Hash"])) && _hash_table)
         {
-            uint64_t size_byte  = (_hash_mask + NUM_TENTRY_CLUSTER) * SIZE_TENTRY;
-            std::memset (_hash_table, 0, size_byte);
+            uint64_t mem_size_b  = (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE;
+            std::memset (_hash_table, 0, mem_size_b);
 
             _stored_entry = 0;
             _generation   = 0;
         }
+        ClearHash = false;
     }
 
     // new_gen() is called at the beginning of every new search.
@@ -200,11 +196,11 @@ public:
     // hash, are using <x>%. of the state of full.
     inline uint32_t permill_full () const
     {
-        return _stored_entry * 1000 / (_hash_mask + NUM_TENTRY_CLUSTER);
+        return _stored_entry * 1000 / (_hash_mask + CLUSTER_SIZE);
     }
 
 
-    uint32_t resize (uint32_t size_mb);
+    uint32_t resize (uint32_t mem_size_mb);
 
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value);
@@ -216,16 +212,16 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
     {
-        uint64_t size_byte  = ((tt._hash_mask + TranspositionTable::NUM_TENTRY_CLUSTER) * TranspositionTable::SIZE_TENTRY);
-        uint32_t size_mb  = size_byte >> 20;
+        uint64_t mem_size_b  = ((tt._hash_mask + TranspositionTable::CLUSTER_SIZE) * TranspositionTable::TENTRY_SIZE);
+        uint32_t mem_size_mb = mem_size_b >> 20;
         uint8_t dummy = 0;
-        os.write ((char *) &size_mb, sizeof (size_mb));
-        os.write ((char *) &TranspositionTable::SIZE_TENTRY       , sizeof (dummy));
-        os.write ((char *) &TranspositionTable::NUM_TENTRY_CLUSTER, sizeof (dummy));
+        os.write ((char *) &mem_size_mb, sizeof (mem_size_mb));
+        os.write ((char *) &TranspositionTable::TENTRY_SIZE       , sizeof (dummy));
+        os.write ((char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
         os.write ((char *) &dummy, sizeof (dummy));
         os.write ((char *) &tt._generation, sizeof (tt._generation));
         os.write ((char *) &tt._hash_mask , sizeof (tt._hash_mask));
-        os.write ((char *)  tt._hash_table, size_byte);
+        os.write ((char *)  tt._hash_table, mem_size_b);
         return os;
     }
 
@@ -233,17 +229,17 @@ public:
     friend std::basic_istream<charT, Traits>&
         operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
     {
-        uint32_t size_mb;
-        is.read ((char *) &size_mb, sizeof (size_mb));
+        uint32_t mem_size_mb;
+        is.read ((char *) &mem_size_mb, sizeof (mem_size_mb));
         uint8_t dummy;
         is.read ((char *) &dummy, sizeof (dummy));
         is.read ((char *) &dummy, sizeof (dummy));
         is.read ((char *) &dummy, sizeof (dummy));
         is.read ((char *) &dummy, sizeof (dummy));
         is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
-        tt.resize (size_mb);
+        tt.resize (mem_size_mb);
         tt._generation = dummy;
-        is.read ((char *) tt._hash_table, size_mb << 20);
+        is.read ((char *) tt._hash_table, mem_size_mb << 20);
         return is;
     }
 
@@ -253,7 +249,5 @@ public:
 
 // Global Transposition Table
 extern TranspositionTable TT;
-
-extern bool ClearHash;
 
 #endif

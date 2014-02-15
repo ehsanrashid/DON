@@ -6,12 +6,27 @@
 
 using namespace std;
 
-// Global Transposition Table
-TranspositionTable TT;
-
 bool ClearHash = false;
 
-void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment)
+const uint8_t TranspositionTable::TENTRY_SIZE        = sizeof (TranspositionEntry);  // 16
+const uint8_t TranspositionTable::CLUSTER_SIZE       = 4;
+
+#ifdef _64BIT
+    const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
+    //static const uint32_t MAX_HASH_BIT       = 0x24; // 36
+#else
+    const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
+#endif
+
+const uint32_t TranspositionTable::DEF_TT_SIZE       = 128;
+const uint32_t TranspositionTable::MIN_TT_SIZE       = 4;
+
+const uint32_t TranspositionTable::MAX_TT_SIZE       = (uint32_t (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
+
+const uint32_t TranspositionTable::CACHE_LINE_SIZE   = 0x40; // 64
+
+
+void TranspositionTable::aligned_memory_alloc (uint64_t mem_size, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
@@ -33,10 +48,10 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
         //(alignment - 1) + sizeof (void *);
         max<uint32_t> (alignment, sizeof (void *));
 
-    void *mem = calloc (size + offset, 1);
+    void *mem = calloc (mem_size + offset, 1);
     if (!mem)
     {
-        cerr << "ERROR: hash failed to allocate " << size << " byte..." << endl;
+        cerr << "ERROR: hash failed to allocate " << mem_size << " byte..." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
@@ -46,7 +61,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 
     _hash_table = (TranspositionEntry*) (ptr);
 
-    ASSERT (0 == (size & (alignment - 1)));
+    ASSERT (0 == (mem_size & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
 
     ptr[-1] = mem;
@@ -54,41 +69,41 @@ void TranspositionTable::aligned_memory_alloc (uint64_t size, uint32_t alignment
 
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
-// each cluster consists of NUM_TENTRY_CLUSTER number of entry.
-uint32_t TranspositionTable::resize (uint32_t size_mb)
+// each cluster consists of CLUSTER_SIZE number of entry.
+uint32_t TranspositionTable::resize (uint32_t mem_size_mb)
 {
-    //ASSERT (size_mb >= SIZE_MIN_TT);
-    //ASSERT (size_mb <= SIZE_MAX_TT);
-    if (size_mb < SIZE_MIN_TT) size_mb = SIZE_MIN_TT;
-    if (size_mb > SIZE_MAX_TT) size_mb = SIZE_MAX_TT;
+    //ASSERT (mem_size_mb >= MIN_TT_SIZE);
+    //ASSERT (mem_size_mb <= MAX_TT_SIZE);
+    if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
+    if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
     //{
-    //    cerr << "ERROR: hash size too large " << size_mb << " MB..." << endl;
+    //    cerr << "ERROR: hash size too large " << mem_size_mb << " MB..." << endl;
     //    return;
     //}
 
-    uint64_t size_byte    = uint64_t (size_mb) << 20;
-    uint32_t total_entry  = (size_byte) / SIZE_TENTRY;
-    //uint32_t total_cluster  = total_entry / NUM_TENTRY_CLUSTER;
+    uint64_t mem_size_b    = uint64_t (mem_size_mb) << 20;
+    uint32_t total_entry  = (mem_size_b) / TENTRY_SIZE;
+    //uint32_t total_cluster  = total_entry / CLUSTER_SIZE;
 
     uint8_t bit_hash = scan_msq (total_entry);
-    ASSERT (bit_hash < MAX_BIT_HASH);
-    if (bit_hash >= MAX_BIT_HASH) bit_hash = MAX_BIT_HASH - 1;
+    ASSERT (bit_hash < MAX_HASH_BIT);
+    if (bit_hash >= MAX_HASH_BIT) bit_hash = MAX_HASH_BIT - 1;
 
     total_entry     = uint32_t (1) << bit_hash;
-    uint64_t size   = total_entry * SIZE_TENTRY;
+    mem_size_b      = total_entry * TENTRY_SIZE;
 
-    if (_hash_mask != (total_entry - NUM_TENTRY_CLUSTER))
+    if (_hash_mask != (total_entry - CLUSTER_SIZE))
     {
         erase ();
 
-        aligned_memory_alloc (size, SIZE_CACHE_LINE); 
+        aligned_memory_alloc (mem_size_b, CACHE_LINE_SIZE); 
 
-        _hash_mask      = (total_entry - NUM_TENTRY_CLUSTER);
+        _hash_mask      = (total_entry - CLUSTER_SIZE);
         _stored_entry   = 0;
         _generation     = 0;
     }
 
-    return (size >> 20);
+    return (mem_size_b >> 20);
 }
 
 // store() writes a new entry in the transposition table.
@@ -115,7 +130,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
     // By default replace first entry
     TranspositionEntry *re = te;
 
-    for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
+    for (uint8_t i = 0; i < CLUSTER_SIZE; ++i, ++te)
     {
         if (!te->key () || te->key () == key32) // Empty or Old then overwrite
         {
@@ -158,9 +173,16 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
 {
     uint32_t key32 = uint32_t (key >> 32);
     const TranspositionEntry *te = get_cluster (key);
-    for (uint8_t i = 0; i < NUM_TENTRY_CLUSTER; ++i, ++te)
+    for (uint8_t i = 0; i < CLUSTER_SIZE; ++i, ++te)
     {
         if (te->key () == key32) return te;
     }
     return NULL;
 }
+
+
+// Global Transposition Table
+TranspositionTable TT;
+
+
+

@@ -166,11 +166,10 @@ namespace UCI {
 
             RootPos.setup (fen, Threads.main (), bool (*(Options["UCI_Chess960"])));
 
-            if (ClearHash && posi_key != RootPos.posi_key ())
+            if (posi_key != RootPos.posi_key ())
             {
                 TT.clear ();
             }
-            ClearHash = false;
 
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
 
@@ -353,46 +352,46 @@ namespace UCI {
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
             if (whitespace (cmd)) continue;
 
-            try
-            {
-                cmdstream cstm (cmd);
-                cstm >> skipws >> token;
+            //try
+            //{
+            cmdstream cstm (cmd);
+            cstm >> skipws >> token;
 
-                if      (iequals (token, "uci"))        exe_uci ();
-                else if (iequals (token, "ucinewgame")) exe_ucinewgame ();
-                else if (iequals (token, "isready"))    exe_isready ();
-                else if (iequals (token, "register"))   exe_register (cstm);
-                else if (iequals (token, "setoption"))  exe_setoption (cstm);
-                else if (iequals (token, "position"))   exe_position (cstm);
-                else if (iequals (token, "go"))         exe_go (cstm);
-                else if (iequals (token, "ponderhit"))
-                {
-                    // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                    // opponent has played. In case signals.stop_on_ponderhit stream set we are
-                    // waiting for 'ponderhit' to stop the search (for instance because we
-                    // already ran out of time), otherwise we should continue searching but
-                    // switching from pondering to normal search.
-                    Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
-                }
-                else if (iequals (token, "debug"))      exe_debug (cstm);
-                else if (iequals (token, "print"))      exe_print ();
-                else if (iequals (token, "key"))        exe_key ();
-                else if (iequals (token, "allmoves"))   exe_allmoves ();
-                else if (iequals (token, "flip"))       exe_flip ();
-                else if (iequals (token, "eval"))       exe_eval ();
-                else if (iequals (token, "perft"))      exe_perft (cstm);
-                else if (iequals (token, "bench"))      benchmark (cstm, RootPos);
-                else if (iequals (token, "stop")
-                    ||   iequals (token, "quit"))       exe_stop ();
-                else
-                {
-                    sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
-                }
-            }
-            catch (exception &exp) //(...)
+            if      (iequals (token, "uci"))        exe_uci ();
+            else if (iequals (token, "ucinewgame")) exe_ucinewgame ();
+            else if (iequals (token, "isready"))    exe_isready ();
+            else if (iequals (token, "register"))   exe_register (cstm);
+            else if (iequals (token, "setoption"))  exe_setoption (cstm);
+            else if (iequals (token, "position"))   exe_position (cstm);
+            else if (iequals (token, "go"))         exe_go (cstm);
+            else if (iequals (token, "ponderhit"))
             {
-                sync_cout << exp.what () << sync_endl;
+                // GUI sends 'ponderhit' to tell us to ponder on the same move the
+                // opponent has played. In case signals.stop_on_ponderhit stream set we are
+                // waiting for 'ponderhit' to stop the search (for instance because we
+                // already ran out of time), otherwise we should continue searching but
+                // switching from pondering to normal search.
+                Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
             }
+            else if (iequals (token, "debug"))      exe_debug (cstm);
+            else if (iequals (token, "print"))      exe_print ();
+            else if (iequals (token, "key"))        exe_key ();
+            else if (iequals (token, "allmoves"))   exe_allmoves ();
+            else if (iequals (token, "flip"))       exe_flip ();
+            else if (iequals (token, "eval"))       exe_eval ();
+            else if (iequals (token, "perft"))      exe_perft (cstm);
+            else if (iequals (token, "bench"))      benchmark (cstm, RootPos);
+            else if (iequals (token, "stop")
+                ||   iequals (token, "quit"))       exe_stop ();
+            else
+            {
+                sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
+            }
+            //}
+            //catch (exception &exp) //(...)
+            //{
+            //    sync_cout << exp.what () << sync_endl;
+            //}
         }
         while (running && !iequals (cmd, "quit"));
 

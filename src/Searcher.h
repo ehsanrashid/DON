@@ -29,10 +29,10 @@ namespace Searcher {
         int32_t time;   // time left
         int32_t inc;    // time gain
 
-        //GameClock ()
-        //    : time (0) //5 * 60 * M_SEC; // 5 mins default time
-        //    , inc (0)
-        //{}
+        GameClock ()
+            : time (0) //5 * 60 * M_SEC; // 5 mins default time
+            , inc (0)
+        {}
 
         //GameClock (int32_t tm, int32_t in)
         //    : time (tm)

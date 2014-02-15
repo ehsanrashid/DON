@@ -275,9 +275,9 @@ namespace UCI {
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         = OptionPtr (new SpinOption (
-            TranspositionTable::DEF_SIZE_TT,
-            TranspositionTable::SIZE_MIN_TT,
-            TranspositionTable::SIZE_MAX_TT,
+            TranspositionTable::DEF_TT_SIZE,
+            TranspositionTable::MIN_TT_SIZE,
+            TranspositionTable::MAX_TT_SIZE,
             on_resize_hash));
 
         // Button to clear the Hash Memory.

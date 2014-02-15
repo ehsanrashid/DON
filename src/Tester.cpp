@@ -20,11 +20,6 @@ namespace Tester {
         void test_type ()
         {
 
-            //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            //{
-            //    ASSERT (_ok (s));
-            //}
-
             ASSERT (CR_W == mk_castle_right (WHITE));
             ASSERT (CR_B == mk_castle_right (BLACK));
 
@@ -65,6 +60,13 @@ namespace Tester {
             b = 0;
             b = b + SQ_D4 + SQ_H8;
             ASSERT (b == U64 (0x8000000008000000));
+
+
+            //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            //{
+            //    print (attacks_bb<QUEN>(s));
+            //    if (s % 8 == 7) system ("pause");
+            //}
 
             //ASSERT (pop_count<FULL> (U64 (0x0000)) == 0x00);
             //ASSERT (pop_count<FULL> (U64 (0x5555)) == 0x08);

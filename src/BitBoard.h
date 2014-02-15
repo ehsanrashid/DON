@@ -344,6 +344,8 @@ namespace BitBoard {
 
     extern void initialize ();
 
+    extern void print (Bitboard bb, char p = 'o');
+
 }
 
 #endif
