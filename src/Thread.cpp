@@ -97,7 +97,7 @@ bool Thread::available_to (const Thread *master) const
 
     // No split points means that the thread is available as a slave for any
     // other thread otherwise apply the "helpful master" concept if possible.
-    return !size || (split_points[size - 1].slaves_mask & (1ULL << master->idx));
+    return !size || (split_points[size - 1].slaves_mask & ((1ULL) << master->idx));
 }
 
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
@@ -222,12 +222,12 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // leave their idle loops and call search(). When all threads have returned from
 // search() then split() returns.
 template <bool FAKE>
-void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
                     Depth depth, int32_t moves_count, MovePicker *move_picker, NodeT node_type, bool cut_node)
 {
 
     ASSERT (pos.ok ());
-    ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
+    ASSERT (-VALUE_INFINITE < *best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     ASSERT (depth >= Threads.split_depth);
     ASSERT (searching);
     ASSERT (threads_split_point < MAX_THREADS_SPLIT_POINT);
@@ -239,8 +239,8 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     sp.parent_split_point = active_split_point;
     sp.slaves_mask  = (1ULL << idx);
     sp.depth        = depth;
-    sp.best_value   = best_value;
-    sp.best_move    = best_move;
+    sp.best_value   = *best_value;
+    sp.best_move    = *best_move;
     sp.alpha        = alpha;
     sp.beta         = beta;
     sp.node_type    = node_type;
@@ -268,7 +268,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     while ((slave = Threads.available_slave (this)) != NULL
         && ++slaves_count <= Threads.threads_split_point && !FAKE)
     {
-        sp.slaves_mask |= (1ULL << slave->idx);
+        sp.slaves_mask |= ((1ULL) << slave->idx);
         slave->active_split_point = &sp;
         slave->searching = true; // Slave leaves idle_loop()
         slave->notify_one (); // Could be sleeping
@@ -305,16 +305,16 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     active_pos  = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
 
-    best_move  = sp.best_move;
-    best_value = sp.best_value;
+    *best_move  = sp.best_move;
+    *best_value = sp.best_value;
 
     sp.mutex.unlock ();
     Threads.mutex.unlock ();
 }
 
 // Explicit template instantiations
-template void Thread::split<false> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, int32_t, MovePicker*, NodeT, bool);
-template void Thread::split< true> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, int32_t, MovePicker*, NodeT, bool);
+template void Thread::split<false> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, NodeT, bool);
+template void Thread::split< true> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, int32_t, MovePicker*, NodeT, bool);
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.

@@ -54,8 +54,7 @@ namespace {
     // calculate the quad words (64bits) needed to be copied.
     const uint32_t SIZE_COPY_STATE = offsetof (StateInfo, posi_key);
 
-    CACHE_ALIGN(32)
-        Score psq[CLR_NO][NONE][SQ_NO];
+    CACHE_ALIGN(32) Score psq[CLR_NO][NONE][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -67,69 +66,69 @@ namespace {
         // Pawn
         {
             S(  0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(  0, 0),
-                S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
-                S(-20, 0), S( 0, 0), S(10, 0), S(20, 0), S(20, 0), S(10, 0), S( 0, 0), S(-20, 0),
-                S(-20, 0), S( 0, 0), S(20, 0), S(40, 0), S(40, 0), S(20, 0), S( 0, 0), S(-20, 0),
-                S(-20, 0), S( 0, 0), S(10, 0), S(20, 0), S(20, 0), S(10, 0), S( 0, 0), S(-20, 0),
-                S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
-                S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
-                S(  0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(  0, 0),
+            S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
+            S(-20, 0), S( 0, 0), S(10, 0), S(20, 0), S(20, 0), S(10, 0), S( 0, 0), S(-20, 0),
+            S(-20, 0), S( 0, 0), S(20, 0), S(40, 0), S(40, 0), S(20, 0), S( 0, 0), S(-20, 0),
+            S(-20, 0), S( 0, 0), S(10, 0), S(20, 0), S(20, 0), S(10, 0), S( 0, 0), S(-20, 0),
+            S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
+            S(-20, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(-20, 0),
+            S(  0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(0,  0), S( 0, 0), S( 0, 0), S(  0, 0),
         },
         // Knight
         {
             S(-134,-98), S(-99,-83), S(-75,-51), S(-63,-16), S(-63,-16), S(-75,-51), S(-99,-83), S(-134,-98),
-                S( -78,-68), S(-43,-53), S(-19,-21), S( -7, 14), S( -7, 14), S(-19,-21), S(-43,-53), S( -78,-68),
-                S( -59,-53), S(-24,-38), S(  0, -6), S( 12, 29), S( 12, 29), S(  0, -6), S(-24,-38), S( -59,-53),
-                S( -18,-42), S( 17,-27), S( 41,  5), S( 53, 40), S( 53, 40), S( 41,  5), S( 17,-27), S( -18,-42),
-                S( -20,-42), S( 15,-27), S( 39,  5), S( 51, 40), S( 51, 40), S( 39,  5), S( 15,-27), S( -20,-42),
-                S(   0,-53), S( 35,-38), S( 59, -6), S( 71, 29), S( 71, 29), S( 59, -6), S( 35,-38), S(   0,-53),
-                S( -54,-68), S(-19,-53), S(  5,-21), S( 17, 14), S( 17, 14), S(  5,-21), S(-19,-53), S( -54,-68),
-                S(-190,-98), S(-55,-83), S(-31,-51), S(-19,-16), S(-19,-16), S(-31,-51), S(-55,-83), S(-190,-98),
-            },
-            // Bishop
-            {
-                S(-44,-65), S(-17,-42), S(-24,-44), S(-33,-26), S(-33,-26), S(-24,-44), S(-17,-42), S(-44,-65),
-                    S(-19,-43), S(  8,-20), S(  1,-22), S( -8, -4), S( -8, -4), S(  1,-22), S(  8,-20), S(-19,-43),
-                    S(-10,-33), S( 17,-10), S( 10,-12), S(  1,  6), S(  1,  6), S( 10,-12), S( 17,-10), S(-10,-33),
-                    S( -9,-35), S( 18,-12), S( 11,-14), S(  2,  4), S(  2,  4), S( 11,-14), S( 18,-12), S( -9,-35),
-                    S(-12,-35), S( 15,-12), S(  8,-14), S( -1,  4), S( -1,  4), S(  8,-14), S( 15,-12), S(-12,-35),
-                    S(-18,-33), S(  9,-10), S(  2,-12), S( -7,  6), S( -7,  6), S(  2,-12), S(  9,-10), S(-18,-33),
-                    S(-22,-43), S(  5,-20), S( -2,-22), S(-11, -4), S(-11, -4), S( -2,-22), S(  5,-20), S(-22,-43),
-                    S(-39,-65), S(-12,-42), S(-19,-44), S(-28,-26), S(-28,-26), S(-19,-44), S(-12,-42), S(-39,-65),
-            },
-            // Rook
-            {
-                S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                    S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-                },
-                // Queen
-                {
-                    S(8,-80), S(8,-54), S(8,-42), S(8,-30), S(8,-30), S(8,-42), S(8,-54), S(8,-80),
-                        S(8,-54), S(8,-30), S(8,-18), S(8, -6), S(8, -6), S(8,-18), S(8,-30), S(8,-54),
-                        S(8,-42), S(8,-18), S(8, -6), S(8,  6), S(8,  6), S(8, -6), S(8,-18), S(8,-42),
-                        S(8,-30), S(8, -6), S(8,  6), S(8, 18), S(8, 18), S(8,  6), S(8, -6), S(8,-30),
-                        S(8,-30), S(8, -6), S(8,  6), S(8, 18), S(8, 18), S(8,  6), S(8, -6), S(8,-30),
-                        S(8,-42), S(8,-18), S(8, -6), S(8,  6), S(8,  6), S(8, -6), S(8,-18), S(8,-42),
-                        S(8,-54), S(8,-30), S(8,-18), S(8, -6), S(8, -6), S(8,-18), S(8,-30), S(8,-54),
-                        S(8,-80), S(8,-54), S(8,-42), S(8,-30), S(8,-30), S(8,-42), S(8,-54), S(8,-80),
-                },
-                // King
-                {
-                    S(298, 27), S(332, 81), S(273,108), S(225,116), S(225,116), S(273,108), S(332, 81), S(298, 27),
-                        S(287, 74), S(321,128), S(262,155), S(214,163), S(214,163), S(262,155), S(321,128), S(287, 74),
-                        S(224,111), S(258,165), S(199,192), S(151,200), S(151,200), S(199,192), S(258,165), S(224,111),
-                        S(196,135), S(230,189), S(171,216), S(123,224), S(123,224), S(171,216), S(230,189), S(196,135),
-                        S(173,135), S(207,189), S(148,216), S(100,224), S(100,224), S(148,216), S(207,189), S(173,135),
-                        S(146,111), S(180,165), S(121,192), S( 73,200), S( 73,200), S(121,192), S(180,165), S(146,111),
-                        S(119, 74), S(153,128), S( 94,155), S( 46,163), S( 46,163), S( 94,155), S(153,128), S(119, 74),
-                        S( 98, 27), S(132, 81), S( 73,108), S( 25,116), S( 25,116), S( 73,108), S(132, 81), S( 98, 27),
-                    },
+            S( -78,-68), S(-43,-53), S(-19,-21), S( -7, 14), S( -7, 14), S(-19,-21), S(-43,-53), S( -78,-68),
+            S( -59,-53), S(-24,-38), S(  0, -6), S( 12, 29), S( 12, 29), S(  0, -6), S(-24,-38), S( -59,-53),
+            S( -18,-42), S( 17,-27), S( 41,  5), S( 53, 40), S( 53, 40), S( 41,  5), S( 17,-27), S( -18,-42),
+            S( -20,-42), S( 15,-27), S( 39,  5), S( 51, 40), S( 51, 40), S( 39,  5), S( 15,-27), S( -20,-42),
+            S(   0,-53), S( 35,-38), S( 59, -6), S( 71, 29), S( 71, 29), S( 59, -6), S( 35,-38), S(   0,-53),
+            S( -54,-68), S(-19,-53), S(  5,-21), S( 17, 14), S( 17, 14), S(  5,-21), S(-19,-53), S( -54,-68),
+            S(-190,-98), S(-55,-83), S(-31,-51), S(-19,-16), S(-19,-16), S(-31,-51), S(-55,-83), S(-190,-98),
+        },
+        // Bishop
+        {
+            S(-44,-65), S(-17,-42), S(-24,-44), S(-33,-26), S(-33,-26), S(-24,-44), S(-17,-42), S(-44,-65),
+            S(-19,-43), S(  8,-20), S(  1,-22), S( -8, -4), S( -8, -4), S(  1,-22), S(  8,-20), S(-19,-43),
+            S(-10,-33), S( 17,-10), S( 10,-12), S(  1,  6), S(  1,  6), S( 10,-12), S( 17,-10), S(-10,-33),
+            S( -9,-35), S( 18,-12), S( 11,-14), S(  2,  4), S(  2,  4), S( 11,-14), S( 18,-12), S( -9,-35),
+            S(-12,-35), S( 15,-12), S(  8,-14), S( -1,  4), S( -1,  4), S(  8,-14), S( 15,-12), S(-12,-35),
+            S(-18,-33), S(  9,-10), S(  2,-12), S( -7,  6), S( -7,  6), S(  2,-12), S(  9,-10), S(-18,-33),
+            S(-22,-43), S(  5,-20), S( -2,-22), S(-11, -4), S(-11, -4), S( -2,-22), S(  5,-20), S(-22,-43),
+            S(-39,-65), S(-12,-42), S(-19,-44), S(-28,-26), S(-28,-26), S(-19,-44), S(-12,-42), S(-39,-65),
+        },
+        // Rook
+        {
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+        },
+        // Queen
+        {
+            S(8,-80), S(8,-54), S(8,-42), S(8,-30), S(8,-30), S(8,-42), S(8,-54), S(8,-80),
+            S(8,-54), S(8,-30), S(8,-18), S(8, -6), S(8, -6), S(8,-18), S(8,-30), S(8,-54),
+            S(8,-42), S(8,-18), S(8, -6), S(8,  6), S(8,  6), S(8, -6), S(8,-18), S(8,-42),
+            S(8,-30), S(8, -6), S(8,  6), S(8, 18), S(8, 18), S(8,  6), S(8, -6), S(8,-30),
+            S(8,-30), S(8, -6), S(8,  6), S(8, 18), S(8, 18), S(8,  6), S(8, -6), S(8,-30),
+            S(8,-42), S(8,-18), S(8, -6), S(8,  6), S(8,  6), S(8, -6), S(8,-18), S(8,-42),
+            S(8,-54), S(8,-30), S(8,-18), S(8, -6), S(8, -6), S(8,-18), S(8,-30), S(8,-54),
+            S(8,-80), S(8,-54), S(8,-42), S(8,-30), S(8,-30), S(8,-42), S(8,-54), S(8,-80),
+        },
+        // King
+        {
+            S(298, 27), S(332, 81), S(273,108), S(225,116), S(225,116), S(273,108), S(332, 81), S(298, 27),
+            S(287, 74), S(321,128), S(262,155), S(214,163), S(214,163), S(262,155), S(321,128), S(287, 74),
+            S(224,111), S(258,165), S(199,192), S(151,200), S(151,200), S(199,192), S(258,165), S(224,111),
+            S(196,135), S(230,189), S(171,216), S(123,224), S(123,224), S(171,216), S(230,189), S(196,135),
+            S(173,135), S(207,189), S(148,216), S(100,224), S(100,224), S(148,216), S(207,189), S(173,135),
+            S(146,111), S(180,165), S(121,192), S( 73,200), S( 73,200), S(121,192), S(180,165), S(146,111),
+            S(119, 74), S(153,128), S( 94,155), S( 46,163), S( 46,163), S( 94,155), S(153,128), S(119, 74),
+            S( 98, 27), S(132, 81), S( 73,108), S( 25,116), S( 25,116), S( 73,108), S(132, 81), S( 98, 27),
+        },
     };
 
 #undef S
@@ -507,7 +506,7 @@ bool Position::ok (int8_t *failed_step) const
 
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
-int32_t Position::see      (Move m) const
+Value Position::see      (Move m) const
 {
     Square org = org_sq (m);
     Square dst = dst_sq (m);
@@ -524,12 +523,12 @@ int32_t Position::see      (Move m) const
 
     MoveT mt = mtype (m);
 
-    if      (CASTLE == mt)
+    if      (CASTLE    == mt)
     {
         // Castle moves are implemented as king capturing the rook so cannot be
         // handled correctly. Simply return 0 that is always the correct value
         // unless in the rare case the rook ends up under attack.
-        return 0;
+        return VALUE_ZERO;
     }
     else if (ENPASSANT == mt)
     {
@@ -544,54 +543,55 @@ int32_t Position::see      (Move m) const
     // If the opponent has no attackers we are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & pieces (stm);
-    if (!stm_attackers) return swap_list[0];
-
-    // The destination square is defended, which makes things rather more
-    // difficult to compute. We proceed by building up a "swap list" containing
-    // the material gain or loss at each stop in a sequence of captures to the
-    // destination square, where the sides alternately capture, and always
-    // capture with the least valuable piece. After each capture, we look for
-    // new X-ray attacks from behind the capturing piece.
-    PieceT ct = _ptype (piece_on (org));
-
-    do
+    if (stm_attackers)
     {
-        ASSERT (depth < 32);
+        // The destination square is defended, which makes things rather more
+        // difficult to compute. We proceed by building up a "swap list" containing
+        // the material gain or loss at each stop in a sequence of captures to the
+        // destination square, where the sides alternately capture, and always
+        // capture with the least valuable piece. After each capture, we look for
+        // new X-ray attacks from behind the capturing piece.
+        PieceT ct = _ptype (piece_on (org));
 
-        // Add the new entry to the swap list
-        swap_list[depth] = PieceValue[MG][ct] - swap_list[depth - 1];
-
-        // Locate and remove the next least valuable attacker
-        ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
-
-        // Stop before processing a king capture
-        if (KING == ct)
+        do
         {
-            if (stm_attackers == attackers)
+            ASSERT (depth < 32);
+
+            // Add the new entry to the swap list
+            swap_list[depth] = PieceValue[MG][ct] - swap_list[depth - 1];
+
+            // Locate and remove the next least valuable attacker
+            ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
+
+            // Stop before processing a king capture
+            if (KING == ct)
             {
-                ++depth;
+                if (stm_attackers == attackers)
+                {
+                    ++depth;
+                }
+                break;
             }
-            break;
+
+            stm = ~stm;
+            stm_attackers = attackers & pieces (stm);
+
+            ++depth;
         }
+        while (stm_attackers);
 
-        stm = ~stm;
-        stm_attackers = attackers & pieces (stm);
-
-        ++depth;
-    }
-    while (stm_attackers);
-
-    // Having built the swap list, we negamax through it to find the best
-    // achievable score from the point of view of the side to move.
-    while (--depth)
-    {
-        swap_list[depth - 1] = min (-swap_list[depth], swap_list[depth - 1]);
+        // Having built the swap list, we negamax through it to find the best
+        // achievable score from the point of view of the side to move.
+        while (--depth)
+        {
+            swap_list[depth - 1] = min (-swap_list[depth], swap_list[depth - 1]);
+        }
     }
 
-    return swap_list[0];
+    return Value (swap_list[0]);
 }
 
-int32_t Position::see_sign (Move m) const
+Value Position::see_sign (Move m) const
 {
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
@@ -599,7 +599,7 @@ int32_t Position::see_sign (Move m) const
     if (PieceValue[MG][_ptype (piece_on (org_sq (m)))]
     <=  PieceValue[MG][_ptype (piece_on (dst_sq (m)))])
     {
-        return 1;
+        return Value (1);
     }
 
     return see (m);
@@ -658,13 +658,13 @@ bool Position::pseudo_legal (Move m) const
 
     MoveT mt = mtype (m);
 
-    if      (NORMAL == mt)
+    if      (NORMAL    == mt)
     {
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
         ct = _ptype (piece_on (cap));
     }
-    else if (CASTLE == mt)
+    else if (CASTLE    == mt)
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
@@ -701,7 +701,7 @@ bool Position::pseudo_legal (Move m) const
         return true;
 
     }
-    else if (PROMOTE == mt)
+    else if (PROMOTE   == mt)
     {
         if (PAWN != pt) return false;
         if (R_7 != r_org) return false;
@@ -812,10 +812,10 @@ bool Position::pseudo_legal (Move m) const
                 }
             }
         }
-        // In case of king moves under check we have to remove king so to catch
-        // as invalid moves like B1A1 when opposite queen is on C1.
         else
         {
+            // In case of king moves under check we have to remove king so to catch
+            // as invalid moves like B1A1 when opposite queen is on C1.
             if (attackers_to (dst, pieces () - org) & pieces (pasive)) return false;
         }
     }
@@ -844,7 +844,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
 
     MoveT mt = mtype (m);
 
-    if      (CASTLE == mt)
+    if      (CASTLE    == mt)
     {
         // Castling moves are checked for legality during move generation.
         return (KING == pt);
@@ -914,7 +914,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
 
     Bitboard occ = pieces ();
 
-    if      (CASTLE == mt)
+    if      (CASTLE    == mt)
     {
         // Castling with check ?
         bool king_side = (dst > org);
@@ -926,7 +926,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
             (attacks_bb<ROOK> (dst_rook) & ci.king_sq) && // First x-ray check then full check
             (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
-    else if (PROMOTE == mt)
+    else if (PROMOTE   == mt)
     {
         // Promotion with check ?
         return (attacks_from (_active | prom_type (m), dst, occ - org + dst) & ci.king_sq);
@@ -1025,7 +1025,7 @@ void Position::set_castle (Color c, Square org_rook)
     ASSERT (org_king != org_rook);
 
     bool king_side = (org_rook > org_king);
-    CSide cs = (king_side ? CS_K : CS_Q);
+    CSide  cs = (king_side ? CS_K : CS_Q);
     CRight cr = mk_castle_right (c, cs);
     Square dst_rook = rel_sq (c, king_side ? SQ_WR_K : SQ_WR_Q);
     Square dst_king = rel_sq (c, king_side ? SQ_WK_K : SQ_WK_Q);
@@ -1070,7 +1070,10 @@ bool Position::can_en_passant (Square ep_sq) const
     if (!pawns_ep) return false;
 
     vector<Move> mov_ep;
-    while (pawns_ep) mov_ep.push_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
+    while (pawns_ep)
+    {
+        mov_ep.push_back (mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq));
+    }
 
     // Check en-passant is legal for the position
     Square fk_sq = king_sq (active);
@@ -1102,7 +1105,6 @@ bool Position::can_en_passant (File   ep_f) const
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-
     Score score  = SCORE_ZERO;
     Bitboard occ = pieces ();
     while (occ)
@@ -1150,7 +1152,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Square org   = org_sq (m);
     Square dst   = dst_sq (m);
     Piece p      = piece_on (org);
-    PieceT pt     = _ptype (p);
+    PieceT pt    = _ptype (p);
 
     ASSERT ((EMPTY != p) &&
         (active == _color (p)) &&
@@ -1160,12 +1162,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         (CASTLE == mtype (m)));
 
     Square cap = dst;
-    PieceT  ct  = NONE;
+    PieceT  ct = NONE;
 
     MoveT mt   = mtype (m);
 
     // Pick capture piece and check validation
-    if      (NORMAL == mt)
+    if      (NORMAL    == mt)
     {
         ASSERT (PAWN == (prom_type (m) - NIHT));
         if (PAWN == pt)
@@ -1179,14 +1181,14 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
             ct = _ptype (piece_on (cap));
         }
     }
-    else if (CASTLE == mt)
+    else if (CASTLE    == mt)
     {
         ASSERT (KING == pt);
         ASSERT (ROOK == _ptype (piece_on (dst)));
 
         ct = NONE;
     }
-    else if (PROMOTE == mt)
+    else if (PROMOTE   == mt)
     {
         ASSERT (PAWN == pt);        // Moving type must be PAWN
         ASSERT (R_7 == rel_rank (active, org));
@@ -1260,7 +1262,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     }
 
     // Do move according to move type
-    if      (NORMAL == mt || ENPASSANT == mt)
+    if      (NORMAL  == mt
+        || ENPASSANT == mt)
     {
         // Move the piece
         move_piece (org, dst);
@@ -1275,7 +1278,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         posi_k ^= ZobGlob._.psq_k[active][pt][org] ^ ZobGlob._.psq_k[active][pt][dst];
         _si->psq_score += psq[active][pt][dst] - psq[active][pt][org];
     }
-    else if (CASTLE == mt)
+    else if (CASTLE  == mt)
     {
         // Move the piece. The tricky Chess960 castle is handled earlier
         bool king_side  = (dst > org);
@@ -1396,11 +1399,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_nodes;
 
     int8_t step;
-    if (!ok(&step))
+    if (!ok (&step))
     {
         cout << int32_t (step);
 
     }
+
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)
@@ -1439,11 +1443,11 @@ void Position::undo_move ()
     Square cap = dst;
 
     // Undo move according to move type
-    if      (NORMAL == mt)
+    if      (NORMAL    == mt)
     {
         move_piece (dst, org); // Put the piece back at the origin square
     }
-    else if (CASTLE == mt)
+    else if (CASTLE    == mt)
     {
         bool king_side = (dst > org);
         Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
@@ -1454,7 +1458,7 @@ void Position::undo_move ()
         ct  = NONE;
         castle_king_rook (dst, org, dst_rook, org_rook);
     }
-    else if (PROMOTE == mt)
+    else if (PROMOTE   == mt)
     {
         PieceT prom = prom_type (m);
 
@@ -1537,57 +1541,6 @@ void Position::undo_null_move ()
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-
-    //Position pos (*this);
-    //clear ();
-    //
-    ////for (Square s = SQ_A1; s <= SQ_H8; ++s)
-    ////{
-    ////    Piece p = pos[s];
-    ////    if (EMPTY != p)
-    ////    {
-    ////        place_piece (~s, ~p);
-    ////    }
-    ////}
-    //Bitboard occ    = pos.pieces ();
-    //while (occ)
-    //{
-    //    Square s = pop_lsq (occ);
-    //    Piece p  = pos[s];
-    //    if (EMPTY != p)
-    //    {
-    //        place_piece (~s, ~p);
-    //    }
-    //}
-    //
-    //if (pos.can_castle (CR_W_K)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_K));
-    //if (pos.can_castle (CR_W_Q)) set_castle (BLACK, ~pos.castle_rook (WHITE, CS_Q));
-    //if (pos.can_castle (CR_B_K)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_K));
-    //if (pos.can_castle (CR_B_Q)) set_castle (WHITE, ~pos.castle_rook (BLACK, CS_Q));
-    //
-    //_si->castle_rights = ~pos._si->castle_rights;
-    //
-    //Square ep_sq    = pos._si->en_passant;
-    //if (SQ_NO != ep_sq)
-    //{
-    //    _si->en_passant = ~ep_sq;
-    //}
-    //
-    //_si->cap_type   = pos._si->cap_type;
-    //_si->clock50    = pos._si->clock50;
-    //_si->last_move  = MOVE_NONE;
-    //_si->checkers   = flip_verti (pos._si->checkers);
-    //_active         = ~pos._active;
-    //_si->matl_key   = ZobGlob.compute_matl_key (*this);
-    //_si->pawn_key   = ZobGlob.compute_pawn_key (*this);
-    //_si->posi_key   = ZobGlob.compute_posi_key (*this);
-    //_si->psq_score  = compute_psq_score ();
-    //_si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
-    //_si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
-    //_game_ply       = pos._game_ply;
-    //_chess960       = pos._chess960;
-    //_game_nodes     = 0; //pos._game_nodes;
-
     string fen_, ch;
     stringstream sfen (fen ());
     // 1. Piece placement
@@ -1736,33 +1689,6 @@ string Position::fen (bool                  c960, bool full) const
 {
     ostringstream sfen;
 
-    //for (Rank r = R_8; r >= R_1; --r)
-    //{
-    //    File f = F_A;
-    //    while (f <= F_H)
-    //    {
-    //        Square s = f | r;
-    //        Piece p  = piece_on (s);
-    //
-    //        if (EMPTY == p)
-    //        {
-    //            uint32_t empty_cnt = 0;
-    //            for ( ; f <= F_H && empty (s); ++f, ++s)
-    //                ++empty_cnt;
-    //            if (1 > empty_cnt || empty_cnt > 8) return "";
-    //            sfen << (empty_cnt);
-    //        }
-    //        else if (_ok (p))
-    //        {
-    //            sfen << to_char (p);
-    //            ++f;
-    //        }
-    //        else
-    //            return "";
-    //    }
-    //    if (R_1 < r) sfen << '/';
-    //}
-
     for (Rank r = R_8; r >= R_1; --r)
     {
         for (File f = F_A; f <= F_H; ++f)
@@ -1827,7 +1753,6 @@ string Position::fen (bool                  c960, bool full) const
 // string() return string representation of position
 Position::operator string () const
 {
-
     const string edge = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
@@ -1856,17 +1781,9 @@ Position::operator string () const
 
     ostringstream ss;
 
-    ss
-        << board                            << "\n"
-        //<< to_char (_active)                << "\n"
-        //<< to_string (_si->castle_rights)   << "\n"
-        //<< to_string (_si->en_passant)      << "\n"
-        //<< _si->clock50 <<' '<< game_move()
-        //<< endl
-        ;
+    ss  << board << "\n";
 
-    ss
-        << "\nFen: " << fen ()
+    ss  << "\nFen: " << fen ()
         << "\nKey: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key;
 
     ss  << "\nCheckers: ";
@@ -1950,7 +1867,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 f += empty_cnt;
 
                 if (f > F_NO) return false;
-                //while (empty_cnt-- > 0) place_piece(s++, EMPTY);
+                //while (empty_cnt-- > 0) place_piece (s++, EMPTY);
             }
             else if (isalpha (ch))
             {
@@ -2074,17 +1991,14 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         int32_t n = 0;
         --fen;
 
-        int32_t read =
-            //sscanf (fen, " %d %d%n", &clk50, &g_move, &n);
-            //_snscanf (fen, strlen (fen), " %d %d%n", &clk50, &g_move, &n);
-            _snscanf_s (fen, strlen (fen), " %d %d%n", &clk50, &g_move, &n);
+        int32_t read = sscanf (fen, " %d %d%n", &clk50, &g_move, &n);
 
         if (read != 2) return false;
         fen += n;
 
         // Rule 50 draw case
         if (100 < clk50) return false;
-        //if (0 >= g_move) g_move = 1;
+        if (0 >= g_move) g_move = 1;
 
         get_next ();
         if (ch) return false; // NOTE: extra characters
@@ -2143,10 +2057,10 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += DEL_SS;
         }
-        //else
-        //{
-        //    return false;
-        //}
+        else
+        {
+            return false;
+        }
     }
 
     // 2. Active color

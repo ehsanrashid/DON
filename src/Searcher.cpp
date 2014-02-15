@@ -1383,7 +1383,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (best_value < beta);
 
-                thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, &mp, NT, cut_node);
+                thread->split<FakeSplit> (pos, ss, alpha, beta, &best_value, &best_move, depth, moves_count, &mp, NT, cut_node);
 
                 if (best_value >= beta) break;
             }
@@ -1742,7 +1742,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
         uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
         uint8_t sel_depth = 0;
-        for (uint32_t i = 0; i < Threads.size (); ++i)
+        for (uint8_t i = 0; i < Threads.size (); ++i)
         {
             if (Threads[i]->max_ply > sel_depth)
             {

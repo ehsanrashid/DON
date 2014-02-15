@@ -50,7 +50,7 @@ public:
         }
         else
         {
-            if (abs (int32_t (_table[p][s] + v)) <= VALUE_KNOWN_WIN)
+            if (abs (int32_t (_table[p][s] + v)) < VALUE_KNOWN_WIN)
             {
                 _table[p][s] += v;
             }
@@ -97,7 +97,7 @@ private:
     Depth               depth;
 
     Square              recapture_sq;
-    int32_t             capture_threshold;
+    Value               capture_threshold;
 
     uint8_t             stage;
 

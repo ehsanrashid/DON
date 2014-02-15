@@ -222,9 +222,9 @@ namespace BitBoard {
     inline Bitboard attacks_sliding (const Delta deltas[], Square s, Bitboard occ = U64 (0))
     {
         Bitboard slid_attacks = U64 (0);
-        int8_t i = 0;
-        Delta del = deltas[i++];
-        while (del)
+        uint8_t i = 0;
+        Delta del;
+        while (del = deltas[i++])
         {
             Square sq = s + del;
             while (_ok (sq) && _square_dist[sq][sq - del] == 1)
@@ -233,7 +233,6 @@ namespace BitBoard {
                 if (occ & sq) break;
                 sq += del;
             }
-            del = deltas[i++];
         }
         return slid_attacks;
     }
@@ -337,7 +336,7 @@ namespace BitBoard {
                        |  attacks_bb<ROOK> (s, occ);
         case NIHT: return attacks_bb<NIHT>(s);
         case KING: return attacks_bb<KING>(s);
-        default  : return U64 (0);
+        //default  : return U64 (0);
         }
         return U64 (0);
     }

@@ -9,21 +9,21 @@
 typedef class TimeManager
 {
 private:
-    int32_t _optimum_search_time;
-    int32_t _maximum_search_time;
+    uint32_t _optimum_search_time;
+    uint32_t _maximum_search_time;
     double  _unstable_pv_factor;
 
 public:
 
-    inline int32_t available_time () const { return _optimum_search_time + _unstable_pv_factor * 0.62; }
-    inline int32_t maximum_time   () const { return _maximum_search_time; }
+    inline uint32_t available_time () const { return _optimum_search_time + _unstable_pv_factor * 0.62; }
+    inline uint32_t maximum_time   () const { return _maximum_search_time; }
 
     inline void pv_instability (double best_move_changes)
     {
         _unstable_pv_factor = 1 + best_move_changes;
     }
 
-    void initialize (const Searcher::LimitsT &limits, int32_t current_ply, Color c);
+    void initialize (const Searcher::LimitsT &limits, uint32_t current_ply, Color c);
     
 } TimeManager;
 

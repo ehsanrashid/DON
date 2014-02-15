@@ -352,8 +352,6 @@ namespace UCI {
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
             if (whitespace (cmd)) continue;
 
-            //try
-            //{
             cmdstream cstm (cmd);
             cstm >> skipws >> token;
 
@@ -387,11 +385,7 @@ namespace UCI {
             {
                 sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
             }
-            //}
-            //catch (exception &exp) //(...)
-            //{
-            //    sync_cout << exp.what () << sync_endl;
-            //}
+           
         }
         while (running && !iequals (cmd, "quit"));
 
@@ -402,28 +396,5 @@ namespace UCI {
         exe_stop ();
         Threads.wait_for_think_finished (); // Cannot quit while search stream active
     }
-
-    //void send_responce (const char format[], ...)
-    //{
-    //    try
-    //    {
-    //        static char buf[1024];
-    //        uint32_t size  =   sizeof (buf);
-    //        uint32_t count = _countof (buf);
-    //        std::memset (buf, 0, size);
-    //        va_list args;
-    //        va_start (args, format);
-    //        int32_t copied = vsnprintf_s (buf, count, _TRUNCATE, format, args);
-    //        va_end (args);
-    //        if (copied != -1)
-    //        {
-    //            buf[copied] = '\0';
-    //            cout << buf << endl;
-    //        }
-    //    }
-    //    catch (...)
-    //    {
-    //    }
-    //}
 
 }

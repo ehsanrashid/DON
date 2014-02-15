@@ -24,8 +24,6 @@ const uint8_t MAX_FEN     = 88;
 // X-FEN (CHESS960-FEN) (Fischer Random Chess)
 // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1"
 
-//extern const char *const FEN_N;
-//extern const char *const FEN_X;
 extern const std::string FEN_N;
 extern const std::string FEN_X;
 
@@ -162,7 +160,7 @@ private:
 
     CRight   _castle_rights[CLR_NO][F_NO];
 
-    // Color of the side on move
+    // Side on move
     // "w" - WHITE
     // "b" - BLACK
     Color    _active;
@@ -194,7 +192,6 @@ public:
         if (!setup (f, th, c960, full)) clear ();
     }
     Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
-    //Position (const Position &pos) { *this = pos; }
 
     explicit Position (int8_t dummy) { ++dummy; }
 
@@ -212,8 +209,6 @@ public:
     Square king_sq (Color c)             const;
 
     Bitboard pieces (Color c)            const;
-    //template<Color C>
-    //Bitboard pieces ()                   const;
 
     Bitboard pieces (PieceT pt)          const;
     template<PieceT PT>
@@ -236,8 +231,6 @@ public:
     int32_t count (Color c)       const;
     int32_t count ()              const;
     int32_t count (Color c, PieceT pt) const;
-    //int32_t count (Piece p) const;
-    //int32_t count (PieceT pt) const;
 
     template<PieceT PT>
     const Square* list (Color c)  const;
@@ -299,8 +292,8 @@ public:
     bool ok (int8_t *failed_step = NULL) const;
 
     // Static Exchange Evaluation (SEE)
-    int32_t see      (Move m) const;
-    int32_t see_sign (Move m) const;
+    Value see      (Move m) const;
+    Value see_sign (Move m) const;
 
 
 private:
@@ -327,10 +320,6 @@ public:
     Bitboard checkers    (Color c) const;
     Bitboard pinneds     (Color c) const;
     Bitboard discoverers (Color c) const;
-
-
-    //Piece moved_piece    (Move m)                const;
-    //Piece captured_piece (Move m)                const;
 
     bool pseudo_legal (Move m)                   const;
     bool legal        (Move m, Bitboard pinned)  const;
@@ -434,8 +423,6 @@ inline Piece    Position::piece_on(Square s) const { return          _piece_arr[
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces (Color  c)            const { return _color_bb[c];  }
-//template<Color C>
-//inline Bitboard Position::pieces ()                    const { return _color_bb[C];  }
 
 inline Bitboard Position::pieces (PieceT pt)           const { return _types_bb[pt]; }
 template<PieceT PT>
@@ -449,7 +436,6 @@ inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
-//inline Bitboard Position::pieces (Piece p) const { return pieces (_color (p), _ptype (p)); }
 
 template<PieceT PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
@@ -489,9 +475,6 @@ inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Z
 inline Score    Position::psq_score     () const { return _si->psq_score; }
 
 inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
-
-//inline Value Position::pawn_material (Color c) const { return int32_t (count<PAWN> (c)) * VALUE_EG_PAWN; }
-
 
 inline CRight Position::can_castle (CRight cr)           const { return ::can_castle (_si->castle_rights, cr); }
 inline CRight Position::can_castle (Color   c)           const { return ::can_castle (_si->castle_rights, c); }
@@ -629,101 +612,29 @@ inline bool Position::opposite_bishops () const
         ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
 }
 
-//// moved_piece() return piece moved on move
-//inline Piece Position::moved_piece (Move m) const { return _piece_arr[org_sq (m)]; }
-
-//// captured_piece() return piece captured by moving piece
-//inline Piece Position::captured_piece (Move m) const
-//{
-//    Square org  = org_sq (m);
-//    Square dst  = dst_sq (m);
-//
-//    Piece p     = piece_on (org);
-//    PieceT pt    = _ptype (p);
-//
-//    Square cap = dst;
-//
-//    switch (mtype (m))
-//    {
-//    case CASTLE:
-//        return EMPTY;
-//    case ENPASSANT:
-//        if (PAWN == pt)
-//        {
-//            cap += ((WHITE == _active) ? DEL_S : DEL_N);
-//            return (BitBoard::attacks_bb<PAWN> (~_active, _si->en_passant) & pieces<PAWN> (_active)) ?
-//                piece_on (cap) : EMPTY;
-//        }
-//        return EMPTY;
-//
-//    case PROMOTE:
-//        if (PAWN != pt
-//         || R_7 != rel_rank (_active, org)
-//         || R_8 != rel_rank (_active, dst))
-//        {
-//            return EMPTY;
-//        }
-//        // NOTE: no break
-//    case NORMAL:
-//        if (PAWN == pt)
-//        {
-//            // check not pawn push and can capture
-//            return (1 == BitBoard::file_dist (dst, org))
-//                && (BitBoard::attacks_bb<PAWN> (~_active, dst) & pieces (_active))
-//                ? piece_on (cap) : EMPTY;
-//        }
-//        return piece_on (cap);
-//    }
-//    return EMPTY;
-//}
-
 inline bool Position::legal        (Move m) const { return legal (m, pinneds (_active)); }
 
 // capture(m) tests move is capture
 inline bool Position::capture               (Move m) const
 {
-    //MoveT mt = mtype (m);
-    //switch (mt)
-    //{
-    //case CASTLE:
-    //    return false;
-    //case ENPASSANT:
-    //    return _ok (_si->en_passant);
-    //case NORMAL:
-    //case PROMOTE:
-    //    return !empty (dst_sq (m));
-    //}
-    //return false;
-
     MoveT mt = mtype (m);
-    //return (!empty (dst_sq (m)) && CASTLE != mt)
-    //    || (ENPASSANT == mt && _ok (_si->en_passant));
     return (NORMAL == mt || PROMOTE == mt)
         ?  !empty (dst_sq (m))
-        :  (ENPASSANT == mt && _ok (_si->en_passant));
+        :  (ENPASSANT == mt)
+        ? _ok (_si->en_passant)
+        : false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    //switch (mtype (m))
-    //{
-    //case CASTLE:    return false;
-    //case PROMOTE:   return true;
-    //case ENPASSANT: return _ok (_si->en_passant);
-    //case NORMAL:    return !empty (dst_sq (m)); // && (~_active == _color (p)) && (KING != _ptype (p));
-    //}
-    //return false;
-
     MoveT mt = mtype (m);
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
-        :  (ENPASSANT == mt && _ok (_si->en_passant)) || (CASTLE != mt);
+        :  (ENPASSANT == mt)
+        ? _ok (_si->en_passant)
+        : (CASTLE != mt);
 }
 
-//inline bool Position::  passed_pawn_push (Move m) const
-//{
-//    return (PAWN == _ptype (moved_piece (m))) && passed_pawn (_active, dst_sq (m));
-//}
 inline bool Position::advanced_pawn_push    (Move m) const
 {
     return (PAWN == _ptype (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
@@ -832,16 +743,6 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_sq[QUEN] = checking_sq[BSHP] | checking_sq[ROOK];
     checking_sq[KING] = U64 (0);
 }
-
-//inline void CheckInfo::clear ()
-//{
-//    //for (PieceT pt = PAWN; pt <= KING; ++pt) checking_sq[pt] = U64 (0);
-//    fill_n (checking_sq, sizeof (checking_sq) / sizeof (*checking_sq), U64 (0));
-//
-//    king_sq     = SQ_NO;
-//    pinneds     = U64 (0);
-//    discoverers = U64 (0);
-//}
 
 typedef std::stack<StateInfo>   StateInfoStack;
 

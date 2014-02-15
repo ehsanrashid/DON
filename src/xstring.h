@@ -40,7 +40,7 @@ namespace std {
 
     inline char toggle_c (char c)
     {
-        return islower (c) ? toupper (c) : tolower (c);
+        return char (islower (c) ? toupper (c) : tolower (c));
     }
 
     inline std::string& toggle (std::string &s)
@@ -223,7 +223,7 @@ namespace std {
         return count;
     }
 
-    inline std::vector<std::string> str_splits (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
+    inline std::vector<std::string> split_str (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
     {
         std::vector<std::string> s_list;
 

@@ -26,8 +26,8 @@ namespace Searcher {
     typedef struct GameClock
     {
         // unit: milli-seconds
-        int32_t time;   // time left
-        int32_t inc;    // time gain
+        uint32_t time;   // time left
+        uint32_t inc;    // time gain
 
         GameClock ()
             : time (0) //5 * 60 * M_SEC; // 5 mins default time

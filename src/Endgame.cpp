@@ -305,9 +305,9 @@ namespace EndGame {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
-        Square wk_sq = pos.king_sq (_stong_side);
+        //Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
-        Square bb_sq = pos.list<BSHP> (_weak_side)[0];
+        //Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
         // when the weaker side ended up in the same corner as bishop.
         Value value = Value (PushToEdges[bk_sq] / 4);

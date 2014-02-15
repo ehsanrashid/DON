@@ -110,7 +110,12 @@ namespace Engine {
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifndef NDEBUG
-        //Tester::main_test ();
+        //string f = "8/2p1q3/p3P3/2P4p/1P1P2kP/2N3P1/4B2K/8 b - - 0 1";
+        //Position p(f);
+        //BitBoard::print (p.checkers());
+        //BitBoard::print (p.checkers(p.active()));
+
+        ////Tester::main_test ();
         //system ("pause");
         //return;
 #endif

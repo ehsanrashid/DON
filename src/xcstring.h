@@ -346,7 +346,7 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
     return count;
 }
 
-inline char** str_splits (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, intptr_t *num_splits = NULL)
+inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, intptr_t *num_splits = NULL)
 {
     assert (s);
     if (!s)     return NULL;

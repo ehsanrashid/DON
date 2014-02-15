@@ -35,7 +35,7 @@ namespace Pawns {
         inline Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
         inline Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }
         inline Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
-        inline int32_t  pawns_on_same_color_squares(Color c, Square s) const
+        inline int32_t  pawns_on_same_color_squares (Color c, Square s) const
         {
             return _pawn_count_sq[c][bool (BitBoard::DARK_bb & BitBoard::_square_bb[s])];
         }
@@ -49,17 +49,17 @@ namespace Pawns {
         }
 
         template<Color C>
-        inline Score king_safety(const Position &pos, Square k_sq)
+        inline Score king_safety (const Position &pos, Square k_sq)
         {
             return (_king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
                 ? _king_safety[C] : update_safety<C> (pos, k_sq);
         }
 
         template<Color C>
-        Score update_safety(const Position &pos, Square k_sq);
+        Score update_safety (const Position &pos, Square k_sq);
 
         template<Color C>
-        Value shelter_storm(const Position &pos, Square k_sq);
+        Value shelter_storm (const Position &pos, Square k_sq);
 
     } Entry;
 
