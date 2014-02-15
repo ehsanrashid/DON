@@ -601,15 +601,13 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return
-    //    (count<BSHP> (WHITE) == 1) &&
-    //    (count<BSHP> (BLACK) == 1) &&
-    //    opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
-    return
-        count<BSHP> (WHITE) && count<BSHP> (BLACK) &&
-        !(
-        ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb)) ||
-        ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
+    //return (count<BSHP> (WHITE) == 1)
+    //    && (count<BSHP> (BLACK) == 1)
+    //    && opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
+    return count<BSHP> (WHITE)
+        && count<BSHP> (BLACK)
+        && !(((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
+        ||   ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
 }
 
 inline bool Position::legal        (Move m) const { return legal (m, pinneds (_active)); }
@@ -667,9 +665,9 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece p = _piece_arr [s];
+    Piece p   = _piece_arr [s];
 
-    Color c  = _color (p);
+    Color c   = _color (p);
     PieceT pt = _ptype (p);
 
     _piece_arr [s]   = EMPTY;

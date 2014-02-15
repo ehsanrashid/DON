@@ -151,16 +151,15 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
 
         Value value;
 
-        if (!pos.count<PAWN> (_stong_side) &&
-            (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK ||
-            ((pos.count (_stong_side) - pos.count<BSHP> (_stong_side) == 1) && !pos.bishops_pair (_stong_side)) ||
-            ((pos.count (_stong_side) - pos.count<NIHT> (_stong_side) == 1) && pos.count<NIHT> (_stong_side) <= 2)))
+        if (   !pos.count<PAWN> (_stong_side)
+            && (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK
+            || ((pos.count (_stong_side) - pos.count<BSHP> (_stong_side) == 1) && !pos.bishops_pair (_stong_side))
+            || ((pos.count (_stong_side) - pos.count<NIHT> (_stong_side) == 1) && pos.count<NIHT> (_stong_side) <= 2)))
         {
             value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
         }
@@ -170,10 +169,10 @@ namespace EndGame {
                 +   pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
                 +   PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)];
 
-            if (pos.count<QUEN> (_stong_side) ||
-                pos.count<ROOK> (_stong_side) ||
-                pos.count<NIHT> (_stong_side) > 2 ||
-                pos.bishops_pair (_stong_side))
+            if (   pos.count<QUEN> (_stong_side)
+                || pos.count<ROOK> (_stong_side)
+                || pos.count<NIHT> (_stong_side) > 2
+                || pos.bishops_pair (_stong_side))
             {
                 value += VALUE_KNOWN_WIN;
             }
@@ -314,9 +313,10 @@ namespace EndGame {
 
         //// To draw, the weaker side should run towards the corner.
         //// And not just any corner! Only a corner that's not the same color as the bishop will do.
-        //if ((CRNR_bb & bk_sq) && opposite_colors (bk_sq, bb_sq) &&
-        //    square_dist (bk_sq, bb_sq) == 1 &&
-        //    square_dist (wk_sq, bb_sq) >  1)
+        //if (   (CRNR_bb & bk_sq)
+        //    && opposite_colors (bk_sq, bb_sq)
+        //    && square_dist (bk_sq, bb_sq) == 1
+        //    && square_dist (wk_sq, bb_sq) >  1)
         //{
         //    value /= 8;
         //}
@@ -337,8 +337,8 @@ namespace EndGame {
         Value value = Value (PushToEdges[bk_sq] + PushAway[square_dist (bk_sq, bn_sq)]);
 
         // If weaker king is near the knight, it's a draw.
-        if (_weak_side == pos.active () &&
-            square_dist (bk_sq, bn_sq) <= 3)
+        if (   _weak_side == pos.active ()
+            && square_dist (bk_sq, bn_sq) <= 3)
         {
             value /= 8;
         }
@@ -362,9 +362,9 @@ namespace EndGame {
 
         Value value = Value (PushClose[square_dist (wk_sq, bk_sq)]);
 
-        if (rel_rank (_weak_side, bp_sq) != R_7 ||
-            square_dist (bk_sq, bp_sq) != 1 ||
-            !((FA_bb | FC_bb | FF_bb | FH_bb) & bp_sq))
+        if (   rel_rank (_weak_side, bp_sq) != R_7
+            || square_dist (bk_sq, bp_sq) != 1
+            || !((FA_bb | FC_bb | FF_bb | FH_bb) & bp_sq))
         {
             value += VALUE_EG_QUEEN - VALUE_EG_PAWN;
         }
@@ -466,63 +466,72 @@ namespace EndGame {
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.
-        if (r <= R_5 && wk_sq <= SQ_H5 &&
-            square_dist (bk_sq, queening_sq) <= 1 &&
-            (_rank (br_sq) == R_6 || (r <= R_3 && _rank (wr_sq) != R_6)))
+        if (   r <= R_5
+            && wk_sq <= SQ_H5
+            && square_dist (bk_sq, queening_sq) <= 1
+            && (_rank (br_sq) == R_6 || (r <= R_3 && _rank (wr_sq) != R_6)))
         {
             return SCALE_FACTOR_DRAW;
         }
 
         // The defending side saves a draw by checking from behind in case the pawn
         // has advanced to the 6th rank with the king behind.
-        if (r == R_6 &&
-            square_dist (bk_sq, queening_sq) <= 1 &&
-            _rank (wk_sq) + tempo <= R_6 &&
-            (_rank (br_sq) == R_1 || (!tempo && file_dist (_file (br_sq), f) >= 3)))
+        if (   r == R_6
+            && square_dist (bk_sq, queening_sq) <= 1
+            && _rank (wk_sq) + tempo <= R_6
+            && (_rank (br_sq) == R_1 || (!tempo && file_dist (_file (br_sq), f) >= 3)))
         {
             return SCALE_FACTOR_DRAW;
         }
 
-        if (r >= R_6 && bk_sq == queening_sq &&
-            _rank (br_sq) == R_1 &&
-            (!tempo || square_dist (wk_sq, wp_sq) >= 2))
+        if (   r >= R_6
+            && bk_sq == queening_sq
+            && _rank (br_sq) == R_1
+            && (!tempo || square_dist (wk_sq, wp_sq) >= 2))
         {
             return SCALE_FACTOR_DRAW;
         }
         // White pawn on a7 and rook on a8 is a draw if black's king is on g7 or h7
         // and the black rook is behind the pawn.
-        if ( wp_sq == SQ_A7 && wr_sq == SQ_A8 &&
-            (bk_sq == SQ_H7 || bk_sq == SQ_G7) &&
-            _file (br_sq) == F_A &&
-            (_rank (br_sq) <= R_3 || _file (wk_sq) >= F_D || _rank (wk_sq) <= R_5))
+        if (   wp_sq == SQ_A7
+            && wr_sq == SQ_A8
+            && (bk_sq == SQ_H7 || bk_sq == SQ_G7)
+            && _file (br_sq) == F_A
+            && (_rank (br_sq) <= R_3 || _file (wk_sq) >= F_D || _rank (wk_sq) <= R_5))
         {
             return SCALE_FACTOR_DRAW;
         }
 
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
-        if (r <= R_5 && bk_sq == wp_sq + DEL_N &&
-            square_dist (wk_sq, wp_sq) - tempo >= 2 &&
-            square_dist (wk_sq, br_sq) - tempo >= 2)
+        if (   r <= R_5
+            && bk_sq == wp_sq + DEL_N
+            && square_dist (wk_sq, wp_sq) - tempo >= 2
+            && square_dist (wk_sq, br_sq) - tempo >= 2)
         {
             return SCALE_FACTOR_DRAW;
         }
         // Pawn on the 7th rank supported by the rook from behind usually wins if the
         // attacking king is closer to the queening square than the defending king,
         // and the defending king cannot gain tempi by threatening the attacking rook.
-        if (r == R_7 && f != F_A && _file (wr_sq) == f && wr_sq != queening_sq &&
-            (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, queening_sq) - 2 + tempo) &&
-            (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, wr_sq) + tempo))
+        if (   r == R_7
+            && f != F_A
+            && f == _file (wr_sq)
+            && wr_sq != queening_sq
+            && (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, queening_sq) - 2 + tempo)
+            && (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, wr_sq) + tempo))
         {
             return ScaleFactor (SCALE_FACTOR_MAX - 2 * square_dist (wk_sq, queening_sq));
         }
 
         // Similar to the above, but with the pawn further back
-        if ( f != F_A && _file (wr_sq) == f && wr_sq < wp_sq &&
-            square_dist (wk_sq, queening_sq) < square_dist (bk_sq, queening_sq) - 2 + tempo &&
-            square_dist (wk_sq, wp_sq + DEL_N) < square_dist (bk_sq, wp_sq + DEL_N) - 2 + tempo &&
-            (square_dist (bk_sq, wr_sq) + tempo >= 3 ||
-            (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, wr_sq) + tempo &&
-            square_dist (wk_sq, wp_sq + DEL_N) < square_dist (bk_sq, wr_sq) + tempo)))
+        if (   f != F_A
+            && f == _file (wr_sq)
+            && wr_sq < wp_sq
+            && square_dist (wk_sq, queening_sq) < square_dist (bk_sq, queening_sq) - 2 + tempo
+            && square_dist (wk_sq, wp_sq + DEL_N) < square_dist (bk_sq, wp_sq + DEL_N) - 2 + tempo
+            && (square_dist (bk_sq, wr_sq) + tempo >= 3
+            || (square_dist (wk_sq, queening_sq) < square_dist (bk_sq, wr_sq) + tempo
+            &&  square_dist (wk_sq, wp_sq + DEL_N) < square_dist (bk_sq, wr_sq) + tempo)))
         {
             return ScaleFactor (SCALE_FACTOR_MAX - 8 * square_dist (wp_sq, queening_sq) - 2 * square_dist (wk_sq, queening_sq));
         }
@@ -573,10 +582,10 @@ namespace EndGame {
             // When the pawn has moved to the 6th rank we can be fairly sure it's drawn
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
-            if (r == R_6 &&
-                square_dist (wp_sq + 2 * push, bk_sq) <= 1 &&
-                attacks_bb<BSHP> (bb_sq) & (wp_sq + push) &&
-                file_dist (bb_sq, wp_sq) >= 2)
+            if (   r == R_6
+                && square_dist (wp_sq + 2 * push, bk_sq) <= 1
+                && attacks_bb<BSHP> (bb_sq) & (wp_sq + push)
+                && file_dist (bb_sq, wp_sq) >= 2)
             {
                 return ScaleFactor (8);
             }
@@ -605,9 +614,9 @@ namespace EndGame {
 
         Rank r = max (rel_rank (_stong_side, wp_sq1), rel_rank (_stong_side, wp_sq2));
 
-        if (file_dist (bk_sq, wp_sq1) <= 1 &&
-            file_dist (bk_sq, wp_sq2) <= 1 &&
-            rel_rank (_stong_side, bk_sq) > r)
+        if (   file_dist (bk_sq, wp_sq1) <= 1
+            && file_dist (bk_sq, wp_sq2) <= 1
+            && rel_rank (_stong_side, bk_sq) > r)
         {
             switch (r)
             {
@@ -637,9 +646,9 @@ namespace EndGame {
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (!(wpawns & ~front_ranks_bb (_weak_side, _rank (bk_sq))) &&
-            !((wpawns & FA_bb_) && (wpawns & FH_bb_)) &&
-            file_dist (bk_sq, wp_sq) <= 1)
+        if (   !(wpawns & ~front_ranks_bb (_weak_side, _rank (bk_sq)))
+            && !((wpawns & FA_bb_) && (wpawns & FH_bb_))
+            && file_dist (bk_sq, wp_sq) <= 1)
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -665,7 +674,10 @@ namespace EndGame {
 
         // If the pawn has advanced to the fifth rank or further, and is not a
         // rook pawn, it's too dangerous to assume that it's at least a draw.
-        if (_rank (wp_sq) >= R_5 && _file (wp_sq) != F_A) return SCALE_FACTOR_NONE;
+        if (_rank (wp_sq) >= R_5 && _file (wp_sq) != F_A)
+        {
+            return SCALE_FACTOR_NONE;
+        }
 
         Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
 
@@ -712,9 +724,9 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
 
         // Case 1: Defending king blocks the pawn, and cannot be driven away
-        if (_file (bk_sq) == _file (wp_sq) &&
-            rel_rank (_stong_side, wp_sq) < rel_rank (_stong_side, bk_sq) &&
-            (opposite_colors (bk_sq, wb_sq) || rel_rank (_stong_side, bk_sq) <= R_6))
+        if (   _file (bk_sq) == _file (wp_sq)
+            && rel_rank (_stong_side, wp_sq) < rel_rank (_stong_side, bk_sq)
+            && (opposite_colors (bk_sq, wb_sq) || rel_rank (_stong_side, bk_sq) <= R_6))
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -737,9 +749,8 @@ namespace EndGame {
             }
 
             Bitboard path = front_squares_bb (_stong_side, wp_sq);
-            if ( path & pos.pieces<KING> (_weak_side) ||
-                (pos.attacks_from<BSHP> (bb_sq) & path) &&
-                square_dist (bb_sq, wp_sq) >= 3)
+            if (    (path & pos.pieces<KING> (_weak_side))
+                || ((path & pos.attacks_from<BSHP> (bb_sq)) && square_dist (bb_sq, wp_sq) >= 3))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -790,9 +801,9 @@ namespace EndGame {
         case 0:
             // Both pawns are on the same file. It's an easy draw if the defender firmly
             // controls some square in the frontmost pawn's path.
-            if (_file (bk_sq) == _file (block_sq1) &&
-                rel_rank (_stong_side, bk_sq) >= rel_rank (_stong_side, block_sq1) &&
-                opposite_colors (bk_sq, wb_sq))
+            if (   _file (bk_sq) == _file (block_sq1)
+                && rel_rank (_stong_side, bk_sq) >= rel_rank (_stong_side, block_sq1)
+                && opposite_colors (bk_sq, wb_sq))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -803,18 +814,19 @@ namespace EndGame {
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
             // square in front of the frontmost pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
-            if (bk_sq == block_sq1 &&
-                opposite_colors (bk_sq, wb_sq) &&
-                (bb_sq == block_sq2 ||
-                (pos.attacks_from<BSHP> (block_sq2) & pos.pieces<BSHP> (_weak_side)) ||
-                rank_dist (r1, r2) >= 2))
+            if (   bk_sq == block_sq1
+                && opposite_colors (bk_sq, wb_sq)
+                && (bb_sq == block_sq2
+                || (pos.attacks_from<BSHP> (block_sq2) & pos.pieces<BSHP> (_weak_side))
+                || rank_dist (r1, r2) >= 2))
             {
                 return SCALE_FACTOR_DRAW;
             }
-            if (bk_sq == block_sq2 &&
-                opposite_colors (bk_sq, wb_sq) &&
-                (bb_sq == block_sq1 ||
-                (pos.attacks_from<BSHP> (block_sq1) & pos.pieces<BSHP> (_weak_side))))
+
+            if (   bk_sq == block_sq2
+                && opposite_colors (bk_sq, wb_sq)
+                && (bb_sq == block_sq1
+                || (pos.attacks_from<BSHP> (block_sq1) & pos.pieces<BSHP> (_weak_side))))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -842,9 +854,9 @@ namespace EndGame {
         Square wb_sq = pos.list<BSHP> (_stong_side)[0];
         Square bk_sq = pos.king_sq (_weak_side);
 
-        if (_file (bk_sq) == _file (wp_sq) &&
-            rel_rank (_stong_side, wp_sq) < rel_rank (_stong_side, bk_sq) &&
-            (opposite_colors (bk_sq, wb_sq) || rel_rank (_stong_side, bk_sq) <= R_6))
+        if (   _file (bk_sq) == _file (wp_sq)
+            && rel_rank (_stong_side, wp_sq) < rel_rank (_stong_side, bk_sq)
+            && (opposite_colors (bk_sq, wb_sq) || rel_rank (_stong_side, bk_sq) <= R_6))
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -917,9 +929,9 @@ namespace EndGame {
                 if (bpawns && !(bpawns & ~file_bb (wp_f)))
                 {
                     Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
-                    if (rel_rank (_weak_side, bp_sq) == R_5 &&
-                        rel_rank (_weak_side, wp_sq) == R_6 &&
-                        opposite_colors (bp_sq, wb_sq))
+                    if (   rel_rank (_weak_side, bp_sq) == R_5
+                        && rel_rank (_weak_side, wp_sq) == R_6
+                        && opposite_colors (bp_sq, wb_sq))
                     {
                         int32_t tempo = (pos.active () == _stong_side);
                         if (square_dist (queening_sq, bk_sq) < 
@@ -936,9 +948,10 @@ namespace EndGame {
         }
 
         // All pawns on same B or G file? Then potential draw
-        if ((wp_f == F_B || wp_f == F_G) && !(pos.pieces<PAWN> () & ~file_bb (wp_f)) &&
-            (pos.non_pawn_material (_weak_side) == 0) &&
-            (pos.count<PAWN> (_weak_side) >= 1))
+        if (   (wp_f == F_B || wp_f == F_G)
+            && !(pos.pieces<PAWN> () & ~file_bb (wp_f))
+            && (pos.non_pawn_material (_weak_side) == 0)
+            && (pos.count<PAWN> (_weak_side) >= 1))
         {
             // Get _weak_side pawn that is closest to home rank
             Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
@@ -956,9 +969,9 @@ namespace EndGame {
 
             // There's potential for a draw if our pawn is blocked on the 7th rank
             // the bishop cannot attack it or they only have one pawn left
-            if ((rel_rank (_stong_side, bp_sq) == R_7) &&
-                (pos.pieces<PAWN> (_stong_side) & (bp_sq + pawn_push (_weak_side))) &&
-                (opposite_colors (wb_sq, bp_sq) || pos.count<PAWN> (_stong_side) == 1))
+            if (   (rel_rank (_stong_side, bp_sq) == R_7)
+                && (pos.pieces<PAWN> (_stong_side) & (bp_sq + pawn_push (_weak_side)))
+                && (opposite_colors (wb_sq, bp_sq) || pos.count<PAWN> (_stong_side) == 1))
             {
                 int32_t wk_dist = square_dist (bp_sq, wk_sq);
                 int32_t bk_dist = square_dist (bp_sq, bk_sq);
@@ -969,8 +982,9 @@ namespace EndGame {
                 // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
                 // and positions where qsearch will immediately correct the
                 // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
-                if (rel_rank (_stong_side, bk_sq) >= R_7 &&
-                    bk_dist <= 2 && bk_dist <= wk_dist)
+                if (   rel_rank (_stong_side, bk_sq) >= R_7
+                    && bk_dist <= 2
+                    && bk_dist <= wk_dist)
                 {
                     return SCALE_FACTOR_DRAW;
                 }
@@ -993,12 +1007,12 @@ namespace EndGame {
         Square bk_sq = pos.king_sq (_weak_side);
         Square br_sq = pos.list<ROOK> (_weak_side)[0];
 
-        if (rel_rank (_weak_side, bk_sq) <= R_2 &&
-            rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4 &&
-            rel_rank (_weak_side, br_sq) == R_3 &&
-            ( pos.pieces<PAWN> (_weak_side)
-            & pos.attacks_from<KING> (bk_sq)
-            & pos.attacks_from<PAWN> (_stong_side, br_sq)))
+        if (   rel_rank (_weak_side, bk_sq) <= R_2
+            && rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4
+            && rel_rank (_weak_side, br_sq) == R_3
+            && (pos.pieces<PAWN> (_weak_side)
+            &   pos.attacks_from<KING> (bk_sq)
+            &   pos.attacks_from<PAWN> (_stong_side, br_sq)))
         {
             return SCALE_FACTOR_DRAW;
         }

@@ -41,8 +41,8 @@ namespace MoveGenerator {
                     {
                         if (ci)
                         {
-                            if ( (BSHP == PT || ROOK == PT || QUEN == PT) &&
-                                !(attacks_bb<PT> (s) & targets & ci->checking_sq[PT]))
+                            if (   (BSHP == PT || ROOK == PT || QUEN == PT)
+                                && !(attacks_bb<PT> (s) & targets & ci->checking_sq[PT]))
                             {
                                 continue;
                             }
@@ -411,8 +411,8 @@ namespace MoveGenerator {
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m))) &&
-        //            !pos.legal (m, pinneds))
+        //        if (   ((org_sq (m) == k_sq) || pinneds || (ENPASSANT == mtype (m)))
+        //            && !pos.legal (m, pinneds))
         //        {
         //            beg->move = (--end)->move;
         //        }
@@ -607,8 +607,8 @@ namespace MoveGenerator {
         while (cur != end)
         {
             Move m = cur->move;
-            if ((org_sq (m) == k_sq || pinneds || ENPASSANT == mtype (m)) &&
-                !pos.legal (m, pinneds))
+            if (   (org_sq (m) == k_sq || pinneds || ENPASSANT == mtype (m))
+                && !pos.legal (m, pinneds))
             {
                 cur->move = (--end)->move;
             }

@@ -471,7 +471,6 @@ namespace {
         ,     *ss = stack+2; // To allow referencing (ss-2)
 
         std::memset (ss-2, 0, 5 * sizeof (Stack));
-
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();
@@ -498,7 +497,7 @@ namespace {
         // that we will use behind the scenes to retrieve a set of possible moves.
         if (skill.enabled () && MultiPV < 4) MultiPV = 4;
         // Minimum MultiPV & RootMoves.size()
-        if (MultiPV > uint32_t (RootMoves.size ())) MultiPV = uint32_t (RootMoves.size ());
+        if (MultiPV > RootMoves.size ()) MultiPV = RootMoves.size ();
 
         // Iterative deepening loop until requested to stop or target depth reached
         while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
@@ -557,8 +556,8 @@ namespace {
 
                     // When failing high/low give some update
                     // (without cluttering the UI) before to research.
-                    if ((alpha >= best_value || best_value >= beta) &&
-                        (elapsed = now () - SearchTime + 1) > InfoDuration)
+                    if (   (alpha >= best_value || best_value >= beta)
+                        && (elapsed = now () - SearchTime + 1) > InfoDuration)
                     {
                         sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                     }
@@ -615,9 +614,9 @@ namespace {
             }
 
             // Have found a "mate in x"?
-            if (Limits.mate_in &&
-                best_value >= VALUE_MATES_IN_MAX_PLY &&
-                VALUE_MATE - best_value <= 2 * int32_t (Limits.mate_in))
+            if (   Limits.mate_in
+                && best_value >= VALUE_MATES_IN_MAX_PLY
+                && VALUE_MATE - best_value <= 2 * int32_t (Limits.mate_in))
             {
                 Signals.stop = true;
             }
@@ -636,7 +635,7 @@ namespace {
                 // Stop the search early:
                 // If there is only one legal move available or 
                 // If all of the available time has been used.
-                if ((1 == RootMoves.size ()) || IterDuration > TimeMgr.available_time ())
+                if (1 == RootMoves.size () || IterDuration > TimeMgr.available_time ())
                 {
                     stop = true;
                 }
@@ -763,10 +762,11 @@ namespace {
         // a fail high/low. Biggest advantage at probing at PV nodes is to have a
         // smooth experience in analysis mode. We don't probe at Root nodes otherwise
         // we should also update RootMoveList to avoid bogus output.
-        if (!RootNode && te &&
-            te->depth () >= depth &&
-            tt_value != VALUE_NONE && // Only in case of TT access race
-            (           PVNode ?  te->bound () == BND_EXACT
+        if (  !RootNode
+            && te
+            && te->depth () >= depth
+            && tt_value != VALUE_NONE // Only in case of TT access race
+            && (        PVNode ?  te->bound () == BND_EXACT
             : tt_value >= beta ? (te->bound () &  BND_LOWER)
             /**/               : (te->bound () &  BND_UPPER)))
         {
@@ -774,8 +774,10 @@ namespace {
             (ss)->current_move = tt_move; // Can be MOVE_NONE
 
             // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
-            if ( tt_value >= beta && tt_move &&
-                !pos.capture_or_promotion (tt_move) && !in_check)
+            if (   tt_value >= beta
+                && tt_move
+                && !pos.capture_or_promotion (tt_move)
+                && !in_check)
             {
                 update_stats (pos, ss, tt_move, depth, NULL, 0);
             }
@@ -823,21 +825,23 @@ namespace {
             }
         }
 
-        if (pos.cap_type () == NONE &&
-            (ss)->static_eval != VALUE_NONE &&
-            (ss-1)->static_eval != VALUE_NONE &&
-            (move = (ss-1)->current_move) != MOVE_NULL &&
-            mtype (move) == NORMAL)
+        if (   pos.cap_type () == NONE
+            && (ss)->static_eval != VALUE_NONE
+            && (ss-1)->static_eval != VALUE_NONE
+            && (move = (ss-1)->current_move) != MOVE_NULL
+            && mtype (move) == NORMAL)
         {
             Square dst = dst_sq (move);
             Gains.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
         }
 
         // Step 6. Razoring (skipped when in check)
-        if (!PVNode && depth < 4 * ONE_MOVE &&
-            eval_value + razor_margin (depth) <= alpha &&
-            abs (beta) < VALUE_MATES_IN_MAX_PLY &&
-            !tt_move && !pos.pawn_on_7thR (pos.active ()))
+        if (   !PVNode
+            && depth < 4 * ONE_MOVE
+            && eval_value + razor_margin (depth) <= alpha
+            && abs (beta) < VALUE_MATES_IN_MAX_PLY
+            && !tt_move
+            && !pos.pawn_on_7thR (pos.active ()))
         {
             Value ralpha = alpha - razor_margin (depth);
 
@@ -852,22 +856,24 @@ namespace {
         // Step 7. Futility pruning: child node (skipped when in check)
         // We're betting that the opponent doesn't have a move that will reduce
         // the score by more than futility_margin (depth) if we do a null move.
-        if (!PVNode && !(ss)->skip_null_move &&
-            depth < 7 * ONE_MOVE &&
-            eval_value - futility_margin (depth) >= beta &&
-            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
-            abs (int32_t (eval_value)) < VALUE_KNOWN_WIN &&
-            pos.non_pawn_material (pos.active ()))
+        if (   !PVNode
+            && !(ss)->skip_null_move
+            && depth < 7 * ONE_MOVE
+            && eval_value - futility_margin (depth) >= beta
+            && abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY
+            && abs (int32_t (eval_value)) < VALUE_KNOWN_WIN
+            && pos.non_pawn_material (pos.active ()))
         {
             return eval_value - futility_margin (depth);
         }
 
         // Step 8. Null move search with verification search (is omitted in PV nodes)
-        if (!PVNode && !(ss)->skip_null_move &&
-            depth >= 2 * ONE_MOVE &&
-            eval_value >= beta &&
-            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY &&
-            pos.non_pawn_material (pos.active ()))
+        if (   !PVNode
+            && !(ss)->skip_null_move
+            && depth >= 2 * ONE_MOVE
+            && eval_value >= beta
+            && abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY
+            && pos.non_pawn_material (pos.active ()))
         {
             ASSERT (eval_value >= beta);
 
@@ -924,9 +930,10 @@ namespace {
         // If we have a very good capture (i.e. SEE > see[captured_piece_type])
         // and a reduced search returns a value much above beta,
         // we can (almost) safely prune the previous move.
-        if (!PVNode && depth >= 5 * ONE_MOVE &&
-            !(ss)->skip_null_move &&
-            abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY)
+        if (   !PVNode
+            && depth >= 5 * ONE_MOVE
+            && !(ss)->skip_null_move
+            && abs (int32_t (beta)) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
 
@@ -961,9 +968,9 @@ namespace {
         }
 
         // Step 10. Internal iterative deepening (skipped when in check)
-        if (depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE) &&
-            !tt_move &&
-            (PVNode || (ss)->static_eval + Value (256) >= beta))
+        if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
+            && !tt_move
+            && (PVNode || (ss)->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
@@ -998,17 +1005,17 @@ moves_loop: // When in check and at SPNode search starts from here
         Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
         bool improving = 
-            (ss)->static_eval >= (ss-2)->static_eval ||
-            (ss)->static_eval == VALUE_NONE          ||
-            (ss-2)->static_eval == VALUE_NONE;
+            /**/(ss)->static_eval >= (ss-2)->static_eval
+            ||  (ss)->static_eval == VALUE_NONE
+            ||  (ss-2)->static_eval == VALUE_NONE;
 
         bool singular_ext_node =
-            !RootNode && !SPNode &&
-            depth >= 8 * ONE_MOVE  &&
-            tt_move != MOVE_NONE   &&
-            !excluded_move         && // Recursive singular search is not allowed
-            (te->bound () & BND_LOWER) &&
-            (te->depth () >= depth - 3 * ONE_MOVE);
+            !RootNode && !SPNode
+            && depth >= 8 * ONE_MOVE
+            && tt_move != MOVE_NONE
+            && !excluded_move         // Recursive singular search is not allowed
+            && (te->bound () & BND_LOWER)
+            && (te->depth () >= depth - 3 * ONE_MOVE);
 
         point elapsed;
 
@@ -1089,11 +1096,11 @@ moves_loop: // When in check and at SPNode search starts from here
             // is singular and should be extended. To verify this we do a reduced search
             // on all the other moves but the tt_move, if result is lower than tt_value minus
             // a margin then we extend tt_move.
-            if (singular_ext_node &&
-                move == tt_move &&
-                ext != DEPTH_ZERO &&
-                pos.legal (move, ci.pinneds) &&
-                abs (int32_t (tt_value)) < VALUE_KNOWN_WIN)
+            if (   singular_ext_node
+                && move == tt_move
+                && ext != DEPTH_ZERO
+                && pos.legal (move, ci.pinneds)
+                && abs (int32_t (tt_value)) < VALUE_KNOWN_WIN)
             {
                 ASSERT (tt_value != VALUE_NONE);
 
@@ -1115,15 +1122,15 @@ moves_loop: // When in check and at SPNode search starts from here
             Depth new_depth = depth - ONE_MOVE + ext;
 
             // Step 13. Pruning at shallow depth (exclude PV nodes)
-            if (!PVNode &&
-                !capture_or_promotion &&
-                !in_check &&
-                !dangerous &&
-                best_value > VALUE_MATED_IN_MAX_PLY)
+            if (   !PVNode
+                && !capture_or_promotion
+                && !in_check
+                && !dangerous
+                && best_value > VALUE_MATED_IN_MAX_PLY)
             {
                 // Move count based pruning
-                if (depth < 16 * ONE_MOVE &&
-                    moves_count >= FutilityMoveCounts[improving][depth])
+                if (   depth < 16 * ONE_MOVE
+                    && moves_count >= FutilityMoveCounts[improving][depth])
                 {
                     if (SPNode) split_point->mutex.lock ();
                     continue;
@@ -1154,7 +1161,8 @@ moves_loop: // When in check and at SPNode search starts from here
                 }
 
                 // Prune moves with negative SEE at low depths
-                if (predicted_depth < 4 * ONE_MOVE && pos.see_sign (move) < 0)
+                if (   predicted_depth < 4 * ONE_MOVE
+                    && pos.see_sign (move) < 0)
                 {
                     if (SPNode) split_point->mutex.lock ();
                     continue;
@@ -1162,7 +1170,8 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Check for legality only before to do the move
-            if (!RootNode && !SPNode && !pos.legal (move, ci.pinneds))
+            if (   !RootNode && !SPNode
+                && !pos.legal (move, ci.pinneds))
             {
                 --moves_count;
                 continue;
@@ -1183,12 +1192,12 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Step 15. Reduced depth search (LMR).
             // If the move fails high will be re-searched at full depth.
-            if (!move_pv &&
-                depth >= 3 * ONE_MOVE  && 
-                !capture_or_promotion  &&
-                move != tt_move        &&
-                move != (ss)->killers[0] &&
-                move != (ss)->killers[1])
+            if (   !move_pv
+                && depth >= 3 * ONE_MOVE
+                && !capture_or_promotion
+                && move != tt_move
+                && move != (ss)->killers[0]
+                && move != (ss)->killers[1])
             {
                 (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
 
@@ -1326,9 +1335,10 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Step 19. Check for splitting the search
-            if (!SPNode && depth >= Threads.split_depth &&
-                Threads.available_slave (thread) &&
-                thread->threads_split_point < MAX_THREADS_SPLIT_POINT)
+            if (   !SPNode
+                && depth >= Threads.split_depth
+                && Threads.available_slave (thread)
+                && thread->threads_split_point < MAX_THREADS_SPLIT_POINT)
             {
                 ASSERT (best_value < beta);
 
@@ -1361,7 +1371,7 @@ moves_loop: // When in check and at SPNode search starts from here
             posi_key,
             best_move,
             depth, 
-            best_value >= beta  ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
+            best_value >= beta ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
             pos.game_nodes (),
             value_to_tt (best_value, (ss)->ply),
             (ss)->static_eval);
@@ -1514,12 +1524,12 @@ moves_loop: // When in check and at SPNode search starts from here
                 : pos.gives_check (move, ci);
 
             // Futility pruning
-            if (!PVNode         &&
-                !IN_CHECK       &&
-                !gives_check    &&
-                move != tt_move &&
-                !pos.advanced_pawn_push (move) &&
-                futility_base > -VALUE_KNOWN_WIN)
+            if (   !PVNode
+                && !IN_CHECK
+                && !gives_check
+                && move != tt_move
+                && !pos.advanced_pawn_push (move)
+                && futility_base > -VALUE_KNOWN_WIN)
             {
                 ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
 
@@ -1540,17 +1550,17 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Detect non-capture evasions that are candidate to be pruned
-            bool evasion_prunable = IN_CHECK &&
-                best_value > VALUE_MATED_IN_MAX_PLY &&
-                !pos.capture (move) &&
-                !pos.can_castle (pos.active ());
+            bool evasion_prunable = IN_CHECK
+                && best_value > VALUE_MATED_IN_MAX_PLY
+                && !pos.capture (move)
+                && !pos.can_castle (pos.active ());
 
             // Don't search moves with negative SEE values
-            if (!PVNode                 &&
-                (!IN_CHECK || evasion_prunable) &&
-                move != tt_move         &&
-                mtype (move) != PROMOTE &&
-                pos.see_sign (move) < 0)
+            if (   !PVNode
+                && (!IN_CHECK || evasion_prunable)
+                && move != tt_move
+                && mtype (move) != PROMOTE
+                && pos.see_sign (move) < VALUE_ZERO)
             {
                 continue;
             }
@@ -1789,18 +1799,18 @@ void check_time ()
     point elapsed = now_time - SearchTime + 1;
 
     bool still_at_first_move = 
-         Signals.first_root_move     &&
-        !Signals.failed_low_at_root  &&
-        elapsed > TimeMgr.available_time () &&
-        elapsed > IterDuration * 1.4;
+        /**/Signals.first_root_move
+        && !Signals.failed_low_at_root
+        && elapsed > TimeMgr.available_time ()
+        && elapsed > IterDuration * 1.4;
 
     bool no_more_time = 
-        elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution ||
-        still_at_first_move;
+        /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
+        ||   still_at_first_move;
 
-    if ((Limits.use_time_management () && no_more_time)   ||
-        (Limits.move_time && elapsed >= Limits.move_time) ||
-        (Limits.nodes && nodes >= Limits.nodes))
+    if (   (Limits.use_time_management () && no_more_time)
+        || (Limits.move_time && elapsed >= Limits.move_time)
+        || (Limits.nodes && nodes >= Limits.nodes))
     {
         Signals.stop = true;
     }
@@ -1884,14 +1894,14 @@ void Thread::idle_loop ()
 
             searching  = false;
             active_pos = NULL;
-            sp->slaves_mask &= ~(1ULL << idx);
+            sp->slaves_mask &= ~((1ULL) << idx);
             sp->nodes += pos.game_nodes ();
 
             // Wake up master thread so to allow it to return from the idle loop
             // in case we are the last slave of the split point.
-            if (Threads.sleep_idle &&
-                this != sp->master_thread &&
-                !sp->slaves_mask)
+            if (   Threads.sleep_idle
+                && this != sp->master_thread
+                && !sp->slaves_mask)
             {
                 ASSERT (!sp->master_thread->searching);
                 sp->master_thread->notify_one ();

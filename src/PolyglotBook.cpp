@@ -17,10 +17,9 @@ using namespace MoveGenerator;
 
 inline bool operator== (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
-    return 
-        (pe1.key == pe2.key) &&
-        (pe1.move == pe2.move) &&
-        (pe1.weight == pe2.weight);
+    return (pe1.key == pe2.key)
+        && (pe1.move == pe2.move)
+        && (pe1.weight == pe2.weight);
 }
 
 inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
@@ -30,38 +29,34 @@ inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
 
 inline bool operator>  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
-    return 
-        (pe1.key != pe2.key) ?
-        (pe1.key > pe2.key) :
-    (pe1.move > pe2.move);      // order by move value
-    //(pe1.weight > pe2.weight);  // order by weight value
+    return (pe1.key != pe2.key)
+        ? (pe1.key > pe2.key)
+        : (pe1.move > pe2.move);      // order by move value
+    //: (pe1.weight > pe2.weight);  // order by weight value
 }
 
 inline bool operator<  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
-    return
-        (pe1.key != pe2.key) ?
-        (pe1.key < pe2.key) :
-    (pe1.move < pe2.move);      // order by move value
-    //(pe1.weight < pe2.weight);  // order by weight value
+    return (pe1.key != pe2.key)
+        ? (pe1.key < pe2.key)
+        : (pe1.move < pe2.move);      // order by move value
+    //: (pe1.weight < pe2.weight);  // order by weight value
 }
 
 inline bool operator>= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
-    return
-        (pe1.key != pe2.key) ?
-        (pe1.key >= pe2.key) :
-    (pe1.move >= pe2.move);      // order by move value
-    //(pe1.weight >= pe2.weight);  // order by weight value
+    return (pe1.key != pe2.key)
+        ? (pe1.key >= pe2.key)
+        : (pe1.move >= pe2.move);      // order by move value
+    //: (pe1.weight >= pe2.weight);  // order by weight value
 }
 
 inline bool operator<= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
 {
-    return
-        (pe1.key != pe2.key) ?
-        (pe1.key <= pe2.key) :
-    (pe1.move <= pe2.move);      // order by move value
-    //(pe1.weight <= pe2.weight);  // order by weight value
+    return (pe1.key != pe2.key)
+        ? (pe1.key <= pe2.key)
+        : (pe1.move <= pe2.move);      // order by move value
+    //: (pe1.weight <= pe2.weight);  // order by weight value
 }
 
 PolyglotBook::PolyglotEntry::operator string () const
@@ -385,7 +380,7 @@ string PolyglotBook::read_entries (const Position &pos)
     seekg (STM_POS (index));
 
     PolyglotEntry pe;
-    
+
     vector<PolyglotEntry> pe_list;
 
     uint32_t sum_weight = 0;

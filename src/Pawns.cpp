@@ -233,17 +233,24 @@ namespace Pawns {
             mid_pawns  = pawns[1] & file_bb (f);
             Rank b_rk = mid_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, mid_pawns)) : R_1;
 
-            if ((MID_EDGE_bb & (f | b_rk)) &&
-                _file (k_sq) == f &&
-                rel_rank (C, k_sq) == b_rk - 1)
+            if (   (MID_EDGE_bb & (f | b_rk))
+                && _file (k_sq) == f
+                && rel_rank (C, k_sq) == b_rk - 1)
             {
                 safety += Value (200);
             }
             else
             {
                 mid_pawns = pawns[0] & file_bb (f);
-                Rank w_rk = mid_pawns ? rel_rank (C, scan_rel_backmost_sq (C , mid_pawns)) : R_1;
-                int8_t danger = (w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
+                
+                Rank w_rk = mid_pawns
+                    ? rel_rank (C, scan_rel_backmost_sq (C , mid_pawns))
+                    : R_1;
+
+                int8_t danger = (w_rk != R_1)
+                    ? ((b_rk == w_rk + 1) ? 2 : 1)
+                    : 0;
+                
                 safety -= ShelterWeakness[w_rk]
                 +         StormDanger[danger][b_rk];
             }

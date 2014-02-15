@@ -207,17 +207,17 @@ Position& Position::operator= (const Position &pos)
 bool Position::draw () const
 {
     // Draw by Material?
-    if (!pieces<PAWN> () &&
-        (non_pawn_material (WHITE) + non_pawn_material (BLACK)
+    if (   !pieces<PAWN> ()
+        && (non_pawn_material (WHITE) + non_pawn_material (BLACK)
         <= VALUE_MG_BISHOP))
     {
         return true;
     }
 
     // Draw by 50 moves Rule?
-    if (fifty_move_distance <  _si->clock50 ||
-        fifty_move_distance == _si->clock50 &&
-        (!checkers () || MoveList<LEGAL> (*this).size ()))
+    if (   fifty_move_distance <  _si->clock50
+        || fifty_move_distance == _si->clock50
+        && (!checkers () || MoveList<LEGAL> (*this).size ()))
     {
         return true;
     }
@@ -1154,12 +1154,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     Piece p      = piece_on (org);
     PieceT pt    = _ptype (p);
 
-    ASSERT ((EMPTY != p) &&
-        (active == _color (p)) &&
-        (NONE != pt));
-    ASSERT (empty (dst) ||
-        (pasive == _color (piece_on (dst))) ||
-        (CASTLE == mtype (m)));
+    ASSERT ((EMPTY != p)
+        &&  (active == _color (p))
+        &&  (NONE != pt));
+    ASSERT (empty (dst)
+        ||  (pasive == _color (piece_on (dst)))
+        ||  (CASTLE == mtype (m)));
 
     Square cap = dst;
     PieceT  ct = NONE;
@@ -1597,7 +1597,9 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
             {
                 uint32_t empty_cnt = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
+                {
                     ++empty_cnt;
+                }
                 if (1 > empty_cnt || empty_cnt > 8) return false;
                 set_next ('0' + empty_cnt);
             }
@@ -2123,8 +2125,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
         && ((sfen >> row) && (row == '3' || row == '6')))
     {
-        if (!(WHITE == pos._active && '6' != row) &&
-            !(BLACK == pos._active && '3' != row))
+        if (   !(WHITE == pos._active && '6' != row)
+            && !(BLACK == pos._active && '3' != row))
         {
             Square ep_sq = to_square (col, row);
             if (pos.can_en_passant (ep_sq))

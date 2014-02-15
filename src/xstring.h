@@ -75,11 +75,11 @@ namespace std {
 
         //return !stricmp (s1.c_str (), s2.c_str ());
 
-        //return (s1.size () == s2.size ()) &&
-        //    std::equal (s1.begin (), s1.end (), s2.begin (), equals_c);
+        //return s1.size () == s2.size ()
+        //    && std::equal (s1.begin (), s1.end (), s2.begin (), equals_c);
 
-        return (s1.size () == s2.size ()) &&
-            std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)->bool
+        return s1.size () == s2.size ()
+            && std::equal (s1.begin (), s1.end (), s2.begin (), [] (char c1, char c2)->bool
         {
             return toupper (c1) == toupper (c2);
         });

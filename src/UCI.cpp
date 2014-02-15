@@ -53,14 +53,14 @@ namespace UCI {
         {
             string token;
             // consume "name" token
-            if (cstm.good () && (cstm >> token) &&
-                iequals (token, "name"))
+            if (   cstm.good () && (cstm >> token)
+                && iequals (token, "name"))
             {
                 string name;
                 // Read option-name (can contain spaces)
                 // consume "value" token
-                while (cstm.good () && (cstm >> token) &&
-                    !iequals (token, "value"))
+                while (cstm.good () && (cstm >> token)
+                    && !iequals (token, "value"))
                 {
                     name += whitespace (name) ? token : " " + token;
                 }
@@ -107,8 +107,8 @@ namespace UCI {
                     string name;
                     // Read name (can contain spaces)
                     // consume "value" token
-                    while (cstm.good () && (cstm >> token) &&
-                        !iequals (token, "code"))
+                    while (cstm.good () && (cstm >> token)
+                        && !iequals (token, "code"))
                     {
                         name += whitespace (name) ? token : " " + token;
                     }
@@ -142,8 +142,8 @@ namespace UCI {
             string token;
             string fen;
             // consume "startpos" or "fen" token
-            if (cstm.good () && (cstm >> token) &&
-                iequals (token, "startpos"))
+            if (   cstm.good () && (cstm >> token)
+                && iequals (token, "startpos"))
             {
                 fen = FEN_N;
                 cstm >> token; // Consume "moves" token if any
@@ -151,8 +151,8 @@ namespace UCI {
             else if (iequals (token, "fen"))
             {
                 // consume "moves" token if any
-                while (cstm.good () && (cstm >> token) &&
-                    !iequals (token, "moves"))
+                while (cstm.good () && (cstm >> token)
+                    && !iequals (token, "moves"))
                 {
                     fen += whitespace (fen) ? token : " " + token;
                 }

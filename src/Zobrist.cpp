@@ -241,8 +241,8 @@ namespace Zobrist {
 
             unsigned char ep_r = get_next ();
             if (!isdigit (ep_r)) return U64 (0);
-            if (('w' == active && '6' != ep_r) ||
-                ('b' == active && '3' != ep_r)) return U64 (0);
+            if (   ('w' == active && '6' != ep_r)
+                || ('b' == active && '3' != ep_r)) return U64 (0);
 
             fen_key ^= _.en_passant[to_file (ep_f)];
         }
