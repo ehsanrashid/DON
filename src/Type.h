@@ -3,6 +3,7 @@
 #define TYPE_H_
 
 #include <cctype>
+#include <cstring>
 #include <climits>
 #include <vector>
 #include <iostream>
