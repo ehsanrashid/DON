@@ -274,7 +274,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence we deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = attacks_sliding (s, deltas);
+                Bitboard moves = attacks_sliding (deltas, s);
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
@@ -292,7 +292,7 @@ namespace BitBoard {
                 do
                 {
                     occupancy[size] = occ;
-                    reference[size] = attacks_sliding (s, deltas, occ);
+                    reference[size] = attacks_sliding (deltas, s, occ);
                     ++size;
                     occ = (occ - mask) & mask;
                 }
@@ -316,7 +316,7 @@ namespace BitBoard {
                     uint16_t index;
                     do
                     {
-                        magics_bb[s] = rkiss.rand_boost<Bitboard> (booster);
+                        magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
                     }
                     while (pop_count<MAX15> (index) < 6);
@@ -377,8 +377,8 @@ namespace BitBoard {
                     uint8_t dFile = _filerank_dist[f1][f2];
                     uint8_t dRank = _filerank_dist[r1][r2];
 
-                    _square_dist[s1][s2]  = max (dFile, dRank);
-                    _taxicab_dist[s1][s2] = (dFile + dRank);
+                    _square_dist[s1][s2]  = max (dFile , dRank);
+                    _taxicab_dist[s1][s2] =     (dFile + dRank);
 
                     _dist_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
@@ -389,7 +389,7 @@ namespace BitBoard {
         {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                _front_squares_bb   [c][s] = _front_rank_bb[c][_rank (s)] & _file_bb[_file (s)];
+                _front_squares_bb   [c][s] = _front_rank_bb[c][_rank (s)] &     _file_bb[_file (s)];
                 _pawn_attack_span_bb[c][s] = _front_rank_bb[c][_rank (s)] & _adj_file_bb[_file (s)];
                 _passer_pawn_span_bb[c][s] = _front_squares_bb[c][s] | _pawn_attack_span_bb[c][s];
             }
@@ -432,8 +432,8 @@ namespace BitBoard {
                 }
             }
 
-            _attacks_type_bb[BSHP][s] = attacks_sliding (s, _deltas_type[BSHP]);
-            _attacks_type_bb[ROOK][s] = attacks_sliding (s, _deltas_type[ROOK]);
+            _attacks_type_bb[BSHP][s] = attacks_sliding (_deltas_type[BSHP], s);
+            _attacks_type_bb[ROOK][s] = attacks_sliding (_deltas_type[ROOK], s);
             _attacks_type_bb[QUEN][s] = _attacks_type_bb[BSHP][s] | _attacks_type_bb[ROOK][s];
         }
 
@@ -452,7 +452,7 @@ namespace BitBoard {
                 if (NONE == pt) continue;
 
                 _betwen_sq_bb[s1][s2] = (attacks_bb (Piece (pt), s1, square_bb (s2)) & attacks_bb (Piece (pt), s2, square_bb (s1)));
-                _lines_sq_bb [s1][s2] = (attacks_bb (Piece (pt), s1, U64 (0)) & attacks_bb (Piece (pt), s2, U64 (0))) + s1 + s2;
+                _lines_sq_bb [s1][s2] = (attacks_bb (Piece (pt), s1,        U64 (0)) & attacks_bb (Piece (pt), s2,        U64 (0))) + s1 + s2;
             }
         }
 

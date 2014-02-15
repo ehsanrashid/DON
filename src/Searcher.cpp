@@ -1719,7 +1719,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // This is our magic formula
             v += (weakness * int32_t (RootMoves[0].curr_value - v)
-                + variance * (rk.randX<uint32_t> () % weakness)) / 128;
+                + variance * (rk.rand<uint32_t> () % weakness)) / 128;
 
             if (v > max_v)
             {

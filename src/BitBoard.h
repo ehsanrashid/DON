@@ -219,9 +219,9 @@ namespace BitBoard {
     inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
 
 
-    inline Bitboard attacks_sliding (Square s, const Delta deltas[], Bitboard occ = U64 (0))
+    inline Bitboard attacks_sliding (const Delta deltas[], Square s, Bitboard occ = U64 (0))
     {
-        Bitboard attacks_slid = U64 (0);
+        Bitboard slid_attacks = U64 (0);
         int8_t i = 0;
         Delta del = deltas[i++];
         while (del)
@@ -229,13 +229,13 @@ namespace BitBoard {
             Square sq = s + del;
             while (_ok (sq) && _square_dist[sq][sq - del] == 1)
             {
-                attacks_slid += sq;
+                slid_attacks += sq;
                 if (occ & sq) break;
                 sq += del;
             }
             del = deltas[i++];
         }
-        return attacks_slid;
+        return slid_attacks;
     }
 
     template<PieceT PT>

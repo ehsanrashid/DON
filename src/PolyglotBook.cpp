@@ -285,7 +285,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
-    //    uint32_t rand = (_rkiss.randX<uint32_t> () % sum_weight);
+    //    uint32_t rand = (_rkiss.rand<uint32_t> () % sum_weight);
     //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
     //    while (itr != pe_list.end ())
     //    {
@@ -313,7 +313,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         // Note that first entry is always chosen.
 
 
-        //uint32_t rand = _rkiss.randX<uint32_t> ();
+        //uint32_t rand = _rkiss.rand<uint32_t> ();
         //if ((sum_weight && rand % sum_weight < pe.weight) ||
         //    (pick_best && (pe.weight == max_weight)))
         //{
@@ -326,7 +326,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         }
         else if (sum_weight)
         {
-            uint16_t rand = _rkiss.randX<uint16_t> () % sum_weight;
+            uint16_t rand = _rkiss.rand<uint16_t> () % sum_weight;
             if (pe.weight > rand) move = Move (pe.move);
         }
         else if (MOVE_NONE == move) // if not pick best and sum of weight = 0

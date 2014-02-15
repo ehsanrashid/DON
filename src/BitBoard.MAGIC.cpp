@@ -105,10 +105,10 @@ namespace BitBoard {
         {
 
             uint16_t _bMagicBoosters[R_NO] =
-#if defined(_64BIT)
-            { 0x423, 0xE18, 0x25D, 0xCA2, 0xCFE, 0x026, 0x7ED, 0xBE3, }; // 64-bit
+#ifdef _64BIT
+            { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #else
-            { 0xC77, 0x888, 0x51E, 0xE22, 0x82B, 0x51C, 0x994, 0xF9C, }; // 32-bit
+            { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
 #endif
 
             Bitboard occupancy[MAX_MOVES];
@@ -128,7 +128,7 @@ namespace BitBoard {
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence we deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = attacks_sliding (s, deltas);
+                Bitboard moves = attacks_sliding (deltas, s);
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
@@ -146,7 +146,7 @@ namespace BitBoard {
                 do
                 {
                     occupancy[size] = occ;
-                    reference[size] = attacks_sliding (s, deltas, occ);
+                    reference[size] = attacks_sliding (deltas, s, occ);
                     ++size;
                     occ = (occ - mask) & mask;
                 }
@@ -170,7 +170,7 @@ namespace BitBoard {
                     uint16_t index;
                     do
                     {
-                        magics_bb[s] = rkiss.rand_boost<Bitboard> (booster);
+                        magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
                         //if (pop_count<MAX15> (index) >= 6) break;
                     }
