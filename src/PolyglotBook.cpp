@@ -106,10 +106,10 @@ PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    uint8_t size = sizeof (T);
-    for (uint8_t i = 0; i < size && good (); ++i)
+    const uint8_t SIZE = sizeof (T);
+    for (uint8_t i = 0; i < SIZE && good (); ++i)
     {
-        uint8_t byte = uint8_t (t >> (8*(size - 1 - i)));
+        uint8_t byte = uint8_t (t >> (8*(SIZE - 1 - i)));
         put (byte);
     }
     return *this;
@@ -124,9 +124,8 @@ PolyglotBook& PolyglotBook::operator<< (PolyglotEntry &pe)
 PolyglotBook::PolyglotBook()
     : fstream ()
     , _fn_book ("")
-    , _mode (0)
+    , _mode (ios_base::openmode (0))
     , _size_book (0)
-    , _rkiss ()
 {}
 
 #ifndef NDEBUG
@@ -135,7 +134,6 @@ PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
     , _fn_book (fn_book)
     , _mode (mode)
     , _size_book (0)
-    , _rkiss ()
 {}
 #endif
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
@@ -143,7 +141,6 @@ PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
     , _fn_book (fn_book)
     , _mode (mode)
     , _size_book (0)
-    , _rkiss ()
 {}
 
 PolyglotBook::~PolyglotBook ()
@@ -388,6 +385,7 @@ string PolyglotBook::read_entries (const Position &pos)
     seekg (STM_POS (index));
 
     PolyglotEntry pe;
+    
     vector<PolyglotEntry> pe_list;
 
     uint32_t sum_weight = 0;

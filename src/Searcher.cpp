@@ -354,8 +354,8 @@ namespace Searcher {
             }
         }
 
-        int32_t cf = *(Options["Contempt Factor"]);
-        if (cf && !*(Options["UCI_AnalyseMode"]))
+        int32_t cf = int32_t (*(Options["Contempt Factor"]));
+        if (cf && !bool (*(Options["UCI_AnalyseMode"])))
         {
             cf = cf * VALUE_MG_PAWN / 100;                              // From centipawns
             cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME;   // Scale down with phase
