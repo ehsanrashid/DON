@@ -529,7 +529,7 @@ namespace MoveGenerator {
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers); // If any checker exists
         if (!checkers) return m_list;
-        //int32_t checker_count = pop_count<MAX15> (checkers);
+        int32_t checker_count = pop_count<MAX15> (checkers);
 
         Square org_king  = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
@@ -555,7 +555,6 @@ namespace MoveGenerator {
         //    }
         //}
 
-
         check_sq = SQ_NO;
         Bitboard slid_attacks = U64 (0);
         // Find squares attacked by slider checkers, we will remove them from the king
@@ -579,7 +578,7 @@ namespace MoveGenerator {
         SERIALIZE (m_list, org_king, moves);
 
         // If double check, then only a king move can save the day
-        if (SQ_NO != check_sq && pop_count<FULL> (friends) > 1)
+        if (1 == checker_count && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
             Bitboard targets = betwen_sq_bb (check_sq, org_king) + check_sq;

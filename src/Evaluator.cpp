@@ -20,11 +20,6 @@ using namespace Searcher;
 
 namespace {
 
-    // Used for tracing
-    enum ExtendedPieceT
-    { 
-        PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL
-    };
 
     // Struct EvalInfo contains various information computed and collected
     // by the evaluation functions.
@@ -67,6 +62,33 @@ namespace {
         Bitboard pinned_pieces[CLR_NO];
 
     } EvalInfo;
+
+    namespace Tracing {
+
+        // Used for tracing
+        enum TermT
+        { 
+            PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, NO_TERM
+        };
+
+        Score   terms[CLR_NO][NO_TERM];
+
+        EvalInfo    ei;
+        ScaleFactor sf;
+
+        inline double to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
+
+        inline void add_term (uint8_t term, Score w_score, Score b_score = SCORE_ZERO)
+        {
+            terms[WHITE][term] = w_score;
+            terms[BLACK][term] = b_score;
+        }
+
+        void format_row (stringstream &ss, const char name[], uint8_t term);
+
+        string do_trace (const Position &pos);
+
+    }
 
     // Evaluation weights, initialized from UCI options
     // Cowardice  -> KingDangerUs
@@ -263,18 +285,6 @@ namespace {
     Value interpolate   (const Score &score, Phase ph, ScaleFactor sf);
     Score apply_weight  (Score score, Score w);
     Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
-    double to_cp        (const Value &value);
-
-    namespace Tracing {
-
-        Score scores[CLR_NO][TOTAL + 1];
-        stringstream stream;
-
-        void add (int32_t idx, Score term_w, Score term_b = SCORE_ZERO);
-        void row (const char name[], int32_t idx);
-        string do_trace (const Position &pos);
-
-    }
 
     // --------------
 
@@ -382,9 +392,9 @@ namespace {
         // In case of tracing add all single evaluation contributions for both white and black
         if (TRACE)
         {
-            Tracing::add (PST       , pos.psq_score ());
-            Tracing::add (IMBALANCE , ei.mi->material_score ());
-            Tracing::add (PAWN      , ei.pi->pawn_score ());
+            Tracing::add_term (Tracing::PST       , pos.psq_score ());
+            Tracing::add_term (Tracing::IMBALANCE , ei.mi->material_score ());
+            Tracing::add_term (PAWN               , ei.pi->pawn_score ());
 
             Score scr[CLR_NO] =
             {
@@ -392,19 +402,13 @@ namespace {
                 ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei)
             };
 
-            Tracing::add (SPACE     , apply_weight (scr[WHITE], Weights[Space]), apply_weight (scr[BLACK], Weights[Space]));
-            Tracing::add (TOTAL     , score);
+            Tracing::add_term (Tracing::SPACE     , apply_weight (scr[WHITE], Weights[Space])
+                ,                                   apply_weight (scr[BLACK], Weights[Space]));
 
-            Tracing::stream
-                << "-------\n"
-                //<< "Uncertainty margin:"
-                //<< " White: " << to_cp (margins[WHITE]) << "-"
-                //<< " Black: " << to_cp (margins[BLACK]) << "\n"
-                << "Scaling: " << noshowpos
-                << setw (6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
-                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase () / 128.0)) << "% * "
-                << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
-                << "Total evaluation: " << to_cp (value);
+            Tracing::add_term (Tracing::TOTAL     , score);
+
+            Tracing::ei = ei;
+            Tracing::sf = sf;
         }
 
         return (WHITE == pos.active ()) ? value : -value;
@@ -638,9 +642,9 @@ namespace {
                     if (pos[s + d] == P)
                     {
                         score -=
-                            !pos.empty(s + d + pawn_push (C)) ?
-                            TrappedBishopA1H1 * 4 : (pos[s + d + d] == P) ?
-                            TrappedBishopA1H1 * 2 : TrappedBishopA1H1;
+                            !pos.empty(s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
+                            : (pos[s + d + d] == P)           ? TrappedBishopA1H1 * 2
+                            :                                   TrappedBishopA1H1;
                     }
                 }
             }
@@ -648,7 +652,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][PT] = score;
+            Tracing::terms[C][PT] = score;
         }
 
         return score;
@@ -676,7 +680,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][MOBILITY] = apply_weight (mobility[C], Weights[Mobility]);
+            Tracing::terms[C][Tracing::MOBILITY] = apply_weight (mobility[C], Weights[Mobility]);
         }
 
         return score;
@@ -786,7 +790,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][KING] = score;
+            Tracing::terms[C][KING] = score;
         }
 
         return score;
@@ -820,7 +824,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][THREAT] = score;
+            Tracing::terms[C][Tracing::THREAT] = score;
         }
 
         return score;
@@ -957,7 +961,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::scores[C][PASSED] = apply_weight (score, Weights[PassedPawns]);
+            Tracing::terms[C][Tracing::PASSED] = apply_weight (score, Weights[PassedPawns]);
         }
 
         // Add the scores to the middle game and endgame eval
@@ -1014,7 +1018,7 @@ namespace {
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-        int16_t eg  = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        int32_t eg  = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         return Value ((mg_value (score) * int32_t (ph) + eg * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
     }
 
@@ -1036,25 +1040,19 @@ namespace {
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
-    inline double to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
+
 
     namespace Tracing {
 
-        void add (int32_t idx, Score w_score, Score b_score)
+        void format_row (stringstream& ss, const char name[], uint8_t term)
         {
-            scores[WHITE][idx] = w_score;
-            scores[BLACK][idx] = b_score;
-        }
+            Score w_score = terms[WHITE][term];
+            Score b_score = terms[BLACK][term];
 
-        void format_row (const char name[], int32_t idx)
-        {
-            Score w_score = scores[WHITE][idx];
-            Score b_score = scores[BLACK][idx];
-
-            switch (idx)
+            switch (term)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
-                stream
+                ss
                     << setw (20) << name << " |   ---   --- |   ---   --- | "
                     << setw (6)  << to_cp (mg_value (w_score)) << " "
                     << setw (6)  << to_cp (eg_value (w_score)) << " \n";
@@ -1062,7 +1060,7 @@ namespace {
                 break;
 
             default:
-                stream
+                ss
                     << setw (20) << name << " | " << noshowpos
                     << setw (5)  << to_cp (mg_value (w_score)) << " "
                     << setw (5)  << to_cp (eg_value (w_score)) << " | "
@@ -1079,37 +1077,43 @@ namespace {
 
         string do_trace (const Position &pos)
         {
-            stream.str ("");
-            stream << showpoint << showpos << setprecision (2) << fixed;
-            std::memset (scores, 0, 2 * (TOTAL + 1) * sizeof (Score));
+            memset (terms, 0, sizeof (terms));
 
-            do_evaluate<true> (pos);
+            Value v = do_evaluate<true> (pos);
 
-            string totals = stream.str ();
-            stream.str ("");
+            stringstream ss;
 
-            stream << setw (20)
-                << "Eval term"      << " |    White    |    Black    |     Total     \n"
+            ss  << showpoint << showpos << setprecision (2) << fixed
+                << "           Eval term |    White    |    Black    |     Total     \n"
                 << "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                 << "---------------------+-------------+-------------+---------------\n";
 
-            format_row ("Material, PST, Tempo", PST);
-            format_row ("Material imbalance",   IMBALANCE);
-            format_row ("Pawns",                PAWN);
-            format_row ("Knights",              NIHT);
-            format_row ("Bishops",              BSHP);
-            format_row ("Rooks",                ROOK);
-            format_row ("Queens",               QUEN);
-            format_row ("Mobility",             MOBILITY);
-            format_row ("King safety",          KING);
-            format_row ("Threats",              THREAT);
-            format_row ("Passed pawns",         PASSED);
-            format_row ("Space",                SPACE);
-            stream <<       "---------------------+-------------+-------------+---------------\n";
-            format_row ("Total",                TOTAL);
-            stream << totals;
+            format_row (ss, "Material, PST, Tempo", PST);
+            format_row (ss, "Material imbalance",   IMBALANCE);
+            format_row (ss, "Pawns",                PAWN);
+            format_row (ss, "Knights",              NIHT);
+            format_row (ss, "Bishops",              BSHP);
+            format_row (ss, "Rooks",                ROOK);
+            format_row (ss, "Queens",               QUEN);
+            format_row (ss, "Mobility",             MOBILITY);
+            format_row (ss, "King safety",          KING);
+            format_row (ss, "Threats",              THREAT);
+            format_row (ss, "Passed pawns",         PASSED);
+            format_row (ss, "Space",                SPACE);
 
-            return stream.str ();
+            ss  << "---------------------+-------------+-------------+---------------\n";
+            format_row (ss, "Total",                TOTAL);
+            ss  << "-------\n"
+                //<< "Uncertainty margin:"
+                //<< " White: " << to_cp (margins[WHITE]) << "-"
+                //<< " Black: " << to_cp (margins[BLACK]) << "\n"
+                << "\nScaling: " << noshowpos
+                << setw (6) << (100.0 * ei.mi->game_phase()) / 128.0 << "% MG, "
+                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase()) / 128.0) << "% * "
+                << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                << "Total evaluation: " << to_cp (v);
+
+            return ss.str ();
         }
     }
 

@@ -321,7 +321,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    std::memset (attacks_bb[s], 0, size * sizeof (Bitboard));
+                    memset (attacks_bb[s], 0, size * sizeof (Bitboard));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.

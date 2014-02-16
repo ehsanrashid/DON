@@ -473,7 +473,7 @@ namespace {
         Stack stack[MAX_PLY_6]
         ,     *ss = stack+2; // To allow referencing (ss-2)
 
-        std::memset (ss-2, 0, 5 * sizeof (Stack));
+        memset (ss-2, 0, 5 * sizeof (Stack));
         (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
         TT.new_gen ();

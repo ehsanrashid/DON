@@ -955,7 +955,7 @@ bool Position::checkmate (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    std::memset (this, 0, sizeof (Position));
+    memset (this, 0, sizeof (Position));
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1572,7 +1572,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     ASSERT (ok ());
 
     char *ch = (char*) fen;
-    std::memset (ch, '\0', MAX_FEN);
+    memset (ch, '\0', MAX_FEN);
 
 #undef set_next
 
