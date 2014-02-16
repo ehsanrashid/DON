@@ -509,7 +509,8 @@ Value Position::see      (Move m) const
     Color stm = _color (piece_on (org));
 
     // Gain list
-    int32_t swap_list[32];
+    Value swap_list[32];
+    
     int8_t depth = 1;
     swap_list[0] = PieceValue[MG][_ptype (piece_on (dst))];
 
@@ -582,7 +583,7 @@ Value Position::see      (Move m) const
         }
     }
 
-    return Value (swap_list[0]);
+    return swap_list[0];
 }
 
 Value Position::see_sign (Move m) const
@@ -593,7 +594,7 @@ Value Position::see_sign (Move m) const
     if (PieceValue[MG][_ptype (piece_on (org_sq (m)))]
     <=  PieceValue[MG][_ptype (piece_on (dst_sq (m)))])
     {
-        return Value (1);
+        return VALUE_KNOWN_WIN;
     }
 
     return see (m);

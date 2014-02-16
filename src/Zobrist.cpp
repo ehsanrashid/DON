@@ -30,9 +30,9 @@ namespace Zobrist {
 
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            for (PieceT pt = PAWN; pt <= QUEN; ++pt)
+            for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (int32_t pc = 0; pc < pos.count (c, pt); ++pc)
+                for (uint8_t pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= _.psq_k[c][pt][pc];
                 }
@@ -339,6 +339,8 @@ namespace Zobrist {
 
 }
 
+#pragma region Zobrist Code
+
 // Random numbers from PolyGlot, used to compute book hash keys
 const Zobrist::Zob ZobPG =
 {
@@ -570,6 +572,8 @@ const Zobrist::Zob ZobPG =
     U64 (0xF8D626AAAF278509)
 
 };
+
+#pragma endregion
 
 //Zobrist::Zob ZobRand;
 

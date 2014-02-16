@@ -3,11 +3,12 @@
 #define IO_LOGGER_H_
 
 #include <iostream>
+#include "noncopyable.h"
 #include "tiebuffer.h"
 #include "Time.h"
 
 // Singleton I/O logger class
-typedef class DebugLogger
+typedef class DebugLogger : std::noncopyable
 {
 
 private:
@@ -20,20 +21,10 @@ protected:
 
     // Constructor should be protected !!!
     DebugLogger (std::string log_fn)
-        : _inbuf (std::cin.rdbuf (), &_fstm)
+        :  _inbuf (std::cin .rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
         , _log_fn (log_fn)
     {}
-
-    // Don't forget to declare these functions.
-    // Want to make sure they are unaccessable & non-copyable
-    // otherwise may accidently get copies of singleton.
-    // Don't Implement these functions.
-    DebugLogger ();
-
-    DebugLogger (DebugLogger const &);
-    template<class T>
-    T& operator= (DebugLogger const &);
 
 public:
 
@@ -57,7 +48,7 @@ public:
             _fstm.open (_log_fn, std::ios_base::out | std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
-            std::cin.rdbuf (&_inbuf);
+            std::cin .rdbuf (& _inbuf);
             std::cout.rdbuf (&_outbuf);
         }
     }
@@ -67,7 +58,7 @@ public:
         if (_fstm.is_open ())
         {
             std::cout.rdbuf (_outbuf.sbuf ());
-            std::cin.rdbuf (_inbuf.sbuf ());
+            std::cin .rdbuf ( _inbuf.sbuf ());
 
             _fstm << "[" << Time::to_string (Time::now ()) << "] <-" << std::endl;
             _fstm.close ();

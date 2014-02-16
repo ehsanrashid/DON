@@ -20,8 +20,7 @@ namespace std {
 
     public:
 
-        //typedef typename basic_streambuf<Elem, Traits>::int_type int_type;
-        typedef typename Traits::int_type                               int_type;
+        typedef typename Traits::int_type   int_type;
 
         basic_tie_buf (
             basic_streambuf<Elem, Traits> *strmbuf,
@@ -90,19 +89,17 @@ namespace std {
     //    streambuf* mySavedStreambuf;
     //
     //public:
-    //    TemporaryFilebuf(
-    //        ostream& toBeChanged,
-    //        string const& filename )
+    //    TemporaryFilebuf (ostream& toBeChanged, string const &filename)
     //        : filebuf (filename.c_str (), ios_base::out)
-    //        , myStream (toBeChanged )
-    //        , mySavedStreambuf (toBeChanged.rdbuf())
+    //        , myStream (toBeChanged)
+    //        , mySavedStreambuf (toBeChanged.rdbuf ())
     //    {
-    //        toBeChanged.rdbuf( this );
+    //        toBeChanged.rdbuf (this);
     //    }
     //
-    //    ~TemporaryFilebuf()
+    //    ~TemporaryFilebuf ()
     //    {
-    //        myStream.rdbuf( mySavedStreambuf );
+    //        myStream.rdbuf (mySavedStreambuf);
     //    }
     //};
 

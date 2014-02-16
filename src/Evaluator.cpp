@@ -20,7 +20,6 @@ using namespace Searcher;
 
 namespace {
 
-
     // Struct EvalInfo contains various information computed and collected
     // by the evaluation functions.
     typedef struct EvalInfo
@@ -67,16 +66,16 @@ namespace {
 
         // Used for tracing
         enum TermT
-        { 
-            PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, NO_TERM
+        {
+            PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NO
         };
 
-        Score   terms[CLR_NO][NO_TERM];
+        Score   terms[CLR_NO][TERM_NO];
 
         EvalInfo    ei;
         ScaleFactor sf;
 
-        inline double to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
+        inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
 
         inline void add_term (uint8_t term, Score w_score, Score b_score = SCORE_ZERO)
         {
@@ -471,7 +470,7 @@ namespace {
             }
 
             //// Increase bonus more if the piece blocking enemy pawn
-            //if (pos[s + pawn_push(C)] == make_piece(C_, PAWN))
+            //if (pos[s + pawn_push (C)] == make_piece (C_, PAWN))
             //{
             //    bonus += bonus / 2;
             //}
@@ -956,7 +955,6 @@ namespace {
             }
 
             score += mk_score (mg_bonus, eg_bonus);
-
         }
 
         if (TRACE)
@@ -1040,8 +1038,6 @@ namespace {
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
-
-
     namespace Tracing {
 
         void format_row (stringstream& ss, const char name[], uint8_t term)
@@ -1052,26 +1048,21 @@ namespace {
             switch (term)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
-                ss
-                    << setw (20) << name << " |   ---   --- |   ---   --- | "
-                    << setw (6)  << to_cp (mg_value (w_score)) << " "
-                    << setw (6)  << to_cp (eg_value (w_score)) << " \n";
-
+                ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
+                    << setw (6)  << value_to_cp (mg_value (w_score)) << " "
+                    << setw (6)  << value_to_cp (eg_value (w_score)) << " \n";
                 break;
 
             default:
-                ss
-                    << setw (20) << name << " | " << noshowpos
-                    << setw (5)  << to_cp (mg_value (w_score)) << " "
-                    << setw (5)  << to_cp (eg_value (w_score)) << " | "
-                    << setw (5)  << to_cp (mg_value (b_score)) << " "
-                    << setw (5)  << to_cp (eg_value (b_score)) << " | "
+                ss  << setw (20) << name << " | " << noshowpos
+                    << setw (5)  << value_to_cp (mg_value (w_score)) << " "
+                    << setw (5)  << value_to_cp (eg_value (w_score)) << " | "
+                    << setw (5)  << value_to_cp (mg_value (b_score)) << " "
+                    << setw (5)  << value_to_cp (eg_value (b_score)) << " | "
                     << showpos
-                    << setw (6)  << to_cp (mg_value (w_score - b_score)) << " "
-                    << setw (6)  << to_cp (eg_value (w_score - b_score)) << " \n";
-
+                    << setw (6)  << value_to_cp (mg_value (w_score - b_score)) << " "
+                    << setw (6)  << value_to_cp (eg_value (w_score - b_score)) << " \n";
                 break;
-
             }
         }
 
@@ -1079,7 +1070,7 @@ namespace {
         {
             memset (terms, 0, sizeof (terms));
 
-            Value v = do_evaluate<true> (pos);
+            Value value = do_evaluate<true> (pos);
 
             stringstream ss;
 
@@ -1105,13 +1096,13 @@ namespace {
             format_row (ss, "Total",                TOTAL);
             ss  << "-------\n"
                 //<< "Uncertainty margin:"
-                //<< " White: " << to_cp (margins[WHITE]) << "-"
-                //<< " Black: " << to_cp (margins[BLACK]) << "\n"
+                //<< " White: " << value_to_cp (margins[WHITE]) << "-"
+                //<< " Black: " << value_to_cp (margins[BLACK]) << "\n"
                 << "\nScaling: " << noshowpos
                 << setw (6) << (100.0 * ei.mi->game_phase()) / 128.0 << "% MG, "
                 << setw (6) << (100.0 * (1.0 - ei.mi->game_phase()) / 128.0) << "% * "
                 << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
-                << "Total evaluation: " << to_cp (v);
+                << "Total evaluation: " << value_to_cp (value);
 
             return ss.str ();
         }

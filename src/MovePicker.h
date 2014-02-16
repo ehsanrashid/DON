@@ -89,23 +89,24 @@ private:
 
     Searcher::Stack    *ss;
 
-    ValMove             killers[6];
-    Move               *counter_moves
-        ,              *followup_moves;
+    ValMove killers[6];
+    Move   *counter_moves
+        ,  *followup_moves;
 
-    Move                tt_move;
-    Depth               depth;
+    Move    tt_move;
+    Depth   depth;
 
-    Square              recapture_sq;
-    Value               capture_threshold;
+    Square  recapture_sq;
 
-    uint8_t             stage;
+    Value   capture_threshold;
 
-    ValMove             m_list[MAX_MOVES];
-    ValMove            *cur
-        ,              *end
-        ,              *end_quiets
-        ,              *end_bad_captures;
+    uint8_t stage;
+
+    ValMove  m_list[MAX_MOVES];
+    ValMove *cur
+        ,   *end
+        ,   *end_quiets
+        ,   *end_bad_captures;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 

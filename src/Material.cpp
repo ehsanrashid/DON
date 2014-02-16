@@ -204,7 +204,7 @@ namespace Material {
             pos.non_pawn_material (BLACK),
         };
 
-        if (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
+        if (npm[WHITE] + npm[BLACK] == VALUE_ZERO && pos.pieces<PAWN> ())
         {
             if      (pos.count<PAWN> (BLACK) == 0
                 &&   pos.count<PAWN> (WHITE) >= 2)
@@ -236,7 +236,7 @@ namespace Material {
             if      (pos.count<PAWN> (WHITE) == 0)
             {
                 e->_factor[WHITE] = npm[WHITE] <= VALUE_MG_BISHOP ?
-                    0 : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
+                    SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
                     1 : npm[BLACK] <= VALUE_MG_BISHOP ? 
                     4 : 12;
             }
@@ -252,7 +252,7 @@ namespace Material {
             if      (pos.count<PAWN> (BLACK) == 0)
             {
                 e->_factor[BLACK] = npm[BLACK] <= VALUE_MG_BISHOP ?
-                    0 : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
+                    SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
                     1 : npm[WHITE] <= VALUE_MG_BISHOP ? 
                     4 : 12;
             }
