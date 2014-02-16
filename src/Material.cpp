@@ -88,7 +88,7 @@ namespace {
     template<Color C>
     // imbalance<> () calculates imbalance comparing
     // piece count of each piece type for both colors.
-    // KING == BISHOP PAIR
+    // KING == BISHOP_PAIR
     inline int32_t imbalance (const int32_t count[CLR_NO][NONE])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);

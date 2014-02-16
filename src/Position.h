@@ -70,9 +70,8 @@ public:
     Square en_passant;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint32_t
-        clock50,
-        null_ply;
+    uint8_t clock50
+        ,   null_ply;
 
     // -------------------------------------
 
@@ -172,7 +171,6 @@ private:
 
     Thread  *_thread;
 
-
 public:
 
     static uint8_t fifty_move_distance;
@@ -242,9 +240,9 @@ public:
     Square en_passant () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint32_t clock50 () const;
+    uint8_t clock50 () const;
     //
-    Move last_move () const;
+    Move  last_move () const;
     //
     PieceT cap_type () const;
     //
@@ -454,7 +452,7 @@ inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 inline Square   Position::en_passant    () const { return _si->en_passant; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline uint32_t Position::clock50       () const { return _si->clock50; }
+inline uint8_t  Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //

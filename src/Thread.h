@@ -166,7 +166,7 @@ struct Thread
     uint8_t              max_ply;
 
     SplitPoint* volatile active_split_point;
-    volatile uint8_t     split_point_size;
+    volatile uint8_t     split_point_threads;
     volatile bool        searching;
 
     Thread ();

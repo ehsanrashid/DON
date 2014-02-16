@@ -1014,7 +1014,7 @@ namespace {
         ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
         ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-        int32_t eg  = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
+        int16_t eg  = (eg_value (score) * int32_t (sf)) / SCALE_FACTOR_NORMAL;
         return Value ((mg_value (score) * int32_t (ph) + eg * int32_t (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
     }
 
@@ -1031,8 +1031,8 @@ namespace {
     inline Score weight_option  (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
     {
         // Scale option value from 100 to 256
-        int16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
-        int16_t eg = int32_t (*(Options[eg_opt])) * 256 / 100;
+        uint16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
+        uint16_t eg = int32_t (*(Options[eg_opt])) * 256 / 100;
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 

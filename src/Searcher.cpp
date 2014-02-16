@@ -976,13 +976,15 @@ namespace {
 
         // Step 10. Internal iterative deepening (skipped when in check)
         if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
-            && !tt_move
+            && tt_move == MOVE_NONE
             && (PVNode || (ss)->static_eval + Value (256) >= beta))
         {
             Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
 
             (ss)->skip_null_move = true;
+
             search<PVNode ? PV : NonPV> (pos, ss, alpha, beta, d, true);
+
             (ss)->skip_null_move = false;
 
             te = TT.retrieve (posi_key);
@@ -1047,11 +1049,12 @@ moves_loop: // When in check and at SPNode search starts from here
             ASSERT (_ok (move));
 
             if (move == excluded_move) continue;
-
             // At root obey the "searchmoves" option and skip moves not listed in Root
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
+            // TODO:: remove
+            if (!pos.pseudo_legal (move)) continue;
 
             if (SPNode)
             {
@@ -1351,7 +1354,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (   !SPNode
                 && depth >= Threads.min_split_depth
                 && Threads.available_slave (thread)
-                && thread->split_point_size < MAX_SPLIT_POINT_THREADS)
+                && thread->split_point_threads < MAX_SPLIT_POINT_THREADS)
             {
                 ASSERT (best_value < beta);
 
@@ -1583,6 +1586,9 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Check for legality just before making the move
+            // TODO:: remove
+            if (!pos.pseudo_legal (move)) continue;
+            
             if (!pos.legal (move, ci.pinneds)) continue;
 
             (ss)->current_move = move;
@@ -1799,7 +1805,7 @@ void check_time ()
         // all the currently active positions nodes.
         for (uint8_t i = 0; i < Threads.size (); ++i)
         {
-            for (uint8_t j = 0; j < Threads[i]->split_point_size; ++j)
+            for (uint8_t j = 0; j < Threads[i]->split_point_threads; ++j)
             {
                 SplitPoint &sp = Threads[i]->split_points[j];
                 sp.mutex.lock ();
@@ -1842,7 +1848,7 @@ void Thread::idle_loop ()
 {
     // Pointer 'this_sp' is not null only if we are called from split(), and not
     // at the thread creation. So it means we are the split point's master.
-    SplitPoint *this_sp = split_point_size ? active_split_point : NULL;
+    SplitPoint *this_sp = split_point_threads ? active_split_point : NULL;
 
     ASSERT (!this_sp || (this_sp->master_thread == this && searching));
 

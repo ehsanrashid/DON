@@ -63,7 +63,7 @@ void ThreadBase::wait_for (volatile const bool &b)
 Thread::Thread () : split_points ()  // Value-initialization bug in MSVC
 {
     searching = false;
-    max_ply = split_point_size = 0;
+    max_ply = split_point_threads = 0;
     active_split_point = NULL;
     active_pos         = NULL;
     idx = Threads.size ();
@@ -92,7 +92,7 @@ bool Thread::available_to (const Thread *master) const
 
     // Make a local copy to be sure doesn't become zero under our feet while
     // testing next condition and so leading to an out of bound access.
-    uint8_t size = split_point_size;
+    uint8_t size = split_point_threads;
 
     // No split points means that the thread is available as a slave for any
     // other thread otherwise apply the "helpful master" concept if possible.
@@ -229,10 +229,10 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     ASSERT (-VALUE_INFINITE < *best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     ASSERT (depth >= Threads.min_split_depth);
     ASSERT (searching);
-    ASSERT (split_point_size < MAX_SPLIT_POINT_THREADS);
+    ASSERT (split_point_threads < MAX_SPLIT_POINT_THREADS);
 
     // Pick the next available split point from the split point stack
-    SplitPoint &sp = split_points[split_point_size];
+    SplitPoint &sp = split_points[split_point_threads];
 
     sp.master_thread = this;
     sp.parent_split_point = active_split_point;
@@ -257,7 +257,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     Threads.mutex.lock ();
     sp.mutex.lock ();
 
-    ++split_point_size;
+    ++split_point_threads;
     active_split_point = &sp;
     active_pos = NULL;
 
@@ -290,7 +290,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
         ASSERT (!active_pos);
 
         // We have returned from the idle loop, which means that all threads are finished.
-        // Note that setting 'searching' and decreasing split_point_size is
+        // Note that setting 'searching' and decreasing split_point_threads is
         // done under lock protection to avoid a race with Thread::available_to().
         Threads.mutex.lock ();
         sp.mutex.lock ();
@@ -298,7 +298,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 
     searching = true;
 
-    --split_point_size;
+    --split_point_threads;
     active_split_point = sp.parent_split_point;
 
     active_pos  = &pos;
