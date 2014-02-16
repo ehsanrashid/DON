@@ -42,7 +42,7 @@ namespace {
 
         // king_attackers_count[color] is the number of pieces of the given color
         // which attack a square in the king_ring of the enemy king.
-        int32_t king_attackers_count[CLR_NO];
+        uint8_t king_attackers_count[CLR_NO];
 
         // king_attackers_weight[color] is the sum of the "weight" of the pieces of the
         // given color which attack a square in the king_ring of the enemy king. The
@@ -433,8 +433,8 @@ namespace {
             ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
             attacks &= ei.attacked_by[C][PAWN];
             ei.king_attackers_count[C]  = attacks ? pop_count<MAX15> (attacks) : 0;
-            ei.king_zone_attacks_count[C]   = 0;
-            ei.king_attackers_weight[C]     = 0;
+            ei.king_zone_attacks_count[C] = 0;
+            ei.king_attackers_weight  [C] = 0;
         }
         else
         {
@@ -1099,8 +1099,8 @@ namespace {
                 //<< " White: " << value_to_cp (margins[WHITE]) << "-"
                 //<< " Black: " << value_to_cp (margins[BLACK]) << "\n"
                 << "\nScaling: " << noshowpos
-                << setw (6) << (100.0 * ei.mi->game_phase()) / 128.0 << "% MG, "
-                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase()) / 128.0) << "% * "
+                << setw (6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
+                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase ()) / 128.0) << "% * "
                 << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
                 << "Total evaluation: " << value_to_cp (value);
 
