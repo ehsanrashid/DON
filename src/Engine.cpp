@@ -109,11 +109,12 @@ namespace Engine {
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifndef NDEBUG
-        //string f = "8/2p1q3/p3P3/2P4p/1P1P2kP/2N3P1/4B2K/8 b - - 0 1";
+        //string f = "r3k2r/p1p1qp2/bn2pbp1/3P4/2B1P3/2p2Q1p/PPPB1PPP/R3K2R w KQkq - 0 12";
         //Position p(f);
-        //BitBoard::print (p.checkers());
-        //BitBoard::print (p.checkers(p.active()));
-
+        //StateInfo si;
+        //p.do_move (mk_move(SQ_C4, SQ_B5), si);
+        //BitBoard::print(8589934592);
+        //cout << p;
         ////Tester::main_test ();
         //system ("pause");
         //return;

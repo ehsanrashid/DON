@@ -1,17 +1,14 @@
 #ifndef THREAD_H_
 #define THREAD_H_
 
-//#include <string>
-//#include <vector>
-
 #include "Pawns.h"
 #include "Material.h"
 #include "MovePicker.h"
 #include "Searcher.h"
 
-const int32_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
-const int32_t MAX_THREADS_SPLIT_POINT = 8;  // Maximum threads per split point
-const int32_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
+const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
+const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
+const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
 #ifndef _WIN32 // Linux - Unix
 
@@ -20,7 +17,7 @@ const int32_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 typedef pthread_mutex_t Lock;
 typedef pthread_cond_t WaitCondition;
 typedef pthread_t NativeHandle;
-typedef void*(*pt_start_fn)(void*);
+typedef void*(*ptr_fn)(void*);
 
 #   define lock_init(x)     pthread_mutex_init(&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock(&(x))
@@ -31,7 +28,7 @@ typedef void*(*pt_start_fn)(void*);
 #   define cond_signal(x)   pthread_cond_signal(&(x))
 #   define cond_wait(x,y)   pthread_cond_wait(&(x),&(y))
 #   define cond_timedwait(x,y,z)    pthread_cond_timedwait(&(x),&(y),z)
-#   define thread_create(x,f,t)     pthread_create(&(x),NULL,(pt_start_fn)f,t)
+#   define thread_create(x,f,t)     pthread_create(&(x),NULL,(ptr_fn)f,t)
 #   define thread_join(x)   pthread_join(x, NULL)
 
 #else // Windows and MinGW
@@ -77,28 +74,28 @@ struct Mutex
 {
 private:
     friend struct ConditionVariable;
-
-    Lock l;
+    Lock _lock;
 
 public:
-    Mutex()         { lock_init (l); }
-    ~Mutex()        { lock_destroy (l); }
+    Mutex ()         { lock_init (_lock); }
+    ~Mutex ()        { lock_destroy (_lock); }
 
-    void lock()     { lock_grab (l); }
-    void unlock()   { lock_release (l); }
+    void lock ()     { lock_grab (_lock); }
+    void unlock ()   { lock_release (_lock); }
 };
 
 struct ConditionVariable
 {
-    ConditionVariable()     { cond_init (c); }
-    ~ConditionVariable()    { cond_destroy (c); }
-
-    void wait(Mutex &m)     { cond_wait (c, m.l); }
-    void wait_for(Mutex &m, int32_t ms) { timed_wait (c, m.l, ms); }
-    void notify_one ()      { cond_signal (c); }
-
 private:
-    WaitCondition c;
+    WaitCondition cond;
+
+public:
+    ConditionVariable ()     { cond_init (cond); }
+    ~ConditionVariable ()    { cond_destroy (cond); }
+
+    void wait (Mutex &m)     { cond_wait (cond, m._lock); }
+    void wait_for (Mutex &m, int32_t ms) { timed_wait (cond, m._lock, ms); }
+    void notify_one ()       { cond_signal (cond); }
 };
 
 struct Thread;
@@ -122,10 +119,12 @@ struct SplitPoint
     Mutex                   mutex;
     volatile uint64_t       slaves_mask;
     volatile uint64_t       nodes;
+    volatile uint8_t        moves_count;
+
     volatile Value          alpha;
     volatile Value          best_value;
     volatile Move           best_move;
-    volatile int32_t        moves_count;
+    
     volatile bool           cut_off;
 };
 
@@ -156,18 +155,18 @@ struct ThreadBase
 struct Thread
     : public ThreadBase
 {
-    SplitPoint           split_points[MAX_THREADS_SPLIT_POINT];
+    SplitPoint           split_points[MAX_SPLIT_POINT_THREADS];
     Material::Table      material_table;
     Pawns   ::Table      pawns_table;
     EndGame ::Endgames   endgames;
 
     Position            *active_pos;
-    
+
     uint8_t              idx;
     uint8_t              max_ply;
 
     SplitPoint* volatile active_split_point;
-    volatile uint8_t     threads_split_point;
+    volatile uint8_t     split_point_size;
     volatile bool        searching;
 
     Thread ();
@@ -175,12 +174,12 @@ struct Thread
     virtual void idle_loop ();
 
     bool cutoff_occurred () const;
-    
+
     bool available_to (const Thread *master) const;
 
     template <bool FAKE>
     void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
-        Depth depth, int32_t moves_count, MovePicker *move_picker, Searcher::NodeT node_type, bool cut_node);
+        Depth depth, uint8_t moves_count, MovePicker *move_picker, Searcher::NodeT node_type, bool cut_node);
 
 };
 
@@ -220,8 +219,8 @@ struct ThreadPool
     : public std::vector<Thread*>
 {
     bool                sleep_idle;
-    Depth               split_depth;
-    uint8_t             threads_split_point;
+    Depth               min_split_depth;
+    uint8_t             max_split_point_threads;
     Mutex               mutex;
     ConditionVariable   sleep_condition;
     TimerThread        *timer;
@@ -342,66 +341,6 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 extern ThreadPool Threads;
 
 extern void prefetch (char *addr);
-
-//inline void cpu_id (uint32_t regs[4], int32_t i)
-//{
-//#ifdef _WIN32
-//
-//    __cpuid ((int32_t *) regs, i);
-//
-//#else
-//
-//    asm volatile
-//        ("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-//        : "a" (i), "c" (0));
-//    // ECX is set to zero for CPUID function 4
-//#endif
-//}
-//
-//inline std::string cpu_feature ()
-//{
-//    uint32_t regs[4];
-//
-//    // Get vendor
-//    char vendor[12];
-//    cpu_id (regs, 0);
-//    ((int32_t *)vendor)[0] = regs[1]; // EBX
-//    ((int32_t *)vendor)[1] = regs[3]; // EDX
-//    ((int32_t *)vendor)[2] = regs[2]; // ECX
-//    std::string cpu_vendor = std::string (vendor);
-//
-//    std::ostringstream ss;
-//
-//    cpu_id (regs, 1);
-//    // Get CPU features
-//    uint32_t cpuFeatures = regs[3]; // EDX
-//    // Logical core count per CPU
-//    uint32_t logical = (regs[1] >> 16) & 0xff; // EBX[23:16]
-//    ss << " logical cpus: " << logical << std::endl;
-//    uint32_t cores = logical;
-//
-//    if (cpu_vendor == "GenuineIntel")
-//    {
-//        // Get DCP cache info
-//        cpu_id (regs, 2);
-//        cores = ((regs[0] >> 26) & 0x3f) + 1; // EAX[31:26] + 1
-//    } 
-//    else if (cpu_vendor == "AuthenticAMD")
-//    {
-//        // Get NC: Number of CPU cores - 1
-//        cpu_id (regs, 0x80000008);
-//        cores = ((uint32_t)(regs[2] & 0xff)) + 1; // ECX[7:0] + 1
-//    }
-//
-//    ss << "    cpu cores: " << cores << std::endl;
-//
-//    // Detect hyper-threads  
-//    bool hyper_threads = cpuFeatures & (1 << 28) && cores < logical;
-//
-//    ss << "hyper-threads: " << std::boolalpha <<  hyper_threads << std::endl;
-//
-//    return ss.str ();
-//}
 
 
 #endif // THREAD_H_

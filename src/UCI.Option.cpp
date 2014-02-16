@@ -360,7 +360,7 @@ namespace UCI {
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware. The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 8, MAX_SPLIT_DEPTH, on_change_threads));
 
-        Options["Threads per Split Point"]      = OptionPtr (new SpinOption ( 5, 4, MAX_THREADS_SPLIT_POINT, on_change_threads));
+        Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
 
         Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 

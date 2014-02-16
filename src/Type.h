@@ -447,7 +447,6 @@ extern const Value PieceValue[PHASE_NO][ALLS];
 
 inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~(Color c) { return Color (c ^ BLACK); }
-
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
@@ -455,7 +454,6 @@ inline Color operator~(Color c) { return Color (c ^ BLACK); }
 //    os << CharColor[c];
 //    return os;
 //}
-
 
 inline bool      _ok (File f) { return !(f & ~int32_t (F_H)); }
 inline File operator~(File f) { return File (f ^ F_H); }
