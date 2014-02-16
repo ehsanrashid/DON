@@ -23,7 +23,7 @@ namespace {
     // analysis of "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    inline double move_importance (uint32_t ply)
+    inline double move_importance (uint16_t ply)
     {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
@@ -32,21 +32,18 @@ namespace {
 
     // remaining_time() calculate the time remaining
     template<TimeT TT>
-    inline uint32_t remaining_time (uint32_t time, uint32_t moves_to_go, uint32_t current_ply, uint16_t slow_mover)
+    inline uint32_t remaining_time (uint32_t time, uint8_t moves_to_go, uint16_t current_ply, uint16_t slow_mover)
     {
-        //const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
-        //const double TStealRatio = (OPTIMUM_TIME == TT ? 0 : StealRatio);
-
         double  curr_moves_importance = (move_importance (current_ply) * slow_mover) / 100;
         double other_moves_importance = 0.0;
 
-        for (uint32_t i = 1; i < moves_to_go; ++i)
+        for (uint8_t i = 1; i < moves_to_go; ++i)
         {
             other_moves_importance += move_importance (current_ply + 2 * i);
         }
 
-        double time_ratio1; //= (TMaxRatio * curr_moves_importance) / (TMaxRatio * curr_moves_importance + other_moves_importance);
-        double time_ratio2; //= (curr_moves_importance + TStealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
+        double time_ratio1;
+        double time_ratio2;
 
         if      (OPTIMUM_TIME == TT)
         {
@@ -64,7 +61,7 @@ namespace {
 
 }
 
-void TimeManager::initialize (const LimitsT &limits, uint32_t current_ply, Color c)
+void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color c)
 {
     /*
     We support four different kind of time controls:
@@ -90,7 +87,7 @@ void TimeManager::initialize (const LimitsT &limits, uint32_t current_ply, Color
     uint16_t slow_mover            = int32_t (*(Options["Slow Mover"]));
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
-    _unstable_pv_factor = 1;
+    _unstable_pv_factor  = 1.0;
     _optimum_search_time = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
 
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the

@@ -23,7 +23,7 @@ public:
         _unstable_pv_factor = 1 + best_move_changes;
     }
 
-    void initialize (const Searcher::LimitsT &limits, uint32_t current_ply, Color c);
+    void initialize (const Searcher::LimitsT &limits, uint16_t current_ply, Color c);
     
 } TimeManager;
 
