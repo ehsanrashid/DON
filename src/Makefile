@@ -31,9 +31,8 @@ EXE = DON
 PREFIX = /usr/local
 # Haiku has a non-standard filesystem layout
 ifeq ($(UNAME),Haiku)
-    PREFIX = /boot/common
+	PREFIX = /boot/common
 endif
-
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds and signature
@@ -42,8 +41,8 @@ SIGNBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o   \
-    MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o    \
-    Tester.o Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o
+	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o    \
+	Tester.o Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -81,89 +80,89 @@ sse     = no
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH),general-32)
-    arch    = any
+	arch    = any
 endif
 
 ifeq ($(ARCH),x86-32-old)
-    arch    = i386
+	arch    = i386
 endif
 
 ifeq ($(ARCH),x86-32)
-    arch    = i386
-    prefetch= yes
-    sse     = yes
+	arch    = i386
+	prefetch= yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),general-64)
-    arch    = any
-    bits    = 64
+	arch    = any
+	bits    = 64
 endif
 
 ifeq ($(ARCH),x86-64)
-    arch    = x86_64
-    bits    = 64
-    prefetch= yes
-    bsfq    = yes
-    sse     = yes
+	arch    = x86_64
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
-    arch    = x86_64
-    bits    = 64
-    prefetch= yes
-    bsfq    = yes
-    popcnt  = yes
-    sse     = yes
+	arch    = x86_64
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),armv7)
-    arch    = armv7
-    prefetch= yes
-    bsfq    = yes
+	arch    = armv7
+	prefetch= yes
+	bsfq    = yes
 endif
 
 ifeq ($(ARCH),osx-ppc-32)
-    arch    = ppc
-    os      = osx
+	arch    = ppc
+	os      = osx
 endif
 
 ifeq ($(ARCH),osx-ppc-64)
-    arch    = ppc64
-    os      = osx
-    bits    = 64
+	arch    = ppc64
+	os      = osx
+	bits    = 64
 endif
 
 ifeq ($(ARCH),linux-ppc-64)
-    arch    = ppc64
-    bits    = 64
+	arch    = ppc64
+	bits    = 64
 endif
 
 ifeq ($(ARCH),osx-x86-64)
-    arch    = x86_64
-    os      = osx
-    bits    = 64
-    prefetch= yes
-    bsfq    = yes
-    sse     = yes
+	arch    = x86_64
+	os      = osx
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),osx-x86-64-modern)
-    arch    = x86_64
-    os      = osx
-    bits    = 64
-    prefetch= yes
-    bsfq    = yes
-    popcnt  = yes
-    sse     = yes
+	arch    = x86_64
+	os      = osx
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
 endif
 
 ifeq ($(ARCH),osx-x86-32)
-    arch    = i386
-    os      = osx
-    prefetch= yes
-    bsfq    = no
-    popcnt  = no
-    sse     = yes
+	arch    = i386
+	os      = osx
+	prefetch= yes
+	bsfq    = no
+	popcnt  = no
+	sse     = yes
 endif
 
 
@@ -174,206 +173,159 @@ endif
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
-CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)
-
-    COMP= gcc
-
+	COMP= gcc
 endif
 
 ifeq ($(COMP),gcc)
-
-    comp= gcc
-    CXX = g++
-    CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
-
+	comp= gcc
+	CXX = g++
+	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(COMP),mingw)
-
-    comp= mingw
-    CXX = g++
-    CXXFLAGS += -Wextra -Wshadow
-    LDFLAGS  += -static-libstdc++ -static-libgcc
-
+	comp= mingw
+	CXX = g++
+	CXXFLAGS += -Wextra -Wshadow
+	LDFLAGS  += -static-libstdc++ -static-libgcc
 endif
 
 ifeq ($(COMP),icc)
-
-    comp= icc
-    CXX = icpc
-    CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
-
+	comp= icc
+	CXX = icpc
+	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP),clang)
-
-    comp= clang
-    CXX = clang++
-    CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
-
+	comp= clang
+	CXX = clang++
+	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(comp),icc)
-
-    profile_prepare = icc-profile-prepare
-    profile_make    = icc-profile-make
-    profile_use     = icc-profile-use
-    profile_clean   = icc-profile-clean
-
+	profile_prepare = icc-profile-prepare
+	profile_make    = icc-profile-make
+	profile_use     = icc-profile-use
+	profile_clean   = icc-profile-clean
 else
-
-    profile_prepare = gcc-profile-prepare
-    profile_make    = gcc-profile-make
-    profile_use     = gcc-profile-use
-    profile_clean   = gcc-profile-clean
-
+	profile_prepare = gcc-profile-prepare
+	profile_make    = gcc-profile-make
+	profile_use     = gcc-profile-use
+	profile_clean   = gcc-profile-clean
 endif
 
 ifeq ($(os),osx)
-
-    CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
-    LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.6
-
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
+	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.6
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
-
-    # On Android Bionic's C library comes with its own pthread implementation bundled in
-    ifneq ($(arch),armv7)
-        # Haiku has pthreads in its libroot, so only link it in on other platforms
-        ifneq ($(UNAME),Haiku)
-            LDFLAGS += -lpthread
-        endif
-    endif
-
+	# On Android Bionic's C library comes with its own pthread implementation bundled in
+	ifneq ($(arch),armv7)
+		# Haiku has pthreads in its libroot, so only link it in on other platforms
+		ifneq ($(UNAME),Haiku)
+			LDFLAGS += -lpthread
+		endif
+	endif
 endif
 
 ### 3.4 Debugging
 ifeq ($(debug),no)
-
-    CXXFLAGS += -DNDEBUG
-
+	CXXFLAGS += -DNDEBUG
 else
-
-    CXXFLAGS += -g
-
+	CXXFLAGS += -g
 endif
 
 ### 3.5 Optimization
 ifeq ($(optimize),yes)
+	ifeq ($(comp),gcc)
+		CXXFLAGS += -O3
+		ifeq ($(os),osx)
+			ifeq ($(arch),i386)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+			ifeq ($(arch),x86_64)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+		endif
+		ifeq ($(arch),armv7)
+			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
+		endif
+	endif
 
-    ifeq ($(comp),gcc)
+	ifeq ($(comp),mingw)
+		CXXFLAGS += -O3
+	endif
+	ifeq ($(comp),icc)
+		ifeq ($(os),osx)
+			CXXFLAGS += -fast -mdynamic-no-pic
+		else
+			CXXFLAGS += -fast
+		endif
+	endif
 
-        CXXFLAGS += -O3
+	ifeq ($(comp),clang)
+		ifeq ($(os),osx)
+			# Clang on OS X supports LTO
+			CXXFLAGS += -O4
+		else
+			CXXFLAGS += -O3
+		endif
 
-        ifeq ($(os),osx)
-            ifeq ($(arch),i386)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-            ifeq ($(arch),x86_64)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-        endif
-
-        ifeq ($(arch),armv7)
-            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
-        endif
-
-    endif
-
-    ifeq ($(comp),mingw)
-
-        CXXFLAGS += -O3
-
-    endif
-
-    ifeq ($(comp),icc)
-
-        ifeq ($(os),osx)
-            CXXFLAGS += -fast -mdynamic-no-pic
-        else
-            CXXFLAGS += -fast
-        endif
-
-    endif
-
-    ifeq ($(comp),clang)
-
-        ifeq ($(os),osx)
-            # Clang on OS X supports LTO
-            CXXFLAGS += -O4
-        else
-            CXXFLAGS += -O3
-        endif
-
-        ifeq ($(os),osx)
-            ifeq ($(arch),i386)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-            ifeq ($(arch),x86_64)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-        endif
-
-    endif
-
+		ifeq ($(os),osx)
+			ifeq ($(arch),i386)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+			ifeq ($(arch),x86_64)
+				CXXFLAGS += -mdynamic-no-pic
+			endif
+		endif
+	endif
 endif
 
 ### 3.6 Bits
 ifeq ($(bits),64)
-
-    CXXFLAGS += -D_64BIT
-
+	CXXFLAGS += -D_64BIT
 endif
 
 ### 3.7 prefetch
 ifeq ($(prefetch),yes)
-
-    CXXFLAGS += -DPREFETCH
-    ifeq ($(sse),yes)
-        CXXFLAGS += -msse
-        DEPENDFLAGS += -msse
-    endif
-
+	CXXFLAGS += -DPREFETCH
+	ifeq ($(sse),yes)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+	endif
 endif
 
 ### 3.8 bsfq
 ifeq ($(bsfq),yes)
-
-    CXXFLAGS += -DBSFQ
-
+	CXXFLAGS += -DBSFQ
 endif
 
 ### 3.9 popcnt
 ifeq ($(popcnt),yes)
-
-    CXXFLAGS += -msse3 -DPOPCNT
-
+	CXXFLAGS += -msse3 -DPOPCNT
 endif
 
 ### 3.10 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
-
-    ifeq ($(optimize),yes)
-
-        ifeq ($(debug),no)
-            GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
-            GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
-            ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
-                CXXFLAGS += -flto
-                LDFLAGS  += $(CXXFLAGS)
-            endif
-        endif
-
-    endif
-
+	ifeq ($(optimize),yes)
+	ifeq ($(debug),no)
+		GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
+		GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
+		ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
+			CXXFLAGS += -flto
+			LDFLAGS  += $(CXXFLAGS)
+		endif
+	endif
+	endif
 endif
 
 ### ==========================================================================
@@ -483,7 +435,6 @@ default:
 ### ==========================================================================
 ### Section 5. Private targets
 ### ==========================================================================
-
 
 all: $(EXE) .depend
 	@echo "=========================================="

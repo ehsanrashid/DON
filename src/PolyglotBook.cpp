@@ -390,11 +390,11 @@ string PolyglotBook::read_entries (const Position &pos)
     }
 
     ostringstream ss;
-    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PolyglotEntry pe)
+    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PolyglotEntry _pe)
     {
         ss  << setfill ('0')
-            << pe << " prob: " << right << fixed << width_prec (6, 2)
-            << (sum_weight ? double (pe.weight) * 100 / double (sum_weight) : 0.0)
+            << _pe << " prob: " << right << fixed << width_prec (6, 2)
+            << (sum_weight ? double (_pe.weight) * 100 / double (sum_weight) : 0.0)
             << endl;
     });
 
