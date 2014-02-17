@@ -14,7 +14,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 ### ==========================================================================
@@ -182,7 +182,7 @@ endif
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
 CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
-LDFLAGS  += $(EXTRALDFLAGS)
+LDFLAGS  += -ldl $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)
@@ -494,13 +494,13 @@ gcc-profile-prepare:
 gcc-profile-make:
 	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS= '-fprofile-generate' \
-	EXTRALDFLAGS = '-lgcov' \
+	EXTRALDFLAGS = '-lgcov'             \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS= '-fprofile-use' \
-	EXTRALDFLAGS = '-lgcov' \
+	EXTRACXXFLAGS= '-fprofile-use'      \
+	EXTRALDFLAGS = '-lgcov'             \
 	all
 
 gcc-profile-clean:
@@ -534,7 +534,7 @@ icc-profile-clean:
 ### ==========================================================================
 
 hpux:
-	$(MAKE) \
+	$(MAKE)      \
 	CXX = '/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG' \
 	CXXFLAGS= "" \
 	LDFLAGS = "" \
