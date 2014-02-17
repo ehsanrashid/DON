@@ -258,16 +258,17 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
     cond_timedwait (sleep_cond, sleep_lock, tm);
 }
 
+
 #if __cplusplus > 199711L
 #   include <thread>
 #endif
 
-inline int32_t cpu_count ()
+inline uint32_t cpu_count ()
 {
 
 #if __cplusplus > 199711L
     // May return 0 when not able to detect
-    return std::thread::hardware_concurrency ();
+    return ::std::thread::hardware_concurrency ();
 
 #else    
 

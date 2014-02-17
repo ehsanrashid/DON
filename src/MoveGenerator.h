@@ -6,7 +6,7 @@
 
 class Position;
 
-const uint16_t MAX_MOVES    = 256;
+const uint16_t MAX_MOVES = 256;
 
 typedef struct ValMove
 {
@@ -71,11 +71,12 @@ namespace MoveGenerator {
 
         void operator++ () { ++cur; }
         void operator-- () { --cur; }
-        void operator!  () { cur = beg; }
+        //void begin      () { cur = beg+0; }
+        //void endin      () { cur = end-1; }
 
         Move operator* () const { return cur->move; }
 
-        uint32_t size () const { return end - beg; }
+        uint16_t size  () const { return end - beg; }
 
         bool contains (Move m) const
         {

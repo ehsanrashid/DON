@@ -529,7 +529,7 @@ namespace MoveGenerator {
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers); // If any checker exists
         //if (!checkers) return m_list;
-        
+
         uint8_t checker_count = pop_count<MAX15> (checkers);
 
         Square org_king  = pos.king_sq (active);
