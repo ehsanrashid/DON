@@ -18,11 +18,8 @@ INLINE Square scan_lsq (Bitboard bb)
     unsigned long index;
 
 #ifdef _64BIT
-
     _BitScanForward64 (&index, bb);
-
 #else
-
     if (uint32_t (bb))
     {
         _BitScanForward (&index, bb);
@@ -32,7 +29,6 @@ INLINE Square scan_lsq (Bitboard bb)
         _BitScanForward (&index, bb >> 32);
         index += 32;
     }
-
 #endif
 
     return Square (index);
@@ -43,11 +39,8 @@ INLINE Square scan_msq (Bitboard bb)
     unsigned long index;
 
 #ifdef _64BIT
-
     _BitScanReverse64 (&index, bb);
-
 #else
-
     if (uint32_t (bb >> 32))
     {
         _BitScanReverse (&index, bb >> 32);
@@ -57,7 +50,6 @@ INLINE Square scan_msq (Bitboard bb)
     {
         _BitScanReverse (&index, bb);
     }
-
 #endif
 
     return Square (index);
@@ -78,7 +70,6 @@ INLINE uint8_t scan_lsb32 (uint32_t w)
 INLINE Square scan_lsq (Bitboard bb)
 {
 #ifdef _64BIT
-    // TODO::
     return Square (__builtin_clzll (bb));
 #else
     return Square  (uint32_t (bb) ?
