@@ -484,6 +484,7 @@ default:
 ### Section 5. Private targets
 ### ==========================================================================
 
+
 all: $(EXE) .depend
 	@echo "=========================================="
 	@echo "*            COMPILE SUCCESS             *"
@@ -523,6 +524,7 @@ config-sanity:
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
+# generating obj file
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
