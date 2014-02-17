@@ -50,17 +50,17 @@ namespace BitBoard {
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
     const Delta _deltas_pawn[CLR_NO][3] =
     {
-        { DEL_NW, DEL_NE },
-        { DEL_SE, DEL_SW },
+        { DEL_NW, DEL_NE, DEL_O },
+        { DEL_SE, DEL_SW, DEL_O },
     };
     const Delta _deltas_type[NONE][9] =
     {
-        {},
-        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
-        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, },
-        { DEL_S, DEL_W, DEL_E, DEL_N },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+        { DEL_O },
+        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
+        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
+        { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
+        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
+        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
     };
 
     // SQUARES
