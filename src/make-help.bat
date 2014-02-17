@@ -1,5 +1,3 @@
-ECHO OFF
-SET PATH=D:/MinGW/64/bin/;D:/MinGW/msys/bin/;
-ECHO ON
+@SET PATH=D:/MinGW/64/bin/;D:/MinGW/msys/bin/;
 make -f MakeFile help
-PAUSE
+@PAUSE
