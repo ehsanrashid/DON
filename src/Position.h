@@ -80,7 +80,7 @@ public:
     // Move played on the previous position.
     Move last_move;
     // Piece type captured.
-    PieceT cap_type;
+    PieceT capture;
 
     Bitboard checkers;
 
@@ -244,9 +244,9 @@ public:
     //
     Move  last_move () const;
     //
-    PieceT cap_type () const;
+    PieceT capture () const;
     //
-    Piece cap_piece () const;
+    //Piece cap_piece () const;
     //
     Bitboard checkers () const;
     //
@@ -456,9 +456,9 @@ inline uint8_t  Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //
-inline PieceT    Position::cap_type      () const { return _si->cap_type; }
+inline PieceT    Position::capture      () const { return _si->capture; }
 //
-inline Piece    Position::cap_piece     () const { return (NONE == cap_type ()) ? EMPTY : (_active | cap_type ()); }
+//inline Piece    Position::cap_piece     () const { return (NONE == capture ()) ? EMPTY : (_active | capture ()); }
 //
 inline Bitboard Position::checkers      () const { return _si->checkers; }
 //

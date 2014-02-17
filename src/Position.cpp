@@ -982,7 +982,7 @@ void Position::clear ()
     //_game_ply   = 1;
 
     _sb.en_passant = SQ_NO;
-    _sb.cap_type   = NONE;
+    _sb.capture   = NONE;
     _si = &_sb;
 }
 // setup() sets the fen on the position
@@ -1387,7 +1387,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Update the key with the final value
     _si->posi_key   = posi_k;
-    _si->cap_type   = ct;
+    _si->capture   = ct;
     _si->last_move  = m;
     _si->null_ply++;
     ++_game_ply;
@@ -1431,7 +1431,7 @@ void Position::undo_move ()
     MoveT mt = mtype (m);
     ASSERT (empty (org) || CASTLE == mt);
 
-    PieceT ct = _si->cap_type;
+    PieceT ct = _si->capture;
     ASSERT (KING != ct);
 
     Square cap = dst;

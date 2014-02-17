@@ -833,7 +833,7 @@ namespace {
             }
         }
 
-        if (   pos.cap_type () == NONE
+        if (   pos.capture () == NONE
             && (ss)->static_eval != VALUE_NONE
             && (ss-1)->static_eval != VALUE_NONE
             && (move = (ss-1)->current_move) != MOVE_NULL
@@ -952,9 +952,8 @@ namespace {
 
             // Initialize a MovePicker object for the current position,
             // and prepare to search the moves.
-            MovePicker mp (pos, tt_move, History, pos.cap_type ());
+            MovePicker mp (pos, tt_move, History, pos.capture ());
             
-
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
                 if (!pos.legal (move, ci.pinneds)) continue;

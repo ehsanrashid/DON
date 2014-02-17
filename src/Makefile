@@ -93,6 +93,14 @@ ifeq ($(ARCH),x86-32)
 	sse     = yes
 endif
 
+ifeq ($(ARCH),x86-32-modern)
+	arch    = i386
+	prefetch= yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
+endif
+
 ifeq ($(ARCH),general-64)
 	arch    = any
 	bits    = 64
@@ -352,8 +360,9 @@ help:
 	@echo "----------------"
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
-	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
+	@echo "x86-32                  > x86 32-bit with SSE support"
+	@echo "x86-32-modern           > x86 32-bit with popcnt support"
 	@echo "linux-ppc-64            > PPC-Linux 64 bit"
 	@echo "osx-ppc-64              > PPC-Mac OS X 64 bit"
 	@echo "osx-ppc-32              > PPC-Mac OS X 32 bit"
