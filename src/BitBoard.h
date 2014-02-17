@@ -224,7 +224,7 @@ namespace BitBoard {
         Bitboard slid_attacks = U64 (0);
         uint8_t i = 0;
         Delta del;
-        while (del = deltas[i++])
+        while ((del = deltas[i++]) != DEL_O)
         {
             Square sq = s + del;
             while (_ok (sq) && _square_dist[sq][sq - del] == 1)
