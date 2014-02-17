@@ -72,9 +72,9 @@ namespace Engine {
         ss << " w32";
 #endif
 
-        //#ifdef POPCNT
-        //        ss << " SSE4.2";
-        //#endif
+#ifdef POPCNT
+        ss << "-modern";
+#endif
 
         ss  << "\n" 
             << ((uci) ? "id author " : "(c) 2014 ")
