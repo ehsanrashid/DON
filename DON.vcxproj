@@ -473,6 +473,7 @@
       </AdditionalOptions>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>
@@ -492,6 +493,9 @@
       <StackReserveSize>2097152</StackReserveSize>
       <StackCommitSize>32768</StackCommitSize>
     </Link>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">
     <Midl />
@@ -635,14 +639,13 @@
     <None Include="DON.cd">
       <SubType>Designer</SubType>
     </None>
-    <None Include="IncludeFileDependencies.dgml">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="src\makeall-modern.bat" />
-    <None Include="src\makeall.bat" />
-    <None Include="src\makeclean.bat" />
+    <None Include="IncludeFileDependencies.dgml" />
+    <None Include="src\make-all-modern.bat" />
+    <None Include="src\make-all.bat" />
+    <None Include="src\make-clean.bat" />
+    <None Include="src\make-strip.bat" />
     <None Include="src\Makefile" />
-    <None Include="src\makehelp.bat" />
+    <None Include="src\make-help.bat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

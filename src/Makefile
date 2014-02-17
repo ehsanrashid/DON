@@ -1,8 +1,9 @@
 # DON, a UCI chess playing engine derived from Glaurung 2.1
 # Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
 # Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad
+# Copyright (C) 2008-2014 Ehsan Rashid
 #
-# Stockfish is free software: you can redistribute it and/or modify
+# DON is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -466,7 +467,7 @@ signature-build: build embed-signature
 signature-profile-build: build embed-signature profile-build
 
 strip:
-	strip $(EXE)
+	strip $(EXE).exe
 
 install:
 	-mkdir -p -m 755 $(BINDIR)
@@ -484,6 +485,9 @@ default:
 ### ==========================================================================
 
 all: $(EXE) .depend
+	@echo "=========================================="
+	@echo "*            COMPILE SUCCESS             *"
+	@echo "=========================================="
 
 config-sanity:
 	@echo ""
