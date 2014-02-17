@@ -77,37 +77,25 @@ INLINE uint8_t scan_lsb32 (uint32_t w)
 
 INLINE Square scan_lsq (Bitboard bb)
 {
-
 #ifdef _64BIT
-
     // TODO::
-    //return __builtin_clzll (bb);
-
+    return Square (__builtin_clzll (bb));
 #else
-
     return Square  (uint32_t (bb) ?
         scan_lsb32 (uint32_t (bb      )) :
         scan_lsb32 (uint32_t (bb >> 32)) + 32);
-
 #endif
-
 }
 
 INLINE Square scan_msq (Bitboard bb)
 {
-
 #ifdef _64BIT
-
     return Square (63 - __builtin_clzll (bb));
-
 #else
-
     return Square (63 - (uint32_t (bb) ?
         __builtin_clz (bb) :
         __builtin_clz (bb >> 32) + 32));
-
 #endif
-
 }
 
 #   else
@@ -119,6 +107,7 @@ INLINE Square scan_lsq (Bitboard bb)
     __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
     return Square (index);
 }
+
 INLINE Square scan_msq (Bitboard bb)
 {
     Bitboard index;
