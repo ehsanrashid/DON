@@ -23,7 +23,7 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position RootPos (int8_t (0));
+        Position RootPos (0);
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).

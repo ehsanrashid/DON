@@ -35,7 +35,7 @@ const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 bool _ok (const   char *fen, bool c960, bool full)
 {
     if (!fen)   return false;
-    Position pos (int8_t (0));
+    Position pos (0);
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 #endif
@@ -43,7 +43,7 @@ bool _ok (const   char *fen, bool c960, bool full)
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
-    Position pos (int8_t (0));
+    Position pos (0);
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 
@@ -417,7 +417,6 @@ bool Position::ok (int8_t *failed_step) const
     {
         if (checkers (~_active))
         {
-            //cout << *this;
             return false;
         }
     }
@@ -510,7 +509,7 @@ Value Position::see      (Move m) const
 
     // Gain list
     Value swap_list[32];
-    
+
     int8_t depth = 1;
     swap_list[0] = PieceValue[MG][_ptype (piece_on (dst))];
 
@@ -668,7 +667,7 @@ bool Position::pseudo_legal (Move m) const
 
         if (R_1 != r_org || R_1 != r_dst) return false;
 
-        //if (castle_impeded (active)) return false;
+        if (castle_impeded (active)) return false;
         if (!can_castle (active)) return false;
         if (checkers ()) return false;
 
@@ -677,24 +676,22 @@ bool Position::pseudo_legal (Move m) const
 
         Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
         ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
-
-        dst             = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-        //Square dst_rook = rel_sq (active, king_side ? SQ_WR_K : SQ_WR_Q);
-        Delta step      = king_side ? DEL_E : DEL_W;
+        dst = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
+        
+        Delta step = king_side ? DEL_E : DEL_W;
         Bitboard enemies = pieces (pasive);
-        Square s  = org + step;
-        while (s != dst + step)
+
+        for (Square s  = org + step;
+            s != dst + step; s += step)
         {
             if (attackers_to (s) & enemies)
             {
                 return false;
             }
-            s += step;
         }
 
         //ct = NONE;
         return true;
-
     }
     else if (PROMOTE   == mt)
     {
@@ -710,7 +707,9 @@ bool Position::pseudo_legal (Move m) const
             || R_5 != r_org
             || R_6 != r_dst
             || !empty (dst))
+        {
             return false;
+        }
 
         cap += pawn_push (pasive);
         if ((pasive | PAWN) != piece_on (cap)) return false;
@@ -766,8 +765,9 @@ bool Position::pseudo_legal (Move m) const
                 || R_4 != r_dst
                 || !empty (dst)
                 || !empty (org + pawn_push (active)))
+            {
                 return false;
-
+            }
             break;
 
         default:
@@ -877,7 +877,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
     // A non-king move is legal if and only if it is not pinned or it
     // is moving along the ray towards or away from the king or
     // is a blocking evasion or a capture of the checking piece.
-    return !pinned
+    return !(pinned)
         || !(pinned & org)
         || sqrs_aligned (org, dst, ksq);
 }
@@ -989,7 +989,7 @@ void Position::clear ()
 #ifndef NDEBUG
 bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 {
-    //Position pos (int8_t (0));
+    //Position pos (0);
     //if (parse (pos, fen, thread, c960, full) && pos.ok ())
     //{
     //    *this = pos;
@@ -1002,7 +1002,7 @@ bool Position::setup (const   char *fen, Thread *thread, bool c960, bool full)
 #endif
 bool Position::setup (const string &fen, Thread *thread, bool c960, bool full)
 {
-    //Position pos (int8_t (0));
+    //Position pos (0);
     //if (parse (pos, fen, thread, c960, full) && pos.ok ())
     //{
     //    *this = pos;

@@ -126,7 +126,7 @@ namespace TrivialLogger {
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
     << "\'"<<#var<<" = "<<var<<"\'" << ::std::endl; \
-    } } while(false)
+    } } while (false)
 
 // macro prints value of constant strings to the logger stream
 #define TRI_LOG_MSG(msg)                            \
@@ -137,7 +137,7 @@ namespace TrivialLogger {
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
     << "\"" << msg << "\"" << ::std::endl;          \
-    } } while(false)
+    } } while (false)
 
 
 

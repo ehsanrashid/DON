@@ -230,7 +230,7 @@ namespace Tester {
         {
             const char *fen;
             char buf[MAX_FEN];
-            Position pos (int8_t (0));
+            Position pos (0);
             Square s;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -428,7 +428,7 @@ namespace Tester {
         void test_position ()
         {
             string fen;
-            Position pos (int8_t (0));
+            Position pos (0);
 
             //Test pinned position in pinned()
             fen = "8/8/8/8/4n3/1kb5/3R4/4K3 w - - 0 1";
@@ -452,7 +452,7 @@ namespace Tester {
             //}
 
             const char *fen;
-            Position pos (int8_t (0));
+            Position pos (0);
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             Position::parse (pos, fen);
@@ -493,7 +493,7 @@ namespace Tester {
         void test_move ()
         {
             string fen;
-            Position pos (int8_t (0));
+            Position pos (0);
             StateInfo states[50], *si; 
             Move m;
 

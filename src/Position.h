@@ -191,7 +191,7 @@ public:
     }
     Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
 
-    explicit Position (int8_t dummy) { ++dummy; }
+    explicit Position (int32_t dummy) { ++dummy; }
 
     Position& operator= (const Position &pos);
 
