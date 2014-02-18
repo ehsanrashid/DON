@@ -130,7 +130,7 @@ void benchmark (istream &is, const Position &pos)
         cerr << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << total << "\n";
 
-        if (limit_type == "perft")
+        if ("perft" == limit_type)
         {
             uint64_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
             cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";

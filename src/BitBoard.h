@@ -343,7 +343,9 @@ namespace BitBoard {
 
     extern void initialize ();
 
+#ifndef NDEBUG
     extern void print (Bitboard bb, char p = 'o');
+#endif
 
 }
 

@@ -259,18 +259,18 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 }
 
 
-#if __cplusplus > 199711L
-#   include <thread>
-#endif
+//#if __cplusplus > 199711L
+//#   include <thread>
+//#endif
 
 inline uint32_t cpu_count ()
 {
 
-#if __cplusplus > 199711L
-    // May return 0 when not able to detect
-    return ::std::thread::hardware_concurrency ();
-
-#else    
+//#if __cplusplus > 199711L
+//    // May return 0 when not able to detect
+//    return std::thread::hardware_concurrency ();
+//
+//#else    
 
 #   if defined(WIN32)
 
@@ -317,10 +317,9 @@ inline uint32_t cpu_count ()
 
 #   endif
 
-#endif
+//#endif
 
 }
-
 
 typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
 
