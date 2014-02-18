@@ -55,8 +55,8 @@ namespace UCI {
         typedef class  CheckOption : public Option
         {
         public:
-            bool _default;
-            bool _value;
+            bool  _default
+                , _value;
 
             CheckOption (const bool val, const OnChange on_change = NULL);
 
@@ -71,8 +71,8 @@ namespace UCI {
         typedef class StringOption : public Option
         {
         public:
-            std::string _default;
-            std::string _value;
+            std::string _default
+                ,       _value;
 
             StringOption (const char val[], const OnChange on_change = NULL);
 
@@ -87,9 +87,9 @@ namespace UCI {
         typedef class   SpinOption : public Option
         {
         public:
-            int32_t _default;
-            int32_t _value;
-            int32_t _min_value
+            int32_t _default
+                ,   _value
+                ,   _min_value
                 ,   _max_value;
 
             SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
@@ -102,19 +102,17 @@ namespace UCI {
 
         }   SpinOption;
 
-        typedef class  ComboOption : public Option
-        {
-        public:
-            // _value;
-
-            ComboOption (const OnChange on_change = NULL);
-
-            std::string operator() ()  const;
-
-            //Option& operator= (char        *value);
-            Option& operator= (std::string &value);
-
-        }  ComboOption;
+        //typedef class  ComboOption : public Option
+        //{
+        //public:
+        //    ComboOption (const OnChange on_change = NULL);
+        //
+        //    std::string operator() ()  const;
+        //
+        //    //Option& operator= (char        *value);
+        //    Option& operator= (std::string &value);
+        //
+        //}  ComboOption;
 
 
         template<class charT, class Traits>
@@ -152,10 +150,11 @@ namespace UCI {
                 itr = options.begin ();
                 itr != options.end (); ++itr)
             {
-                if (idx == itr->second->index)
+                const OptionPtr &option_ptr = itr->second;
+                if (idx == (option_ptr)->index)
                 {
-                    const OptionType::Option *opt = itr->second.get ();
-                    os << "option name " << itr->first << " " << opt << std::endl;
+                    const OptionType::Option *option = (option_ptr).get ();
+                    os << "option name " << itr->first << " " << option << std::endl;
                     break;
                 }
             }

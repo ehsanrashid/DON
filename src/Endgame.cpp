@@ -77,7 +77,7 @@ namespace EndGame {
         // fen string could correspond to an illegal position.
         inline Key key (const string &code, Color c)
         {
-            int32_t length = code.length (); 
+            uint8_t length = code.length (); 
             ASSERT (0 < length && length <= 8);
             ASSERT (code[0] == 'K');
 

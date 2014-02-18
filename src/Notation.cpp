@@ -309,18 +309,16 @@ const string move_to_san (Move m, Position &pos)
 // score_uci() converts a value to a string suitable
 // for use with the UCI protocol specifications:
 //
-// cp <x>     The score x from the engine's point of view in centipawns.
+// cp   <x>   The score x from the engine's point of view in centipawns.
 // mate <y>   Mate in y moves, not plies.
 //            If the engine is getting mated use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
     stringstream ss;
 
-    int32_t abs_v = abs (int32_t (v));
-    if (abs_v < VALUE_MATES_IN_MAX_PLY)
+    if (abs (v) < VALUE_MATES_IN_MAX_PLY)
     {
-        //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
-        ss << "cp " << int32_t (v) * 100 / VALUE_MG_PAWN;
+        ss << "cp " << int32_t (v) * 50 / int32_t (VALUE_MG_PAWN);
     }
     else
     {

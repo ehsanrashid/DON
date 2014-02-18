@@ -59,11 +59,13 @@ namespace Time {
 
         //char str_time[26];
         //errno_t err = ctime_s (str_time, sizeof (str_time), &time);
+
         //if (err)
-        //if (!str_time[0])
-        //{
-        //    return std::string ("ERROR: Invalid time ") + std::to_string (uint64_t (time));
-        //}
+        if (!*str_time)
+        {
+            stime << "ERROR: Invalid time '" << time << "'";
+            return stime.str ();
+        }
 
         str_time[10] = '\0';
         str_time[19] = '\0';

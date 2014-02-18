@@ -36,7 +36,9 @@ namespace UCI {
         {}
         string ButtonOption::operator() () const
         {
-            return string ("type button");
+            ostringstream os;
+            os  << "type button";
+            return os.str ();
         }
         //Option& ButtonOption::operator= (char *value)
         //{
@@ -58,7 +60,10 @@ namespace UCI {
         }
         string CheckOption::operator() () const
         {
-            return string ("type check default ") + string (_default ? "true" : "false");
+            ostringstream os;
+            os  << "type check"
+                << " default " << boolalpha << _default;
+            return os.str ();
         }
         CheckOption::operator bool () const
         {
@@ -94,11 +99,14 @@ namespace UCI {
         }
         string StringOption::operator() () const
         {
-            return string ("type string default ") + string (whitespace (_default) ? "<empty>" : _value);
+            ostringstream os;
+            os  << "type string"
+                << " default "  << (whitespace (_default) ? "<empty>" : _default);
+            return os.str ();
         }
         StringOption::operator string () const
         {
-            return whitespace (_value) ? "<empty>" : _value;
+            return (whitespace (_value) ? "<empty>" : _value);
         }
         //Option& StringOption::operator= (char *value)
         //{
@@ -128,9 +136,12 @@ namespace UCI {
         }
         string SpinOption::operator() () const
         {
-            return string ("type spin default ") + std::to_string (int64_t (_default)) +
-                string (" min ") + std::to_string (int64_t (_min_value)) +
-                string (" max ") + std::to_string (int64_t (_max_value));
+            ostringstream os;
+            os  << "type spin"
+                << " default "  << _default
+                << " min "      << _min_value
+                << " max "      << _max_value;
+            return os.str ();
         }
         SpinOption::operator int32_t () const
         {
@@ -167,25 +178,28 @@ namespace UCI {
             return *this;
         }
 
-        ComboOption::ComboOption (const OnChange on_change)
-            : Option (on_change)
-        {}
-        string ComboOption::operator() () const
-        {
-            return string ("type combo");
-        }
-        //Option& ComboOption::operator= (char *value)
+        //ComboOption::ComboOption (const OnChange on_change)
+        //    : Option (on_change)
+        //{}
+        //string ComboOption::operator() () const
         //{
-        //    value;
+        //    ostringstream os;
+        //    os  << "type combo";
+        //    return os.str ();
+        //}
+        ////Option& ComboOption::operator= (char *value)
+        ////{
+        ////    value;
+        ////    if (_on_change) _on_change (*this);
+        ////    return *this;
+        ////}
+        //Option& ComboOption::operator= (string &value)
+        //{
+        //    (void) value;
         //    if (_on_change) _on_change (*this);
         //    return *this;
         //}
-        Option& ComboOption::operator= (string &value)
-        {
-            (void) value;
-            if (_on_change) _on_change (*this);
-            return *this;
-        }
+
     }
 
     // option-events
