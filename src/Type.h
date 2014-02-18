@@ -178,11 +178,13 @@ typedef enum Piece : uint8_t
     B_BSHP    , //  1010
     B_ROOK    , //  1011
     B_QUEN    , //  1100
-    B_KING      //  1101
+    B_KING    , //  1101
 
     // TOTAL piece is 14
-    //W_PIEC    = 0x00, //  0...
-    //B_PIEC    = 0x08, //  1...
+    TOTAL       //  1110
+
+    //W_PIECE = 0x00, //  0...
+    //B_PIECE = 0x08, //  1...
 } Piece;
 
 // Types of Move
@@ -416,8 +418,6 @@ inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); retur
 ARTHMAT_OPERATORS (Value)
 INC_DEC_OPERATORS (Value)
 // Additional operators to add integers to a Value
-//inline Value  operator+  (Value v, int32_t i) { return Value (int32_t (v) + i); }
-//inline Value  operator-  (Value v, int32_t i) { return Value (int32_t (v) - i); }
 inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
 inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
 inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }

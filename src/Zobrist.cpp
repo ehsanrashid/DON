@@ -339,8 +339,6 @@ namespace Zobrist {
 
 }
 
-#pragma region Zobrist Code
-
 // Random numbers from PolyGlot, used to compute book hash keys
 const Zobrist::Zob ZobPG =
 {
@@ -572,8 +570,6 @@ const Zobrist::Zob ZobPG =
     U64 (0xF8D626AAAF278509)
 
 };
-
-#pragma endregion
 
 //Zobrist::Zob ZobRand;
 

@@ -165,7 +165,7 @@ namespace {
         return cnt;
     }
 
-#pragma region Debug
+    // Debug > ----------------------------------------------------
 
     // Debug functions used mainly to collect run-time statistics
     uint64_t
@@ -196,8 +196,7 @@ namespace {
                 << endl;
         }
     }
-
-#pragma endregion
+    // Debug < ----------------------------------------------------
 
 } // namespace
 
@@ -1081,7 +1080,7 @@ moves_loop: // When in check and at SPNode search starts from here
                             << "info"
                             //<< " depth "          << uint32_t (depth) / ONE_MOVE
                             << " time "           << elapsed
-                            << " currmovenumber " << setw (2) << moves_count + IndexPV
+                            << " currmovenumber " << setw (2) << uint32_t (moves_count + IndexPV)
                             << " currmove "       << move_to_can (move, pos.chess960 ())
                             << sync_endl;
                     }
