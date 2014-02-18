@@ -81,6 +81,7 @@ public:
     ~Mutex ()        { lock_destroy (_lock); }
 
     void lock ()     { lock_grab (_lock); }
+
     void unlock ()   { lock_release (_lock); }
 };
 
@@ -94,7 +95,9 @@ public:
     ~ConditionVariable ()    { cond_destroy (cond); }
 
     void wait (Mutex &m)     { cond_wait (cond, m._lock); }
+
     void wait_for (Mutex &m, int32_t ms) { timed_wait (cond, m._lock, ms); }
+    
     void notify_one ()       { cond_signal (cond); }
 };
 
@@ -145,6 +148,7 @@ struct ThreadBase
     virtual void idle_loop () = 0;
 
     void notify_one ();
+
     void wait_for (volatile const bool &b);
 };
 
