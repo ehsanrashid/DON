@@ -88,11 +88,11 @@ namespace UCI {
         {
         public:
             int32_t _default
-                ,   _value
-                ,   _min_value
-                ,   _max_value;
+                ,   _minimum
+                ,   _maximum
+                ,   _value;
 
-            SpinOption (int32_t val, int32_t min_val, int32_t max_val, const OnChange on_change = NULL);
+            SpinOption (int32_t val, int32_t minimum, int32_t maximum, const OnChange on_change = NULL);
 
             std::string operator() ()  const;
             operator int32_t () const;

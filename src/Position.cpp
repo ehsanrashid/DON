@@ -1551,8 +1551,6 @@ void Position::flip ()
     sfen >> ch;
     fen_ += ch + " ";
     toggle (fen_);
-    //transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)
-    //{ return char (islower (c) ? toupper (c) : tolower (c)); });
 
     // 4. En-passant square
     sfen >> ch;

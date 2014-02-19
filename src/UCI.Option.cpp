@@ -127,20 +127,20 @@ namespace UCI {
             return *this;
         }
 
-        SpinOption::SpinOption (int32_t value, int32_t min_val, int32_t max_val, const OnChange on_change)
+        SpinOption::SpinOption (int32_t value, int32_t minimum, int32_t maximum, const OnChange on_change)
             : Option (on_change)
         {
             _default = _value = value;
-            _min_value = min_val;
-            _max_value = max_val;
+            _minimum = minimum;
+            _maximum = maximum;
         }
         string SpinOption::operator() () const
         {
             ostringstream os;
             os  << "type spin"
                 << " default "  << _default
-                << " min "      << _min_value
-                << " max "      << _max_value;
+                << " min "      << _minimum
+                << " max "      << _maximum;
             return os.str ();
         }
         SpinOption::operator int32_t () const
@@ -151,8 +151,8 @@ namespace UCI {
         //{
         //    if (whitespace (value)) return *this;
         //    int32_t value = to_int (value);
-        //    value = min (max (value, _min_value), _max_value);
-        //    //if (_min_value < value && value < _max_value)
+        //    value = min (max (value, _minimum), _maximum);
+        //    //if (_minimum < value && value < _maximum)
         //    {
         //        if (_value != value)
         //        {
@@ -166,8 +166,8 @@ namespace UCI {
         {
             if (whitespace (value)) return *this;
             int32_t val = stoi (value);
-            val = min (max (val, _min_value), _max_value);
-            //if (_min_value < val && val < _max_value)
+            val = min (max (val, _minimum), _maximum);
+            //if (_minimum < val && val < _maximum)
             {
                 if (_value != val)
                 {

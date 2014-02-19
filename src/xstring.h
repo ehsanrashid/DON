@@ -20,23 +20,23 @@ namespace std {
         if (s.empty ()) return true;
         for (size_t i = 0; i < s.length (); ++i)
         {
-            if (!isspace ((unsigned char) (s[i]))) return false;
+            if (!isspace (s[i])) return false;
         }
         return true;
     }
 
-    inline std::string& to_lower (std::string &s)
-    {
-        //std::transform (s.begin (), s.end (), std::back_inserter (s), ::tolower);
-        std::transform (s.begin (), s.end (), s.begin (), ::tolower);
-        return s;
-    }
-    inline std::string& to_upper (std::string &s)
-    {
-        //std::transform (s.begin (), s.end (), std::back_inserter (s), ::toupper);
-        std::transform (s.begin (), s.end (), s.begin (), ::toupper);
-        return s;
-    }
+    //inline std::string& to_lower (std::string &s)
+    //{
+    //    //std::transform (s.begin (), s.end (), std::back_inserter (s), ::tolower);
+    //    std::transform (s.begin (), s.end (), s.begin (), ::tolower);
+    //    return s;
+    //}
+    //inline std::string& to_upper (std::string &s)
+    //{
+    //    //std::transform (s.begin (), s.end (), std::back_inserter (s), ::toupper);
+    //    std::transform (s.begin (), s.end (), s.begin (), ::toupper);
+    //    return s;
+    //}
 
     //inline char toggle_c (char c)
     //{
@@ -55,17 +55,16 @@ namespace std {
         return s;
     }
 
+    // char case-sensitive equals
+    //inline bool equals_c (char c1, char c2)     { return (c1 == c2); }
+
     // string case-sensitive equals
     inline bool  equals (const std::string &s1, const std::string &s2)
     {
         //return !strcmp(s1.c_str (), s2.c_str ());
+
         return (s1 == s2);
     }
-
-    // char case-sensitive equals
-    //inline bool equals_c (char c1, char c2)     { return (c1 == c2); }
-    //inline bool notequals (char c1, char c2)  { return (c1 != c2); }
-
     // string case-insensitive equals
     inline bool iequals (const std::string &s1, const std::string &s2)
     {
@@ -86,6 +85,7 @@ namespace std {
 
     }
 
+    /*
     // trim from head
     inline std::string& ltrim (std::string &s, char c = ' ')
     {
@@ -330,7 +330,7 @@ namespace std {
     //    return path.find_last_of ("/\\");
     //
     //}
-
+    */
 }
 
 #endif
