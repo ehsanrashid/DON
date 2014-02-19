@@ -28,7 +28,7 @@ namespace Engine {
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "1.0b";
+        const string Version   = "";
         const string Author    = "Ehsan Rashid";
 
         const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
@@ -45,13 +45,13 @@ namespace Engine {
         if (Version.empty ())
         {
             // From compiler, format is "Sep 2 2013"
-            stringstream date (__DATE__);
-            string
-                month,
-                day,
-                year;
+            istringstream sdate (__DATE__);
 
-            date 
+            string month
+                ,  day
+                ,  year;
+
+            sdate
                 >> month
                 >> day
                 >> year;
