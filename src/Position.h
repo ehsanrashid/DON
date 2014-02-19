@@ -70,8 +70,9 @@ public:
     Square en_passant;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint8_t clock50
-        ,   null_ply;
+    uint8_t clock50;
+    // 
+    uint8_t null_ply;
 
     // -------------------------------------
 
@@ -80,8 +81,8 @@ public:
     // Move played on the previous position.
     Move last_move;
     // Piece type captured.
-    PieceT capture;
-
+    PieceT cap_type;
+    // Checkers bitboard
     Bitboard checkers;
 
     StateInfo *p_si;
@@ -110,8 +111,6 @@ public:
     CheckInfo () {}
 
     explicit CheckInfo (const Position &pos);
-
-    void clear ();
 
 } CheckInfo;
 
@@ -143,7 +142,7 @@ private:
     // Board for storing pieces.
     Piece    _piece_arr[SQ_NO];
     Bitboard _color_bb[CLR_NO];
-    Bitboard _types_bb[ALLS];
+    Bitboard _types_bb[TOTS];
 
     Square   _piece_list [CLR_NO][NONE][16];
     uint8_t  _piece_count[CLR_NO][NONE];
@@ -242,12 +241,12 @@ public:
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
     uint8_t clock50 () const;
-    //
+    // Last move played
     Move  last_move () const;
-    //
-    PieceT capture () const;
-    //
-    //Piece cap_piece () const;
+    // Last piece type captured
+    PieceT cap_type () const;
+    // Last piece captured
+    Piece cap_piece () const;
     //
     Bitboard checkers () const;
     //
@@ -328,9 +327,7 @@ public:
     bool gives_check  (Move m, const CheckInfo &ci) const;
     bool checkmate    (Move m, const CheckInfo &ci) const;
 
-    //bool   passed_pawn_push (Move m)             const;
     bool advanced_pawn_push (Move m)             const;
-
 
     bool passed_pawn (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
@@ -413,7 +410,7 @@ public:
 
 inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
-inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
+inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
 inline bool     Position::empty   (Square s) const { return EMPTY == _piece_arr[s]; }
@@ -436,18 +433,13 @@ inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return 
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 
+
 inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
 
 template<PieceT PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
 inline int32_t Position::count (Color c) const
 {
-    //return  count<PAWN>(c)
-    //    +   count<NIHT>(c)
-    //    +   count<BSHP>(c)
-    //    +   count<ROOK>(c)
-    //    +   count<QUEN>(c)
-    //    +   count<KING>(c);
     return  _piece_count[c][PAWN]
     +       _piece_count[c][NIHT]
     +       _piece_count[c][BSHP]
@@ -459,17 +451,10 @@ inline int32_t Position::count (Color c) const
 template<PieceT PT>
 inline int32_t Position::count ()        const
 {
-    //return count<PT>(WHITE) + count<PT>(BLACK);
     return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
 }
 inline int32_t Position::count ()        const
 {
-    //return  count<PAWN>()
-    //    +   count<NIHT>()
-    //    +   count<BSHP>()
-    //    +   count<ROOK>()
-    //    +   count<QUEN>()
-    //    +   count<KING>();
     return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
     +       _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
     +       _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
@@ -478,9 +463,9 @@ inline int32_t Position::count ()        const
     +       _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
 }
 
-
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
+
 
 // Castling rights for both side
 inline CRight   Position::castle_rights () const { return _si->castle_rights; }
@@ -492,9 +477,9 @@ inline uint8_t  Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //
-inline PieceT    Position::capture      () const { return _si->capture; }
+inline PieceT   Position::cap_type       () const { return _si->cap_type; }
 //
-//inline Piece    Position::cap_piece     () const { return (NONE == capture ()) ? EMPTY : (_active | capture ()); }
+inline Piece    Position::cap_piece     () const { return (NONE == cap_type ()) ? EMPTY : (_active | cap_type ()); }
 //
 inline Bitboard Position::checkers      () const { return _si->checkers; }
 //

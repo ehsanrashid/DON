@@ -1,7 +1,9 @@
 #include "Endgame.h"
+
 #include <algorithm>
 #include <cassert>
 
+#include "Position.h"
 #include "BitBoard.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
@@ -154,12 +156,14 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
 
+        int32_t w_count = pos.count (_stong_side);
+
         Value value;
 
         if (   !pos.count<PAWN> (_stong_side)
             && (pos.non_pawn_material(_stong_side) < VALUE_MG_ROOK
-            || ((pos.count (_stong_side) - pos.count<BSHP> (_stong_side) == 1) && !pos.bishops_pair (_stong_side))
-            || ((pos.count (_stong_side) - pos.count<NIHT> (_stong_side) == 1) && pos.count<NIHT> (_stong_side) <= 2)))
+            || ((w_count - pos.count<BSHP> (_stong_side) == 1) && !pos.bishops_pair (_stong_side))
+            || ((w_count - pos.count<NIHT> (_stong_side) == 1) && pos.count<NIHT> (_stong_side) <= 2)))
         {
             value = Value ((PushToEdges[bk_sq] + PushClose[square_dist (wk_sq, bk_sq)]) / 8); 
         }

@@ -4,7 +4,7 @@
 
 #include <iosfwd>
 
-#include "Position.h"
+class Position;
 
 extern void benchmark (std::istream &is, const Position &pos);
 

@@ -30,7 +30,6 @@ namespace Pawns {
         uint8_t _semiopen_files [CLR_NO];
         Score   _king_safety    [CLR_NO];
 
-
         inline Score    pawn_score()             const { return _pawn_score; }
         inline Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
         inline Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }

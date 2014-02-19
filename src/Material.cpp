@@ -4,6 +4,8 @@
 #include <cassert>
 #include <cstring>
 
+#include "Position.h"
+
 using namespace std;
 using namespace BitBoard;
 using namespace EndGame;
@@ -58,10 +60,11 @@ namespace {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
-            //&& pos.non_pawn_material (C_) == VALUE_ZERO
-            //&& pos.count<PAWN> (C_) == 0
+            && pos.non_pawn_material (C_) == VALUE_ZERO
+            && pos.count<PAWN> (C_) == 0
             //&& pos.count (C ) >= 1
-            && pos.count (C_) == 1;
+            //&& pos.count (C_) == 1
+            ;
     }
 
     template<Color C> 

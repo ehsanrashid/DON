@@ -4,7 +4,8 @@
 
 #include <map>
 #include "Type.h"
-#include "Position.h"
+
+class Position;
 
 namespace EndGame {
 

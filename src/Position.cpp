@@ -1,4 +1,5 @@
 #include "Position.h"
+
 #include <sstream>
 #include <algorithm>
 
@@ -19,7 +20,7 @@ using namespace MoveGenerator;
 const string CharPiece ("PNBRQK  pnbrqk");
 const string CharColor ("wb-");
 
-const Value PieceValue[PHASE_NO][ALLS] =
+const Value PieceValue[PHASE_NO][TOTS] =
 {
     { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
@@ -982,7 +983,7 @@ void Position::clear ()
     //_game_ply   = 1;
 
     _sb.en_passant = SQ_NO;
-    _sb.capture   = NONE;
+    _sb.cap_type   = NONE;
     _si = &_sb;
 }
 // setup() sets the fen on the position
@@ -1387,7 +1388,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Update the key with the final value
     _si->posi_key   = posi_k;
-    _si->capture   = ct;
+    _si->cap_type   = ct;
     _si->last_move  = m;
     _si->null_ply++;
     ++_game_ply;
@@ -1431,7 +1432,7 @@ void Position::undo_move ()
     MoveT mt = mtype (m);
     ASSERT (empty (org) || CASTLE == mt);
 
-    PieceT ct = _si->capture;
+    PieceT ct = _si->cap_type;
     ASSERT (KING != ct);
 
     Square cap = dst;

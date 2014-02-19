@@ -6,8 +6,9 @@
 #include <set>
 #include "Type.h"
 #include "MoveGenerator.h"
-#include "Position.h"
 #include "Searcher.h"
+
+class Position;
 
 template<bool GAIN, class T>
 // The Stats struct stores moves statistics.
@@ -23,7 +24,7 @@ struct Stats
 {
 
 private:
-    T _table[TOTAL][SQ_NO];
+    T _table[TOT_PIECE][SQ_NO];
 
 public:
 

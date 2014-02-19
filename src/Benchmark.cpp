@@ -4,6 +4,7 @@
 #include <vector>
 #include "xstring.h"
 
+#include "Position.h"
 #include "Searcher.h"
 #include "Transposition.h"
 #include "Thread.h"

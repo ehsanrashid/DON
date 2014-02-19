@@ -30,7 +30,7 @@ namespace {
 
         // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
         // attacked_by[color][NONE] contains all squares attacked by the given color.
-        Bitboard attacked_by[CLR_NO][ALLS];
+        Bitboard attacked_by[CLR_NO][TOTS];
 
         // king_ring[color] is the zone around the king which is considered
         // by the king safety evaluation. This consists of the squares directly
@@ -1042,26 +1042,29 @@ namespace {
 
         void format_row (stringstream& ss, const char name[], uint8_t term)
         {
-            Score w_score = terms[WHITE][term];
-            Score b_score = terms[BLACK][term];
+            Score score[CLR_NO] =
+            {
+                terms[WHITE][term],
+                terms[BLACK][term]
+            };
 
             switch (term)
             {
             case PST: case IMBALANCE: case PAWN: case TOTAL:
                 ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
-                    << setw (6)  << value_to_cp (mg_value (w_score)) << " "
-                    << setw (6)  << value_to_cp (eg_value (w_score)) << " \n";
+                    << setw (6)  << value_to_cp (mg_value (score[WHITE])) << " "
+                    << setw (6)  << value_to_cp (eg_value (score[WHITE])) << " \n";
                 break;
 
             default:
                 ss  << setw (20) << name << " | " << noshowpos
-                    << setw (5)  << value_to_cp (mg_value (w_score)) << " "
-                    << setw (5)  << value_to_cp (eg_value (w_score)) << " | "
-                    << setw (5)  << value_to_cp (mg_value (b_score)) << " "
-                    << setw (5)  << value_to_cp (eg_value (b_score)) << " | "
+                    << setw (5)  << value_to_cp (mg_value (score[WHITE])) << " "
+                    << setw (5)  << value_to_cp (eg_value (score[WHITE])) << " | "
+                    << setw (5)  << value_to_cp (mg_value (score[BLACK])) << " "
+                    << setw (5)  << value_to_cp (eg_value (score[BLACK])) << " | "
                     << showpos
-                    << setw (6)  << value_to_cp (mg_value (w_score - b_score)) << " "
-                    << setw (6)  << value_to_cp (eg_value (w_score - b_score)) << " \n";
+                    << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                    << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                 break;
             }
         }
@@ -1095,10 +1098,7 @@ namespace {
             ss  << "---------------------+-------------+-------------+---------------\n";
             format_row (ss, "Total",                TOTAL);
             ss  << "-------\n"
-                //<< "Uncertainty margin:"
-                //<< " White: " << value_to_cp (margins[WHITE]) << "-"
-                //<< " Black: " << value_to_cp (margins[BLACK]) << "\n"
-                << "\nScaling: " << noshowpos
+                << "Scaling: " << noshowpos
                 << setw (6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
                 << setw (6) << (100.0 * (1.0 - ei.mi->game_phase ()) / 128.0) << "% * "
                 << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"

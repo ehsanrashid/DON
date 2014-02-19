@@ -1,5 +1,6 @@
 #include "MovePicker.h"
 
+#include "Position.h"
 #include "Thread.h"
 
 using namespace std;

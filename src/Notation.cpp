@@ -318,7 +318,7 @@ string score_uci (Value v, Value alpha, Value beta)
 
     if (abs (v) < VALUE_MATES_IN_MAX_PLY)
     {
-        ss << "cp " << int32_t (v) * 50 / int32_t (VALUE_MG_PAWN);
+        ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {

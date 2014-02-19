@@ -239,7 +239,7 @@ namespace Searcher {
 
         }
         while (te // Local copy, TT could change
-            && (m = te->move ())
+            && (m = te->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
             && (ply < MAX_PLY)
@@ -832,7 +832,7 @@ namespace {
             }
         }
 
-        if (   pos.capture () == NONE
+        if (   pos.cap_type () == NONE
             && (ss)->static_eval != VALUE_NONE
             && (ss-1)->static_eval != VALUE_NONE
             && (move = (ss-1)->current_move) != MOVE_NULL
@@ -951,7 +951,7 @@ namespace {
 
             // Initialize a MovePicker object for the current position,
             // and prepare to search the moves.
-            MovePicker mp (pos, tt_move, History, pos.capture ());
+            MovePicker mp (pos, tt_move, History, pos.cap_type ());
             
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
