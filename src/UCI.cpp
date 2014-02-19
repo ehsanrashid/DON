@@ -323,7 +323,7 @@ namespace UCI {
             if (cstm.good () && (cstm >> token))
             {
                 stringstream ss;
-                ss  << *(Options["Hash"]) << " "
+                ss  << *(Options["Hash"])    << " "
                     << *(Options["Threads"]) << " "
                     << token << " current perft";
 

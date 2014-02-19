@@ -83,7 +83,34 @@ namespace {
             terms[BLACK][term] = b_score;
         }
 
-        void format_row (stringstream &ss, const char name[], uint8_t term);
+        void format_row (stringstream& ss, const char name[], uint8_t term)
+        {
+            Score score[CLR_NO] =
+            {
+                terms[WHITE][term],
+                terms[BLACK][term]
+            };
+
+            switch (term)
+            {
+            case PST: case IMBALANCE: case PAWN: case TOTAL:
+                ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
+                    << setw (6)  << value_to_cp (mg_value (score[WHITE])) << " "
+                    << setw (6)  << value_to_cp (eg_value (score[WHITE])) << " \n";
+                break;
+
+            default:
+                ss  << setw (20) << name << " | " << noshowpos
+                    << setw (5)  << value_to_cp (mg_value (score[WHITE])) << " "
+                    << setw (5)  << value_to_cp (eg_value (score[WHITE])) << " | "
+                    << setw (5)  << value_to_cp (mg_value (score[BLACK])) << " "
+                    << setw (5)  << value_to_cp (eg_value (score[BLACK])) << " | "
+                    << showpos
+                    << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                    << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                break;
+            }
+        }
 
         string do_trace (const Position &pos);
 
@@ -239,20 +266,6 @@ namespace {
     const int32_t QueenCheck        = 12;
     const int32_t RookContactCheck  = 16;
     const int32_t QueenContactCheck = 24;
-
-    //// KingExposed[Square] contains penalties based on the position of the
-    //// defending king, indexed by king's square (from white's point of view).
-    //const int32_t KingExposed[SQ_NO] =
-    //{
-    //    2,  0,  2,  5,  5,  2,  0,  2,
-    //    2,  2,  4,  8,  8,  4,  2,  2,
-    //    7, 10, 12, 12, 12, 12, 10,  7,
-    //    15, 15, 15, 15, 15, 15, 15, 15,
-    //    15, 15, 15, 15, 15, 15, 15, 15,
-    //    15, 15, 15, 15, 15, 15, 15, 15,
-    //    15, 15, 15, 15, 15, 15, 15, 15,
-    //    15, 15, 15, 15, 15, 15, 15, 15
-    //};
 
     // KingDanger[Color][attack_units] contains the actual king danger weighted
     // scores, indexed by color and by a calculated integer number.
@@ -1040,35 +1053,6 @@ namespace {
 
     namespace Tracing {
 
-        void format_row (stringstream& ss, const char name[], uint8_t term)
-        {
-            Score score[CLR_NO] =
-            {
-                terms[WHITE][term],
-                terms[BLACK][term]
-            };
-
-            switch (term)
-            {
-            case PST: case IMBALANCE: case PAWN: case TOTAL:
-                ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
-                    << setw (6)  << value_to_cp (mg_value (score[WHITE])) << " "
-                    << setw (6)  << value_to_cp (eg_value (score[WHITE])) << " \n";
-                break;
-
-            default:
-                ss  << setw (20) << name << " | " << noshowpos
-                    << setw (5)  << value_to_cp (mg_value (score[WHITE])) << " "
-                    << setw (5)  << value_to_cp (eg_value (score[WHITE])) << " | "
-                    << setw (5)  << value_to_cp (mg_value (score[BLACK])) << " "
-                    << setw (5)  << value_to_cp (eg_value (score[BLACK])) << " | "
-                    << showpos
-                    << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                    << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
-                break;
-            }
-        }
-
         string do_trace (const Position &pos)
         {
             memset (terms, 0, sizeof (terms));
@@ -1107,7 +1091,6 @@ namespace {
             return ss.str ();
         }
     }
-
 }
 
 namespace Evaluator {

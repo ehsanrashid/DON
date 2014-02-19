@@ -56,8 +56,6 @@ AmbT ambiguity (Move m, const Position &pos)
 
     Bitboard pinneds = pos.pinneds (pos.active ());
 
-    // Disambiguation if we have more then one piece with destination 'dst'
-    // note that for pawns is not needed because starting file is explicit.
     //bool
     //    amb_move = false,
     //    amb_file = false,
@@ -139,6 +137,7 @@ Move move_from_can (string &can, const Position &pos)
 //{
 //    return MOVE_NONE;
 //}
+
 
 // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
 // The only special case is castling moves,
