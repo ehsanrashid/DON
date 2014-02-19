@@ -146,7 +146,7 @@ private:
     Bitboard _types_bb[ALLS];
 
     Square   _piece_list [CLR_NO][NONE][16];
-    uint8_t  _piece_count[CLR_NO][ALLS];
+    uint8_t  _piece_count[CLR_NO][NONE];
     int8_t   _piece_index[SQ_NO];
 
     // Object for base status information
@@ -222,17 +222,18 @@ public:
     Bitboard empties () const;
     //Bitboard pieces (Piece p) const;
 
-    template<PieceT PT>
-    int32_t count (Color c)       const;
-    template<PieceT PT>
-    int32_t count ()              const;
-    int32_t count (Color c)       const;
-    int32_t count ()              const;
     int32_t count (Color c, PieceT pt) const;
 
     template<PieceT PT>
-    const Square* list (Color c)  const;
+    int32_t count (Color c)       const;
+    int32_t count (Color c)       const;
 
+    template<PieceT PT>
+    int32_t count ()              const;
+    int32_t count ()              const;
+
+    template<PieceT PT>
+    const Square* list (Color c)  const;
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -435,13 +436,48 @@ inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return 
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 
+inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
+
 template<PieceT PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
+inline int32_t Position::count (Color c) const
+{
+    //return  count<PAWN>(c)
+    //    +   count<NIHT>(c)
+    //    +   count<BSHP>(c)
+    //    +   count<ROOK>(c)
+    //    +   count<QUEN>(c)
+    //    +   count<KING>(c);
+    return  _piece_count[c][PAWN]
+    +       _piece_count[c][NIHT]
+    +       _piece_count[c][BSHP]
+    +       _piece_count[c][ROOK]
+    +       _piece_count[c][QUEN]
+    +       _piece_count[c][KING];
+}
+
 template<PieceT PT>
-inline int32_t Position::count ()        const { return _piece_count[WHITE][PT] + _piece_count[BLACK][PT]; }
-inline int32_t Position::count (Color c) const { return _piece_count[c][NONE]; }
-inline int32_t Position::count ()        const { return _piece_count[WHITE][NONE] + _piece_count[BLACK][NONE]; }
-inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
+inline int32_t Position::count ()        const
+{
+    //return count<PT>(WHITE) + count<PT>(BLACK);
+    return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
+}
+inline int32_t Position::count ()        const
+{
+    //return  count<PAWN>()
+    //    +   count<NIHT>()
+    //    +   count<BSHP>()
+    //    +   count<ROOK>()
+    //    +   count<QUEN>()
+    //    +   count<KING>();
+    return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
+    +       _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
+    +       _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
+    +       _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
+    +       _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
+    +       _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
+}
+
 
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
@@ -645,7 +681,6 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
-    _piece_count[c][NONE]++;
     // Update piece list, put piece at [s] index
     _piece_index[s] = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
@@ -673,7 +708,6 @@ inline void  Position::remove_piece (Square s)
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
-    _piece_count[c][NONE]--;
     _piece_count[c][pt]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.

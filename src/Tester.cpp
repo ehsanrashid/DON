@@ -474,7 +474,7 @@ namespace Tester {
             Position::parse (pos, fen);
 
             ASSERT (pos.ok ());
-            ASSERT (U64 (0xC1D58449E708A0AD) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
             ASSERT (U64 (0x76916F86F34AE5BE) == ZobPG.compute_pawn_key (pos));
             ASSERT (U64 (0x0756B94461C50FB0) == ZobPG.compute_posi_key (pos));
             ASSERT (U64 (0x1BCF67975D7D9F11) == ZobPG.compute_fen_key (fen));
@@ -482,7 +482,7 @@ namespace Tester {
             fen = "8/8/8/8/k1Pp2R1/8/6K1/8 b - c3 0 1";
             Position::parse (pos, fen);
 
-            ASSERT (U64 (0x6EF251F2C474D658) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0x184A5183C6AEF4C5) == ZobPG.compute_matl_key (pos));
             ASSERT (U64 (0xB7B954171FD65613) == ZobPG.compute_pawn_key (pos));
             ASSERT (U64 (0xE230E747697ABB10) == ZobPG.compute_posi_key (pos));
             ASSERT (U64 (0xE20A749FDBFAD272) == ZobPG.compute_fen_key (fen));
