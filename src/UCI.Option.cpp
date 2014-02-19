@@ -150,7 +150,7 @@ namespace UCI {
         //Option& SpinOption::operator= (char *value)
         //{
         //    if (whitespace (value)) return *this;
-        //    int32_t value = to_int (value);
+        //    int32_t value = atoi (value);
         //    value = min (max (value, _minimum), _maximum);
         //    //if (_minimum < value && value < _maximum)
         //    {
@@ -165,7 +165,7 @@ namespace UCI {
         Option& SpinOption::operator= (string &value)
         {
             if (whitespace (value)) return *this;
-            int32_t val = stoi (value);
+            int32_t val = atoi (value.c_str ()); //stoi (value);
             val = min (max (val, _minimum), _maximum);
             //if (_minimum < val && val < _maximum)
             {

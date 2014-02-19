@@ -314,7 +314,8 @@ namespace std {
 
     //inline int to_int (const std::string &s)
     //{
-    //    return std::stoi (s, NULL, 10);
+    //    //return std::stoi (s, NULL, 10);
+    //    return atoi (s.c_str() );
     //}
 
     //inline size_t find_sep_fn (const std::string &path)
