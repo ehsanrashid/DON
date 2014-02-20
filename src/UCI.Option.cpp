@@ -4,7 +4,6 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
-#include "xstring.h"
 
 #include "Transposition.h"
 #include "Evaluator.h"
@@ -71,8 +70,8 @@ namespace UCI {
         }
         //Option& CheckOption::operator= (char *value)
         //{
-        //    if (whitespace (value)) return *this;
-        //    bool value = iequals (value, "true");
+        //    if (empty (value)) return *this;
+        //    bool value = equals (value, "true");
         //    if (_value != value)
         //    {
         //        _value = value;
@@ -82,7 +81,7 @@ namespace UCI {
         //}
         Option& CheckOption::operator= (string &value)
         {
-            if (whitespace (value)) return *this;
+            if (value.empty ()) return *this;
             bool bol = (value == "true");
             if (_value != bol)
             {
@@ -101,12 +100,12 @@ namespace UCI {
         {
             ostringstream os;
             os  << "type string"
-                << " default "  << (whitespace (_default) ? "<empty>" : _default);
+                << " default "  << (_default.empty () ? "<empty>" : _default);
             return os.str ();
         }
         StringOption::operator string () const
         {
-            return (whitespace (_value) ? "<empty>" : _value);
+            return (_value.empty () ? "<empty>" : _value);
         }
         //Option& StringOption::operator= (char *value)
         //{
@@ -149,7 +148,7 @@ namespace UCI {
         }
         //Option& SpinOption::operator= (char *value)
         //{
-        //    if (whitespace (value)) return *this;
+        //    if (empty (value)) return *this;
         //    int32_t value = atoi (value);
         //    value = min (max (value, _minimum), _maximum);
         //    //if (_minimum < value && value < _maximum)
@@ -164,7 +163,7 @@ namespace UCI {
         //}
         Option& SpinOption::operator= (string &value)
         {
-            if (whitespace (value)) return *this;
+            if (value.empty ()) return *this;
             int32_t val = atoi (value.c_str ()); //stoi (value);
             val = min (max (val, _minimum), _maximum);
             //if (_minimum < val && val < _maximum)

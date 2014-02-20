@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <cstdarg>
-#include "xstring.h"
 
 #include "Engine.h"
 #include "Transposition.h"

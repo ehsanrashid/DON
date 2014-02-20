@@ -3,7 +3,6 @@
 #include <sstream>
 #include <algorithm>
 
-#include "xstring.h"
 #include "BitBoard.h"
 #include "BitScan.h"
 #include "BitCount.h"
@@ -678,7 +677,7 @@ bool Position::pseudo_legal (Move m) const
         Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
         ASSERT (org_rook == castle_rook (active, king_side ? CS_K : CS_Q));
         dst = rel_sq (active, king_side ? SQ_WK_K : SQ_WK_Q);
-        
+
         Delta step = king_side ? DEL_E : DEL_W;
         Bitboard enemies = pieces (pasive);
 
@@ -1551,7 +1550,10 @@ void Position::flip ()
     // 3. Castling availability
     sfen >> ch;
     fen_ += ch + " ";
-    toggle (fen_);
+    transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)->char
+    {
+        return char (islower (c) ? toupper (c) : tolower (c));
+    });
 
     // 4. En-passant square
     sfen >> ch;

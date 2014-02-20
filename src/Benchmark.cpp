@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <vector>
-#include "xstring.h"
 
 #include "Position.h"
 #include "Searcher.h"

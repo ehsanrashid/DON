@@ -1,7 +1,5 @@
 ﻿#include "BitBoard.h"
 
-#include "xstring.h"
-
 #include "BitCount.h"
 #include "BitScan.h"
 #include "RKISS.h"
