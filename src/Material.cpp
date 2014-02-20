@@ -61,10 +61,7 @@ namespace {
 
         return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
             && pos.non_pawn_material (C_) == VALUE_ZERO
-            && pos.count<PAWN> (C_) == 0
-            //&& pos.count (C ) >= 1
-            //&& pos.count (C_) == 1
-            ;
+            && pos.count<PAWN> (C_) == 0;
     }
 
     template<Color C> 
@@ -81,7 +78,7 @@ namespace {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
         return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
-            && pos.non_pawn_material (C_) == VALUE_MG_ROOK
+            //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
             && pos.count<QUEN> (C ) == 1
             && pos.count<PAWN> (C ) == 0
             && pos.count<ROOK> (C_) == 1
@@ -92,7 +89,7 @@ namespace {
     // imbalance<> () calculates imbalance comparing
     // piece count of each piece type for both colors.
     // KING == BISHOP_PAIR
-    inline int32_t imbalance (const int32_t count[CLR_NO][NONE])
+    inline Value imbalance (const int32_t count[CLR_NO][NONE])
     {
         const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -120,7 +117,7 @@ namespace {
         }
         value += count[C][KING] * LinearCoefficients[KING];
 
-        return value;
+        return Value (value);
     }
 
 } // namespace

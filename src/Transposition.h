@@ -37,30 +37,30 @@ private:
     uint8_t  _gen;
     uint16_t _nodes;
     int16_t  _value;
-    int16_t  _e_value;
+    int16_t  _eval;
 
 public:
 
-    uint32_t     key () const { return uint32_t     (_key); }
-    Move        move () const { return Move        (_move); }
-    Depth      depth () const { return Depth      (_depth); }
-    Bound      bound () const { return Bound      (_bound); }
-    uint8_t      gen () const { return uint8_t      (_gen); }
-    uint16_t   nodes () const { return uint16_t   (_nodes); }
-    Value      value () const { return Value      (_value); }
-    Value    e_value () const { return Value    (_e_value); }
+    uint32_t     key () const { return uint32_t   (_key); }
+    Move        move () const { return Move      (_move); }
+    Depth      depth () const { return Depth    (_depth); }
+    Bound      bound () const { return Bound    (_bound); }
+    uint8_t      gen () const { return uint8_t    (_gen); }
+    uint16_t   nodes () const { return uint16_t (_nodes); }
+    Value      value () const { return Value    (_value); }
+    Value       eval () const { return Value     (_eval); }
 
 
-    void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value ev)
+    void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value e)
     {
-        _key     = uint32_t (k);
-        _move    = uint16_t (m);
-        _depth   = uint16_t (d);
-        _bound   =  uint8_t (b);
-        _gen     =  uint8_t (g);
-        _nodes   = uint16_t (n);
-        _value   = uint16_t (v);
-        _e_value = uint16_t (ev);
+        _key   = uint32_t (k);
+        _move  = uint16_t (m);
+        _depth = uint16_t (d);
+        _bound =  uint8_t (b);
+        _gen   =  uint8_t (g);
+        _nodes = uint16_t (n);
+        _value = uint16_t (v);
+        _eval  = uint16_t (e);
     }
 
     void gen (uint8_t g)
@@ -203,7 +203,7 @@ public:
     uint32_t resize (uint32_t mem_size_mb);
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value);
+    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
 
     // retrieve() looks up the entry in the transposition table.
     const TranspositionEntry* retrieve (Key key) const;

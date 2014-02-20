@@ -564,7 +564,7 @@ namespace {
             // Penalty for knight when there are few enemy pawns
             if (NIHT == PT)
             {
-                score -= KnightPawnsPenalty * max<int32_t> (5 - pos.count<PAWN> (C_), 0);
+                score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C_), 0);
             }
 
             if (BSHP == PT || NIHT == PT)
@@ -933,12 +933,12 @@ namespace {
 
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
-            Bitboard sup_passed_pawns = pos.pieces<PAWN> (C) & adj_files_bb (_file (s));
-            if (sup_passed_pawns & rank_bb (s))
+            Bitboard supporting_pawns = pos.pieces<PAWN> (C) & adj_files_bb (_file (s));
+            if (supporting_pawns & rank_bb (s))
             {
                 eg_bonus += Value (r * 20);
             }
-            else if (sup_passed_pawns & rank_bb (s - pawn_push (C)))
+            else if (supporting_pawns & rank_bb (s - pawn_push (C)))
             {
                 eg_bonus += Value (r * 12);
             }

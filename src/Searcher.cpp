@@ -426,14 +426,14 @@ finish:
     void initialize ()
     {
         // Init reductions array
-        for (int32_t hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
+        for (uint8_t hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
         {
-            for (int32_t mc = 1; mc < 64; ++mc) // move count
+            for (uint8_t mc = 1; mc < 64; ++mc) // move count
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? floor(    pv_red * int32_t (ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? floor(non_pv_red * int32_t (ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? floor (    pv_red * int32_t (ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? floor (non_pv_red * int32_t (ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
@@ -519,8 +519,9 @@ namespace {
                 // Reset aspiration window starting size
                 if (depth >= 5) // 3
                 {
+                    //delta = Value (16);
                     delta = Value (max (16, 25 - depth));
-
+                    
                     alpha = max (RootMoves[IndexPV].last_value - delta, -VALUE_INFINITE);
                     beta  = min (RootMoves[IndexPV].last_value + delta, +VALUE_INFINITE);
                 }
@@ -558,7 +559,7 @@ namespace {
                     // When failing high/low give some update
                     // (without cluttering the UI) before to research.
                     if (   (alpha >= best_value || best_value >= beta)
-                        && (elapsed = now () - SearchTime + 1) > InfoDuration)
+                        && (elapsed = now () - SearchTime) > InfoDuration)
                     {
                         sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                     }
@@ -587,7 +588,7 @@ namespace {
 
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
-                elapsed = now () - SearchTime + 1;
+                elapsed = now () - SearchTime;
                 if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
                 {
                     sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
@@ -595,7 +596,7 @@ namespace {
             }
 
             // Duration of iteration
-            point iter_duration = now () - SearchTime + 1;
+            point iter_duration = now () - SearchTime;
 
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
@@ -688,7 +689,7 @@ namespace {
 
         Value   best_value
             ,   tt_value
-            ,   eval_value;
+            ,   eval;
 
         uint8_t moves_count
             ,   quiets_count;
@@ -783,7 +784,7 @@ namespace {
 
             // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
             if (   tt_value >= beta
-                && tt_move
+                && tt_move != MOVE_NONE
                 && !pos.capture_or_promotion (tt_move)
                 && !in_check)
             {
@@ -796,7 +797,7 @@ namespace {
         // Step 5. Evaluate the position statically and update parent's gain statistics
         if (in_check)
         {
-            eval_value = (ss)->static_eval = VALUE_NONE;
+            eval = (ss)->static_eval = VALUE_NONE;
             goto moves_loop;
         }
         else
@@ -804,22 +805,22 @@ namespace {
             if (te)
             {
                 // Never assume anything on values stored in TT
-                Value e_value = te->e_value ();
+                Value e_value = te->eval ();
                 if (VALUE_NONE == e_value) e_value = evaluate (pos);
-                eval_value = (ss)->static_eval = e_value;
+                eval = (ss)->static_eval = e_value;
 
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
                 {
-                    if (te->bound () & (tt_value > eval_value ? BND_LOWER : BND_UPPER))
+                    if (te->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
                     {
-                        eval_value = tt_value;
+                        eval = tt_value;
                     }
                 }
             }
             else
             {
-                eval_value = (ss)->static_eval = evaluate (pos);
+                eval = (ss)->static_eval = evaluate (pos);
 
                 TT.store (
                     posi_key,
@@ -845,7 +846,7 @@ namespace {
         // Step 6. Razoring (skipped when in check)
         if (   !PVNode
             && depth < 4 * ONE_MOVE
-            && eval_value + razor_margin (depth) <= alpha
+            && eval + razor_margin (depth) <= alpha
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
             && tt_move == MOVE_NONE
             && !pos.pawn_on_7thR (pos.active ()))
@@ -866,30 +867,30 @@ namespace {
         if (   !PVNode
             && !(ss)->skip_null_move
             && depth < 7 * ONE_MOVE
-            && eval_value - futility_margin (depth) >= beta
+            && eval - futility_margin (depth) >= beta
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
-            && abs (eval_value) < VALUE_KNOWN_WIN
+            && abs (eval) < VALUE_KNOWN_WIN
             && pos.non_pawn_material (pos.active ()))
         {
-            return eval_value - futility_margin (depth);
+            return eval - futility_margin (depth);
         }
 
         // Step 8. Null move search with verification search (is omitted in PV nodes)
         if (   !PVNode
             && !(ss)->skip_null_move
             && depth >= 2 * ONE_MOVE
-            && eval_value >= beta
+            && eval >= beta
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
             && pos.non_pawn_material (pos.active ()))
         {
-            ASSERT (eval_value >= beta);
+            ASSERT (eval >= beta);
 
             (ss)->current_move = MOVE_NULL;
 
             // Null move dynamic (variable) reduction based on depth and value
             Depth R = (MAX_NULL_REDUCTION+0) * ONE_MOVE
                 +     depth / 4
-                +     int32_t (eval_value - beta) / VALUE_MG_PAWN * ONE_MOVE;
+                +     int32_t (eval - beta) / VALUE_MG_PAWN * ONE_MOVE;
 
             // Do null move
             pos.do_null_move (si);
@@ -1028,7 +1029,7 @@ moves_loop: // When in check and at SPNode search starts from here
         {
             if (Threads.main () == thread)
             {
-                elapsed = now () - SearchTime + 1;
+                elapsed = now () - SearchTime;
                 if (elapsed > InfoDuration)
                 {
                     sync_cout
@@ -1073,7 +1074,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
                 if (Threads.main () == thread)
                 {
-                    elapsed = now () - SearchTime + 1;
+                    elapsed = now () - SearchTime;
                     if (elapsed > InfoDuration)
                     {
                         sync_cout
@@ -1438,7 +1439,7 @@ moves_loop: // When in check and at SPNode search starts from here
         Value   best_value
             ,   old_alpha;
 
-        // To flag EXACT a node with eval_value above alpha and no available moves
+        // To flag EXACT a node with eval above alpha and no available moves
         if (PVNode) old_alpha = alpha;
 
         // Decide whether or not to include checks, this fixes also the type of
@@ -1484,7 +1485,7 @@ moves_loop: // When in check and at SPNode search starts from here
             if (te)
             {
                 // Never assume anything on values stored in TT
-                Value e_value = te->e_value ();
+                Value e_value = te->eval ();
                 if (VALUE_NONE == e_value) e_value = evaluate (pos);
                 best_value = (ss)->static_eval = e_value;
 
@@ -1822,14 +1823,12 @@ void check_time ()
         Threads.mutex.unlock ();
     }
 
-    point elapsed = now_time - SearchTime + 1;
+    point elapsed = now_time - SearchTime;
 
     bool still_at_first_move = 
         /**/Signals.first_root_move
         && !Signals.failed_low_at_root
-        && elapsed > TimeMgr.available_time () * 75 / 100
-        //&& elapsed > IterDuration * 1.4
-        ;
+        && elapsed > TimeMgr.available_time () * 75 / 100;
 
     bool no_more_time = 
         /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution

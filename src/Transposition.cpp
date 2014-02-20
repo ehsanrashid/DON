@@ -122,7 +122,7 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value e_value)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval)
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
@@ -161,10 +161,10 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    if (!re->move () && move) ++_stored_entry;
-    if (re->move () && !move) --_stored_entry;
+    if (!re->move () &&  move) ++_stored_entry;
+    if ( re->move () && !move) --_stored_entry;
 
-    re->save (key32, move, depth, bound, _generation, nodes/1000, value, e_value);
+    re->save (key32, move, depth, bound, _generation, nodes/1000, value, eval);
 }
 
 // retrieve() looks up the entry in the transposition table.

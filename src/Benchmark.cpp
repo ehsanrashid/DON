@@ -50,7 +50,6 @@ namespace {
         "1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 15",
         "6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 19",
         "8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 30"
-        //"4r1k1/1pq2pp1/p3b2p/1r2P3/3R4/2P2N2/1P1Q2PP/3R3K w - - 3 28",
     };
 
 }

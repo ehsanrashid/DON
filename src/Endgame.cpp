@@ -90,7 +90,7 @@ namespace EndGame {
             };
 
             transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-            string empty = string ("") + char ('0' + 8 - length);
+            string empty (1, char ('0' + 8 - length));
             if ("0" == empty) empty = "";
             string fen = sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 1";
             return Position (fen).matl_key ();
@@ -308,22 +308,22 @@ namespace EndGame {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
 
-        //Square wk_sq = pos.king_sq (_stong_side);
+        Square wk_sq = pos.king_sq (_stong_side);
         Square bk_sq = pos.king_sq (_weak_side);
-        //Square bb_sq = pos.list<BSHP> (_weak_side)[0];
+        Square bb_sq = pos.list<BSHP> (_weak_side)[0];
 
         // when the weaker side ended up in the same corner as bishop.
         Value value = Value (PushToEdges[bk_sq] / 4);
 
-        //// To draw, the weaker side should run towards the corner.
-        //// And not just any corner! Only a corner that's not the same color as the bishop will do.
-        //if (   (CRNR_bb & bk_sq)
-        //    && opposite_colors (bk_sq, bb_sq)
-        //    && square_dist (bk_sq, bb_sq) == 1
-        //    && square_dist (wk_sq, bb_sq) >  1)
-        //{
-        //    value /= 8;
-        //}
+        // To draw, the weaker side should run towards the corner.
+        // And not just any corner! Only a corner that's not the same color as the bishop will do.
+        if (   (CRNR_bb & bk_sq)
+            && opposite_colors (bk_sq, bb_sq)
+            && square_dist (bk_sq, bb_sq) == 1
+            && square_dist (wk_sq, bb_sq) >  1)
+        {
+            value /= 8;
+        }
 
         return (_stong_side == pos.active ()) ? value : -value;
     }

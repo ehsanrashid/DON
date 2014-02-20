@@ -459,7 +459,7 @@ namespace BitBoard {
     }
 
 #ifndef NDEBUG
-    // Print a Bitboard (uint64_t) to console output
+    // Print a Bitboard representation to console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     void print (Bitboard bb, char p)
     {
