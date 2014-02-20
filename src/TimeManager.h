@@ -17,7 +17,7 @@ private:
 
 public:
 
-    inline uint32_t available_time () const { return _optimum_search_time + _unstable_pv_factor * 0.62; }
+    inline uint32_t available_time () const { return _optimum_search_time + _unstable_pv_factor * 0.71; }
     
     inline uint32_t maximum_time   () const { return _maximum_search_time; }
 

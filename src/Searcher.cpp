@@ -55,7 +55,6 @@ namespace {
     TimeManager TimeMgr;
 
     point const   InfoDuration  = 3000; // 3 sec
-    point         IterDuration; // Duration of iteration
 
     Value   DrawValue[CLR_NO];
 
@@ -595,7 +594,8 @@ namespace {
                 }
             }
 
-            IterDuration = now () - SearchTime + 1;
+            // Duration of iteration
+            point iter_duration = now () - SearchTime + 1;
 
             // If skill levels are enabled and time is up, pick a sub-optimal best move
             if (skill.enabled () && skill.time_to_pick (depth))
@@ -612,7 +612,7 @@ namespace {
             {
                 string search_log_fn  = *(Options["Search Log File"]);
                 Log log (search_log_fn);
-                log << pretty_pv (pos, depth, RootMoves[0].curr_value, IterDuration, &RootMoves[0].pv[0]) << endl;
+                log << pretty_pv (pos, depth, RootMoves[0].curr_value, iter_duration, &RootMoves[0].pv[0]) << endl;
             }
 
             // Have found a "mate in x"?
@@ -637,7 +637,7 @@ namespace {
                 // Stop the search early:
                 // If there is only one legal move available or 
                 // If all of the available time has been used.
-                if (1 == RootMoves.size () || IterDuration > TimeMgr.available_time ())
+                if (1 == RootMoves.size () || iter_duration > TimeMgr.available_time ())
                 {
                     stop = true;
                 }
@@ -1825,8 +1825,9 @@ void check_time ()
     bool still_at_first_move = 
         /**/Signals.first_root_move
         && !Signals.failed_low_at_root
-        && elapsed > TimeMgr.available_time ()
-        && elapsed > IterDuration * 1.4;
+        && elapsed > TimeMgr.available_time () * 75 / 100
+        //&& elapsed > IterDuration * 1.4
+        ;
 
     bool no_more_time = 
         /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
