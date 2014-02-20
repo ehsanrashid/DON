@@ -83,7 +83,7 @@ namespace UCI {
         Option& CheckOption::operator= (string &value)
         {
             if (whitespace (value)) return *this;
-            bool bol = iequals (value, "true");
+            bool bol = (value == "true");
             if (_value != bol)
             {
                 _value = bol;

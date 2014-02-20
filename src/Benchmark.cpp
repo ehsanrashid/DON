@@ -82,17 +82,17 @@ void benchmark (istream &is, const Position &pos)
     TT.clear ();
     LimitsT limits;
 
-    if      (iequals (limit_type, "time"))  limits.move_time = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
-    else if (iequals (limit_type, "nodes")) limits.nodes     = atoi (limit_val.c_str ());
-    else if (iequals (limit_type, "mate"))  limits.mate_in   = atoi (limit_val.c_str ());
-    //else if (iequals (limit_type, "depth"))
-    else                                    limits.depth     = atoi (limit_val.c_str ());
+    if      (limit_type == "time")  limits.move_time = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
+    else if (limit_type == "nodes") limits.nodes     = atoi (limit_val.c_str ());
+    else if (limit_type == "mate")  limits.mate_in   = atoi (limit_val.c_str ());
+    //else if (limit_type == "depth")
+    else                            limits.depth     = atoi (limit_val.c_str ());
 
-    if      (iequals (fen_fn, "default"))
+    if      (fen_fn == "default")
     {
         fens.assign (default_fens, default_fens + TOT_FEN);
     }
-    else if (iequals (fen_fn, "current"))
+    else if (fen_fn == "current")
     {
         fens.push_back (pos.fen ());
     }

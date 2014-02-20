@@ -120,7 +120,7 @@ Move move_from_can (string &can, const Position &pos)
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        if (iequals (can, move_to_can (m, pos.chess960 ())))
+        if (can == move_to_can (m, pos.chess960 ()))
         {
             return m;
         }

@@ -1587,7 +1587,7 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Check for legality just before making the move
-            // TODO:: remove
+
             if (!pos.pseudo_legal (move)) continue;
             
             if (!pos.legal (move, ci.pinneds)) continue;
@@ -1728,6 +1728,7 @@ moves_loop: // When in check and at SPNode search starts from here
     inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
     {
         ASSERT (elapsed > 0);
+        if (elapsed == 0) elapsed = 1;
 
         stringstream spv;
 

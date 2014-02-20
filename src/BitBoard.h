@@ -336,9 +336,9 @@ namespace BitBoard {
                        |  attacks_bb<ROOK> (s, occ);
         case NIHT: return attacks_bb<NIHT>(s);
         case KING: return attacks_bb<KING>(s);
-        //default  : return U64 (0);
+        default  : return U64 (0);
         }
-        return U64 (0);
+        //return U64 (0);
     }
 
     extern void initialize ();

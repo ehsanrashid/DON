@@ -8,12 +8,12 @@ using namespace std;
 
 namespace {
 
-    string args_str (int32_t argc, const char* const argv[])
+    string arg_str (int32_t argc, const char* const argv[])
     {
-        string args = "";
+        string args;
         for (int32_t i = 1; i < argc; ++i)
         {
-            args += whitespace (args) ? string (argv[i]) : " " + string (argv[i]);
+            args += string (" ", !args.empty ()) + argv[i];
         }
         return args;
     }
@@ -22,7 +22,7 @@ namespace {
 
 int main (int32_t argc, const char* const argv[])
 {
-    string args = args_str (argc, argv);
+    string args = arg_str (argc, argv);
 
     Engine::run (args);
 
