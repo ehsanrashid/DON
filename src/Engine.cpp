@@ -109,18 +109,7 @@ namespace Engine {
             << "info string " << TT.size ()      << " MB Hash."   << endl;
 
 #ifndef NDEBUG
-        //string f = "r1bqk2r/pppp1ppp/8/8/8/5N2/P1P1QPPP/q1B1KB1R b Kq - 0 1";
-        //Position p(f);
-        //cout << p;
-
-        //StateInfo si;
-        //Move m = mk_move(SQ_H8, SQ_F8);
-        //cout << p.pseudo_legal (m) << endl;
-        //cout << p.legal (m) << endl;
-        //p.do_move (m, si);
-        ////BitBoard::print(8589934592);
-        //cout << p;
-        ////Tester::main_test ();
+        //Tester::main_test ();
         //system ("pause");
         //return;
 #endif
