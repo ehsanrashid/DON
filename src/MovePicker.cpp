@@ -188,10 +188,11 @@ void MovePicker::value<EVASION> ()
     for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
-        Value gain = pos.see_sign (m);
-        if (gain < VALUE_ZERO)
+
+        Value gain_value = pos.see_sign (m);
+        if (gain_value < VALUE_ZERO)
         {
-            itr->value = gain - VALUE_KNOWN_WIN; // At the bottom
+            itr->value = gain_value - VALUE_KNOWN_WIN; // At the bottom
         }
         else if (pos.capture (m))
         {

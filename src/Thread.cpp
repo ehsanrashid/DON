@@ -221,12 +221,11 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // leave their idle loops and call search(). When all threads have returned from
 // search() then split() returns.
 template <bool FAKE>
-void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
-                    Depth depth, uint8_t moves_count, MovePicker *move_picker, NodeT node_type, bool cut_node)
+void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+                    Depth depth, uint8_t moves_count, MovePicker &move_picker, NodeT node_type, bool cut_node)
 {
-
     ASSERT (pos.ok ());
-    ASSERT (-VALUE_INFINITE < *best_value && *best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
+    ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     ASSERT (depth >= Threads.min_split_depth);
     ASSERT (searching);
     ASSERT (split_point_threads < MAX_SPLIT_POINT_THREADS);
@@ -238,13 +237,13 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     sp.parent_split_point = active_split_point;
     sp.slaves_mask  = (U64 (1) << idx);
     sp.depth        = depth;
-    sp.best_value   = *best_value;
-    sp.best_move    = *best_move;
+    sp.best_value   = best_value;
+    sp.best_move    = best_move;
     sp.alpha        = alpha;
     sp.beta         = beta;
     sp.node_type    = node_type;
     sp.cut_node     = cut_node;
-    sp.move_picker  = move_picker;
+    sp.move_picker  = &move_picker;
     sp.moves_count  = moves_count;
     sp.pos          = &pos;
     sp.nodes        = 0;
@@ -304,16 +303,16 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     active_pos  = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
 
-    *best_move  = sp.best_move;
-    *best_value = sp.best_value;
+    best_move  = sp.best_move;
+    best_value = sp.best_value;
 
     sp.mutex.unlock ();
     Threads.mutex.unlock ();
 }
 
 // Explicit template instantiations
-template void Thread::split<false> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, uint8_t, MovePicker*, NodeT, bool);
-template void Thread::split< true> (Position&, const Stack[], Value, Value, Value*, Move*, Depth, uint8_t, MovePicker*, NodeT, bool);
+template void Thread::split<false> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
+template void Thread::split< true> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.

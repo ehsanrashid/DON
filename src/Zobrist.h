@@ -15,7 +15,7 @@ namespace Zobrist {
     //                  781
     const uint16_t SIZE_RANDOM = 781;
 
-    extern const Key MATL_KEY_PG; // = U64 (0xC1D58449E708A0AD);
+    extern const Key MATL_KEY_PG; // = U64 (0xB76D8438E5D28230);
     extern const Key PAWN_KEY_PG; // = U64 (0x37FC40DA841E1692);
     extern const Key POSI_KEY_PG; // = U64 (0x463B96181691FC9C);
 
@@ -30,10 +30,10 @@ namespace Zobrist {
 
         struct _
         {
-            Key psq_k[CLR_NO][NONE][SQ_NO]; // [COLOR][PIECE][SQUARE]
+            Key psq_k[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO]; // [COLOR][CASTLE SIDE]
             Key en_passant[F_NO];            // [ENPASSANT FILE]
-            Key mover_side;                   // COLOR
+            Key mover_side;                  // COLOR
 
         } _;
 

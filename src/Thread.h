@@ -14,22 +14,22 @@ const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
 #   include <pthread.h>
 
-typedef pthread_mutex_t Lock;
-typedef pthread_cond_t WaitCondition;
-typedef pthread_t NativeHandle;
+typedef pthread_mutex_t     Lock;
+typedef pthread_cond_t      WaitCondition;
+typedef pthread_t           NativeHandle;
 typedef void*(*ptr_fn)(void*);
 
-#   define lock_init(x)     pthread_mutex_init(&(x), NULL)
-#   define lock_grab(x)     pthread_mutex_lock(&(x))
-#   define lock_release(x)  pthread_mutex_unlock(&(x))
-#   define lock_destroy(x)  pthread_mutex_destroy(&(x))
-#   define cond_destroy(x)  pthread_cond_destroy(&(x))
-#   define cond_init(x)     pthread_cond_init(&(x), NULL)
-#   define cond_signal(x)   pthread_cond_signal(&(x))
-#   define cond_wait(x,y)   pthread_cond_wait(&(x),&(y))
-#   define cond_timedwait(x,y,z)    pthread_cond_timedwait(&(x),&(y),z)
-#   define thread_create(x,f,t)     pthread_create(&(x),NULL,(ptr_fn)f,t)
-#   define thread_join(x)   pthread_join(x, NULL)
+#   define lock_init(x)     pthread_mutex_init (&(x), NULL)
+#   define lock_grab(x)     pthread_mutex_lock (&(x))
+#   define lock_release(x)  pthread_mutex_unlock (&(x))
+#   define lock_destroy(x)  pthread_mutex_destroy (&(x))
+#   define cond_destroy(x)  pthread_cond_destroy (&(x))
+#   define cond_init(x)     pthread_cond_init (&(x), NULL)
+#   define cond_signal(x)   pthread_cond_signal (&(x))
+#   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
+#   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
+#   define thread_create(x,f,t)     pthread_create (&(x), NULL, (ptr_fn)f, t)
+#   define thread_join(x)   pthread_join (x, NULL)
 
 #else // Windows and MinGW
 
@@ -46,9 +46,9 @@ typedef void*(*ptr_fn)(void*);
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION Lock;
-typedef HANDLE WaitCondition;
-typedef HANDLE NativeHandle;
+typedef CRITICAL_SECTION    Lock;
+typedef HANDLE              WaitCondition;
+typedef HANDLE              NativeHandle;
 
 // On Windows 95 and 98 parameter lpThreadId my not be null
 inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
@@ -182,8 +182,8 @@ struct Thread
     bool available_to (const Thread *master) const;
 
     template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value *best_value, Move *best_move,
-        Depth depth, uint8_t moves_count, MovePicker *move_picker, Searcher::NodeT node_type, bool cut_node);
+    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+        Depth depth, uint8_t moves_count, MovePicker &move_picker, Searcher::NodeT node_type, bool cut_node);
 
 };
 

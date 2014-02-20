@@ -117,23 +117,15 @@ namespace MoveGenerator {
 
                 Move m = mk_move<CASTLE> (org_king, org_rook);
 
-                switch (GT)
+                if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                case CHECK:
-                case QUIET_CHECK:
-                    if (UNLIKELY (ci))
+                    if (UNLIKELY (ci) && !pos.gives_check (m, *ci))
                     {
-                        if (pos.gives_check (m, *ci))
-                        {
-                            (m_list++)->move = m;
-                        }
+                        return;
                     }
-                    break;
-
-                default:
-                    (m_list++)->move = m;
-                    break;
                 }
+
+                (m_list++)->move = m;
             }
 
             // template<GenT GT, Color C>

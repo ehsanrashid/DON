@@ -1356,7 +1356,7 @@ moves_loop: // When in check and at SPNode search starts from here
             {
                 ASSERT (best_value < beta);
 
-                thread->split<FakeSplit> (pos, ss, alpha, beta, &best_value, &best_move, depth, moves_count, &mp, NT, cut_node);
+                thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 
                 if (best_value >= beta) break;
             }
