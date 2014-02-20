@@ -1091,11 +1091,13 @@ moves_loop: // When in check and at SPNode search starts from here
             
             bool capture_or_promotion = pos.capture_or_promotion (move);
             
-            bool gives_check = mtype (move) == NORMAL && !ci.discoverers
-                ? ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
-                : pos.gives_check (move, ci);
+            bool gives_check = NORMAL == mtype (move) && !ci.discoverers
+                ?       ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                :       pos.gives_check (move, ci);
 
-            bool dangerous = gives_check || NORMAL != mtype (move) || pos.advanced_pawn_push (move);
+            bool dangerous = gives_check
+                ||      NORMAL != mtype (move)
+                ||      pos.advanced_pawn_push (move);
 
             // Step 12. Extend checks
             if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
