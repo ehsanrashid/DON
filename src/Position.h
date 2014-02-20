@@ -351,9 +351,9 @@ public:
     void    move_piece (Square s1, Square s2);
 
 #ifndef NDEBUG
-    bool setup (const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    bool setup (const        char *f, Thread *th = NULL, bool c960 = false, bool full = true);
 #endif
-    bool setup (const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true);
 
     void flip ();
 

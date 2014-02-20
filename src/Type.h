@@ -214,7 +214,7 @@ typedef enum Move : uint16_t
 
 } Move;
 
-typedef enum Value : int32_t
+enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
@@ -236,7 +236,7 @@ typedef enum Value : int32_t
     VALUE_MG_ROOK   = 1270,  VALUE_EG_ROOK   = 1278,
     VALUE_MG_QUEEN  = 2521,  VALUE_EG_QUEEN  = 2558
 
-} Value;
+};
 
 // Score enum keeps a midgame and an endgame value in a single integer (enum),
 // first LSB 16 bits are used to store endgame value, while upper bits are used
