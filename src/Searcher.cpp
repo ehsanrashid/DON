@@ -739,8 +739,7 @@ namespace {
             if (Signals.stop || pos.draw () || (ss)->ply > MAX_PLY)
             {
                 return (ss)->ply > MAX_PLY && !in_check
-                    ? evaluate (pos)
-                    : DrawValue[pos.active ()];
+                    ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -1428,8 +1427,7 @@ moves_loop: // When in check and at SPNode search starts from here
         if (pos.draw () || (ss)->ply > MAX_PLY)
         {
             return (ss)->ply > MAX_PLY && !IN_CHECK
-                ? evaluate (pos)
-                : DrawValue[pos.active ()];
+                ? evaluate (pos) : DrawValue[pos.active ()];
         }
 
         StateInfo   si;
@@ -1447,8 +1445,7 @@ moves_loop: // When in check and at SPNode search starts from here
         // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
         Depth tt_depth = IN_CHECK
             || depth >= DEPTH_QS_CHECKS
-            ?  DEPTH_QS_CHECKS
-            :  DEPTH_QS_NO_CHECKS;
+            ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
         Key posi_key = pos.posi_key ();
 
@@ -1458,7 +1455,7 @@ moves_loop: // When in check and at SPNode search starts from here
         Value tt_value;
 
         te       = TT.retrieve (posi_key);
-        tt_move  = te ?              te->move()               : MOVE_NONE;
+        tt_move  = te ?              te->move ()              : MOVE_NONE;
         tt_value = te ? value_fr_tt (te->value (), (ss)->ply) : VALUE_NONE;
 
         if (   te

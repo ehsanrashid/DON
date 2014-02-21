@@ -215,13 +215,13 @@ public:
         uint64_t mem_size_b  = ((tt._hash_mask + TranspositionTable::CLUSTER_SIZE) * TranspositionTable::TENTRY_SIZE);
         uint32_t mem_size_mb = mem_size_b >> 20;
         uint8_t dummy = 0;
-        os.write ((char *) &mem_size_mb, sizeof (mem_size_mb));
-        os.write ((char *) &TranspositionTable::TENTRY_SIZE       , sizeof (dummy));
-        os.write ((char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
-        os.write ((char *) &dummy, sizeof (dummy));
-        os.write ((char *) &tt._generation, sizeof (tt._generation));
-        os.write ((char *) &tt._hash_mask , sizeof (tt._hash_mask));
-        os.write ((char *)  tt._hash_table, mem_size_b);
+        os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
+        os.write ((const char *) &TranspositionTable::TENTRY_SIZE , sizeof (dummy));
+        os.write ((const char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
+        os.write ((const char *) &dummy, sizeof (dummy));
+        os.write ((const char *) &tt._generation, sizeof (tt._generation));
+        os.write ((const char *) &tt._hash_mask , sizeof (tt._hash_mask));
+        os.write ((const char *)  tt._hash_table, mem_size_b);
         return os;
     }
 
