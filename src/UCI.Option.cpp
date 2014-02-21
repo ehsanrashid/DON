@@ -149,15 +149,14 @@ namespace UCI {
         //Option& SpinOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
-        //    int32_t value = atoi (value);
-        //    value = min (max (value, _minimum), _maximum);
-        //    //if (_minimum < value && value < _maximum)
+        //    int32_t val = atoi (value);
+        //    //val = min (max (val, _minimum), _maximum);
+        //    if (val < _minimum) val = _minimum;
+        //    if (val > _maximum) val = _maximum;
+        //    if (_value != val)
         //    {
-        //        if (_value != value)
-        //        {
-        //            _value = value;
-        //            if (_on_change) _on_change (*this);
-        //        }
+        //        _value = val;
+        //        if (_on_change) _on_change (*this);
         //    }
         //    return *this;
         //}
@@ -165,14 +164,13 @@ namespace UCI {
         {
             if (value.empty ()) return *this;
             int32_t val = atoi (value.c_str ()); //stoi (value);
-            val = min (max (val, _minimum), _maximum);
-            //if (_minimum < val && val < _maximum)
+            //val = min (max (val, _minimum), _maximum);
+            if (val < _minimum) val = _minimum;
+            if (val > _maximum) val = _maximum;
+            if (_value != val)
             {
-                if (_value != val)
-                {
-                    _value = val;
-                    if (_on_change) _on_change (*this);
-                }
+                _value = val;
+                if (_on_change) _on_change (*this);
             }
             return *this;
         }

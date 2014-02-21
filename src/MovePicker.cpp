@@ -9,17 +9,6 @@ using namespace MoveGenerator;
 
 namespace {
 
-    enum StageT : uint8_t
-    {
-        MAIN_STAGE,  CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
-        EVASIONS,    EVASIONS_S2,
-        QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
-        QSEARCH_1,   CAPTURES_S4,
-        PROBCUT,     CAPTURES_S5,
-        RECAPTURE,   CAPTURES_S6,
-        STOP,
-    };
-
     // Our insertion sort, guaranteed to be stable, as is needed
     inline void insertion_sort (ValMove *beg, ValMove *end)
     {
@@ -43,6 +32,7 @@ namespace {
         swap (*beg, *max_element (beg, end));
         return beg;
     }
+
 }
 
 // Constructors of the MovePicker class. As arguments we pass information
@@ -211,7 +201,9 @@ void MovePicker::value<EVASION> ()
 void MovePicker::generate_next_stage ()
 {
     cur = m_list;
-    switch (++stage)
+    
+    stage = StageT (uint8_t (stage) + 1);
+    switch (stage)
     {
 
     case CAPTURES_S1:
@@ -355,7 +347,7 @@ template<>
 // taking care not to return the tt_move if has already been searched previously.
 Move MovePicker::next_move<false> ()
 {
-    while (true) // (stage <= STOP)
+    do
     {
         Move move;
         while (cur == end)
@@ -479,6 +471,7 @@ Move MovePicker::next_move<false> ()
             ASSERT (false);
         }
     }
+    while (true); // (stage <= STOP)
 }
 
 template<>

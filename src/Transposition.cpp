@@ -80,25 +80,25 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb)
     //    return;
     //}
 
-    uint64_t mem_size_b    = uint64_t (mem_size_mb) << 20;
-    uint32_t total_entry  = (mem_size_b) / TENTRY_SIZE;
-    //uint32_t total_cluster  = total_entry / CLUSTER_SIZE;
+    uint64_t mem_size_b   = uint64_t (mem_size_mb) << 20;
+    uint32_t _entry_count = (mem_size_b) / TENTRY_SIZE;
+    //uint32_t cluster_count = _entry_count / CLUSTER_SIZE;
 
-    uint8_t bit_hash = scan_msq (total_entry);
+    uint8_t bit_hash = scan_msq (_entry_count);
     ASSERT (bit_hash < MAX_HASH_BIT);
     if (bit_hash >= MAX_HASH_BIT) bit_hash = MAX_HASH_BIT - 1;
 
-    total_entry     = uint32_t (1) << bit_hash;
-    mem_size_b      = total_entry * TENTRY_SIZE;
+    _entry_count = uint32_t (1) << bit_hash;
+    mem_size_b   = _entry_count * TENTRY_SIZE;
 
-    if (_hash_mask != (total_entry - CLUSTER_SIZE))
+    if (_hash_mask != (_entry_count - CLUSTER_SIZE))
     {
         erase ();
 
         aligned_memory_alloc (mem_size_b, CACHE_LINE_SIZE); 
 
-        _hash_mask      = (total_entry - CLUSTER_SIZE);
-        _stored_entry   = 0;
+        _hash_mask      = (_entry_count - CLUSTER_SIZE);
+        _store_count    = 0;
         _generation     = 0;
     }
 
@@ -160,8 +160,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    if (!re->move () &&  move) ++_stored_entry;
-    if ( re->move () && !move) --_stored_entry;
+    if (!re->move () &&  move) ++_store_count;
+    if ( re->move () && !move) --_store_count;
 
     re->save (key32, move, depth, bound, _generation, nodes/1000, value, eval);
 }

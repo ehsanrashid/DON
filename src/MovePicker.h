@@ -78,6 +78,18 @@ class MovePicker
 
 private:
 
+    typedef enum StageT : uint8_t
+    {
+        MAIN_STAGE, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
+        EVASIONS, EVASIONS_S2,
+        QSEARCH_0, CAPTURES_S3, QUIET_CHECKS_S3,
+        QSEARCH_1, CAPTURES_S4,
+        PROBCUT, CAPTURES_S5,
+        RECAPTURE, CAPTURES_S6,
+        STOP
+
+    } StageT;
+
     template<MoveGenerator::GenT>
     // value() assign a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
@@ -102,7 +114,7 @@ private:
 
     Value   capture_threshold;
 
-    uint8_t stage;
+    StageT  stage;
 
     ValMove  m_list[MAX_MOVES];
     ValMove *cur

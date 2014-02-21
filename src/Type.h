@@ -218,11 +218,10 @@ enum Value : int32_t
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
-    //VALUE_CHIK      = 5,
     
     VALUE_NONE      = 32767, // std::numeric_limits<int>::max()
     VALUE_INFINITE  = VALUE_NONE - 1,
-    _VALUE_INFINITE = -VALUE_INFINITE,
+    //_VALUE_INFINITE = -VALUE_INFINITE,
 
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 4,

@@ -88,7 +88,7 @@ private:
 
     TranspositionEntry *_hash_table;
     uint32_t            _hash_mask;
-    uint32_t            _stored_entry;
+    uint32_t            _store_count;
     uint8_t             _generation;
 
     void aligned_memory_alloc (uint64_t size, uint32_t alignment);
@@ -104,7 +104,7 @@ private:
         }
 
         _hash_mask      = 0;
-        _stored_entry   = 0;
+        _store_count    = 0;
         _generation     = 0;
     }
 
@@ -135,7 +135,7 @@ public:
     TranspositionTable ()
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _stored_entry (0)
+        , _store_count (0)
         , _generation (0)
     {
         resize (DEF_TT_SIZE);
@@ -144,7 +144,7 @@ public:
     TranspositionTable (uint32_t mem_size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _stored_entry (0)
+        , _store_count (0)
         , _generation (0)
     {
         resize (mem_size_mb);
@@ -168,8 +168,8 @@ public:
             uint64_t mem_size_b  = (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE;
             std::memset (_hash_table, 0, mem_size_b);
 
-            _stored_entry = 0;
-            _generation   = 0;
+            _store_count = 0;
+            _generation  = 0;
         }
         ClearHash = false;
     }
@@ -198,7 +198,7 @@ public:
     // hash, are using <x>%. of the state of full.
     inline uint32_t permill_full () const
     {
-        return _stored_entry * 1000 / (_hash_mask + CLUSTER_SIZE);
+        return _store_count * 1000 / (_hash_mask + CLUSTER_SIZE);
     }
 
 

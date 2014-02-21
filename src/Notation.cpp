@@ -312,20 +312,20 @@ const string move_to_san (Move m, Position &pos)
 //            If the engine is getting mated use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
-    stringstream ss;
+    stringstream ssv;
 
     if (abs (v) < VALUE_MATES_IN_MAX_PLY)
     {
-        ss << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
+        ssv << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {
-        ss << "mate " << int32_t (v > VALUE_ZERO ? VALUE_MATE - v + 1 : -(VALUE_MATE + v)) / 2;
+        ssv << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
     }
 
-    ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+    ssv << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
-    return ss.str ();
+    return ssv.str ();
 }
 
 namespace {
@@ -333,26 +333,25 @@ namespace {
     // value to string
     string value_to_string (Value v)
     {
-        stringstream ss;
+        stringstream ssv;
 
-        int32_t abs_v = abs (int32_t (v));
-        if (abs_v < VALUE_MATES_IN_MAX_PLY)
+        if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            //if (abs_v <= VALUE_CHIK) v = VALUE_DRAW;
-            ss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+            ssv << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else
         {
             if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
             {
-                ss <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+                ssv <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
             }
             else                //if (v <= VALUE_MATED_IN_MAX_PLY)
             {
-                ss << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+                ssv << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
             }
         }
-        return ss.str ();
+
+        return ssv.str ();
     }
 
     // time to string
@@ -365,14 +364,14 @@ namespace {
         uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
         uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
-        stringstream ss;
+        stringstream stm;
 
-        if (hours) ss << hours << ':';
-        ss << setfill ('0') 
+        if (hours) stm << hours << ':';
+        stm << setfill ('0') 
             << setw (2) << minutes << ':' 
             << setw (2) << seconds;
 
-        return ss.str ();
+        return stm.str ();
     }
 
 }

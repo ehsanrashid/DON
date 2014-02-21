@@ -105,12 +105,15 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color
         uint32_t opt_time = min_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
         uint32_t max_time = min_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
 
-        _optimum_search_time = min (_optimum_search_time, opt_time);
-        _maximum_search_time = min (_maximum_search_time, max_time);
+        if (_optimum_search_time > opt_time) _optimum_search_time = opt_time;
+        if (_maximum_search_time > max_time) _maximum_search_time = max_time;
     }
 
     if (bool (*(Options["Ponder"]))) _optimum_search_time += _optimum_search_time / 4;
 
     // Make sure that _optimum_search_time is not over absolute _maximum_search_time
-    _optimum_search_time = min (_optimum_search_time, _maximum_search_time);
+    if (_optimum_search_time > _maximum_search_time)
+    {
+        _optimum_search_time = _maximum_search_time;
+    }
 }

@@ -118,7 +118,7 @@ void TimerThread::idle_loop ()
 // when there is a new search. Main thread will launch all the slave threads.
 void MainThread::idle_loop ()
 {
-    while (true)
+    do
     {
         mutex.lock ();
 
@@ -142,6 +142,7 @@ void MainThread::idle_loop ()
 
         searching = false;
     }
+    while (true);
 }
 
 // init() is called at startup to create and launch requested threads, that will

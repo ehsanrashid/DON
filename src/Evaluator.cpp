@@ -790,7 +790,8 @@ namespace {
             if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
             // To index KingDanger[] attack_units must be in [0, 99] range
-            attack_units = min (max (0, attack_units), 99);
+            if (attack_units <  0) attack_units =  0;
+            if (attack_units > 99) attack_units = 99;
 
             // Finally, extract the king danger score from the KingDanger[]
             // array and subtract the score from evaluation.

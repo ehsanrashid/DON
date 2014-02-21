@@ -47,7 +47,11 @@ namespace {
     template<bool PVNode>
     inline Depth reduction (bool imp, uint8_t depth, uint8_t move_num)
     {
-        return Depth (Reductions[PVNode][imp][min (depth / ONE_MOVE, 63)][min (move_num+0, 63)]);
+        depth = depth / int8_t (ONE_MOVE);
+        if (depth    > 63) depth    = 63;
+        if (move_num > 63) move_num = 63;
+
+        return Depth (Reductions[PVNode][imp][depth][move_num]);
     }
 
     // Dynamic razoring margin based on depth
@@ -534,10 +538,8 @@ namespace {
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
-                while (true) //(alpha < beta)
+                do
                 {
-                    ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-
                     best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
 
                     // Bring to front the best move. It is critical that sorting is
@@ -588,7 +590,10 @@ namespace {
                     }
 
                     delta += delta / 2;
+
+                    ASSERT(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                 }
+                while (true); //(alpha < beta)
 
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
@@ -1854,7 +1859,7 @@ void Thread::idle_loop ()
 
     ASSERT (!this_sp || (this_sp->master_thread == this && searching));
 
-    while (true)
+    do
     {
         // If we are not searching, wait for a condition to be signaled instead of
         // wasting CPU time polling for work.
@@ -1952,5 +1957,5 @@ void Thread::idle_loop ()
             if (finished) return;
         }
     }
-
+    while (true);
 }
