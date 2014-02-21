@@ -1,12 +1,14 @@
 #include "PolyglotBook.h"
+
 #include <algorithm>
 #include <vector>
 #include <iomanip>
 
+#include "manipulator.h"
+#include "Position.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "manipulator.h"
 
 using namespace std;
 using namespace MoveGenerator;

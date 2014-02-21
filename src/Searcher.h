@@ -2,8 +2,12 @@
 #ifndef SEARCHER_H_
 #define SEARCHER_H_
 
+#include <cstring>
 #include <iomanip>
 #include <memory>
+#include <stack>
+#include <vector>
+
 #include "Type.h"
 #include "Time.h"
 #include "Position.h"

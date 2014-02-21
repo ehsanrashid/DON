@@ -2,8 +2,8 @@
 #ifndef POLYGLOT_BOOK_H_
 #define POLYGLOT_BOOK_H_
 
-#include <ios>
 #include <fstream>
+
 #include "Type.h"
 #include "RKISS.h"
 #include "noncopyable.h"

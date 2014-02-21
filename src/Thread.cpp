@@ -1,7 +1,6 @@
 #include "thread.h"
 
-#include <algorithm> // For std::count
-#include <cassert>
+#include <algorithm>
 
 #include "MoveGenerator.h"
 #include "Searcher.h"

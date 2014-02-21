@@ -2,7 +2,9 @@
 #ifndef TRANSPOSITION_H_
 #define TRANSPOSITION_H_
 
+#include <cstring>
 #include <cstdlib>
+
 #include "Type.h"
 #include "UCI.h"
 //#include "LeakDetector.h"

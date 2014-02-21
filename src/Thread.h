@@ -1,6 +1,9 @@
 #ifndef THREAD_H_
 #define THREAD_H_
 
+#include <vector>
+
+#include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "MovePicker.h"

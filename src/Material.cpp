@@ -1,7 +1,6 @@
 #include "Material.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
 
 #include "Position.h"

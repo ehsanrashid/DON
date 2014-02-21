@@ -5,6 +5,8 @@
 #include "Type.h"
 #include "Endgame.h"
 
+class Position;
+
 namespace Material {
 
     // Material::Entry contains various information about a material configuration.

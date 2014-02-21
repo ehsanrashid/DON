@@ -2,8 +2,9 @@
 #ifndef MOVEPICKER_H_
 #define MOVEPICKER_H_
 
-#include <vector>
-#include <set>
+#include <algorithm> 
+#include <cstring>
+
 #include "Type.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"

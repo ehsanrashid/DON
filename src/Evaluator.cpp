@@ -1,22 +1,19 @@
 #include "Evaluator.h"
 
-#include <cassert>
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
 
-#include "BitCount.h"
 #include "BitBoard.h"
+#include "BitCount.h"
 #include "Position.h"
 #include "Material.h"
 #include "Pawns.h"
-#include "Searcher.h"
 #include "Thread.h"
 #include "UCI.h"
 
 using namespace std;
 using namespace BitBoard;
-using namespace Searcher;
 
 namespace {
 

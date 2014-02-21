@@ -1,5 +1,8 @@
 #include "Pawns.h"
 
+#include <algorithm>
+
+#include "BitBoard.h"
 #include "BitCount.h"
 
 using namespace std;

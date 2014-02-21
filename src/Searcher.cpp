@@ -1,6 +1,10 @@
 ﻿#include "Searcher.h"
 
 #include <cfloat>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <sstream>
 
 #include "UCI.h"
 #include "TimeManager.h"

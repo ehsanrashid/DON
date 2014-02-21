@@ -1,10 +1,10 @@
 #include "Endgame.h"
 
 #include <algorithm>
-#include <cassert>
 
 #include "Position.h"
 #include "BitBoard.h"
+#include "BitCount.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
 

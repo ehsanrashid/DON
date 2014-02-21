@@ -1,5 +1,6 @@
 #include "Benchmark.h"
 
+#include <iostream>
 #include <fstream>
 #include <vector>
 

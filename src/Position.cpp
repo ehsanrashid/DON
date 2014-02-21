@@ -1,7 +1,9 @@
 #include "Position.h"
 
-#include <sstream>
 #include <algorithm>
+#include <cstring>
+#include <iomanip>
+#include <sstream>
 
 #include "BitBoard.h"
 #include "BitScan.h"

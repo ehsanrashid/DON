@@ -631,14 +631,12 @@
     <ClInclude Include="src\TriLogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
-    <ClInclude Include="src\xcstring.h" />
-    <ClInclude Include="src\xstring.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="DON.cd">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="AssemblyDependencies.dgml" />
+    <None Include="ClassDiagram.cd" />
+    <None Include="CodeMap.dgml" />
     <None Include="IncludeFileDependencies.dgml" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />

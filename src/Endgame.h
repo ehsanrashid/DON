@@ -3,6 +3,8 @@
 #define ENDGAME_H_
 
 #include <map>
+#include <string>
+
 #include "Type.h"
 
 class Position;

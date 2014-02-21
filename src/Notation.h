@@ -3,6 +3,7 @@
 #define NOTATION_H_
 
 #include <string>
+
 #include "Type.h"
 
 class Position;
