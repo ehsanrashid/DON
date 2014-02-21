@@ -1684,7 +1684,7 @@ moves_loop: // When in check and at SPNode search starts from here
     {
         static RKISS rk;
         // PRNG sequence should be not deterministic
-        for (int32_t i = Time::now () % 50; i > 0; --i) rk.rand64 ();
+        for (int32_t i = now () % 50; i > 0; --i) rk.rand64 ();
 
         move = MOVE_NONE;
 

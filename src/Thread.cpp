@@ -71,7 +71,7 @@ Thread::Thread () : split_points ()  // Value-initialization bug in MSVC
 
 // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
 // current active split point, or in some ancestor of the split point.
-bool Thread::cutoff_occurred() const
+bool Thread::cutoff_occurred () const
 {
     for (SplitPoint *sp = active_split_point; sp != NULL; sp = sp->parent_split_point)
     {
