@@ -201,9 +201,8 @@ void MovePicker::value<EVASION> ()
 void MovePicker::generate_next_stage ()
 {
     cur = m_list;
-    
-    stage = StageT (uint8_t (stage) + 1);
-    switch (stage)
+    //stage = StageT (uint8_t (stage) + 1);
+    switch (++stage)
     {
 
     case CAPTURES_S1:

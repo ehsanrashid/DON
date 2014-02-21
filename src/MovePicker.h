@@ -114,7 +114,7 @@ private:
 
     Value   capture_threshold;
 
-    StageT  stage;
+    uint8_t stage;
 
     ValMove  m_list[MAX_MOVES];
     ValMove *cur
