@@ -26,7 +26,7 @@ const uint32_t TranspositionTable::MAX_TT_SIZE       = (uint32_t (1) << (MAX_HAS
 const uint32_t TranspositionTable::CACHE_LINE_SIZE   = 0x40; // 64
 
 
-void TranspositionTable::aligned_memory_alloc (uint64_t mem_size, uint32_t alignment)
+void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint32_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
@@ -46,12 +46,12 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size, uint32_t align
 
     uint32_t offset = 
         //(alignment - 1) + sizeof (void *);
-        max<uint32_t> (alignment, sizeof (void *));
+        max (alignment, uint32_t (sizeof (void *)));
 
-    void *mem = calloc (mem_size + offset, 1);
+    void *mem = calloc (mem_size_b + offset, 1);
     if (!mem)
     {
-        cerr << "ERROR: hash failed to allocate " << mem_size << " byte..." << endl;
+        cerr << "ERROR: hash failed to allocate " << mem_size_b << " byte..." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
@@ -59,9 +59,9 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size, uint32_t align
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
 
-    _hash_table = (TranspositionEntry*) (ptr);
+    _hash_table = (TranspositionEntry *) (ptr);
 
-    ASSERT (0 == (mem_size & (alignment - 1)));
+    ASSERT (0 == (mem_size_b & (alignment - 1)));
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
 
     ptr[-1] = mem;
