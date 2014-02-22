@@ -408,7 +408,7 @@ public:
 
 // -------------------------------
 
-inline Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
+INLINE Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }

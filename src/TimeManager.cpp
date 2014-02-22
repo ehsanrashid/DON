@@ -73,10 +73,11 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color
 
     Time management is adjusted by following UCI parameters:
 
-    emergencyMoveHorizon : Be prepared to always play at least this many moves
-    emergencyBaseTime    : Always attempt to keep at least this much time (in ms) at clock
-    emergencyMoveTime    : Plus attempt to keep at least this much time for each remaining emergency move
-    minThinkingTime      : No matter what, use at least this much thinking before doing the move
+    emergency_move_horizon : Be prepared to always play at least this many moves
+    emergency_base_time    : Always attempt to keep at least this much time (in ms) at clock
+    emergency_move_time    : Plus attempt to keep at least this much time for each remaining emergency move
+    min_thinking_time      : No matter what, use at least this much thinking before doing the move
+    slow_mover             :
     */
 
     // Read uci parameters
