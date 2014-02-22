@@ -127,10 +127,10 @@ namespace {
 
     typedef struct Skill
     {
-        int8_t level;
+        uint8_t level;
         Move   move;
 
-        Skill (int8_t lvl)
+        Skill (uint8_t lvl)
             : level (lvl)
             , move (MOVE_NONE)
         {}
@@ -254,11 +254,13 @@ namespace Searcher {
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
 
-        while (ply)
+        do
         {
             pos.undo_move ();
             --ply;
         }
+        while (ply);
+
     }
 
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
@@ -293,11 +295,13 @@ namespace Searcher {
         }
         while (MOVE_NONE != pv[ply]);
 
-        while (ply)
+        do
         {
             pos.undo_move ();
             --ply;
         }
+        while (ply);
+
     }
 
     uint64_t perft (Position &pos, const Depth &depth)
@@ -499,8 +503,8 @@ namespace {
         int32_t depth    =  DEPTH_ZERO;
 
         MultiPV     = int32_t (*(Options["MultiPV"]));
-        int8_t level= int32_t (*(Options["Skill Level"]));
-        Skill skill (level);
+        uint8_t lvl = int32_t (*(Options["Skill Level"]));
+        Skill skill (lvl);
 
         // Do we have to play with skill handicap? In this case enable MultiPV search
         // that we will use behind the scenes to retrieve a set of possible moves.
