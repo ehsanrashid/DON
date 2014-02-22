@@ -10,7 +10,7 @@
 
 namespace Tester {
 
-//#ifndef NDEBUG
+    //#ifndef NDEBUG
     using namespace std;
 
     namespace {
@@ -64,46 +64,11 @@ namespace Tester {
             ASSERT (SQ_H2 == scan_msq (0xFFFF));
 
 
-            //ASSERT (CollapsedFILEsIndex (U64 (0x0000000000008143)) == 0xC3);
-            //ASSERT (CollapsedFILEsIndex (U64 (0x1080000001000010)) == 0x91);
-
             //ASSERT (U64 (0x7680562c40030281) == rotate_90C (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0x8140C002346A016E) == rotate_90A (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0x0C030125601D818C) == rotate_45C (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0xAD29050411010EC0) == rotate_45A (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0x05A6B010A090A841) == rotate_180 (U64 (0x82150905080D65A0)));
-
-            //ASSERT (BitShiftGap (0, F_F) == 0);
-            //ASSERT (BitShiftGap (129, F_B) == 1);
-            //ASSERT (BitShiftGap (129, F_E) == 3);
-            //ASSERT (BitShiftGap (8, F_H) == 4);
-            //ASSERT (BitShiftGap (253, F_B) == 1);
-            //ASSERT (BitShiftGap (215, F_F) == 1);
-            //ASSERT (BitShiftGap (94, F_H) == 1);
-            //ASSERT (BitShiftGap (37, F_E) == 1);
-
-            ////ASSERT(getNextSquare(&b) == SQ_NO);
-            ////setSquare(b, SQ_H8);
-            ////ASSERT(getNextSquare(&b) == SQ_H8);
-            ////ASSERT(getNextSquare(&b) == SQ_NO);
-
-            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_E5));
-            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_F6));
-            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_G7));
-            ////ASSERT(IsSquareOn(squaresBehind[ SQ_D4 ][ SQ_C3 ], SQ_H8));
-            ////ASSERT(getNumberOfSetSquares(squaresBehind[ SQ_D4 ][ SQ_C3 ]) == 4);
-
-            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_C4));
-            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_D5));
-            ////ASSERT(IsSquareOn(squaresBetween[ SQ_B3 ][ SQ_F7 ], SQ_E6));
-            ////ASSERT(getNumberOfSetSquares(squaresBetween[ SQ_B3 ][ SQ_F7 ]) == 3);
-
-            ////ASSERT(IsSquareOn(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C4));
-            ////ASSERT(IsSquareOff(squaresInDistance[ 1 ][ SQ_C3 ], SQ_C5));
-            ////ASSERT(IsSquareOn(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E2));
-            ////ASSERT(IsSquareOff(squaresInDistance[ 3 ][ SQ_E5 ], SQ_E1));
-            ////ASSERT(IsSquareOn(squaresInDistance[ 5 ][ SQ_H8 ], SQ_C3));
-            ////ASSERT(IsSquareOff(squaresInDistance[ 5 ][ SQ_H8 ], SQ_B2));
 
             cout << "Bitboard ...done !!!" << endl;
         }
@@ -433,10 +398,6 @@ namespace Tester {
         void test_zobrist ()
         {
             ASSERT ((ZobPG._.mover_side >> 32) == U32 (0xF8D626AA));
-            //if ((ZobPG._.mover_side >> 32) != U32(0xF8D626AA))
-            //{ // upper half of the hash Color WHITE
-            //    exit(EXIT_FAILURE);
-            //}
 
             const char *fen;
             Position pos (0);
@@ -528,14 +489,17 @@ namespace Tester {
             ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
             // castling do/undo
-            ////"rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
-            //si = states;
-            //m = mk_move<CASTLE> (SQ_E1, SQ_H1);
-            //pos.do_move (m, *si++);
-            //m = mk_move<CASTLE> (SQ_E8, SQ_H8);
-            //pos.do_move (m, *si++);
-            //pos.undo_move ();
-            //pos.undo_move ();
+            fen = "rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
+            pos.setup (fen);
+            si = states;
+            
+            m = mk_move<CASTLE> (SQ_E1, SQ_H1);
+            pos.do_move (m, *si++);
+            m = mk_move<CASTLE> (SQ_E8, SQ_H8);
+            pos.do_move (m, *si++);
+            pos.undo_move ();
+            pos.undo_move ();
+
 
             fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
             pos.setup (fen);
@@ -591,8 +555,6 @@ namespace Tester {
                 pos.undo_move ();
                 pos.undo_move ();
                 pos.undo_move ();
-
-                //cout << pos;
             }
 
             cout << "Move     ...done !!!" << endl;
@@ -625,6 +587,6 @@ namespace Tester {
         test_uci ();
     }
 
-//#endif
+    //#endif
 
 }
