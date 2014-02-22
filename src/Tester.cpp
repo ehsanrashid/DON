@@ -42,39 +42,27 @@ namespace Tester {
         void test_bitboard ()
         {
 
-            ASSERT (0x04 == rank_dist (SQ_C2, SQ_E6));
-            ASSERT (0x03 == rank_dist (SQ_A4, SQ_G7));
+            ASSERT (4 == rank_dist (SQ_C2, SQ_E6));
+            ASSERT (3 == rank_dist (SQ_A4, SQ_G7));
 
-            ASSERT (0x02 == file_dist (SQ_C2, SQ_E6));
-            ASSERT (0x06 == file_dist (SQ_A4, SQ_G7));
+            ASSERT (2 == file_dist (SQ_C2, SQ_E6));
+            ASSERT (6 == file_dist (SQ_A4, SQ_G7));
 
-            ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
-            ASSERT (0x05 == square_dist (SQ_C3, SQ_H8));
+            ASSERT (5 == square_dist (SQ_C3, SQ_H8));
+            ASSERT (5 == square_dist (SQ_C3, SQ_H8));
 
-            ASSERT (0x09 == taxicab_dist (SQ_B2, SQ_F7));
-            ASSERT (0x08 == taxicab_dist (SQ_G3, SQ_B6));
-            ASSERT (0x04 == taxicab_dist (SQ_H5, SQ_E4));
+            //ASSERT (9 == taxicab_dist (SQ_B2, SQ_F7));
+            //ASSERT (8 == taxicab_dist (SQ_G3, SQ_B6));
+            //ASSERT (4 == taxicab_dist (SQ_H5, SQ_E4));
 
-            Bitboard b;
+            ASSERT ( 0 == pop_count<FULL> (U64 (0x0000)));
+            ASSERT ( 8 == pop_count<FULL> (U64 (0x5555)));
+            ASSERT ( 8 == pop_count<FULL> (U64 (0xAAAA)));
+            ASSERT (16 == pop_count<FULL> (U64 (0xFFFF)));
 
-            b = 0;
-            b = b + SQ_D4 + SQ_H8;
-            ASSERT (b == U64 (0x8000000008000000));
+            ASSERT (SQ_D1 == scan_msq (0x000F));
+            ASSERT (SQ_H2 == scan_msq (0xFFFF));
 
-
-            //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            //{
-            //    print (attacks_bb<QUEN>(s));
-            //    if (s % 8 == 7) system ("pause");
-            //}
-
-            //ASSERT (pop_count<FULL> (U64 (0x0000)) == 0x00);
-            //ASSERT (pop_count<FULL> (U64 (0x5555)) == 0x08);
-            //ASSERT (pop_count<FULL> (U64 (0xAAAA)) == 0x08);
-            //ASSERT (pop_count<FULL> (U64 (0xFFFF)) == 0x10);
-
-            //ASSERT (scan_msq (0x000F) == SQ_D1);
-            //ASSERT (scan_msq (0xFFFF) == SQ_H2);
 
             //ASSERT (CollapsedFILEsIndex (U64 (0x0000000000008143)) == 0xC3);
             //ASSERT (CollapsedFILEsIndex (U64 (0x1080000001000010)) == 0x91);
@@ -84,7 +72,6 @@ namespace Tester {
             //ASSERT (U64 (0x0C030125601D818C) == rotate_45C (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0xAD29050411010EC0) == rotate_45A (U64 (0x82150905080D65A0)));
             //ASSERT (U64 (0x05A6B010A090A841) == rotate_180 (U64 (0x82150905080D65A0)));
-
 
             //ASSERT (BitShiftGap (0, F_F) == 0);
             //ASSERT (BitShiftGap (129, F_B) == 1);

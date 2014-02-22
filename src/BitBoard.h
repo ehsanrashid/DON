@@ -40,7 +40,7 @@ namespace BitBoard {
 
     extern uint8_t _filerank_dist[F_NO][R_NO];
     extern uint8_t   _square_dist[SQ_NO][SQ_NO];
-    extern uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
+    //extern uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
 
     extern const Delta _deltas_pawn[CLR_NO][3];
     extern const Delta _deltas_type[NONE][9];
@@ -67,7 +67,6 @@ namespace BitBoard {
 
     CACHE_ALIGN(64) extern Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
-
 
     // attacks of the pieces
     CACHE_ALIGN(64) extern Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
@@ -126,7 +125,7 @@ namespace BitBoard {
     inline uint8_t rank_dist (Square s1, Square s2) { return _filerank_dist[_rank (s1)][_rank (s2)]; }
 
     inline uint8_t  square_dist (Square s1, Square s2) { return  _square_dist[s1][s2]; }
-    inline uint8_t taxicab_dist (Square s1, Square s2) { return _taxicab_dist[s1][s2]; }
+    //inline uint8_t taxicab_dist (Square s1, Square s2) { return _taxicab_dist[s1][s2]; }
 
     // ----------------------------------------------------
 
@@ -275,13 +274,13 @@ namespace BitBoard {
     // --------------------------------
 
     template<PieceT PT>
-    // Function 'indexer(s, occ)' for computing index for sliding attack bitboards.
+    // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE uint16_t indexer   (Square s, Bitboard occ);
+    extern INLINE uint16_t magic_index   (Square s, Bitboard occ);
 
     template<>
-    INLINE uint16_t indexer   <BSHP> (Square s, Bitboard occ)
+    INLINE uint16_t magic_index   <BSHP> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT
@@ -295,7 +294,7 @@ namespace BitBoard {
     }
 
     template<>
-    INLINE uint16_t indexer   <ROOK> (Square s, Bitboard occ)
+    INLINE uint16_t magic_index   <ROOK> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT
@@ -310,17 +309,17 @@ namespace BitBoard {
 
     template<>
     // Attacks of the BISHOP with occupancy
-    INLINE Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][indexer<BSHP> (s, occ)]; }
+    INLINE Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][magic_index<BSHP> (s, occ)]; }
     template<>
     // Attacks of the ROOK with occupancy
-    INLINE Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][indexer<ROOK> (s, occ)]; }
+    INLINE Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][magic_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occ
     INLINE Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return
-            BAttack_bb[s][indexer<BSHP> (s, occ)] |
-            RAttack_bb[s][indexer<ROOK> (s, occ)];
+            BAttack_bb[s][magic_index<BSHP> (s, occ)] |
+            RAttack_bb[s][magic_index<ROOK> (s, occ)];
     }
     // --------------------------------
 
@@ -338,7 +337,6 @@ namespace BitBoard {
         case KING: return _attacks_type_bb[KING][s];
         default  : return U64 (0);
         }
-        //return U64 (0);
     }
 
     extern void initialize ();

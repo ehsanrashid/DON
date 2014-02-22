@@ -7,8 +7,8 @@
 #include "UCI.h"
 
 using namespace std;
-using namespace Searcher;
 using namespace MoveGenerator;
+using namespace Searcher;
 
 ThreadPool Threads; // Global object
 

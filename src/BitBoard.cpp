@@ -46,7 +46,7 @@ namespace BitBoard {
     // FILE & RANK distance
     uint8_t _filerank_dist[F_NO][R_NO];
     uint8_t   _square_dist[SQ_NO][SQ_NO];
-    uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
+    //uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
 
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
     const Delta _deltas_pawn[CLR_NO][3] =
@@ -246,12 +246,12 @@ namespace BitBoard {
         CACHE_ALIGN(64) Bitboard BTable_bb[MAX_B_MOVES];
         CACHE_ALIGN(64) Bitboard RTable_bb[MAX_R_MOVES];
 
-        typedef uint16_t (*Indexer) (Square s, Bitboard occ);
+        typedef uint16_t (*Index) (Square s, Bitboard occ);
 
-        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer)
+        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index)
         {
 
-            const uint16_t _bMagicBoosters[R_NO] =
+            const uint16_t MagicBoosters[R_NO] =
 #ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #else
@@ -280,7 +280,7 @@ namespace BitBoard {
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
                 shift[s] =
-#if defined(_64BIT)
+#ifdef _64BIT
                     64 - pop_count<MAX15> (mask);
 #else
                     32 - pop_count<MAX15> (mask);
@@ -306,7 +306,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-                uint16_t booster = _bMagicBoosters[_rank (s)];
+                uint16_t booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until we find the one that passes the verification test.
@@ -330,7 +330,7 @@ namespace BitBoard {
                     // effect of verifying the magic.
                     for (i = 0; i < size; ++i)
                     {
-                        Bitboard &attacks = attacks_bb[s][indexer (s, occupancy[i])];
+                        Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
 
                         if (attacks && (attacks != reference[i]))
                         {
@@ -348,8 +348,8 @@ namespace BitBoard {
 
         void initialize_sliding ()
         {
-            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], indexer<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], indexer<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], magic_index<ROOK>);
         }
 
     }
@@ -379,7 +379,7 @@ namespace BitBoard {
                     uint8_t dRank = _filerank_dist[r1][r2];
 
                     _square_dist[s1][s2]  = max (dFile , dRank);
-                    _taxicab_dist[s1][s2] =     (dFile + dRank);
+                    //_taxicab_dist[s1][s2] =     (dFile + dRank);
 
                     _dist_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
                 }
