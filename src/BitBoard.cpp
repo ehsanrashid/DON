@@ -447,8 +447,8 @@ namespace BitBoard {
                 // NOTE:: must be called after initialize_sliding()
 
                 PieceT pt = 
-                    (attacks_bb<BSHP> (s1) & s2) ? BSHP :
-                    (attacks_bb<ROOK> (s1) & s2) ? ROOK : NONE;
+                    (_attacks_type_bb[BSHP][s1] & s2) ? BSHP :
+                    (_attacks_type_bb[ROOK][s1] & s2) ? ROOK : NONE;
 
                 if (NONE == pt) continue;
 

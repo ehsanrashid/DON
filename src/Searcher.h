@@ -3,10 +3,10 @@
 #define SEARCHER_H_
 
 #include <cstring>
-#include <iomanip>
 #include <memory>
 #include <stack>
 #include <vector>
+#include <iomanip>
 
 #include "Type.h"
 #include "Time.h"
@@ -26,24 +26,6 @@ namespace Searcher {
     //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
     //const uint16_t MAX_THREAT = 90;
 
-    // GameClock stores the available time and time-gain per move
-    typedef struct GameClock
-    {
-        // unit: milli-seconds
-        uint32_t time;   // time left
-        uint32_t inc;    // time gain
-
-        GameClock ()
-            : time (0) //5 * 60 * M_SEC; // 5 mins default time
-            , inc (0)
-        {}
-
-        //GameClock (int32_t tm, int32_t in)
-        //    : time (tm)
-        //    , inc (in)
-        //{}
-
-    } GameClock;
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -54,6 +36,23 @@ namespace Searcher {
     //  - if have to ponder while is opponent's side to move.
     typedef struct LimitsT
     {
+
+    private:
+        // GameClock stores the available time and time-gain per move
+        typedef struct GameClock
+        {
+            // unit: milli-seconds
+            uint32_t time;   // time left
+            uint32_t inc;    // time gain
+
+            GameClock ()
+                : time (0)
+                , inc (0)
+            {}
+
+        } GameClock;
+
+    public:
         GameClock game_clock[CLR_NO];
 
         uint32_t  move_time;      // search <x> time in milli-seconds

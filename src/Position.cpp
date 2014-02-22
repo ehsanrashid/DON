@@ -614,8 +614,8 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Square ksq = king_sq (king_c);
     // Pinners are sliders that give check when a pinned piece is removed
     Bitboard pinners =
-        ( (attacks_bb<ROOK> (ksq) & pieces (QUEN, ROOK))
-        | (attacks_bb<BSHP> (ksq) & pieces (QUEN, BSHP)))
+        ( (_attacks_type_bb[ROOK][ksq] & pieces (QUEN, ROOK))
+        | (_attacks_type_bb[BSHP][ksq] & pieces (QUEN, BSHP)))
         &  pieces (~king_c);
 
     Bitboard chk_blockers  = U64 (0);
@@ -928,7 +928,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
         Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
         return
-            (attacks_bb<ROOK> (dst_rook) & ci.king_sq) && // First x-ray check then full check
+            (_attacks_type_bb[ROOK][dst_rook] & ci.king_sq) && // First x-ray check then full check
             (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
     else if (PROMOTE   == mt)
@@ -1070,7 +1070,7 @@ bool Position::can_en_passant (Square ep_sq) const
     if (!(pieces<PAWN> (pasiv) & cap)) return false;
     //if ((pasiv | PAWN) != piece_on (cap)) return false;
 
-    Bitboard pawns_ep = attacks_bb<PAWN> (pasiv, ep_sq) & pieces<PAWN> (activ);
+    Bitboard pawns_ep = _attacks_pawn_bb[pasiv][ep_sq] & pieces<PAWN> (activ);
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 

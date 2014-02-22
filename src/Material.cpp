@@ -234,15 +234,15 @@ namespace Material {
         {
             if      (pos.count<PAWN> (WHITE) == 0)
             {
-                e->_factor[WHITE] = npm[WHITE] <= VALUE_MG_BISHOP ?
+                e->_factor[WHITE] = uint8_t (npm[WHITE] <= VALUE_MG_BISHOP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
                     1 : npm[BLACK] <= VALUE_MG_BISHOP ? 
-                    4 : 12;
+                    4 : 12);
             }
             else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = (npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BISHOP) ?
-                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1);
+                e->_factor[WHITE] = uint8_t ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BISHOP) ?
+                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
             }
         }
 
@@ -250,15 +250,15 @@ namespace Material {
         {
             if      (pos.count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = npm[BLACK] <= VALUE_MG_BISHOP ?
+                e->_factor[BLACK] = uint8_t (npm[BLACK] <= VALUE_MG_BISHOP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
                     1 : npm[WHITE] <= VALUE_MG_BISHOP ? 
-                    4 : 12;
+                    4 : 12);
             }
             else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = (npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BISHOP) ?
-                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1);
+                e->_factor[BLACK] = uint8_t ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BISHOP) ?
+                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
             }
         }
 

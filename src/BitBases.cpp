@@ -27,7 +27,7 @@ namespace BitBases {
         // bit    12: side to move (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
-        inline uint32_t index(Color c, Square bk_sq, Square wk_sq, Square p_sq)
+        inline uint32_t index (Color c, Square bk_sq, Square wk_sq, Square p_sq)
         {
             return wk_sq + (bk_sq << 6) + (c << 12) + (_file (p_sq) << 13) + ((int32_t (R_7) - int32_t (_rank (p_sq))) << 15);
         }
@@ -38,6 +38,7 @@ namespace BitBases {
             UNKNOWN = 1,
             DRAW    = 2,
             WIN     = 4
+
         } Result;
 
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
@@ -48,7 +49,7 @@ namespace BitBases {
         private:
 
             template<Color C>
-            Result classify (const vector<KPKPosition>& db);
+            Result classify (const vector<KPKPosition> &db);
 
             Color active;
             Square bk_sq, wk_sq, p_sq;
@@ -77,7 +78,7 @@ namespace BitBases {
 
             // Check if two pieces are on the same square or if a king can be captured
             if (   square_dist (wk_sq, bk_sq) <= 1 || wk_sq == p_sq || bk_sq == p_sq
-                || (WHITE == active && (attacks_bb<PAWN>(WHITE, p_sq) & bk_sq)))
+                || (WHITE == active && (_attacks_pawn_bb[WHITE][p_sq] & bk_sq)))
             {
                 result = INVALID;
             }
@@ -89,7 +90,7 @@ namespace BitBases {
                     if (   _rank (p_sq) == R_7
                         && wk_sq != p_sq + DEL_N
                         && (square_dist (bk_sq, p_sq + DEL_N) > 1
-                        || (attacks_bb<KING> (wk_sq) & (p_sq + DEL_N))))
+                        || (_attacks_type_bb[KING][wk_sq] & (p_sq + DEL_N))))
                     {
                         result = WIN;
                     }
@@ -97,8 +98,8 @@ namespace BitBases {
                 else
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
-                    if (  !(attacks_bb<KING> (bk_sq) & ~(attacks_bb<KING> (wk_sq) | attacks_bb<PAWN>(WHITE, p_sq)))
-                        || (attacks_bb<KING> (bk_sq) & p_sq & ~attacks_bb<KING> (wk_sq)))
+                    if (  !(_attacks_type_bb[KING][bk_sq] & ~(_attacks_type_bb[KING][wk_sq] | _attacks_pawn_bb[WHITE][p_sq]))
+                        || (_attacks_type_bb[KING][bk_sq] & p_sq & ~_attacks_type_bb[KING][wk_sq]))
                     {
                         result = DRAW;
                     }
@@ -124,7 +125,7 @@ namespace BitBases {
 
             Result r = INVALID;
 
-            Bitboard b = attacks_bb<KING> ((WHITE == C) ? wk_sq : bk_sq);
+            Bitboard b = _attacks_type_bb[KING][(WHITE == C) ? wk_sq : bk_sq];
             while (b)
             {
                 r |= (WHITE == C) ?

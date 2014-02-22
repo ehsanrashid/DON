@@ -535,7 +535,7 @@ template<>
 // Attacks of the PAWN from the square
 inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
 {
-    return BitBoard::attacks_bb<PAWN> (c, s);
+    return BitBoard::_attacks_pawn_bb[c][s];
 }
 template<PieceT PT>
 // Attacks of the PTYPE from the square
@@ -543,8 +543,8 @@ inline Bitboard Position::attacks_from (Square s) const
 {
     return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
         : (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ()) | BitBoard::attacks_bb<ROOK> (s, pieces ())
-        : (PAWN == PT) ? BitBoard::attacks_bb<PAWN> (_active, s)
-        : BitBoard::attacks_bb<PT> (s);
+        : (PAWN == PT) ? BitBoard::_attacks_pawn_bb[_active][s]
+        : BitBoard::_attacks_type_bb[PT][s];
 }
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
@@ -561,12 +561,12 @@ inline Bitboard Position::attacks_from (Piece p, Square s) const
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return
-        (BitBoard::attacks_bb<PAWN> (WHITE, s) & pieces<PAWN> (BLACK)) |
-        (BitBoard::attacks_bb<PAWN> (BLACK, s) & pieces<PAWN> (WHITE)) |
-        (BitBoard::attacks_bb<NIHT> (s)        & pieces<NIHT> ())      |
-        (BitBoard::attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))  |
-        (BitBoard::attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))  |
-        (BitBoard::attacks_bb<KING> (s)        & pieces<KING> ());
+        (BitBoard::_attacks_pawn_bb[WHITE][s] & pieces<PAWN> (BLACK)) |
+        (BitBoard::_attacks_pawn_bb[BLACK][s] & pieces<PAWN> (WHITE)) |
+        (BitBoard::_attacks_type_bb[NIHT][s]  & pieces<NIHT> ())      |
+        (BitBoard::attacks_bb<BSHP> (s, occ)  & pieces (BSHP, QUEN))  |
+        (BitBoard::attacks_bb<ROOK> (s, occ)  & pieces (ROOK, QUEN))  |
+        (BitBoard::_attacks_type_bb[KING][s]  & pieces<KING> ());
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
@@ -751,8 +751,8 @@ inline CheckInfo::CheckInfo (const Position &pos)
     pinneds = pos.pinneds (active);
     discoverers = pos.discoverers (active);
 
-    checking_sq[PAWN] = BitBoard::attacks_bb<PAWN> (pasive, king_sq);
-    checking_sq[NIHT] = BitBoard::attacks_bb<NIHT> (king_sq);
+    checking_sq[PAWN] = BitBoard::_attacks_pawn_bb[pasive][king_sq];
+    checking_sq[NIHT] = BitBoard::_attacks_type_bb[NIHT][king_sq];
     checking_sq[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_sq[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
     checking_sq[QUEN] = checking_sq[BSHP] | checking_sq[ROOK];

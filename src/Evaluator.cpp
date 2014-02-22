@@ -433,7 +433,7 @@ namespace {
 
         ei.pinned_pieces[C] = pos.pinneds (C);
 
-        Bitboard attacks = ei.attacked_by[C_][KING] = attacks_bb<KING> (pos.king_sq (C_));
+        Bitboard attacks = ei.attacked_by[C_][KING] = _attacks_type_bb[KING][pos.king_sq (C_)];
 
         ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks(C);
 
@@ -549,7 +549,7 @@ namespace {
             {
                 //// Give a bonus if we are a bishop and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
-                //if (   (attacks_bb<BSHP> (ek_sq) & s)
+                //if (   (_attacks_type_bb[BSHP][ek_sq] & s)
                 //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
                 //{
                 //    score += PinBonus;
@@ -590,7 +590,7 @@ namespace {
                 }
 
                 // Major piece attacking enemy pawns on the same rank/file
-                Bitboard pawns = pos.pieces<PAWN> (C_) & attacks_bb<ROOK> (s);
+                Bitboard pawns = pos.pieces<PAWN> (C_) & _attacks_type_bb[ROOK][s];
                 if (pawns)
                 {
                     score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15> (pawns));
@@ -602,7 +602,7 @@ namespace {
             {
                 //// Give a bonus if we are a rook and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
-                //if (   (attacks_bb<ROOK> (ek_sq) & s)
+                //if (   (_attacks_type_bb[ROOK][ek_sq] & s)
                 //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
                 //{
                 //    score += PinBonus;
@@ -749,7 +749,7 @@ namespace {
             // squares around the king attacked by enemy rooks...
             undefended_attacked = undefended & ei.attacked_by[C_][ROOK] & ~pos.pieces (C_);
             // Consider only squares where the enemy rook gives check
-            undefended_attacked &= attacks_bb<ROOK> (k_sq);
+            undefended_attacked &= _attacks_type_bb[ROOK][k_sq];
 
             if (undefended_attacked)
             {

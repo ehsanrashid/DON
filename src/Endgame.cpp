@@ -588,7 +588,7 @@ namespace EndGame {
             // and the defending king is near the corner
             if (   r == R_6
                 && square_dist (wp_sq + 2 * push, bk_sq) <= 1
-                && attacks_bb<BSHP> (bb_sq) & (wp_sq + push)
+                && _attacks_type_bb[BSHP][bb_sq] & (wp_sq + push)
                 && file_dist (bb_sq, wp_sq) >= 2)
             {
                 return ScaleFactor (8);
