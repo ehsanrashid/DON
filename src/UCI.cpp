@@ -355,7 +355,6 @@ namespace UCI {
         {
             // Block here waiting for input
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
-            //if (whitespace (cmd)) continue;
 
             cmdstream cstm (cmd);
             cstm >> skipws >> token;

@@ -132,7 +132,7 @@ namespace {
     // min_attacker() is an helper function used by see() to locate the least
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
-    template<int32_t PT>
+    template<int8_t PT>
     INLINE PieceT min_attacker       (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
@@ -157,9 +157,8 @@ namespace {
     }
 
     template<>
-    INLINE PieceT min_attacker<KING> (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PieceT min_attacker<KING> (const Bitboard [], const Square &, const Bitboard &, Bitboard &, Bitboard &)
     {
-        bb; dst; stm_attackers; occupied; attackers;
         return KING; // No need to update bitboards, it is the last cycle
     }
 
@@ -537,7 +536,7 @@ Value Position::see      (Move m) const
         swap_list[0] = PieceValue[MG][PAWN];
     }
 
-    // Find all attackers to the destination square, with the moving piece
+    // Find all enemy attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, occupied) & occupied;
 
@@ -942,9 +941,9 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = occ - org - cap + dst;
-        return // if any attacker then in check
-            (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK)) ||
-            (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
+        // if any attacker then in check
+        return (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK))
+            || (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
     }
 
     ASSERT (false);

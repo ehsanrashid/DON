@@ -64,10 +64,8 @@ namespace UCI {
                 << " default " << boolalpha << _default;
             return os.str ();
         }
-        CheckOption::operator bool () const
-        {
-            return _value;
-        }
+        CheckOption::operator bool () const { return _value; }
+
         //Option& CheckOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
@@ -107,6 +105,7 @@ namespace UCI {
         {
             return (_value.empty () ? "<empty>" : _value);
         }
+        
         //Option& StringOption::operator= (char *value)
         //{
         //    if (_value != value)
@@ -142,10 +141,8 @@ namespace UCI {
                 << " max "      << _maximum;
             return os.str ();
         }
-        SpinOption::operator int32_t () const
-        {
-            return _value;
-        }
+        SpinOption::operator int32_t () const { return _value; }
+        
         //Option& SpinOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
@@ -204,9 +201,8 @@ namespace UCI {
 
         using namespace OptionType;
 
-        void on_clear_hash      (const Option &opt)
+        void on_clear_hash      (const Option &)
         {
-            (void) opt;
             ClearHash = true;
             sync_cout << "info string hash cleared." << sync_endl;
         }
@@ -217,37 +213,32 @@ namespace UCI {
             sync_cout << "info string " << TT.size () << " MB Hash." << sync_endl;
         }
 
-        void on_save_hash       (const Option &opt)
+        void on_save_hash       (const Option &)
         {
-            (void) opt;
             ofstream ofstm (*(Options["Hash File"]), ios_base::out | ios_base::binary);
             ofstm << TT;
             ofstm.close ();
         }
 
-        void on_load_hash       (const Option &opt)
+        void on_load_hash       (const Option &)
         {
-            (void) opt;
             ifstream ifstm (*(Options["Hash File"]), ios_base::in | ios_base::binary);
             ifstm >> TT;
             ifstm.close ();
         }
 
-        void on_change_book     (const Option &opt)
+        void on_change_book     (const Option &)
         {
-            (void) opt;
             if (Searcher::Book.is_open ()) Searcher::Book.close ();
         }
 
-        void on_change_threads  (const Option &opt)
+        void on_change_threads  (const Option &)
         {
-            (void) opt;
             Threads.read_uci_options ();
         }
 
-        void on_change_eval     (const Option& opt)
+        void on_change_eval     (const Option &)
         {
-            (void) opt;
             Evaluator::initialize ();
         }
 
@@ -263,6 +254,7 @@ namespace UCI {
 
         void on_query           (const Option &opt)
         {
+            // TODO::
             (void) opt;
         }
 

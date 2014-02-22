@@ -80,11 +80,11 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color
     */
 
     // Read uci parameters
-    uint8_t emergency_move_horizon = int32_t (*(Options["Emergency Move Horizon"]));
-    uint32_t emergency_base_time   = int32_t (*(Options["Emergency Base Time"]));
-    uint32_t emergency_move_time   = int32_t (*(Options["Emergency Move Time"]));
-    uint32_t min_thinking_time     = int32_t (*(Options["Minimum Thinking Time"]));
-    uint16_t slow_mover            = int32_t (*(Options["Slow Mover"]));
+    uint8_t  emergency_move_horizon = int32_t (*(Options["Emergency Move Horizon"]));
+    uint32_t emergency_base_time    = int32_t (*(Options["Emergency Base Time"]));
+    uint32_t emergency_move_time    = int32_t (*(Options["Emergency Move Time"]));
+    uint32_t min_thinking_time      = int32_t (*(Options["Minimum Thinking Time"]));
+    uint16_t slow_mover             = int32_t (*(Options["Slow Mover"]));
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_factor  = 1.0;
@@ -97,8 +97,10 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_time = limits.game_clock[c].time + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
-            - emergency_base_time - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
+        int32_t hyp_time = limits.game_clock[c].time
+            + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
+            - emergency_base_time
+            - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
 
         if (hyp_time < 0) hyp_time = 0;
 

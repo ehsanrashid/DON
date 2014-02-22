@@ -87,12 +87,10 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-//        cout 
-//            << "info string " << cpu_count () << " processor(s) found."
-//#ifdef POPCNT
-//            << " POPCNT available."
-//#endif
-//            << endl;
+//        cout << "info string " << cpu_count () << " processor(s) found." << endl;
+#ifdef POPCNT
+        cout << "info string POPCNT available." << endl;
+#endif
 
         UCI      ::initialize ();
         BitBoard ::initialize ();

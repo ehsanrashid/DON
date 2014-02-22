@@ -70,7 +70,7 @@ namespace MoveGenerator {
         struct Generator<GT, C, KING>
         {
 
-        public:
+        private:
             // template<GenT GT, Color C>
             // template<CSide SIDE, bool CHESS960>
             // void Generator<GT, KING>::generate_castling()
@@ -128,6 +128,7 @@ namespace MoveGenerator {
                 (m_list++)->move = m;
             }
 
+        public:
             // template<GenT GT, Color C>
             // void Generator<GT, C, KING>::generate()
             // Generates KING common move
@@ -179,7 +180,7 @@ namespace MoveGenerator {
         struct Generator<GT, C, PAWN>
         {
 
-        public:
+        private:
             // template<GenT GT, Color C>
             // template<Delta D>
             // void Generator<GT, C, PAWN>::generate_promotion()
@@ -234,6 +235,7 @@ namespace MoveGenerator {
                 }
             }
 
+        public:
             // template<GenT GT, Color C>
             // void Generator<GT, C, PAWN>::generate()
             // Generates PAWN common move
@@ -428,9 +430,9 @@ namespace MoveGenerator {
         Color active    = pos.active ();
 
         Bitboard targets =
-            CAPTURE == GT ?  pos.pieces(~active) :
-            QUIET   == GT ? ~pos.pieces() :
-            RELAX   == GT ? ~pos.pieces(active) :
+            CAPTURE == GT ?  pos.pieces (~active) :
+            QUIET   == GT ? ~pos.pieces ()        :
+            RELAX   == GT ? ~pos.pieces (active)  :
             U64 (0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (m_list, pos, targets)
@@ -459,7 +461,7 @@ namespace MoveGenerator {
     {
         ASSERT (!pos.checkers ());
 
-        Color active    = pos.active ();
+        Color active    =  pos.active ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
 
@@ -469,7 +471,7 @@ namespace MoveGenerator {
             Square org = pop_lsq (discovers);
             PieceT pt   = _ptype (pos[org]);
 
-            if (PAWN == pt) continue; // Will be generated together with direct checks
+            //if (PAWN == pt) continue; // Will be generated together with direct checks
 
             Bitboard moves = pos.attacks_from (Piece (pt), org) & empties;
 
@@ -498,7 +500,7 @@ namespace MoveGenerator {
             Square org = pop_lsq (discovers);
             PieceT pt   = _ptype (pos[org]);
 
-            if (PAWN == pt) continue; // Will be generated together with direct checks
+            //if (PAWN == pt) continue; // Will be generated together with direct checks
 
             Bitboard moves = pos.attacks_from (Piece (pt), org) & targets;
 

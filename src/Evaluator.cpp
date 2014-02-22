@@ -1123,12 +1123,13 @@ namespace Evaluator {
         const int32_t MaxSlope  = 30;
         const int32_t PeakScore = 1280; // 0x500
 
-        for (int32_t t = 0, i = 1; i < 100; ++i)
+        int32_t mg = 0;
+        for (uint8_t i = 1; i < 100; ++i)
         {
-            t = min (PeakScore, min (int32_t (0.4 * i * i), t + MaxSlope));
+            mg = min (PeakScore, min (int32_t (0.4 * i * i), mg + MaxSlope));
 
-            KingDanger[1][i] = apply_weight (mk_score (t, 0), Weights[Cowardice]);
-            KingDanger[0][i] = apply_weight (mk_score (t, 0), Weights[Aggressive]);
+            KingDanger[1][i] = apply_weight (mk_score (mg, 0), Weights[Cowardice]);
+            KingDanger[0][i] = apply_weight (mk_score (mg, 0), Weights[Aggressive]);
         }
     }
 

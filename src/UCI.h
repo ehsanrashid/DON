@@ -148,7 +148,7 @@ namespace UCI {
         for (uint8_t idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator
-                itr = options.begin ();
+                itr  = options.begin ();
                 itr != options.end (); ++itr)
             {
                 const OptionPtr &option_ptr = itr->second;

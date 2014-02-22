@@ -12,7 +12,7 @@ const uint8_t TranspositionTable::CLUSTER_SIZE       = 4;
 
 #ifdef _64BIT
     const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
-    //static const uint32_t MAX_HASH_BIT       = 0x24; // 36
+    //const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x24; // 36
 #else
     const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
 #endif
@@ -43,9 +43,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint32_t ali
     // Then checking for error returned by malloc, if it returns NULL then 
     // aligned_malloc will fail and return NULL or exit().
 
-    uint32_t offset = 
-        //(alignment - 1) + sizeof (void *);
-        max (alignment, uint32_t (sizeof (void *)));
+    uint32_t offset = max (alignment, uint32_t (sizeof (void *)));
 
     void *mem = calloc (mem_size_b + offset, 1);
     if (!mem)
@@ -71,14 +69,8 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint32_t ali
 // each cluster consists of CLUSTER_SIZE number of entry.
 uint32_t TranspositionTable::resize (uint32_t mem_size_mb)
 {
-    //ASSERT (mem_size_mb >= MIN_TT_SIZE);
-    //ASSERT (mem_size_mb <= MAX_TT_SIZE);
     if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
-    //{
-    //    cerr << "ERROR: hash size too large " << mem_size_mb << " MB..." << endl;
-    //    return;
-    //}
 
     uint64_t mem_size_b   = uint64_t (mem_size_mb) << 20;
     uint32_t _entry_count = (mem_size_b) / TENTRY_SIZE;
@@ -179,9 +171,5 @@ const TranspositionEntry* TranspositionTable::retrieve (Key key) const
     return NULL;
 }
 
-
 // Global Transposition Table
 TranspositionTable TT;
-
-
-

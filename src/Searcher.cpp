@@ -1738,7 +1738,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // and so refer to the previous search score.
     inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
     {
-        //ASSERT (elapsed > 0);
+        ASSERT (elapsed >= 0);
         if (elapsed == 0) elapsed = 1;
 
         stringstream spv;
