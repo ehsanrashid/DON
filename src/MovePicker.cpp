@@ -371,7 +371,7 @@ Move MovePicker::next_move<false> ()
                 move = pick_best (cur++, end)->move;
                 if (move != tt_move)
                 {
-                    if (pos.see_sign (move) >= 0) return move;
+                    if (pos.see_sign (move) >= VALUE_ZERO) return move;
                     // Losing capture, move it to the tail of the array
                     (end_bad_captures--)->move = move;
                 }
