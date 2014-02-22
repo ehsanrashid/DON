@@ -12,7 +12,7 @@ typedef enum BitCountT
     CNT_64_MAX15,
     CNT_32_FULL,
     CNT_32_MAX15,
-    CNT_HW_POPCNT,
+    CNT_HW_POPCNT
 
 } BitCountT;
 
