@@ -464,8 +464,8 @@ finish:
         // Init futility move count array
         for (uint8_t d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
-            FutilityMoveCounts[0][d] = 2.4 + 0.222 * pow (d + 0.00, 1.8);
-            FutilityMoveCounts[1][d] = 3.0 + 0.300 * pow (d + 0.98, 1.8);
+            FutilityMoveCounts[0][d] = 2.40 + 0.222 * pow (d + 0.00, 1.80);
+            FutilityMoveCounts[1][d] = 3.00 + 0.300 * pow (d + 0.98, 1.80);
         }
     }
 
@@ -1737,7 +1737,7 @@ moves_loop: // When in check and at SPNode search starts from here
     // and so refer to the previous search score.
     inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
     {
-        ASSERT (elapsed > 0);
+        //ASSERT (elapsed > 0);
         if (elapsed == 0) elapsed = 1;
 
         stringstream spv;

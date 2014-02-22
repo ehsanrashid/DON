@@ -163,6 +163,11 @@ namespace {
         return KING; // No need to update bitboards, it is the last cycle
     }
 
+    char toggle_case (char c)
+    {
+        return char (islower (c) ? toupper (c) : tolower (c));
+    }
+
 } // namespace
 
 uint8_t Position::fifty_move_distance;
@@ -1555,10 +1560,7 @@ void Position::flip ()
     // 3. Castling availability
     sfen >> ch;
     fen_ += ch + " ";
-    transform (fen_.begin (), fen_.end (), fen_.begin (), [] (char c)->char
-    {
-        return char (islower (c) ? toupper (c) : tolower (c));
-    });
+    transform (fen_.begin (), fen_.end (), fen_.begin (), toggle_case);
 
     // 4. En-passant square
     sfen >> ch;
