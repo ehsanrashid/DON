@@ -954,7 +954,8 @@ namespace {
             && !(ss)->skip_null_move
             && abs (beta) < VALUE_MATES_IN_MAX_PLY)
         {
-            Value rbeta  = min (beta + 200, VALUE_INFINITE);
+            Value rbeta  = beta + 200;
+            if (rbeta > VALUE_INFINITE) rbeta = VALUE_INFINITE;
 
             Depth rdepth = depth - (MAX_NULL_REDUCTION+1) * ONE_MOVE;
 

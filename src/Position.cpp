@@ -864,7 +864,6 @@ bool Position::legal     (Move m, Bitboard pinned) const
         ASSERT ((activ | PAWN) == piece_on (org));
         ASSERT ((pasiv | PAWN) == piece_on (cap));
         ASSERT (empty (dst));
-        ASSERT ((pasiv | PAWN) == piece_on (cap));
 
         Bitboard mocc = pieces () - org - cap + dst;
 
