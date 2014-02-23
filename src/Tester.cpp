@@ -76,7 +76,7 @@ namespace Tester {
         void test_attacks ()
         {
             Square   s = SQ_D5;
-            Bitboard m = square_bb (s);
+            Bitboard m = Square_bb[s];
 
             Bitboard attacks;
             uint8_t count;

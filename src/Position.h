@@ -530,13 +530,13 @@ inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
 inline Thread*  Position::thread    () const { return _thread; }
 
-
 template<>
 // Attacks of the PAWN from the square
 inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
 {
     return BitBoard::PawnAttacks[c][s];
 }
+
 template<PieceT PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
@@ -546,6 +546,7 @@ inline Bitboard Position::attacks_from (Square s) const
         :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
         :  BitBoard::PieceAttacks[PT][s];
 }
+
 // Attacks of the piece from the square
 inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
 {
@@ -561,12 +562,12 @@ inline Bitboard Position::attacks_from (Piece p, Square s) const
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return
-        (BitBoard::PawnAttacks[WHITE][s] & pieces<PAWN> (BLACK)) |
-        (BitBoard::PawnAttacks[BLACK][s] & pieces<PAWN> (WHITE)) |
-        (BitBoard::PieceAttacks[NIHT][s]  & pieces<NIHT> ())      |
-        (BitBoard::attacks_bb<BSHP> (s, occ)  & pieces (BSHP, QUEN))  |
-        (BitBoard::attacks_bb<ROOK> (s, occ)  & pieces (ROOK, QUEN))  |
-        (BitBoard::PieceAttacks[KING][s]  & pieces<KING> ());
+        (BitBoard::PawnAttacks[WHITE][s]     & pieces<PAWN> (BLACK)) |
+        (BitBoard::PawnAttacks[BLACK][s]     & pieces<PAWN> (WHITE)) |
+        (BitBoard::PieceAttacks[NIHT][s]     & pieces<NIHT> ())      |
+        (BitBoard::attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))  |
+        (BitBoard::attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))  |
+        (BitBoard::PieceAttacks[KING][s]     & pieces<KING> ());
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const

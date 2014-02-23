@@ -142,7 +142,7 @@ namespace BitBoard {
         {
             File f = _file (s);
             uint8_t rx8 = (s & 0x38);
-            Bitboard bocc = occ & (rank_bb (s) ^ square_bb (s));
+            Bitboard bocc = occ & (rank_bb (s) ^ Square_bb[s]);
             Bitboard MAGIC = U64 (0x0202020202020202); // 02 for each rank
             uint8_t occ6 = (bocc * MAGIC) >> 0x3A;
 
@@ -156,7 +156,7 @@ namespace BitBoard {
             File f = _file (s);
             Rank r = _rank (s);
 
-            Bitboard bocc = occ & (rank_bb (s) ^ square_bb (s));
+            Bitboard bocc = occ & (rank_bb (s) ^ Square_bb[s]);
             //uint8_t occ6 = ((bocc >> f) * MagicFileA) >> 0x3A;
             uint8_t occ6 = (bocc * magic_file_bb[f]) >> 0x3A;
 
@@ -170,11 +170,11 @@ namespace BitBoard {
             File f = _file (s);
             Diag d = _diag18 (s);
 
-            Bitboard bocc = occ & (diag18_bb (s) ^ square_bb (s));
+            Bitboard bocc = occ & (diag18_bb (s) ^ Square_bb[s]);
             uint8_t occ6 = uint8_t ((bocc * magic_diag18_bb[d]) >> shift_diag18[d]);
 
             Bitboard moves = _attacks_line[f][occ6];
-            moves = (moves * MAGIC) & (diag18_bb (s) ^ square_bb (s));
+            moves = (moves * MAGIC) & (diag18_bb (s) ^ Square_bb[s]);
             return moves;
         }
 
@@ -183,11 +183,11 @@ namespace BitBoard {
             File f = _file (s);
             Diag d = _diag81 (s);
 
-            Bitboard bocc = occ & (diag81_bb (s) ^ square_bb (s));
+            Bitboard bocc = occ & (diag81_bb (s) ^ Square_bb[s]);
             uint8_t occ6 = uint8_t ((bocc * magic_diag81_bb[d]) >> shift_diag81[d]);
 
             Bitboard moves = _attacks_line[f][occ6];
-            moves = (moves * MAGIC) & (diag81_bb (s) ^ square_bb (s));
+            moves = (moves * MAGIC) & (diag81_bb (s) ^ Square_bb[s]);
             return moves;
         }
 

@@ -82,7 +82,7 @@ namespace MoveGenerator {
                 ASSERT (!pos.castle_impeded (C, SIDE) && pos.can_castle (C, SIDE) && !pos.checkers ());
                 //if (pos.castle_impeded (C, SIDE) || !pos.can_castle (C, SIDE) || pos.checkers ()) return;
 
-                const Color C_   = ((WHITE == C) ? BLACK : WHITE);
+                const Color C_  = ((WHITE == C) ? BLACK : WHITE);
                 Square org_king = pos.king_sq (C);
                 Square org_rook = pos.castle_rook (C, SIDE);
                 if (ROOK != _ptype (pos[org_rook])) return;

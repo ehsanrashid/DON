@@ -233,7 +233,7 @@ namespace Pawns {
         {
             Bitboard mid_pawns;
 
-            mid_pawns  = pawns[1] & file_bb (f);
+            mid_pawns  = pawns[1] & File_bb[f];
             Rank b_rk = mid_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, mid_pawns)) : R_1;
 
             if (   (MID_EDGE_bb & (f | b_rk))
@@ -244,15 +244,14 @@ namespace Pawns {
             }
             else
             {
-                mid_pawns = pawns[0] & file_bb (f);
+                mid_pawns = pawns[0] & File_bb[f];
                 
                 Rank w_rk = mid_pawns
                     ? rel_rank (C, scan_rel_backmost_sq (C , mid_pawns))
                     : R_1;
 
                 int8_t danger = (w_rk != R_1)
-                    ? ((b_rk == w_rk + 1) ? 2 : 1)
-                    : 0;
+                    ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
                 
                 safety -= ShelterWeakness[w_rk]
                 +         StormDanger[danger][b_rk];

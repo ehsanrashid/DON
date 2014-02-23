@@ -45,20 +45,20 @@ namespace BitBoard {
     extern const Delta PawnDeltas[CLR_NO][3];
     extern const Delta PieceDeltas[NONE][9];
 
-    //extern const int8_t CenterDist[SQ_NO]; 
-    //extern const int8_t ManhattanCenterDist[SQ_NO];
+    //CACHE_ALIGN(64) extern const int8_t CenterDist[SQ_NO]; 
+    //CACHE_ALIGN(64) extern const int8_t ManhattanCenterDist[SQ_NO];
 
     CACHE_ALIGN(64) extern const Bitboard Square_bb[SQ_NO];
     CACHE_ALIGN(64) extern const Bitboard   File_bb[F_NO];
     CACHE_ALIGN(64) extern const Bitboard   Rank_bb[R_NO];
 
-    CACHE_ALIGN(64) extern const Bitboard Diag18_bb[D_NO];
-    CACHE_ALIGN(64) extern const Bitboard Diag81_bb[D_NO];
+    //CACHE_ALIGN(64) extern const Bitboard Diag18_bb[D_NO];
+    //CACHE_ALIGN(64) extern const Bitboard Diag81_bb[D_NO];
 
     CACHE_ALIGN(64) extern const Bitboard AdjFile_bb[F_NO];
     CACHE_ALIGN(64) extern const Bitboard AdjRank_bb[R_NO];
     CACHE_ALIGN(64) extern const Bitboard FrontRank_bb[CLR_NO][R_NO];
-    CACHE_ALIGN(64) extern Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard BetweenSq[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard  LineSq[SQ_NO][SQ_NO];
@@ -81,8 +81,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(8) extern uint8_t        BShift[SQ_NO];
-    CACHE_ALIGN(8) extern uint8_t        RShift[SQ_NO];
+    CACHE_ALIGN(64) extern uint8_t        BShift[SQ_NO];
+    CACHE_ALIGN(64) extern uint8_t        RShift[SQ_NO];
 
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
@@ -129,20 +129,20 @@ namespace BitBoard {
 
     // ----------------------------------------------------
 
-    inline Bitboard square_bb  (Square s) { return  Square_bb[s]; }
-    inline Bitboard square_bb_ (Square s) { return ~Square_bb[s]; }
+    //inline Bitboard square_bb  (Square s) { return  Square_bb[s]; }
+    //inline Bitboard square_bb_ (Square s) { return ~Square_bb[s]; }
 
-    inline Bitboard file_bb (File   f) { return File_bb[f]; }
+    //inline Bitboard file_bb (File   f) { return File_bb[f]; }
     inline Bitboard file_bb (Square s) { return File_bb[_file (s)]; }
 
-    inline Bitboard rank_bb (Rank   r) { return Rank_bb[r]; }
+    //inline Bitboard rank_bb (Rank   r) { return Rank_bb[r]; }
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
-    inline Bitboard diag18_bb (Diag   d) { return Diag18_bb[d]; }
-    inline Bitboard diag18_bb (Square s) { return Diag18_bb[_diag18 (s)]; }
+    //inline Bitboard diag18_bb (Diag   d) { return Diag18_bb[d]; }
+    //inline Bitboard diag18_bb (Square s) { return Diag18_bb[_diag18 (s)]; }
 
-    inline Bitboard diag81_bb (Diag   d) { return Diag81_bb[d]; }
-    inline Bitboard diag81_bb (Square s) { return Diag81_bb[_diag81 (s)]; }
+    //inline Bitboard diag81_bb (Diag   d) { return Diag81_bb[d]; }
+    //inline Bitboard diag81_bb (Square s) { return Diag81_bb[_diag81 (s)]; }
 
     inline Bitboard adj_files_bb (File   f) { return AdjFile_bb[f]; }
     inline Bitboard adj_files_bb (Square s) { return AdjFile_bb[_file (s)]; }

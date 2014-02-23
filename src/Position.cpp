@@ -1401,12 +1401,6 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     ++_game_ply;
     ++_game_nodes;
 
-    //int8_t step;
-    //if (!ok (&step))
-    //{
-    //    cout << int32_t (step);
-    //}
-
     ASSERT (ok ());
 }
 void Position::do_move (Move m, StateInfo &si_n)

@@ -1073,7 +1073,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
             // TODO:: remove
-            if (!pos.pseudo_legal (move)) continue;
+            //if (!pos.pseudo_legal (move)) continue;
 
             if (SPNode)
             {
@@ -1615,7 +1615,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // Check for legality just before making the move
 
-            if (!pos.pseudo_legal (move)) continue;
+            //if (!pos.pseudo_legal (move)) continue;
             
             if (!pos.legal (move, ci.pinneds)) continue;
 

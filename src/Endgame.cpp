@@ -912,7 +912,7 @@ namespace EndGame {
         File wp_f = _file (wp_sq);
 
         // All pawns are on a single rook file ?
-        if ((wp_f == F_A || wp_f == F_H) && !(wpawns & ~file_bb (wp_f)))
+        if ((wp_f == F_A || wp_f == F_H) && !(wpawns & ~File_bb[wp_f]))
         {
             Square wb_sq = pos.list<BSHP> (_stong_side)[0];
             Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
@@ -930,7 +930,7 @@ namespace EndGame {
 
                 // If the defending king has some pawns
                 Bitboard bpawns = pos.pieces<PAWN> (_weak_side);
-                if (bpawns && !(bpawns & ~file_bb (wp_f)))
+                if (bpawns && !(bpawns & ~File_bb[wp_f]))
                 {
                     Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
                     if (   rel_rank (_weak_side, bp_sq) == R_5
@@ -953,7 +953,7 @@ namespace EndGame {
 
         // All pawns on same B or G file? Then potential draw
         if (   (wp_f == F_B || wp_f == F_G)
-            && !(pos.pieces<PAWN> () & ~file_bb (wp_f))
+            && !(pos.pieces<PAWN> () & ~File_bb[wp_f])
             && (pos.non_pawn_material (_weak_side) == 0)
             && (pos.count<PAWN> (_weak_side) >= 1))
         {

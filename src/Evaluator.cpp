@@ -354,7 +354,8 @@ namespace {
             -    evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
 
         // If one side has only a king, score for potential unstoppable pawns
-        if (!pos.non_pawn_material (WHITE) || !pos.non_pawn_material (BLACK))
+        if (   !pos.non_pawn_material (WHITE)
+            || !pos.non_pawn_material (BLACK))
         {
             score += evaluate_unstoppable_pawns (pos, WHITE, ei)
                 -    evaluate_unstoppable_pawns (pos, BLACK, ei);
@@ -683,10 +684,13 @@ namespace {
             +         evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
         // Sum up all attacked squares
-        ei.attacked_by[C][NONE] = 
-            ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]
-        |   ei.attacked_by[C][BSHP] | ei.attacked_by[C][ROOK]
-        |   ei.attacked_by[C][QUEN] | ei.attacked_by[C][KING];
+        ei.attacked_by[C][NONE] =
+              ei.attacked_by[C][PAWN]
+            | ei.attacked_by[C][NIHT]
+            | ei.attacked_by[C][BSHP]
+            | ei.attacked_by[C][ROOK]
+            | ei.attacked_by[C][QUEN]
+            | ei.attacked_by[C][KING];
 
         if (TRACE)
         {
@@ -714,8 +718,10 @@ namespace {
             Bitboard undefended = 
                 ei.attacked_by[C_][NONE]
             &   ei.attacked_by[C][KING]
-            & ~(ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT]
-            |   ei.attacked_by[C][BSHP] | ei.attacked_by[C][ROOK]
+            & ~(ei.attacked_by[C][PAWN]
+            |   ei.attacked_by[C][NIHT]
+            |   ei.attacked_by[C][BSHP]
+            |   ei.attacked_by[C][ROOK]
             |   ei.attacked_by[C][QUEN]);
 
             // Initialize the 'attack_units' variable, which is used later on as an
@@ -735,8 +741,10 @@ namespace {
             {
                 // ...then remove squares not supported by another enemy piece
                 undefended_attacked &=
-                    (ei.attacked_by[C_][PAWN] | ei.attacked_by[C_][NIHT]
-                |    ei.attacked_by[C_][BSHP] | ei.attacked_by[C_][ROOK]);
+                    ( ei.attacked_by[C_][PAWN]
+                    | ei.attacked_by[C_][NIHT]
+                    | ei.attacked_by[C_][BSHP]
+                    | ei.attacked_by[C_][ROOK]);
 
                 if (undefended_attacked)
                 {
@@ -756,8 +764,10 @@ namespace {
             {
                 // ...and then remove squares not supported by another enemy piece
                 undefended_attacked &= 
-                    (ei.attacked_by[C_][PAWN] | ei.attacked_by[C_][NIHT]
-                |    ei.attacked_by[C_][BSHP] | ei.attacked_by[C_][QUEN]);
+                    ( ei.attacked_by[C_][PAWN]
+                    | ei.attacked_by[C_][NIHT]
+                    | ei.attacked_by[C_][BSHP]
+                    | ei.attacked_by[C_][QUEN]);
 
                 if (undefended_attacked)
                 {
@@ -1006,7 +1016,8 @@ namespace {
         Bitboard safe = SpaceMask[C]
             &   ~pos.pieces<PAWN> (C)
             &   ~ei.attacked_by[C_][PAWN]
-            &   (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);
+            &   (  ei.attacked_by[C][NONE]
+            /**/| ~ei.attacked_by[C_][NONE]);
 
         // Find all squares which are at most three squares behind some friendly pawn
         Bitboard behind = pos.pieces<PAWN> (C);
