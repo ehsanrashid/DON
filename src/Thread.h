@@ -20,7 +20,7 @@ const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
-typedef void*(*ptr_fn)(void*);
+typedef void* (*ptr_fn)(void*);
 
 #   define lock_init(x)     pthread_mutex_init (&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock (&(x))

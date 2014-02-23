@@ -28,9 +28,10 @@ namespace Zobrist {
     public:
         Key random[SIZE_RANDOM];
 
+        CACHE_ALIGN (64)
         struct _
         {
-            Key psq_k[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
+            Key piecesq[CLR_NO][NONE][SQ_NO];// [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO]; // [COLOR][CASTLE SIDE]
             Key en_passant[F_NO];            // [ENPASSANT FILE]
             Key mover_side;                  // COLOR
@@ -61,8 +62,8 @@ namespace Zobrist {
 
 }
 
-extern const Zobrist::Zob ZobPG;
-//extern       Zobrist::Zob ZobRand;
+extern const Zobrist::Zob  ZobPG;
+//extern       Zobrist::Zob  ZobRand;
 extern const Zobrist::Zob &ZobGlob;
 
 #endif

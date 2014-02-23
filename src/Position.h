@@ -300,9 +300,9 @@ private:
 
 public:
 
-    template<PieceT PT>
-    // Attacks of the PAWN (Color) from the square
-    Bitboard attacks_from (Color c, Square s) const;
+    //template<PieceT PT>
+    //// Attacks of the PAWN (Color) from the square
+    //Bitboard attacks_from (Color c, Square s) const;
     template<PieceT PT>
     // Attacks of the PTYPE from the square
     Bitboard attacks_from (Square s) const;
@@ -530,19 +530,21 @@ inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
 inline Thread*  Position::thread    () const { return _thread; }
 
-template<>
-// Attacks of the PAWN from the square
-inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
-{
-    return BitBoard::PawnAttacks[c][s];
-}
+//template<>
+//// Attacks of the PAWN from the square
+//inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
+//{
+//    return BitBoard::PawnAttacks[c][s];
+//}
 
 template<PieceT PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
-    return (BSHP == PT || ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
-        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ()) | BitBoard::attacks_bb<ROOK> (s, pieces ())
+    return (BSHP == PT
+        ||  ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
+        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ())
+        |                 BitBoard::attacks_bb<ROOK> (s, pieces ())
         :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
         :  BitBoard::PieceAttacks[PT][s];
 }

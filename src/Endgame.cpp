@@ -1015,8 +1015,8 @@ namespace EndGame {
             && rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4
             && rel_rank (_weak_side, br_sq) == R_3
             && (pos.pieces<PAWN> (_weak_side)
-            &   pos.attacks_from<KING> (bk_sq)
-            &   pos.attacks_from<PAWN> (_stong_side, br_sq)))
+            &   PieceAttacks[KING][bk_sq]
+            &   PawnAttacks[_stong_side][br_sq]))
         {
             return SCALE_FACTOR_DRAW;
         }

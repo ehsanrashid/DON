@@ -1088,9 +1088,8 @@ bool Position::can_en_passant (Square ep_sq) const
         Square org = org_sq (m);
         Square dst = dst_sq (m);
         Bitboard mocc = occ - org - cap + dst;
-        if (!(
-            (attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasiv, QUEN, ROOK)) |
-            (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasiv, QUEN, BSHP))))
+        if (!((attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasiv, QUEN, ROOK))
+            | (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasiv, QUEN, BSHP))))
         {
             return true;
         }
@@ -1226,21 +1225,21 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         // If the captured piece is a pawn
         if (PAWN == ct) // Update pawn hash key
         {
-            _si->pawn_key ^= ZobGlob._.psq_k[pasiv][PAWN][cap];
+            _si->pawn_key ^= ZobGlob._.piecesq[pasiv][PAWN][cap];
         }
         else            // Update non-pawn material
         {
             _si->non_pawn_matl[pasiv] -= PieceValue[MG][ct];
         }
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.psq_k[pasiv][ct][count (pasiv, ct)];
+        _si->matl_key ^= ZobGlob._.piecesq[pasiv][ct][count (pasiv, ct)];
 
 #ifndef NDEBUG
         if (_thread)
 #endif
             prefetch ((char *) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
-        posi_k ^= ZobGlob._.psq_k[pasiv][ct][cap];
+        posi_k ^= ZobGlob._.piecesq[pasiv][ct][cap];
         // Update incremental scores
         _si->psq_score -= psq[pasiv][ct][cap];
         // Reset Rule-50 draw counter
@@ -1276,10 +1275,10 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                ZobGlob._.psq_k[activ][PAWN][org] ^
-                ZobGlob._.psq_k[activ][PAWN][dst];
+                ZobGlob._.piecesq[activ][PAWN][org] ^
+                ZobGlob._.piecesq[activ][PAWN][dst];
         }
-        posi_k ^= ZobGlob._.psq_k[activ][pt][org] ^ ZobGlob._.psq_k[activ][pt][dst];
+        posi_k ^= ZobGlob._.piecesq[activ][pt][org] ^ ZobGlob._.piecesq[activ][pt][dst];
         _si->psq_score += psq[activ][pt][dst] - psq[activ][pt][org];
     }
     else if (CASTLE  == mt)
@@ -1295,8 +1294,8 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
         castle_king_rook (org, dst, org_rook, dst_rook);
 
-        posi_k ^= ZobGlob._.psq_k[_active][KING][org     ] ^ ZobGlob._.psq_k[_active][KING][dst     ];
-        posi_k ^= ZobGlob._.psq_k[_active][ROOK][org_rook] ^ ZobGlob._.psq_k[_active][ROOK][dst_rook];
+        posi_k ^= ZobGlob._.piecesq[_active][KING][org     ] ^ ZobGlob._.piecesq[_active][KING][dst     ];
+        posi_k ^= ZobGlob._.piecesq[_active][ROOK][org_rook] ^ ZobGlob._.piecesq[_active][ROOK][dst_rook];
 
         _si->psq_score += psq[activ][KING][dst     ] - psq[activ][KING][org     ];
         _si->psq_score += psq[activ][ROOK][dst_rook] - psq[activ][ROOK][org_rook];
@@ -1309,12 +1308,12 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
         place_piece (dst, activ, ppt);
 
         _si->matl_key ^=
-            ZobGlob._.psq_k[activ][PAWN][count (activ, PAWN)] ^
-            ZobGlob._.psq_k[activ][ppt][count (activ, ppt) - 1];
+            ZobGlob._.piecesq[activ][PAWN][count (activ, PAWN)] ^
+            ZobGlob._.piecesq[activ][ppt][count (activ, ppt) - 1];
 
-        _si->pawn_key ^= ZobGlob._.psq_k[activ][PAWN][org];
+        _si->pawn_key ^= ZobGlob._.piecesq[activ][PAWN][org];
 
-        posi_k ^= ZobGlob._.psq_k[activ][PAWN][org] ^ ZobGlob._.psq_k[activ][ppt][dst];
+        posi_k ^= ZobGlob._.piecesq[activ][PAWN][org] ^ ZobGlob._.piecesq[activ][ppt][dst];
 
         // Update incremental score
         _si->psq_score += psq[activ][ppt][dst] - psq[activ][PAWN][org];
@@ -1398,7 +1397,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     _si->posi_key   = posi_k;
     _si->cap_type   = ct;
     _si->last_move  = m;
-    _si->null_ply++;
+    ++_si->null_ply;
     ++_game_ply;
     ++_game_nodes;
 

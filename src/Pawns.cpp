@@ -116,7 +116,7 @@ namespace {
             // or if can capture an enemy pawn it cannot be backward either.
             if (   (passed | isolated | connected)
                 || (pawns[0] & PawnAttackSpan[C_][s])
-                || (pawns[1] & pos.attacks_from<PAWN> (C, s)))
+                || (pawns[1] & PawnAttacks[C][s]))
             {
                 backward = false;
             }

@@ -882,7 +882,7 @@ namespace {
         // the score by more than futility_margin (depth) if we do a null move.
         if (   !PVNode
             && !(ss)->skip_null_move
-            && depth < 7 * ONE_MOVE
+            //&& depth < 9 * ONE_MOVE
             && eval - futility_margin (depth) >= beta
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
             && abs (eval) < VALUE_KNOWN_WIN
