@@ -576,7 +576,7 @@ namespace MoveGenerator {
         if (1 == checker_count && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard targets = between_sq (check_sq, org_king) + check_sq;
+            Bitboard targets = BetweenSq[check_sq][org_king] + check_sq;
 
             return WHITE == active ? generate_moves<EVASION, WHITE> (m_list, pos, targets)
                 :  BLACK == active ? generate_moves<EVASION, BLACK> (m_list, pos, targets)

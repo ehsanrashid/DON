@@ -552,7 +552,7 @@ namespace {
                 //// Give a bonus if we are a bishop and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
                 //if (   (PieceAttacks[BSHP][ek_sq] & s)
-                //    && !more_than_one (between_sq (s, ek_sq) & pos.pieces ()))
+                //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
                 //{
                 //    score += PinBonus;
                 //}
@@ -569,7 +569,7 @@ namespace {
             if (BSHP == PT || NIHT == PT)
             {
                 // Bishop and knight outposts squares
-                if (!(pos.pieces<PAWN> (C_) & pawn_attack_span (C, s)))
+                if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]))
                 {
                     score += evaluate_outposts<PT, C> (pos, ei, s);
                 }
@@ -605,7 +605,7 @@ namespace {
                 //// Give a bonus if we are a rook and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
                 //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                //    && !more_than_one (between_sq (s, ek_sq) & pos.pieces ()))
+                //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
                 //{
                 //    score += PinBonus;
                 //}
@@ -880,27 +880,27 @@ namespace {
                 Square ek_sq = pos.king_sq (C_);
 
                 // Adjust bonus based on kings proximity
-                eg_bonus += Value (5 * rr * square_dist (ek_sq, block_sq))
-                    -       Value (2 * rr * square_dist (fk_sq, block_sq));
+                eg_bonus += Value (5 * rr * SquareDist[ek_sq][block_sq])
+                    -       Value (2 * rr * SquareDist[fk_sq][block_sq]);
 
                 // If block_sq is not the queening square then consider also a second push
                 if (rel_rank (C, block_sq) != R_8)
                 {
-                    eg_bonus -= Value (rr * square_dist (fk_sq, block_sq + pawn_push (C)));
+                    eg_bonus -= Value (rr * SquareDist[fk_sq][block_sq + pawn_push (C)]);
                 }
 
                 // If the pawn is free to advance, increase bonus
                 if (pos.empty (block_sq))
                 {
                     // squares to queen
-                    Bitboard queen_squares = front_sqs_bb (C, s);
+                    Bitboard queen_squares = FrontSqs_bb[C][s];
 
                     Bitboard unsafe_squares;
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
-                    if (UNLIKELY (front_sqs_bb (C_, s) & pos.pieces (C_, ROOK, QUEN))
-                        &&       (front_sqs_bb (C_, s) & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                    if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
+                        &&       (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
                         unsafe_squares = queen_squares;
                     }
@@ -910,8 +910,8 @@ namespace {
                     }
 
                     Bitboard defended_squares;
-                    if (UNLIKELY (front_sqs_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
-                        &&       (front_sqs_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                    if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
+                        &&       (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
                         defended_squares = queen_squares;
                     }
@@ -942,7 +942,7 @@ namespace {
 
             // Increase the bonus if the passed pawn is supported by a friendly pawn
             // on the same rank and a bit smaller if it's on the previous rank.
-            Bitboard supporting_pawns = pos.pieces<PAWN> (C) & adj_files_bb (_file (s));
+            Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
             if (supporting_pawns & rank_bb (s))
             {
                 eg_bonus += Value (r * 20);

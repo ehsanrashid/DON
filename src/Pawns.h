@@ -25,7 +25,7 @@ namespace Pawns {
         Square  _king_sq        [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
         uint8_t _pawn_count_sq  [CLR_NO][CLR_NO];
-        uint8_t _min_KP_dist    [CLR_NO];
+        uint8_t _kp_min_dist    [CLR_NO];
         uint8_t _castle_rights  [CLR_NO];
         uint8_t _semiopen_files [CLR_NO];
         Score   _king_safety    [CLR_NO];

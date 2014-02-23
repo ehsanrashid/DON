@@ -46,7 +46,6 @@ namespace BitBoard {
     // FILE & RANK distance
     uint8_t FileRankDist[F_NO][R_NO];
     uint8_t   SquareDist[SQ_NO][SQ_NO];
-    //uint8_t  TaxicabDist[SQ_NO][SQ_NO];
 
     const Delta PawnDeltas[CLR_NO][3] =
     {
@@ -104,44 +103,6 @@ namespace BitBoard {
         R7_bb,
         R8_bb
     };
-    //// DIAG-18
-    //CACHE_ALIGN(64) const Bitboard Diag18_bb[D_NO] =
-    //{
-    //    D18_bb >> (8 * 7),
-    //    D18_bb >> (8 * 6),
-    //    D18_bb >> (8 * 5),
-    //    D18_bb >> (8 * 4),
-    //    D18_bb >> (8 * 3),
-    //    D18_bb >> (8 * 2),
-    //    D18_bb >> (8 * 1),
-    //    D18_bb,
-    //    D18_bb << (8 * 1),
-    //    D18_bb << (8 * 2),
-    //    D18_bb << (8 * 3),
-    //    D18_bb << (8 * 4),
-    //    D18_bb << (8 * 5),
-    //    D18_bb << (8 * 6),
-    //    D18_bb << (8 * 7),
-    //};
-    //// DIAG-81
-    //CACHE_ALIGN(64) const Bitboard Diag81_bb[D_NO] =
-    //{
-    //    D81_bb >> (8 * 7),
-    //    D81_bb >> (8 * 6),
-    //    D81_bb >> (8 * 5),
-    //    D81_bb >> (8 * 4),
-    //    D81_bb >> (8 * 3),
-    //    D81_bb >> (8 * 2),
-    //    D81_bb >> (8 * 1),
-    //    D81_bb,
-    //    D81_bb << (8 * 1),
-    //    D81_bb << (8 * 2),
-    //    D81_bb << (8 * 3),
-    //    D81_bb << (8 * 4),
-    //    D81_bb << (8 * 5),
-    //    D81_bb << (8 * 6),
-    //    D81_bb << (8 * 7),
-    //};
 
     // ADJACENT FILES used for isolated-pawn
     CACHE_ALIGN(64) const Bitboard AdjFile_bb[F_NO] =
@@ -204,7 +165,7 @@ namespace BitBoard {
     // Path of the passed pawn
     CACHE_ALIGN(64) Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
 
-    // Attacks of the pawn
+    // Attacks of the pawns
     CACHE_ALIGN(64) Bitboard PawnAttacks[CLR_NO][SQ_NO];
 
     // Attacks of the pieces

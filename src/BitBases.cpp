@@ -80,7 +80,7 @@ namespace BitBases {
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (   square_dist (_wk_sq, _bk_sq) <= 1 || _wk_sq == _p_sq || _bk_sq == _p_sq
+            if (   SquareDist[_wk_sq][_bk_sq] <= 1 || _wk_sq == _p_sq || _bk_sq == _p_sq
                 || (WHITE == _active && (PawnAttacks[WHITE][_p_sq] & _bk_sq)))
             {
                 result = INVALID;
@@ -92,7 +92,7 @@ namespace BitBases {
                     // Immediate win if a pawn can be promoted without getting captured
                     if (   _rank (_p_sq) == R_7
                         && _wk_sq != _p_sq + DEL_N
-                        && (square_dist (_bk_sq, _p_sq + DEL_N) > 1
+                        && (SquareDist[_bk_sq][_p_sq + DEL_N] > 1
                         || (PieceAttacks[KING][_wk_sq] & (_p_sq + DEL_N))))
                     {
                         result = WIN;

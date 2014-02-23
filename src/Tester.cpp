@@ -48,12 +48,12 @@ namespace Tester {
             ASSERT (2 == file_dist (SQ_C2, SQ_E6));
             ASSERT (6 == file_dist (SQ_A4, SQ_G7));
 
-            ASSERT (5 == square_dist (SQ_C3, SQ_H8));
-            ASSERT (5 == square_dist (SQ_C3, SQ_H8));
+            ASSERT (5 == SquareDist[SQ_C3][SQ_H8]);
+            ASSERT (5 == SquareDist[SQ_C3][SQ_H8]);
 
-            //ASSERT (9 == taxicab_dist (SQ_B2, SQ_F7));
-            //ASSERT (8 == taxicab_dist (SQ_G3, SQ_B6));
-            //ASSERT (4 == taxicab_dist (SQ_H5, SQ_E4));
+            //ASSERT (9 == TaxicabDist[SQ_B2][SQ_F7]);
+            //ASSERT (8 == TaxicabDist[SQ_G3][SQ_B6]);
+            //ASSERT (4 == TaxicabDist[SQ_H5][SQ_E4]);
 
             ASSERT ( 0 == pop_count<FULL> (U64 (0x0000)));
             ASSERT ( 8 == pop_count<FULL> (U64 (0x5555)));

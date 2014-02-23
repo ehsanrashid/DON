@@ -621,7 +621,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
 
     while (pinners)
     {
-        Bitboard blocker = between_sq (ksq, pop_lsq (pinners)) & pieces ();
+        Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & pieces ();
         if (!more_than_one (blocker))
         {
             chk_blockers |= (blocker & pieces (c)); // Defending piece
@@ -802,7 +802,7 @@ bool Position::pseudo_legal (Move m) const
             {
                 // Our move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
-                if (!((chkrs & cap) || (between_sq (scan_lsq (chkrs), king_sq (activ)) & dst)))
+                if (!((chkrs & cap) || (BetweenSq[scan_lsq (chkrs)][king_sq (activ)] & dst)))
                 {
                     return false;
                 }
@@ -810,7 +810,7 @@ bool Position::pseudo_legal (Move m) const
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((between_sq (scan_lsq (chkrs), king_sq (activ)) | chkrs) & dst))
+                if (!((BetweenSq[scan_lsq (chkrs)][king_sq (activ)] | chkrs) & dst))
                 {
                     return false;
                 }
