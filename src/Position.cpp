@@ -613,15 +613,15 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Square ksq = king_sq (king_c);
     // Pinners are sliders that give check when a pinned piece is removed
     Bitboard pinners =
-        ( (_attacks_type_bb[ROOK][ksq] & pieces (QUEN, ROOK))
-        | (_attacks_type_bb[BSHP][ksq] & pieces (QUEN, BSHP)))
+        ( (PieceAttacks[ROOK][ksq] & pieces (QUEN, ROOK))
+        | (PieceAttacks[BSHP][ksq] & pieces (QUEN, BSHP)))
         &  pieces (~king_c);
 
     Bitboard chk_blockers  = U64 (0);
 
     while (pinners)
     {
-        Bitboard blocker = betwen_sq_bb (ksq, pop_lsq (pinners)) & pieces ();
+        Bitboard blocker = between_sq (ksq, pop_lsq (pinners)) & pieces ();
         if (!more_than_one (blocker))
         {
             chk_blockers |= (blocker & pieces (c)); // Defending piece
@@ -802,7 +802,7 @@ bool Position::pseudo_legal (Move m) const
             {
                 // Our move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
-                if (!((chkrs & cap) || (betwen_sq_bb (scan_lsq (chkrs), king_sq (activ)) & dst)))
+                if (!((chkrs & cap) || (between_sq (scan_lsq (chkrs), king_sq (activ)) & dst)))
                 {
                     return false;
                 }
@@ -810,7 +810,7 @@ bool Position::pseudo_legal (Move m) const
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((betwen_sq_bb (scan_lsq (chkrs), king_sq (activ)) | chkrs) & dst))
+                if (!((between_sq (scan_lsq (chkrs), king_sq (activ)) | chkrs) & dst))
                 {
                     return false;
                 }
@@ -926,7 +926,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
         Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
         return
-            (_attacks_type_bb[ROOK][dst_rook] & ci.king_sq) && // First x-ray check then full check
+            (PieceAttacks[ROOK][dst_rook] & ci.king_sq) && // First x-ray check then full check
             (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
     else if (PROMOTE   == mt)
@@ -1068,7 +1068,7 @@ bool Position::can_en_passant (Square ep_sq) const
     if (!(pieces<PAWN> (pasiv) & cap)) return false;
     //if ((pasiv | PAWN) != piece_on (cap)) return false;
 
-    Bitboard pawns_ep = _attacks_pawn_bb[pasiv][ep_sq] & pieces<PAWN> (activ);
+    Bitboard pawns_ep = PawnAttacks[pasiv][ep_sq] & pieces<PAWN> (activ);
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 

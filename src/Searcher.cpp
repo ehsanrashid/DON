@@ -396,7 +396,7 @@ finish:
                 << "Nodes/sec.:  " << RootPos.game_nodes () * 1000 / elapsed    << "\n"
                 << "Hash-Full:   " << TT.permill_full ()                        << "\n"
                 << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-            if (RootMoves[0].pv[0])
+            if (RootMoves[0].pv[0] != MOVE_NONE)
             {
                 StateInfo si;
                 RootPos.do_move (RootMoves[0].pv[0], si);
@@ -427,7 +427,7 @@ finish:
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
-        if (RootMoves[0].pv[0])
+        if (RootMoves[0].pv[0] != MOVE_NONE)
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
         }
@@ -603,7 +603,7 @@ namespace {
                 // Sort the PV lines searched so far and update the GUI
                 stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
                 elapsed = now () - SearchTime;
-                if (IndexPV + 1 == MultiPV || elapsed > InfoDuration)
+                if ((IndexPV + 1) == MultiPV || elapsed > InfoDuration)
                 {
                     sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                 }
@@ -745,7 +745,10 @@ namespace {
         (ss+2)->killers[1] = MOVE_NONE;
 
         // Used to send sel_depth info to GUI
-        if (PVNode && thread->max_ply < (ss)->ply) thread->max_ply = (ss)->ply;
+        if (PVNode && thread->max_ply < (ss)->ply)
+        {
+            thread->max_ply = (ss)->ply;
+        }
 
         if (!RootNode)
         {
@@ -956,7 +959,10 @@ namespace {
             && abs (beta) < VALUE_MATES_IN_MAX_PLY)
         {
             Value rbeta  = beta + 200;
-            if (rbeta > VALUE_INFINITE) rbeta = VALUE_INFINITE;
+            if (rbeta > VALUE_INFINITE)
+            {
+                rbeta = VALUE_INFINITE;
+            }
 
             Depth rdepth = depth - (MAX_NULL_REDUCTION+1) * ONE_MOVE;
 
@@ -1180,12 +1186,18 @@ moves_loop: // When in check and at SPNode search starts from here
 
                     if (futility_value <= alpha)
                     {
-                        if (futility_value > best_value) best_value = futility_value;
+                        if (best_value < futility_value)
+                        {
+                            best_value = futility_value;
+                        }
 
                         if (SPNode)
                         {
                             split_point->mutex.lock ();
-                            if (best_value > split_point->best_value) split_point->best_value = best_value;
+                            if (split_point->best_value < best_value)
+                            {
+                                split_point->best_value = best_value;
+                            }
                         }
                         continue;
                     }
@@ -1396,7 +1408,10 @@ moves_loop: // When in check and at SPNode search starts from here
         }
 
         // If we have pruned all the moves without searching return a fail-low score
-        if (best_value == -VALUE_INFINITE) best_value = alpha;
+        if (best_value == -VALUE_INFINITE)
+        {
+            best_value = alpha;
+        }
 
         TT.store (
             posi_key,
@@ -1748,7 +1763,7 @@ moves_loop: // When in check and at SPNode search starts from here
         uint8_t sel_depth = 0;
         for (uint8_t i = 0; i < Threads.size (); ++i)
         {
-            if (Threads[i]->max_ply > sel_depth)
+            if (sel_depth < Threads[i]->max_ply)
             {
                 sel_depth = Threads[i]->max_ply;
             }
@@ -1859,12 +1874,12 @@ void check_time ()
 // Thread::idle_loop () is where the thread is parked when it has no work to do
 void Thread::idle_loop ()
 {
-    // Pointer 'this_sp' is not null only if we are called from split(), and not
+    // Pointer 'split_point' is not null only if we are called from split(), and not
     // at the thread creation. So it means we are the split point's master.
-    SplitPoint *this_sp = split_point_threads ? active_split_point : NULL;
+    SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
 
-    ASSERT (!this_sp || (this_sp->master_thread == this && searching));
-
+    ASSERT (!split_point || (split_point->master_thread == this && searching));
+    
     do
     {
         // If we are not searching, wait for a condition to be signaled instead of
@@ -1873,7 +1888,7 @@ void Thread::idle_loop ()
         {
             if (exit)
             {
-                ASSERT (!this_sp);
+                ASSERT (!split_point);
                 return;
             }
 
@@ -1881,7 +1896,7 @@ void Thread::idle_loop ()
             mutex.lock ();
 
             // If we are master and all slaves have finished then exit idle_loop
-            if (this_sp && !this_sp->slaves_mask)
+            if (split_point && !split_point->slaves_mask)
             {
                 mutex.unlock ();
                 break;
@@ -1955,11 +1970,11 @@ void Thread::idle_loop ()
 
         // If this thread is the master of a split point and all slaves have finished
         // their work at this split point, return from the idle loop.
-        if (this_sp && !this_sp->slaves_mask)
+        if (split_point && !split_point->slaves_mask)
         {
-            this_sp->mutex.lock ();
-            bool finished = !this_sp->slaves_mask; // Retest under lock protection
-            this_sp->mutex.unlock ();
+            split_point->mutex.lock ();
+            bool finished = !split_point->slaves_mask; // Retest under lock protection
+            split_point->mutex.unlock ();
             if (finished) return;
         }
     }

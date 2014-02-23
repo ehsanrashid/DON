@@ -38,16 +38,16 @@ namespace BitBoard {
         uint8_t      BShift[SQ_NO];
         uint8_t      RShift[SQ_NO];
 
-        typedef uint16_t (*Indexer) (Square s, Bitboard occ);
+        typedef uint16_t (*Index) (Square s, Bitboard occ);
 
         template<PieceT PT>
-        // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
+        // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
         // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-        uint16_t attack_index (Square s, Bitboard occ);
+        uint16_t magic_index (Square s, Bitboard occ);
 
         template<>
-        inline uint16_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint16_t magic_index<BSHP> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -61,7 +61,7 @@ namespace BitBoard {
         }
 
         template<>
-        inline uint16_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint16_t magic_index<ROOK> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
@@ -74,37 +74,37 @@ namespace BitBoard {
 
         }
 
-        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer);
+        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index);
 
     }
 
     void initialize_sliding ()
     {
-        initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], attack_index<BSHP>);
-        initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], attack_index<ROOK>);
+        initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
+        initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
     }
 
     template<>
     // Attacks of the BISHOP with occupancy
-    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][attack_index<BSHP> (s, occ)]; }
+    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BAttack_bb[s][magic_index<BSHP> (s, occ)]; }
     template<>
     // Attacks of the ROOK with occupancy
-    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][attack_index<ROOK> (s, occ)]; }
+    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][magic_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occ
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return 
-            BAttack_bb[s][attack_index<BSHP> (s, occ)] |
-            RAttack_bb[s][attack_index<ROOK> (s, occ)];
+            BAttack_bb[s][magic_index<BSHP> (s, occ)] |
+            RAttack_bb[s][magic_index<ROOK> (s, occ)];
     }
 
     namespace {
 
-        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Indexer indexer)
+        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index)
         {
 
-            uint16_t _bMagicBoosters[R_NO] =
+            uint16_t MagicBoosters[R_NO] =
 #ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #else
@@ -121,19 +121,19 @@ namespace BitBoard {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 // Board edges are not considered in the relevant occupancies
-                Bitboard edges = brd_edges_bb (s);
+                Bitboard edges = board_edges (s);
 
                 // Given a square 's', the mask is the bitboard of sliding attacks from
                 // 's' computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence we deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = attacks_sliding (deltas, s);
+                Bitboard moves = sliding_attacks (deltas, s);
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
                 shift[s] =
-#if defined(_64BIT)
+#ifdef _64BIT
                     64 - pop_count<MAX15> (mask);
 #else
                     32 - pop_count<MAX15> (mask);
@@ -146,7 +146,7 @@ namespace BitBoard {
                 do
                 {
                     occupancy[size] = occ;
-                    reference[size] = attacks_sliding (deltas, s, occ);
+                    reference[size] = sliding_attacks (deltas, s, occ);
                     ++size;
                     occ = (occ - mask) & mask;
                 }
@@ -159,7 +159,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-                uint16_t booster = _bMagicBoosters[_rank (s)];
+                uint16_t booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until we find the one that passes the verification test.
@@ -184,10 +184,12 @@ namespace BitBoard {
                     // effect of verifying the magic.
                     for (i = 0; i < size; ++i)
                     {
-                        Bitboard &attacks = attacks_bb[s][indexer (s, occupancy[i])];
+                        Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
 
                         if (attacks && (attacks != reference[i]))
+                        {
                             break;
+                        }
 
                         ASSERT (reference[i]);
                         attacks = reference[i];

@@ -82,7 +82,7 @@ namespace Tester {
             uint8_t count;
 
             // --- KING
-            attacks = attacks_bb<KING> (s);
+            attacks = PieceAttacks[KING][s];
             count = 0;
 
             if (!(FA_bb & m))
@@ -129,7 +129,7 @@ namespace Tester {
             ASSERT (pop_count<FULL> (attacks) == count);
 
             // --- KNIGHT
-            attacks = attacks_bb<NIHT> (s);
+            attacks = PieceAttacks[NIHT][s];
             count = 0;
 
             if (!((FH_bb | FG_bb | R1_bb) & m))
@@ -504,7 +504,7 @@ namespace Tester {
             fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
             pos.setup (fen);
 
-            for (uint32_t i = 0; i < 50; ++i)
+            for (uint8_t i = 0; i < 50; ++i)
             {
                 si = states;
 

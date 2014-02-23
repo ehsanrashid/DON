@@ -19,8 +19,8 @@ namespace Zobrist {
     extern const Key PAWN_KEY_PG; // = U64 (0x37FC40DA841E1692);
     extern const Key POSI_KEY_PG; // = U64 (0x463B96181691FC9C);
 
-    extern RKISS rkiss;
-    extern Key exclusion;
+    extern RKISS Rkiss;
+    extern Key   Exclusion;
 
     // Zobrist Random numbers
     typedef union Zob

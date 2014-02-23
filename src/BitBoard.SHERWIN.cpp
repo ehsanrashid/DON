@@ -55,20 +55,20 @@ namespace BitBoard {
         uint32_t BRows[SQ_NO][6][B_PATTERN];
         uint32_t RRows[SQ_NO][8][R_PATTERN];
 
-        typedef uint32_t (*Indexer) (Square s, Bitboard occ);
+        typedef uint32_t (*Index) (Square s, Bitboard occ);
 
         template<PieceT PT>
-        // Function 'attack_index(s, occ)' for computing index for sliding attack bitboards.
+        // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
         // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-        uint32_t attack_index (Square s, Bitboard occ);
+        uint32_t magic_index (Square s, Bitboard occ);
 
         template<>
-        inline uint32_t attack_index<BSHP> (Square s, Bitboard occ)
+        inline uint32_t magic_index<BSHP> (Square s, Bitboard occ)
         {
-            const Bitboard edges = brd_edges_bb (s);
+            const Bitboard edges = board_edges (s);
             // remaining blocking pieces in the (x)-rays
-            const Bitboard mocc = (occ & _attacks_type_bb[BSHP][s] & ~edges) >> 1;
+            const Bitboard mocc = (occ & PieceAttacks[BSHP][s] & ~edges) >> 1;
             const uint8_t*   r = (uint8_t*) (&mocc);
 
             // Since every square has its set of row values the six row lookups
@@ -104,11 +104,11 @@ namespace BitBoard {
         }
 
         template<>
-        inline uint32_t attack_index<ROOK> (Square s, Bitboard occ)
+        inline uint32_t magic_index<ROOK> (Square s, Bitboard occ)
         {
-            const Bitboard edges = brd_edges_bb (s);
+            const Bitboard edges = board_edges (s);
             // remaining blocking pieces in the (+)-rays
-            const Bitboard mocc = (occ & _attacks_type_bb[ROOK][s] & ~edges);
+            const Bitboard mocc = (occ & PieceAttacks[ROOK][s] & ~edges);
             const uint8_t*   r = (uint8_t*) (&mocc);
 
             // Since every square has its set of row values the eight row lookups
@@ -163,17 +163,17 @@ namespace BitBoard {
 
     template<>
     // BISHOP Attacks with occupancy
-    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BTable_bb[attack_index<BSHP> (s, occ)]; }
+    Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BTable_bb[magic_index<BSHP> (s, occ)]; }
     template<>
     // ROOK Attacks with occupancy
-    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RTable_bb[attack_index<ROOK> (s, occ)]; }
+    Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RTable_bb[magic_index<ROOK> (s, occ)]; }
     template<>
     // QUEEN Attacks with occupancy
     Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return
-            BTable_bb[attack_index<BSHP> (s, occ)] |
-            RTable_bb[attack_index<ROOK> (s, occ)];
+            BTable_bb[magic_index<BSHP> (s, occ)] |
+            RTable_bb[magic_index<ROOK> (s, occ)];
     }
 
     namespace {
@@ -188,8 +188,8 @@ namespace BitBoard {
                     if (BBits[s] != b)  continue;
 
                     // Board edges are not considered in the relevant occupancies
-                    const Bitboard edges = brd_edges_bb (s);
-                    const Bitboard moves = _attacks_type_bb[BSHP][s];
+                    const Bitboard edges = board_edges (s);
+                    const Bitboard moves = PieceAttacks[BSHP][s];
 
                     const Bitboard mask = moves & ~edges;
 
@@ -241,7 +241,7 @@ namespace BitBoard {
                     //        }
                     //    }
                     //
-                    //    Bitboard moves  = attacks_sliding (s, _deltas_type[BSHP], occ);
+                    //    Bitboard moves  = sliding_attacks (PieceDeltas[BSHP], s, occ);
                     //    BTable_bb[index_base + index] = moves;
                     //}
 
@@ -249,7 +249,7 @@ namespace BitBoard {
                     Bitboard occ = U64 (0);
                     do
                     {
-                        BTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[BSHP], occ);
+                        BTable_bb[index_base + index] = sliding_attacks (PieceDeltas[BSHP], s, occ);
                         ++index;
                         occ = (occ - mask) & mask;
                     }
@@ -270,8 +270,8 @@ namespace BitBoard {
                     if (RBits[s] != b)  continue;
 
                     // Board edges are not considered in the relevant occupancies
-                    const Bitboard edges = brd_edges_bb (s);
-                    const Bitboard moves = _attacks_type_bb[ROOK][s];
+                    const Bitboard edges = board_edges (s);
+                    const Bitboard moves = PieceAttacks[ROOK][s];
 
                     const Bitboard mask = moves & ~edges;
 
@@ -324,7 +324,7 @@ namespace BitBoard {
                     //        }
                     //    }
                     //
-                    //    Bitboard moves = attacks_sliding (s, _deltas_type[ROOK], occ);
+                    //    Bitboard moves = sliding_attacks (PieceDeltas[ROOK], s, occ);
                     //    RTable_bb[index_base + index] = moves;
                     //}
 
@@ -332,7 +332,7 @@ namespace BitBoard {
                     Bitboard occ = U64 (0);
                     do
                     {
-                        RTable_bb[index_base + index] = attacks_sliding (s, _deltas_type[ROOK], occ);
+                        RTable_bb[index_base + index] = sliding_attacks (PieceDeltas[ROOK], s, occ);
                         ++index;
                         occ = (occ - mask) & mask;
                     }

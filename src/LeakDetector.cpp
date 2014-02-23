@@ -32,71 +32,71 @@ namespace LeakDetector {
         } LEAK_INFO;
 
 
-        LEAK_INFO *ptr_head = NULL;
-        LEAK_INFO *ptr_curr = NULL;
+        LEAK_INFO *head_ptr = NULL;
+        LEAK_INFO *curr_ptr = NULL;
 
         // Makes and appends the allocated memory info to the list
         void append_mem_info (void *mem_ref, size_t size, const char filename[], uint32_t line_no)
         {
             // append the above info to the list
-            LEAK_INFO *ptr_new = (LEAK_INFO *) std::malloc (sizeof (LEAK_INFO));
-            if (ptr_new)
+            LEAK_INFO *new_ptr = (LEAK_INFO *) std::malloc (sizeof (LEAK_INFO));
+            if (new_ptr)
             {
-                ptr_new->mem_info.address   = mem_ref;
-                ptr_new->mem_info.size      = size;
-                strncpy_s (ptr_new->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
-                ptr_new->mem_info.line_no   = line_no;
-                ptr_new->next = NULL;
+                new_ptr->mem_info.address   = mem_ref;
+                new_ptr->mem_info.size      = size;
+                strncpy_s (new_ptr->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
+                new_ptr->mem_info.line_no   = line_no;
+                new_ptr->next = NULL;
 
-                if (ptr_curr)
+                if (curr_ptr)
                 {
-                    ptr_curr->next = ptr_new;
-                    ptr_curr       = ptr_curr->next;
+                    curr_ptr->next = new_ptr;
+                    curr_ptr       = curr_ptr->next;
                 }
                 else
                 {
-                    ptr_curr = ptr_head = ptr_new;
+                    curr_ptr = head_ptr = new_ptr;
                 }
             }
         }
         // Removes the allocated memory info if is part of the list
         void remove_mem_info (void *mem_ref)
         {
-            LEAK_INFO *ptr_old = NULL;
-            LEAK_INFO *ptr_now = ptr_head;
+            LEAK_INFO *old_ptr = NULL;
+            LEAK_INFO *itr_ptr = head_ptr;
             // check if allocate memory is in list
-            while (ptr_now)
+            while (itr_ptr)
             {
-                if (ptr_now->mem_info.address == mem_ref)
+                if (itr_ptr->mem_info.address == mem_ref)
                 {
-                    if (ptr_old)
+                    if (old_ptr)
                     {
-                        ptr_old->next = ptr_now->next;
-                        std::free (ptr_now);
+                        old_ptr->next = itr_ptr->next;
+                        std::free (itr_ptr);
                     }
                     else
                     {
-                        LEAK_INFO *ptr_tmp = ptr_head;
-                        ptr_head = ptr_head->next;
-                        std::free (ptr_tmp);
+                        LEAK_INFO *tmp_ptr = head_ptr;
+                        head_ptr = head_ptr->next;
+                        std::free (tmp_ptr);
                     }
 
                     return;
                 }
 
-                ptr_old = ptr_now;
-                ptr_now = ptr_now->next;
+                old_ptr = itr_ptr;
+                itr_ptr = itr_ptr->next;
             }
         }
         // Clears all the allocated memory info from the list
         void clear_mem_info ()
         {
-            ptr_curr = ptr_head;
-            while (ptr_curr)
+            curr_ptr = head_ptr;
+            while (curr_ptr)
             {
-                LEAK_INFO *ptr_tmp = ptr_curr;
-                ptr_curr = ptr_curr->next;
-                std::free (ptr_tmp);
+                LEAK_INFO *tmp_ptr = curr_ptr;
+                curr_ptr = curr_ptr->next;
+                std::free (tmp_ptr);
             }
         }
 
@@ -140,7 +140,7 @@ namespace LeakDetector {
 #           define BUF_SIZE 1024
             char info_buf[BUF_SIZE];
             LEAK_INFO *leak_info;
-            leak_info = ptr_head;
+            leak_info = head_ptr;
 
             int32_t x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");

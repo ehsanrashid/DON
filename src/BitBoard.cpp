@@ -44,17 +44,17 @@ namespace BitBoard {
     const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
 
     // FILE & RANK distance
-    uint8_t _filerank_dist[F_NO][R_NO];
-    uint8_t   _square_dist[SQ_NO][SQ_NO];
-    //uint8_t  _taxicab_dist[SQ_NO][SQ_NO];
+    uint8_t FileRankDist[F_NO][R_NO];
+    uint8_t   SquareDist[SQ_NO][SQ_NO];
+    //uint8_t  TaxicabDist[SQ_NO][SQ_NO];
 
     //uint8_t _shift_gap[_UI8_MAX + 1][F_NO];
-    const Delta _deltas_pawn[CLR_NO][3] =
+    const Delta PawnDeltas[CLR_NO][3] =
     {
         { DEL_NW, DEL_NE, DEL_O },
         { DEL_SE, DEL_SW, DEL_O },
     };
-    const Delta _deltas_type[NONE][9] =
+    const Delta PieceDeltas[NONE][9] =
     {
         { DEL_O },
         { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
@@ -65,7 +65,7 @@ namespace BitBoard {
     };
 
     // SQUARES
-    CACHE_ALIGN(64) const Bitboard _square_bb[SQ_NO] =
+    CACHE_ALIGN(64) const Bitboard Square_bb[SQ_NO] =
     {
 #undef S_16
 #undef S_8
@@ -82,7 +82,7 @@ namespace BitBoard {
 #undef S_2
     };
     // FILES
-    CACHE_ALIGN(64) const Bitboard   _file_bb[F_NO] =
+    CACHE_ALIGN(64) const Bitboard   File_bb[F_NO] =
     {
         FA_bb,
         FB_bb,
@@ -94,7 +94,7 @@ namespace BitBoard {
         FH_bb
     };
     // RANKS
-    CACHE_ALIGN(64) const Bitboard   _rank_bb[R_NO] =
+    CACHE_ALIGN(64) const Bitboard   Rank_bb[R_NO] =
     {
         R1_bb,
         R2_bb,
@@ -106,7 +106,7 @@ namespace BitBoard {
         R8_bb
     };
     // DIAG-18
-    CACHE_ALIGN(64) const Bitboard _diag18_bb[D_NO] =
+    CACHE_ALIGN(64) const Bitboard Diag18_bb[D_NO] =
     {
         D18_bb >> (8 * 7),
         D18_bb >> (8 * 6),
@@ -125,7 +125,7 @@ namespace BitBoard {
         D18_bb << (8 * 7),
     };
     // DIAG-81
-    CACHE_ALIGN(64) const Bitboard _diag81_bb[D_NO] =
+    CACHE_ALIGN(64) const Bitboard Diag81_bb[D_NO] =
     {
         D81_bb >> (8 * 7),
         D81_bb >> (8 * 6),
@@ -145,7 +145,7 @@ namespace BitBoard {
     };
 
     // ADJACENT FILES used for isolated-pawn
-    CACHE_ALIGN(64) const Bitboard _adj_file_bb[F_NO] =
+    CACHE_ALIGN(64) const Bitboard AdjFile_bb[F_NO] =
     {
         FB_bb,
         FA_bb | FC_bb,
@@ -157,7 +157,7 @@ namespace BitBoard {
         FG_bb
     };
     // ADJACENT RANKS
-    CACHE_ALIGN(64) const Bitboard _adj_rank_bb[R_NO] =
+    CACHE_ALIGN(64) const Bitboard AdjRank_bb[R_NO] =
     {
         R2_bb,
         R1_bb | R3_bb,
@@ -169,7 +169,7 @@ namespace BitBoard {
         R7_bb,
     };
     // FRONT RANK
-    CACHE_ALIGN(64) const Bitboard _front_rank_bb[CLR_NO][R_NO] =
+    CACHE_ALIGN(64) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
         R2_bb | R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
         R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
@@ -190,26 +190,26 @@ namespace BitBoard {
         R7_bb | R6_bb | R5_bb | R4_bb | R3_bb | R2_bb | R1_bb
     };
     // FRONT SQUARES
-    CACHE_ALIGN(64) Bitboard _front_squares_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard _dist_rings_bb[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard DistanceRings[SQ_NO][F_NO];
 
     // ---
 
-    CACHE_ALIGN(64) Bitboard _betwen_sq_bb[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard  _lines_sq_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard BetweenSq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard  LineSq[SQ_NO][SQ_NO];
 
     // Span of the attacks of pawn
-    CACHE_ALIGN(64) Bitboard _pawn_attack_span_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard _passer_pawn_span_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
 
     // Attacks of the pawn
-    CACHE_ALIGN(64) Bitboard _attacks_pawn_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PawnAttacks[CLR_NO][SQ_NO];
 
     // Attacks of the pieces
-    CACHE_ALIGN(64) Bitboard _attacks_type_bb[NONE][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PieceAttacks[NONE][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard*BAttack_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard*RAttack_bb[SQ_NO];
@@ -268,14 +268,14 @@ namespace BitBoard {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 // Board edges are not considered in the relevant occupancies
-                Bitboard edges = brd_edges_bb (s);
+                Bitboard edges = board_edges (s);
 
                 // Given a square 's', the mask is the bitboard of sliding attacks from
                 // 's' computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence we deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = attacks_sliding (deltas, s);
+                Bitboard moves = sliding_attacks (deltas, s);
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
@@ -293,7 +293,7 @@ namespace BitBoard {
                 do
                 {
                     occupancy[size] = occ;
-                    reference[size] = attacks_sliding (deltas, s, occ);
+                    reference[size] = sliding_attacks (deltas, s, occ);
                     ++size;
                     occ = (occ - mask) & mask;
                 }
@@ -348,8 +348,8 @@ namespace BitBoard {
 
         void initialize_sliding ()
         {
-            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, _deltas_type[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, _deltas_type[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
         }
 
     }
@@ -360,7 +360,7 @@ namespace BitBoard {
         {
             for (Rank r = R_1; r <= R_8; ++r)
             {
-                _filerank_dist[f][r] = abs (int8_t (f) - int8_t (r));
+                FileRankDist[f][r] = abs (int8_t (f) - int8_t (r));
             }
         }
 
@@ -375,13 +375,13 @@ namespace BitBoard {
                     File f2 = _file (s2);
                     Rank r2 = _rank (s2);
 
-                    uint8_t dFile = _filerank_dist[f1][f2];
-                    uint8_t dRank = _filerank_dist[r1][r2];
+                    uint8_t dFile = FileRankDist[f1][f2];
+                    uint8_t dRank = FileRankDist[r1][r2];
 
-                    _square_dist[s1][s2]  = max (dFile , dRank);
-                    //_taxicab_dist[s1][s2] =     (dFile + dRank);
+                    SquareDist[s1][s2]  = max (dFile , dRank);
+                    //TaxicabDist[s1][s2] =     (dFile + dRank);
 
-                    _dist_rings_bb[s1][_square_dist[s1][s2] - 1] += s2;
+                    DistanceRings[s1][SquareDist[s1][s2] - 1] += s2;
                 }
             }
         }
@@ -390,9 +390,9 @@ namespace BitBoard {
         {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                _front_squares_bb   [c][s] = _front_rank_bb[c][_rank (s)] &     _file_bb[_file (s)];
-                _pawn_attack_span_bb[c][s] = _front_rank_bb[c][_rank (s)] & _adj_file_bb[_file (s)];
-                _passer_pawn_span_bb[c][s] = _front_squares_bb[c][s] | _pawn_attack_span_bb[c][s];
+                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
+                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
+                PasserPawnSpan[c][s] =  FrontSqs_bb[c][s]         | PawnAttackSpan[c][s];
             }
         }
 
@@ -400,13 +400,13 @@ namespace BitBoard {
         {
             for (Color c = WHITE; c <= BLACK; ++c)
             {
-                for (uint32_t k = 0; _deltas_pawn[c][k]; ++k)
+                for (uint32_t k = 0; PawnDeltas[c][k]; ++k)
                 {
-                    Square sq = s + _deltas_pawn[c][k];
+                    Square sq = s + PawnDeltas[c][k];
 
-                    if (_ok (sq) && _square_dist[s][sq] == 1)
+                    if (_ok (sq) && SquareDist[s][sq] == 1)
                     {
-                        _attacks_pawn_bb[c][s] += sq;
+                        PawnAttacks[c][s] += sq;
                     }
                 }
             }
@@ -414,28 +414,28 @@ namespace BitBoard {
             PieceT pt;
 
             pt = NIHT;
-            for (uint32_t k = 0; _deltas_type[pt][k]; ++k)
+            for (uint32_t k = 0; PieceDeltas[pt][k]; ++k)
             {
-                Square sq = s + _deltas_type[pt][k];
-                if (_ok (sq) && _square_dist[s][sq] == 2)
+                Square sq = s + PieceDeltas[pt][k];
+                if (_ok (sq) && SquareDist[s][sq] == 2)
                 {
-                    _attacks_type_bb[pt][s] += sq;
+                    PieceAttacks[pt][s] += sq;
                 }
             }
 
             pt = KING;
-            for (uint32_t k = 0; _deltas_type[pt][k]; ++k)
+            for (uint32_t k = 0; PieceDeltas[pt][k]; ++k)
             {
-                Square sq = s + _deltas_type[pt][k];
-                if (_ok (sq) && _square_dist[s][sq] == 1)
+                Square sq = s + PieceDeltas[pt][k];
+                if (_ok (sq) && SquareDist[s][sq] == 1)
                 {
-                    _attacks_type_bb[pt][s] += sq;
+                    PieceAttacks[pt][s] += sq;
                 }
             }
 
-            _attacks_type_bb[BSHP][s] = attacks_sliding (_deltas_type[BSHP], s);
-            _attacks_type_bb[ROOK][s] = attacks_sliding (_deltas_type[ROOK], s);
-            _attacks_type_bb[QUEN][s] = _attacks_type_bb[BSHP][s] | _attacks_type_bb[ROOK][s];
+            PieceAttacks[BSHP][s] = sliding_attacks (PieceDeltas[BSHP], s);
+            PieceAttacks[ROOK][s] = sliding_attacks (PieceDeltas[ROOK], s);
+            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s] | PieceAttacks[ROOK][s];
         }
 
         initialize_sliding ();
@@ -447,13 +447,13 @@ namespace BitBoard {
                 // NOTE:: must be called after initialize_sliding()
 
                 PieceT pt = 
-                    (_attacks_type_bb[BSHP][s1] & s2) ? BSHP :
-                    (_attacks_type_bb[ROOK][s1] & s2) ? ROOK : NONE;
+                    (PieceAttacks[BSHP][s1] & s2) ? BSHP :
+                    (PieceAttacks[ROOK][s1] & s2) ? ROOK : NONE;
 
                 if (NONE == pt) continue;
 
-                _betwen_sq_bb[s1][s2] = (attacks_bb (Piece (pt), s1, square_bb (s2)) & attacks_bb (Piece (pt), s2, square_bb (s1)));
-                _lines_sq_bb [s1][s2] = (attacks_bb (Piece (pt), s1,        U64 (0)) & attacks_bb (Piece (pt), s2,        U64 (0))) + s1 + s2;
+                BetweenSq[s1][s2] = (attacks_bb (Piece (pt), s1, square_bb (s2)) & attacks_bb (Piece (pt), s2, square_bb (s1)));
+                LineSq   [s1][s2] = (attacks_bb (Piece (pt), s1,        U64 (0)) & attacks_bb (Piece (pt), s2,        U64 (0))) + s1 + s2;
             }
         }
 

@@ -50,7 +50,7 @@ namespace TrivialLogger {
 
     private:
 
-        static ::std::unique_ptr<implementation::TriLoggerImpl> _tl_impl;
+        static ::std::unique_ptr<implementation::TriLoggerImpl> _p_tl_impl;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable
@@ -86,7 +86,7 @@ namespace TrivialLogger {
 
     namespace implementation
     {
-        extern ::std::unique_ptr<TriLogger> tl_ptr;
+        extern ::std::unique_ptr<TriLogger> p_trilog;
     }
 }
 

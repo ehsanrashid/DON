@@ -48,14 +48,14 @@ namespace TrivialLogger {
 
 
     unique_ptr<implementation::TriLoggerImpl> 
-        TriLogger::_tl_impl (unique_ptr<implementation::TriLoggerImpl> (new implementation::TriLoggerImpl ()));
+        TriLogger::_p_tl_impl (unique_ptr<implementation::TriLoggerImpl> (new implementation::TriLoggerImpl ()));
 
 
     TriLogger::TriLogger ()
     {
-        if (NULL == _tl_impl.get ())
+        if (NULL == _p_tl_impl.get ())
         {
-            TriLogger::_tl_impl.reset (new implementation::TriLoggerImpl ());
+            TriLogger::_p_tl_impl.reset (new implementation::TriLoggerImpl ());
         }
         implementation::init_tri_logger_impl ();
     }
@@ -65,17 +65,17 @@ namespace TrivialLogger {
 
     bool TriLogger::is_active ()
     {
-        return _tl_impl->_is_active;
+        return _p_tl_impl->_is_active;
     }
 
     void TriLogger::activate (bool active)
     {
-        _tl_impl->_is_active = active;
+        _p_tl_impl->_is_active = active;
     }
 
     ostream*& TriLogger::ostream_ptr ()
     {
-        return _tl_impl->_outstream;
+        return _p_tl_impl->_outstream;
     }
 
 #   if defined(OTLOG)
@@ -303,15 +303,15 @@ namespace TrivialLogger {
 
 #   endif
 
-    unique_ptr<TriLogger> implementation::tl_ptr (new TriLogger ());
+    unique_ptr<TriLogger> implementation::p_trilog (new TriLogger ());
 
     TriLogger& instance ()
     {
-        if (NULL == implementation::tl_ptr.get ())
+        if (NULL == implementation::p_trilog.get ())
         {
-            implementation::tl_ptr.reset (new TriLogger ());
+            implementation::p_trilog.reset (new TriLogger ());
         }
-        return *(implementation::tl_ptr);
+        return *(implementation::p_trilog);
     }
 
 }

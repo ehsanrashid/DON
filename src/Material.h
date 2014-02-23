@@ -19,11 +19,19 @@ namespace Material {
     // of 4, which will result in scores of absolute value less than one pawn.
     typedef struct Entry
     {
-        Key _key;
+
+    private:
+
+
+    public:
+
+        Key     _key;
         int16_t _value;
+
         uint8_t _factor[CLR_NO];
-        Score _space_weight;
-        Phase _game_phase;
+        Score   _space_weight;
+        Phase   _game_phase;
+
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
@@ -49,7 +57,7 @@ namespace Material {
         if (scaling_func[c] != NULL)
         {
             ScaleFactor sf = (*scaling_func[c]) (pos);
-            return (SCALE_FACTOR_NONE == sf) ? ScaleFactor (_factor[c]) : sf;
+            if (SCALE_FACTOR_NONE != sf) return sf;
         }
         return ScaleFactor (_factor[c]);
     }

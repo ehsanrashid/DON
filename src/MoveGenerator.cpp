@@ -42,7 +42,7 @@ namespace MoveGenerator {
                         if (ci)
                         {
                             if (   (BSHP == PT || ROOK == PT || QUEN == PT)
-                                && !(_attacks_type_bb[PT][s] & targets & ci->checking_sq[PT]))
+                                && !(PieceAttacks[PT][s] & targets & ci->checking_sq[PT]))
                             {
                                 continue;
                             }
@@ -141,7 +141,7 @@ namespace MoveGenerator {
                     {
                         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
                         Square org_king= pos.king_sq (C);
-                        Bitboard moves = _attacks_type_bb[KING][org_king] & ~_attacks_type_bb[KING][pos.king_sq (C_)] & targets;
+                        Bitboard moves = PieceAttacks[KING][org_king] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
                         SERIALIZE (m_list, org_king, moves);
                     }
 
@@ -214,14 +214,14 @@ namespace MoveGenerator {
                     {
                         if (ci)
                         {
-                            if (_attacks_type_bb[NIHT][dst] & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, NIHT);
+                            if (PieceAttacks[NIHT][dst] & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                         }
 
                         if (CHECK == GT)
                         {
                             if (ci)
                             {
-                                //if (_attacks_type_bb[NIHT][dst] & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, NIHT);
+                                //if (PieceAttacks[NIHT][dst] & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, BSHP);
                                 if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, ROOK);
                                 if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) (m_list++)->move = mk_move<PROMOTE> (org, dst, QUEN);
@@ -283,7 +283,7 @@ namespace MoveGenerator {
                     case QUIET_CHECK:
                         if (ci)
                         {
-                            Bitboard attack = _attacks_pawn_bb[C_][ci->king_sq];
+                            Bitboard attack = PawnAttacks[C_][ci->king_sq];
 
                             push_1 &= attack;
                             push_2 &= attack;
@@ -333,7 +333,7 @@ namespace MoveGenerator {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
-                                Bitboard pawns_ep = _attacks_pawn_bb[C_][ep_sq] & pawns_on_R5;
+                                Bitboard pawns_ep = PawnAttacks[C_][ep_sq] & pawns_on_R5;
                                 ASSERT (pawns_ep);
                                 ASSERT (pop_count<FULL> (pawns_ep) <= 2);
 
@@ -475,7 +475,7 @@ namespace MoveGenerator {
 
             Bitboard moves = pos.attacks_from (Piece (pt), org) & empties;
 
-            if (KING == pt) moves &= ~_attacks_type_bb[QUEN][ci.king_sq];
+            if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];
 
             SERIALIZE (m_list, org, moves);
         }
@@ -504,7 +504,7 @@ namespace MoveGenerator {
 
             Bitboard moves = pos.attacks_from (Piece (pt), org) & targets;
 
-            if (KING == pt) moves &= ~_attacks_type_bb[QUEN][ci.king_sq];
+            if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];
 
             SERIALIZE (m_list, org, moves);
         }
@@ -531,16 +531,16 @@ namespace MoveGenerator {
         Square check_sq;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
-        //Bitboard moves = _attacks_type_bb[KING][org_king] & ~friends;
+        //Bitboard moves = PieceAttacks[KING][org_king] & ~friends;
         //check_sq = pop_lsq (checkers);
         //
         //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - org_king;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
-        //for (uint8_t k = 0; _deltas_type[KING][k]; ++k)
+        //for (uint8_t k = 0; PieceDeltas[KING][k]; ++k)
         //{
-        //    Square sq = org_king + _deltas_type[KING][k];
+        //    Square sq = org_king + PieceDeltas[KING][k];
         //    if (_ok (sq))
         //    {
         //        if ((moves & sq) && (pos.attackers_to (sq, mocc) & enemies))
@@ -562,13 +562,13 @@ namespace MoveGenerator {
 
             if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
-                slid_attacks |= _lines_sq_bb[check_sq][org_king] - check_sq;
+                slid_attacks |= LineSq[check_sq][org_king] - check_sq;
             }
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard moves = _attacks_type_bb[KING][org_king] & ~friends 
-            &           ~_attacks_type_bb[KING][pos.king_sq (~active)] & ~slid_attacks;
+        Bitboard moves = PieceAttacks[KING][org_king] & ~friends 
+            &           ~PieceAttacks[KING][pos.king_sq (~active)] & ~slid_attacks;
 
         SERIALIZE (m_list, org_king, moves);
 
@@ -576,7 +576,7 @@ namespace MoveGenerator {
         if (1 == checker_count && pop_count<FULL> (friends) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard targets = betwen_sq_bb (check_sq, org_king) + check_sq;
+            Bitboard targets = between_sq (check_sq, org_king) + check_sq;
 
             return WHITE == active ? generate_moves<EVASION, WHITE> (m_list, pos, targets)
                 :  BLACK == active ? generate_moves<EVASION, BLACK> (m_list, pos, targets)

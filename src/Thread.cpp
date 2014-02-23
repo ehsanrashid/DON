@@ -24,7 +24,7 @@ namespace {
     // outside Thread c'tor and d'tor because object shall be fully initialized
     // when start_routine (and hence virtual idle_loop) is called and when joining.
     template<class T>
-    inline T* new_thread()
+    inline T* new_thread ()
     {
         T *th = new T ();
         thread_create (th->handle, start_routine, th); // Will go to sleep
@@ -182,8 +182,14 @@ void ThreadPool::read_uci_options ()
 
     // Value 0 has a special meaning: We determine the optimal minimum split depth
     // automatically. Anyhow the split depth should never be under 4 plies.
-    min_split_depth = (0 == min_split_depth) ?
-        (req_threads < 8 ? 4 : 7) * ONE_MOVE : max (4 * ONE_MOVE, min_split_depth);
+
+    //min_split_depth = (0 == min_split_depth)
+    //    ? (req_threads < 8 ? 4 : 7) * ONE_MOVE
+    //    : max (4 * ONE_MOVE, min_split_depth);
+    if (0 == min_split_depth)
+    {
+        min_split_depth = (req_threads < 8 ? 4 : 7) * ONE_MOVE;
+    }
 
     while (size () < req_threads)
     {
@@ -222,7 +228,7 @@ Thread* ThreadPool::available_slave (const Thread *master) const
 // search() then split() returns.
 template <bool FAKE>
 void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
-                    Depth depth, uint8_t moves_count, MovePicker &move_picker, NodeT node_type, bool cut_node)
+    Depth depth, uint8_t moves_count, MovePicker &move_picker, NodeT node_type, bool cut_node)
 {
     ASSERT (pos.ok ());
     ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
@@ -263,7 +269,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     uint8_t slaves_count = 1; // This thread is always included
     Thread *slave;
 
-    while ( (slave = Threads.available_slave (this)) != NULL
+    while ((slave = Threads.available_slave (this)) != NULL
         && ++slaves_count <= Threads.max_split_point_threads && !FAKE)
     {
         sp.slaves_mask |= (U64 (1) << slave->idx);
@@ -327,7 +333,7 @@ void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, Sta
     Signals.stop                = false;
     Signals.failed_low_at_root  = false;
 
-    RootMoves.clear();
+    RootMoves.clear ();
     RootPos     = pos;
     RootColor   = pos.active ();
     Limits      = limits;
@@ -336,15 +342,15 @@ void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, Sta
         // Ownership transfer here
         //SetupStates = move (states);
         SetupStates = states;
-        
+
         ASSERT (!states.get ());
     }
 
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        if ( limits.search_moves.empty ()
-          || count (limits.search_moves.begin (), limits.search_moves.end (), m))
+        if (   limits.search_moves.empty ()
+            || count (limits.search_moves.begin (), limits.search_moves.end (), m))
         {
             RootMoves.push_back (RootMove (m));
         }

@@ -67,25 +67,25 @@ namespace {
             PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NO
         };
 
-        Score   terms[CLR_NO][TERM_NO];
+        Score   Terms[CLR_NO][TERM_NO];
 
-        EvalInfo    ei;
-        ScaleFactor sf;
+        EvalInfo    Evalinfo;
+        ScaleFactor Scalefactor;
 
         inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
 
         inline void add_term (uint8_t term, Score w_score, Score b_score = SCORE_ZERO)
         {
-            terms[WHITE][term] = w_score;
-            terms[BLACK][term] = b_score;
+            Terms[WHITE][term] = w_score;
+            Terms[BLACK][term] = b_score;
         }
 
         void format_row (stringstream &ss, const char name[], uint8_t term)
         {
             Score score[CLR_NO] =
             {
-                terms[WHITE][term],
-                terms[BLACK][term]
+                Terms[WHITE][term],
+                Terms[BLACK][term]
             };
 
             switch (term)
@@ -416,8 +416,8 @@ namespace {
 
             Tracing::add_term (Tracing::TOTAL     , score);
 
-            Tracing::ei = ei;
-            Tracing::sf = sf;
+            Tracing::Evalinfo    = ei;
+            Tracing::Scalefactor = sf;
         }
 
         return (WHITE == pos.active ()) ? value : -value;
@@ -433,7 +433,7 @@ namespace {
 
         ei.pinned_pieces[C] = pos.pinneds (C);
 
-        Bitboard attacks = ei.attacked_by[C_][KING] = _attacks_type_bb[KING][pos.king_sq (C_)];
+        Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
 
         ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks(C);
 
@@ -511,11 +511,11 @@ namespace {
                 (BSHP == PT) ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                 (ROOK == PT) ? attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
                 (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
-                (NIHT == PT) ? _attacks_type_bb[NIHT][s] : _attacks_type_bb[KING][s];
+                (NIHT == PT) ? PieceAttacks[NIHT][s] : PieceAttacks[KING][s];
 
             if (ei.pinned_pieces[C] & s)
             {
-                attacks &= _lines_sq_bb[fk_sq][s];
+                attacks &= LineSq[fk_sq][s];
             }
 
             ei.attacked_by[C][PT] |= attacks;
@@ -550,8 +550,8 @@ namespace {
             {
                 //// Give a bonus if we are a bishop and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
-                //if (   (_attacks_type_bb[BSHP][ek_sq] & s)
-                //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //if (   (PieceAttacks[BSHP][ek_sq] & s)
+                //    && !more_than_one (between_sq (s, ek_sq) & pos.pieces ()))
                 //{
                 //    score += PinBonus;
                 //}
@@ -568,7 +568,7 @@ namespace {
             if (BSHP == PT || NIHT == PT)
             {
                 // Bishop and knight outposts squares
-                if (!(pos.pieces<PAWN> (C_) & pawn_attack_span_bb (C, s)))
+                if (!(pos.pieces<PAWN> (C_) & pawn_attack_span (C, s)))
                 {
                     score += evaluate_outposts<PT, C> (pos, ei, s);
                 }
@@ -591,7 +591,7 @@ namespace {
                 }
 
                 // Major piece attacking enemy pawns on the same rank/file
-                Bitboard pawns = pos.pieces<PAWN> (C_) & _attacks_type_bb[ROOK][s];
+                Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                 if (pawns)
                 {
                     score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15> (pawns));
@@ -603,8 +603,8 @@ namespace {
             {
                 //// Give a bonus if we are a rook and can pin a piece or
                 //// can give a discovered check through an x-ray attack.
-                //if (   (_attacks_type_bb[ROOK][ek_sq] & s)
-                //    && !more_than_one (betwen_sq_bb (s, ek_sq) & pos.pieces ()))
+                //if (   (PieceAttacks[ROOK][ek_sq] & s)
+                //    && !more_than_one (between_sq (s, ek_sq) & pos.pieces ()))
                 //{
                 //    score += PinBonus;
                 //}
@@ -617,7 +617,7 @@ namespace {
                         : RookSemiopenFileBonus;
 
                     //// Give more bonus if the rook is doubled
-                    //if (front_squares_bb (C_, s) & pos.pieces<ROOK> (C))
+                    //if (front_sqs_bb (C_, s) & pos.pieces<ROOK> (C))
                     //{
                     //    score += ei.pi->semiopen (C_, _file (s))
                     //        ? RookDoubledOpenBonus
@@ -662,7 +662,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::terms[C][PT] = score;
+            Tracing::Terms[C][PT] = score;
         }
 
         return score;
@@ -690,7 +690,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::terms[C][Tracing::MOBILITY] = apply_weight (mobility[C], Weights[Mobility]);
+            Tracing::Terms[C][Tracing::MOBILITY] = apply_weight (mobility[C], Weights[Mobility]);
         }
 
         return score;
@@ -750,7 +750,7 @@ namespace {
             // squares around the king attacked by enemy rooks...
             undefended_attacked = undefended & ei.attacked_by[C_][ROOK] & ~pos.pieces (C_);
             // Consider only squares where the enemy rook gives check
-            undefended_attacked &= _attacks_type_bb[ROOK][k_sq];
+            undefended_attacked &= PieceAttacks[ROOK][k_sq];
 
             if (undefended_attacked)
             {
@@ -801,7 +801,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::terms[C][KING] = score;
+            Tracing::Terms[C][KING] = score;
         }
 
         return score;
@@ -835,7 +835,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::terms[C][Tracing::THREAT] = score;
+            Tracing::Terms[C][Tracing::THREAT] = score;
         }
 
         return score;
@@ -883,14 +883,14 @@ namespace {
                 if (pos.empty (block_sq))
                 {
                     // squares to queen
-                    Bitboard queen_squares = front_squares_bb (C, s);
+                    Bitboard queen_squares = front_sqs_bb (C, s);
 
                     Bitboard unsafe_squares;
                     // If there is an enemy rook or queen attacking the pawn from behind,
                     // add all X-ray attacks by the rook or queen. Otherwise consider only
                     // the squares in the pawn's path attacked or occupied by the enemy.
-                    if (UNLIKELY (front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN))
-                        &&       (front_squares_bb (C_, s) & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                    if (UNLIKELY (front_sqs_bb (C_, s) & pos.pieces (C_, ROOK, QUEN))
+                        &&       (front_sqs_bb (C_, s) & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
                         unsafe_squares = queen_squares;
                     }
@@ -900,8 +900,8 @@ namespace {
                     }
 
                     Bitboard defended_squares;
-                    if (UNLIKELY (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
-                        &&       (front_squares_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                    if (UNLIKELY (front_sqs_bb (C_, s) & pos.pieces (C, ROOK, QUEN))
+                        &&       (front_sqs_bb (C_, s) & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
                     {
                         defended_squares = queen_squares;
                     }
@@ -971,7 +971,7 @@ namespace {
 
         if (TRACE)
         {
-            Tracing::terms[C][Tracing::PASSED] = apply_weight (score, Weights[PassedPawns]);
+            Tracing::Terms[C][Tracing::PASSED] = apply_weight (score, Weights[PassedPawns]);
         }
 
         // Add the scores to the middle game and endgame eval
@@ -1054,7 +1054,7 @@ namespace {
 
         string do_trace (const Position &pos)
         {
-            memset (terms, 0, sizeof (terms));
+            memset (Terms, 0, sizeof (Terms));
 
             Value value = do_evaluate<true> (pos);
 
@@ -1082,9 +1082,9 @@ namespace {
             format_row (ss, "Total",                TOTAL);
             ss  << "-------\n"
                 << "Scaling: " << noshowpos
-                << setw (6) << (100.0 * ei.mi->game_phase ()) / 128.0 << "% MG, "
-                << setw (6) << (100.0 * (1.0 - ei.mi->game_phase ()) / 128.0) << "% * "
-                << setw (6) << (100.0 * sf) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                << setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
+                << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase ()) / 128.0) << "% * "
+                << setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
                 << "Total evaluation: " << value_to_cp (value);
 
             return ss.str ();

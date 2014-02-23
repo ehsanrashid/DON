@@ -588,7 +588,7 @@ namespace EndGame {
             // and the defending king is near the corner
             if (   r == R_6
                 && square_dist (wp_sq + 2 * push, bk_sq) <= 1
-                && _attacks_type_bb[BSHP][bb_sq] & (wp_sq + push)
+                && PieceAttacks[BSHP][bb_sq] & (wp_sq + push)
                 && file_dist (bb_sq, wp_sq) >= 2)
             {
                 return ScaleFactor (8);
@@ -752,7 +752,7 @@ namespace EndGame {
                 return SCALE_FACTOR_DRAW;
             }
 
-            Bitboard path = front_squares_bb (_stong_side, wp_sq);
+            Bitboard path = front_sqs_bb (_stong_side, wp_sq);
             if (    (path & pos.pieces<KING> (_weak_side))
                 || ((path & pos.attacks_from<BSHP> (bb_sq)) && square_dist (bb_sq, wp_sq) >= 3))
             {
@@ -882,7 +882,7 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if (front_squares_bb (_stong_side, wp_sq) & pos.attacks_from<BSHP> (wb_sq))
+        if (front_sqs_bb (_stong_side, wp_sq) & pos.attacks_from<BSHP> (wb_sq))
         {
             return ScaleFactor (square_dist (bk_sq, wp_sq));
         }
