@@ -390,6 +390,7 @@ finish:
         if (write_search_log)
         {
             Log log (search_log_fn);
+
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                 << "Nodes/sec.:  " << RootPos.game_nodes () * 1000 / elapsed    << "\n"
@@ -624,7 +625,7 @@ namespace {
             bool write_search_log = *(Options["Write Search Log"]);
             if (write_search_log)
             {
-                string search_log_fn  = *(Options["Search Log File"]);
+                string search_log_fn = *(Options["Search Log File"]);
                 Log log (search_log_fn);
                 log << pretty_pv (pos, depth, RootMoves[0].curr_value, iter_duration, &RootMoves[0].pv[0]) << endl;
             }

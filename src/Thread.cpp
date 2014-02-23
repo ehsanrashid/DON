@@ -263,7 +263,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     uint8_t slaves_count = 1; // This thread is always included
     Thread *slave;
 
-    while ((slave = Threads.available_slave (this)) != NULL
+    while ( (slave = Threads.available_slave (this)) != NULL
         && ++slaves_count <= Threads.max_split_point_threads && !FAKE)
     {
         sp.slaves_mask |= (U64 (1) << slave->idx);
@@ -300,7 +300,7 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
     --split_point_threads;
     active_split_point = sp.parent_split_point;
 
-    active_pos  = &pos;
+    active_pos = &pos;
     pos.game_nodes (pos.game_nodes () + sp.nodes);
 
     best_move  = sp.best_move;
@@ -343,8 +343,8 @@ void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, Sta
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)
     {
         Move m = *itr;
-        if (   limits.search_moves.empty ()
-            || count (limits.search_moves.begin (), limits.search_moves.end (), m))
+        if ( limits.search_moves.empty ()
+          || count (limits.search_moves.begin (), limits.search_moves.end (), m))
         {
             RootMoves.push_back (RootMove (m));
         }

@@ -80,7 +80,7 @@ namespace {
             terms[BLACK][term] = b_score;
         }
 
-        void format_row (stringstream& ss, const char name[], uint8_t term)
+        void format_row (stringstream &ss, const char name[], uint8_t term)
         {
             Score score[CLR_NO] =
             {
@@ -442,7 +442,7 @@ namespace {
         {
             ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
             attacks &= ei.attacked_by[C][PAWN];
-            ei.king_attackers_count[C]  = attacks ? pop_count<MAX15> (attacks) : 0;
+            ei.king_attackers_count[C] = attacks ? pop_count<MAX15> (attacks) : 0;
             ei.king_zone_attacks_count[C] = 0;
             ei.king_attackers_weight  [C] = 0;
         }
@@ -510,7 +510,8 @@ namespace {
             Bitboard attacks =
                 (BSHP == PT) ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                 (ROOK == PT) ? attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
-                pos.attacks_from<PT> (s);
+                (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
+                (NIHT == PT) ? _attacks_type_bb[NIHT][s] : _attacks_type_bb[KING][s];
 
             if (ei.pinned_pieces[C] & s)
             {
@@ -579,7 +580,7 @@ namespace {
                 }
             }
 
-            if (   (ROOK == PT || QUEN == PT)
+            if (  (ROOK == PT || QUEN == PT)
                 && R_5 <= rel_rank (C, s))
             {
                 // Major piece on 7th rank and enemy king trapped on 8th
@@ -651,9 +652,9 @@ namespace {
                     if (pos[s + d] == P)
                     {
                         score -=
-                            !pos.empty(s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
-                            : (pos[s + d + d] == P)           ? TrappedBishopA1H1 * 2
-                            :                                   TrappedBishopA1H1;
+                            !pos.empty (s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
+                            : (pos[s + d + d] == P)            ? TrappedBishopA1H1 * 2
+                            :                                    TrappedBishopA1H1;
                     }
                 }
             }
@@ -983,9 +984,9 @@ namespace {
     inline Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei)
     {
         Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
-        return (!unstoppable_pawns || pos.non_pawn_material (~c))
-            ? SCORE_ZERO : UnstoppablePawnBonus
-            * int32_t (rel_rank (c, scan_rel_frntmost_sq (c, unstoppable_pawns)));
+        
+        return (!unstoppable_pawns || pos.non_pawn_material (~c)) ? SCORE_ZERO
+            : UnstoppablePawnBonus * int32_t (rel_rank (c, scan_rel_frntmost_sq (c, unstoppable_pawns)));
     }
 
     template<Color C>
@@ -1002,10 +1003,10 @@ namespace {
         // Find the safe squares for our pieces inside the area defined by
         // SpaceMask[]. A square is unsafe if it is attacked by an enemy
         // pawn, or if it is undefended and attacked by an enemy piece.
-        Bitboard safe = SpaceMask[C] &
-            ~pos.pieces<PAWN> (C) &
-            ~ei.attacked_by[C_][PAWN] &
-            (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);
+        Bitboard safe = SpaceMask[C]
+            &   ~pos.pieces<PAWN> (C)
+            &   ~ei.attacked_by[C_][PAWN]
+            &   (ei.attacked_by[C][NONE] | ~ei.attacked_by[C_][NONE]);
 
         // Find all squares which are at most three squares behind some friendly pawn
         Bitboard behind = pos.pieces<PAWN> (C);
@@ -1043,9 +1044,9 @@ namespace {
     // two UCI-configurable weights (midgame and endgame) with an internal weight.
     inline Score weight_option  (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
     {
-        // Scale option value from 100 to 256
-        uint16_t mg = int32_t (*(Options[mg_opt])) * 256 / 100;
-        uint16_t eg = int32_t (*(Options[eg_opt])) * 256 / 100;
+        // Scale option value from 100 to 256 - [25, 64]
+        uint16_t mg = int32_t (*(Options[mg_opt])) * 64 / 25;
+        uint16_t eg = int32_t (*(Options[eg_opt])) * 64 / 25;
         return apply_weight (mk_score (mg, eg), internal_weight);
     }
 
@@ -1126,7 +1127,7 @@ namespace Evaluator {
         int32_t mg = 0;
         for (uint8_t i = 1; i < 100; ++i)
         {
-            mg = min (PeakScore, min (int32_t (0.4 * i * i), mg + MaxSlope));
+            mg = min (PeakScore, min (int32_t (0.4*i*i), mg + MaxSlope));
 
             KingDanger[1][i] = apply_weight (mk_score (mg, 0), Weights[Cowardice]);
             KingDanger[0][i] = apply_weight (mk_score (mg, 0), Weights[Aggressive]);
