@@ -273,9 +273,8 @@ namespace BitBoard {
     // QUEEN Attacks with occ
     INLINE Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
-        return
-            BAttack_bb[s][magic_index<BSHP> (s, occ)] |
-            RAttack_bb[s][magic_index<ROOK> (s, occ)];
+        return BAttack_bb[s][magic_index<BSHP> (s, occ)]
+            |  RAttack_bb[s][magic_index<ROOK> (s, occ)];
     }
     // --------------------------------
 

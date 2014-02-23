@@ -203,12 +203,12 @@ namespace Pawns {
     Entry* probe (const Position &pos, Table &table)
     {
         Key pawn_key = pos.pawn_key ();
-        Entry *e = table[pawn_key];
+        Entry *e     = table[pawn_key];
 
         if (e->_pawn_key == pawn_key) return e;
 
-        e->_pawn_key = pawn_key;
-        e->_pawn_score = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
+        e->_pawn_key    = pawn_key;
+        e->_pawn_score  = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
         return e;
     }
 
@@ -251,7 +251,8 @@ namespace Pawns {
                     : R_1;
 
                 int8_t danger = (w_rk != R_1)
-                    ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
+                    ? ((b_rk == w_rk + 1) ? 2 : 1)
+                    : 0;
                 
                 safety -= ShelterWeakness[w_rk]
                 +         StormDanger[danger][b_rk];
@@ -268,7 +269,7 @@ namespace Pawns {
     {
         _king_sq[C] = k_sq;
         _castle_rights[C] = pos.can_castle(C);
-        _kp_min_dist[C] = 0;
+        _kp_min_dist  [C] = 0;
 
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)

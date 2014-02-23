@@ -315,6 +315,7 @@ namespace BitBoard {
 
     void initialize ()
     {
+
         for (File f = F_A; f <= F_H; ++f)
         {
             for (Rank r = R_1; r <= R_8; ++r)

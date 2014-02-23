@@ -636,7 +636,6 @@
   <ItemGroup>
     <None Include="AssemblyDependencies.dgml" />
     <None Include="ClassDiagram.cd" />
-    <None Include="CodeMap.dgml" />
     <None Include="IncludeFileDependencies.dgml" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />

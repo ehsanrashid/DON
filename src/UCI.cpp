@@ -299,6 +299,13 @@ namespace UCI {
                 {
                     cout << move_to_san (*itr, RootPos) << " ";
                 }
+
+                cout << "\nCapture moves: ";
+                for (MoveList<CAPTURE> itr (RootPos); *itr; ++itr)
+                {
+                    cout << move_to_san (*itr, RootPos) << " ";
+                }
+
             }
 
             cout << "\nLegal moves: ";

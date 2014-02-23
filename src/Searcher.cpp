@@ -1072,6 +1072,7 @@ moves_loop: // When in check and at SPNode search starts from here
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
+            
             // TODO:: remove
             //if (!pos.pseudo_legal (move)) continue;
 

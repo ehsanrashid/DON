@@ -119,6 +119,35 @@
         <Point X="8.375" Y="13.75" />
       </Path>
     </AssociationLine>
+    <AssociationLine Name="recapture_sq" Type="Square" ManuallyRouted="true">
+      <Path>
+        <Point X="12.75" Y="6.009" />
+        <Point X="17.635" Y="6.009" Type="JumpStart" />
+        <Point X="17.802" Y="6.009" Type="JumpEnd" />
+        <Point X="18.638" Y="6.009" />
+        <Point X="18.638" Y="6.107" />
+        <Point X="21.581" Y="6.107" Type="JumpStart" />
+        <Point X="21.747" Y="6.107" Type="JumpEnd" />
+        <Point X="21.807" Y="6.107" Type="JumpStart" />
+        <Point X="21.974" Y="6.107" Type="JumpEnd" />
+        <Point X="22.26" Y="6.107" Type="JumpStart" />
+        <Point X="22.427" Y="6.107" Type="JumpEnd" />
+        <Point X="22.714" Y="6.107" Type="JumpStart" />
+        <Point X="22.88" Y="6.107" Type="JumpEnd" />
+        <Point X="22.94" Y="6.107" Type="JumpStart" />
+        <Point X="23.107" Y="6.107" Type="JumpEnd" />
+        <Point X="25.76" Y="6.107" Type="JumpStart" />
+        <Point X="25.927" Y="6.107" Type="JumpEnd" />
+        <Point X="26.167" Y="6.107" Type="JumpStart" />
+        <Point X="26.333" Y="6.107" Type="JumpEnd" />
+        <Point X="26.542" Y="6.107" Type="JumpStart" />
+        <Point X="26.708" Y="6.107" Type="JumpEnd" />
+        <Point X="26.917" Y="6.107" Type="JumpStart" />
+        <Point X="27.083" Y="6.107" Type="JumpEnd" />
+        <Point X="30.594" Y="6.107" />
+        <Point X="30.594" Y="9.75" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AwABAAgGAgABgAAAgAAAAIQABgAACCAQAAAgIAAAEgA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
@@ -175,7 +204,7 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="9.75" Y="15.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>

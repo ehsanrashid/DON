@@ -639,8 +639,8 @@ bool Position::pseudo_legal (Move m) const
 {
     if (!_ok (m)) return false;
 
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
+    Square org  = org_sq (m);
+    Square dst  = dst_sq (m);
 
     Color activ = _active;
     Color pasiv = ~activ;
@@ -834,13 +834,14 @@ bool Position::legal     (Move m, Bitboard pinned) const
     //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
 
+    Square org  = org_sq (m);
+    Square dst  = dst_sq (m);
+
     Color activ = _active;
     Color pasiv = ~activ;
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
 
-    Piece p  = piece_on (org);
-    Color pc = _color (p);
+    Piece  p  = piece_on (org);
+    Color  pc = _color (p);
     PieceT pt = _ptype  (p);
     ASSERT ((activ == pc) && (NONE != pt));
 
@@ -890,7 +891,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
         || sqrs_aligned (org, dst, ksq);
 }
 
-// check(m) tests whether a pseudo-legal move gives a check
+// gives_check(m) tests whether a pseudo-legal move gives a check
 bool Position::gives_check     (Move m, const CheckInfo &ci) const
 {
     ASSERT (_color (_piece_arr[org_sq (m)]) == _active);
@@ -899,7 +900,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
-    Piece p  = piece_on (org);
+    Piece  p  = piece_on (org);
     PieceT pt = _ptype  (p);
 
     // Direct check ?
@@ -911,7 +912,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
         if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
 
-    MoveT mt = mtype (m);
+    MoveT mt  = mtype (m);
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
@@ -920,7 +921,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     if      (CASTLE    == mt)
     {
         // Castling with check ?
-        bool king_side = (dst > org);
+        bool  king_side = (dst > org);
         Square org_rook = dst; // 'King captures the rook' notation
         dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
         Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
@@ -950,8 +951,8 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     return false;
 }
 
-// checkmate(m) tests whether a pseudo-legal move gives a checkmate
-bool Position::checkmate (Move m, const CheckInfo &ci) const
+// gives_checkmate(m) tests whether a pseudo-legal move gives a checkmate
+bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 {
     if (!gives_check (m, ci)) return false;
 
@@ -1146,16 +1147,16 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
     std::memcpy (&si_n, _si, STATE_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
-    si_n.p_si    = _si;
-    _si          = &si_n;
+    si_n.p_si   = _si;
+    _si         = &si_n;
 
     Color activ = _active;
     Color pasiv = ~activ;
 
-    Square org   = org_sq (m);
-    Square dst   = dst_sq (m);
-    Piece p      = piece_on (org);
-    PieceT pt    = _ptype (p);
+    Square org  = org_sq (m);
+    Square dst  = dst_sq (m);
+    Piece  p    = piece_on (org);
+    PieceT pt   = _ptype (p);
 
     ASSERT ((EMPTY != p)
         &&  (activ == _color (p))
@@ -1237,7 +1238,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 #ifndef NDEBUG
         if (_thread)
 #endif
-            prefetch ((char*) _thread->material_table[_si->matl_key]);
+            prefetch ((char *) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
         posi_k ^= ZobGlob._.psq_k[pasiv][ct][cap];
         // Update incremental scores
@@ -1390,7 +1391,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 #ifndef NDEBUG
         if (_thread)
 #endif
-            prefetch ((char*) _thread->pawns_table[_si->pawn_key]);
+            prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Update the key with the final value
@@ -1421,13 +1422,13 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
+    Square org  = org_sq (m);
+    Square dst  = dst_sq (m);
 
     Color pasiv = _active;
     Color activ = _active = ~_active; // Switch
 
-    Piece p  = piece_on (dst);
+    Piece  p  = piece_on (dst);
     PieceT pt = _ptype (p);
 
     MoveT mt = mtype (m);
@@ -1572,7 +1573,7 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     ASSERT (fen);
     ASSERT (ok ());
 
-    char *ch = (char*) fen;
+    char *ch = (char *) fen;
     memset (ch, '\0', MAX_FEN);
 
 #undef set_next

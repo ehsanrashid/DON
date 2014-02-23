@@ -175,3 +175,7 @@ $RECYCLE.BIN/
 src/sta06728
 src/sta07844
 src/sta08780
+*.jbn
+*.ues
+*.oek
+src/sta06116

@@ -221,7 +221,6 @@ enum Value : int32_t
     
     VALUE_NONE      = 32767, // std::numeric_limits<int>::max()
     VALUE_INFINITE  = VALUE_NONE - 1,
-    //_VALUE_INFINITE = -VALUE_INFINITE,
 
     VALUE_MATE      = 32000,
     VALUE_KNOWN_WIN = VALUE_MATE / 4,
@@ -433,7 +432,7 @@ inline Score operator/ (Score s, int32_t i) { return mk_score (mg_value (s) / i,
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
-inline Depth  operator/ (Depth  d, int32_t i) { return Depth (int32_t (d) / i); }
+inline Depth  operator/ (Depth  d, int32_t i) { return Depth (uint8_t (d) / i); }
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
@@ -454,10 +453,10 @@ inline Color operator~(Color c) { return Color (c ^ BLACK); }
 //    return os;
 //}
 
-inline bool      _ok (File f) { return !(f & ~int32_t (F_H)); }
-inline File operator~(File f) { return File (f ^ F_H); }
+inline bool      _ok (File f) { return !(f & ~int8_t (F_H)); }
+inline File operator~(File f) { return File (f ^ int8_t (F_H)); }
 inline File to_file  (char f) { return File (f - 'a'); }
-inline char to_char  (File f, bool lower = true) { return char (f - F_A) + (lower ? 'a' : 'A'); }
+inline char to_char  (File f, bool lower = true) { return char (int8_t (f) - int8_t (F_A)) + (lower ? 'a' : 'A'); }
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, File f)
@@ -467,10 +466,10 @@ inline char to_char  (File f, bool lower = true) { return char (f - F_A) + (lowe
 //}
 
 
-inline bool      _ok (Rank r) { return !(r & ~int32_t (R_8)); }
-inline Rank operator~(Rank r) { return Rank (r ^ R_8); }
+inline bool      _ok (Rank r) { return !(r & ~int8_t (R_8)); }
+inline Rank operator~(Rank r) { return Rank (r ^ int8_t (R_8)); }
 inline Rank to_rank  (char r) { return Rank (r - '1'); }
-inline char to_char  (Rank r) { return char (r - R_1) + '1'; }
+inline char to_char  (Rank r) { return char (int8_t (r) - int8_t (R_1)) + '1'; }
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
@@ -483,16 +482,16 @@ inline char to_char  (Rank r) { return char (r - R_1) + '1'; }
 inline Square operator| (File f, Rank r) { return Square (( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square ((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
-inline bool _ok     (Square s) { return !(s & ~int32_t (SQ_H8)); }
-inline File _file   (Square s) { return File (s & SQ_H1); }
+inline bool _ok     (Square s) { return !(s & ~int8_t (SQ_H8)); }
+inline File _file   (Square s) { return File (s & int8_t (SQ_H1)); }
 inline Rank _rank   (Square s) { return Rank (s >> 3); }
-inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & SQ_H1) + SQ_H1); } // R - F + 7
-inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & SQ_H1)); }         // R + F
+inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & int8_t (SQ_H1)) + int8_t (SQ_H1)); } // R - F + 7
+inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & int8_t (SQ_H1))); }         // R + F
 inline Color _color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
 // FLIP   => SQ_A1 -> SQ_A8
-inline Square operator~(Square s) { return Square (s ^ SQ_A8); }
+inline Square operator~(Square s) { return Square (s ^ int8_t (SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
-inline Square operator!(Square s) { return Square (s ^ SQ_H1); }
+inline Square operator!(Square s) { return Square (s ^ int8_t (SQ_H1)); }
 
 inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * SQ_H1)); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
@@ -500,7 +499,7 @@ inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
-    int8_t s = s1 ^ s2;
+    int8_t s = int8_t (s1) ^ int8_t (s2);
     return ((s >> 3) ^ s) & BLACK;
 }
 
@@ -705,4 +704,4 @@ public:
 
 };
 
-#endif
+#endif // TYPE_H_

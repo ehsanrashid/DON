@@ -272,7 +272,7 @@ public:
     CRight castle_right (Color c, File   f) const;
     CRight castle_right (Color c, Square s) const;
 
-    Square castle_rook (Color c, CSide cs) const;
+    Square castle_rook  (Color c, CSide cs) const;
     bool castle_impeded (Color c, CSide cs = CS_NO) const;
 
 
@@ -324,12 +324,12 @@ public:
     bool legal        (Move m)                   const;
     bool capture      (Move m)                   const;
     bool capture_or_promotion (Move m)           const;
-    bool gives_check  (Move m, const CheckInfo &ci) const;
-    bool checkmate    (Move m, const CheckInfo &ci) const;
+    bool gives_check     (Move m, const CheckInfo &ci) const;
+    bool gives_checkmate (Move m, const CheckInfo &ci) const;
 
     bool advanced_pawn_push (Move m)             const;
 
-    bool passed_pawn (Color c, Square s) const;
+    bool passed_pawn  (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
     bool bishops_pair (Color c) const;
     bool opposite_bishops ()    const;
@@ -639,8 +639,8 @@ inline bool Position::capture               (Move m) const
     return (NORMAL == mt || PROMOTE == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt)
-        ? _ok (_si->en_passant)
-        : false;
+        ?  _ok (_si->en_passant)
+        :  false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
@@ -649,8 +649,8 @@ inline bool Position::capture_or_promotion  (Move m) const
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt)
-        ? _ok (_si->en_passant)
-        : (CASTLE != mt);
+        ?  _ok (_si->en_passant)
+        :  (CASTLE != mt);
 }
 
 inline bool Position::advanced_pawn_push    (Move m) const
@@ -668,7 +668,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
     // Update piece list, put piece at [s] index
-    _piece_index[s] = _piece_count[c][pt]++;
+    _piece_index[s]  = _piece_count[c][pt]++;
     _piece_list[c][pt][_piece_index[s]] = s;
 }
 inline void  Position:: place_piece (Square s, Piece p)
@@ -684,9 +684,8 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece p   = _piece_arr [s];
-
-    Color c   = _color (p);
+    Piece  p  = _piece_arr [s];
+    Color  c  = _color (p);
     PieceT pt = _ptype (p);
 
     _piece_arr [s]   = EMPTY;
@@ -711,13 +710,12 @@ inline void  Position::  move_piece (Square s1, Square s2)
     ASSERT (!empty (s1));
     ASSERT ( empty (s2));
 
-    Piece p = _piece_arr[s1];
-
-    Color c = _color (p);
+    Piece  p  = _piece_arr[s1];
+    Color  c  = _color (p);
     PieceT pt = _ptype (p);
 
-    _piece_arr[s1] = EMPTY;
-    _piece_arr[s2] = p;
+    _piece_arr[s1]  = EMPTY;
+    _piece_arr[s2]  = p;
 
     Bitboard bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
     _color_bb[c]    ^= bb;

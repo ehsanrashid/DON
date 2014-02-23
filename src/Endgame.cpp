@@ -283,7 +283,7 @@ namespace EndGame {
         }
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else if (_rank (bk_sq) <= R_3 
-                 &&   SquareDist[bk_sq][bp_sq] == 1
+            &&   SquareDist[bk_sq][bp_sq] == 1
             &&   _rank (wk_sq) >= R_4
             &&   SquareDist[wk_sq][bp_sq] > 2 + (_stong_side == pos.active ()))
         {
