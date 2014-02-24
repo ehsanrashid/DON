@@ -646,7 +646,7 @@ namespace EndGame {
 
         Square bk_sq = pos.king_sq (_weak_side);
         Bitboard wpawns = pos.pieces<PAWN> (_stong_side);
-        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
+        Square wp_sq = scan_frntmost_sq (_stong_side, wpawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
@@ -908,7 +908,7 @@ namespace EndGame {
         // be detected even when the weaker side has some materials or pawns.
 
         Bitboard wpawns = pos.pieces<PAWN> (_stong_side);
-        Square wp_sq = scan_rel_frntmost_sq (_stong_side, wpawns);
+        Square wp_sq = scan_frntmost_sq (_stong_side, wpawns);
         File wp_f = _file (wp_sq);
 
         // All pawns are on a single rook file ?
@@ -932,7 +932,7 @@ namespace EndGame {
                 Bitboard bpawns = pos.pieces<PAWN> (_weak_side);
                 if (bpawns && !(bpawns & ~File_bb[wp_f]))
                 {
-                    Square bp_sq = scan_rel_frntmost_sq (_weak_side, bpawns);
+                    Square bp_sq = scan_frntmost_sq (_weak_side, bpawns);
                     if (   rel_rank (_weak_side, bp_sq) == R_5
                         && rel_rank (_weak_side, wp_sq) == R_6
                         && opposite_colors (bp_sq, wb_sq))
@@ -958,7 +958,7 @@ namespace EndGame {
             && (pos.count<PAWN> (_weak_side) >= 1))
         {
             // Get _weak_side pawn that is closest to home rank
-            Square bp_sq = scan_rel_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
+            Square bp_sq = scan_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
 
             Square wk_sq = pos.king_sq (_stong_side);
             Square bk_sq = pos.king_sq (_weak_side);

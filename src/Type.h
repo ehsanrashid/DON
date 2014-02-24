@@ -194,6 +194,7 @@ typedef enum MoveT : uint16_t
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
     PROMOTE   = 3 << 14  //0xC000, // 11xx
+
 } MoveT;
 
 // Move stored in 16-bits
@@ -258,10 +259,10 @@ typedef enum Depth : int16_t
 
 typedef enum Bound : uint8_t
 {
-    // NONE BOUND           - NO
+    // NONE BOUND           - NO_NODE
     BND_NONE    = 0,
 
-    // UPPER (BETA) BOUND   - ALL
+    // UPPER (BETA) BOUND   - ALL_NODE
     // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
     // All moves were searched, but none improved ALPHA.
     // A fail-low indicates that this position was not good enough.
@@ -271,14 +272,14 @@ typedef enum Bound : uint8_t
     // It was atmost ALPHA (or lower).
     BND_UPPER   = 1,
 
-    // LOWER (ALPHA) BOUND  - CUT
+    // LOWER (ALPHA) BOUND  - CUT_NODE
     // ALPHA evaluation, when exceed BETA the move is too good.
     // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
     // Since some of the search is cut off, What the actual evaluation of the position was?
     // It was atleast BETA or higher.
     BND_LOWER   = 2,
 
-    // EXACT (-) BOUND      - PV
+    // EXACT (-) BOUND      - PV_NODE
     // EXACT evaluation, when receive a definite evaluation,
     // that is we searched all possible moves and received a new best move
     // (or received an evaluation from quiescent search that was between ALPHA and BETA).
@@ -288,10 +289,6 @@ typedef enum Bound : uint8_t
     // which was confirmed by the search in finding and collecting a principal variation.
     BND_EXACT   = BND_LOWER | BND_UPPER
 
-    //BND_NODE_ALL  = 4,
-    //BND_UPPER_ALL = BND_LOWER | BND_NODE_ALL,
-    //BND_LOWER_ALL = BND_UPPER | BND_NODE_ALL,
-
 } Bound;
 
 typedef enum Phase : int16_t
@@ -299,8 +296,8 @@ typedef enum Phase : int16_t
     PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
 
-    MG = 0,
-    EG = 1,
+    MG       = 0,
+    EG       = 1,
     PHASE_NO = 2
 
 } Phase;

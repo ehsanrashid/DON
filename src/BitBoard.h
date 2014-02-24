@@ -54,7 +54,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard BetweenSq[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard  LineSq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard    LineSq[SQ_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
 
@@ -74,8 +74,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern uint8_t        BShift[SQ_NO];
-    CACHE_ALIGN(64) extern uint8_t        RShift[SQ_NO];
+    CACHE_ALIGN(64) extern uint8_t       BShift[SQ_NO];
+    CACHE_ALIGN(64) extern uint8_t       RShift[SQ_NO];
 
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
@@ -124,7 +124,6 @@ namespace BitBoard {
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
     //inline Bitboard adj_files_bb (Square s) { return AdjFile_bb[_file (s)]; }
-
     //inline Bitboard adj_ranks_bb (Square s) { return AdjRank_bb[_rank (s)]; }
 
     inline Bitboard rel_rank_bb (Color c, Rank   r) { return Rank_bb[rel_rank (c, r)]; }
@@ -295,12 +294,13 @@ namespace BitBoard {
 
         PieceT pt = _ptype (p);
         return 
-           (BSHP == pt) ? BitBoard::attacks_bb<BSHP> (s, occ)
-        :  (ROOK == pt) ? BitBoard::attacks_bb<ROOK> (s, occ)
-        :  (QUEN == pt) ? BitBoard::attacks_bb<BSHP> (s, occ)
-        |                 BitBoard::attacks_bb<ROOK> (s, occ)
-        :  (PAWN == pt) ? BitBoard::PawnAttacks[_color (p)][s]
-        :  (NIHT == pt || KING == pt) ? BitBoard::PieceAttacks[pt][s]
+           (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
+        :  (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
+        :  (QUEN == pt) ? attacks_bb<BSHP> (s, occ)
+        |                 attacks_bb<ROOK> (s, occ)
+        :  (PAWN == pt) ? PawnAttacks[_color (p)][s]
+        :  (NIHT == pt
+        ||  KING == pt) ? PieceAttacks[pt][s]
         :  U64 (0);
     }
 

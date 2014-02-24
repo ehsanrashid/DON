@@ -119,8 +119,8 @@ private:
     ValMove  m_list[MAX_MOVES];
     ValMove *cur
         ,   *end
-        ,   *end_quiets
-        ,   *end_bad_captures;
+        ,   *quiets_end
+        ,   *bad_captures_end;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 

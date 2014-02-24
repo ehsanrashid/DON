@@ -996,7 +996,7 @@ namespace {
         Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
         
         return (!unstoppable_pawns || pos.non_pawn_material (~c)) ? SCORE_ZERO
-            : UnstoppablePawnBonus * int32_t (rel_rank (c, scan_rel_frntmost_sq (c, unstoppable_pawns)));
+            : UnstoppablePawnBonus * int32_t (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
     }
 
     template<Color C>

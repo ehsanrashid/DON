@@ -465,15 +465,12 @@ namespace MoveGenerator {
         Bitboard occ    = pos.pieces ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
-
+        // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PieceT pt   = _ptype (pos[org]);
-
-            //if (PAWN == pt) continue; // Will be generated together with direct checks
-
+            PieceT pt  = _ptype (pos[org]);
             Bitboard moves = attacks_bb (Piece (pt), org, occ) & empties;
 
             if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];
@@ -495,15 +492,12 @@ namespace MoveGenerator {
         Bitboard occ    = pos.pieces ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
-
+        // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers)
         {
             Square org = pop_lsq (discovers);
-            PieceT pt   = _ptype (pos[org]);
-
-            //if (PAWN == pt) continue; // Will be generated together with direct checks
-
+            PieceT pt  = _ptype (pos[org]);
             Bitboard moves = attacks_bb (Piece (pt), org, occ) & targets;
 
             if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];

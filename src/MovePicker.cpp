@@ -53,7 +53,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 {
     ASSERT (d > DEPTH_ZERO);
 
-    end_bad_captures = m_list + MAX_MOVES - 1;
+    bad_captures_end = m_list + MAX_MOVES - 1;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
@@ -146,15 +146,14 @@ void MovePicker::value<CAPTURE> ()
         Move m = itr->move;
         itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])] - _ptype (pos[org_sq (m)]);
 
-        switch (mtype (m))
+        MoveT mt = mtype (m);
+        if      (PROMOTE == mt)
         {
-        case PROMOTE:
-            itr->value += PieceValue[MG][prom_type (m)]
-            - PieceValue[MG][PAWN];
-            break;
-        case ENPASSANT:
+            itr->value += PieceValue[MG][prom_type (m)] - PieceValue[MG][PAWN];
+        }
+        else if (ENPASSANT == mt)
+        {
             itr->value += PieceValue[MG][PAWN];
-            break;
         }
     }
 }
@@ -281,7 +280,7 @@ void MovePicker::generate_next_stage ()
         return;
 
     case QUIETS_1_S1:
-        end = end_quiets = generate<QUIET> (m_list, pos);
+        end = quiets_end = generate<QUIET> (m_list, pos);
         if (end > cur)
         {
             value<QUIET> ();
@@ -292,7 +291,7 @@ void MovePicker::generate_next_stage ()
 
     case QUIETS_2_S1:
         cur = end;
-        end = end_quiets;
+        end = quiets_end;
         if (depth >= 3 * ONE_MOVE)
         {
             insertion_sort (cur, end);
@@ -303,7 +302,7 @@ void MovePicker::generate_next_stage ()
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = m_list + MAX_MOVES - 1;
-        end = end_bad_captures;
+        end = bad_captures_end;
 
         return;
 
@@ -312,7 +311,7 @@ void MovePicker::generate_next_stage ()
         if (end > cur + 1)
         {
             value<EVASION> ();
-            insertion_sort (cur, end);
+            //insertion_sort (cur, end);
         }
 
         return;
@@ -373,7 +372,7 @@ Move MovePicker::next_move<false> ()
                 {
                     if (pos.see_sign (move) >= VALUE_ZERO) return move;
                     // Losing capture, move it to the tail of the array
-                    (end_bad_captures--)->move = move;
+                    (bad_captures_end--)->move = move;
                 }
             }
             while (cur < end);

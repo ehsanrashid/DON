@@ -257,8 +257,8 @@
     <Node Id="@301" Category="CodeSchema_Method" Bounds="-1201.6924236533,-904.53440649348,277.866666666667,22.88" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@302" Category="CodeSchema_Method" Bounds="19343.8028667158,22047.9822445816,277.866666666669,22.8800000000047" DelayedCrossGroupLinksState="Fetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@303" Category="CodeSchema_Method" Bounds="19260.8239881255,22210.8622445816,277.866666666669,22.8800000000047" DelayedCrossGroupLinksState="Fetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@304" Category="CodeSchema_Method" Bounds="1367.5813379041,-750.576997588882,156.933333333333,22.88" DelayedCrossGroupLinksState="NotFetched" Label="scan_rel_backmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@305" Category="CodeSchema_Method" Bounds="1029.9944238416,-750.577313458022,156.933333333333,22.88" DelayedCrossGroupLinksState="NotFetched" Label="scan_rel_frntmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@304" Category="CodeSchema_Method" Bounds="1367.5813379041,-750.576997588882,156.933333333333,22.88" DelayedCrossGroupLinksState="NotFetched" Label="scan_backmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@305" Category="CodeSchema_Method" Bounds="1029.9944238416,-750.577313458022,156.933333333333,22.88" DelayedCrossGroupLinksState="NotFetched" Label="scan_frntmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@307" Category="CodeSchema_Method" Bounds="-3275.7883220908,-845.345125030288,96.4666666666667,22.88" DelayedCrossGroupLinksState="NotFetched" Label="operator!=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@308" Category="CodeSchema_Method" Bounds="-3022.85471043716,-845.345125030288,90.4200000000001,22.88" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@309" Category="CodeSchema_Method" Bounds="-3149.3215252158,-845.345125030288,96.4666666666667,22.88" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -2603,8 +2603,8 @@
     <Alias n="301" Id="(@1 @11 Member=(@262 OverloadingParameters=[@263,(Type=&quot;TranspositionTable const &amp;&quot;)]))" />
     <Alias n="302" Id="(@1 @42 Member=(@262 OverloadingParameters=[@263,(Type=&quot;UCI::OptionType::Option const &amp;&quot;)]))" />
     <Alias n="303" Id="(@1 @42 Member=(@262 OverloadingParameters=[@263,(Type=&quot;UCI::OptionType::Option const *&quot;)]))" />
-    <Alias n="304" Id="(@1 @11 Member=(Name=scan_rel_backmost_sq OverloadingParameters=[@51,(Type=&quot;unsigned __int64&quot;)]))" />
-    <Alias n="305" Id="(@1 @11 Member=(Name=scan_rel_frntmost_sq OverloadingParameters=[@51,(Type=&quot;unsigned __int64&quot;)]))" />
+    <Alias n="304" Id="(@1 @11 Member=(Name=scan_backmost_sq OverloadingParameters=[@51,(Type=&quot;unsigned __int64&quot;)]))" />
+    <Alias n="305" Id="(@1 @11 Member=(Name=scan_frntmost_sq OverloadingParameters=[@51,(Type=&quot;unsigned __int64&quot;)]))" />
     <Alias n="306" Id="OverloadingParameters=[(Type=&quot;ValMove const &amp;&quot;),(Type=&quot;ValMove const &amp;&quot;)]" />
     <Alias n="307" Id="(@1 @11 Member=(@248 @306))" />
     <Alias n="308" Id="(@1 @11 Member=(Name=operator&lt; @306))" />

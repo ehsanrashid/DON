@@ -192,7 +192,6 @@ public:
 
     Position& operator= (const Position &pos);
 
-
     Piece    operator[] (Square s)      const;
     Bitboard operator[] (Color  c)      const;
     Bitboard operator[] (PieceT pt)     const;

@@ -127,7 +127,7 @@ namespace {
                 // We now check whether the pawn is backward by looking in the forward direction on the
                 // adjacent files, and picking the closest pawn there.
                 b = PawnAttackSpan[C][s] & (pawns[0] | pawns[1]);
-                b = PawnAttackSpan[C][s] & rank_bb (scan_rel_backmost_sq (C, b));
+                b = PawnAttackSpan[C][s] & rank_bb (scan_backmost_sq (C, b));
 
                 // If we have an enemy pawn in the same or next rank, the pawn is
                 // backward because it cannot advance without being captured.
@@ -191,7 +191,7 @@ namespace Pawns {
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int16_t bonus = r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
+                int16_t bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
                 Connected[f][r] = mk_score (bonus, bonus);
             }
         }
@@ -234,7 +234,7 @@ namespace Pawns {
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
-            Rank b_rk = mid_pawns ? rel_rank (C, scan_rel_frntmost_sq (C_, mid_pawns)) : R_1;
+            Rank b_rk = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
 
             if (   (MID_EDGE_bb & (f | b_rk))
                 && _file (k_sq) == f
@@ -247,7 +247,7 @@ namespace Pawns {
                 mid_pawns = pawns[0] & File_bb[f];
                 
                 Rank w_rk = mid_pawns
-                    ? rel_rank (C, scan_rel_backmost_sq (C , mid_pawns))
+                    ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
                 int8_t danger = (w_rk != R_1)

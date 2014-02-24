@@ -164,8 +164,8 @@
       <Field Name="capture_threshold" />
       <Field Name="cur" />
       <Field Name="end" />
-      <Field Name="end_quiets" />
-      <Field Name="end_bad_captures" />
+      <Field Name="quiets_end" />
+      <Field Name="bad_captures_end" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="killers" />

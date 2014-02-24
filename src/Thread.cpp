@@ -59,7 +59,7 @@ void ThreadBase::wait_for (volatile const bool &b)
 
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
-Thread::Thread () : split_points ()  // Value-initialization bug in MSVC
+Thread::Thread () //: split_points ()  // Value-initialization bug in MSVC
 {
     searching = false;
     max_ply = split_point_threads = 0;
@@ -328,9 +328,9 @@ void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, Sta
 
     SearchTime = Time::now (); // As early as possible
 
+    Signals.stop                = false;
     Signals.stop_on_ponderhit   = false;
     Signals.first_root_move     = false;
-    Signals.stop                = false;
     Signals.failed_low_at_root  = false;
 
     RootMoves.clear ();

@@ -112,7 +112,10 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
         if (_maximum_search_time > max_time) _maximum_search_time = max_time;
     }
 
-    if (bool (*(Options["Ponder"]))) _optimum_search_time += _optimum_search_time / 4;
+    if (bool (*(Options["Ponder"])))
+    {
+        _optimum_search_time += _optimum_search_time / 4;
+    }
 
     // Make sure that _optimum_search_time is not over absolute _maximum_search_time
     if (_optimum_search_time > _maximum_search_time)

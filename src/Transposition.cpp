@@ -125,11 +125,11 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
     {
         if (!te->key () || te->key () == key32) // Empty or Old then overwrite
         {
-            // Do not overwrite when new type is EVAL_LOWER
-            //if (te->key () && BND_LOWER == bound) return;
-
             // Preserve any existing TT move
-            if (MOVE_NONE == move) move = te->move ();
+            if (MOVE_NONE == move)
+            {
+                move = te->move ();
+            }
 
             re = te;
             break;
@@ -144,9 +144,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
         int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
-        //int8_t c4 = 0;//((te->nodes () < re->nodes ()) ? +1 : 0);
+        int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
 
-        if ((c1 + c2 + c3) > 0)
+        if ((c1 + c2 + c3 + c4) > 0)
         {
             re = te;
         }

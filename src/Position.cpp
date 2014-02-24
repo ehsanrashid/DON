@@ -190,7 +190,7 @@ void Position::initialize ()
 // so that why detach the state info pointer from the source one.
 Position& Position::operator= (const Position &pos)
 {
-    std::memcpy (this, &pos, sizeof (Position));
+    memcpy (this, &pos, sizeof (Position));
 
     _sb         = *_si;
     _si         = &_sb;
@@ -616,7 +616,6 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
         &  pieces (~king_c);
 
     Bitboard chk_blockers  = U64 (0);
-
     while (pinners)
     {
         Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & pieces ();
@@ -828,8 +827,6 @@ bool Position::pseudo_legal (Move m) const
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::legal     (Move m, Bitboard pinned) const
 {
-    //ASSERT (_ok (m));
-    //ASSERT (pseudo_legal (m));
     ASSERT (pinned == pinneds (_active));
 
     Square org  = org_sq (m);
@@ -1139,7 +1136,7 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    std::memcpy (&si_n, _si, STATE_COPY_SIZE);
+    memcpy (&si_n, _si, STATE_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si_n.p_si   = _si;
@@ -1494,7 +1491,7 @@ void Position::do_null_move (StateInfo &si_n)
     ASSERT (!_si->checkers);
 
     // Full copy here
-    std::memcpy (&si_n, _si, sizeof (StateInfo));
+    memcpy (&si_n, _si, sizeof (StateInfo));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     si_n.p_si = _si;

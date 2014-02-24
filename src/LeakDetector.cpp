@@ -12,6 +12,8 @@
 
 namespace LeakDetector {
 
+    using namespace std;
+
     namespace {
 
         // Node of Memory Leak Info
@@ -39,7 +41,7 @@ namespace LeakDetector {
         void append_mem_info (void *mem_ref, size_t size, const char filename[], uint32_t line_no)
         {
             // append the above info to the list
-            LEAK_INFO *new_ptr = (LEAK_INFO *) std::malloc (sizeof (LEAK_INFO));
+            LEAK_INFO *new_ptr = (LEAK_INFO *) malloc (sizeof (LEAK_INFO));
             if (new_ptr)
             {
                 new_ptr->mem_info.address   = mem_ref;
@@ -72,13 +74,13 @@ namespace LeakDetector {
                     if (old_ptr)
                     {
                         old_ptr->next = itr_ptr->next;
-                        std::free (itr_ptr);
+                        free (itr_ptr);
                     }
                     else
                     {
                         LEAK_INFO *tmp_ptr = head_ptr;
                         head_ptr = head_ptr->next;
-                        std::free (tmp_ptr);
+                        free (tmp_ptr);
                     }
 
                     return;
@@ -96,7 +98,7 @@ namespace LeakDetector {
             {
                 LEAK_INFO *tmp_ptr = curr_ptr;
                 curr_ptr = curr_ptr->next;
-                std::free (tmp_ptr);
+                free (tmp_ptr);
             }
         }
 
@@ -105,7 +107,7 @@ namespace LeakDetector {
     // Replacement of malloc
     void* xmalloc (size_t size, const char filename[], uint32_t line_no)
     {
-        void *mem_ref = std::malloc (size);
+        void *mem_ref = malloc (size);
         if (mem_ref)
         {
             append_mem_info (mem_ref, size, filename, line_no);
@@ -115,7 +117,7 @@ namespace LeakDetector {
     // Replacement of calloc
     void* xcalloc (size_t count, size_t size, const char filename[], uint32_t line_no)
     {
-        void *mem_ref = std::calloc (count, size);
+        void *mem_ref = calloc (count, size);
         if (mem_ref)
         {
             append_mem_info (mem_ref, count * size, filename, line_no);
@@ -126,7 +128,7 @@ namespace LeakDetector {
     void  xfree (void *mem_ref)
     {
         remove_mem_info (mem_ref);
-        std::free (mem_ref);
+        free (mem_ref);
     }
 
     // Writes all info of the unallocated memory into a output file

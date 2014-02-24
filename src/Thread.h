@@ -126,11 +126,9 @@ struct SplitPoint
     volatile uint64_t       slaves_mask;
     volatile uint64_t       nodes;
     volatile uint8_t        moves_count;
-
     volatile Value          alpha;
     volatile Value          best_value;
     volatile Move           best_move;
-    
     volatile bool           cut_off;
 };
 
