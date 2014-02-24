@@ -36,10 +36,10 @@ private:
     uint16_t _move;
     int16_t  _depth;
     uint8_t  _bound;
-    uint8_t  _gen;
     uint16_t _nodes;
     int16_t  _value;
     int16_t  _eval;
+    uint8_t  _gen;
 
 public:
 
@@ -47,22 +47,22 @@ public:
     Move        move () const { return Move      (_move); }
     Depth      depth () const { return Depth    (_depth); }
     Bound      bound () const { return Bound    (_bound); }
-    uint8_t      gen () const { return uint8_t    (_gen); }
     uint16_t   nodes () const { return uint16_t (_nodes); }
     Value      value () const { return Value    (_value); }
     Value       eval () const { return Value     (_eval); }
+    uint8_t      gen () const { return uint8_t    (_gen); }
 
 
-    void save (uint32_t k, Move m, Depth d, Bound b, uint8_t g, uint16_t n, Value v, Value e)
+    void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
     {
         _key   = uint32_t (k);
         _move  = uint16_t (m);
         _depth = uint16_t (d);
         _bound =  uint8_t (b);
-        _gen   =  uint8_t (g);
         _nodes = uint16_t (n);
         _value = uint16_t (v);
         _eval  = uint16_t (e);
+        _gen   =  uint8_t (g);
     }
 
     void gen (uint8_t g)
@@ -91,7 +91,7 @@ private:
     uint32_t            _store_count;
     uint8_t             _generation;
 
-    void aligned_memory_alloc (uint64_t size, uint32_t alignment);
+    void aligned_memory_alloc (uint64_t size, uint8_t alignment);
 
     // erase() free the allocated memory
     void erase ()
@@ -111,9 +111,9 @@ private:
 public:
 
     // Total size for Transposition entry in byte
-    static const uint8_t TENTRY_SIZE;
+    static const uint8_t  TENTRY_SIZE;
     // Number of entry in a cluster
-    static const uint8_t CLUSTER_SIZE;
+    static const uint8_t  CLUSTER_SIZE;
 
     // Max power of hash for cluster
     static const uint32_t MAX_HASH_BIT;
@@ -125,11 +125,11 @@ public:
     static const uint32_t MIN_TT_SIZE;
 
     // Maximum size for Transposition table in mega-byte
-    // 524288 MB = 512 GB   -> WIN64
-    // 032768 MB = 032 GB   -> WIN32
+    // 524288 MB = 512 GB   -> 64
+    // 032768 MB = 032 GB   -> 32
     static const uint32_t MAX_TT_SIZE;
 
-    static const uint32_t CACHE_LINE_SIZE;
+    static const uint8_t  CACHE_LINE_SIZE;
 
 
     TranspositionTable ()

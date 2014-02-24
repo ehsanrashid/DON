@@ -739,7 +739,8 @@ namespace {
             tt_move  = excluded_move = MOVE_NONE;
             tt_value = VALUE_NONE;
 
-            ASSERT (split_point->best_value > -VALUE_INFINITE && split_point->moves_count > 0);
+            ASSERT (split_point->best_value > -VALUE_INFINITE);
+            ASSERT (split_point->moves_count > 0);
 
             goto moves_loop;
         }
@@ -896,7 +897,7 @@ namespace {
         // the score by more than futility_margin (depth) if we do a null move.
         if (   !PVNode
             && !(ss)->skip_null_move
-            //&& depth < 9 * ONE_MOVE
+            && depth < 9 * ONE_MOVE
             && eval - futility_margin (depth) >= beta
             && abs (beta) < VALUE_MATES_IN_MAX_PLY
             && abs (eval) < VALUE_KNOWN_WIN
@@ -1086,9 +1087,6 @@ moves_loop: // When in check and at SPNode search starts from here
             // Move List, as a consequence any illegal move is also skipped. In MultiPV
             // mode we also skip PV moves which have been already searched.
             if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
-
-            // TODO:: remove
-            //if (!pos.pseudo_legal (move)) continue;
 
             if (SPNode)
             {
@@ -1630,10 +1628,6 @@ moves_loop: // When in check and at SPNode search starts from here
             }
 
             // Check for legality just before making the move
-
-            // TODO:: remove
-            //if (!pos.pseudo_legal (move)) continue;
-
             if (!pos.legal (move, ci.pinneds)) continue;
 
             (ss)->current_move = move;

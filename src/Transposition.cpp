@@ -7,43 +7,43 @@ using namespace std;
 
 bool ClearHash = false;
 
-const uint8_t TranspositionTable::TENTRY_SIZE        = sizeof (TranspositionEntry);  // 16
-const uint8_t TranspositionTable::CLUSTER_SIZE       = 4;
+const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TranspositionEntry);  // 16
+const uint8_t  TranspositionTable::CLUSTER_SIZE     = 4;
 
 #ifdef _64BIT
-    const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
-    //const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x24; // 36
+const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
+//const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x24; // 36
 #else
-    const uint32_t TranspositionTable::MAX_HASH_BIT  = 0x20; // 32
+const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
 #endif
 
-const uint32_t TranspositionTable::DEF_TT_SIZE       = 128;
-const uint32_t TranspositionTable::MIN_TT_SIZE       = 4;
+const uint32_t TranspositionTable::DEF_TT_SIZE      = 128;
+const uint32_t TranspositionTable::MIN_TT_SIZE      = 4;
 
-const uint32_t TranspositionTable::MAX_TT_SIZE       = (uint32_t (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
+const uint32_t TranspositionTable::MAX_TT_SIZE      = (uint32_t (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
 
-const uint32_t TranspositionTable::CACHE_LINE_SIZE   = 0x40; // 64
+const uint8_t  TranspositionTable::CACHE_LINE_SIZE  = 0x40; // 64
 
 
-void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint32_t alignment)
+void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alignment)
 {
     ASSERT (0 == (alignment & (alignment - 1)));
 
     // We need to use malloc provided by C.
-    // First we need to allocate memory of size bytes + alignment + sizeof(void *).
+    // First we need to allocate memory of mem_size_b + max (alignment, sizeof (void *)).
     // We need 'bytes' because user requested it.
     // We need to add 'alignment' because malloc can give us any address and
     // we need to find multiple of 'alignment', so at maximum multiple
     // of alignment will be 'alignment' bytes away from any location.
     // We need 'sizeof(void *)' for implementing 'aligned_free',
-    // since we are returning modified memory pointer, not given by malloc ,to the user,
+    // since we are returning modified memory pointer, not given by malloc, to the user,
     // we must free the memory allocated by malloc not anything else.
     // So storing address given by malloc just above pointer returning to user.
     // Thats why needed extra space to store that address.
     // Then checking for error returned by malloc, if it returns NULL then 
-    // aligned_malloc will fail and return NULL or exit().
+    // aligned_memory_alloc will fail and return NULL or exit().
 
-    uint32_t offset = max (alignment, uint32_t (sizeof (void *)));
+    uint8_t offset = max (alignment, uint8_t (sizeof (void *)));
 
     void *mem = calloc (mem_size_b + offset, 1);
     if (!mem)
@@ -86,12 +86,8 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb)
     if (_hash_mask != (_entry_count - CLUSTER_SIZE))
     {
         erase ();
-
         aligned_memory_alloc (mem_size_b, CACHE_LINE_SIZE); 
-
-        _hash_mask      = (_entry_count - CLUSTER_SIZE);
-        _store_count    = 0;
-        _generation     = 0;
+        _hash_mask  = (_entry_count - CLUSTER_SIZE);
     }
 
     return (mem_size_b >> 20);
@@ -136,14 +132,15 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
         else
         {
-            // replace would be a no-op in this common case
+            // Replace would be a no-op in this common case
             if (0 == i) continue;
         }
 
-        // implement replacement strategy
+        // Implement replacement strategy
         int8_t c1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t c2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
-        int8_t c3 = ((te->depth () < re->depth ()) ? +1 : 0);
+        int8_t c3 = ((te->depth () < re->depth ()) ? +1
+                   : (te->depth () > re->depth ()) ? -1 : 0);
         int8_t c4 = ((te->nodes () < re->nodes ()) ? +1 : 0);
 
         if ((c1 + c2 + c3 + c4) > 0)
@@ -155,7 +152,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
     if (!re->move () &&  move) ++_store_count;
     if ( re->move () && !move) --_store_count;
 
-    re->save (key32, move, depth, bound, _generation, nodes/1000, value, eval);
+    re->save (key32, move, depth, bound, nodes/1000, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
