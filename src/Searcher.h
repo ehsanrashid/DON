@@ -91,14 +91,14 @@ namespace Searcher {
 
     } SignalsT;
 
-    // PV, CUT, and ALL nodes, respectively. The root of the tree is a PV node. At a PV
-    // node all the children have to be investigated. The best move found at a PV node
-    // leads to a successor PV node, while all the other investigated children are CUT
-    // nodes. At a CUT node the child causing aﬂcut-off is an ALL node. In a perfectly
+    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
+    // all the children have to be investigated. The best move found at a PV node leads
+    // to a successor PV node, while all the other investigated children are CUT nodes
+    // At a CUT node the child causing a beta cut-off is an ALL node. In a perfectly
     // ordered tree only one child of a CUT node has to be explored. At an ALL node all
     // the children have to be explored. The successors of an ALL node are CUT nodes.
-    // NonPV = CUT + ALL
-    // Different node types, used as template parameter
+    // NonPV nodes = CUT nodes + ALL nodes
+    // Node types, used as template parameter
     typedef enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV } NodeT;
 
     // RootMove is used for moves at the root of the tree.
@@ -106,7 +106,7 @@ namespace Searcher {
     //  - Value Array[] { new , old }.
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).
-    // Score is normally set at -VALUE_INFINITE for all non-pv moves.
+    // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     typedef struct RootMove
     {
         Value value[2];
