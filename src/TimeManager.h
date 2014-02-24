@@ -13,7 +13,7 @@ private:
 
     uint32_t _optimum_search_time;
     uint32_t _maximum_search_time;
-    double  _unstable_pv_factor;
+    double   _unstable_pv_factor;
 
 public:
 
@@ -26,7 +26,7 @@ public:
         _unstable_pv_factor = 1 + best_move_changes;
     }
 
-    void initialize (const Searcher::LimitsT &limits, uint16_t current_ply, Color c);
+    void initialize (const Searcher::LimitsT &limits, uint16_t game_ply, Color c);
     
 } TimeManager;
 

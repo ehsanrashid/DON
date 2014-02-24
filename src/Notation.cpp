@@ -78,7 +78,7 @@ AmbT ambiguity (Move m, const Position &pos)
     //return AMB_SQR;
 
     Bitboard others, b;
-    others = b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
+    others = b = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), pt)) - org;
     while (b)
     {
         org = pop_lsq (b);

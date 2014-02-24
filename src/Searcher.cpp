@@ -157,7 +157,7 @@ namespace {
     {
         const bool leaf = (depth == 2*ONE_MOVE);
 
-        uint64_t cnt = 0;
+        uint64_t leaf_count = 0;
 
         StateInfo si;
         CheckInfo ci (pos);
@@ -165,11 +165,11 @@ namespace {
         {
             Move m = *itr;
             pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
-            cnt += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
+            leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
             pos.undo_move ();
         };
 
-        return cnt;
+        return leaf_count;
     }
 
     // Debug > ----------------------------------------------------
@@ -760,7 +760,7 @@ namespace {
             }
 
             // Step 3. Mate distance pruning. Even if we mate at the next move our score
-            // would be at best mate_in((ss)->ply+1), but if alpha is already bigger because
+            // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
             // a shorter mate was found upward in the tree then there is no need to search
             // further, we will never beat current alpha. Same logic but with reversed signs
             // applies also in the opposite condition of being mated instead of giving mate,
@@ -1720,16 +1720,16 @@ moves_loop: // When in check and at SPNode search starts from here
         move = MOVE_NONE;
 
         // RootMoves are already sorted by score in descending order
-        int32_t variance = min (RootMoves[0].curr_value - RootMoves[MultiPV - 1].curr_value, VALUE_MG_PAWN);
-        int32_t weakness = 120 - 2 * level;
-        int32_t max_v    = -VALUE_INFINITE;
+        Value variance = min (RootMoves[0].curr_value - RootMoves[MultiPV - 1].curr_value, VALUE_MG_PAWN);
+        Value weakness = Value (120 - 2 * level);
+        Value max_v    = -VALUE_INFINITE;
 
         // Choose best move. For each move score we add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
         // then we choose the move with the resulting highest score.
         for (uint8_t i = 0; i < MultiPV; ++i)
         {
-            int32_t v = RootMoves[i].curr_value;
+            Value v = RootMoves[i].curr_value;
 
             // Don't allow crazy blunders even at very low skills
             if (i > 0 && RootMoves[i-1].curr_value > (v + 2 * VALUE_MG_PAWN))
@@ -1739,7 +1739,7 @@ moves_loop: // When in check and at SPNode search starts from here
 
             // This is our magic formula
             v += (weakness * int32_t (RootMoves[0].curr_value - v)
-                + variance * (rk.rand<uint32_t> () % weakness)) / 128;
+                + variance * int32_t (rk.rand<uint32_t> () % weakness)) / 128;
 
             if (v > max_v)
             {
@@ -1878,7 +1878,6 @@ void Thread::idle_loop ()
     // Pointer 'split_point' is not null only if we are called from split(), and not
     // at the thread creation. So it means we are the split point's master.
     SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
-
     ASSERT (!split_point || (split_point->master_thread == this && searching));
     
     do
@@ -1889,7 +1888,7 @@ void Thread::idle_loop ()
         {
             if (exit)
             {
-                ASSERT (!split_point);
+                ASSERT (split_point == NULL);
                 return;
             }
 

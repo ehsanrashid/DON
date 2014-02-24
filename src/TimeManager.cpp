@@ -32,14 +32,14 @@ namespace {
 
     // remaining_time() calculate the time remaining
     template<TimeT TT>
-    inline uint32_t remaining_time (uint32_t time, uint8_t moves_to_go, uint16_t current_ply, uint16_t slow_mover)
+    inline uint32_t remaining_time (uint32_t time, uint8_t moves_to_go, uint16_t game_ply, uint16_t slow_mover)
     {
-        double  curr_moves_importance = (move_importance (current_ply) * slow_mover) / 100;
+        double  curr_moves_importance = (move_importance (game_ply) * slow_mover) / 100;
         double other_moves_importance = 0.0;
 
         for (uint8_t i = 1; i < moves_to_go; ++i)
         {
-            other_moves_importance += move_importance (current_ply + 2 * i);
+            other_moves_importance += move_importance (game_ply + 2 * i);
         }
 
         double time_ratio1;
@@ -61,7 +61,7 @@ namespace {
 
 }
 
-void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color c)
+void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
 {
     /*
     We support four different kind of time controls:
@@ -105,8 +105,8 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t current_ply, Color
 
         if (hyp_time < 0) hyp_time = 0;
 
-        uint32_t opt_time = min_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
-        uint32_t max_time = min_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, current_ply, slow_mover);
+        uint32_t opt_time = min_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
+        uint32_t max_time = min_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
 
         if (_optimum_search_time > opt_time) _optimum_search_time = opt_time;
         if (_maximum_search_time > max_time) _maximum_search_time = max_time;

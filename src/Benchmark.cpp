@@ -132,9 +132,9 @@ void benchmark (istream &is, const Position &pos)
 
         if ("perft" == limit_type)
         {
-            uint64_t cnt = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
-            cerr << "\nPerft " << limits.depth  << " leaf nodes: " << cnt << "\n";
-            nodes += cnt;
+            uint64_t leaf_count = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
+            cerr << "\nPerft " << limits.depth  << " leaf nodes: " << leaf_count << "\n";
+            nodes += leaf_count;
         }
         else
         {

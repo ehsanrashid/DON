@@ -462,6 +462,7 @@ namespace MoveGenerator {
         ASSERT (!pos.checkers ());
 
         Color active    =  pos.active ();
+        Bitboard occ    = pos.pieces ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
 
@@ -473,7 +474,7 @@ namespace MoveGenerator {
 
             //if (PAWN == pt) continue; // Will be generated together with direct checks
 
-            Bitboard moves = pos.attacks_from (Piece (pt), org) & empties;
+            Bitboard moves = attacks_bb (Piece (pt), org, occ) & empties;
 
             if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];
 
@@ -491,6 +492,7 @@ namespace MoveGenerator {
     ValMove* generate<CHECK>       (ValMove *m_list, const Position &pos)
     {
         Color active    = pos.active ();
+        Bitboard occ    = pos.pieces ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
 
@@ -502,7 +504,7 @@ namespace MoveGenerator {
 
             //if (PAWN == pt) continue; // Will be generated together with direct checks
 
-            Bitboard moves = pos.attacks_from (Piece (pt), org) & targets;
+            Bitboard moves = attacks_bb (Piece (pt), org, occ) & targets;
 
             if (KING == pt) moves &= ~PieceAttacks[QUEN][ci.king_sq];
 
@@ -519,10 +521,10 @@ namespace MoveGenerator {
     // Returns a pointer to the end of the move list.
     ValMove* generate<EVASION>     (ValMove *m_list, const Position &pos)
     {
-        Color active = pos.active ();
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers); // If any checker exists
-        //if (!checkers) return m_list;
+
+        Color active = pos.active ();
 
         uint8_t checker_count = pop_count<MAX15> (checkers);
 

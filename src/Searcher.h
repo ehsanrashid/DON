@@ -32,8 +32,8 @@ namespace Searcher {
     //  - Maximum depth.
     //  - Maximum nodes.
     //  - Search move list
-    //  - if in analysis mode.
-    //  - if have to ponder while is opponent's side to move.
+    //  - Infinite analysis mode.
+    //  - Ponder while is opponent's side to move.
     typedef struct LimitsT
     {
 
@@ -58,7 +58,7 @@ namespace Searcher {
         uint32_t  move_time;      // search <x> time in milli-seconds
         uint8_t   moves_to_go;    // search <x> moves to the next time control
         uint8_t   depth;          // search <x> depth (plies) only
-        uint16_t  nodes;          // search <x> nodes only
+        uint32_t  nodes;          // search <x> nodes only
         uint8_t   mate_in;        // search mate in <x> moves
         bool      infinite;       // search until the "stop" command
         bool      ponder;         // search on ponder move
@@ -103,7 +103,7 @@ namespace Searcher {
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
-    //  - Current value.
+    //  - Curr value.
     //  - Last value.
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).

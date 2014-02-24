@@ -176,7 +176,6 @@ public:
 
     static void initialize ();
 
-
     Position () { clear (); }
 #ifndef NDEBUG
     Position (const char        *f, Thread *th = NULL, bool c960 = false, bool full = true)
@@ -189,7 +188,6 @@ public:
         if (!setup (f, th, c960, full)) clear ();
     }
     Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
-
     explicit Position (int32_t dummy) { ++dummy; }
 
     Position& operator= (const Position &pos);
@@ -197,29 +195,28 @@ public:
 
     Piece    operator[] (Square s)      const;
     Bitboard operator[] (Color  c)      const;
-    Bitboard operator[] (PieceT pt)      const;
-    const Square* operator[] (Piece p)   const;
+    Bitboard operator[] (PieceT pt)     const;
+    const Square* operator[] (Piece p)  const;
 
-    bool empty     (Square s)            const;
-    Piece piece_on (Square s)            const;
+    bool empty     (Square s)           const;
+    Piece piece_on (Square s)           const;
 
-    Square king_sq (Color c)             const;
+    Square king_sq (Color c)            const;
 
-    Bitboard pieces (Color c)            const;
+    Bitboard pieces (Color c)           const;
 
-    Bitboard pieces (PieceT pt)          const;
+    Bitboard pieces (PieceT pt)         const;
     template<PieceT PT>
-    Bitboard pieces ()                   const;
+    Bitboard pieces ()                  const;
 
-    Bitboard pieces (Color c, PieceT pt) const;
+    Bitboard pieces (Color c, PieceT pt)const;
     template<PieceT PT>
     Bitboard pieces (Color c)           const;
 
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
     Bitboard pieces () const;
-    Bitboard empties () const;
-    //Bitboard pieces (Piece p) const;
+    //Bitboard empties () const;
 
     int32_t count (Color c, PieceT pt) const;
 
@@ -300,17 +297,9 @@ private:
 
 public:
 
-    //template<PieceT PT>
-    //// Attacks of the PAWN (Color) from the square
-    //Bitboard attacks_from (Color c, Square s) const;
     template<PieceT PT>
     // Attacks of the PTYPE from the square
     Bitboard attacks_from (Square s) const;
-
-    // Attacks of the piece from the square with occ
-    Bitboard attacks_from (Piece p, Square s, Bitboard occ) const;
-    // Attacks of the piece from the square
-    Bitboard attacks_from (Piece p, Square s) const;
 
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
@@ -431,7 +420,7 @@ inline Bitboard Position::pieces (Color c)             const { return _color_bb[
 inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb[p1] | _types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
-inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
+//inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 
 
 inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
@@ -530,34 +519,18 @@ inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
 inline Thread*  Position::thread    () const { return _thread; }
 
-//template<>
-//// Attacks of the PAWN from the square
-//inline Bitboard Position::attacks_from<PAWN> (Color c, Square s) const
-//{
-//    return BitBoard::PawnAttacks[c][s];
-//}
-
 template<PieceT PT>
 // Attacks of the PTYPE from the square
 inline Bitboard Position::attacks_from (Square s) const
 {
     return (BSHP == PT
-        ||  ROOK == PT) ? BitBoard::attacks_bb<PT> (s, pieces ())
+        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, pieces ())
         :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ())
         |                 BitBoard::attacks_bb<ROOK> (s, pieces ())
         :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
-        :  BitBoard::PieceAttacks[PT][s];
-}
-
-// Attacks of the piece from the square
-inline Bitboard Position::attacks_from (Piece p, Square s, Bitboard occ) const
-{
-    return BitBoard::attacks_bb (p, s, occ);
-}
-// Attacks of the piece from the square
-inline Bitboard Position::attacks_from (Piece p, Square s) const
-{
-    return attacks_from (p, s, pieces ());
+        :  (NIHT == PT
+        ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
+        :  U64 (0);
 }
 
 // Attackers to the square on given occ

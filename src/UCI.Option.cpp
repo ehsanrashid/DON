@@ -478,7 +478,7 @@ namespace UCI {
         Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60,  0, 30000));
         Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
         Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
-        Options["Slow Mover"]                   = OptionPtr (new SpinOption (60, 10, 1000));
+        Options["Slow Mover"]                   = OptionPtr (new SpinOption (70, 10, 1000));
 
         // Activate Fischer Random Chess a.k.a. Chess960 games.
         // Default false.

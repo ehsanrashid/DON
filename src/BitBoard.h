@@ -281,17 +281,27 @@ namespace BitBoard {
     // Piece attacks from square
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        switch (_ptype (p))
-        {
-        case PAWN: return PawnAttacks[_color (p)][s];
-        case BSHP: return attacks_bb<BSHP> (s, occ);
-        case ROOK: return attacks_bb<ROOK> (s, occ);
-        case QUEN: return attacks_bb<BSHP> (s, occ)
-                       |  attacks_bb<ROOK> (s, occ);
-        case NIHT: return PieceAttacks[NIHT][s];
-        case KING: return PieceAttacks[KING][s];
-        default  : return U64 (0);
-        }
+        //switch (_ptype (p))
+        //{
+        //case PAWN: return PawnAttacks[_color (p)][s];
+        //case BSHP: return attacks_bb<BSHP> (s, occ);
+        //case ROOK: return attacks_bb<ROOK> (s, occ);
+        //case QUEN: return attacks_bb<BSHP> (s, occ)
+        //               |  attacks_bb<ROOK> (s, occ);
+        //case NIHT: return PieceAttacks[NIHT][s];
+        //case KING: return PieceAttacks[KING][s];
+        //default  : return U64 (0);
+        //}
+
+        PieceT pt = _ptype (p);
+        return 
+           (BSHP == pt) ? BitBoard::attacks_bb<BSHP> (s, occ)
+        :  (ROOK == pt) ? BitBoard::attacks_bb<ROOK> (s, occ)
+        :  (QUEN == pt) ? BitBoard::attacks_bb<BSHP> (s, occ)
+        |                 BitBoard::attacks_bb<ROOK> (s, occ)
+        :  (PAWN == pt) ? BitBoard::PawnAttacks[_color (p)][s]
+        :  (NIHT == pt || KING == pt) ? BitBoard::PieceAttacks[pt][s]
+        :  U64 (0);
     }
 
     extern void initialize ();

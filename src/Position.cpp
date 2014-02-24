@@ -162,10 +162,7 @@ namespace {
         return KING; // No need to update bitboards, it is the last cycle
     }
 
-    char toggle_case (char c)
-    {
-        return char (islower (c) ? toupper (c) : tolower (c));
-    }
+    char toggle_case (char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
 } // namespace
 
@@ -217,24 +214,25 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    fifty_move_distance <  _si->clock50
         || (fifty_move_distance == _si->clock50
-        &&  (!_si->checkers || MoveList<LEGAL> (*this).size ())))
+        && (!_si->checkers || MoveList<LEGAL> (*this).size ())))
     {
         return true;
     }
 
     // Draw by Threefold Repetition?
     const StateInfo *sip = _si;
-    int32_t ply = min (_si->null_ply, _si->clock50);
+    uint8_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
-        if (sip->p_si && sip->p_si->p_si)
+        if (!(sip->p_si && (sip = sip->p_si->p_si)))
         {
-            sip = sip->p_si->p_si;
-            if (sip->posi_key == _si->posi_key)
-                return true; // Draw at first repetition
-            ply -= 2;
+            break;
         }
-        else break;
+        if (sip->posi_key == _si->posi_key)
+        {
+            return true; // Draw at first repetition
+        }
+        ply -= 2;
     }
 
     //// Draw by Stalemate?
@@ -785,7 +783,7 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if (!(attacks_from (p, org) & dst)) return false;
+        if (!(attacks_bb (p, org, pieces ()) & dst)) return false;
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
@@ -866,7 +864,6 @@ bool Position::legal     (Move m, Bitboard pinned) const
         ASSERT (empty (dst));
 
         Bitboard mocc = pieces () - org - cap + dst;
-
         // If any attacker then in check & not legal
         return !(
             (attacks_bb<ROOK> (ksq, mocc) & pieces (pasiv, QUEN, ROOK)) ||
@@ -879,8 +876,7 @@ bool Position::legal     (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        Bitboard mocc = pieces () - org; // Remove 'org' but not place 'dst'
-        return !(attackers_to (dst, mocc) & pieces (pasiv));
+        return !(attackers_to (dst, pieces () - org) & pieces (pasiv)); // Remove 'org' but not place 'dst'
     }
 
     // A non-king move is legal if and only if it is not pinned or it
@@ -933,7 +929,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     else if (PROMOTE   == mt)
     {
         // Promotion with check ?
-        return (attacks_from (_active | prom_type (m), dst, occ - org + dst) & ci.king_sq);
+        return (attacks_bb (Piece (prom_type (m)), dst, occ - org + dst) & ci.king_sq);
     }
     else if (ENPASSANT == mt)
     {
@@ -1589,13 +1585,13 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
 
             if (EMPTY == p)
             {
-                uint32_t empty_cnt = 0;
+                uint32_t empty_count = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
                 {
-                    ++empty_cnt;
+                    ++empty_count;
                 }
-                if (1 > empty_cnt || empty_cnt > 8) return false;
-                set_next ('0' + empty_cnt);
+                if (1 > empty_count || empty_count > 8) return false;
+                set_next ('0' + empty_count);
             }
             else if (_ok (p))
             {
@@ -1690,12 +1686,12 @@ string Position::fen (bool                  c960, bool full) const
         for (File f = F_A; f <= F_H; ++f)
         {
             Square s = f | r;
-            int16_t empty_cnt = 0;
+            int16_t empty_count = 0;
             while (F_H >= f && empty (s))
             {
-                ++empty_cnt; ++f; ++s;
+                ++empty_count; ++f; ++s;
             }
-            if (empty_cnt) sfen << empty_cnt;
+            if (empty_count) sfen << empty_count;
             if (F_H >= f)  sfen << CharPiece[piece_on (s)];
         }
 
@@ -1859,11 +1855,11 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 // empty square(s)
                 if ('1' > ch || ch > '8') return false;
 
-                int8_t empty_cnt = (ch - '0');
-                f += empty_cnt;
+                int8_t empty_count = (ch - '0');
+                f += empty_count;
 
                 if (f > F_NO) return false;
-                //while (empty_cnt-- > 0) place_piece (s++, EMPTY);
+                //while (empty_count-- > 0) place_piece (s++, EMPTY);
             }
             else if (isalpha (ch))
             {
