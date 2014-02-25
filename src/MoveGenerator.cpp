@@ -135,39 +135,38 @@ namespace MoveGenerator {
             static INLINE void generate (ValMove *&m_list, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
                 //static_assert (EVASION != GT, "GT must not be EVASION");
-                if (EVASION != GT)
+                if (EVASION == GT) return;
+
+                if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    if (CHECK != GT && QUIET_CHECK != GT)
-                    {
-                        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-                        Square org_king= pos.king_sq (C);
-                        Bitboard moves = PieceAttacks[KING][org_king] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
-                        SERIALIZE (m_list, org_king, moves);
-                    }
+                    const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+                    Square org_king= pos.king_sq (C);
+                    Bitboard moves = PieceAttacks[KING][org_king] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
+                    SERIALIZE (m_list, org_king, moves);
+                }
 
-                    if (CAPTURE != GT)
+                if (CAPTURE != GT)
+                {
+                    if (!pos.castle_impeded (C) && pos.can_castle (C) && !pos.checkers ())
                     {
-                        if (!pos.castle_impeded (C) && pos.can_castle (C) && !pos.checkers ())
+                        CheckInfo cc;
+                        if (NULL == ci)
                         {
-                            CheckInfo cc;
-                            if (NULL == ci)
-                            {
-                                cc = CheckInfo (pos);
-                                ci = &cc;
-                            }
+                            cc = CheckInfo (pos);
+                            ci = &cc;
+                        }
 
-                            if (!pos.castle_impeded (C, CS_K) && pos.can_castle (C, CS_K))
-                            {
-                                pos.chess960 () ?
-                                    generate_castling<CS_K,  true> (m_list, pos, ci) :
-                                    generate_castling<CS_K, false> (m_list, pos, ci);
-                            }
-                            if (!pos.castle_impeded (C, CS_Q) && pos.can_castle (C, CS_Q))
-                            {
-                                pos.chess960 () ?
-                                    generate_castling<CS_Q,  true> (m_list, pos, ci) :
-                                    generate_castling<CS_Q, false> (m_list, pos, ci);
-                            }
+                        if (!pos.castle_impeded (C, CS_K) && pos.can_castle (C, CS_K))
+                        {
+                            pos.chess960 () ?
+                                generate_castling<CS_K,  true> (m_list, pos, ci) :
+                                generate_castling<CS_K, false> (m_list, pos, ci);
+                        }
+                        if (!pos.castle_impeded (C, CS_Q) && pos.can_castle (C, CS_Q))
+                        {
+                            pos.chess960 () ?
+                                generate_castling<CS_Q,  true> (m_list, pos, ci) :
+                                generate_castling<CS_Q, false> (m_list, pos, ci);
                         }
                     }
                 }
@@ -383,10 +382,7 @@ namespace MoveGenerator {
             Generator<GT, C, BSHP>::generate (m_list, pos, targets, ci);
             Generator<GT, C, ROOK>::generate (m_list, pos, targets, ci);
             Generator<GT, C, QUEN>::generate (m_list, pos, targets, ci);
-            if (EVASION != GT)
-            {
-                Generator<GT, C, KING>::generate (m_list, pos, targets, ci);
-            }
+            Generator<GT, C, KING>::generate (m_list, pos, targets, ci);
 
             return m_list;
         }
