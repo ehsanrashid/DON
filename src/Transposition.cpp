@@ -134,7 +134,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
             if (0 == i) continue;
         }
 
-        // Implement replacement strategy
+        // Implement replacement strategy when a collision occurs
         int8_t gc1 = ((re->gen () == _generation) ? +2 : 0);
         int8_t gc2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
 
