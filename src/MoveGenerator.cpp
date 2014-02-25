@@ -559,8 +559,8 @@ namespace MoveGenerator {
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard moves = PieceAttacks[KING][org_king] & ~friends 
-            &           ~PieceAttacks[KING][pos.king_sq (~active)] & ~slid_attacks;
+        Bitboard moves =  PieceAttacks[KING][org_king]
+            & ~(friends | PieceAttacks[KING][pos.king_sq (~active)] | slid_attacks);
 
         SERIALIZE (m_list, org_king, moves);
 

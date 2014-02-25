@@ -326,8 +326,6 @@ inline uint32_t cpu_count ()
 
 }
 
-typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
-
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 {
@@ -339,9 +337,6 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
         m.unlock ();
     return os;
 }
-
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
 
 extern ThreadPool Threads;
 

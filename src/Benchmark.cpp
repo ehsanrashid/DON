@@ -79,7 +79,8 @@ void benchmark (istream &is, const Position &pos)
     *Options["Hash"]    = size_tt;
     *Options["Threads"] = num_threads;
 
-    TT.clear ();
+    TT.master_clear ();
+
     LimitsT limits;
 
     if      (limit_type == "time")  limits.move_time = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
@@ -119,15 +120,16 @@ void benchmark (istream &is, const Position &pos)
 
     StateInfoStackPtr states;
     uint64_t nodes = 0;
-    point elapsed = now ();
-    bool chess960 = *(Options["UCI_Chess960"]);
+    point elapsed  = now ();
+    bool chess960  = bool (*(Options["UCI_Chess960"]));
 
     uint32_t total = fens.size ();
     for (uint32_t i = 0; i < total; ++i)
     {
         Position root_pos (fens[i], Threads.main (), chess960);
 
-        cerr << "\n--------------\n" 
+        cerr
+            << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << total << "\n";
 
         if ("perft" == limit_type)
@@ -144,9 +146,12 @@ void benchmark (istream &is, const Position &pos)
         }
     }
 
-    elapsed = now () - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
+    elapsed = now () - elapsed;
+    // Ensure positivity to avoid a 'divide by zero'
+    if (elapsed == 0) elapsed = 1;
 
-    cerr << "\n===========================\n"
+    cerr
+        << "\n===========================\n"
         << "Total time (ms) : " << elapsed << "\n"
         << "Nodes searched  : " << nodes   << "\n"
         << "Nodes/second    : " << nodes * 1000 / elapsed

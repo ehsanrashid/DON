@@ -224,10 +224,11 @@ bool Position::draw () const
     uint8_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
-        if (!(sip->p_si && (sip = sip->p_si->p_si)))
-        {
-            break;
-        }
+        if (sip->p_si == NULL) break;
+        sip = sip->p_si;
+        if (sip->p_si == NULL) break;
+        sip = sip->p_si;
+
         if (sip->posi_key == _si->posi_key)
         {
             return true; // Draw at first repetition

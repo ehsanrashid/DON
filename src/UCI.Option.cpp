@@ -203,8 +203,7 @@ namespace UCI {
 
         void on_clear_hash      (const Option &)
         {
-            ClearHash = true;
-            sync_cout << "info string hash cleared." << sync_endl;
+            TT.master_clear ();
         }
 
         void on_resize_hash     (const Option &opt)
@@ -278,10 +277,10 @@ namespace UCI {
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         = OptionPtr (new SpinOption (
-            TranspositionTable::DEF_TT_SIZE,
-            TranspositionTable::MIN_TT_SIZE,
-            TranspositionTable::MAX_TT_SIZE,
-            on_resize_hash));
+                                                                            TranspositionTable::DEF_TT_SIZE,
+                                                                            TranspositionTable::MIN_TT_SIZE,
+                                                                            TranspositionTable::MAX_TT_SIZE,
+                                                                            on_resize_hash));
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.
@@ -351,16 +350,19 @@ namespace UCI {
         // -------------------------
 
         // Maximum number of threads (cores) used by the analysis.
-        // Default is hardware-dependent, min 1, max 6 (Standard) or 32 (Pro).
+        // Default is hardware-dependent, min 1, max 32 (Standard) or 64 (Pro).
         //
-        // Houdini will automatically limit the number of threads to the number of logical processors of your hardware. If your computer supports hyper-threading it is recommended not using more threads than physical cores, as the extra hyper-threads would usually degrade the performance of the engine. 
+        // DON will automatically limit the number of threads to the number of logical processors of your hardware.
+        // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
+        // as the extra hyper-threads would usually degrade the performance of the engine. 
         Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
 
         // When using multiple threads, the Split Depth parameter defines the minimum depth at which work will be split between cores.
         // Default 0, min 4, max 99.
         //
         // Default 0 means auto setting which depends on the threads
-        // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware. The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
+        // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
+        // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 4, MAX_SPLIT_DEPTH, on_change_threads));
 
         Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
@@ -454,7 +456,8 @@ namespace UCI {
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, min 5, max 50.
         //
-        // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50, i.e. the official 50-moves rule.
+        // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50,
+        // i.e. the official 50-moves rule.
         // Setting this option in the range of 10 to 15 moves can be useful to analyse more correctly blockade or fortress positions:
         // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
         // - End games with a material advantage that is insufficient for winning (fortress).
@@ -478,14 +481,13 @@ namespace UCI {
         Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60,  0, 30000));
         Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
         Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
-        Options["Slow Mover"]                   = OptionPtr (new SpinOption (80, 10, 1000));
+        Options["Slow Mover"]                   = OptionPtr (new SpinOption (90, 10, 1000));
 
         // Activate Fischer Random Chess a.k.a. Chess960 games.
         // Default false.
         //
         // The Chess960 feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["UCI_Chess960"]                 = OptionPtr (new CheckOption (false));
-
 
         // TODO::
         //// Activate the strength limit specified in the UCI_Elo parameter.
@@ -500,7 +502,6 @@ namespace UCI {
         //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
         //// The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
-
 
         ///Debug Options
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));

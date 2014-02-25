@@ -28,7 +28,7 @@ namespace UCI {
         // Needed by repetition draw detection.
         StateInfoStackPtr SetupStates;
 
-        void exe_uci ()
+        inline void exe_uci ()
         {
             sync_cout
                 << Engine::info () 
@@ -37,17 +37,17 @@ namespace UCI {
                 << sync_endl;
         }
 
-        void exe_ucinewgame ()
+        inline void exe_ucinewgame ()
         {
-            TT.clear ();
+            TT.clear_hash = !bool (*(Options["Never Clear Hash"]));
         }
 
-        void exe_isready ()
+        inline void exe_isready ()
         {
             sync_cout << "readyok" << sync_endl;
         }
 
-        void exe_setoption (cmdstream &cstm)
+        inline void exe_setoption (cmdstream &cstm)
         {
             string token;
             if (cstm >> token)
@@ -95,7 +95,7 @@ namespace UCI {
         // Example:
         //   "register later"
         //   "register name Stefan MK code 4359874324"
-        void exe_register (cmdstream &cstm)
+        inline void exe_register (cmdstream &cstm)
         {
             string token;
 
@@ -135,7 +135,7 @@ namespace UCI {
         //  - fen-string position ("fen")
         // and then makes the moves given in the following move list ("moves")
         // also saving the moves on stack.
-        void exe_position (cmdstream &cstm)
+        inline void exe_position (cmdstream &cstm)
         {
             string token;
             string fen;
@@ -161,11 +161,11 @@ namespace UCI {
                 else return;
             }
             else return;
-
+            
             Key posi_key = RootPos.posi_key ();
 
             RootPos.setup (fen, Threads.main (), bool (*(Options["UCI_Chess960"])));
-
+            
             if (posi_key != RootPos.posi_key ())
             {
                 TT.clear ();
@@ -205,7 +205,7 @@ namespace UCI {
         //  - infinite
         //  - ponder
         // and starts the search.
-        void exe_go (cmdstream &cstm)
+        inline void exe_go (cmdstream &cstm)
         {
             Searcher::LimitsT limits;
             string  token;
@@ -241,23 +241,23 @@ namespace UCI {
             Threads.start_thinking (RootPos, limits, SetupStates);
         }
 
-        void exe_ponderhit ()
+        inline void exe_ponderhit ()
         {
             Searcher::Limits.ponder = false;
         }
 
-        void exe_debug (cmdstream &cstm)
+        inline void exe_debug (cmdstream &cstm)
         {
             (void) cstm;
             // debug on/off
         }
 
-        void exe_print ()
+        inline void exe_print ()
         {
             sync_cout << RootPos << sync_endl;
         }
 
-        void exe_key ()
+        inline void exe_key ()
         {
             sync_cout
                 << hex << uppercase << setfill ('0')
@@ -268,7 +268,7 @@ namespace UCI {
                 << dec << sync_endl;
         }
 
-        void exe_allmoves ()
+        inline void exe_allmoves ()
         {
             sync_cout;
 
@@ -317,18 +317,18 @@ namespace UCI {
             cout << sync_endl;
         }
 
-        void exe_flip ()
+        inline void exe_flip ()
         {
             RootPos.flip ();
         }
 
-        void exe_eval ()
+        inline void exe_eval ()
         {
             Searcher::RootColor = RootPos.active (); // Ensure it is set
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
-        void exe_perft (cmdstream &cstm)
+        inline void exe_perft (cmdstream &cstm)
         {
             string token;
             // Read perft depth
@@ -343,7 +343,7 @@ namespace UCI {
             }
         }
 
-        void exe_stop ()
+        inline void exe_stop ()
         {
             Searcher::Signals.stop = true;
             Threads.main ()->notify_one (); // Could be sleeping

@@ -5,8 +5,6 @@
 
 using namespace std;
 
-bool ClearHash = false;
-
 const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TranspositionEntry);  // 16
 const uint8_t  TranspositionTable::CLUSTER_SIZE     = 4;
 

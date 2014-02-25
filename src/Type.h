@@ -685,6 +685,14 @@ inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
 //    return os;
 //}
 
+
+
+typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
+
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
+
+
 template<class Entry, int32_t SIZE>
 struct HashTable
 {

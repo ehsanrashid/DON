@@ -6,7 +6,6 @@
 #include <cstdlib>
 
 #include "Type.h"
-#include "UCI.h"
 //#include "LeakDetector.h"
 
 #pragma warning (push)
@@ -74,8 +73,6 @@ public:
 
 #pragma pack (pop)
 
-extern bool ClearHash;
-
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of CLUSTER_SIZE number of entry.
 // Each non-empty entry contains information of exactly one position.
@@ -106,6 +103,7 @@ private:
         _hash_mask      = 0;
         _store_count    = 0;
         _generation     = 0;
+        clear_hash      = false;
     }
 
 public:
@@ -125,11 +123,13 @@ public:
     static const uint32_t MIN_TT_SIZE;
 
     // Maximum size for Transposition table in mega-byte
-    // 524288 MB = 512 GB   -> 64
-    // 032768 MB = 032 GB   -> 32
+    // 524288 MB = 512 GB   -> 64 Bit
+    // 032768 MB = 032 GB   -> 32 Bit
     static const uint32_t MAX_TT_SIZE;
 
     static const uint8_t  CACHE_LINE_SIZE;
+
+    bool clear_hash;
 
 
     TranspositionTable ()
@@ -137,6 +137,7 @@ public:
         , _hash_mask (0)
         , _store_count (0)
         , _generation (0)
+        , clear_hash (false)
     {
         resize (DEF_TT_SIZE);
     }
@@ -146,6 +147,7 @@ public:
         , _hash_mask (0)
         , _store_count (0)
         , _generation (0)
+        , clear_hash (false)
     {
         resize (mem_size_mb);
     }
@@ -157,21 +159,28 @@ public:
 
     inline uint32_t size () const { return (uint64_t (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE) >> 20; }
 
+    inline void master_clear ()
+    {
+        clear_hash = true;
+        clear ();
+    }
+
     // clear() overwrites the entire transposition table with zeroes.
     // It is called whenever the table is resized,
     // or when the user asks the program to clear the table
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (ClearHash && !bool (*(Options["Never Clear Hash"])) && _hash_table)
+        if (_hash_table && clear_hash)
         {
             uint64_t mem_size_b  = (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE;
             std::memset (_hash_table, 0, mem_size_b);
 
             _store_count = 0;
             _generation  = 0;
+            sync_cout << "info string hash cleared." << sync_endl;
         }
-        ClearHash = false;
+        clear_hash = false;
     }
 
     // new_gen() is called at the beginning of every new search.
