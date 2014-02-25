@@ -16,7 +16,7 @@ using namespace Time;
 
 namespace {
 
-    const uint16_t TOT_FEN = 30;
+    const uint8_t TOT_FEN = 30;
 
     const char* default_fens[TOT_FEN] =
     {

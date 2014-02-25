@@ -64,12 +64,14 @@ public:
 inline void RKISS::initialize (uint32_t seed)
 {
     A = U64 (0xF1EA5EED);
-    B = C = D = U64 (0xD4E12C77);
+    B =
+    C =
+    D = U64 (0xD4E12C77);
 
     // PRNG sequence should be not deterministic
     // Scramble a few rounds
-    uint32_t round = (seed % 1000);
-    for (uint32_t i = 0; i < round; ++i)
+    uint16_t round = (seed % 1000);
+    for (uint16_t i = 0; i < round; ++i)
     {
         rand64 ();
     }
@@ -113,8 +115,8 @@ inline T RKISS::magic_rand (uint16_t s)
 {
     using namespace BitBoard;
 
-    return rotate_L (rotate_L (rand<T>(), (s >> 0) & 0x3F) & rand<T>()
-        ,                                 (s >> 6) & 0x3F) & rand<T>();
+    return rotate_L (rotate_L (rand<T> (), (s >> 0) & 0x3F) & rand<T> ()
+        ,                                  (s >> 6) & 0x3F) & rand<T> ();
 }
 
 #endif // RKISS_H_

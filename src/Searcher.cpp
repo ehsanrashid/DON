@@ -408,7 +408,7 @@ namespace Searcher {
         }
 
 
-finish:
+    finish:
         
         point elapsed = now () - SearchTime;
         if (elapsed == 0) elapsed = 1;
@@ -664,7 +664,8 @@ namespace {
                 // Stop the search early:
                 // If there is only one legal move available or 
                 // If all of the available time has been used.
-                if (1 == RootMoves.size () || iter_duration > TimeMgr.available_time ())
+                if (   1 == RootMoves.size ()
+                    || iter_duration > TimeMgr.available_time ())
                 {
                     stop = true;
                 }
@@ -1025,7 +1026,7 @@ namespace {
             tt_move = te ? te->move() : MOVE_NONE;
         }
 
-moves_loop: // When in check and at SPNode search starts from here
+    moves_loop: // When in check and at SPNode search starts from here
 
         Square opp_move_sq = dst_sq ((ss-1)->current_move);
         Move cm[CLR_NO] = 
@@ -1355,7 +1356,10 @@ moves_loop: // When in check and at SPNode search starts from here
                     // We record how often the best move has been changed in each
                     // iteration. This information is used for time management:
                     // When the best move changes frequently, we allocate some more time.
-                    if (value > alpha) ++BestMoveChanges;
+                    if (!is_pv_move) // (value > alpha)
+                    {
+                        ++BestMoveChanges;
+                    }
                 }
                 else
                 {

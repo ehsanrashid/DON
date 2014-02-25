@@ -12,12 +12,12 @@ using namespace Searcher;
 namespace {
 
     const uint8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
-    const double  MaxRatio      = 07.0;  // When in trouble, we can step over reserved time with this ratio
-    const double  StealRatio    = 00.33; // However we must not steal time from remaining moves over this ratio
+    const double  MaxRatio      =  7.0;  // When in trouble, we can step over reserved time with this ratio
+    const double  StealRatio    =  0.33; // However we must not steal time from remaining moves over this ratio
 
-    const double Scale          = 09.3;
+    const double Scale          =  9.3;
     const double Shift          = 59.8;
-    const double SkewFactor     = 00.172;
+    const double SkewFactor     =  0.172;
 
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after n half-moves".
@@ -34,7 +34,10 @@ namespace {
     template<TimeT TT>
     inline uint32_t remaining_time (uint32_t time, uint8_t moves_to_go, uint16_t game_ply, uint16_t slow_mover)
     {
-        double  curr_moves_importance = (move_importance (game_ply) * slow_mover) / 100;
+        const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
+        const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
+
+        double  this_moves_importance = (move_importance (game_ply) * slow_mover) / 100;
         double other_moves_importance = 0.0;
 
         for (uint8_t i = 1; i < moves_to_go; ++i)
@@ -42,19 +45,8 @@ namespace {
             other_moves_importance += move_importance (game_ply + 2 * i);
         }
 
-        double time_ratio1;
-        double time_ratio2;
-
-        if      (OPTIMUM_TIME == TT)
-        {
-            time_ratio1 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
-            time_ratio2 = (curr_moves_importance) / (curr_moves_importance + other_moves_importance);
-        }
-        else if (MAXIMUM_TIME == TT)
-        {
-            time_ratio1 = (MaxRatio * curr_moves_importance) / (MaxRatio * curr_moves_importance + other_moves_importance);
-            time_ratio2 = (curr_moves_importance + StealRatio * other_moves_importance) / (curr_moves_importance + other_moves_importance);
-        }
+        double time_ratio1 = (TMaxRatio * this_moves_importance) / (TMaxRatio * this_moves_importance + other_moves_importance);
+        double time_ratio2 = (this_moves_importance + TStealRatio * other_moves_importance) / (this_moves_importance + other_moves_importance);
 
         return uint32_t (floor (time * min (time_ratio1, time_ratio2)));
     }

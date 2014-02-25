@@ -67,7 +67,7 @@ namespace {
             PST = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NO
         };
 
-        Score   Terms[CLR_NO][TERM_NO];
+        Score       Terms[CLR_NO][TERM_NO];
 
         EvalInfo    Evalinfo;
         ScaleFactor Scalefactor;
@@ -80,7 +80,7 @@ namespace {
             Terms[BLACK][term] = b_score;
         }
 
-        void format_row (stringstream &ss, const char name[], uint8_t term)
+        inline void format_row (stringstream &ss, const char name[], uint8_t term)
         {
             Score score[CLR_NO] =
             {
@@ -266,7 +266,7 @@ namespace {
 
     // KingDanger[Color][attack_units] contains the actual king danger weighted
     // scores, indexed by color and by a calculated integer number.
-    Score KingDanger[CLR_NO][128];
+    Score KingDanger[CLR_NO][100];
 
     template<bool TRACE>
     Value do_evaluate       (const Position &pos);
@@ -300,7 +300,7 @@ namespace {
     template<bool TRACE>
     inline Value do_evaluate       (const Position &pos)
     {
-        ASSERT (!pos.checkers());
+        ASSERT (!pos.checkers ());
 
         // Score is computed from the point of view of white.
         Score score;
@@ -325,7 +325,7 @@ namespace {
 
         // Probe the pawn hash table
         ei.pi = Pawns::probe (pos, thread->pawns_table);
-        score += apply_weight (ei.pi->pawn_score(), Weights[PawnStructure]);
+        score += apply_weight (ei.pi->pawn_score (), Weights[PawnStructure]);
 
         // Initialize attack and king safety bitboards
         init_eval_info<WHITE> (pos, ei);
@@ -365,7 +365,7 @@ namespace {
         if (ei.mi->space_weight ())
         {
             int32_t scr = evaluate_space<WHITE> (pos, ei) - evaluate_space<BLACK> (pos, ei);
-            score += apply_weight (scr * ei.mi->space_weight(), Weights[Space]);
+            score += apply_weight (scr * ei.mi->space_weight (), Weights[Space]);
         }
 
         // Scale winning side if position is more drawish than it appears

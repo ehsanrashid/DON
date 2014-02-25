@@ -165,10 +165,12 @@ const string move_to_san (Move m, Position &pos)
     if (MOVE_NONE == m) return "(none)";
     if (MOVE_NULL == m) return "(null)";
     ASSERT (pos.legal (m));
+
     string san;
+    
     Square org = org_sq (m);
     Square dst = dst_sq (m);
-    Piece p    = pos[org];
+    Piece  p   = pos[org];
     PieceT pt  = _ptype (p);
 
     //    switch (pt)
@@ -312,20 +314,20 @@ const string move_to_san (Move m, Position &pos)
 //            If the engine is getting mated use negative values for y.
 string score_uci (Value v, Value alpha, Value beta)
 {
-    stringstream ssv;
+    stringstream svl;
 
     if (abs (v) < VALUE_MATES_IN_MAX_PLY)
     {
-        ssv << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
+        svl << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
     }
     else
     {
-        ssv << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+        svl << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
     }
 
-    ssv << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+    svl << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
-    return ssv.str ();
+    return svl.str ();
 }
 
 namespace {
@@ -333,25 +335,25 @@ namespace {
     // value to string
     string value_to_string (Value v)
     {
-        stringstream ssv;
+        stringstream svl;
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            ssv << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+            svl << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
         }
         else
         {
             if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
             {
-                ssv <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+                svl <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
             }
             else                //if (v <= VALUE_MATED_IN_MAX_PLY)
             {
-                ssv << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+                svl << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
             }
         }
 
-        return ssv.str ();
+        return svl.str ();
     }
 
     // time to string
@@ -403,9 +405,10 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
         spv << setw (7) << pos.game_nodes () / M << "M  ";
     }
 
-    string padding = string (spv.str ().length (), ' ');
-    uint16_t length  = padding.length ();
     StateInfoStack states;
+
+    string  padding = string (spv.str ().length (), ' ');
+    uint16_t length = padding.length ();
 
     const Move *m = pv;
     while (*m != MOVE_NONE)
@@ -416,12 +419,13 @@ string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, con
             spv << "\n" + padding;
             length = padding.length ();
         }
-        spv << san << ' ';
+        spv << san << " ";
         length += san.length () + 1;
         states.push (StateInfo ());
         pos.do_move (*m, states.top ());
         ++m;
     }
+
     while (m != pv)
     {
         pos.undo_move();

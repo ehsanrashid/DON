@@ -825,7 +825,7 @@ bool Position::pseudo_legal (Move m) const
 }
 
 // legal(m, pinned) tests whether a pseudo-legal move is legal
-bool Position::legal     (Move m, Bitboard pinned) const
+bool Position::legal        (Move m, Bitboard pinned) const
 {
     ASSERT (pinned == pinneds (_active));
 
@@ -1407,7 +1407,7 @@ void Position::do_move (string &can, StateInfo &si_n)
     Move move = move_from_can (can, *this);
     if (MOVE_NONE != move) do_move (move, si_n);
 }
-// undo_move() undo last move for state info
+// undo_move() undo the last move
 void Position::undo_move ()
 {
     ASSERT (_si->p_si);
@@ -1513,7 +1513,7 @@ void Position::do_null_move (StateInfo &si_n)
 
     ASSERT (ok ());
 }
-// undo_null_move() undo the null-move
+// undo_null_move() undo the last null-move
 void Position::undo_null_move ()
 {
     ASSERT (_si->p_si);
