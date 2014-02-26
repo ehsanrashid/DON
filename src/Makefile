@@ -473,6 +473,7 @@ config-sanity:
 	@echo "bsfq    : '$(bsfq)'"
 	@echo "popcnt  : '$(popcnt)'"
 	@echo "sse     : '$(sse)'"
+	@echo "pages   : '$(pages)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "---------"
