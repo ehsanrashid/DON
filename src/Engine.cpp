@@ -101,6 +101,7 @@ namespace Engine {
         Pawns    ::initialize ();
         Evaluator::initialize ();
         Threads   .initialize ();
+        TT.resize (int32_t (*(Options["Hash"])), true);
 
         cout
             << "info string " << Threads.size () << " thread(s)." << "\n"

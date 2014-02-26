@@ -40,9 +40,10 @@ PGOBENCH  = ./$(EXE) bench 32 1 10 default depth
 SIGNBENCH = ./$(EXE) bench
 
 ### Object files
-OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o   \
-	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o    \
-	Tester.o Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o
+OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
+	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o  \
+	Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o       \
+	MemoryHandler.o Tester.o 
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

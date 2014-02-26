@@ -6,6 +6,7 @@
 #include <cstdlib>
 
 #include "Type.h"
+#include "MemoryHandler.h"
 //#include "LeakDetector.h"
 
 #pragma warning (push)
@@ -17,15 +18,16 @@
 //  Move         2
 //  Depth        2
 //  Bound        1
-//  Gen          1
 //  Nodes        2
 //  Value        2
 //  Eval Value   2
+//  Generation   1
 // ----------------
 //  total        16 byte
 
 //#pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
 #pragma pack (push, 2)
+
 typedef struct TranspositionEntry
 {
 
@@ -35,10 +37,10 @@ private:
     uint16_t _move;
     int16_t  _depth;
     uint8_t  _bound;
+    uint8_t  _gen;
     uint16_t _nodes;
     int16_t  _value;
     int16_t  _eval;
-    uint8_t  _gen;
 
 public:
 
@@ -50,7 +52,6 @@ public:
     Value      value () const { return Value    (_value); }
     Value       eval () const { return Value     (_eval); }
     uint8_t      gen () const { return uint8_t    (_gen); }
-
 
     void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
     {
@@ -83,9 +84,14 @@ typedef class TranspositionTable
 
 private:
 
+#if !(defined(_WIN32) && defined(_MSC_VER))
+
+    void               * _mem;
+
+#endif
+
     TranspositionEntry *_hash_table;
     uint32_t            _hash_mask;
-    uint32_t            _store_count;
     uint8_t             _generation;
 
     void aligned_memory_alloc (uint64_t size, uint8_t alignment);
@@ -95,13 +101,23 @@ private:
     {
         if (_hash_table)
         {
+
+#if defined(_WIN32) && defined(_MSC_VER)
+
             void *mem = ((void **) _hash_table)[-1];
             free (mem);
             mem = _hash_table = NULL;
+
+#else
+
+            Memoryhandler::free_memory (_mem);
+            _mem = _hash_table = NULL;
+
+#endif
+
         }
 
         _hash_mask      = 0;
-        _store_count    = 0;
         _generation     = 0;
         clear_hash      = false;
     }
@@ -135,21 +151,19 @@ public:
     TranspositionTable ()
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _store_count (0)
         , _generation (0)
         , clear_hash (false)
     {
-        resize (DEF_TT_SIZE);
+        //resize (DEF_TT_SIZE, true);
     }
 
     TranspositionTable (uint32_t mem_size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
-        , _store_count (0)
         , _generation (0)
         , clear_hash (false)
     {
-        resize (mem_size_mb);
+        resize (mem_size_mb, true);
     }
 
     ~TranspositionTable ()
@@ -176,7 +190,6 @@ public:
             uint64_t mem_size_b  = (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE;
             std::memset (_hash_table, 0, mem_size_b);
 
-            _store_count = 0;
             _generation  = 0;
             sync_cout << "info string hash cleared." << sync_endl;
         }
@@ -190,8 +203,14 @@ public:
 
     // refresh() updates the 'Generation' of the entry to avoid aging.
     // Normally called after a TranspositionTable hit.
-    //inline void refresh (const TranspositionEntry &te) const { const_cast<TranspositionEntry&> (te) .gen (_generation); }
-    inline void refresh (const TranspositionEntry *te) const { const_cast<TranspositionEntry*> (te)->gen (_generation); }
+    inline void refresh (const TranspositionEntry &te) const
+    {
+        const_cast<TranspositionEntry&> (te) .gen (_generation);
+    }
+    inline void refresh (const TranspositionEntry *te) const
+    {
+        const_cast<TranspositionEntry*> (te)->gen (_generation);
+    }
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
@@ -200,18 +219,31 @@ public:
         return _hash_table + (uint32_t (key) & _hash_mask);
     }
 
-    // permill_full() returns the per-mille of the all transposition entries
-    // which have received at least one write during the current search.
+    // permill_full() returns an approximation of the per-mille of the 
+    // all transposition entries during a search which have received
+    // at least one write during the current search.
     // It is used to display the "info hashfull ..." information in UCI.
     // "the hash is <x> permill full", the engine should send this info regularly.
     // hash, are using <x>%. of the state of full.
-    inline uint32_t permill_full () const
+    inline uint16_t permill_full () const
     {
-        return _store_count * 1000 / (_hash_mask + CLUSTER_SIZE);
+        uint16_t full_count = 0;
+        uint16_t length = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
+        for (uint16_t i = 0; i < length; ++i)
+        {
+            if (_hash_table[i].gen () == _generation)
+            {
+                ++full_count;
+            }
+        }
+        return (full_count * 1000) / length;
     }
 
-
-    uint32_t resize (uint32_t mem_size_mb);
+    uint32_t resize (uint32_t mem_size_mb, bool force = false);
+    inline uint32_t resize ()
+    {
+        return resize (size (), true);
+    }
 
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
@@ -223,8 +255,7 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
     {
-        uint64_t mem_size_b  = ((tt._hash_mask + TranspositionTable::CLUSTER_SIZE) * TranspositionTable::TENTRY_SIZE);
-        uint32_t mem_size_mb = mem_size_b >> 20;
+        uint32_t mem_size_mb = tt.size ();
         uint8_t dummy = 0;
         os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
         os.write ((const char *) &TranspositionTable::TENTRY_SIZE , sizeof (dummy));
@@ -232,7 +263,7 @@ public:
         os.write ((const char *) &dummy, sizeof (dummy));
         os.write ((const char *) &tt._generation, sizeof (tt._generation));
         os.write ((const char *) &tt._hash_mask , sizeof (tt._hash_mask));
-        os.write ((const char *)  tt._hash_table, mem_size_b);
+        os.write ((const char *)  tt._hash_table, mem_size_mb << 20);
         return os;
     }
 

@@ -23,6 +23,10 @@ namespace MoveGenerator {
         struct Generator
         {
 
+        private:
+
+            Generator () {}
+
         public:
             // template<GenT GT, Color C, PieceT PT>
             // void Generator<GT, C, PT>::generate()
@@ -71,6 +75,9 @@ namespace MoveGenerator {
         {
 
         private:
+            
+            Generator () {}
+
             // template<GenT GT, Color C>
             // template<CSide SIDE, bool CHESS960>
             // void Generator<GT, KING>::generate_castling()
@@ -180,6 +187,9 @@ namespace MoveGenerator {
         {
 
         private:
+            
+            Generator () {}
+
             // template<GenT GT, Color C>
             // template<Delta D>
             // void Generator<GT, C, PAWN>::generate_promotion()

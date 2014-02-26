@@ -12,12 +12,12 @@ using namespace Searcher;
 namespace {
 
     const uint8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
-    const double  MaxRatio      =  7.0;  // When in trouble, we can step over reserved time with this ratio
-    const double  StealRatio    =  0.33; // However we must not steal time from remaining moves over this ratio
+    const double  MaxRatio      = 07.00; // When in trouble, we can step over reserved time with this ratio
+    const double  StealRatio    = 00.33; // However we must not steal time from remaining moves over this ratio
 
-    const double Scale          =  9.3;
-    const double Shift          = 59.8;
-    const double SkewFactor     =  0.172;
+    const double Scale          = 09.30;
+    const double Shift          = 59.80;
+    const double SkewFactor     = 00.172;
 
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after n half-moves".

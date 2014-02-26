@@ -46,6 +46,9 @@ typedef void* (*ptr_fn)(void*);
 
 #   include <windows.h>
 
+#undef NOMINMAX
+#undef WIN32_LEAN_AND_MEAN
+
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.

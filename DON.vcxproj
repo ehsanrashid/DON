@@ -580,6 +580,7 @@
     <ClCompile Include="src\LeakDetector.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
+    <ClCompile Include="src\MemoryHandler.cpp" />
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
@@ -611,6 +612,7 @@
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Material.h" />
+    <ClInclude Include="src\MemoryHandler.h" />
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
     <ClInclude Include="src\noncopyable.h" />

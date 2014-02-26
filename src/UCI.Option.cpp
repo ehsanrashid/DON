@@ -201,6 +201,11 @@ namespace UCI {
 
         using namespace OptionType;
 
+        void on_large_pages     (const Option &)
+        {
+            TT.resize ();
+        }
+
         void on_clear_hash      (const Option &)
         {
             TT.master_clear ();
@@ -208,22 +213,22 @@ namespace UCI {
 
         void on_resize_hash     (const Option &opt)
         {
-            TT.resize (int32_t (opt));
+            TT.resize (int32_t (opt), false);
             sync_cout << "info string " << TT.size () << " MB Hash." << sync_endl;
         }
 
         void on_save_hash       (const Option &)
         {
-            ofstream ofstm (*(Options["Hash File"]), ios_base::out | ios_base::binary);
-            ofstm << TT;
-            ofstm.close ();
+            ofstream ohash_file (*(Options["Hash File"]), ios_base::out | ios_base::binary);
+            ohash_file << TT;
+            ohash_file.close ();
         }
 
         void on_load_hash       (const Option &)
         {
-            ifstream ifstm (*(Options["Hash File"]), ios_base::in | ios_base::binary);
-            ifstm >> TT;
-            ifstm.close ();
+            ifstream ihash_file (*(Options["Hash File"]), ios_base::in | ios_base::binary);
+            ihash_file >> TT;
+            ihash_file.close ();
         }
 
         void on_change_book     (const Option &)
@@ -281,6 +286,8 @@ namespace UCI {
                                                                             TranspositionTable::MIN_TT_SIZE,
                                                                             TranspositionTable::MAX_TT_SIZE,
                                                                             on_resize_hash));
+
+        Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.
