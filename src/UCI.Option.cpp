@@ -201,7 +201,7 @@ namespace UCI {
 
         using namespace OptionType;
 
-#ifdef LARGEPAGES
+#ifdef LPAGES
 
         void on_large_pages     (const Option &)
         {
@@ -218,7 +218,7 @@ namespace UCI {
         void on_resize_hash     (const Option &opt)
         {
             TT.resize (int32_t (opt), false);
-            sync_cout << "info string " << TT.size () << " MB Hash." << sync_endl;
+            sync_cout << "info string Hash size " << TT.size () << " MB." << sync_endl;
         }
 
         void on_save_hash       (const Option &)
@@ -290,7 +290,7 @@ namespace UCI {
                                                                             TranspositionTable::MIN_TT_SIZE,
                                                                             TranspositionTable::MAX_TT_SIZE,
                                                                             on_resize_hash));
-#ifdef LARGEPAGES
+#ifdef LPAGES
 
         Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
 

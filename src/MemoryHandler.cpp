@@ -1,4 +1,4 @@
-#ifdef LARGEPAGES
+#ifdef LPAGES
 
 #include "MemoryHandler.h"
 
@@ -14,23 +14,10 @@
 #   include <tchar.h>
 #   include <stdio.h>
 
-// disable macros min() and max()
-#   ifndef  NOMINMAX
-#       define NOMINMAX
-#   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
+#   define MEMALIGN(mem, align, size)   mem = _aligned_malloc (size, align)
+#   define ALIGNED_FREE(mem)           _aligned_free (mem);
 
-#   include <windows.h>
-
-#undef NOMINMAX
-#undef WIN32_LEAN_AND_MEAN
-
-#       define MEMALIGN(mem, align, size)   mem = _aligned_malloc (size, align)
-#       define ALIGNED_FREE(mem)           _aligned_free (mem);
-
-#       define SE_PRIVILEGE_DISABLED       (0x00000000L)
+#   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
 #endif
 
@@ -38,36 +25,40 @@ namespace {
 
     bool use_large = false;
 
-    void print_error (TCHAR* psz_api, DWORD dw_error)
+#   ifdef _WIN32
+
+    void print_error (const TCHAR* psz_api, DWORD dw_error)
     {
-        //LPVOID lpv_message_buff;
+        LPVOID lpv_message_buff;
 
-        //FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        //              FORMAT_MESSAGE_FROM_SYSTEM |
-        //              FORMAT_MESSAGE_IGNORE_INSERTS,
-        //              NULL, dw_error,
-        //              MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-        //              (LPTSTR) &lpv_message_buff, 0, NULL);
+        FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                      FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL, dw_error,
+                      MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR) (&lpv_message_buff), 0, NULL);
 
-        ////... now display this string
-        //_tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
-        //_tprintf (TEXT ("       Error code = %d\n"), dw_error);
-        //_tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
+        // Now display the string
+        _tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
+        _tprintf (TEXT ("       Error code = %d\n"), dw_error);
+        _tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
 
-        //// Free the buffer allocated by the system
-        //LocalFree (lpv_message_buff);
+        // Free the buffer allocated by the system
+        LocalFree (lpv_message_buff);
 
-        //ExitProcess (GetLastError ());
+        ExitProcess (GetLastError ());
     }
+#   endif
 
 }
 
 namespace Memoryhandler {
 
-    void setup_privileges (const char* privilege, bool enable)
+    void setup_privileges (const TCHAR* psz_privilege, bool enable)
     {
 
 #   ifdef _WIN32
+        /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
 
         HANDLE           token_handle;
         TOKEN_PRIVILEGES token_prlg;
@@ -78,16 +69,14 @@ namespace Memoryhandler {
                 , TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY
                 , &token_handle))
         {
-            print_error (TEXT (const_cast<char *>("OpenProcessToken")), GetLastError ());
+            print_error (TEXT (const_cast<TCHAR *>("OpenProcessToken")), GetLastError ());
         }
 
         // Get the LUID
-        if (!LookupPrivilegeValue (NULL, TEXT (const_cast<char *>(privilege)), &token_prlg.Privileges[0].Luid))
+        if (!LookupPrivilegeValue (NULL, psz_privilege, &token_prlg.Privileges[0].Luid))
         {
-            print_error (TEXT (const_cast<char *>("LookupPrivilegeValue")), GetLastError ());
+            print_error (TEXT (const_cast<TCHAR *>("LookupPrivilegeValue")), GetLastError ());
         }
-
-        //LookupPrivilegeValue (NULL, TEXT ("SeLockMemoryPrivilege"), &token_prlg.Privileges[0].Luid);
 
         token_prlg.PrivilegeCount = 1;
 
@@ -102,13 +91,13 @@ namespace Memoryhandler {
         DWORD dw_error = GetLastError ();
         if (!status || (dw_error != ERROR_SUCCESS))
         {
-            print_error (TEXT (const_cast<char *>("AdjustTokenPrivileges")), dw_error);
+            print_error (TEXT (const_cast<TCHAR *>("AdjustTokenPrivileges")), dw_error);
         }
 
         // close the handle
         if (!CloseHandle (token_handle))
         {
-            print_error (TEXT (const_cast<char *>("CloseHandle")), GetLastError ());
+            print_error (TEXT (const_cast<TCHAR *>("CloseHandle")), GetLastError ());
         }
 
 #   endif

@@ -43,7 +43,7 @@ SIGNBENCH = ./$(EXE) bench
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
 	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o  \
 	Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o       \
-	MemoryHandler.o Tester.o 
+	MemoryHandler.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -62,7 +62,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 #                                              with GCC and ICC 64-bit)
 # popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# pages   = yes/no    --- -DLARGEPAGES     --- Use Large Pages
+# pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -78,6 +78,7 @@ prefetch= no
 bsfq    = no
 popcnt  = no
 sse     = no
+pages   = no
 
 ### 2.2 Architecture specific
 
@@ -157,6 +158,7 @@ ifeq ($(ARCH),osx-x86-64)
 	prefetch= yes
 	bsfq    = yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),osx-x86-64-modern)
@@ -167,6 +169,7 @@ ifeq ($(ARCH),osx-x86-64-modern)
 	bsfq    = yes
 	popcnt  = yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),osx-x86-32)
@@ -176,6 +179,7 @@ ifeq ($(ARCH),osx-x86-32)
 	bsfq    = no
 	popcnt  = no
 	sse     = yes
+	pages   = yes
 endif
 
 
@@ -327,7 +331,7 @@ endif
 
 ### 3.10 pages
 ifeq ($(pages),yes)
-	CXXFLAGS += -DLARGEPAGES
+	CXXFLAGS += -DLPAGES
 endif
 
 ### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.

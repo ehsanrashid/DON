@@ -14,10 +14,6 @@
 #include "Thread.h"
 #include "UCI.h"
 
-#ifndef NDEBUG
-#   include "Tester.h"
-#endif
-
 namespace Engine {
 
     using namespace std;
@@ -57,9 +53,9 @@ namespace Engine {
                 >> year;
 
             ss  << setfill ('0')
-                << setw (2) << day //<< '-'
+                << setw (2) << (day) //<< '-'
                 << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
-                << setw (2) << year.substr (2);
+                << setw (2) << (year.substr (2));
         }
         else
         {
@@ -67,13 +63,19 @@ namespace Engine {
         }
 
 #ifdef _64BIT
+
         ss << " x64";
+
 #else
+
         ss << " w32";
+
 #endif
 
 #ifdef POPCNT
+
         ss << "-modern";
+
 #endif
 
         ss  << "\n" 
@@ -87,12 +89,17 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-//        cout << "info string " << cpu_count () << " processor(s) found." << endl;
+//        cout << "info string Processor(s) found " << cpu_count () << ".\n";
+
 #ifdef POPCNT
+
         cout << "info string POPCNT available." << endl;
+
 #endif
-#ifdef LARGEPAGES
-        cout << "info string LARGEPAGES available." << endl;
+#ifdef LPAGES
+
+        cout << "info string LARGE PAGES available." << endl;
+
 #endif
 
         UCI      ::initialize ();
@@ -107,17 +114,13 @@ namespace Engine {
         TT.resize (int32_t (*(Options["Hash"])), true);
 
         cout
-            << "info string " << Threads.size () << " thread(s)." << "\n"
-            << "info string " << TT.size ()      << " MB Hash."   << endl;
+            << "info string Thread(s) count " << Threads.size () << ".\n"
+            << "info string Hash size " << TT.size () << " MB."  << endl;
 
-#ifndef NDEBUG
-        //Tester::main_test ();
-        //system ("pause");
-        //return;
-#endif
+#ifdef LPAGES
 
-#ifdef LARGEPAGES
-        Memoryhandler::setup_privileges ("SeLockMemoryPrivilege", true);
+        Memoryhandler::setup_privileges (TEXT ("SeLockMemoryPrivilege"), true);
+
 #endif
 
         UCI   ::start (args);
@@ -127,12 +130,19 @@ namespace Engine {
     // Exit from engine with exit code. (in case of some crash)
     void exit (int32_t code)
     {
+
         UCI   ::stop ();
-        if (Searcher::Book.is_open ()) Searcher::Book.close ();
+        
+        if (Searcher::Book.is_open ())
+        {
+            Searcher::Book.close ();
+        }
+
         Threads.deinitialize ();
         UCI   ::deinitialize ();
 
         ::exit (code);
+
     }
 
 }

@@ -7,7 +7,7 @@
 
 #include "Type.h"
 #include "MemoryHandler.h"
-//#include "LeakDetector.h"
+#include "LeakDetector.h"
 
 #pragma warning (push)
 #pragma warning (disable : 4244)
@@ -44,14 +44,14 @@ private:
 
 public:
 
-    uint32_t     key () const { return uint32_t   (_key); }
-    Move        move () const { return Move      (_move); }
-    Depth      depth () const { return Depth    (_depth); }
-    Bound      bound () const { return Bound    (_bound); }
+    uint32_t     key () const { return uint32_t (_key); }
+    Move        move () const { return Move (_move); }
+    Depth      depth () const { return Depth (_depth); }
+    Bound      bound () const { return Bound (_bound); }
     uint16_t   nodes () const { return uint16_t (_nodes); }
-    Value      value () const { return Value    (_value); }
-    Value       eval () const { return Value     (_eval); }
-    uint8_t      gen () const { return uint8_t    (_gen); }
+    Value      value () const { return Value (_value); }
+    Value       eval () const { return Value (_eval); }
+    uint8_t      gen () const { return uint8_t (_gen); }
 
     void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
     {
@@ -84,8 +84,10 @@ typedef class TranspositionTable
 
 private:
 
-#ifdef LARGEPAGES
+#ifdef LPAGES
+
     void               * _mem;
+
 #endif
 
     TranspositionEntry *_hash_table;
@@ -100,14 +102,20 @@ private:
         if (_hash_table)
         {
 
-#ifdef LARGEPAGES
+#ifdef LPAGES
+
             Memoryhandler::free_memory (_mem);
-            _mem = _hash_table = NULL;
+            _mem =
+
 #else
+
             void *mem = ((void **) _hash_table)[-1];
             free (mem);
-            mem = _hash_table = NULL;
+            mem =
+
 #endif
+
+            _hash_table = NULL;
 
         }
 
@@ -185,7 +193,7 @@ public:
             std::memset (_hash_table, 0, mem_size_b);
 
             _generation  = 0;
-            sync_cout << "info string hash cleared." << sync_endl;
+            sync_cout << "info string Hash cleared." << sync_endl;
         }
         clear_hash = false;
     }
@@ -199,7 +207,7 @@ public:
     // Normally called after a TranspositionTable hit.
     inline void refresh (const TranspositionEntry &te) const
     {
-        const_cast<TranspositionEntry&> (te) .gen (_generation);
+        const_cast<TranspositionEntry&> (te).gen (_generation);
     }
     inline void refresh (const TranspositionEntry *te) const
     {
@@ -222,15 +230,15 @@ public:
     inline uint16_t permill_full () const
     {
         uint16_t full_count = 0;
-        uint16_t length = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
-        for (uint16_t i = 0; i < length; ++i)
+        uint16_t loop_count = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
+        for (uint16_t i = 0; i < loop_count; ++i)
         {
             if (_hash_table[i].gen () == _generation)
             {
                 ++full_count;
             }
         }
-        return (full_count * 1000) / length;
+        return (full_count * 1000) / loop_count;
     }
 
     uint32_t resize (uint32_t mem_size_mb, bool force = false);
@@ -249,34 +257,34 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
     {
-        uint32_t mem_size_mb = tt.size ();
-        uint8_t dummy = 0;
-        os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
-        os.write ((const char *) &TranspositionTable::TENTRY_SIZE , sizeof (dummy));
-        os.write ((const char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
-        os.write ((const char *) &dummy, sizeof (dummy));
-        os.write ((const char *) &tt._generation, sizeof (tt._generation));
-        os.write ((const char *) &tt._hash_mask , sizeof (tt._hash_mask));
-        os.write ((const char *)  tt._hash_table, mem_size_mb << 20);
-        return os;
+            uint32_t mem_size_mb = tt.size ();
+            uint8_t dummy = 0;
+            os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
+            os.write ((const char *) &TranspositionTable::TENTRY_SIZE, sizeof (dummy));
+            os.write ((const char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
+            os.write ((const char *) &dummy, sizeof (dummy));
+            os.write ((const char *) &tt._generation, sizeof (tt._generation));
+            os.write ((const char *) &tt._hash_mask, sizeof (tt._hash_mask));
+            os.write ((const char *) tt._hash_table, mem_size_mb << 20);
+            return os;
     }
 
     template<class charT, class Traits>
     friend std::basic_istream<charT, Traits>&
         operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
     {
-        uint32_t mem_size_mb;
-        is.read ((char *) &mem_size_mb, sizeof (mem_size_mb));
-        uint8_t dummy;
-        is.read ((char *) &dummy, sizeof (dummy));
-        is.read ((char *) &dummy, sizeof (dummy));
-        is.read ((char *) &dummy, sizeof (dummy));
-        is.read ((char *) &dummy, sizeof (dummy));
-        is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
-        tt.resize (mem_size_mb);
-        tt._generation = dummy;
-        is.read ((char *) tt._hash_table, mem_size_mb << 20);
-        return is;
+            uint32_t mem_size_mb;
+            is.read ((char *) &mem_size_mb, sizeof (mem_size_mb));
+            uint8_t dummy;
+            is.read ((char *) &dummy, sizeof (dummy));
+            is.read ((char *) &dummy, sizeof (dummy));
+            is.read ((char *) &dummy, sizeof (dummy));
+            is.read ((char *) &dummy, sizeof (dummy));
+            is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
+            tt.resize (mem_size_mb);
+            tt._generation = dummy;
+            is.read ((char *) tt._hash_table, mem_size_mb << 20);
+            return is;
     }
 
 } TranspositionTable;

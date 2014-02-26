@@ -3,11 +3,11 @@
 #define PLATFORM_H_
 
 
-#undef POPCNT
+//#undef POPCNT
 //#define POPCNT
 //#define BSFQ
 //#define PREFETCH
-//#define LARGEPAGES
+//#define LPAGES
 //#define __INTEL_COMPILER
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
