@@ -25,7 +25,7 @@ inline bool whitespace (const char s[])
     if (!s)     return true;
     while (*s)
     {
-        if (!isspace (unsigned char (*s))) return false;
+        if (!isspace ((unsigned char) (*s))) return false;
         ++s;
     }
     return true;

@@ -40,24 +40,24 @@ namespace {
 
     void print_error (TCHAR* psz_api, DWORD dw_error)
     {
-        LPVOID lpv_message_buff;
+        //LPVOID lpv_message_buff;
 
-        FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                      FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL, dw_error,
-                      MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR) &lpv_message_buff, 0, NULL);
+        //FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        //              FORMAT_MESSAGE_FROM_SYSTEM |
+        //              FORMAT_MESSAGE_IGNORE_INSERTS,
+        //              NULL, dw_error,
+        //              MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+        //              (LPTSTR) &lpv_message_buff, 0, NULL);
 
-        //... now display this string
-        _tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
-        _tprintf (TEXT ("       Error code = %d\n"), dw_error);
-        _tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
+        ////... now display this string
+        //_tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
+        //_tprintf (TEXT ("       Error code = %d\n"), dw_error);
+        //_tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
 
-        // Free the buffer allocated by the system
-        LocalFree (lpv_message_buff);
+        //// Free the buffer allocated by the system
+        //LocalFree (lpv_message_buff);
 
-        ExitProcess (GetLastError ());
+        //ExitProcess (GetLastError ());
     }
 
 }

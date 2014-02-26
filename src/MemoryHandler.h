@@ -8,7 +8,7 @@
 
 namespace Memoryhandler {
 
-    extern void setup_privileges (const char* privilege = "SeLockMemoryPrivilege", bool enable = true);
+    extern void setup_privileges (const char* privilege, bool enable = true);
 
     extern void create_memory (void **mem_ref, uint64_t size, uint32_t align);
 

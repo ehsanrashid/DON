@@ -10,9 +10,9 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "UCI.h"
 #include "DebugLogger.h"
 #include "Thread.h"
+#include "UCI.h"
 
 #ifndef NDEBUG
 #   include "Tester.h"
@@ -91,6 +91,9 @@ namespace Engine {
 #ifdef POPCNT
         cout << "info string POPCNT available." << endl;
 #endif
+#ifdef LARGEPAGES
+        cout << "info string LARGEPAGES available." << endl;
+#endif
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
@@ -111,6 +114,10 @@ namespace Engine {
         //Tester::main_test ();
         //system ("pause");
         //return;
+#endif
+
+#ifdef LARGEPAGES
+        Memoryhandler::setup_privileges ("SeLockMemoryPrivilege", true);
 #endif
 
         UCI   ::start (args);

@@ -1,6 +1,6 @@
 #include "Tester.h"
 
-//#include "xcstring.h"
+#include "xcstring.h"
 #include "xstring.h"
 
 #include "BitBoard.h"
