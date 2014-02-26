@@ -84,10 +84,8 @@ typedef class TranspositionTable
 
 private:
 
-#if !(defined(_WIN32) && defined(_MSC_VER))
-
+#ifdef LARGEPAGES
     void               * _mem;
-
 #endif
 
     TranspositionEntry *_hash_table;
@@ -102,17 +100,13 @@ private:
         if (_hash_table)
         {
 
-#if defined(_WIN32) && defined(_MSC_VER)
-
+#ifdef LARGEPAGES
+            Memoryhandler::free_memory (_mem);
+            _mem = _hash_table = NULL;
+#else
             void *mem = ((void **) _hash_table)[-1];
             free (mem);
             mem = _hash_table = NULL;
-
-#else
-
-            Memoryhandler::free_memory (_mem);
-            _mem = _hash_table = NULL;
-
 #endif
 
         }

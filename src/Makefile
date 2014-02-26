@@ -62,6 +62,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 #                                              with GCC and ICC 64-bit)
 # popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
+# pages   = yes/no    --- -DLARGEPAGES     --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -92,6 +93,7 @@ ifeq ($(ARCH),x86-32)
 	arch    = i386
 	prefetch= yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),x86-32-modern)
@@ -99,6 +101,7 @@ ifeq ($(ARCH),x86-32-modern)
 	prefetch= yes
 	popcnt  = yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),general-64)
@@ -112,6 +115,7 @@ ifeq ($(ARCH),x86-64)
 	prefetch= yes
 	bsfq    = yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),x86-64-modern)
@@ -121,6 +125,7 @@ ifeq ($(ARCH),x86-64-modern)
 	bsfq    = yes
 	popcnt  = yes
 	sse     = yes
+	pages   = yes
 endif
 
 ifeq ($(ARCH),armv7)
@@ -320,7 +325,12 @@ ifeq ($(popcnt),yes)
 	CXXFLAGS += -msse3 -DPOPCNT
 endif
 
-### 3.10 Link Time Optimization, it works since gcc 4.5 but not on mingw.
+### 3.10 pages
+ifeq ($(pages),yes)
+	CXXFLAGS += -DLARGEPAGES
+endif
+
+### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)

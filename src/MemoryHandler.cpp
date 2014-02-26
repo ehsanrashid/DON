@@ -1,3 +1,5 @@
+#ifdef LARGEPAGES
+
 #include "MemoryHandler.h"
 
 #include "UCI.h"
@@ -9,9 +11,8 @@
 
 #else
 
-#   if !defined(_MSC_VER)
-#       include <tchar.h>
-#   endif
+#   include <tchar.h>
+#   include <stdio.h>
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX
@@ -37,8 +38,6 @@ namespace {
 
     bool use_large = false;
 
-#if defined(_WIN32) && !defined(_MSC_VER)
-
     void print_error (TCHAR* psz_api, DWORD dw_error)
     {
         LPVOID lpv_message_buff;
@@ -61,8 +60,6 @@ namespace {
         ExitProcess (GetLastError ());
     }
 
-#endif
-
 }
 
 namespace Memoryhandler {
@@ -70,9 +67,7 @@ namespace Memoryhandler {
     void setup_privileges (const char* privilege, bool enable)
     {
 
-#ifndef _WIN32 // Linux - Unix
-
-#elif !defined(_MSC_VER)
+#   ifdef _WIN32
 
         HANDLE           token_handle;
         TOKEN_PRIVILEGES token_prlg;
@@ -116,7 +111,7 @@ namespace Memoryhandler {
             print_error (TEXT (const_cast<char *>("CloseHandle")), GetLastError ());
         }
 
-#endif
+#   endif
 
     }
 
@@ -127,35 +122,35 @@ namespace Memoryhandler {
         if (bool (*(Options["Large Pages"])))
         {
 
-#ifndef _WIN32 // Linux - Unix
-
-            int32_t num = shmget (IPC_PRIVATE, size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
-            if (num != -1)
-            {
-                (*mem_ref) = shmat (num, NULL, 0x0);
-                use_large = true;
-                sync_cout << "info string HUGELTB " << (size >> 20) << sync_endl;
-            }
-            else
-            {
-                MEMALIGN ((*mem_ref), align, size);
-            }
-
-#elif !defined(_MSC_VER)
+#   ifdef _WIN32
 
             /* Vlad0 */
             (*mem_ref) = VirtualAlloc (NULL, size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
             if ((*mem_ref)) /* HACK */
             {
                 use_large = true;
-                sync_cout << "info string WindowsLargePages " << (size >> 20) << sync_endl;
+                sync_cout << "info string WindowsLargePages " << (size >> 20) << "MB Hash..." << sync_endl;
             }
             else
             {
                 MEMALIGN ((*mem_ref), align, size);
             }
 
-#endif
+#   else    // Linux - Unix
+
+            int32_t num = shmget (IPC_PRIVATE, size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
+            if (num != -1)
+            {
+                (*mem_ref) = shmat (num, NULL, 0x0);
+                use_large = true;
+                sync_cout << "info string HUGELTB " << (size >> 20) << "MB Hash..." << sync_endl;
+            }
+            else
+            {
+                MEMALIGN ((*mem_ref), align, size);
+            }
+
+#   endif
 
         }
         else
@@ -172,14 +167,14 @@ namespace Memoryhandler {
         if (use_large)
         {
 
-#ifndef _WIN32 // Linux - Unix
+#ifdef _WIN32
+
+            VirtualFree (mem_ref, 0, MEM_RELEASE);
+
+#else   // Linux - Unix
 
             shmdt (mem_ref);
             shmctl (num, IPC_RMID, NULL);
-
-#elif !defined(_MSC_VER)
-
-            VirtualFree (mem_ref, 0, MEM_RELEASE);
 
 #endif
 
@@ -191,3 +186,5 @@ namespace Memoryhandler {
     }
 
 }
+
+#endif

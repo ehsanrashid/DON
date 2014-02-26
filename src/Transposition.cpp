@@ -3,7 +3,6 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-
 // Global Transposition Table
 TranspositionTable TT;
 
@@ -32,7 +31,21 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
 
      ASSERT (0 == (alignment & (alignment - 1)));
 
-#if defined(_WIN32) && defined(_MSC_VER)
+#ifdef LARGEPAGES
+
+    Memoryhandler::create_memory (&_mem, mem_size_b, alignment);
+    if (!_mem)
+    {
+        cerr << "ERROR: Failed to allocate " << (mem_size_b >> 20) << " MB Hash..." << endl;
+        Engine::exit (EXIT_FAILURE);
+    }
+
+    memset (_mem, 0, mem_size_b);
+    
+    void **ptr = (void **) ((uintptr_t (_mem) + alignment - 1) & ~uintptr_t (alignment - 1));
+    _hash_table = (TranspositionEntry *) (ptr);
+
+#else
 
     // We need to use malloc provided by C.
     // First we need to allocate memory of mem_size_b + max (alignment, sizeof (void *)).
@@ -67,20 +80,6 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
     ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
 
     ptr[-1] = mem;
-
-#else
-
-    Memoryhandler::create_memory (&_mem, mem_size_b, alignment);
-    if (!_mem)
-    {
-        cerr << "ERROR: Failed to allocate " << (mem_size_b >> 20) << " MB Hash..." << endl;
-        Engine::exit (EXIT_FAILURE);
-    }
-
-    memset (_mem, 0, mem_size_b);
-    
-    void **ptr = (void **) ((uintptr_t (_mem) + alignment - 1) & ~uintptr_t (alignment - 1));
-    _hash_table = (TranspositionEntry *) (ptr);
 
 #endif
 

@@ -201,10 +201,14 @@ namespace UCI {
 
         using namespace OptionType;
 
+#ifdef LARGEPAGES
+
         void on_large_pages     (const Option &)
         {
             TT.resize ();
         }
+
+#endif
 
         void on_clear_hash      (const Option &)
         {
@@ -286,8 +290,11 @@ namespace UCI {
                                                                             TranspositionTable::MIN_TT_SIZE,
                                                                             TranspositionTable::MAX_TT_SIZE,
                                                                             on_resize_hash));
+#ifdef LARGEPAGES
 
         Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
+
+#endif
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.

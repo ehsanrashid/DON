@@ -2,6 +2,8 @@
 #ifndef MEMORY_HANDLER_H_
 #define MEMORY_HANDLER_H_
 
+#ifdef LARGEPAGES
+
 #include "Type.h"
 
 namespace Memoryhandler {
@@ -13,5 +15,7 @@ namespace Memoryhandler {
     extern void free_memory (void *mem_ref);
 
 }
+
+#endif
 
 #endif
