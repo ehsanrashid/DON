@@ -23,7 +23,7 @@
 
 namespace {
 
-    bool use_large = false;
+    bool use_largepages = false;
 
 #   ifdef _WIN32
 
@@ -46,8 +46,9 @@ namespace {
         // Free the buffer allocated by the system
         LocalFree (lpv_message_buff);
 
-        ExitProcess (GetLastError ());
+        //ExitProcess (GetLastError ());
     }
+
 #   endif
 
 }
@@ -78,11 +79,8 @@ namespace Memoryhandler {
             print_error (TEXT (const_cast<TCHAR *>("LookupPrivilegeValue")), GetLastError ());
         }
 
-        token_prlg.PrivilegeCount = 1;
-
-        token_prlg.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
         // enable or disable privilege
+        token_prlg.PrivilegeCount = 1;
         token_prlg.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
         bool status = AdjustTokenPrivileges (token_handle, false, &token_prlg, 0, NULL, 0);
 
@@ -104,9 +102,9 @@ namespace Memoryhandler {
 
     }
 
-    void create_memory (void **mem_ref, uint64_t size, uint32_t align)
+    void create_memory (void **mem_ref, uint64_t size, uint8_t align)
     {
-        use_large = false;
+        use_largepages = false;
 
         if (bool (*(Options["Large Pages"])))
         {
@@ -117,7 +115,7 @@ namespace Memoryhandler {
             (*mem_ref) = VirtualAlloc (NULL, size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
             if ((*mem_ref)) /* HACK */
             {
-                use_large = true;
+                use_largepages = true;
                 sync_cout << "info string WindowsLargePages " << (size >> 20) << "MB Hash..." << sync_endl;
             }
             else
@@ -131,7 +129,7 @@ namespace Memoryhandler {
             if (num != -1)
             {
                 (*mem_ref) = shmat (num, NULL, 0x0);
-                use_large = true;
+                use_largepages = true;
                 sync_cout << "info string HUGELTB " << (size >> 20) << "MB Hash..." << sync_endl;
             }
             else
@@ -153,7 +151,7 @@ namespace Memoryhandler {
     {
         if (!mem_ref) return;
 
-        if (use_large)
+        if (use_largepages)
         {
 
 #ifdef _WIN32
