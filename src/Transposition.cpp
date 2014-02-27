@@ -157,11 +157,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
             re = te;
             break;
         }
-        else
-        {
-            // Replace would be a no-op in this common case
-            if (0 == i) continue;
-        }
+
+        // Replace would be a no-op in this common case
+        if (0 == i) continue;
 
         // Implement replacement strategy when a collision occurs
         int8_t gc1 = ((re->gen () == _generation) ? +2 : 0);
