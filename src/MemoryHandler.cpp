@@ -188,7 +188,7 @@ namespace MemoryHandler {
 
     }
 
-    void create_memory  (void **mem_ref, uint64_t size, uint8_t align)
+    void create_memory  (void **mem_ref, uint64_t mem_size, uint8_t align)
     {
         use_largepages = false;
 
@@ -200,7 +200,7 @@ namespace MemoryHandler {
             /* Vlad0 */
             *mem_ref = VirtualAlloc (
                         NULL,                   // System selects address
-                        size_t (size),          // Size of allocation
+                        size_t (mem_size),          // Size of allocation
                         MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         //MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);        // Protection of Allocation
@@ -208,18 +208,18 @@ namespace MemoryHandler {
             if (*mem_ref) /* HACK */
             {
                 use_largepages = true;
-                sync_cout << "info string WindowsLargePages " << (size >> 20) << "MB Hash..." << sync_endl;
+                std::cout << "info string WindowsLargePages " << (mem_size >> 20) << " MB Hash..." << std::endl;
                 return;
             }
 
 #   else    // Linux - Unix
 
-            int32_t num = shmget (IPC_PRIVATE, size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
+            int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
             if (num != -1)
             {
                 *mem_ref = shmat (num, NULL, 0x0);
                 use_largepages = true;
-                sync_cout << "info string HUGELTB " << (size >> 20) << "MB Hash..." << sync_endl;
+                sync_cout << "info string HUGELTB " << (mem_size >> 20) << " MB Hash..." << sync_endl;
                 return;
             }
 
@@ -227,7 +227,7 @@ namespace MemoryHandler {
 
         }
 
-        MEMALIGN (*mem_ref, align, size);
+        MEMALIGN (*mem_ref, align, mem_size);
 
     }
 

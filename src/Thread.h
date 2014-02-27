@@ -54,6 +54,7 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #else    // Linux - Unix
 
 #   include <pthread.h>
+#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
@@ -258,13 +259,14 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 
     int32_t tm = msec;
 
-#else
+#else    // Linux - Unix
 
-    timespec ts, *tm = &ts;
+    timespec ts
+        ,   *tm = &ts;
     uint64_t ms = Time::now() + msec;
 
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000LL;
+    ts.tv_sec = ms / Time::M_SEC;
+    ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
 
 #endif
 
@@ -333,6 +335,11 @@ inline uint32_t cpu_count ()
 //#endif
 
 }
+
+typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
+
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)

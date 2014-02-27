@@ -22,8 +22,6 @@
 #       pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 #       pragma warning (disable: 6326) // Constant comparison
 
-//#       include <cstdint>
-
 // MSVC does not support <inttypes.h>
 typedef   signed __int8          int8_t;
 typedef unsigned __int8         uint8_t;
@@ -39,7 +37,6 @@ typedef unsigned __int64        uint64_t;
 #       define  S64(X) (X## i64)
 #       define  U64(X) (X##ui64)
 
-
 #   else
 
 #       include <inttypes.h>
@@ -52,23 +49,18 @@ typedef unsigned __int64        uint64_t;
 #   endif
 
 
-#   if defined(_WIN64) && !defined(_64BIT)
-#       define _64BIT
+#   if defined(_WIN64)
+#       if !defined(_64BIT)
+#           define _64BIT
+#       endif
+#       if !defined(BSFQ)
+#           define BSFQ
+#       endif
 #   endif
 
-#elif defined(__GNUC__)
+#else    // Linux - Unix
 
 #   include <inttypes.h>
-#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
-
-#   define S32(X) (X## L )
-#   define U32(X) (X##UL )
-#   define S64(X) (X## LL)
-#   define U64(X) (X##ULL)
-
-#else
-
-#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
 
 typedef   signed char            int8_t;
 typedef unsigned char           uint8_t;
@@ -102,6 +94,7 @@ typedef unsigned long long      uint64_t;
 
 #endif
 
+#define CACHE_LINE_SIZE 64
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   define CACHE_ALIGN(x)     __declspec(align(x))

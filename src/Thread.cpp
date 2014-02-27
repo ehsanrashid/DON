@@ -384,9 +384,9 @@ void ThreadPool::wait_for_think_finished ()
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,
 // which can be quite slow.
-#ifdef PREFETCH
+#if defined(PREFETCH)
 
-#if defined(__INTEL_COMPILER) || defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
@@ -399,6 +399,7 @@ void prefetch (char *addr)
         __asm__ ("");
     }
 #   endif
+
     _mm_prefetch (addr, _MM_HINT_T0);
 }
 

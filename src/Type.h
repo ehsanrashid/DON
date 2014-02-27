@@ -225,7 +225,7 @@ enum Value : int32_t
     VALUE_NONE      = 32767, // std::numeric_limits<int>::max()
     VALUE_INFINITE  = VALUE_NONE - 1,
 
-    VALUE_MATE      = 32000,
+    VALUE_MATE      = VALUE_INFINITE - 1,
     VALUE_KNOWN_WIN = VALUE_MATE / 4,
 
     VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - MAX_PLY,
@@ -688,13 +688,6 @@ inline Value mated_in (int32_t ply) { return (+ply - VALUE_MATE); }
 //    std::for_each (sq_lst.begin (), sq_lst.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
-
-
-
-typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
-
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
 
 
 template<class Entry, int32_t SIZE>

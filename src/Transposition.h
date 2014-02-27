@@ -147,8 +147,6 @@ public:
     // 032768 MB = 032 GB   -> 32 Bit
     static const uint32_t MAX_TT_SIZE;
 
-    static const uint8_t  CACHE_LINE_SIZE;
-
     bool clear_hash;
 
 
@@ -195,7 +193,7 @@ public:
             std::memset (_hash_table, 0, mem_size_b);
 
             _generation  = 0;
-            sync_cout << "info string Hash cleared." << sync_endl;
+            std::cout << "info string Hash cleared." << std::endl;
         }
         clear_hash = false;
     }
