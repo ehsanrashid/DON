@@ -5,123 +5,123 @@
 
 #include "Position.h"
 
-using namespace std;
-using namespace BitBoard;
-using namespace EndGame;
-
-namespace {
-
-    // Values modified by Joona Kiiski
-    const Value MidgameLimit = Value (15581);
-    const Value EndgameLimit = Value ( 3998);
-
-    // Polynomial material balance parameters
-    //                                            P      N      B      R      Q     BP
-    const int32_t LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
-
-    const int32_t QuadraticCoefficientsSameColor[NONE][NONE] =
-    {
-        // P    N    B    R    Q    BP
-        {   2,   0,   0,   0,   0,  39, }, // P
-        { 271,  -4,   0,   0,   0,  35, }, // N
-        { 105,   4,   0,   0,   0,   0, }, // B
-        {  -2,  46, 100,-141,   0, -27, }, // R
-        {  29,  83, 148,-163,   0,  58, }, // Q
-        {   0,   0,   0,   0,   0,   0, }, // BP
-    };
-
-    const int32_t QuadraticCoefficientsOppositeColor[NONE][NONE] =
-    {
-        //       THEIR PIECES
-        // P    N    B    R    Q    BP
-        {   0,   0,   0,   0,   0,  37, }, // P
-        {  62,   0,   0,   0,   0,  10, }, // N
-        {  64,  39,   0,   0,   0,  57, }, // B     OUR PIECES
-        {  40,  23, -22,   0,   0,  50, }, // R
-        { 101,   3, 151, 171,   0, 106, }, // Q
-        {   0,   0,   0,   0,   0,   0, }, // BP
-    };
-
-    // Endgame evaluation and scaling functions are accessed direcly and not through
-    // the function maps because they correspond to more than one material hash key.
-    Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
-
-    Endgame<KBPsKs> ScaleKBPsKs [CLR_NO] = { Endgame<KBPsKs> (WHITE), Endgame<KBPsKs> (BLACK) };
-    Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
-
-    Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
-    Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
-
-    // Helper templates used to detect a given material distribution
-    template<Color C>
-    inline bool is_KXK(const Position &pos)
-    {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
-
-        return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
-            && pos.non_pawn_material (C_) == VALUE_ZERO
-            && pos.count<PAWN> (C_) == 0;
-    }
-
-    template<Color C> 
-    inline bool is_KBPsKs(const Position &pos)
-    {
-        return pos.non_pawn_material (C ) == VALUE_MG_BISHOP
-            && pos.count<BSHP> (C ) == 1
-            && pos.count<PAWN> (C ) >= 1;
-    }
-
-    template<Color C>
-    inline bool is_KQKRPs(const Position &pos)
-    {
-        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
-
-        return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
-            //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
-            && pos.count<QUEN> (C ) == 1
-            && pos.count<PAWN> (C ) == 0
-            && pos.count<ROOK> (C_) == 1
-            && pos.count<PAWN> (C_) >= 1;
-    }
-
-    template<Color C>
-    // imbalance<> () calculates imbalance comparing
-    // piece count of each piece type for both colors.
-    // KING == BISHOP_PAIR
-    inline Value imbalance (const int32_t count[CLR_NO][NONE])
-    {
-        const Color C_  = ((WHITE == C) ? BLACK : WHITE);
-
-        int32_t value = VALUE_ZERO;
-
-        // "The Evaluation of Material Imbalances in Chess"
-
-        // Second-degree polynomial material imbalance by Tord Romstad
-        for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
-        {
-            int32_t pc = count[C][pt1];
-            if (!pc) continue;
-
-            int32_t v = LinearCoefficients[pt1];
-
-            for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
-            {
-                v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
-                +    count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
-            }
-            v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
-            +    count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
-
-            value += pc * v;
-        }
-        value += count[C][KING] * LinearCoefficients[KING];
-
-        return Value (value);
-    }
-
-} // namespace
-
 namespace Material {
+
+    using namespace std;
+    using namespace BitBoard;
+    using namespace EndGame;
+
+    namespace {
+
+        // Values modified by Joona Kiiski
+        const Value MidgameLimit = Value (15581);
+        const Value EndgameLimit = Value ( 3998);
+
+        // Polynomial material balance parameters
+        //                                            P      N      B      R      Q     BP
+        const int32_t LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
+
+        const int32_t QuadraticCoefficientsSameColor[NONE][NONE] =
+        {
+            // P    N    B    R    Q    BP
+            {   2,   0,   0,   0,   0,  39, }, // P
+            { 271,  -4,   0,   0,   0,  35, }, // N
+            { 105,   4,   0,   0,   0,   0, }, // B
+            {  -2,  46, 100,-141,   0, -27, }, // R
+            {  29,  83, 148,-163,   0,  58, }, // Q
+            {   0,   0,   0,   0,   0,   0, }, // BP
+        };
+
+        const int32_t QuadraticCoefficientsOppositeColor[NONE][NONE] =
+        {
+            //       THEIR PIECES
+            // P    N    B    R    Q    BP
+            {   0,   0,   0,   0,   0,  37, }, // P
+            {  62,   0,   0,   0,   0,  10, }, // N
+            {  64,  39,   0,   0,   0,  57, }, // B     OUR PIECES
+            {  40,  23, -22,   0,   0,  50, }, // R
+            { 101,   3, 151, 171,   0, 106, }, // Q
+            {   0,   0,   0,   0,   0,   0, }, // BP
+        };
+
+        // Endgame evaluation and scaling functions are accessed direcly and not through
+        // the function maps because they correspond to more than one material hash key.
+        Endgame<KXK>   EvaluateKXK  [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
+
+        Endgame<KBPsKs> ScaleKBPsKs [CLR_NO] = { Endgame<KBPsKs> (WHITE), Endgame<KBPsKs> (BLACK) };
+        Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
+
+        Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
+        Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
+
+        // Helper templates used to detect a given material distribution
+        template<Color C>
+        inline bool is_KXK(const Position &pos)
+        {
+            const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+
+            return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
+                && pos.non_pawn_material (C_) == VALUE_ZERO
+                && pos.count<PAWN> (C_) == 0;
+        }
+
+        template<Color C> 
+        inline bool is_KBPsKs(const Position &pos)
+        {
+            return pos.non_pawn_material (C ) == VALUE_MG_BISHOP
+                && pos.count<BSHP> (C ) == 1
+                && pos.count<PAWN> (C ) >= 1;
+        }
+
+        template<Color C>
+        inline bool is_KQKRPs(const Position &pos)
+        {
+            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+
+            return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
+                //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
+                && pos.count<QUEN> (C ) == 1
+                && pos.count<PAWN> (C ) == 0
+                && pos.count<ROOK> (C_) == 1
+                && pos.count<PAWN> (C_) >= 1;
+        }
+
+        template<Color C>
+        // imbalance<> () calculates imbalance comparing
+        // piece count of each piece type for both colors.
+        // KING == BISHOP_PAIR
+        inline Value imbalance (const int32_t count[CLR_NO][NONE])
+        {
+            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+
+            int32_t value = VALUE_ZERO;
+
+            // "The Evaluation of Material Imbalances in Chess"
+
+            // Second-degree polynomial material imbalance by Tord Romstad
+            for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
+            {
+                int32_t pc = count[C][pt1];
+                if (!pc) continue;
+
+                int32_t v = LinearCoefficients[pt1];
+
+                for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
+                {
+                    v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
+                    +    count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
+                }
+                v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
+                +    count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+
+                value += pc * v;
+            }
+            value += count[C][KING] * LinearCoefficients[KING];
+
+            return Value (value);
+        }
+
+    } // namespace
 
     // Material::probe () takes a position object as input,
     // looks up a MaterialEntry object, and returns a pointer to it.

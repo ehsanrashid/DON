@@ -19,7 +19,7 @@
 #undef NOMINMAX
 #undef WIN32_LEAN_AND_MEAN
 
-namespace Memoryhandler {
+namespace MemoryHandler {
 
     extern void setup_privileges (const TCHAR* psz_privilege, bool enable = true);
 

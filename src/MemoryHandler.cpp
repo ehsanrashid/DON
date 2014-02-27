@@ -22,40 +22,42 @@
 
 #endif
 
-namespace {
 
-    bool use_largepages = false;
+namespace MemoryHandler {
+
+    namespace {
+
+        bool use_largepages = false;
 
 #   ifdef _WIN32
 
-    void display_error (const TCHAR* psz_api, DWORD dw_error)
-    {
-        LPVOID lpv_message_buff;
+        void display_error (const TCHAR* psz_api, DWORD dw_error)
+        {
+            LPVOID lpv_message_buff;
 
-        FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                      FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL, dw_error,
-                      MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR) (&lpv_message_buff), 0, NULL);
+            FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                          FORMAT_MESSAGE_FROM_SYSTEM |
+                          FORMAT_MESSAGE_IGNORE_INSERTS,
+                          NULL, dw_error,
+                          MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                          (LPTSTR) (&lpv_message_buff), 0, NULL);
 
-        // Now display the string
-        _tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
-        _tprintf (TEXT ("       Error code = %d\n"), dw_error);
-        _tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
+            // Now display the string
+            _tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
+            _tprintf (TEXT ("       Error code = %d\n"), dw_error);
+            _tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
 
-        // Free the buffer allocated by the system
-        LocalFree (lpv_message_buff);
-    }
+            // Free the buffer allocated by the system
+            LocalFree (lpv_message_buff);
+        }
 
 #   else    // Linux - Unix
 
 
 #   endif
 
-}
+    }
 
-namespace Memoryhandler {
 
     void setup_privileges (const TCHAR* psz_privilege, bool enable)
     {
@@ -109,7 +111,7 @@ namespace Memoryhandler {
 
     }
 
-    void create_memory (void **mem_ref, uint64_t size, uint8_t align)
+    void create_memory  (void **mem_ref, uint64_t size, uint8_t align)
     {
         use_largepages = false;
 
@@ -154,7 +156,7 @@ namespace Memoryhandler {
 
     }
 
-    void free_memory (void *mem)
+    void free_memory    (void *mem)
     {
         if (!mem) return;
 

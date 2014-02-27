@@ -190,6 +190,7 @@ endif
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
+
 CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
@@ -504,35 +505,35 @@ $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 gcc-profile-prepare:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) gcc-profile-clean
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) gcc-profile-clean
 
 gcc-profile-make:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS= '-fprofile-generate' \
-	EXTRALDFLAGS = '-lgcov'             \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRALDFLAGS='-lgcov'              \
 	all
 
 gcc-profile-use:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS= '-fprofile-use'      \
-	EXTRALDFLAGS = '-lgcov'             \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	EXTRACXXFLAGS='-fprofile-use'      \
+	EXTRALDFLAGS='-lgcov'              \
 	all
 
 gcc-profile-clean:
 	@rm -rf *.gcda *.gcno bench.txt
 
 icc-profile-prepare:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) icc-profile-clean
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean
 	@mkdir profdir
 
 icc-profile-make:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS= '-prof-gen=srcpos -prof_dir ./profdir' \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	EXTRACXXFLAGS='-prof-gen=srcpos -prof_dir ./profdir' \
 	all
 
 icc-profile-use:
-	$(MAKE) ARCH = $(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS= '-prof_use -prof_dir ./profdir' \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
 	all
 
 icc-profile-clean:

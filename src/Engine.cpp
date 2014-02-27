@@ -99,7 +99,7 @@ namespace Engine {
 #ifdef LPAGES
 
         cout << "info string LARGE PAGES available." << endl;
-        Memoryhandler::setup_privileges (TEXT ("SeLockMemoryPrivilege"), true);
+        MemoryHandler::setup_privileges (TEXT ("SeLockMemoryPrivilege"), true);
 
 #endif
 

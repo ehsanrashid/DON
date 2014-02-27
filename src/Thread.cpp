@@ -41,6 +41,8 @@ namespace {
 
 }
 
+// ------------------------------------
+
 // ThreadBase::notify_one () wakes up the thread when there is some work to do
 void ThreadBase::notify_one ()
 {
@@ -56,6 +58,8 @@ void ThreadBase::wait_for (volatile const bool &b)
     while (!b) sleep_condition.wait (mutex);
     mutex.unlock ();
 }
+
+// ------------------------------------
 
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
@@ -97,126 +101,6 @@ bool Thread::available_to (const Thread *master) const
     // other thread otherwise apply the "helpful master" concept if possible.
     return !size || (split_points[size - 1].slaves_mask & (U64 (1) << master->idx));
 }
-
-// TimerThread::idle_loop() is where the timer thread waits msec milliseconds
-// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
-void TimerThread::idle_loop ()
-{
-    while (!exit)
-    {
-        mutex.lock ();
-
-        if (!exit) sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
-
-        mutex.unlock ();
-
-        if (run) check_time ();
-    }
-}
-
-// MainThread::idle_loop() is where the main thread is parked waiting to be started
-// when there is a new search. Main thread will launch all the slave threads.
-void MainThread::idle_loop ()
-{
-    do
-    {
-        mutex.lock ();
-
-        thinking = false;
-
-        while (!thinking && !exit)
-        {
-            Threads.sleep_condition.notify_one (); // Wake up UI thread if needed
-            sleep_condition.wait (mutex);
-        }
-
-        mutex.unlock ();
-
-        if (exit) return;
-
-        searching = true;
-
-        Searcher::think ();
-
-        ASSERT (searching);
-
-        searching = false;
-    }
-    while (true);
-}
-
-// init() is called at startup to create and launch requested threads, that will
-// go immediately to sleep due to 'sleep_idle' set to true.
-// We cannot use a c'tor becuase Threads is a static object and we need a fully initialized
-// engine at this point due to allocation of Endgames in Thread c'tor.
-void ThreadPool::initialize ()
-{
-    sleep_idle = true;
-    timer = new_thread<TimerThread> ();
-    push_back (new_thread<MainThread> ());
-    read_uci_options ();
-}
-
-// exit() cleanly terminates the threads before the program exits
-void ThreadPool::deinitialize ()
-{
-    delete_thread (timer); // As first because check_time() accesses threads data
-
-    for (iterator itr = begin (); itr != end (); ++itr)
-    {
-        delete_thread (*itr);
-    }
-}
-
-// read_uci_options() updates internal threads parameters from the corresponding
-// UCI options and creates/destroys threads to match the requested number.
-// Thread objects are dynamically allocated to avoid creating in advance all possible
-// threads, with included pawns and material tables, if only few are used.
-void ThreadPool::read_uci_options ()
-{
-    min_split_depth         = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-    max_split_point_threads = int32_t (*(Options["Split Point Threads"]));
-    uint8_t req_threads     = int32_t (*(Options["Threads"]));
-
-    ASSERT (req_threads > 0);
-
-    // Value 0 has a special meaning: We determine the optimal minimum split depth
-    // automatically. Anyhow the split depth should never be under 4 plies.
-
-    //min_split_depth = (0 == min_split_depth)
-    //    ? (req_threads < 8 ? 4 : 7) * ONE_MOVE
-    //    : max (4 * ONE_MOVE, min_split_depth);
-    if (0 == min_split_depth)
-    {
-        min_split_depth = (req_threads < 8 ? 4 : 7) * ONE_MOVE;
-    }
-
-    while (size () < req_threads)
-    {
-        push_back (new_thread<Thread> ());
-    }
-
-    while (size () > req_threads)
-    {
-        delete_thread (back ());
-        pop_back ();
-    }
-}
-
-// slave_available() tries to find an idle thread
-// which is available as a slave for the thread 'master'.
-Thread* ThreadPool::available_slave (const Thread *master) const
-{
-    for (const_iterator itr = begin (); itr != end (); ++itr)
-    {
-        if ((*itr)->available_to (master))
-        {
-            return *itr;
-        }
-    }
-    return NULL;
-}
-
 
 // split() does the actual work of distributing the work at a node between
 // several available threads. If it does not succeed in splitting the node
@@ -320,6 +204,131 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 template void Thread::split<false> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
 template void Thread::split< true> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
 
+// ------------------------------------
+
+// TimerThread::idle_loop() is where the timer thread waits msec milliseconds
+// and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+void TimerThread::idle_loop ()
+{
+    while (!exit)
+    {
+        mutex.lock ();
+
+        if (!exit) sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
+
+        mutex.unlock ();
+
+        if (run) check_time ();
+    }
+}
+
+// ------------------------------------
+
+// MainThread::idle_loop() is where the main thread is parked waiting to be started
+// when there is a new search. Main thread will launch all the slave threads.
+void MainThread::idle_loop ()
+{
+    do
+    {
+        mutex.lock ();
+
+        thinking = false;
+
+        while (!thinking && !exit)
+        {
+            Threads.sleep_condition.notify_one (); // Wake up UI thread if needed
+            sleep_condition.wait (mutex);
+        }
+
+        mutex.unlock ();
+
+        if (exit) return;
+
+        searching = true;
+
+        Searcher::think ();
+
+        ASSERT (searching);
+
+        searching = false;
+    }
+    while (true);
+}
+
+// ------------------------------------
+
+// init() is called at startup to create and launch requested threads, that will
+// go immediately to sleep due to 'sleep_idle' set to true.
+// We cannot use a c'tor becuase Threads is a static object and we need a fully initialized
+// engine at this point due to allocation of Endgames in Thread c'tor.
+void ThreadPool::initialize ()
+{
+    sleep_idle = true;
+    timer = new_thread<TimerThread> ();
+    push_back (new_thread<MainThread> ());
+    read_uci_options ();
+}
+
+// exit() cleanly terminates the threads before the program exits
+void ThreadPool::deinitialize ()
+{
+    delete_thread (timer); // As first because check_time() accesses threads data
+
+    for (iterator itr = begin (); itr != end (); ++itr)
+    {
+        delete_thread (*itr);
+    }
+}
+
+// read_uci_options() updates internal threads parameters from the corresponding
+// UCI options and creates/destroys threads to match the requested number.
+// Thread objects are dynamically allocated to avoid creating in advance all possible
+// threads, with included pawns and material tables, if only few are used.
+void ThreadPool::read_uci_options ()
+{
+    min_split_depth         = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
+    max_split_point_threads = int32_t (*(Options["Split Point Threads"]));
+    uint8_t req_threads     = int32_t (*(Options["Threads"]));
+
+    ASSERT (req_threads > 0);
+
+    // Value 0 has a special meaning: We determine the optimal minimum split depth
+    // automatically. Anyhow the split depth should never be under 4 plies.
+
+    //min_split_depth = (0 == min_split_depth)
+    //    ? (req_threads < 8 ? 4 : 7) * ONE_MOVE
+    //    : max (4 * ONE_MOVE, min_split_depth);
+    if (0 == min_split_depth)
+    {
+        min_split_depth = (req_threads < 8 ? 4 : 7) * ONE_MOVE;
+    }
+
+    while (size () < req_threads)
+    {
+        push_back (new_thread<Thread> ());
+    }
+
+    while (size () > req_threads)
+    {
+        delete_thread (back ());
+        pop_back ();
+    }
+}
+
+// slave_available() tries to find an idle thread
+// which is available as a slave for the thread 'master'.
+Thread* ThreadPool::available_slave (const Thread *master) const
+{
+    for (const_iterator itr = begin (); itr != end (); ++itr)
+    {
+        if ((*itr)->available_to (master))
+        {
+            return *itr;
+        }
+    }
+    return NULL;
+}
+
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
 void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
@@ -369,6 +378,7 @@ void ThreadPool::wait_for_think_finished ()
     main_th->mutex.unlock ();
 }
 
+// ------------------------------------
 
 // prefetch() preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall

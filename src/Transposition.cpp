@@ -30,7 +30,7 @@ const uint32_t TranspositionTable::MAX_TT_SIZE      = (uint32_t (1) << (MAX_HASH
 const uint8_t  TranspositionTable::CACHE_LINE_SIZE  = 0x40; // 64
 
 
-void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alignment)
+void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alignment)
 {
 
     ASSERT (0 == (alignment & (alignment - 1)));
@@ -40,7 +40,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
     
     uint8_t offset = max<int8_t> (alignment-1, sizeof (void *));
 
-    Memoryhandler::create_memory (&_mem, mem_size_b, alignment);
+    MemoryHandler::create_memory (&_mem, mem_size_b, alignment);
     if (!_mem)
     {
         cerr << "ERROR: Failed to allocate " << (mem_size_b >> 20) << " MB Hash..." << endl;
@@ -66,7 +66,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
     // So storing address given by malloc just above pointer returning to user.
     // Thats why needed extra space to store that address.
     // Then checking for error returned by malloc, if it returns NULL then 
-    // aligned_memory_alloc will fail and return NULL or exit().
+    // alloc_aligned_memory will fail and return NULL or exit().
 
     uint8_t offset = max (alignment, uint8_t (sizeof (void *)));
 
@@ -112,8 +112,8 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
 
     if (force || _hash_mask != (_entry_count - CLUSTER_SIZE))
     {
-        erase ();
-        aligned_memory_alloc (mem_size_b, CACHE_LINE_SIZE);
+        free_aligned_memory ();
+        alloc_aligned_memory (mem_size_b, CACHE_LINE_SIZE);
         _hash_mask  = (_entry_count - CLUSTER_SIZE);
     }
 

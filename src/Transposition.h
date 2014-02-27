@@ -94,17 +94,17 @@ private:
     uint32_t            _hash_mask;
     uint8_t             _generation;
 
-    void aligned_memory_alloc (uint64_t size, uint8_t alignment);
+    void alloc_aligned_memory (uint64_t size, uint8_t alignment);
 
-    // erase() free the allocated memory
-    void erase ()
+    // free_aligned_memory() free the allocated memory
+    void free_aligned_memory ()
     {
         if (_hash_table)
         {
 
 #ifdef LPAGES
 
-            Memoryhandler::free_memory (_mem);
+            MemoryHandler::free_memory (_mem);
             _mem =
 
 #else
@@ -170,7 +170,7 @@ public:
 
     ~TranspositionTable ()
     {
-        erase ();
+        free_aligned_memory ();
     }
 
     inline uint32_t size () const { return (uint64_t (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE) >> 20; }
