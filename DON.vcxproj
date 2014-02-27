@@ -584,7 +584,6 @@
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
-    <ClCompile Include="src\TB_SYZYGY.cpp" />
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
@@ -620,7 +619,6 @@
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\RKISS.h" />
     <ClInclude Include="src\Searcher.h" />
-    <ClInclude Include="src\TB_SYZYGY.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />

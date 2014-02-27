@@ -70,6 +70,10 @@ using namespace MoveGenerator;
 // CORE
 namespace {
 
+  // CORE contains engine-independent routines of the tablebase probing code.
+  // This should not need to much adaptation to add tablebase probing to
+  // a particular engine, provided the engine is written in C or C++.
+
 #define WDLSUFFIX       ".rtbw"
 #define DTZSUFFIX       ".rtbz"
 #define WDLDIR          "RTBWDIR"
