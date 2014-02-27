@@ -4,7 +4,7 @@
 
 #ifdef LPAGES
 
-#include "Type.h"
+#   include "Type.h"
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX
@@ -16,8 +16,8 @@
 
 #   include <windows.h>
 
-#undef NOMINMAX
-#undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+#   undef WIN32_LEAN_AND_MEAN
 
 namespace MemoryHandler {
 

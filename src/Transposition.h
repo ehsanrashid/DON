@@ -9,8 +9,10 @@
 #include "MemoryHandler.h"
 #include "LeakDetector.h"
 
-#pragma warning (push)
-#pragma warning (disable : 4244)
+#if defined(_MSC_VER)
+#   pragma warning (push)
+#   pragma warning (disable : 4244)
+#endif
 
 // Transposition Entry needs the 16 byte to be stored
 //
@@ -289,7 +291,9 @@ public:
 
 } TranspositionTable;
 
-#pragma warning (pop)
+#if defined(_MSC_VER)
+#   pragma warning (pop)
+#endif
 
 // Global Transposition Table
 extern TranspositionTable TT;

@@ -10,7 +10,12 @@
 
 #include <ctime>
 
-#ifdef _WIN32   // WINDOWS
+
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+
+#   if defined(_MSC_VER)
+#       pragma warning (disable: 4996) // Function _ftime() may be unsafe
+#   endif
 
 #   include <sys/timeb.h>
 
@@ -22,7 +27,7 @@ INLINE uint64_t system_time_msec ()
     return ((timebuf.time * 1000LL) + timebuf.millitm);
 }
 
-#else           // LINUX - UNIX
+#else   // LINUX - UNIX
 
 #   include <sys/time.h>
 
@@ -52,7 +57,7 @@ namespace Time {
     {
         std::ostringstream stime;
 
-//#ifdef _WIN32
+#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
         time_t time = (p / M_SEC);
         char *str_time = ctime (&time);
@@ -77,11 +82,11 @@ namespace Time {
             << &str_time[11] << "."
             << std::setw (3) << (p % M_SEC);
 
-//#else
-//
+#   else
+
 //        // TODO::
-//
-//#endif
+
+#   endif
 
         return stime.str ();
     }

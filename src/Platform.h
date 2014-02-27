@@ -12,16 +12,30 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-// STD TYPES
-#if defined(_MSC_VER) //|| defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+// Windows or MinGW
 
+#   if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
-#pragma warning (disable: 4127) // Conditional expression is constant
-#pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
-#pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
-#pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-#pragma warning (disable: 4996) // Function _ftime() may be unsafe
-//#pragma warning (disable: 6326) // Constant comparison
+#       pragma warning (disable: 4127) // Conditional expression is constant
+#       pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+#       pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
+#       pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+#       pragma warning (disable: 6326) // Constant comparison
+
+#       define  S32(X) (X## i32)
+#       define  U32(X) (X##ui32)
+#       define  S64(X) (X## i64)
+#       define  U64(X) (X##ui64)
+
+#   else
+
+#       define S32(X) (X## L )
+#       define U32(X) (X##UL )
+#       define S64(X) (X## LL)
+#       define U64(X) (X##ULL)
+
+#   endif
 
 #   include <cstdint>
 
@@ -37,11 +51,6 @@ typedef unsigned __int64        uint64_t;
 #   if defined(_WIN64) && !defined(_64BIT)
 #       define _64BIT
 #   endif
-
-#   define  S32(X) (X## i32)
-#   define  U32(X) (X##ui32)
-#   define  S64(X) (X## i64)
-#   define  U64(X) (X##ui64)
 
 #elif defined(__GNUC__)
 

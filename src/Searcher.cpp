@@ -25,6 +25,10 @@ using namespace Searcher;
 using namespace Evaluator;
 using namespace Time;
 
+#if defined(_MSC_VER)
+#   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
+#endif
+
 namespace {
 
     // Set to true to force running with one thread. Used for debugging
@@ -315,7 +319,6 @@ namespace Searcher {
 
         bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
-        int32_t cf;
 
         if (RootMoves.empty ())
         {
@@ -340,11 +343,14 @@ namespace Searcher {
             }
         }
 
-        cf = int32_t (*(Options["Contempt Factor"]));
-        if (cf && !bool (*(Options["UCI_AnalyseMode"])))
+        
+        if (!bool (*(Options["UCI_AnalyseMode"])))
         {
-            cf = cf * VALUE_MG_PAWN / 100;                              // From centipawns
-            cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME;   // Scale down with phase
+            // Dynamic draw value: try to avoid repetition draws at early midgame
+            int32_t cf = max (70 - RootPos.game_ply (), 0)
+                + int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+
+            //cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
             DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
             DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
         }
@@ -1898,7 +1904,7 @@ void Thread::idle_loop ()
     {
         // If we are not searching, wait for a condition to be signaled instead of
         // wasting CPU time polling for work.
-        while (!searching && Threads.sleep_idle || exit)
+        while ((!searching && Threads.sleep_idle) || exit)
         {
             if (exit)
             {

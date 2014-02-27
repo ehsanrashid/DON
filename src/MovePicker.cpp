@@ -44,10 +44,10 @@ namespace {
 MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Move fm[], Stack s[])
     : pos (p)
     , history (h)
-    , depth (d)
+    , ss (s)
     , counter_moves (cm)
     , followup_moves (fm)
-    , ss (s)
+    , depth (d)
     , cur (m_list)
     , end (m_list)
 {
@@ -64,6 +64,9 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
     : pos (p)
     , history (h)
+    , ss (NULL)
+    , counter_moves (NULL)
+    , followup_moves (NULL)
     , cur (m_list)
     , end (m_list)
 {
@@ -103,6 +106,9 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PieceT pt)
     : pos (p)
     , history (h)
+    , ss (NULL)
+    , counter_moves (NULL)
+    , followup_moves (NULL)
     , cur (m_list)
     , end (m_list)
 {

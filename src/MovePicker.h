@@ -104,8 +104,8 @@ private:
     Searcher::Stack    *ss;
 
     ValMove killers[6];
-    Move   *counter_moves
-        ,  *followup_moves;
+    Move   *counter_moves;
+    Move   *followup_moves;
 
     Move    tt_move;
     Depth   depth;
@@ -117,10 +117,10 @@ private:
     uint8_t stage;
 
     ValMove  m_list[MAX_MOVES];
-    ValMove *cur
-        ,   *end
-        ,   *quiets_end
-        ,   *bad_captures_end;
+    ValMove *cur;
+    ValMove *end;
+    ValMove *quiets_end;
+    ValMove *bad_captures_end;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 

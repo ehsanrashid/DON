@@ -10,8 +10,10 @@
 
 class Position;
 
-#pragma warning (push)
-#pragma warning (disable: 4250)
+#if defined(_MSC_VER)
+#   pragma warning (push)
+#   pragma warning (disable: 4250)
+#endif
 
 // A Polyglot book is a series of entries of 16 bytes.
 // All integers are stored in big-endian format,
@@ -142,7 +144,8 @@ public:
 } PolyglotBook;
 
 
-
-#pragma warning (pop)
+#if defined(_MSC_VER)
+#   pragma warning (pop)
+#endif
 
 #endif

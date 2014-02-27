@@ -13,8 +13,10 @@
 #include "Position.h"
 #include "PolyglotBook.h"
 
-#pragma warning (push)
-#pragma warning (disable: 4805)
+#if defined(_MSC_VER)
+#   pragma warning (push)
+#   pragma warning (disable: 4805)
+#endif
 
 struct SplitPoint;
 
@@ -182,6 +184,8 @@ namespace Searcher {
 
 }
 
-#pragma warning (pop)
+#if defined(_MSC_VER)
+#   pragma warning (pop)
+#endif
 
 #endif // SEARCHER_H_

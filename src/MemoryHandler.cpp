@@ -5,12 +5,7 @@
 #include "Engine.h"
 #include "UCI.h"
 
-#ifndef _WIN32 // Linux - Unix
-
-#   include <sys/ipc.h>
-#   include <sys/shm.h>
-
-#else
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   include <tchar.h>
 #   include <stdio.h>
@@ -19,6 +14,11 @@
 #   define ALIGNED_FREE(mem)           _aligned_free (mem);
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
+
+#else    // Linux - Unix
+
+#   include <sys/ipc.h>
+#   include <sys/shm.h>
 
 #endif
 
@@ -29,7 +29,7 @@ namespace MemoryHandler {
 
         bool use_largepages = false;
 
-#   ifdef _WIN32
+#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
         void display_error (const TCHAR* psz_api, DWORD dw_error)
         {
@@ -44,8 +44,8 @@ namespace MemoryHandler {
 
             // Now display the string
             _tprintf (TEXT ("ERROR: API        = %s\n"), psz_api);
-            _tprintf (TEXT ("       Error code = %d\n"), dw_error);
-            _tprintf (TEXT ("       Message    = %s\n"), lpv_message_buff);
+            _tprintf (TEXT ("       Error code = %ld\n"), dw_error);
+            _tprintf (TEXT ("       Message    = %s\n"), (TCHAR*) (lpv_message_buff));
 
             // Free the buffer allocated by the system
             LocalFree (lpv_message_buff);
@@ -62,7 +62,8 @@ namespace MemoryHandler {
     void setup_privileges (const TCHAR* psz_privilege, bool enable)
     {
 
-#   ifdef _WIN32
+#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+
         /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
 
         HANDLE           token_handle;
@@ -118,7 +119,7 @@ namespace MemoryHandler {
         if (bool (*(Options["Large Pages"])))
         {
 
-#   ifdef _WIN32
+#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             /* Vlad0 */
             *mem_ref = VirtualAlloc (NULL, size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
@@ -163,7 +164,7 @@ namespace MemoryHandler {
         if (use_largepages)
         {
 
-#ifdef _WIN32
+#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             VirtualFree (mem, 0, MEM_RELEASE); // MEM_FREE
 

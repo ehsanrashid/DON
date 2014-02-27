@@ -21,8 +21,8 @@ namespace UCI {
     namespace OptionType {
 
         Option::Option (const OnChange on_change)
-            : _on_change (on_change)
-            , index (Options.size ())
+            : index (Options.size ())
+            , _on_change (on_change)
         {}
 
         Option::~Option ()

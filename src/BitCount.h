@@ -4,7 +4,9 @@
 
 #include "Type.h"
 
-#pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
+#if defined(_MSC_VER)
+#   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
+#endif
 
 typedef enum BitCountT
 {

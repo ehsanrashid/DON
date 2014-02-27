@@ -13,28 +13,8 @@ const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask i
 const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
 const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
-#ifndef _WIN32 // Linux - Unix
-
-#   include <pthread.h>
-
-typedef pthread_mutex_t     Lock;
-typedef pthread_cond_t      WaitCondition;
-typedef pthread_t           NativeHandle;
-typedef void* (*ptr_fn)(void*);
-
-#   define lock_init(x)     pthread_mutex_init (&(x), NULL)
-#   define lock_grab(x)     pthread_mutex_lock (&(x))
-#   define lock_release(x)  pthread_mutex_unlock (&(x))
-#   define lock_destroy(x)  pthread_mutex_destroy (&(x))
-#   define cond_destroy(x)  pthread_cond_destroy (&(x))
-#   define cond_init(x)     pthread_cond_init (&(x), NULL)
-#   define cond_signal(x)   pthread_cond_signal (&(x))
-#   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
-#   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
-#   define thread_create(x,f,t)     pthread_create (&(x), NULL, ptr_fn (f), t)
-#   define thread_join(x)   pthread_join (x, NULL)
-
-#else // Windows and MinGW
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+// Windows and MinGW
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX
@@ -46,8 +26,8 @@ typedef void* (*ptr_fn)(void*);
 
 #   include <windows.h>
 
-#undef NOMINMAX
-#undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+#   undef WIN32_LEAN_AND_MEAN
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
@@ -70,6 +50,27 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #   define cond_timedwait(x,y,z) { lock_release (y); WaitForSingleObject (x, z); lock_grab (y); }
 #   define thread_create(x,f,t)  (x = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ()))
 #   define thread_join(x)        { WaitForSingleObject (x, INFINITE); CloseHandle (x); }
+
+#else    // Linux - Unix
+
+#   include <pthread.h>
+
+typedef pthread_mutex_t     Lock;
+typedef pthread_cond_t      WaitCondition;
+typedef pthread_t           NativeHandle;
+typedef void* (*ptr_fn)(void*);
+
+#   define lock_init(x)     pthread_mutex_init (&(x), NULL)
+#   define lock_grab(x)     pthread_mutex_lock (&(x))
+#   define lock_release(x)  pthread_mutex_unlock (&(x))
+#   define lock_destroy(x)  pthread_mutex_destroy (&(x))
+#   define cond_destroy(x)  pthread_cond_destroy (&(x))
+#   define cond_init(x)     pthread_cond_init (&(x), NULL)
+#   define cond_signal(x)   pthread_cond_signal (&(x))
+#   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
+#   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
+#   define thread_create(x,f,t)     pthread_create (&(x), NULL, ptr_fn (f), t)
+#   define thread_join(x)   pthread_join (x, NULL)
 
 #endif
 
@@ -253,14 +254,18 @@ struct ThreadPool
 // conversion from milliseconds to struct timespec, as used by pthreads.
 inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+
     int32_t tm = msec;
+
 #else
+
     timespec ts, *tm = &ts;
     uint64_t ms = Time::now() + msec;
 
     ts.tv_sec = ms / 1000;
     ts.tv_nsec = (ms % 1000) * 1000000LL;
+
 #endif
 
     cond_timedwait (sleep_cond, sleep_lock, tm);

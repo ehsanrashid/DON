@@ -191,7 +191,7 @@ endif
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
 
-CXXFLAGS += -std=c++11 -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)

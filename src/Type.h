@@ -18,8 +18,10 @@ typedef uint64_t   Key;      // Type for Zobrist Hash
 const uint8_t MAX_PLY      = 120;          // Maximum Depth 120
 const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 
-//#pragma warning (push)
-//#pragma warning (disable: 4341)
+#if defined(_MSC_VER)
+//#   pragma warning (push)
+//#   pragma warning (disable: 4341)
+#endif
 
 // File of Square
 typedef enum File : int8_t
@@ -313,7 +315,9 @@ typedef enum ScaleFactor : uint8_t
 
 } ScaleFactor;
 
-//#pragma warning (pop)
+#if defined(_MSC_VER)
+//#   pragma warning (pop)
+#endif
 
 inline Score mk_score (int32_t mg, int32_t eg) { return Score ((mg << 16) + eg); }
 

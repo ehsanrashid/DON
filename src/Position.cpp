@@ -681,8 +681,8 @@ bool Position::pseudo_legal (Move m) const
         bool king_side  = (dst > org);
         if (castle_impeded (activ, king_side ? CS_K : CS_Q)) return false;
 
-        Square org_rook = dst; // castle is always encoded as "king captures friendly rook"
-        ASSERT (org_rook == castle_rook (activ, king_side ? CS_K : CS_Q));
+        // Castle is always encoded as "king captures friendly rook"
+        ASSERT (dst == castle_rook (activ, king_side ? CS_K : CS_Q));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
         Delta step = king_side ? DEL_E : DEL_W;
@@ -837,9 +837,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
     Color pasiv = ~activ;
 
     Piece  p  = piece_on (org);
-    Color  pc = _color (p);
     PieceT pt = _ptype  (p);
-    ASSERT ((activ == pc) && (NONE != pt));
+    ASSERT ((activ == _color (p)) && (NONE != pt));
 
     Square ksq = king_sq (activ);
 
@@ -1419,10 +1418,7 @@ void Position::undo_move ()
     Square dst  = dst_sq (m);
 
     Color pasiv = _active;
-    Color activ = _active = ~_active; // Switch
-
-    Piece  p  = piece_on (dst);
-    PieceT pt = _ptype (p);
+    Color activ = _active = ~_active;
 
     MoveT mt = mtype (m);
     ASSERT (empty (org) || CASTLE == mt);
@@ -1444,25 +1440,21 @@ void Position::undo_move ()
         dst             = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
         Square dst_rook = rel_sq (activ, king_side ? SQ_WR_K : SQ_WR_Q);
 
-        pt  = KING;
         ct  = NONE;
         castle_king_rook (dst, org, dst_rook, org_rook);
     }
     else if (PROMOTE   == mt)
     {
-        PieceT prom = prom_type (m);
-
-        ASSERT (prom == pt);
+        ASSERT (prom_type (m) == _ptype (piece_on (dst)));
         ASSERT (R_8 == rel_rank (activ, dst));
-        ASSERT (NIHT <= prom && prom <= QUEN);
+        ASSERT (NIHT <= prom_type (m) && prom_type (m) <= QUEN);
         // Replace the promoted piece with the PAWN
         remove_piece (dst);
         place_piece (org, activ, PAWN);
-        pt = PAWN;
     }
     else if (ENPASSANT == mt)
     {
-        ASSERT (PAWN == pt);
+        ASSERT (PAWN == _ptype (piece_on (dst)));
         ASSERT (PAWN == ct);
         ASSERT (R_5 == rel_rank (activ, org));
         ASSERT (R_6 == rel_rank (activ, dst));
