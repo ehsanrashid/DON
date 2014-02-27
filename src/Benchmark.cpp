@@ -120,6 +120,7 @@ void benchmark (istream &is, const Position &pos)
                 fens.push_back (fen);
             }
         }
+
         fstm_fen.close ();
     }
 
