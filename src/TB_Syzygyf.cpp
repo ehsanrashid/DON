@@ -13,7 +13,7 @@
 // 32-bit is only supported for 5-piece tables, because tables are mmap()ed
 // into memory.
 
-#include "TB_SYZYGY.h"
+#include "TB_Syzygy.h"
 
 #include <stdio.h>
 #include <stdint.h>
