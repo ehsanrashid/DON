@@ -635,7 +635,7 @@ namespace Evaluator {
 
                     // Penalize rooks which are trapped by a king. Penalize more if the
                     // king has lost its castling capability.
-                    if ((_file (fk_sq) < F_E == _file (s) < _file (fk_sq))
+                    if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
                         && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
                         && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                     {

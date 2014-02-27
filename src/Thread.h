@@ -13,8 +13,8 @@ const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask i
 const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
 const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
+// Windows or MinGW
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-// Windows and MinGW
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX

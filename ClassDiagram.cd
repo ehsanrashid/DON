@@ -13,7 +13,7 @@
       <Field Name="_thread" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
-      <Field Name="_piece_arr" />
+      <Field Name="_board" />
       <Field Name="_color_bb" />
       <Field Name="_types_bb" />
       <Field Name="_piece_list" />

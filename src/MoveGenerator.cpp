@@ -243,7 +243,7 @@ namespace MoveGenerator {
                     }
                     else
                     {
-                        ci; // silence a warning under MSVC
+                        (const void*) (ci); // silence a warning under MSVC
                     }
                 }
             }

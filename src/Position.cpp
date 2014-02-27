@@ -404,13 +404,13 @@ bool Position::ok (int8_t *failed_step) const
                 {
                     if (!_ok (_piece_list[c][pt][i])) return false;
                     if (piece_on (_piece_list[c][pt][i]) != (c | pt)) return false;
-                    if (_piece_index[_piece_list[c][pt][i]] != i) return false;
+                    if (_index[_piece_list[c][pt][i]] != i) return false;
                 }
             }
         }
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            if (_piece_index[s] >= 16)
+            if (_index[s] >= 16)
             {
                 return false;
             }
@@ -444,7 +444,7 @@ bool Position::ok (int8_t *failed_step) const
                 if (!can_castle (cr)) continue;
                 if ((castle_right (c, king_sq (c)) & cr) != cr) return false;
                 Square rook = castle_rook (c, cs);
-                if ((c | ROOK) != _piece_arr[rook] || castle_right (c, rook) != cr) return false;
+                if ((c | ROOK) != _board[rook] || castle_right (c, rook) != cr) return false;
             }
         }
     }
@@ -887,7 +887,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
 // gives_check(m) tests whether a pseudo-legal move gives a check
 bool Position::gives_check     (Move m, const CheckInfo &ci) const
 {
-    ASSERT (_color (_piece_arr[org_sq (m)]) == _active);
+    ASSERT (_color (_board[org_sq (m)]) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
 
     Square org = org_sq (m);
@@ -962,8 +962,8 @@ void Position::clear ()
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        _piece_arr  [s] = EMPTY;
-        _piece_index[s] = -1;
+        _board  [s] = EMPTY;
+        _index[s] = -1;
     }
     for (Color c = WHITE; c <= BLACK; ++c)
     {

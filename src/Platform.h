@@ -12,8 +12,8 @@
 
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 // Windows or MinGW
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler

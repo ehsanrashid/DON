@@ -140,13 +140,13 @@ typedef class Position
 private:
 
     // Board for storing pieces.
-    Piece    _piece_arr[SQ_NO];
+    Piece    _board   [SQ_NO];
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[TOTS];
 
     Square   _piece_list [CLR_NO][NONE][16];
     uint8_t  _piece_count[CLR_NO][NONE];
-    int8_t   _piece_index[SQ_NO];
+    int8_t   _index   [SQ_NO];
 
     // Object for base status information
     StateInfo  _sb;
@@ -315,6 +315,8 @@ public:
     bool gives_check     (Move m, const CheckInfo &ci) const;
     bool gives_checkmate (Move m, const CheckInfo &ci) const;
 
+    Piece moved_piece(Move m) const;
+
     bool advanced_pawn_push (Move m)             const;
 
     bool passed_pawn  (Color c, Square s) const;
@@ -396,13 +398,13 @@ public:
 
 // -------------------------------
 
-INLINE Piece         Position::operator[] (Square s) const { return _piece_arr[s]; }
+INLINE Piece         Position::operator[] (Square s) const { return _board[s]; }
 inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
-inline bool     Position::empty   (Square s) const { return EMPTY == _piece_arr[s]; }
-inline Piece    Position::piece_on(Square s) const { return          _piece_arr[s]; }
+inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
+inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
@@ -632,18 +634,22 @@ inline bool Position::advanced_pawn_push    (Move m) const
     return (PAWN == _ptype (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
+inline Piece Position::moved_piece(Move m) const
+{
+    return _board[org_sq (m)];
+}
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
     ASSERT (empty (s));
-    _piece_arr[s]    = (c | pt);
+    _board[s]    = (c | pt);
     Bitboard bb      = BitBoard::Square_bb[s];
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
     // Update piece list, put piece at [s] index
-    _piece_index[s]  = _piece_count[c][pt]++;
-    _piece_list[c][pt][_piece_index[s]] = s;
+    _index[s]  = _piece_count[c][pt]++;
+    _piece_list[c][pt][_index[s]] = s;
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
@@ -658,11 +664,11 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece  p  = _piece_arr [s];
+    Piece  p  = _board [s];
     Color  c  = _color (p);
     PieceT pt = _ptype (p);
 
-    _piece_arr [s]   = EMPTY;
+    _board [s]   = EMPTY;
     Bitboard bb      = ~BitBoard::Square_bb[s];
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
@@ -673,10 +679,10 @@ inline void  Position::remove_piece (Square s)
     Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     if (s != last_sq)
     {
-        _piece_index[last_sq] = _piece_index[s];
-        _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+        _index[last_sq] = _index[s];
+        _piece_list[c][pt][_index[last_sq]] = last_sq;
     }
-    _piece_index[s] = -1;
+    _index[s] = -1;
     _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
 }
 inline void  Position::  move_piece (Square s1, Square s2)
@@ -684,23 +690,23 @@ inline void  Position::  move_piece (Square s1, Square s2)
     ASSERT (!empty (s1));
     ASSERT ( empty (s2));
 
-    Piece  p  = _piece_arr[s1];
+    Piece  p  = _board[s1];
     Color  c  = _color (p);
     PieceT pt = _ptype (p);
 
-    _piece_arr[s1]  = EMPTY;
-    _piece_arr[s2]  = p;
+    _board[s1]  = EMPTY;
+    _board[s2]  = p;
 
     Bitboard bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
 
-    // _piece_index[s1] is not updated and becomes stale. This works as long
-    // as _piece_index[] is accessed just by known occupied squares.
-    _piece_index[s2] = _piece_index[s1];
-    _piece_index[s1] = -1;
-    _piece_list[c][pt][_piece_index[s2]] = s2;
+    // _index[s1] is not updated and becomes stale. This works as long
+    // as _index[] is accessed just by known occupied squares.
+    _index[s2] = _index[s1];
+    _index[s1] = -1;
+    _piece_list[c][pt][_index[s2]] = s2;
 }
 
 // castle_king_rook() exchanges the king and rook
