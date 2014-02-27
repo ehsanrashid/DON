@@ -18,10 +18,10 @@
 //  Move         2
 //  Depth        2
 //  Bound        1
+//  Generation   1
 //  Nodes        2
 //  Value        2
 //  Eval Value   2
-//  Generation   1
 // ----------------
 //  total        16 byte
 
@@ -44,14 +44,14 @@ private:
 
 public:
 
-    uint32_t     key () const { return uint32_t (_key); }
-    Move        move () const { return Move (_move); }
-    Depth      depth () const { return Depth (_depth); }
-    Bound      bound () const { return Bound (_bound); }
+    uint32_t     key () const { return uint32_t (_key);   }
+    Move        move () const { return Move     (_move);  }
+    Depth      depth () const { return Depth    (_depth); }
+    Bound      bound () const { return Bound    (_bound); }
+    uint8_t      gen () const { return uint8_t  (_gen);   }
     uint16_t   nodes () const { return uint16_t (_nodes); }
-    Value      value () const { return Value (_value); }
-    Value       eval () const { return Value (_eval); }
-    uint8_t      gen () const { return uint8_t (_gen); }
+    Value      value () const { return Value    (_value); }
+    Value       eval () const { return Value    (_eval);  }
 
     void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
     {

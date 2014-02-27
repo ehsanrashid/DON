@@ -34,8 +34,11 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
 {
 
     ASSERT (0 == (alignment & (alignment - 1)));
+    ASSERT (0 == (mem_size_b & (alignment - 1)));
 
 #ifdef LPAGES
+    
+    uint8_t offset = max<int8_t> (alignment-1, sizeof (void *));
 
     Memoryhandler::create_memory (&_mem, mem_size_b, alignment);
     if (!_mem)
@@ -46,7 +49,7 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
 
     memset (_mem, 0, mem_size_b);
 
-    void **ptr = (void **) ((uintptr_t (_mem) + alignment - 1) & ~uintptr_t (alignment - 1));
+    void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
     _hash_table = (TranspositionEntry *) (ptr);
 
 #else
@@ -80,12 +83,11 @@ void TranspositionTable::aligned_memory_alloc (uint64_t mem_size_b, uint8_t alig
 
     _hash_table = (TranspositionEntry *) (ptr);
 
-    ASSERT (0 == (mem_size_b & (alignment - 1)));
-    ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
-
     ptr[-1] = mem;
 
 #endif
+
+    ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
 
 }
 
@@ -113,7 +115,6 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
         erase ();
         aligned_memory_alloc (mem_size_b, CACHE_LINE_SIZE);
         _hash_mask  = (_entry_count - CLUSTER_SIZE);
-
     }
 
     return (mem_size_b >> 20);

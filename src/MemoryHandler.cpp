@@ -2,6 +2,7 @@
 
 #include "MemoryHandler.h"
 
+#include "Engine.h"
 #include "UCI.h"
 
 #ifndef _WIN32 // Linux - Unix
@@ -14,7 +15,7 @@
 #   include <tchar.h>
 #   include <stdio.h>
 
-#   define MEMALIGN(mem, align, size)   mem = _aligned_malloc (size, align)
+#   define MEMALIGN(mem, align, size)  mem = _aligned_malloc (size, align)
 #   define ALIGNED_FREE(mem)           _aligned_free (mem);
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
@@ -27,7 +28,7 @@ namespace {
 
 #   ifdef _WIN32
 
-    void print_error (const TCHAR* psz_api, DWORD dw_error)
+    void display_error (const TCHAR* psz_api, DWORD dw_error)
     {
         LPVOID lpv_message_buff;
 
@@ -45,9 +46,10 @@ namespace {
 
         // Free the buffer allocated by the system
         LocalFree (lpv_message_buff);
-
-        //ExitProcess (GetLastError ());
     }
+
+#   else    // Linux - Unix
+
 
 #   endif
 
@@ -70,16 +72,16 @@ namespace Memoryhandler {
                 , TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY
                 , &token_handle))
         {
-            print_error (TEXT (const_cast<TCHAR *>("OpenProcessToken")), GetLastError ());
+            display_error (TEXT (const_cast<TCHAR *>("OpenProcessToken")), GetLastError ());
         }
 
         // Get the LUID
         if (!LookupPrivilegeValue (NULL, psz_privilege, &token_prlg.Privileges[0].Luid))
         {
-            print_error (TEXT (const_cast<TCHAR *>("LookupPrivilegeValue")), GetLastError ());
+            display_error (TEXT (const_cast<TCHAR *>("LookupPrivilegeValue")), GetLastError ());
         }
 
-        // enable or disable privilege
+        // Enable or Disable privilege
         token_prlg.PrivilegeCount = 1;
         token_prlg.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
         bool status = AdjustTokenPrivileges (token_handle, false, &token_prlg, 0, NULL, 0);
@@ -89,14 +91,19 @@ namespace Memoryhandler {
         DWORD dw_error = GetLastError ();
         if (!status || (dw_error != ERROR_SUCCESS))
         {
-            print_error (TEXT (const_cast<TCHAR *>("AdjustTokenPrivileges")), dw_error);
+            display_error (TEXT (const_cast<TCHAR *>("AdjustTokenPrivileges")), dw_error);
+            //ExitProcess  (dw_error);
+            //Engine::exit (dw_error);
         }
 
         // close the handle
         if (!CloseHandle (token_handle))
         {
-            print_error (TEXT (const_cast<TCHAR *>("CloseHandle")), GetLastError ());
+            display_error (TEXT (const_cast<TCHAR *>("CloseHandle")), GetLastError ());
         }
+
+#   else    // Linux - Unix
+
 
 #   endif
 
@@ -112,15 +119,15 @@ namespace Memoryhandler {
 #   ifdef _WIN32
 
             /* Vlad0 */
-            (*mem_ref) = VirtualAlloc (NULL, size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
-            if ((*mem_ref)) /* HACK */
+            *mem_ref = VirtualAlloc (NULL, size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+            if (*mem_ref) /* HACK */
             {
                 use_largepages = true;
                 sync_cout << "info string WindowsLargePages " << (size >> 20) << "MB Hash..." << sync_endl;
             }
             else
             {
-                MEMALIGN ((*mem_ref), align, size);
+                MEMALIGN (*mem_ref, align, size);
             }
 
 #   else    // Linux - Unix
@@ -128,13 +135,13 @@ namespace Memoryhandler {
             int32_t num = shmget (IPC_PRIVATE, size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
             if (num != -1)
             {
-                (*mem_ref) = shmat (num, NULL, 0x0);
+                *mem_ref = shmat (num, NULL, 0x0);
                 use_largepages = true;
                 sync_cout << "info string HUGELTB " << (size >> 20) << "MB Hash..." << sync_endl;
             }
             else
             {
-                MEMALIGN ((*mem_ref), align, size);
+                MEMALIGN (*mem_ref, align, size);
             }
 
 #   endif
@@ -142,25 +149,25 @@ namespace Memoryhandler {
         }
         else
         {
-            MEMALIGN ((*mem_ref), align, size);
+            MEMALIGN (*mem_ref, align, size);
         }
 
     }
 
-    void free_memory (void *mem_ref)
+    void free_memory (void *mem)
     {
-        if (!mem_ref) return;
+        if (!mem) return;
 
         if (use_largepages)
         {
 
 #ifdef _WIN32
 
-            VirtualFree (mem_ref, 0, MEM_RELEASE);
+            VirtualFree (mem, 0, MEM_RELEASE); // MEM_FREE
 
 #else   // Linux - Unix
 
-            shmdt (mem_ref);
+            shmdt  (mem);
             shmctl (num, IPC_RMID, NULL);
 
 #endif
@@ -168,7 +175,7 @@ namespace Memoryhandler {
         }
         else
         {
-            ALIGNED_FREE (mem_ref);
+            ALIGNED_FREE (mem);
         }
     }
 

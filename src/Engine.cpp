@@ -99,6 +99,7 @@ namespace Engine {
 #ifdef LPAGES
 
         cout << "info string LARGE PAGES available." << endl;
+        Memoryhandler::setup_privileges (TEXT ("SeLockMemoryPrivilege"), true);
 
 #endif
 
@@ -111,17 +112,13 @@ namespace Engine {
         Pawns    ::initialize ();
         Evaluator::initialize ();
         Threads   .initialize ();
+
         TT.resize (int32_t (*(Options["Hash"])), true);
 
         cout
             << "info string Thread(s) count " << Threads.size () << ".\n"
             << "info string Hash size " << TT.size () << " MB."  << endl;
 
-#ifdef LPAGES
-
-        Memoryhandler::setup_privileges (TEXT ("SeLockMemoryPrivilege"), true);
-
-#endif
 
         UCI   ::start (args);
 
