@@ -1679,7 +1679,9 @@ string Position::fen (bool                  c960, bool full) const
             int16_t empty_count = 0;
             while (F_H >= f && empty (s))
             {
-                ++empty_count; ++f; ++s;
+                ++empty_count;
+                ++f;
+                ++s;
             }
             if (empty_count) sfen << empty_count;
             if (F_H >= f)  sfen << CharPiece[piece_on (s)];
@@ -1732,7 +1734,8 @@ string Position::fen (bool                  c960, bool full) const
     return sfen.str ();
 }
 
-// string() return string representation of position
+// string() returns an ASCII representation of the position to be
+// printed to the standard output
 Position::operator string () const
 {
     const string edge = " +---+---+---+---+---+---+---+---+\n";

@@ -390,8 +390,6 @@ namespace Searcher {
         Threads.timer->run = false; // Stop the timer
         Threads.sleep_idle = true;  // Send idle threads to sleep
 
-
-
         if (write_search_log)
         {
             Log log (search_log_fn);

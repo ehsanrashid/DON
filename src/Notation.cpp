@@ -378,9 +378,10 @@ namespace {
 
 }
 
-// pretty_pv() formats human-readable search information, typically to be
+
+// pretty_pv() returns formated human-readable search information, typically to be
 // appended to the search log file. It uses the two helpers below to pretty
-// format time and score respectively.
+// format the time and score respectively.
 string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
 {
     const uint64_t K = 1000;

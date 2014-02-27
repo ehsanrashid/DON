@@ -1,8 +1,5 @@
 ﻿#include "BitBoard.h"
 
-#include <cstring>
-#include <sstream>
-
 #include "BitCount.h"
 #include "BitScan.h"
 #include "RKISS.h"
@@ -426,9 +423,10 @@ namespace BitBoard {
     }
 
 #ifndef NDEBUG
-    // Print a Bitboard representation to console output
+
+    // pretty() returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
-    void print (Bitboard bb, char p)
+    const string pretty (Bitboard bb, char p)
     {
         string sbb;
 
@@ -453,8 +451,9 @@ namespace BitBoard {
             sbb[2 + row_len * (8 - r) + 2 * f] = p;
         }
 
-        cout << sbb;
+        return sbb;
     }
+
 #endif
 
 }

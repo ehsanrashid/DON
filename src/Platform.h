@@ -2,7 +2,6 @@
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
-
 //#undef POPCNT
 //#define POPCNT
 //#define BSFQ
@@ -103,11 +102,9 @@ typedef unsigned long long      uint64_t;
 #   define CACHE_ALIGN(x)     __declspec(align(x))
 //#   define CACHE_ALIGN(x)     alignas(x)
 
-#elif defined(__GNUC__)
+#else
 
 #   define CACHE_ALIGN(x)     __attribute__((aligned(x)))
-
-#else
 
 #endif
 
