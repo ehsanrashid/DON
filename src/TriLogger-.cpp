@@ -6,9 +6,9 @@
 
 #include "TriLogger.h"
 
-#if !defined(CLEANTLOG)
+#ifndef CLEANTLOG
 
-#   if defined(FTLOG)
+#   ifdef FTLOG
 
 #       include <fstream>
 
@@ -78,7 +78,7 @@ namespace TrivialLogger {
         return _p_tl_impl->_outstream;
     }
 
-#   if defined(OTLOG)
+#   ifdef OTLOG
 
     // set auto pointer to the null stream
     // reason: cout can not be created in runtime, so
@@ -96,7 +96,7 @@ namespace TrivialLogger {
         implementation::TriLoggerImpl::_outstream = &cout;
     }
 
-#   elif defined (ETLOG)
+#   elif ETLOG
 
     // set auto pointer to the null stream
     // reason: cerr can not be created in runtime, so
@@ -115,7 +115,7 @@ namespace TrivialLogger {
     }
 
 
-#   elif defined (FTLOG)
+#   elif defined(FTLOG)
 
 #       include <cctype>
 

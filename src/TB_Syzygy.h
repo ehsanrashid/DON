@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef TB_SYZYGY_H_
-#define TB_SYZYGY_H_
+#ifndef _TB_SYZYGY_H_INC
+#define _TB_SYZYGY_H_INC
 
 #include "Type.h"
 
@@ -23,4 +23,4 @@ namespace Tablebases {
 
 }
 
-#endif
+#endif // _TB_SYZYGY_H_INC

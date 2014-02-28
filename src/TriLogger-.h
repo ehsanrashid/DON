@@ -103,7 +103,7 @@ namespace TrivialLogger {
 //#undef TRI_LOG_FN
 //#undef TRI_LOG_INFO
 
-#if defined(CLEANTLOG)
+#ifdef CLEANTLOG
 
 #define TRI_LOG_ON()        ((void) 0)
 #define TRI_LOG_OFF()       ((void) 0)

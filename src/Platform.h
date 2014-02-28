@@ -51,11 +51,11 @@ typedef unsigned __int64        uint64_t;
 // Windows or MinGW
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-#   if defined(_WIN64)
-#       if !defined(_64BIT)
+#   ifdef _WIN64
+#       ifndef _64BIT
 #           define _64BIT
 #       endif
-#       if !defined(BSFQ)
+#       ifndef BSFQ
 #           define BSFQ
 #       endif
 #   endif
@@ -68,7 +68,7 @@ typedef unsigned __int64        uint64_t;
 
 #   define INLINE     __forceinline
 
-#elif defined(__GNUC__)
+#elif __GNUC__
 
 #   define INLINE     inline __attribute__((always_inline))
 

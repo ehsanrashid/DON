@@ -384,7 +384,7 @@ void ThreadPool::wait_for_think_finished ()
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,
 // which can be quite slow.
-#if defined(PREFETCH)
+#ifdef PREFETCH
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
@@ -392,7 +392,7 @@ void ThreadPool::wait_for_think_finished ()
 
 void prefetch (char *addr)
 {
-#   if defined(__INTEL_COMPILER)
+#   ifdef __INTEL_COMPILER
     {
         // This hack prevents prefetches from being optimized away by
         // Intel compiler. Both MSVC and gcc seem not be affected by this.

@@ -293,13 +293,13 @@ inline uint32_t cpu_count ()
 //
 //#else    
 
-#   if defined(WIN32)
+#   ifdef WIN32
 
     SYSTEM_INFO sys_info;
     GetSystemInfo (&sys_info);
     return sys_info.dwNumberOfProcessors;
 
-#   elif defined(MACOS)
+#   elif MACOS
 
     uint32_t count;
     uint32_t len = sizeof (count);
@@ -316,15 +316,15 @@ inline uint32_t cpu_count ()
     }
     return count;
 
-#   elif defined(_SC_NPROCESSORS_ONLN) // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+#   elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
 
     return sysconf (_SC_NPROCESSORS_ONLN);
 
-#   elif defined(__IRIX)
+#   elif __IRIX
 
     return sysconf (_SC_NPROC_ONLN);
 
-#   elif defined(__HPUX)
+#   elif __HPUX
 
     pst_dynamic psd;
     return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1) ?

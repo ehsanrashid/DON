@@ -13,7 +13,7 @@
 
 #ifdef BSFQ
 
-#   if defined(_MSC_VER)
+#   ifdef _MSC_VER
 
 #   include <intrin.h> // MSVC popcnt and bsfq instrinsics
 // _BitScanForward64() & _BitScanReverse64()
@@ -60,7 +60,7 @@ INLINE Square scan_msq (Bitboard bb)
     return Square (index);
 }
 
-#   elif defined(__arm__)
+#   elif __arm__
 
 #ifndef _64BIT
 

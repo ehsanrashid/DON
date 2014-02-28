@@ -37,7 +37,7 @@ const BitCountT MAX15 = CNT_HW_POPCNT;
 
 #ifdef _MSC_VER
 
-#   if defined(__INTEL_COMPILER)
+#   ifdef __INTEL_COMPILER
 
 #       include <nmmintrin.h> 
 // Intel header for  SSE4.1 or SSE4.2 intrinsics.

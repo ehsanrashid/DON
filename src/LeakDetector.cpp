@@ -10,7 +10,7 @@
 
 #include "Platform.h"
 
-#   if defined(_MSC_VER)
+#ifdef _MSC_VER
 #       pragma warning (disable: 4996) // 'argument': This function or variable may be unsafe.
 #endif
 
