@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _MOVE_GENERATOR_H_
-#define _MOVE_GENERATOR_H_
+#ifndef _MOVE_GENERATOR_H_INC_
+#define _MOVE_GENERATOR_H_INC_
 
 #include "Type.h"
 
@@ -107,4 +107,4 @@ namespace MoveGenerator {
 
 }
 
-#endif // _MOVE_GENERATOR_H_
+#endif // _MOVE_GENERATOR_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _PLATFORM_H_
-#define _PLATFORM_H_
+#ifndef _PLATFORM_H_INC_
+#define _PLATFORM_H_INC_
 
 //#undef POPCNT
 //#define POPCNT
@@ -137,4 +137,4 @@ typedef unsigned __int64        uint64_t;
 
 #endif
 
-#endif // _PLATFORM_H_
+#endif // _PLATFORM_H_INC_

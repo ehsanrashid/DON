@@ -25,8 +25,8 @@
 #   pragma once
 #endif
 
-#ifndef _TRI_LOGGER_H_
-#define _TRI_LOGGER_H_
+#ifndef _TRI_LOGGER_H_INC_
+#define _TRI_LOGGER_H_INC_
 
 #include <ostream>
 #include <memory>
@@ -183,4 +183,4 @@ namespace TrivialLogger {
 
 #endif
 
-#endif // _TRI_LOGGER_H_
+#endif // _TRI_LOGGER_H_INC_

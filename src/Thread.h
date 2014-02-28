@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _THREAD_H_
-#define _THREAD_H_
+#ifndef _THREAD_H_INC_
+#define _THREAD_H_INC_
 
 #include <vector>
 
@@ -364,4 +364,4 @@ extern ThreadPool Threads;
 extern void prefetch (char *addr);
 
 
-#endif // _THREAD_H_
+#endif // _THREAD_H_INC_

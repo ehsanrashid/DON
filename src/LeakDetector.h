@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _LEAK_DETECTOR_H_
-#define _LEAK_DETECTOR_H_
+#ifndef _LEAK_DETECTOR_H_INC_
+#define _LEAK_DETECTOR_H_INC_
 
 #include "Type.h"
 
@@ -24,4 +24,4 @@ namespace LeakDetector {
 #define free(mem_ref)       LeakDetector::xfree (mem_ref)
 #define report_leak         LeakDetector::report_memleakage
 
-#endif // _LEAK_DETECTOR_H_
+#endif // _LEAK_DETECTOR_H_INC_

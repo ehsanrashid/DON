@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _MOVE_PICKER_H_
-#define _MOVE_PICKER_H_
+#ifndef _MOVE_PICKER_H_INC_
+#define _MOVE_PICKER_H_INC_
 
 #include <algorithm> 
 #include <cstring>
@@ -138,4 +138,4 @@ public:
 
 };
 
-#endif // _MOVE_PICKER_H_
+#endif // _MOVE_PICKER_H_INC_

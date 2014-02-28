@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _TRANSPOSITION_H_
-#define _TRANSPOSITION_H_
+#ifndef _TRANSPOSITION_H_INC_
+#define _TRANSPOSITION_H_INC_
 
 #include <cstring>
 #include <cstdlib>
@@ -303,4 +303,4 @@ public:
 // Global Transposition Table
 extern TranspositionTable TT;
 
-#endif // _TRANSPOSITION_H_
+#endif // _TRANSPOSITION_H_INC_

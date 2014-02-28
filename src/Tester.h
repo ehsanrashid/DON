@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _TESTER_H_
-#define _TESTER_H_
+#ifndef _TESTER_H_INC_
+#define _TESTER_H_INC_
 
 namespace Tester {
 
@@ -11,4 +11,4 @@ namespace Tester {
 
 }
 
-#endif // _TESTER_H_
+#endif // _TESTER_H_INC_

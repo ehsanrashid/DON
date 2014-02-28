@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _BITSCAN_H_
-#define _BITSCAN_H_
+#ifndef _BITSCAN_H_INC_
+#define _BITSCAN_H_INC_
 
 #include "Type.h"
 
@@ -261,4 +261,4 @@ INLINE Square pop_lsq (Bitboard &bb)
     return s;
 }
 
-#endif // _BITSCAN_H_
+#endif // _BITSCAN_H_INC_

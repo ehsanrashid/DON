@@ -15,8 +15,8 @@
 #   pragma once
 #endif
 
-#ifndef NULLSTREAM_H_
-#define NULLSTREAM_H_
+#ifndef NULLSTREAM_H_INC_
+#define NULLSTREAM_H_INC_
 
 #include <streambuf>
 #include <ostream>
@@ -87,4 +87,4 @@ namespace std {
 
 }
 
-#endif // NULLSTREAM_H_
+#endif // NULLSTREAM_H_INC_

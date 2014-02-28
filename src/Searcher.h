@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef SEARCHER_H_
-#define SEARCHER_H_
+#ifndef SEARCHER_H_INC_
+#define SEARCHER_H_INC_
 
 #include <cstring>
 #include <memory>
@@ -191,4 +191,4 @@ namespace Searcher {
 #   pragma warning (pop)
 #endif
 
-#endif // SEARCHER_H_
+#endif // SEARCHER_H_INC_

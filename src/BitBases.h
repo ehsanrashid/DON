@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _BITBASES_H_
-#define _BITBASES_H_
+#ifndef _BITBASES_H_INC_
+#define _BITBASES_H_INC_
 
 #include "Type.h"
 
@@ -15,4 +15,4 @@ namespace BitBases {
 
 }
 
-#endif // _BITBASES_H_
+#endif // _BITBASES_H_INC_

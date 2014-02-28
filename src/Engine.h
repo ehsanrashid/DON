@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _ENGINE_H_
-#define _ENGINE_H_
+#ifndef _ENGINE_H_INC_
+#define _ENGINE_H_INC_
 
 #include <string>
 
@@ -19,4 +19,4 @@ namespace Engine {
 
 }
 
-#endif // _ENGINE_H_
+#endif // _ENGINE_H_INC_

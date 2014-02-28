@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _MEMORY_HANDLER_H_
-#define _MEMORY_HANDLER_H_
+#ifndef _MEMORY_HANDLER_H_INC_
+#define _MEMORY_HANDLER_H_INC_
 
 #ifdef LPAGES
 
@@ -21,4 +21,4 @@ namespace MemoryHandler {
 
 #endif // LPAGES
 
-#endif // _MEMORY_HANDLER_H_
+#endif // _MEMORY_HANDLER_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _BITCOUNT_H_
-#define _BITCOUNT_H_
+#ifndef _BITCOUNT_H_INC_
+#define _BITCOUNT_H_INC_
 
 #include "Type.h"
 
@@ -192,4 +192,4 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 
 #endif
 
-#endif // _BITCOUNT_H_
+#endif // _BITCOUNT_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _POLYGLOT_BOOK_H_
-#define _POLYGLOT_BOOK_H_
+#ifndef _POLYGLOT_BOOK_H_INC_
+#define _POLYGLOT_BOOK_H_INC_
 
 #include <fstream>
 
@@ -151,4 +151,4 @@ public:
 #   pragma warning (pop)
 #endif
 
-#endif // _POLYGLOT_BOOK_H_
+#endif // _POLYGLOT_BOOK_H_INC_

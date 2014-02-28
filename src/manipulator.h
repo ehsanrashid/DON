@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _MANIPULATOR_H_
-#define _MANIPULATOR_H_
+#ifndef _MANIPULATOR_H_INC_
+#define _MANIPULATOR_H_INC_
 
 #include <iostream>
 
@@ -121,4 +121,4 @@ namespace std {
 
 }
 
-#endif // _MANIPULATOR_H_
+#endif // _MANIPULATOR_H_INC_

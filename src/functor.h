@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _FUNCTOR_H_
-#define _FUNCTOR_H_
+#ifndef _FUNCTOR_H_INC_
+#define _FUNCTOR_H_INC_
 
 #include <functional>
 #include <cctype>
@@ -81,4 +81,4 @@ namespace std {
 
 }
 
-#endif // _FUNCTOR_H_
+#endif // _FUNCTOR_H_INC_

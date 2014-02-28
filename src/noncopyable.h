@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _NON_COPYABLE_H_
-#define _NON_COPYABLE_H_
+#ifndef _NON_COPYABLE_H_INC_
+#define _NON_COPYABLE_H_INC_
 
 namespace std {
 
@@ -31,4 +31,4 @@ namespace std {
 
 }
 
-#endif // _NON_COPYABLE_H_
+#endif // _NON_COPYABLE_H_INC_

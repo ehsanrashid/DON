@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _FOREST_H_
-#define _FOREST_H_
+#ifndef _FOREST_H_INC_
+#define _FOREST_H_INC_
 
 #include "Tree.h"
 
@@ -146,4 +146,4 @@ inline void Forest<T>::print (std::basic_ostream<charT, Traits>& os) const
     }
 }
 
-#endif // _FOREST_H_
+#endif // _FOREST_H_INC_

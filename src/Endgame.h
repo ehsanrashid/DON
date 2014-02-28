@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _END_GAME_H_
-#define _END_GAME_H_
+#ifndef _END_GAME_H_INC_
+#define _END_GAME_H_INC_
 
 #include <map>
 #include <string>
@@ -123,4 +123,4 @@ namespace EndGame {
 
 }
 
-#endif // _END_GAME_H_
+#endif // _END_GAME_H_INC_

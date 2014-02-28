@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _LOG_H_
-#define _LOG_H_
+#ifndef _LOG_H_INC_
+#define _LOG_H_INC_
 
 #include <fstream>
 
@@ -23,4 +23,4 @@ public:
 
 } Log;
 
-#endif // _LOG_H_
+#endif // _LOG_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _XSTRING_H_
-#define _XSTRING_H_
+#ifndef _XSTRING_H_INC_
+#define _XSTRING_H_INC_
 
 #include <cctype>
 #include <cstring>
@@ -337,4 +337,4 @@ namespace std {
     */
 }
 
-#endif // _XSTRING_H_
+#endif // _XSTRING_H_INC_

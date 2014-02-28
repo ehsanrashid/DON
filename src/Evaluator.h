@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _EVALUATOR_H_
-#define _EVALUATOR_H_
+#ifndef _EVALUATOR_H_INC_
+#define _EVALUATOR_H_INC_
 
 #include "Type.h"
 
@@ -19,4 +19,4 @@ namespace Evaluator {
 
 }
 
-#endif // _EVALUATOR_H_
+#endif // _EVALUATOR_H_INC_

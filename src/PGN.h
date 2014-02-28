@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _PGN_H_
-#define _PGN_H_
+#ifndef _PGN_H_INC_
+#define _PGN_H_INC_
 
 #include <fstream>
 #include <vector>
@@ -99,4 +99,4 @@ public:
 
 #pragma warning (pop)
 
-#endif // _PGN_H_
+#endif // _PGN_H_INC_

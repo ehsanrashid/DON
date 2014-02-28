@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef __TIME_H_
-#define __TIME_H_
+#ifndef _TIME_H_INC_
+#define _TIME_H_INC_
 
 #include <iomanip>
 #include <sstream>
@@ -103,4 +103,4 @@ inline std::basic_ostream<charT, Traits>&
     return os;
 }
 
-#endif // __TIME_H_
+#endif // _TIME_H_INC_

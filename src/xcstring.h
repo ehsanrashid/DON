@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _XCSTRING_H_
-#define _XCSTRING_H_
+#ifndef _XCSTRING_H_INC_
+#define _XCSTRING_H_INC_
 
 #include <cstring>
 #include <cassert>
@@ -497,4 +497,4 @@ inline char* to_str (int i, char s[], int radix = 10)
 //    s = NULL;
 //}
 
-#endif // _XCSTRING_H_
+#endif // _XCSTRING_H_INC_

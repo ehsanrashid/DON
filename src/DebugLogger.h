@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _DEBUG_LOGGER_H_
-#define _DEBUG_LOGGER_H_
+#ifndef _DEBUG_LOGGER_H_INC_
+#define _DEBUG_LOGGER_H_INC_
 
 #include <iostream>
 #include "noncopyable.h"
@@ -76,4 +76,4 @@ inline void log_debug (bool on)
         : DebugLogger::instance ().stop  ();
 }
 
-#endif // _DEBUG_LOGGER_H_
+#endif // _DEBUG_LOGGER_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _ECO_H_
-#define _ECO_H_
+#ifndef _ECO_H_INC_
+#define _ECO_H_INC_
 
 #include "Zobrist.h"
 
@@ -22,4 +22,4 @@ typedef struct ECO
 
 extern void get_eco ();
 
-#endif // _ECO_H_
+#endif // _ECO_H_INC_

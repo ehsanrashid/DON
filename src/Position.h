@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _POSITION_H_
-#define _POSITION_H_
+#ifndef _POSITION_H_INC_
+#define _POSITION_H_INC_
 
 #include <algorithm>
 #include <memory>
@@ -743,4 +743,4 @@ inline CheckInfo::CheckInfo (const Position &pos)
 
 typedef std::stack<StateInfo>   StateInfoStack;
 
-#endif // _POSITION_H_
+#endif // _POSITION_H_INC_

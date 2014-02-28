@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _TREE_H_
-#define _TREE_H_
+#ifndef _TREE_H_INC_
+#define _TREE_H_INC_
 
 #include <memory>
 #include <vector>
@@ -268,4 +268,4 @@ inline void Tree<T>::print (std::basic_ostream<charT, Traits> &os, uint32_t inde
 
 }
 
-#endif // _TREE_H_
+#endif // _TREE_H_INC_

@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _TYPE_H_
-#define _TYPE_H_
+#ifndef _TYPE_H_INC_
+#define _TYPE_H_INC_
 
 #include <cctype>
 #include <climits>
@@ -710,4 +710,4 @@ public:
 
 };
 
-#endif // _TYPE_H_
+#endif // _TYPE_H_INC_

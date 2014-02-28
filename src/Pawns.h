@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _PAWNS_H_
-#define _PAWNS_H_
+#ifndef _PAWNS_H_INC_
+#define _PAWNS_H_INC_
 
 #include "Type.h"
 #include "BitBoard.h"
@@ -74,4 +74,4 @@ namespace Pawns {
 
 }
 
-#endif // _PAWNS_H_
+#endif // _PAWNS_H_INC_
