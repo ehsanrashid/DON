@@ -6,6 +6,6 @@
 @REM make -f MakeFile build ARCH=x86-64-modern COMP=mingw
 
 
-@REM make -f MakeFile build ARCH=x86-64-modern COMP=mingw
-make -f MakeFile profile-build ARCH=x86-64-modern COMP=mingw
+make -f MakeFile build ARCH=x86-64-modern COMP=mingw
+@REM make -f MakeFile profile-build ARCH=x86-64-modern COMP=mingw
 @PAUSE

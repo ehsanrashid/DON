@@ -99,7 +99,7 @@ namespace Engine {
 #ifdef LPAGES
 
         cout << "info string LARGE PAGES available." << endl;
-        //MemoryHandler::initialize ();
+        MemoryHandler::initialize ();
 
 #endif
 

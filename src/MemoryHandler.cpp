@@ -74,46 +74,31 @@ namespace MemoryHandler {
             // Free the buffer allocated by the system
             LocalFree (lpvMessageBuffer);
 
-            //dwError = GetLastError ();
-
-            //ExitProcess  (dwError);
+            dwError = GetLastError ();
+            ExitProcess  (dwError);
         }
         
-        VOID ErrorExit (LPSTR lpMsg)
-        {
-            _tprintf (TEXT ("Error! %s with error code of %ld.\n"), lpMsg, GetLastError ());
-            exit (EXIT_SUCCESS);
-        }
-
         VOID SetupPrivilege (LPSTR lpPrivilege, BOOL bEnable)
         {
-            HANDLE           hToken;
-            // open process token
-            if (!OpenProcessToken (GetCurrentProcess (), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+            HANDLE process = GetCurrentProcess();
+            HANDLE hToken;
+            // Open process token
+            if (!OpenProcessToken (process, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
             {
                 ErrorExit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
             TOKEN_PRIVILEGES tp;
-            // get the luid
+
+            // Enable or Disable privilege
+            tp.PrivilegeCount = 1;
+            tp.Privileges[0].Attributes = (bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
+            // Get the luid
             if (!LookupPrivilegeValue (NULL, lpPrivilege, &tp.Privileges[0].Luid))
             {
                 ErrorExit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
 
-            tp.PrivilegeCount = 1;
-
-            // enable or disable privilege
-            if (bEnable)
-            {
-                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-            }
-            else
-            {
-                tp.Privileges[0].Attributes = SE_PRIVILEGE_DISABLED;
-            }
-
-            // enable or disable privilege
             BOOL bStatus = AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
@@ -124,61 +109,63 @@ namespace MemoryHandler {
                 ErrorExit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
             }
 
-            // close the handle
+            // Close the handle
             if (!CloseHandle (hToken))
             {
                 ErrorExit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
             }
         }
 
-        INT PageFaultExceptionFilter (DWORD dwCode)
-        {
-            LPVOID lpvResult;
+        /*
+        //INT PageFaultExceptionFilter (DWORD dwCode)
+        //{
+        //    LPVOID lpvResult;
 
-            // If the exception is not a page fault, exit.
+        //    // If the exception is not a page fault, exit.
 
-            if (dwCode != EXCEPTION_ACCESS_VIOLATION)
-            {
-                _tprintf (TEXT ("Exception code = %ld.\n"), dwCode);
-                return EXCEPTION_EXECUTE_HANDLER;
-            }
+        //    if (dwCode != EXCEPTION_ACCESS_VIOLATION)
+        //    {
+        //        _tprintf (TEXT ("Exception code = %ld.\n"), dwCode);
+        //        return EXCEPTION_EXECUTE_HANDLER;
+        //    }
 
-            _tprintf (TEXT ("Exception is a page fault.\n"));
+        //    _tprintf (TEXT ("Exception is a page fault.\n"));
 
-            // If the reserved pages are used up, exit.
+        //    // If the reserved pages are used up, exit.
 
-            if (dwPages >= PAGELIMIT)
-            {
-                _tprintf (TEXT ("Exception: out of pages.\n"));
-                return EXCEPTION_EXECUTE_HANDLER;
-            }
+        //    if (dwPages >= PAGELIMIT)
+        //    {
+        //        _tprintf (TEXT ("Exception: out of pages.\n"));
+        //        return EXCEPTION_EXECUTE_HANDLER;
+        //    }
 
-            // Otherwise, commit another page.
+        //    // Otherwise, commit another page.
 
-            lpvResult = VirtualAlloc (
-                             (LPVOID) lpNxtPage, // Next page to commit
-                             dwPageSize,         // Page size, in bytes
-                             MEM_COMMIT,         // Allocate a committed page
-                             PAGE_READWRITE);    // Read/write access
-            if (lpvResult == NULL)
-            {
-                _tprintf (TEXT ("VirtualAlloc failed.\n"));
-                return EXCEPTION_EXECUTE_HANDLER;
-            }
-            else
-            {
-                _tprintf (TEXT ("Allocating another page.\n"));
-            }
+        //    lpvResult = VirtualAlloc (
+        //                     (LPVOID) lpNxtPage, // Next page to commit
+        //                     dwPageSize,         // Page size, in bytes
+        //                     MEM_COMMIT,         // Allocate a committed page
+        //                     PAGE_READWRITE);    // Read/write access
+        //    if (lpvResult == NULL)
+        //    {
+        //        _tprintf (TEXT ("VirtualAlloc failed.\n"));
+        //        return EXCEPTION_EXECUTE_HANDLER;
+        //    }
+        //    else
+        //    {
+        //        _tprintf (TEXT ("Allocating another page.\n"));
+        //    }
 
-            // Increment the page count, and advance lpNxtPage to the next page.
+        //    // Increment the page count, and advance lpNxtPage to the next page.
 
-            ++dwPages;
-            lpNxtPage = (LPTSTR) ((PCHAR) lpNxtPage + dwPageSize);
+        //    ++dwPages;
+        //    lpNxtPage = (LPTSTR) ((PCHAR) lpNxtPage + dwPageSize);
 
-            // Continue execution where the page fault occurred.
+        //    // Continue execution where the page fault occurred.
 
-            return EXCEPTION_CONTINUE_EXECUTION;
-        }
+        //    return EXCEPTION_CONTINUE_EXECUTION;
+        //}
+        */
 
 #   else    // Linux - Unix
 
@@ -204,7 +191,7 @@ namespace MemoryHandler {
                         MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);        // Protection of Allocation
 
-            if (mem_ref) /* HACK */
+            if (mem_ref)
             {
                 use_largepages = true;
                 std::cout << "info string WindowsLargePages " << (mem_size >> 20) << " MB Hash..." << std::endl;
@@ -218,24 +205,24 @@ namespace MemoryHandler {
                         MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);        // Protection of Allocation
                 
-                if (mem_ref) /* HACK */
+                if (mem_ref)
                 {
                     use_largepages = true;
-                    std::cout << "info string WindowsMemory " << (mem_size >> 20) << " MB Hash..." << std::endl;
+                    std::cout << "info string WindowsPages " << (mem_size >> 20) << " MB Hash..." << std::endl;
                     return;
                 }
             }
 
 #   else    // Linux - Unix
 
-            int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
+            int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (num != -1)
             {
                 mem_ref = shmat (num, NULL, 0x0);
                 if (mem_ref == -1)
                 {
-                    perror("Shared memory attach failure");
-                    shmctl (shmid1, IPC_RMID, NULL);
+                    //perror ("shmat: Shared memory attach failure");
+                    //shmctl (shmid1, IPC_RMID, NULL);
                     //exit(2);
                 }
                 use_largepages = true;
@@ -244,14 +231,14 @@ namespace MemoryHandler {
             }
             else
             {
-                //perror("shmget");
+                //perror ("shmget: Shared memory get failure");
                 //exit(1);
             }
 #   endif
 
         }
 
-        MEMALIGN (mem_ref, align, mem_size);
+        MEMALIGN (mem_ref, align, size_t (mem_size));
 
     }
 
@@ -285,69 +272,71 @@ namespace MemoryHandler {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        
-        // call succeeds only on Windows Server 2003 SP1 or later
-        HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
-        if (hDll == NULL)
-        {
-            ErrorExit (TEXT (const_cast<LPSTR> ("LoadLibrary")), GetLastError ());
-        }
-
-        GetLargePageMinimum pGetLargePageMinimum =
-            GetLargePageMinimum (GetProcAddress (hDll, "GetLargePageMinimum"));
-        if (pGetLargePageMinimum == NULL)
-        {
-            ErrorExit (TEXT (const_cast<LPSTR> ("GetProcAddress")), GetLastError ());
-        }
-
-        DWORD dwSize = pGetLargePageMinimum ();
-
-        FreeLibrary (hDll);
-
-        _tprintf (TEXT ("Page Size: %ld\n"), dwSize);
-
         SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
         
-        TCHAR szName[] = TEXT ("LARGEPAGE");
-        HANDLE hMapFile = CreateFileMapping (
-             INVALID_HANDLE_VALUE,    // use paging file
-             NULL,                    // default security
-             //PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,
-             PAGE_READWRITE|MEM_LARGE_PAGES,
-             0,                       // max. object size
-             dwSize,                  // buffer size
-             szName);                 // name of mapping object
+        /*
+        //// Call succeeds only on Windows Server 2003 SP1 or later
+        //HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
+        //if (hDll == NULL)
+        //{
+        //    ErrorExit (TEXT (const_cast<LPSTR> ("LoadLibrary")), GetLastError ());
+        //}
 
-        if (hMapFile == NULL)
-        {
-            ErrorExit (TEXT (const_cast<LPSTR> ("CreateFileMapping")), GetLastError ());
-        }
-        else
-        {
-            _tprintf (TEXT ("File mapping object successfulyl created.\n"));
-        }
+        //GetLargePageMinimum pGetLargePageMinimum =
+        //    GetLargePageMinimum (GetProcAddress (hDll, "GetLargePageMinimum"));
+        //if (pGetLargePageMinimum == NULL)
+        //{
+        //    ErrorExit (TEXT (const_cast<LPSTR> ("GetProcAddress")), GetLastError ());
+        //}
 
-        SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), FALSE);
+        //DWORD dwSize = pGetLargePageMinimum ();
 
-        LPCTSTR pBuf = (LPTSTR) MapViewOfFile (hMapFile,   // handle to map object
-             FILE_MAP_ALL_ACCESS, // read/write permission
-             0,
-             0,
-             BUF_SIZE);
+        //FreeLibrary (hDll);
 
-        if (pBuf == NULL)
-        {
-            ErrorExit (TEXT (const_cast<LPSTR> ("MapViewOfFile")), GetLastError ());
-        }
-        else
-        {
-            _tprintf (TEXT ("View of file successfully mapped.\n"));
-        }
+        //_tprintf (TEXT ("Page Size: %ld\n"), dwSize);
 
-        // do nothing, clean up an exit
-        UnmapViewOfFile (pBuf);
-        CloseHandle (hMapFile);
-        
+        //SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
+        //
+        //TCHAR szName[] = TEXT ("LARGEPAGE");
+        //HANDLE hMapFile = CreateFileMapping (
+        //     INVALID_HANDLE_VALUE,    // use paging file
+        //     NULL,                    // default security
+        //     //PAGE_READWRITE|SEC_COMMIT|SEC_LARGE_PAGES,
+        //     PAGE_READWRITE|MEM_LARGE_PAGES,
+        //     0,                       // max. object size
+        //     dwSize,                  // buffer size
+        //     szName);                 // name of mapping object
+
+        //if (hMapFile == NULL)
+        //{
+        //    ErrorExit (TEXT (const_cast<LPSTR> ("CreateFileMapping")), GetLastError ());
+        //}
+        //else
+        //{
+        //    _tprintf (TEXT ("File mapping object successfulyl created.\n"));
+        //}
+
+        //SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), FALSE);
+
+        //LPCTSTR pBuf = (LPTSTR) MapViewOfFile (hMapFile,   // handle to map object
+        //     FILE_MAP_ALL_ACCESS, // read/write permission
+        //     0,
+        //     0,
+        //     BUF_SIZE);
+
+        //if (pBuf == NULL)
+        //{
+        //    ErrorExit (TEXT (const_cast<LPSTR> ("MapViewOfFile")), GetLastError ());
+        //}
+        //else
+        //{
+        //    _tprintf (TEXT ("View of file successfully mapped.\n"));
+        //}
+
+        //// do nothing, clean up an exit
+        //UnmapViewOfFile (pBuf);
+        //CloseHandle (hMapFile);
+        */
 
         /*
         //SYSTEM_INFO sSysInfo;         // Useful information about the system
@@ -369,7 +358,7 @@ namespace MemoryHandler {
 
         //if (lpvBase == NULL)
         //{
-        //    ErrorExit (TEXT ("VirtualAlloc reserve failed."));
+        //    ErrorExit (TEXT (const_cast<LPSTR> ("VirtualAlloc reserve failed.")), GetLastError ());
         //}
 
         //// Generic character pointer
