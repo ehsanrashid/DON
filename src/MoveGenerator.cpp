@@ -3,7 +3,7 @@
 #include "Position.h"
 #include "BitCount.h"
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
 #endif
 

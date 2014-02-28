@@ -189,9 +189,9 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
-# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums
+# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums -Wno-pragmas
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-pragmas -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)

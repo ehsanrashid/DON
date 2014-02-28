@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef XCSTRING_H_
-#define XCSTRING_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _XCSTRING_H_
+#define _XCSTRING_H_
 
 #include <cstring>
 #include <cassert>
@@ -494,4 +497,4 @@ inline char* to_str (int i, char s[], int radix = 10)
 //    s = NULL;
 //}
 
-#endif
+#endif // _XCSTRING_H_

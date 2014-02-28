@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef XSTRING_H_
-#define XSTRING_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _XSTRING_H_
+#define _XSTRING_H_
 
 #include <cctype>
 #include <cstring>
@@ -334,4 +337,4 @@ namespace std {
     */
 }
 
-#endif
+#endif // _XSTRING_H_

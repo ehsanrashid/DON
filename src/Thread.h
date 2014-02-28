@@ -1,5 +1,9 @@
-#ifndef THREAD_H_
-#define THREAD_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _THREAD_H_
+#define _THREAD_H_
 
 #include <vector>
 
@@ -16,9 +20,8 @@ const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 // Windows or MinGW
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-// disable macros min() and max()
 #   ifndef  NOMINMAX
-#       define NOMINMAX
+#       define NOMINMAX // disable macros min() and max()
 #   endif
 #   ifndef  WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
@@ -26,8 +29,9 @@ const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
 #   include <windows.h>
 
-#   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
 
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
@@ -54,12 +58,12 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #else    // Linux - Unix
 
 #   include <pthread.h>
-#   include <unistd.h>  // Used by sysconf(_SC_NPROCESSORS_ONLN)
+#   include <unistd.h>  // for sysconf()
 
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
-typedef void* (*ptr_fn)(void*);
+typedef void* (*start_fn)(void*);
 
 #   define lock_init(x)     pthread_mutex_init (&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock (&(x))
@@ -70,7 +74,7 @@ typedef void* (*ptr_fn)(void*);
 #   define cond_signal(x)   pthread_cond_signal (&(x))
 #   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
 #   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
-#   define thread_create(x,f,t)     pthread_create (&(x), NULL, ptr_fn (f), t)
+#   define thread_create(x,f,t)     pthread_create (&(x), NULL, start_fn (f), t)
 #   define thread_join(x)   pthread_join (x, NULL)
 
 #endif
@@ -255,6 +259,7 @@ struct ThreadPool
 // conversion from milliseconds to struct timespec, as used by pthreads.
 inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
 {
+
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
     int32_t tm = msec;
@@ -271,6 +276,7 @@ inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t mse
 #endif
 
     cond_timedwait (sleep_cond, sleep_lock, tm);
+
 }
 
 
@@ -314,6 +320,10 @@ inline uint32_t cpu_count ()
 
     return sysconf (_SC_NPROCESSORS_ONLN);
 
+#   elif defined(__IRIX)
+
+    return sysconf (_SC_NPROC_ONLN);
+
 #   elif defined(__HPUX)
 
     pst_dynamic psd;
@@ -321,10 +331,6 @@ inline uint32_t cpu_count ()
         1 : psd.psd_proc_cnt;
 
     //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
-
-#   elif defined(__IRIX)
-
-    return sysconf (_SC_NPROC_ONLN);
 
 #   else
 
@@ -358,4 +364,4 @@ extern ThreadPool Threads;
 extern void prefetch (char *addr);
 
 
-#endif // THREAD_H_
+#endif // _THREAD_H_

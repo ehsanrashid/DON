@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef MEMORY_HANDLER_H_
-#define MEMORY_HANDLER_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _MEMORY_HANDLER_H_
+#define _MEMORY_HANDLER_H_
 
 #ifdef LPAGES
 
@@ -16,6 +19,6 @@ namespace MemoryHandler {
 
 }
 
-#endif
+#endif // LPAGES
 
-#endif
+#endif // _MEMORY_HANDLER_H_

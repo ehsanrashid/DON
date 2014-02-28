@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef TYPE_H_
-#define TYPE_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _TYPE_H_
+#define _TYPE_H_
 
 #include <cctype>
 #include <climits>
@@ -12,13 +15,13 @@
 
 #define UNLIKELY(x) (x) // For code annotation purposes
 
-typedef uint64_t   Bitboard; // Type for Bitboard
-typedef uint64_t   Key;      // Type for Zobrist Hash
+typedef uint64_t   Key;
+typedef uint64_t   Bitboard;
 
 const uint8_t MAX_PLY      = 120;          // Maximum Depth 120
 const uint8_t MAX_PLY_6    = MAX_PLY + 6;
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 //#   pragma warning (push)
 //#   pragma warning (disable: 4341)
 #endif
@@ -120,6 +123,7 @@ typedef enum CSide : int8_t
 } CSide;
 
 // Castle Right
+// Defined as in PolyGlot book hash key
 typedef enum CRight : uint8_t
 {
     CR_NO ,                 // 0000
@@ -315,7 +319,7 @@ typedef enum ScaleFactor : uint8_t
 
 } ScaleFactor;
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 //#   pragma warning (pop)
 #endif
 
@@ -706,4 +710,4 @@ public:
 
 };
 
-#endif // TYPE_H_
+#endif // _TYPE_H_

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef ENGINE_H_
-#define ENGINE_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _ENGINE_H_
+#define _ENGINE_H_
 
 #include <string>
 
@@ -16,4 +19,4 @@ namespace Engine {
 
 }
 
-#endif
+#endif // _ENGINE_H_

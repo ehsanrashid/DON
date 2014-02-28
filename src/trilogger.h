@@ -21,9 +21,12 @@
 //
 // CLEANTLOG (clean all)
 
-//#pragma once
-#ifndef TRI_LOGGER_H_
-#define TRI_LOGGER_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _TRI_LOGGER_H_
+#define _TRI_LOGGER_H_
 
 #include <ostream>
 #include <memory>
@@ -180,4 +183,4 @@ namespace TrivialLogger {
 
 #endif
 
-#endif // TRI_LOGGER_H_
+#endif // _TRI_LOGGER_H_

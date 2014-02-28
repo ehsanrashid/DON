@@ -57,7 +57,7 @@ namespace MemoryHandler {
 
         VOID ErrorExit (LPSTR lpAPI, DWORD dwError)
         {
-            LPSTR lpvMessageBuffer;
+            LPSTR lpvMessageBuffer = NULL;
 
             FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
                           FORMAT_MESSAGE_FROM_SYSTEM |

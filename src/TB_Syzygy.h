@@ -1,4 +1,7 @@
-//#pragma once
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
 #ifndef TB_SYZYGY_H_
 #define TB_SYZYGY_H_
 

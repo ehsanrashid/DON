@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef UCI_H_
-#define UCI_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _UCI_H_
+#define _UCI_H_
 
 #include <map>
 #include <memory>
@@ -173,4 +176,4 @@ namespace UCI {
 // Global string mapping of options
 extern UCI::OptionMap Options;
 
-#endif // UCI_H_
+#endif // _UCI_H_

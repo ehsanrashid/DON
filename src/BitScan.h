@@ -1,10 +1,13 @@
-//#pragma once
-#ifndef BITSCAN_H_
-#define BITSCAN_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _BITSCAN_H_
+#define _BITSCAN_H_
 
 #include "Type.h"
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 #endif
 
@@ -258,4 +261,4 @@ INLINE Square pop_lsq (Bitboard &bb)
     return s;
 }
 
-#endif
+#endif // _BITSCAN_H_

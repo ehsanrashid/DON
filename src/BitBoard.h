@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef BITBOARD_H_
-#define BITBOARD_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _BITBOARD_H_
+#define _BITBOARD_H_
 
 #include "Type.h"
 
@@ -312,4 +315,4 @@ namespace BitBoard {
 
 }
 
-#endif
+#endif // _BITBOARD_H_

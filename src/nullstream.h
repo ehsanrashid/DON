@@ -11,7 +11,10 @@
 // This software is provided "as is" without express or implied
 // warranty, and with no claim as to its suitability for any purpose.
 
-//#pragma once
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
 #ifndef NULLSTREAM_H_
 #define NULLSTREAM_H_
 
@@ -21,7 +24,7 @@
 
 namespace std {
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (disable: 4355)
 #endif
 

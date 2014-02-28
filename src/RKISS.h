@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef RKISS_H_
-#define RKISS_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _RKISS_H_
+#define _RKISS_H_
 
 #include "Type.h"
 #include "Time.h"
@@ -119,4 +122,4 @@ inline T RKISS::magic_rand (uint16_t s)
         ,                                  (s >> 6) & 0x3F) & rand<T> ();
 }
 
-#endif // RKISS_H_
+#endif // _RKISS_H_

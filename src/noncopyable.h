@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef NON_COPYABLE_H_
-#define NON_COPYABLE_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _NON_COPYABLE_H_
+#define _NON_COPYABLE_H_
 
 namespace std {
 
@@ -28,4 +31,4 @@ namespace std {
 
 }
 
-#endif
+#endif // _NON_COPYABLE_H_

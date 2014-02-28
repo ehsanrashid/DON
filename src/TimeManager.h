@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef TIME_MANAGER_H_
-#define TIME_MANAGER_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _TIME_MANAGER_H_
+#define _TIME_MANAGER_H_
 
 #include "Searcher.h"
 
@@ -30,4 +33,4 @@ public:
     
 } TimeManager;
 
-#endif // TIME_MANAGER_H_
+#endif // _TIME_MANAGER_H_

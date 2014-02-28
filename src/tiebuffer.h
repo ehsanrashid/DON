@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef TIE_BUFFER_H_
-#define TIE_BUFFER_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _TIE_BUFFER_H_
+#define _TIE_BUFFER_H_
 
 #include <streambuf>
 #include <fstream>
@@ -105,4 +108,4 @@ namespace std {
 
 }
 
-#endif // TIE_BUFFER_H_
+#endif // _TIE_BUFFER_H_

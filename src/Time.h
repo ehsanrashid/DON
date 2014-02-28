@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef TIME_H_
-#define TIME_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef __TIME_H_
+#define __TIME_H_
 
 #include <iomanip>
 #include <sstream>
@@ -48,14 +51,14 @@ namespace Time {
     //} point;
     //INLINE point  operator-  (const point &p1, const point &p2) { return point (uint64_t (p1) - uint64_t (p2)); }
 
-    typedef int64_t point;
+    typedef int64_t     point;
     const point M_SEC = 1000;
 
     INLINE point now () { return point (system_time_msec ()); }
 
     inline std::string to_string (const point &p)
     {
-        std::ostringstream stime;
+        std::ostringstream ost;
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -64,19 +67,19 @@ namespace Time {
 
         //char str_time[26];
         //errno_t err = ctime_s (str_time, sizeof (str_time), &time);
-
         //if (err)
+
         if (!*str_time)
         {
-            stime << "ERROR: Invalid time '" << time << "'";
-            return stime.str ();
+            ost << "ERROR: Invalid time '" << time << "'";
+            return ost.str ();
         }
 
         str_time[10] = '\0';
         str_time[19] = '\0';
         str_time[24] = '\0';
 
-        stime << std::setfill ('0')
+        ost << std::setfill ('0')
             << &str_time[00] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
@@ -88,7 +91,7 @@ namespace Time {
 
 #   endif
 
-        return stime.str ();
+        return ost.str ();
     }
 }
 
@@ -100,4 +103,4 @@ inline std::basic_ostream<charT, Traits>&
     return os;
 }
 
-#endif
+#endif // __TIME_H_

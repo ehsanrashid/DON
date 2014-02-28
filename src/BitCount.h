@@ -1,10 +1,13 @@
-//#pragma once
-#ifndef BITCOUNT_H_
-#define BITCOUNT_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _BITCOUNT_H_
+#define _BITCOUNT_H_
 
 #include "Type.h"
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 #endif
 
@@ -32,7 +35,7 @@ INLINE uint8_t pop_count (Bitboard bb);
 const BitCountT FULL  = CNT_HW_POPCNT;
 const BitCountT MAX15 = CNT_HW_POPCNT;
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 
 #   if defined(__INTEL_COMPILER)
 
@@ -189,4 +192,4 @@ INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
 
 #endif
 
-#endif
+#endif // _BITCOUNT_H_

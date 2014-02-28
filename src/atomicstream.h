@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef ATOMIC_STREAM_H_
-#define ATOMIC_STREAM_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _ATOMIC_STREAM_H_
+#define _ATOMIC_STREAM_H_
 
 #include <sstream>
 #include <iostream>
@@ -162,4 +165,4 @@ namespace std {
 
 }
 
-#endif
+#endif // _ATOMIC_STREAM_H_

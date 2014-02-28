@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef ENDGAME_H_
-#define ENDGAME_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _END_GAME_H_
+#define _END_GAME_H_
 
 #include <map>
 #include <string>
@@ -120,4 +123,4 @@ namespace EndGame {
 
 }
 
-#endif
+#endif // _END_GAME_H_

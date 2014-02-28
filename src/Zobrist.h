@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef ZOBRIST_H_
-#define ZOBRIST_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _ZOBRIST_H_
+#define _ZOBRIST_H_
 
 #include "Type.h"
 #include <string>
@@ -66,4 +69,4 @@ extern const Zobrist::Zob  ZobPG;
 //extern       Zobrist::Zob  ZobRand;
 extern const Zobrist::Zob &ZobGlob;
 
-#endif
+#endif // _ZOBRIST_H_

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef MATERIAL_H_
-#define MATERIAL_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _MATERIAL_H_
+#define _MATERIAL_H_
 
 #include "Type.h"
 #include "Endgame.h"
@@ -71,4 +74,4 @@ namespace Material {
 
 }
 
-#endif // MATERIAL_H_
+#endif // _MATERIAL_H_

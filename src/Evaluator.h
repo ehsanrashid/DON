@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef EVALUATOR_H_
-#define EVALUATOR_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _EVALUATOR_H_
+#define _EVALUATOR_H_
 
 #include "Type.h"
 
@@ -16,4 +19,4 @@ namespace Evaluator {
 
 }
 
-#endif
+#endif // _EVALUATOR_H_

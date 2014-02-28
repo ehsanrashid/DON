@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef GAME_H_
-#define GAME_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _GAME_H_
+#define _GAME_H_
 
 #include <map>
 #include <vector>
@@ -122,4 +125,4 @@ public:
 
 } Game;
 
-#endif
+#endif // _GAME_H_

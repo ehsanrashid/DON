@@ -594,16 +594,20 @@
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\atomicstream.h" />
     <ClInclude Include="src\Benchmark.h" />
     <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitScan.h" />
     <ClInclude Include="src\DebugLogger.h" />
+    <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
+    <ClInclude Include="src\Forest.h" />
     <ClInclude Include="src\functor.h" />
+    <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\Log.h" />
     <ClInclude Include="src\manipulator.h" />
@@ -615,19 +619,24 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
+    <ClInclude Include="src\PGN.h" />
     <ClInclude Include="src\Platform.h" />
     <ClInclude Include="src\PolyglotBook.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\RKISS.h" />
     <ClInclude Include="src\Searcher.h" />
+    <ClInclude Include="src\Tester.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
+    <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\TriLogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
+    <ClInclude Include="src\xcstring.h" />
+    <ClInclude Include="src\xstring.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

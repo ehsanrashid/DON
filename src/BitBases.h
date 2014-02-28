@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef BITBASES_H_
-#define BITBASES_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _BITBASES_H_
+#define _BITBASES_H_
 
 #include "Type.h"
 
@@ -12,4 +15,4 @@ namespace BitBases {
 
 }
 
-#endif
+#endif // _BITBASES_H_

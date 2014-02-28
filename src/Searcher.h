@@ -1,4 +1,7 @@
-//#pragma once
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
 #ifndef SEARCHER_H_
 #define SEARCHER_H_
 
@@ -13,7 +16,7 @@
 #include "Position.h"
 #include "PolyglotBook.h"
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (push)
 #   pragma warning (disable: 4805)
 #endif
@@ -184,7 +187,7 @@ namespace Searcher {
 
 }
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (pop)
 #endif
 

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef MOVE_GENERATOR_H_
-#define MOVE_GENERATOR_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _MOVE_GENERATOR_H_
+#define _MOVE_GENERATOR_H_
 
 #include "Type.h"
 
@@ -104,4 +107,4 @@ namespace MoveGenerator {
 
 }
 
-#endif
+#endif // _MOVE_GENERATOR_H_

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef LOG_H_
-#define LOG_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _LOG_H_
+#define _LOG_H_
 
 #include <fstream>
 
@@ -20,4 +23,4 @@ public:
 
 } Log;
 
-#endif
+#endif // _LOG_H_

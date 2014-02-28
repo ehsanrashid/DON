@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef POLYGLOT_BOOK_H_
-#define POLYGLOT_BOOK_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _POLYGLOT_BOOK_H_
+#define _POLYGLOT_BOOK_H_
 
 #include <fstream>
 
@@ -10,7 +13,7 @@
 
 class Position;
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (push)
 #   pragma warning (disable: 4250)
 #endif
@@ -144,8 +147,8 @@ public:
 } PolyglotBook;
 
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (pop)
 #endif
 
-#endif
+#endif // _POLYGLOT_BOOK_H_

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef TRANSPOSITION_H_
-#define TRANSPOSITION_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _TRANSPOSITION_H_
+#define _TRANSPOSITION_H_
 
 #include <cstring>
 #include <cstdlib>
@@ -9,7 +12,7 @@
 #include "MemoryHandler.h"
 #include "LeakDetector.h"
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (push)
 #   pragma warning (disable : 4244)
 #endif
@@ -27,8 +30,10 @@
 // ----------------
 //  total        16 byte
 
-//#pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
-#pragma pack (push, 2)
+#ifdef _MSC_VER
+//#   pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
+#   pragma pack (push, 2)
+#endif
 
 typedef struct TranspositionEntry
 {
@@ -74,7 +79,9 @@ public:
 
 } TranspositionEntry;
 
-#pragma pack (pop)
+#ifdef _MSC_VER
+#   pragma pack (pop)
+#endif
 
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of CLUSTER_SIZE number of entry.
@@ -289,11 +296,11 @@ public:
 
 } TranspositionTable;
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 #   pragma warning (pop)
 #endif
 
 // Global Transposition Table
 extern TranspositionTable TT;
 
-#endif
+#endif // _TRANSPOSITION_H_

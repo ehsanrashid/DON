@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef PLATFORM_H_
-#define PLATFORM_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _PLATFORM_H_
+#define _PLATFORM_H_
 
 //#undef POPCNT
 //#define POPCNT
@@ -8,21 +11,18 @@
 //#define PREFETCH
 //#define LPAGES
 //#define __INTEL_COMPILER
-
 //#pragma comment (linker, "/stack:xxx /heap:yyy")
 
-// Windows or MinGW
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-#   if defined(_MSC_VER)
+#ifdef _MSC_VER
 // Disable some silly and noisy warning from MSVC compiler
-#       pragma warning (disable: 4127) // Conditional expression is constant
-#       pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
-#       pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
-#       pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-#       pragma warning (disable: 6326) // Constant comparison
+#   pragma warning (disable: 4127) // Conditional expression is constant
+#   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+#   pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
+#   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+#   pragma warning (disable: 6326) // Constant comparison
 
 // MSVC does not support <inttypes.h>
+//#       include <stdint.h>
 typedef   signed __int8          int8_t;
 typedef unsigned __int8         uint8_t;
 typedef   signed __int16         int16_t;
@@ -32,22 +32,24 @@ typedef unsigned __int32        uint32_t;
 typedef   signed __int64         int64_t;
 typedef unsigned __int64        uint64_t;
 
-#       define  S32(X) (X## i32)
-#       define  U32(X) (X##ui32)
-#       define  S64(X) (X## i64)
-#       define  U64(X) (X##ui64)
+#   define  S32(X) (X## i32)
+#   define  U32(X) (X##ui32)
+#   define  S64(X) (X## i64)
+#   define  U64(X) (X##ui64)
 
-#   else
+#else
 
-#       include <inttypes.h>
+#   include <inttypes.h>
 
-#       define S32(X) (X## L )
-#       define U32(X) (X##UL )
-#       define S64(X) (X## LL)
-#       define U64(X) (X##ULL)
+#   define S32(X) (X## L )
+#   define U32(X) (X##UL )
+#   define S64(X) (X## LL)
+#   define U64(X) (X##ULL)
 
-#   endif
+#endif
 
+// Windows or MinGW
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   if defined(_WIN64)
 #       if !defined(_64BIT)
@@ -58,29 +60,11 @@ typedef unsigned __int64        uint64_t;
 #       endif
 #   endif
 
-#else    // Linux - Unix
-
-#   include <inttypes.h>
-
-typedef   signed char            int8_t;
-typedef unsigned char           uint8_t;
-typedef   signed short           int16_t;
-typedef unsigned short          uint16_t;
-typedef   signed int             int32_t;
-typedef unsigned int            uint32_t;
-typedef   signed long long       int64_t;
-typedef unsigned long long      uint64_t;
-
-#   define S32(X) (X## L )
-#   define U32(X) (X##UL )
-#   define S64(X) (X## LL)
-#   define U64(X) (X##ULL)
-
 #endif
 
-#   undef INLINE
+#undef INLINE
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 
 #   define INLINE     __forceinline
 
@@ -95,6 +79,7 @@ typedef unsigned long long      uint64_t;
 #endif
 
 #define CACHE_LINE_SIZE 64
+
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   define CACHE_ALIGN(x)     __declspec(align(x))
@@ -152,4 +137,4 @@ typedef unsigned long long      uint64_t;
 
 #endif
 
-#endif
+#endif // _PLATFORM_H_

@@ -1,6 +1,9 @@
-//#pragma once
-#ifndef NOTATION_H_
-#define NOTATION_H_
+#ifdef _MSC_VER
+#   pragma once
+#endif
+
+#ifndef _NOTATION_H_
+#define _NOTATION_H_
 
 #include <string>
 
@@ -35,4 +38,4 @@ extern std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta
 extern std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[]);
 
 
-#endif // NOTATION_H_
+#endif // _NOTATION_H_
