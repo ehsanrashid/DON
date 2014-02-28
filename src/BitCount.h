@@ -77,6 +77,15 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #   endif
 
+//#elif defined(_WIN32) && defined(_64BIT)
+//
+//#   include <intrin.h> // MSVC popcnt and  __popcnt()
+//
+//template<>
+//INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+//{
+//    return (__m64_popcnt (bb));
+//}
 
 #else
 
@@ -90,7 +99,8 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #endif
 
-#else
+
+#else   // BY Calculation
 
 #   ifdef _64BIT
 

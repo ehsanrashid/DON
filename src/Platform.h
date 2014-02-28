@@ -5,6 +5,11 @@
 #ifndef _PLATFORM_H_INC_
 #define _PLATFORM_H_INC_
 
+//#undef POPCNT
+//#pragma comment (linker, "/stack:xxx /heap:yyy")
+
+
+
 /// For Linux and OSX configuration is done automatically using Makefile. To get
 /// started type 'make help'.
 ///
@@ -20,12 +25,8 @@
 ///             | only in 64-bit mode. For compiling requires hardware with
 ///             | popcnt support.
 ///
-/// - DBSFQ
-/// - DLPAGES
-
-//#undef POPCNT
-
-// #pragma comment (linker, "/stack:xxx /heap:yyy")
+/// - DBSFQ     | 
+/// - DLPAGES   | Enable Large Pages
 
 #ifdef _MSC_VER
 // Disable some silly and noisy warning from MSVC compiler

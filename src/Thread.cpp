@@ -392,7 +392,7 @@ void ThreadPool::wait_for_think_finished ()
 
 void prefetch (char *addr)
 {
-#   ifdef __INTEL_COMPILER
+#   if defined(__INTEL_COMPILER)
     {
         // This hack prevents prefetches from being optimized away by
         // Intel compiler. Both MSVC and gcc seem not be affected by this.
