@@ -82,7 +82,7 @@ namespace {
     MovesStats          CounterMoves;
     MovesStats          FollowupMoves;
 
-    int                 TBCardinality;
+    int32_t             TBCardinality;
     uint64_t            TBHits;
     bool                RootInTB;
     bool                TB50MoveRule;
@@ -326,7 +326,12 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        int piecesCnt;
+#ifndef _MSC_VER
+        int32_t piecesCnt;
+#endif
+
+        TBHits = TBCardinality = 0;
+        RootInTB = false;
 
         bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
@@ -390,13 +395,14 @@ namespace Searcher {
 
         piecesCnt = RootPos.count ();
         
-        TBCardinality = int (*(Options["Syzygy Probe Limit"]));
+        TBCardinality = int32_t (*(Options["Syzygy Probe Limit"]));
         if (TBCardinality > Tablebases::TBLargest)
         {
             TBCardinality = Tablebases::TBLargest;
         }
-        TB50MoveRule = *(Options["Syzygy 50 Move Rule"]);
-        TBProbeDepth = *(Options["Syzygy Probe Depth"]) * ONE_PLY;
+
+        TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
+        TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_PLY;
 
         if (piecesCnt <= TBCardinality)
         {
@@ -429,15 +435,18 @@ namespace Searcher {
                 }
             }
 
-            if (!RootInTB)
+            if (RootInTB)
+            {
+                if (!TB50MoveRule)
+                {
+                    TBScore = TBScore > VALUE_DRAW ? VALUE_MATES_IN_MAX_PLY - 1
+                        :     TBScore < VALUE_DRAW ? VALUE_MATED_IN_MAX_PLY + 1
+                        :     VALUE_DRAW;
+                }
+            }
+            else
             {
                 TBHits = 0;
-            }
-            else if (!TB50MoveRule)
-            {
-                TBScore = TBScore > VALUE_DRAW ? VALUE_MATE - MAX_PLY - 1
-                        : TBScore < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
-                        : TBScore;
             }
         }
         
@@ -457,6 +466,13 @@ namespace Searcher {
 
         Threads.timer->run = false; // Stop the timer
         Threads.sleep_idle = true;  // Send idle threads to sleep
+
+
+        if (RootInTB)
+        {
+            // If we mangled the hash key, unmangle it here
+        }
+
 
         if (write_search_log)
         {
@@ -491,6 +507,7 @@ namespace Searcher {
             << " time "     << elapsed
             << " nodes "    << RootPos.game_nodes ()
             << " nps "      << RootPos.game_nodes () * 1000 / elapsed
+            << " tbhits "   << TBHits
             << " hashfull " << TT.permill_full ()
             << sync_endl;
 
@@ -898,6 +915,47 @@ namespace {
             return tt_value;
         }
 
+#ifndef _MSC_VER
+        // Step 4-TB. Tablebase probe
+        if (   !RootNode
+            && depth >= TBProbeDepth
+            && pos.count () <= TBCardinality
+            && pos.clock50 () == 0)
+        {
+            int found, v = Tablebases::probe_wdl (pos, &found);
+
+            if (found)
+            {
+                ++TBHits;
+
+                Value value;
+                if (TB50MoveRule)
+                {
+                    value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
+                        :   v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply
+                        :   VALUE_DRAW + 2 * v;
+                }
+                else
+                {
+                    value = v < 0 ? -VALUE_MATE + MAX_PLY + ss->ply
+                        :   v > 0 ?  VALUE_MATE - MAX_PLY - ss->ply
+                        :   VALUE_DRAW;
+                }
+
+                TT.store (
+                    posi_key,
+                    MOVE_NONE,
+                    depth + 6 * ONE_PLY,
+                    BND_EXACT,
+                    pos.game_nodes (),
+                    value_to_tt (value, ss->ply),
+                    VALUE_NONE);
+
+                return value;
+            }
+        }
+
+#endif
         // Step 5. Evaluate the position statically and update parent's gain statistics
         if (in_check)
         {
@@ -1865,6 +1923,19 @@ namespace {
             uint8_t d = updated ? depth : depth - 1;
             Value   v = updated ? RootMoves[i].value[0] : RootMoves[i].value[1];
 
+            bool tb = RootInTB;
+            if (tb)
+            {
+                if (abs (v) >= VALUE_MATES_IN_MAX_PLY)
+                {
+                    tb = false;
+                }
+                else
+                {
+                    v = TBScore;
+                }
+            }
+
             // Not at first line
             if (spv.rdbuf ()->in_avail ()) spv << "\n";
 
@@ -1872,10 +1943,11 @@ namespace {
                 << " multipv "  << uint32_t (i + 1)
                 << " depth "    << uint32_t (d)
                 << " seldepth " << uint32_t (sel_depth)
-                << " score "    << (i == IndexPV ? score_uci (v, alpha, beta) : score_uci (v))
+                << " score "    << ((!tb && i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
                 << " time "     << elapsed
                 << " nodes "    << pos.game_nodes ()
                 << " nps "      << pos.game_nodes () * 1000 / elapsed
+                << " tbhits "   << TBHits
                 << " hashfull " << TT.permill_full ()
                 //<< " cpuload "  << // the cpu usage of the engine is x permill.
                 << " pv";

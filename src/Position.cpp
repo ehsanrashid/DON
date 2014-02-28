@@ -1127,20 +1127,20 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 // do_move() do the move with checking info
-void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
+void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 {
     ASSERT (_ok (m));
-    ASSERT (&si_n != _si);
+    ASSERT (&n_si != _si);
 
     Key posi_k = _si->posi_key;
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si_n, _si, STATE_COPY_SIZE);
+    memcpy (&n_si, _si, STATE_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
-    si_n.p_si   = _si;
-    _si         = &si_n;
+    n_si.p_si   = _si;
+    _si         = &n_si;
 
     Color activ = _active;
     Color pasiv = ~activ;
@@ -1396,16 +1396,16 @@ void Position::do_move (Move m, StateInfo &si_n, const CheckInfo *ci)
 
     ASSERT (ok ());
 }
-void Position::do_move (Move m, StateInfo &si_n)
+void Position::do_move (Move m, StateInfo &n_si)
 {
     CheckInfo ci (*this);
-    do_move (m, si_n, gives_check (m, ci) ? &ci : NULL);
+    do_move (m, n_si, gives_check (m, ci) ? &ci : NULL);
 }
 // do_move() do the move from string (CAN)
-void Position::do_move (string &can, StateInfo &si_n)
+void Position::do_move (string &can, StateInfo &n_si)
 {
     Move move = move_from_can (can, *this);
-    if (MOVE_NONE != move) do_move (move, si_n);
+    if (MOVE_NONE != move) do_move (move, n_si);
 }
 // undo_move() undo the last move
 void Position::undo_move ()
@@ -1478,17 +1478,17 @@ void Position::undo_move ()
 }
 
 // do_null_move() do the null-move
-void Position::do_null_move (StateInfo &si_n)
+void Position::do_null_move (StateInfo &n_si)
 {
-    ASSERT (&si_n != _si);
+    ASSERT (&n_si != _si);
     ASSERT (!_si->checkers);
 
     // Full copy here
-    memcpy (&si_n, _si, sizeof (StateInfo));
+    memcpy (&n_si, _si, sizeof (StateInfo));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
-    si_n.p_si = _si;
-    _si       = &si_n;
+    n_si.p_si = _si;
+    _si       = &n_si;
 
     if (SQ_NO != _si->en_passant)
     {

@@ -359,12 +359,12 @@ private:
 
 public:
     // do/undo move
-    void do_move (Move m, StateInfo &si_n, const CheckInfo *ci);
-    void do_move (Move m, StateInfo &si_n);
-    void do_move (std::string &can, StateInfo &si_n);
+    void do_move (Move m, StateInfo &n_si, const CheckInfo *ci);
+    void do_move (Move m, StateInfo &n_si);
+    void do_move (std::string &can, StateInfo &n_si);
     void undo_move ();
 
-    void do_null_move (StateInfo &si_n);
+    void do_null_move (StateInfo &n_si);
     void undo_null_move ();
 
 

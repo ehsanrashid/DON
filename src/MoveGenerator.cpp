@@ -243,7 +243,8 @@ namespace MoveGenerator {
                     }
                     else
                     {
-                        (const void*) (ci); // silence a warning under MSVC
+                        //(const void*) (ci); // silence a warning under MSVC
+                        (void) ci;
                     }
                 }
             }
@@ -317,6 +318,8 @@ namespace MoveGenerator {
                             }
                         }
                         break;
+
+                    default: break;
                     }
 
                     SERIALIZE_PAWNS (m_list, Delta (PUSH << 0), push_1);
@@ -325,11 +328,11 @@ namespace MoveGenerator {
                 // Pawn normal and en-passant captures, no promotions
                 if (QUIET != GT && QUIET_CHECK != GT)
                 {
-                    Bitboard attacksL = shift_del<LCAP> (pawns_on_Rx) & enemies;
-                    Bitboard attacksR = shift_del<RCAP> (pawns_on_Rx) & enemies;;
+                    Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
+                    Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
 
-                    SERIALIZE_PAWNS (m_list, LCAP, attacksL);
-                    SERIALIZE_PAWNS (m_list, RCAP, attacksR);
+                    SERIALIZE_PAWNS (m_list, LCAP, l_attacks);
+                    SERIALIZE_PAWNS (m_list, RCAP, r_attacks);
 
                     Square ep_sq = pos.en_passant ();
                     if (SQ_NO != ep_sq)
@@ -367,20 +370,12 @@ namespace MoveGenerator {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & bbRR8))
                     {
-                        switch (GT)
-                        {
-                        case EVASION: empties &= targets;        break;
-                        case CAPTURE: empties = ~pos.pieces (); break;
-                        }
-                        //if (QUIET != GT && QUIET_CHECK != GT)
-                        {
-                            generate_promotion<LCAP> (m_list, pawns_on_R7, enemies, ci);
-                            generate_promotion<RCAP> (m_list, pawns_on_R7, enemies, ci);
-                        }
-                        //if (CAPTURE != GT)
-                        {
-                            generate_promotion<PUSH> (m_list, pawns_on_R7, empties, ci);
-                        }
+                        if      (CAPTURE == GT) empties = ~pos.pieces ();
+                        else if (EVASION == GT) empties &= targets;
+
+                        generate_promotion<LCAP> (m_list, pawns_on_R7, enemies, ci);
+                        generate_promotion<RCAP> (m_list, pawns_on_R7, enemies, ci);
+                        generate_promotion<PUSH> (m_list, pawns_on_R7, empties, ci);
                     }
                 }
             }
