@@ -46,14 +46,8 @@ namespace MemoryHandler {
         /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
         
 #       define BUF_SIZE     65536
-#       define PAGELIMIT    80            // Number of pages to ask for
 
         typedef INT (*GetLargePageMinimum) (VOID);
-
-
-        LPTSTR lpNxtPage;               // Address of the next page to ask for
-        DWORD dwPages = 0;              // Count of pages gotten so far
-        DWORD dwPageSize;               // Page size on this computer
 
         VOID ErrorExit (LPSTR lpAPI, DWORD dwError)
         {
@@ -89,7 +83,7 @@ namespace MemoryHandler {
             }
             
             TOKEN_PRIVILEGES tp;
-
+            
             // Enable or Disable privilege
             tp.PrivilegeCount = 1;
             tp.Privileges[0].Attributes = (bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
@@ -117,6 +111,13 @@ namespace MemoryHandler {
         }
 
         /*
+
+        //#       define PAGELIMIT    80            // Number of pages to ask for
+
+        //LPTSTR lpNxtPage;               // Address of the next page to ask for
+        //DWORD dwPages = 0;              // Count of pages gotten so far
+        //DWORD dwPageSize;               // Page size on this computer
+
         //INT PageFaultExceptionFilter (DWORD dwCode)
         //{
         //    LPVOID lpvResult;
@@ -398,6 +399,7 @@ namespace MemoryHandler {
         */
 
 #   else    // Linux - Unix
+
 
 
 #   endif

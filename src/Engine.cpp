@@ -10,6 +10,7 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
+#include "TB_Syzygy.h"
 #include "DebugLogger.h"
 #include "Thread.h"
 #include "UCI.h"
@@ -114,6 +115,12 @@ namespace Engine {
         Threads   .initialize ();
 
         TT.resize (int32_t (*(Options["Hash"])), true);
+
+#ifndef _MSC_VER
+
+        Tablebases::initialize (*(Options["Syzygy Path"]));
+
+#endif
 
         cout
             << "info string Thread(s) count " << Threads.size () << ".\n"

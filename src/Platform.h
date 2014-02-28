@@ -23,7 +23,7 @@
 /// - DBSFQ
 /// - DLPAGES
 
-#undef POPCNT
+//#undef POPCNT
 
 // #pragma comment (linker, "/stack:xxx /heap:yyy")
 

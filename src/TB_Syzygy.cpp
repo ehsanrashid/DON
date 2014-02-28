@@ -2783,6 +2783,8 @@ namespace Tablebases {
             initialized = true;
         }
 
+        if (path.empty ()) return;
+
         const char *p = path.c_str ();
         if (strlen (p) == 0) return;
         path_string = (char *) malloc (strlen (p) + 1);

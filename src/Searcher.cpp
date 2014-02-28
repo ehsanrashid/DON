@@ -14,6 +14,7 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Evaluator.h"
+#include "TB_Syzygy.h"
 #include "Thread.h"
 #include "Notation.h"
 #include "Log.h"
@@ -80,6 +81,14 @@ namespace {
     HistoryStats        History;
     MovesStats          CounterMoves;
     MovesStats          FollowupMoves;
+
+    int                 TBCardinality;
+    uint64_t            TBHits;
+    bool                RootInTB;
+    bool                TB50MoveRule;
+    Depth               TBProbeDepth;
+    Value               TBScore;
+
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
     // after a fail-high of a quiet move.
@@ -317,6 +326,8 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
+        int piecesCnt;
+
         bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
 
@@ -374,6 +385,63 @@ namespace Searcher {
                 << "-----------------------------------------------------------"
                 << endl;
         }
+
+#ifndef _MSC_VER
+
+        piecesCnt = RootPos.count ();
+        
+        TBCardinality = int (*(Options["Syzygy Probe Limit"]));
+        if (TBCardinality > Tablebases::TBLargest)
+        {
+            TBCardinality = Tablebases::TBLargest;
+        }
+        TB50MoveRule = *(Options["Syzygy 50 Move Rule"]);
+        TBProbeDepth = *(Options["Syzygy Probe Depth"]) * ONE_PLY;
+
+        if (piecesCnt <= TBCardinality)
+        {
+            TBHits = RootMoves.size ();
+
+            // If the current root position is in the tablebases then RootMoves
+            // contains only moves that preserve the draw or win.
+            RootInTB = Tablebases::root_probe (RootPos, TBScore);
+
+            if (RootInTB)
+            {
+                TBCardinality = 0; // Do not probe tablebases during the search
+
+                // It might be a good idea to mangle the hash key (xor it
+                // with a fixed value) in order to "clear" the hash table of
+                // the results of previous probes. However, that would have to
+                // be done from within the Position class, so we skip it for now.
+
+                // Optional: decrease target time.
+            }
+            else // If DTZ tables are missing, use WDL tables as a fallback
+            {
+                // Filter out moves that do not preserve a draw or win.
+                RootInTB = Tablebases::root_probe_wdl (RootPos, TBScore);
+
+                // Only probe during search if winning.
+                if (TBScore <= VALUE_DRAW)
+                {
+                    TBCardinality = 0;
+                }
+            }
+
+            if (!RootInTB)
+            {
+                TBHits = 0;
+            }
+            else if (!TB50MoveRule)
+            {
+                TBScore = TBScore > VALUE_DRAW ? VALUE_MATE - MAX_PLY - 1
+                        : TBScore < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
+                        : TBScore;
+            }
+        }
+        
+#endif
 
         // Reset the threads, still sleeping: will wake up at split time
         for (uint8_t i = 0; i < Threads.size (); ++i)
