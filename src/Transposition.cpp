@@ -37,7 +37,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
     
     uint8_t offset = max<int8_t> (alignment-1, sizeof (void *));
 
-    MemoryHandler::create_memory (&_mem, mem_size_b, alignment);
+    MemoryHandler::create_memory (_mem, mem_size_b, alignment);
     if (!_mem)
     {
         cerr << "ERROR: Failed to allocate " << (mem_size_b >> 20) << " MB Hash..." << endl;

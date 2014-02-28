@@ -188,7 +188,7 @@ namespace MemoryHandler {
 
     }
 
-    void create_memory  (void **mem_ref, uint64_t mem_size, uint8_t align)
+    void create_memory  (void *&mem_ref, uint64_t mem_size, uint8_t align)
     {
         use_largepages = false;
 
@@ -198,13 +198,13 @@ namespace MemoryHandler {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             /* Vlad0 */
-            *mem_ref = VirtualAlloc (
+            mem_ref = VirtualAlloc (
                         NULL,                   // System selects address
                         SIZE_T (mem_size),      // Size of allocation
                         MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);        // Protection of Allocation
 
-            if (*mem_ref) /* HACK */
+            if (mem_ref) /* HACK */
             {
                 use_largepages = true;
                 std::cout << "info string WindowsLargePages " << (mem_size >> 20) << " MB Hash..." << std::endl;
@@ -212,13 +212,13 @@ namespace MemoryHandler {
             }
             else
             {
-                *mem_ref = VirtualAlloc (
+                mem_ref = VirtualAlloc (
                         NULL,                   // System selects address
                         SIZE_T (mem_size),      // Size of allocation
                         MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);        // Protection of Allocation
                 
-                if (*mem_ref) /* HACK */
+                if (mem_ref) /* HACK */
                 {
                     use_largepages = true;
                     std::cout << "info string WindowsMemory " << (mem_size >> 20) << " MB Hash..." << std::endl;
@@ -231,17 +231,27 @@ namespace MemoryHandler {
             int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT | SHM_R | SHM_W | SHM_HUGETLB);
             if (num != -1)
             {
-                *mem_ref = shmat (num, NULL, 0x0);
+                mem_ref = shmat (num, NULL, 0x0);
+                if (mem_ref == -1)
+                {
+                    perror("Shared memory attach failure");
+                    shmctl (shmid1, IPC_RMID, NULL);
+                    //exit(2);
+                }
                 use_largepages = true;
                 sync_cout << "info string HUGELTB " << (mem_size >> 20) << " MB Hash..." << sync_endl;
                 return;
             }
-
+            else
+            {
+                //perror("shmget");
+                //exit(1);
+            }
 #   endif
 
         }
 
-        MEMALIGN (*mem_ref, align, mem_size);
+        MEMALIGN (mem_ref, align, mem_size);
 
     }
 
@@ -280,23 +290,23 @@ namespace MemoryHandler {
         HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
         if (hDll == NULL)
         {
-            ErrorExit (TEXT ("LoadLibrary"), GetLastError ());
+            ErrorExit (TEXT (const_cast<LPSTR> ("LoadLibrary")), GetLastError ());
         }
 
         GetLargePageMinimum pGetLargePageMinimum =
             GetLargePageMinimum (GetProcAddress (hDll, "GetLargePageMinimum"));
         if (pGetLargePageMinimum == NULL)
         {
-            ErrorExit (TEXT ("GetProcAddress"), GetLastError ());
+            ErrorExit (TEXT (const_cast<LPSTR> ("GetProcAddress")), GetLastError ());
         }
 
         DWORD dwSize = pGetLargePageMinimum ();
 
         FreeLibrary (hDll);
 
-        _tprintf (TEXT ("Page Size: %u\n"), dwSize);
+        _tprintf (TEXT ("Page Size: %ld\n"), dwSize);
 
-        SetupPrivilege (TEXT ("SeLockMemoryPrivilege"), TRUE);
+        SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
         
         TCHAR szName[] = TEXT ("LARGEPAGE");
         HANDLE hMapFile = CreateFileMapping (
@@ -310,14 +320,14 @@ namespace MemoryHandler {
 
         if (hMapFile == NULL)
         {
-            ErrorExit (TEXT ("CreateFileMapping"), GetLastError ());
+            ErrorExit (TEXT (const_cast<LPSTR> ("CreateFileMapping")), GetLastError ());
         }
         else
         {
             _tprintf (TEXT ("File mapping object successfulyl created.\n"));
         }
 
-        SetupPrivilege (TEXT ("SeLockMemoryPrivilege"), FALSE);
+        SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), FALSE);
 
         LPCTSTR pBuf = (LPTSTR) MapViewOfFile (hMapFile,   // handle to map object
              FILE_MAP_ALL_ACCESS, // read/write permission
@@ -327,7 +337,7 @@ namespace MemoryHandler {
 
         if (pBuf == NULL)
         {
-            ErrorExit (TEXT ("MapViewOfFile"), GetLastError ());
+            ErrorExit (TEXT (const_cast<LPSTR> ("MapViewOfFile")), GetLastError ());
         }
         else
         {
