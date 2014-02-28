@@ -5,13 +5,27 @@
 #ifndef _PLATFORM_H_INC_
 #define _PLATFORM_H_INC_
 
-//#undef POPCNT
-//#define POPCNT
-//#define BSFQ
-//#define PREFETCH
-//#define LPAGES
-//#define __INTEL_COMPILER
-//#pragma comment (linker, "/stack:xxx /heap:yyy")
+/// For Linux and OSX configuration is done automatically using Makefile. To get
+/// started type 'make help'.
+///
+/// For Windows, part of the configuration is detected automatically, but some
+/// switches need to be set manually:
+///
+/// -DNDEBUG    | Disable debugging mode. Always use this.
+///
+/// -DPREFETCH  | Enable use of prefetch asm-instruction. Must disable it 
+///             | if you want the executable to run on some very old machines.
+///
+/// -DPOPCNT    | Add runtime support for use of popcnt asm-instruction. Works
+///             | only in 64-bit mode. For compiling requires hardware with
+///             | popcnt support.
+///
+/// - DBSFQ
+/// - DLPAGES
+
+#undef POPCNT
+
+// #pragma comment (linker, "/stack:xxx /heap:yyy")
 
 #ifdef _MSC_VER
 // Disable some silly and noisy warning from MSVC compiler

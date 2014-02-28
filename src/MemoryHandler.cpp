@@ -76,7 +76,7 @@ namespace MemoryHandler {
 
             //dwError = GetLastError ();
 
-            ExitProcess  (dwError);
+            //ExitProcess  (dwError);
         }
         
         VOID ErrorExit (LPSTR lpMsg)
@@ -85,7 +85,7 @@ namespace MemoryHandler {
             exit (EXIT_SUCCESS);
         }
 
-        VOID Privilege (LPSTR lpPrivilege, BOOL bEnable)
+        VOID SetupPrivilege (LPSTR lpPrivilege, BOOL bEnable)
         {
             HANDLE           hToken;
             // open process token
@@ -200,9 +200,8 @@ namespace MemoryHandler {
             /* Vlad0 */
             *mem_ref = VirtualAlloc (
                         NULL,                   // System selects address
-                        size_t (mem_size),          // Size of allocation
-                        MEM_COMMIT|MEM_RESERVE, // Type of Allocation
-                        //MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
+                        SIZE_T (mem_size),      // Size of allocation
+                        MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
                         PAGE_READWRITE);        // Protection of Allocation
 
             if (*mem_ref) /* HACK */
@@ -210,6 +209,21 @@ namespace MemoryHandler {
                 use_largepages = true;
                 std::cout << "info string WindowsLargePages " << (mem_size >> 20) << " MB Hash..." << std::endl;
                 return;
+            }
+            else
+            {
+                *mem_ref = VirtualAlloc (
+                        NULL,                   // System selects address
+                        SIZE_T (mem_size),      // Size of allocation
+                        MEM_COMMIT|MEM_RESERVE, // Type of Allocation
+                        PAGE_READWRITE);        // Protection of Allocation
+                
+                if (*mem_ref) /* HACK */
+                {
+                    use_largepages = true;
+                    std::cout << "info string WindowsMemory " << (mem_size >> 20) << " MB Hash..." << std::endl;
+                    return;
+                }
             }
 
 #   else    // Linux - Unix
@@ -261,69 +275,69 @@ namespace MemoryHandler {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        /*
-        //// call succeeds only on Windows Server 2003 SP1 or later
-        //HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
-        //if (hDll == NULL)
-        //{
-        //    ErrorExit (TEXT ("LoadLibrary"), GetLastError ());
-        //}
-
-        //GetLargePageMinimum pGetLargePageMinimum =
-        //    GetLargePageMinimum (GetProcAddress (hDll, "GetLargePageMinimum"));
-        //if (pGetLargePageMinimum == NULL)
-        //{
-        //    ErrorExit (TEXT ("GetProcAddress"), GetLastError ());
-        //}
-
-        //DWORD dwSize = pGetLargePageMinimum ();
-
-        //FreeLibrary (hDll);
-
-        //_tprintf (TEXT ("Page Size: %u\n"), dwSize);
-
-        //Privilege (TEXT ("SeLockMemoryPrivilege"), TRUE);
         
-        //TCHAR szName[] = TEXT ("LARGEPAGE");
-        //HANDLE hMapFile = CreateFileMapping (
-        //     INVALID_HANDLE_VALUE,    // use paging file
-        //     NULL,                    // default security
-        //     //PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,
-        //     PAGE_READWRITE|MEM_LARGE_PAGES,
-        //     0,                       // max. object size
-        //     dwSize,                  // buffer size
-        //     szName);                 // name of mapping object
+        // call succeeds only on Windows Server 2003 SP1 or later
+        HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
+        if (hDll == NULL)
+        {
+            ErrorExit (TEXT ("LoadLibrary"), GetLastError ());
+        }
 
-        //if (hMapFile == NULL)
-        //{
-        //    ErrorExit (TEXT ("CreateFileMapping"), GetLastError ());
-        //}
-        //else
-        //{
-        //    _tprintf (TEXT ("File mapping object successfulyl created.\n"));
-        //}
+        GetLargePageMinimum pGetLargePageMinimum =
+            GetLargePageMinimum (GetProcAddress (hDll, "GetLargePageMinimum"));
+        if (pGetLargePageMinimum == NULL)
+        {
+            ErrorExit (TEXT ("GetProcAddress"), GetLastError ());
+        }
 
-        //Privilege (TEXT ("SeLockMemoryPrivilege"), FALSE);
+        DWORD dwSize = pGetLargePageMinimum ();
 
-        //LPCTSTR pBuf = (LPTSTR) MapViewOfFile (hMapFile,   // handle to map object
-        //     FILE_MAP_ALL_ACCESS, // read/write permission
-        //     0,
-        //     0,
-        //     BUF_SIZE);
+        FreeLibrary (hDll);
 
-        //if (pBuf == NULL)
-        //{
-        //    ErrorExit (TEXT ("MapViewOfFile"), GetLastError ());
-        //}
-        //else
-        //{
-        //    _tprintf (TEXT ("View of file successfully mapped.\n"));
-        //}
+        _tprintf (TEXT ("Page Size: %u\n"), dwSize);
 
-        //// do nothing, clean up an exit
-        //UnmapViewOfFile (pBuf);
-        //CloseHandle (hMapFile);
-        */
+        SetupPrivilege (TEXT ("SeLockMemoryPrivilege"), TRUE);
+        
+        TCHAR szName[] = TEXT ("LARGEPAGE");
+        HANDLE hMapFile = CreateFileMapping (
+             INVALID_HANDLE_VALUE,    // use paging file
+             NULL,                    // default security
+             //PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,
+             PAGE_READWRITE|MEM_LARGE_PAGES,
+             0,                       // max. object size
+             dwSize,                  // buffer size
+             szName);                 // name of mapping object
+
+        if (hMapFile == NULL)
+        {
+            ErrorExit (TEXT ("CreateFileMapping"), GetLastError ());
+        }
+        else
+        {
+            _tprintf (TEXT ("File mapping object successfulyl created.\n"));
+        }
+
+        SetupPrivilege (TEXT ("SeLockMemoryPrivilege"), FALSE);
+
+        LPCTSTR pBuf = (LPTSTR) MapViewOfFile (hMapFile,   // handle to map object
+             FILE_MAP_ALL_ACCESS, // read/write permission
+             0,
+             0,
+             BUF_SIZE);
+
+        if (pBuf == NULL)
+        {
+            ErrorExit (TEXT ("MapViewOfFile"), GetLastError ());
+        }
+        else
+        {
+            _tprintf (TEXT ("View of file successfully mapped.\n"));
+        }
+
+        // do nothing, clean up an exit
+        UnmapViewOfFile (pBuf);
+        CloseHandle (hMapFile);
+        
 
         /*
         //SYSTEM_INFO sSysInfo;         // Useful information about the system

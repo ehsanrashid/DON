@@ -588,6 +588,7 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 //    return os;
 //}
 
+
 inline Square org_sq (Move m) { return Square ((m >> 6) & SQ_H8); }
 inline Square dst_sq (Move m) { return Square ((m >> 0) & SQ_H8); }
 inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
