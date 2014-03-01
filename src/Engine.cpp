@@ -64,19 +64,13 @@ namespace Engine {
         }
 
 #ifdef _64BIT
-
         ss << " x64";
-
 #else
-
         ss << " w32";
-
 #endif
 
 #ifdef POPCNT
-
         ss << "-modern";
-
 #endif
 
         ss  << "\n" 
@@ -93,15 +87,12 @@ namespace Engine {
 //        cout << "info string Processor(s) found " << cpu_count () << ".\n";
 
 #ifdef POPCNT
-
         cout << "info string POPCNT available." << endl;
-
 #endif
-#ifdef LPAGES
 
+#ifdef LPAGES
         cout << "info string LARGE PAGES available." << endl;
         MemoryHandler::initialize ();
-
 #endif
 
         UCI      ::initialize ();
@@ -117,9 +108,7 @@ namespace Engine {
         TT.resize (int32_t (*(Options["Hash"])), true);
 
 #ifndef _MSC_VER
-
-        Tablebases::initialize (*(Options["Syzygy Path"]));
-
+        Tablebases::initialize (string (*(Options["Syzygy Path"])));
 #endif
 
         cout

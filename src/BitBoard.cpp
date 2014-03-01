@@ -184,6 +184,26 @@ namespace BitBoard {
 
     namespace {
 
+//        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
+//        const uint64_t DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
+//        const uint32_t DeBruijn_32 = 0x783A9B23;
+//
+//        CACHE_ALIGN (8) int8_t MSB_Table[_UI8_MAX + 1];
+//        CACHE_ALIGN (8) Square BSF_Table[SQ_NO];
+//
+//        INLINE unsigned bsf_index (Bitboard bb)
+//        {
+//            // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
+//            bb ^= (bb - 1);
+//
+//            return
+//#       ifdef _64BIT
+//                (bb * DeBruijn_64) >> 58;
+//#       else
+//                ((uint32_t (bb) ^ uint32_t (bb >> 32)) * DeBruijn_32) >> 26;
+//#       endif
+//        }
+
         // max moves for rook from any corner square
         // 2 ^ 12 = 4096 = 0x1000
         const uint16_t MAX_MOVES =   U32 (0x1000);
@@ -200,7 +220,6 @@ namespace BitBoard {
         //                           102400 = 0x19000
         const uint32_t MAX_R_MOVES = U32 (0x19000);
 
-
         CACHE_ALIGN(64) Bitboard BTable_bb[MAX_B_MOVES];
         CACHE_ALIGN(64) Bitboard RTable_bb[MAX_R_MOVES];
 
@@ -210,11 +229,11 @@ namespace BitBoard {
         {
 
             const uint16_t MagicBoosters[R_NO] =
-#ifdef _64BIT
+#       ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
-#else
+#       else
             { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
-#endif
+#       endif
 
             Bitboard occupancy[MAX_MOVES];
             Bitboard reference[MAX_MOVES];
@@ -238,11 +257,11 @@ namespace BitBoard {
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
                 shift[s] =
-#ifdef _64BIT
+#       ifdef _64BIT
                     64 - pop_count<MAX15> (mask);
-#else
+#       else
                     32 - pop_count<MAX15> (mask);
-#endif
+#       endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
@@ -314,6 +333,15 @@ namespace BitBoard {
 
     void initialize ()
     {
+
+        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        //{
+        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
+        //}
+        //for (Bitboard b = 1; b < 256; ++b)
+        //{
+        //    MSB_Table[b] = more_than_one (b) ? MSB_Table[b - 1] : scan_lsq (b);
+        //}
 
         for (File f = F_A; f <= F_H; ++f)
         {

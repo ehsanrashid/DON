@@ -202,14 +202,12 @@ namespace UCI {
 
         using namespace OptionType;
 
-#ifdef LPAGES
-
+#   ifdef LPAGES
         void on_large_pages     (const Option &)
         {
             TT.resize ();
         }
-
-#endif
+#   endif
 
         void on_clear_hash      (const Option &)
         {
@@ -244,9 +242,9 @@ namespace UCI {
 
         void on_change_tb_syzygy(const Option &opt)
         {
-#ifndef _MSC_VER
+#   ifndef _MSC_VER
             Tablebases::initialize (string (opt));
-#endif
+#   endif
         }
         
 
@@ -302,9 +300,7 @@ namespace UCI {
                                                                             TranspositionTable::MAX_TT_SIZE,
                                                                             on_resize_hash));
 #ifdef LPAGES
-
         Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
-
 #endif
 
         // Button to clear the Hash Memory.

@@ -21,7 +21,8 @@ typedef enum BitCountT
 
 } BitCountT;
 
-template<BitCountT CNT>
+
+template<BitCountT>
 // pop_count () counts the number of set bits in a Bitboard
 INLINE uint8_t pop_count (Bitboard bb);
 
@@ -113,6 +114,7 @@ const Bitboard M4_64 = U64 (0x0F0F0F0F0F0F0F0F);
 const Bitboard MX_64 = U64 (0x2222222222222222);
 const Bitboard H4_64 = U64 (0x1111111111111111);
 const Bitboard H8_64 = U64 (0x0101010101010101);
+
 
 template<>
 // Pop count of the Bitboard (64-bit)

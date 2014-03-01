@@ -254,15 +254,11 @@ namespace MemoryHandler {
         {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
             VirtualFree (mem, 0, MEM_RELEASE);
-
-#else   // Linux - Unix
-
+#   else   // Linux - Unix
             shmdt  (mem);
             shmctl (num, IPC_RMID, NULL);
-
-#endif
+#   endif
 
             return;
         }

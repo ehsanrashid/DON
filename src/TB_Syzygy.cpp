@@ -27,13 +27,13 @@ this code to other chess engines.
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
+//#   ifndef  WIN32_LEAN_AND_MEAN
+//#       define WIN32_LEAN_AND_MEAN
+//#   endif
 
 #   include <windows.h>
 
-#   undef WIN32_LEAN_AND_MEAN
+//#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
 #   define SEP_CHAR     ';'
@@ -64,9 +64,7 @@ this code to other chess engines.
 #endif
 
 #ifdef _64BIT
-
 #   define DECOMP64
-
 #endif
 
 #include "BitBoard.h"
@@ -91,8 +89,8 @@ namespace {
 #define DTZDIR          "RTBZDIR"
 #define TBPIECES        6
 
-#define WDL_MAGIC       0x5d23e871
-#define DTZ_MAGIC       0xa50c66d7
+#define WDL_MAGIC       0x5D23E871
+#define DTZ_MAGIC       0xA50C66D7
 
 #define TBHASHBITS      10
 
@@ -154,7 +152,7 @@ namespace {
         PairsData *precomp[2];
         int     factor[2][TBPIECES];
         ubyte   pieces[2][TBPIECES];
-        ubyte   norm[2][TBPIECES];
+        ubyte   norm  [2][TBPIECES];
 
     } TBEntry_piece;
 
@@ -174,7 +172,7 @@ namespace {
             PairsData *precomp[2];
             int     factor[2][TBPIECES];
             ubyte   pieces[2][TBPIECES];
-            ubyte   norm[2][TBPIECES];
+            ubyte   norm  [2][TBPIECES];
 
         } file[4];
     } TBEntry_pawn;
@@ -192,7 +190,7 @@ namespace {
         PairsData *precomp;
         int     factor[TBPIECES];
         ubyte   pieces[TBPIECES];
-        ubyte   norm[TBPIECES];
+        ubyte   norm  [TBPIECES];
         ubyte   flags; // accurate, mapped, side
         ushort  map_idx[4];
         ubyte   *map;
@@ -225,7 +223,7 @@ namespace {
 
     typedef struct TBHashEntry
     {
-        uint64 key;
+        uint64  key;
         TBEntry *ptr;
     } TBHashEntry;
 
@@ -246,17 +244,17 @@ namespace {
     // for variants where kings can connect and/or captured
     // #define CONNECTED_KINGS
 
-#define Swap(a,b) { int tmp=a;a=b;b=tmp; }
+#define Swap(a,b) { int tmp=a; a=b; b=tmp; }
 
-#define TB_PAWN     1
-#define TB_KNIGHT   2
-#define TB_BISHOP   3
-#define TB_ROOK     4
-#define TB_QUEEN    5
-#define TB_KING     6
+#define TB_PAWN     0 //1
+#define TB_KNIGHT   1 //2
+#define TB_BISHOP   2 //3
+#define TB_ROOK     3 //4
+#define TB_QUEEN    4 //5
+#define TB_KING     5 //6
 
-#define TB_WPAWN TB_PAWN
-#define TB_BPAWN (TB_PAWN | 8)
+#define TB_WPAWN (TB_PAWN)
+#define TB_BPAWN (TB_PAWN|8)
 
     LOCK_T TB_mutex;
 
@@ -415,6 +413,7 @@ namespace {
         {
             pcs[i] = 0;
         }
+
         color = 0;
         for (s = str; *s; s++)
         {

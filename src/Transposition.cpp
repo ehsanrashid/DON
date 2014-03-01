@@ -12,14 +12,10 @@ const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TranspositionEntry
 const uint8_t  TranspositionTable::CLUSTER_SIZE     = 4;
 
 #ifdef _64BIT
-
 const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
 //const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x24; // 36
-
 #else
-
 const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
-
 #endif
 
 const uint32_t TranspositionTable::DEF_TT_SIZE      = 128;
