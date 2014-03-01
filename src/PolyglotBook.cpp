@@ -430,12 +430,12 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 
 void PolyglotBook::import_pgn (const string &fn_pgn)
 {
-    fn_pgn;
+    (void) fn_pgn;
 }
 
 void PolyglotBook::merge_book (const string &fn_book)
 {
-    fn_book;
+    (void) fn_book;
 
 }
 
