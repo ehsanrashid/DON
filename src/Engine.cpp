@@ -107,9 +107,7 @@ namespace Engine {
 
         TT.resize (int32_t (*(Options["Hash"])), true);
 
-#ifndef _MSC_VER
         Tablebases::initialize (string (*(Options["Syzygy Path"])));
-#endif
 
         cout
             << "info string Hash size " << TT.size () << " MB...\n"

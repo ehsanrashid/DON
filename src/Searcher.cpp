@@ -326,9 +326,7 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-#ifndef _MSC_VER
         int32_t piecesCnt;
-#endif
 
         TBHits = TBCardinality = 0;
         RootInTB = false;
@@ -391,8 +389,6 @@ namespace Searcher {
                 << endl;
         }
 
-#ifndef _MSC_VER
-
         piecesCnt = RootPos.count ();
         
         TBCardinality = int32_t (*(Options["Syzygy Probe Limit"]));
@@ -450,7 +446,6 @@ namespace Searcher {
             }
         }
         
-#endif
 
         // Reset the threads, still sleeping: will wake up at split time
         for (uint8_t i = 0; i < Threads.size (); ++i)
@@ -915,7 +910,6 @@ namespace {
             return tt_value;
         }
 
-#ifndef _MSC_VER
         // Step 4-TB. Tablebase probe
         if (   !RootNode
             && depth >= TBProbeDepth
@@ -931,14 +925,14 @@ namespace {
                 Value value;
                 if (TB50MoveRule)
                 {
-                    value = v < -1 ? -VALUE_MATE + MAX_PLY + ss->ply
-                        :   v >  1 ?  VALUE_MATE - MAX_PLY - ss->ply
+                    value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t (ss->ply)
+                        :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t (ss->ply)
                         :   VALUE_DRAW + 2 * v;
                 }
                 else
                 {
-                    value = v < 0 ? -VALUE_MATE + MAX_PLY + ss->ply
-                        :   v > 0 ?  VALUE_MATE - MAX_PLY - ss->ply
+                    value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t (ss->ply)
+                        :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t (ss->ply)
                         :   VALUE_DRAW;
                 }
 
@@ -955,7 +949,6 @@ namespace {
             }
         }
 
-#endif
         // Step 5. Evaluate the position statically and update parent's gain statistics
         if (in_check)
         {

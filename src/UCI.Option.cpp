@@ -242,9 +242,7 @@ namespace UCI {
 
         void on_change_tb_syzygy(const Option &opt)
         {
-#   ifndef _MSC_VER
             Tablebases::initialize (string (opt));
-#   endif
         }
         
 
@@ -365,7 +363,7 @@ namespace UCI {
         // End Game Table Bases Options
         // ----------------------------
         // 
-        Options["Syzygy Path"]                  = OptionPtr (new StringOption ("", on_change_tb_syzygy));
+        Options["Syzygy Path"]                  = OptionPtr (new StringOption ("d:", on_change_tb_syzygy));
         Options["Syzygy Probe Depth"]           = OptionPtr (new SpinOption ( 1, 1, 100));
         Options["Syzygy 50 Move Rule"]          = OptionPtr (new CheckOption (true));
         Options["Syzygy Probe Limit"]           = OptionPtr (new SpinOption ( 6, 0, 6));

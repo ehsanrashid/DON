@@ -24,6 +24,8 @@ this code to other chess engines.
 
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
+#   include <stdlib.h>
+
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
 #   endif
@@ -135,8 +137,12 @@ namespace {
         ubyte   symmetric;
         ubyte   has_pawns;
 
-    } __attribute__ ((__may_alias__));
-
+    }
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+    ;
+#else
+    __attribute__ ((__may_alias__));
+#endif
     typedef struct TBEntry TBEntry;
 
     typedef struct TBEntry_piece
@@ -252,6 +258,9 @@ namespace {
 #define TB_ROOK     3 //4
 #define TB_QUEEN    4 //5
 #define TB_KING     5 //6
+
+#define TB_TOTAL    5
+
 
 #define TB_WPAWN (TB_PAWN)
 #define TB_BPAWN (TB_PAWN|8)
@@ -409,10 +418,11 @@ namespace {
         if (fd == FD_ERR) return;
         close_tb (fd);
 
-        for (i = 0; i < 16; ++i)
-        {
-            pcs[i] = 0;
-        }
+        //for (i = 0; i < 16; ++i)
+        //{
+        //    pcs[i] = 0;
+        //}
+        memset (pcs, 0, sizeof (pcs));
 
         color = 0;
         for (s = str; *s; s++)
@@ -420,22 +430,22 @@ namespace {
             switch (*s)
             {
             case 'P':
-                pcs[TB_PAWN | color]++;
+                pcs[TB_PAWN|color]++;
                 break;
             case 'N':
-                pcs[TB_KNIGHT | color]++;
+                pcs[TB_KNIGHT|color]++;
                 break;
             case 'B':
-                pcs[TB_BISHOP | color]++;
+                pcs[TB_BISHOP|color]++;
                 break;
             case 'R':
-                pcs[TB_ROOK | color]++;
+                pcs[TB_ROOK|color]++;
                 break;
             case 'Q':
-                pcs[TB_QUEEN | color]++;
+                pcs[TB_QUEEN|color]++;
                 break;
             case 'K':
-                pcs[TB_KING | color]++;
+                pcs[TB_KING|color]++;
                 break;
             case 'v':
                 color = 0x08;
@@ -458,7 +468,7 @@ namespace {
                 printf ("TBMAX_PIECE limit too low!\n");
                 exit (1);
             }
-            entry = (TBEntry *)&TB_piece[TBnum_piece++];
+            entry = (TBEntry *) &TB_piece[TBnum_piece++];
         }
         else
         {
@@ -467,7 +477,7 @@ namespace {
                 printf ("TBMAX_PAWN limit too low!\n");
                 exit (1);
             }
-            entry = (TBEntry *)&TB_pawn[TBnum_pawn++];
+            entry = (TBEntry *) &TB_pawn[TBnum_pawn++];
         }
         entry->key = key;
         entry->ready = 0;
@@ -1937,7 +1947,12 @@ namespace {
 
 #ifdef DECOMP64
 
-        uint64 code = __builtin_bswap64 (*((uint64 *) ptr));
+        uint64 code =
+#ifdef _MSC_VER
+            _byteswap_uint64 (*((uint64 *) ptr));
+#else
+            __builtin_bswap64 (*((uint64 *) ptr));
+#endif
         ptr += 2;
         bitcnt = 0; // number of "empty bits" in code
         for (;;)
@@ -1952,7 +1967,12 @@ namespace {
             if (bitcnt >= 32)
             {
                 bitcnt -= 32;
-                code |= ((uint64) (__builtin_bswap32 (*ptr++))) << bitcnt;
+                code |=
+#ifdef _MSC_VER
+            ((uint64) (_byteswap_uint64 (*ptr++))) << bitcnt;
+#else
+            ((uint64) (__builtin_bswap32 (*ptr++))) << bitcnt;
+#endif
             }
         }
 
@@ -2119,7 +2139,7 @@ namespace {
         {
             for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
             {
-                *str++ = pchr[6 - pt];
+                *str++ = pchr[TB_TOTAL - pt];
             }
         }
         *str++ = 'v';
@@ -2128,7 +2148,7 @@ namespace {
         {
             for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
             {
-                *str++ = pchr[6 - pt];
+                *str++ = pchr[TB_TOTAL - pt];
             }
         }
         *str++ = 0;
@@ -2240,8 +2260,13 @@ namespace {
                     UNLOCK (TB_mutex);
                     return 0;
                 }
+
+#ifdef _MSC_VER
+
+#else
                 // Memory barrier to ensure ptr->ready = 1 is not reordered.
                 __asm__ __volatile__ ("" ::: "memory");
+#endif
                 ptr->ready = 1;
             }
             UNLOCK (TB_mutex);
@@ -3229,6 +3254,7 @@ namespace Tablebases {
                 init_tb (str);
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)
@@ -3237,6 +3263,7 @@ namespace Tablebases {
                 init_tb (str);
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)
@@ -3248,6 +3275,7 @@ namespace Tablebases {
                 }
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)
@@ -3259,6 +3287,7 @@ namespace Tablebases {
                 }
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)
@@ -3273,6 +3302,7 @@ namespace Tablebases {
                 }
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)
@@ -3303,6 +3333,7 @@ namespace Tablebases {
         }
 
         printf ("info string Tablebases found %d.\n", TBnum_piece + TBnum_pawn);
+        //std::cout << "info string Tablebases found " << (TBnum_piece + TBnum_pawn) << ".\n" << std::endl;
 
     }
 
