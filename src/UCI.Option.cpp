@@ -242,7 +242,8 @@ namespace UCI {
 
         void on_change_tb_syzygy(const Option &opt)
         {
-            TBSyzygy::initialize (string (opt));
+            string syzygy_path = string (opt);
+            TBSyzygy::initialize (syzygy_path);
         }
         
 
@@ -511,9 +512,6 @@ namespace UCI {
 
         /// ---------------------------------------------------------------------------------------
 
-        // Analyse Mode
-        Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
-
         // Activate Fischer Random Chess a.k.a. Chess960 games.
         // Default false.
         //
@@ -533,7 +531,6 @@ namespace UCI {
         //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
         //// The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
-
 
         // TODO::
         //Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));

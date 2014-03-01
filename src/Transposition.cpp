@@ -95,12 +95,15 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
     uint64_t mem_size_b   = uint64_t (mem_size_mb) << 20;
-    uint32_t _entry_count = (mem_size_b) / TENTRY_SIZE;
+    uint64_t _entry_count = (mem_size_b) / TENTRY_SIZE;
     //uint32_t cluster_count = _entry_count / CLUSTER_SIZE;
 
     uint8_t bit_hash = scan_msq (_entry_count);
     ASSERT (bit_hash < MAX_HASH_BIT);
-    if (bit_hash >= MAX_HASH_BIT) bit_hash = MAX_HASH_BIT - 1;
+    if (bit_hash >= MAX_HASH_BIT)
+    {
+        bit_hash = MAX_HASH_BIT - 1;
+    }
 
     _entry_count = uint32_t (1) << bit_hash;
     mem_size_b   = _entry_count * TENTRY_SIZE;

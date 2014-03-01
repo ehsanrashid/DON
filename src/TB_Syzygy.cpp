@@ -998,7 +998,9 @@ namespace {
 
         return idx;
     }
+
 #else
+
     uint64_t encode_piece (TBEntry_piece *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
         uint64_t idx;
@@ -2229,7 +2231,7 @@ namespace {
                 prt_str (pos, str, ptr->key != key);
                 if (!init_table_wdl (ptr, str))
                 {
-                    ptr2[i].key = 0ULL;
+                    ptr2[i].key = U64 (0);
                     *success = 0;
                     UNLOCK (TB_mutex);
                     return 0;
@@ -2263,9 +2265,9 @@ namespace {
         }
         else
         {
-            cmirror = pos.active () == WHITE ? 0 : 8;
-            mirror = pos.active () == WHITE ? 0 : 0x38;
-            bside = 0;
+            cmirror = (pos.active () == WHITE) ? 0 : 8;
+            mirror  = (pos.active () == WHITE) ? 0 : 0x38;
+            bside   = 0;
         }
 
         // p[i] is to contain the square 0-63 (A1-H8) for a piece of type
@@ -3141,7 +3143,7 @@ namespace TBSyzygy {
     }
 
 
-    void initialize (const std::string &path)
+    void initialize (std::string &path)
     {
         char str[16];
         int32_t i, j, k, l;
@@ -3176,8 +3178,11 @@ namespace TBSyzygy {
             initialized = true;
         }
 
+        //path = "C:/RTB6/wdl; C:/RTB6/dtz";
+
         if (path.empty ()) return;
         
+        std::replace (path.begin (), path.end (), '\\', '/');
         path_string = (char *) malloc (path.length () + 1);
         strcpy (path_string, path.c_str ());
 
@@ -3318,6 +3323,7 @@ namespace TBSyzygy {
                 }
             }
         }
+
         for (i = 1; i < 6; ++i)
         {
             for (j = i; j < 6; ++j)

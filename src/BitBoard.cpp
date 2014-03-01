@@ -1,6 +1,6 @@
 ﻿#include "BitBoard.h"
 
-#include <cstring>
+#include <cstring> // For memset
 
 #include "BitCount.h"
 #include "BitScan.h"

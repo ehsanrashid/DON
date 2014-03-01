@@ -19,7 +19,7 @@ namespace TBSyzygy {
     extern bool root_probe     (Position &pos, Value &TBScore);
     extern bool root_probe_wdl (Position &pos, Value &TBScore);
 
-    extern void initialize     (const std::string &path);
+    extern void initialize     (std::string &path);
 
 }
 

@@ -111,18 +111,18 @@ private:
         if (_hash_table)
         {
 
-#ifdef LPAGES
+#   ifdef LPAGES
 
             MemoryHandler::free_memory (_mem);
             _mem =
 
-#else
+#   else
 
             void *mem = ((void **) _hash_table)[-1];
             free (mem);
             mem =
 
-#endif
+#   endif
 
             _hash_table = NULL;
 

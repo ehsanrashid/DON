@@ -331,6 +331,11 @@ namespace Searcher {
         TBHits = TBCardinality = 0;
         RootInTB = false;
 
+        // Dynamic draw value: try to avoid repetition draws at early midgame
+        int32_t cf = std::max (70 - RootPos.game_ply (), 0);
+        DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
+        DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
+
         bool write_search_log = *(Options["Write Search Log"]);
         string search_log_fn  = *(Options["Search Log File"]);
 
@@ -356,23 +361,7 @@ namespace Searcher {
                 goto finish;
             }
         }
-
         
-        if (!bool (*(Options["UCI_AnalyseMode"])))
-        {
-            // Dynamic draw value: try to avoid repetition draws at early midgame
-            int32_t cf = max (70 - RootPos.game_ply (), 0)
-                + int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
-
-            //cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
-            DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
-            DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
-        }
-        else
-        {
-            DrawValue[WHITE] = DrawValue[BLACK] = VALUE_DRAW;
-        }
-
         if (write_search_log)
         {
             Log log (search_log_fn);
