@@ -24,7 +24,7 @@ this code to other chess engines.
 
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-#   include <stdlib.h>
+//#   include <stdlib.h>
 
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
@@ -274,7 +274,7 @@ namespace {
     char *path_string = NULL;
     char **paths = NULL;
 
-    int32 TBnum_piece, TBnum_pawn;
+    int32 TB_num_piece, TB_num_pawn;
     TBEntry_piece TB_piece[TBMAX_PIECE];
     TBEntry_pawn TB_pawn[TBMAX_PAWN];
 
@@ -420,10 +420,6 @@ namespace {
         if (fd == FD_ERR) return;
         close_tb (fd);
 
-        //for (i = 0; i < 16; ++i)
-        //{
-        //    pcs[i] = 0;
-        //}
         memset (pcs, 0, sizeof (pcs));
 
         color = 0;
@@ -465,21 +461,21 @@ namespace {
         key2 = calc_key_from_pcs (pcs, 1);
         if (pcs[TB_WPAWN] + pcs[TB_BPAWN] == 0)
         {
-            if (TBnum_piece == TBMAX_PIECE)
+            if (TB_num_piece == TBMAX_PIECE)
             {
                 printf ("TBMAX_PIECE limit too low!\n");
                 exit (1);
             }
-            entry = (TBEntry *) &TB_piece[TBnum_piece++];
+            entry = (TBEntry *) &TB_piece[TB_num_piece++];
         }
         else
         {
-            if (TBnum_pawn == TBMAX_PAWN)
+            if (TB_num_pawn == TBMAX_PAWN)
             {
                 printf ("TBMAX_PAWN limit too low!\n");
                 exit (1);
             }
-            entry = (TBEntry *) &TB_pawn[TBnum_pawn++];
+            entry = (TBEntry *) &TB_pawn[TB_num_pawn++];
         }
         entry->key = key;
         entry->ready = 0;
@@ -490,15 +486,15 @@ namespace {
         }
 
         entry->symmetric = (key == key2);
-        entry->has_pawns = (pcs[TB_WPAWN] + pcs[TB_BPAWN] > 0);
-        if (entry->num > Tablebases::TBLargest)
+        entry->has_pawns = ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) > 0);
+        if (entry->num > TBSyzygy::TB_Largest)
         {
-            Tablebases::TBLargest = entry->num;
+            TBSyzygy::TB_Largest = entry->num;
         }
 
         if (entry->has_pawns)
         {
-            TBEntry_pawn *ptr = (TBEntry_pawn *)entry;
+            TBEntry_pawn *ptr = (TBEntry_pawn *) entry;
             ptr->pawns[0] = pcs[TB_WPAWN];
             ptr->pawns[1] = pcs[TB_BPAWN];
             if (    pcs[TB_BPAWN] > 0
@@ -510,7 +506,7 @@ namespace {
         }
         else
         {
-            TBEntry_piece *ptr = (TBEntry_piece *)entry;
+            TBEntry_piece *ptr = (TBEntry_piece *) entry;
             for (i = 0, j = 0; i < 16; ++i)
             {
                 if (pcs[i] == 1) ++j;
@@ -2648,7 +2644,7 @@ namespace {
                     continue;
                 }
                 pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-                int32 v = -Tablebases::probe_dtz (pos, success);
+                int32 v = -TBSyzygy::probe_dtz (pos, success);
                 pos.undo_move ();
                 if (*success == 0) return 0;
                 if (v > 0 && v + 1 < best)
@@ -2684,7 +2680,7 @@ namespace {
                 }
                 else
                 {
-                    v = -Tablebases::probe_dtz (pos, success) - 1;
+                    v = -TBSyzygy::probe_dtz (pos, success) - 1;
                 }
 
                 pos.undo_move ();
@@ -2751,9 +2747,9 @@ namespace {
 
 }
 
-namespace Tablebases {
+namespace TBSyzygy {
 
-    int32_t TBLargest = 0;
+    int32_t TB_Largest = 0;
 
     // Probe the WDL table for a particular position.
     // If *success != 0, the probe was successful.
@@ -2772,7 +2768,9 @@ namespace Tablebases {
 
         // If en passant is not possible, we are done.
         if (pos.en_passant () == SQ_NO)
+        {
             return v;
+        }
         if (!(*success)) return 0;
 
         // Now handle en passant.
@@ -2999,7 +2997,7 @@ namespace Tablebases {
             {
                 if (st.clock50 != 0)
                 {
-                    v = -Tablebases::probe_dtz (pos, &success);
+                    v = -probe_dtz (pos, &success);
                     if (v > 0)
                     {
                         v++;
@@ -3011,7 +3009,7 @@ namespace Tablebases {
                 }
                 else
                 {
-                    v = -Tablebases::probe_wdl (pos, &success);
+                    v = -probe_wdl (pos, &success);
                     v = wdl_to_dtz[v + 2];
                 }
             }
@@ -3129,7 +3127,7 @@ namespace Tablebases {
     {
         int32 success;
 
-        int32 wdl = Tablebases::probe_wdl (pos, &success);
+        int32 wdl = probe_wdl (pos, &success);
         if (!success) return false;
         TBScore = wdl_to_Value[wdl + 2];
 
@@ -3143,7 +3141,7 @@ namespace Tablebases {
         {
             Move move = Searcher::RootMoves[i].pv[0];
             pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-            int32 v = -Tablebases::probe_wdl (pos, &success);
+            int32 v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
             Searcher::RootMoves[i].value[0] = (Value) v;
@@ -3174,23 +3172,26 @@ namespace Tablebases {
 
         if (initialized)
         {
-            free (path_string);
             free (paths);
+            free (path_string);
+            
             TBEntry *entry;
-            for (i = 0; i < TBnum_piece; ++i)
+            for (i = 0; i < TB_num_piece; ++i)
             {
-                entry = (TBEntry *)&TB_piece[i];
+                entry = (TBEntry *) &TB_piece[i];
                 free_wdl_entry (entry);
             }
-            for (i = 0; i < TBnum_pawn; ++i)
+            for (i = 0; i < TB_num_pawn; ++i)
             {
-                entry = (TBEntry *)&TB_pawn[i];
+                entry = (TBEntry *) &TB_pawn[i];
                 free_wdl_entry (entry);
             }
             for (i = 0; i < DTZ_ENTRIES; ++i)
             {
                 if (DTZ_table[i].entry)
+                {
                     free_dtz_entry (DTZ_table[i].entry);
+                }
             }
         }
         else
@@ -3202,35 +3203,54 @@ namespace Tablebases {
         if (path.empty ()) return;
         
         path_string = (char *) malloc (path.length () + 1);
-        const char *p = path.c_str ();
-        strcpy (path_string, p);
-        num_paths = 0;
+        strcpy (path_string, path.c_str ());
 
-        for (i = 0; ; ++i)
+        num_paths = 0;
+        i = 0;
+        while (true)
         {
+            while (path_string[i] && isspace (path_string[i]))
+            {
+                path_string[i++] = '\0';
+            }
+            if (!path_string[i]) break;
+            
             if (path_string[i] != SEP_CHAR)
             {
                 ++num_paths;
             }
+            
             while (path_string[i] && path_string[i] != SEP_CHAR)
             {
                 ++i;
             }
             if (!path_string[i]) break;
-            path_string[i] = 0;
+            
+            path_string[i] = '\0';
+            ++i;
         }
+
         paths = (char **) malloc (num_paths * sizeof (char *));
         for (i = j = 0; i < num_paths; ++i)
         {
-            while (!path_string[j]) ++j;
+            while (!path_string[j])
+            {
+                ++j;
+            }
+            
             paths[i] = &path_string[j];
-            while (path_string[j]) ++j;
+            
+            while (path_string[j])
+            {
+                ++j;
+            }
         }
 
         LOCK_INIT (TB_mutex);
 
-        TBnum_piece = TBnum_pawn = 0;
-        TBLargest = 0;
+        TB_num_piece = 0;
+        TB_num_pawn  = 0;
+        TB_Largest = 0;
 
         for (i = 0; i < (1 << TBHASHBITS); ++i)
         {
@@ -3337,8 +3357,8 @@ namespace Tablebases {
             }
         }
 
-        printf ("info string Tablebases found %d.\n", TBnum_piece + TBnum_pawn);
-        //std::cout << "info string Tablebases found " << (TBnum_piece + TBnum_pawn) << ".\n" << std::endl;
+        printf ("info string Syzygy Tablebases found %d.\n", TB_num_piece + TB_num_pawn);
+        //std::cout << "info string Syzygy Tablebases found " << (TB_num_piece + TB_num_pawn) << ".\n" << std::endl;
 
     }
 

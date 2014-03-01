@@ -9,9 +9,9 @@
 
 class Position;
 
-namespace Tablebases {
+namespace TBSyzygy {
 
-    extern int32_t TBLargest;
+    extern int32_t TB_Largest;
     
     extern int32_t probe_wdl   (Position &pos, int32_t *success);
     extern int32_t probe_dtz   (Position &pos, int32_t *success);

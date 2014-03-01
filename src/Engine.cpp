@@ -107,12 +107,10 @@ namespace Engine {
 
         TT.resize (int32_t (*(Options["Hash"])), true);
 
-        Tablebases::initialize (string (*(Options["Syzygy Path"])));
+        TBSyzygy::initialize (string (*(Options["Syzygy Path"])));
 
-        cout
-            << "info string Hash size " << TT.size () << " MB...\n"
-            << "info string Thread(s) count " << Threads.size () << ".\n" << endl; 
 
+        cout << "info string Thread(s) count " << Threads.size () << ".\n" << endl; 
 
         UCI   ::start (args);
 

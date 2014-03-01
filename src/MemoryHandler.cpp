@@ -243,6 +243,7 @@ namespace MemoryHandler {
         if (mem_ref)
         {
             memset (mem_ref, 0, mem_size);
+            std::cout << "info string Hash size " << (mem_size >> 20) << " MB..." << std::endl;
         }
     }
 

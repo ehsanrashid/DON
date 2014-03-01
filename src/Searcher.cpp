@@ -392,13 +392,13 @@ namespace Searcher {
         piecesCnt = RootPos.count ();
         
         TBCardinality = int32_t (*(Options["Syzygy Probe Limit"]));
-        if (TBCardinality > Tablebases::TBLargest)
+        if (TBCardinality > TBSyzygy::TB_Largest)
         {
-            TBCardinality = Tablebases::TBLargest;
+            TBCardinality = TBSyzygy::TB_Largest;
         }
 
         TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
-        TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_PLY;
+        TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
 
         if (piecesCnt <= TBCardinality)
         {
@@ -406,7 +406,7 @@ namespace Searcher {
 
             // If the current root position is in the tablebases then RootMoves
             // contains only moves that preserve the draw or win.
-            RootInTB = Tablebases::root_probe (RootPos, TBScore);
+            RootInTB = TBSyzygy::root_probe (RootPos, TBScore);
 
             if (RootInTB)
             {
@@ -422,7 +422,7 @@ namespace Searcher {
             else // If DTZ tables are missing, use WDL tables as a fallback
             {
                 // Filter out moves that do not preserve a draw or win.
-                RootInTB = Tablebases::root_probe_wdl (RootPos, TBScore);
+                RootInTB = TBSyzygy::root_probe_wdl (RootPos, TBScore);
 
                 // Only probe during search if winning.
                 if (TBScore <= VALUE_DRAW)
@@ -916,7 +916,7 @@ namespace {
             && pos.count () <= TBCardinality
             && pos.clock50 () == 0)
         {
-            int found, v = Tablebases::probe_wdl (pos, &found);
+            int found, v = TBSyzygy::probe_wdl (pos, &found);
 
             if (found)
             {
@@ -939,7 +939,7 @@ namespace {
                 TT.store (
                     posi_key,
                     MOVE_NONE,
-                    depth + 6 * ONE_PLY,
+                    depth + 6 * ONE_MOVE,
                     BND_EXACT,
                     pos.game_nodes (),
                     value_to_tt (value, ss->ply),
@@ -1067,7 +1067,7 @@ namespace {
                 {
                     null_value = beta;
                 }
-                if (depth < 12 * ONE_PLY)
+                if (depth < 12 * ONE_MOVE)
                 {
                     return null_value;
                 }
