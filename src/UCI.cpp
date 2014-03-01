@@ -182,7 +182,7 @@ namespace UCI {
                     
                     if (MOVE_NONE == m)
                     {
-                        sync_cout << "ERROR: Illegal Move" + token << sync_endl;
+                        cerr << "ERROR: Illegal Move" + token << endl;
                         break;
                     }
                     

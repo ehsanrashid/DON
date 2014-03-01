@@ -45,11 +45,11 @@ namespace MemoryHandler {
 
         /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
         
-#       define BUF_SIZE     65536
+
 
         typedef INT (*GetLargePageMinimum) (VOID);
 
-        VOID ErrorExit (LPSTR lpAPI, DWORD dwError)
+        VOID ErrorExit (const LPSTR lpAPI, DWORD dwError)
         {
             LPSTR lpvMessageBuffer = NULL;
 
@@ -72,14 +72,14 @@ namespace MemoryHandler {
             ExitProcess  (dwError);
         }
         
-        VOID SetupPrivilege (LPSTR lpPrivilege, BOOL bEnable)
+        VOID SetupPrivilege (const LPSTR lpPrivilege, BOOL bEnable)
         {
             HANDLE process = GetCurrentProcess();
             HANDLE hToken;
             // Open process token
             if (!OpenProcessToken (process, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
             {
-                ErrorExit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
+                //ErrorExit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
             TOKEN_PRIVILEGES tp;
@@ -90,7 +90,7 @@ namespace MemoryHandler {
             // Get the luid
             if (!LookupPrivilegeValue (NULL, lpPrivilege, &tp.Privileges[0].Luid))
             {
-                ErrorExit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
+                //ErrorExit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
 
             BOOL bStatus = AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
@@ -100,13 +100,13 @@ namespace MemoryHandler {
             DWORD dwError = GetLastError ();
             if (!bStatus || (dwError != ERROR_SUCCESS))
             {
-                ErrorExit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
+                //ErrorExit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
             }
 
             // Close the handle
             if (!CloseHandle (hToken))
             {
-                ErrorExit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
+                //ErrorExit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
             }
         }
 
@@ -187,15 +187,15 @@ namespace MemoryHandler {
 
             /* Vlad0 */
             mem_ref = VirtualAlloc (
-                        NULL,                   // System selects address
-                        SIZE_T (mem_size),      // Size of allocation
-                        MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,
-                        PAGE_READWRITE);        // Protection of Allocation
+                        NULL,                                   // System selects address
+                        SIZE_T (mem_size),                      // Size of allocation
+                        MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
+                        PAGE_READWRITE);                        // Protection of Allocation
 
             if (mem_ref)
             {
                 use_largepages = true;
-                std::cout << "info string WindowsLargePages " << (mem_size >> 20) << " MB Hash..." << std::endl;
+                std::cout << "info string WindowsLargePages Hash " << (mem_size >> 20) << " MB..." << std::endl;
                 return;
             }
             else
@@ -209,7 +209,7 @@ namespace MemoryHandler {
                 if (mem_ref)
                 {
                     use_largepages = true;
-                    std::cout << "info string WindowsPages " << (mem_size >> 20) << " MB Hash..." << std::endl;
+                    std::cout << "info string WindowsPages Hash " << (mem_size >> 20) << " MB..." << std::endl;
                     return;
                 }
             }
@@ -217,7 +217,7 @@ namespace MemoryHandler {
 #   else    // Linux - Unix
 
             int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (num != -1)
+            if (num >= 0)
             {
                 mem_ref = shmat (num, NULL, 0x0);
                 if (mem_ref == -1)
@@ -227,7 +227,7 @@ namespace MemoryHandler {
                     //exit(2);
                 }
                 use_largepages = true;
-                sync_cout << "info string HUGELTB " << (mem_size >> 20) << " MB Hash..." << sync_endl;
+                std::cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << std::endl;
                 return;
             }
             else
@@ -240,7 +240,10 @@ namespace MemoryHandler {
         }
 
         MEMALIGN (mem_ref, align, size_t (mem_size));
-
+        if (mem_ref)
+        {
+            memset (mem_ref, 0, mem_size);
+        }
     }
 
     void free_memory    (void *mem)
@@ -265,7 +268,7 @@ namespace MemoryHandler {
         }
 
         ALIGNED_FREE (mem);
-
+        
     }
 
     void initialize      ()
@@ -276,6 +279,9 @@ namespace MemoryHandler {
         SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
         
         /*
+        
+        //#       define BUF_SIZE     65536
+
         //// Call succeeds only on Windows Server 2003 SP1 or later
         //HINSTANCE hDll = LoadLibrary (TEXT ("kernel32.dll"));
         //if (hDll == NULL)

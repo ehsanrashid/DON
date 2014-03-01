@@ -44,7 +44,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
         Engine::exit (EXIT_FAILURE);
     }
 
-    memset (_mem, 0, mem_size_b);
+    //memset (_mem, 0, mem_size_b);
 
     void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
     _hash_table = (TranspositionEntry *) (ptr);
@@ -110,7 +110,9 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
     if (force || _hash_mask != (_entry_count - CLUSTER_SIZE))
     {
         free_aligned_memory ();
+
         alloc_aligned_memory (mem_size_b, CACHE_LINE_SIZE);
+        
         _hash_mask  = (_entry_count - CLUSTER_SIZE);
     }
 

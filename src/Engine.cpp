@@ -123,8 +123,8 @@ namespace Engine {
 #endif
 
         cout
-            << "info string Thread(s) count " << Threads.size () << ".\n"
-            << "info string Hash size " << TT.size () << " MB."  << endl;
+            << "info string Hash size " << TT.size () << " MB...\n"
+            << "info string Thread(s) count " << Threads.size () << ".\n" << endl; 
 
 
         UCI   ::start (args);
