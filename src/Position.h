@@ -369,9 +369,9 @@ public:
 
 
 #ifndef NDEBUG
-    bool        fen (const char *fen, bool c960 = false, bool full = true) const;
+    bool        fen (const char *f, bool c960 = false, bool full = true) const;
 #endif
-    std::string fen (bool                  c960 = false, bool full = true) const;
+    std::string fen (bool                c960 = false, bool full = true) const;
 
     operator std::string () const;
 

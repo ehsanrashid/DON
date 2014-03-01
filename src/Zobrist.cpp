@@ -134,8 +134,8 @@ namespace Zobrist {
 #undef skip_whitespace
 #undef get_next
 
-#define skip_whitespace()  while (isspace (unsigned char (*fen))) ++fen
-#define get_next()         ch = unsigned char (*fen++)
+#define skip_whitespace()  while (isspace (uint8_t (*fen))) ++fen
+#define get_next()         ch = uint8_t (*fen++)
 
         unsigned char ch;
         for (Rank r = R_8; r >= R_1; --r)

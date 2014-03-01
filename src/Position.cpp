@@ -1553,12 +1553,12 @@ void Position::flip ()
 }
 
 #ifndef NDEBUG
-bool   Position::fen (const char *fen, bool c960, bool full) const
+bool   Position::fen (const char *fn, bool c960, bool full) const
 {
-    ASSERT (fen);
+    ASSERT (fn);
     ASSERT (ok ());
 
-    char *ch = (char *) fen;
+    char *ch = const_cast<char *> (fn);
     memset (ch, '\0', MAX_FEN);
 
 #undef set_next
@@ -1648,17 +1648,11 @@ bool   Position::fen (const char *fen, bool c960, bool full) const
     if (full)
     {
         set_next (' ');
-        try
-        {
-            int32_t write =
-                //_snprintf (ch, MAX_FEN - (ch - fen) - 1, "%u %u", _si->clock50, game_move ());
-                _snprintf_s (ch, MAX_FEN - (ch - fen) - 1, 8, "%u %u", _si->clock50, game_move ());
-            ch += write;
-        }
-        catch (...)
-        {
-            return false;
-        }
+        int32_t write = sprintf (ch, "%u %u", _si->clock50, game_move ());
+            //_snprintf (ch, MAX_FEN - (ch - fn) - 1, "%u %u", _si->clock50, game_move ());
+            //_snprintf_s (ch, MAX_FEN - (ch - fn) - 1, 8, "%u %u", _si->clock50, game_move ());
+
+        ch += write;
     }
     set_next ('\0');
 

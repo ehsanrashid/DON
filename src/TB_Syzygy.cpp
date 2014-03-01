@@ -1893,7 +1893,7 @@ namespace {
         }
 
         uint32_t mainidx = idx >> d->idxbits;
-        int32_t litidx = (idx & ((1 << d->idxbits) - 1)) - (1 << (d->idxbits - 1));
+        int32_t litidx = (idx & ((U64 (1) << d->idxbits) - 1)) - (U64 (1) << (d->idxbits - 1));
         uint32_t block = *(uint32_t *) (d->indextable + 6 * mainidx);
         litidx += *(uint16_t *) (d->indextable + 6 * mainidx + 4);
         if (litidx < 0)

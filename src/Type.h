@@ -251,8 +251,8 @@ typedef enum Score : int32_t { SCORE_ZERO      = 0 } Score;
 
 typedef enum Depth : int16_t
 {
-    ONE_PLY             =    1,
-    ONE_MOVE            =    2 * ONE_PLY,
+    //ONE_PLY             =    1,
+    ONE_MOVE            =    2,//2 * ONE_PLY,
 
     DEPTH_ZERO          =    0 * ONE_MOVE,
     DEPTH_QS_CHECKS     =    0 * ONE_MOVE,

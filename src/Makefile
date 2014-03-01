@@ -129,6 +129,17 @@ ifeq ($(ARCH),x86-64-modern)
 	pages   = yes
 endif
 
+ifeq ($(ARCH),x86-64-modern-debug)
+	debug   = yes
+	arch    = x86_64
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
+	pages   = yes
+endif
+
 ifeq ($(ARCH),armv7)
 	arch    = armv7
 	prefetch= yes
@@ -256,7 +267,8 @@ endif
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
-	CXXFLAGS += -g
+	# CXXFLAGS += -g
+	CXXFLAGS += -g -DTRI_LOGGER
 endif
 
 ### 3.5 Optimization
