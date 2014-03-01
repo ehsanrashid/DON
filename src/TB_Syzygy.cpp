@@ -9,22 +9,19 @@ this code to other chess engines.
 
 // The probing code currently expects a little-endian architecture (e.g. x86).
 
-// Define DECOMP64 when compiling for a 64-bit platform.
-// 32-bit is only supported for 5-piece tables, because tables are mmap()ed
-// into memory.
+// 32-bit is only supported for 5-piece tables, because tables are maped into memory.
 
 #include "TB_Syzygy.h"
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <algorithm>
 #include <sys/stat.h>
 #include <fcntl.h>
 
 #if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-//#   include <stdlib.h>
 
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
@@ -65,10 +62,6 @@ this code to other chess engines.
 
 #endif
 
-#ifdef _64BIT
-#   define DECOMP64
-#endif
-
 #include "BitBoard.h"
 #include "BitCount.h"
 #include "Zobrist.h"
@@ -96,48 +89,41 @@ namespace {
 
 #define TBHASHBITS      10
 
-    typedef unsigned long long  uint64;
-    typedef   signed int         int32;
-    typedef unsigned int        uint32;
-    typedef   signed char        byte;
-    typedef unsigned char       ubyte;
-    typedef unsigned short      ushort;
-
     struct TBHashEntry;
 
-#ifdef DECOMP64
+#ifdef _64BIT
 
-    typedef uint64 base_t;
+    typedef uint64_t base_t;
 
 #else
 
-    typedef uint32 base_t;
+    typedef uint32_t base_t;
 
 #endif
 
     typedef struct PairsData
     {
         char    *indextable;
-        ushort  *sizetable;
-        ubyte   *data;
-        ushort  *offset;
-        ubyte   *symlen;
-        ubyte   *sympat;
-        int32   blocksize;
-        int32   idxbits;
-        int32   min_len;
+        uint16_t  *sizetable;
+        uint8_t   *data;
+        uint16_t  *offset;
+        uint8_t   *symlen;
+        uint8_t   *sympat;
+        int32_t   blocksize;
+        int32_t   idxbits;
+        int32_t   min_len;
         base_t  base[1]; // C++ complains about base[]...
     } PairsData;
 
     struct TBEntry
     {
         char    *data;
-        uint64  key;
-        uint64  mapping;
-        ubyte   ready;
-        ubyte   num;
-        ubyte   symmetric;
-        ubyte   has_pawns;
+        uint64_t  key;
+        uint64_t  mapping;
+        uint8_t   ready;
+        uint8_t   num;
+        uint8_t   symmetric;
+        uint8_t   has_pawns;
 
     }
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
@@ -150,37 +136,37 @@ namespace {
     typedef struct TBEntry_piece
     {
         char    *data;
-        uint64  key;
-        uint64  mapping;
-        ubyte   ready;
-        ubyte   num;
-        ubyte   symmetric;
-        ubyte   has_pawns;
-        ubyte   enc_type;
+        uint64_t  key;
+        uint64_t  mapping;
+        uint8_t   ready;
+        uint8_t   num;
+        uint8_t   symmetric;
+        uint8_t   has_pawns;
+        uint8_t   enc_type;
         PairsData *precomp[2];
-        int32   factor[2][TBPIECES];
-        ubyte   pieces[2][TBPIECES];
-        ubyte   norm  [2][TBPIECES];
+        int32_t   factor[2][TBPIECES];
+        uint8_t   pieces[2][TBPIECES];
+        uint8_t   norm  [2][TBPIECES];
 
     } TBEntry_piece;
 
     typedef struct TBEntry_pawn
     {
         char    *data;
-        uint64  key;
-        uint64  mapping;
-        ubyte   ready;
-        ubyte   num;
-        ubyte   symmetric;
-        ubyte   has_pawns;
-        ubyte   pawns[2];
+        uint64_t  key;
+        uint64_t  mapping;
+        uint8_t   ready;
+        uint8_t   num;
+        uint8_t   symmetric;
+        uint8_t   has_pawns;
+        uint8_t   pawns[2];
 
         struct
         {
             PairsData   *precomp[2];
-            int32   factor[2][TBPIECES];
-            ubyte   pieces[2][TBPIECES];
-            ubyte   norm  [2][TBPIECES];
+            int32_t   factor[2][TBPIECES];
+            uint8_t   pieces[2][TBPIECES];
+            uint8_t   norm  [2][TBPIECES];
 
         } file[4];
     } TBEntry_pawn;
@@ -188,62 +174,61 @@ namespace {
     typedef struct DTZEntry_piece
     {
         char    *data;
-        uint64  key;
-        uint64  mapping;
-        ubyte   ready;
-        ubyte   num;
-        ubyte   symmetric;
-        ubyte   has_pawns;
-        ubyte   enc_type;
+        uint64_t  key;
+        uint64_t  mapping;
+        uint8_t   ready;
+        uint8_t   num;
+        uint8_t   symmetric;
+        uint8_t   has_pawns;
+        uint8_t   enc_type;
         PairsData   *precomp;
-        int32   factor[TBPIECES];
-        ubyte   pieces[TBPIECES];
-        ubyte   norm  [TBPIECES];
-        ubyte   flags; // accurate, mapped, side
-        ushort  map_idx[4];
-        ubyte   *map;
+        int32_t   factor[TBPIECES];
+        uint8_t   pieces[TBPIECES];
+        uint8_t   norm  [TBPIECES];
+        uint8_t   flags; // accurate, mapped, side
+        uint16_t  map_idx[4];
+        uint8_t   *map;
     } DTZEntry_piece;
 
     typedef struct DTZEntry_pawn
     {
         char *data;
-        uint64 key;
-        uint64 mapping;
-        ubyte ready;
-        ubyte num;
-        ubyte symmetric;
-        ubyte has_pawns;
-        ubyte pawns[2];
+        uint64_t key;
+        uint64_t mapping;
+        uint8_t ready;
+        uint8_t num;
+        uint8_t symmetric;
+        uint8_t has_pawns;
+        uint8_t pawns[2];
 
         struct
         {
             PairsData *precomp;
-            int32     factor[TBPIECES];
-            ubyte   pieces[TBPIECES];
-            ubyte   norm[TBPIECES];
+            int32_t     factor[TBPIECES];
+            uint8_t   pieces[TBPIECES];
+            uint8_t   norm[TBPIECES];
 
         } file[4];
 
-        ubyte   flags[4];
-        ushort  map_idx[4][4];
-        ubyte   *map;
+        uint8_t   flags[4];
+        uint16_t  map_idx[4][4];
+        uint8_t   *map;
     } DTZEntry_pawn;
 
     typedef struct TBHashEntry
     {
-        uint64  key;
+        uint64_t  key;
         TBEntry *ptr;
     } TBHashEntry;
 
     typedef struct DTZTableEntry
     {
-        uint64 key1;
-        uint64 key2;
+        uint64_t key1;
+        uint64_t key2;
         TBEntry *entry;
     } DTZTableEntry;
 
     // -----------------------------
-
 
 #define TBMAX_PIECE 254
 #define TBMAX_PAWN  256
@@ -252,29 +237,14 @@ namespace {
     // for variants where kings can connect and/or captured
     // #define CONNECTED_KINGS
 
-#define Swap(a,b) { int tmp=a; a=b; b=tmp; }
-
-#define TB_PAWN     0 //1
-#define TB_KNIGHT   1 //2
-#define TB_BISHOP   2 //3
-#define TB_ROOK     3 //4
-#define TB_QUEEN    4 //5
-#define TB_KING     5 //6
-
-#define TB_TOTAL    5
-
-
-#define TB_WPAWN (TB_PAWN)
-#define TB_BPAWN (TB_PAWN|8)
-
     LOCK_T TB_mutex;
 
     bool  initialized = false;
-    int32 num_paths = 0;
+    int32_t num_paths = 0;
     char *path_string = NULL;
     char **paths = NULL;
 
-    int32 TB_num_piece, TB_num_pawn;
+    int32_t TB_num_piece, TB_num_pawn;
     TBEntry_piece TB_piece[TBMAX_PIECE];
     TBEntry_pawn TB_pawn[TBMAX_PAWN];
 
@@ -285,13 +255,16 @@ namespace {
     DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
     void init_indices (void);
-    uint64 calc_key_from_pcs (int32 *pcs, int32 mirror);
+
+    uint64_t calc_key_from_pcs (uint8_t *pcs, int32_t mirror);
+    
     void free_wdl_entry (TBEntry *entry);
+    
     void free_dtz_entry (TBEntry *entry);
 
     FD open_tb (const char *str, const char *suffix)
     {
-        int32 i;
+        int32_t i;
         FD fd;
         char file[256];
 
@@ -322,7 +295,7 @@ namespace {
 #endif
     }
 
-    char *map_file (const char *name, const char *suffix, uint64 *mapping)
+    char *map_file (const char *name, const char *suffix, uint64_t *mapping)
     {
         FD fd = open_tb (name, suffix);
         if (fd == FD_ERR) return NULL;
@@ -344,7 +317,7 @@ namespace {
 
         DWORD size_low, size_high;
         size_low = GetFileSize (fd, &size_high);
-        //  *size = ((uint64)size_high) << 32 | ((uint64)size_low);
+        //  *size = ((uint64_t)size_high) << 32 | ((uint64_t)size_low);
         HANDLE map = CreateFileMapping (fd, NULL, PAGE_READONLY, size_high, size_low,
             NULL);
         if (map == NULL)
@@ -352,7 +325,7 @@ namespace {
             printf ("CreateFileMapping() failed.\n");
             exit (1);
         }
-        *mapping = (uint64) map;
+        *mapping = (uint64_t) map;
         char *data = (char *) MapViewOfFile (map, FILE_MAP_READ, 0, 0, 0);
         if (data == NULL)
         {
@@ -368,7 +341,7 @@ namespace {
 
 #ifndef _WIN32
 
-    void unmap_file (char *data, uint64 size)
+    void unmap_file (char *data, uint64_t size)
     {
         if (!data) return;
         munmap (data, size);
@@ -376,7 +349,7 @@ namespace {
 
 #else
 
-    void unmap_file (char *data, uint64 mapping)
+    void unmap_file (char *data, uint64_t mapping)
     {
         if (!data) return;
         UnmapViewOfFile (data);
@@ -385,10 +358,10 @@ namespace {
 
 #endif
 
-    void add_to_hash (TBEntry *ptr, uint64 key)
+    void add_to_hash (TBEntry *ptr, uint64_t key)
     {
-        int32 hshidx = key >> (64 - TBHASHBITS);
-        int32 i = 0;
+        int32_t hshidx = key >> (64 - TBHASHBITS);
+        int32_t i = 0;
         while (i < HSHMAX && TB_hash[hshidx][i].ptr)
         {
             ++i;
@@ -411,9 +384,10 @@ namespace {
     {
         FD fd;
         TBEntry *entry;
-        int32 i, j, pcs[16];
-        uint64 key, key2;
-        int32 color;
+        int32_t i, j;
+        uint8_t pcs[16];
+        uint64_t key, key2;
+        int32_t color;
         char *s;
 
         fd = open_tb (str, WDLSUFFIX);
@@ -428,22 +402,22 @@ namespace {
             switch (*s)
             {
             case 'P':
-                pcs[TB_PAWN|color]++;
+                pcs[PAWN|color]++;
                 break;
             case 'N':
-                pcs[TB_KNIGHT|color]++;
+                pcs[NIHT|color]++;
                 break;
             case 'B':
-                pcs[TB_BISHOP|color]++;
+                pcs[BSHP|color]++;
                 break;
             case 'R':
-                pcs[TB_ROOK|color]++;
+                pcs[ROOK|color]++;
                 break;
             case 'Q':
-                pcs[TB_QUEEN|color]++;
+                pcs[QUEN|color]++;
                 break;
             case 'K':
-                pcs[TB_KING|color]++;
+                pcs[KING|color]++;
                 break;
             case 'v':
                 color = 0x08;
@@ -459,7 +433,7 @@ namespace {
         }
         key = calc_key_from_pcs (pcs, 0);
         key2 = calc_key_from_pcs (pcs, 1);
-        if (pcs[TB_WPAWN] + pcs[TB_BPAWN] == 0)
+        if (pcs[W_PAWN] + pcs[B_PAWN] == 0)
         {
             if (TB_num_piece == TBMAX_PIECE)
             {
@@ -486,7 +460,7 @@ namespace {
         }
 
         entry->symmetric = (key == key2);
-        entry->has_pawns = ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) > 0);
+        entry->has_pawns = ((pcs[W_PAWN] + pcs[B_PAWN]) > 0);
         if (entry->num > TBSyzygy::TB_Largest)
         {
             TBSyzygy::TB_Largest = entry->num;
@@ -495,13 +469,13 @@ namespace {
         if (entry->has_pawns)
         {
             TBEntry_pawn *ptr = (TBEntry_pawn *) entry;
-            ptr->pawns[0] = pcs[TB_WPAWN];
-            ptr->pawns[1] = pcs[TB_BPAWN];
-            if (    pcs[TB_BPAWN] > 0
-                && (pcs[TB_WPAWN] == 0 || pcs[TB_BPAWN] < pcs[TB_WPAWN]))
+            ptr->pawns[0] = pcs[W_PAWN];
+            ptr->pawns[1] = pcs[B_PAWN];
+            if (    pcs[B_PAWN] > 0
+                && (pcs[W_PAWN] == 0 || pcs[B_PAWN] < pcs[W_PAWN]))
             {
-                ptr->pawns[0] = pcs[TB_BPAWN];
-                ptr->pawns[1] = pcs[TB_WPAWN];
+                ptr->pawns[0] = pcs[B_PAWN];
+                ptr->pawns[1] = pcs[W_PAWN];
             }
         }
         else
@@ -535,7 +509,6 @@ namespace {
         if (key2 != key) add_to_hash (entry, key2);
     }
 
-
     const char offdiag[] = 
     {
         0, -1, -1, -1, -1, -1, -1, -1,
@@ -548,7 +521,7 @@ namespace {
         +1, +1, +1, +1, +1, +1, +1, 0
     };
 
-    const ubyte triangle[] = 
+    const uint8_t triangle[] = 
     {
         6, 0, 1, 2, 2, 1, 0, 6,
         0, 7, 3, 4, 4, 3, 7, 0,
@@ -560,18 +533,18 @@ namespace {
         6, 0, 1, 2, 2, 1, 0, 6
     };
 
-    const ubyte invtriangle[] = 
+    const uint8_t invtriangle[] = 
     {
         1, 2, 3, 10, 11, 19, 0, 9, 18, 27
     };
 
-    const ubyte invdiag[] = 
+    const uint8_t invdiag[] = 
     {
         0, 9, 18, 27, 36, 45, 54, 63,
         7, 14, 21, 28, 35, 42, 49, 56
     };
 
-    const ubyte flipdiag[] =
+    const uint8_t flipdiag[] =
     {
         0,  8, 16, 24, 32, 40, 48, 56,
         1,  9, 17, 25, 33, 41, 49, 57,
@@ -583,7 +556,7 @@ namespace {
         7, 15, 23, 31, 39, 47, 55, 63
     };
 
-    const ubyte lower[] =
+    const uint8_t lower[] =
     {
         28, 0,  1,  2,  3,  4,  5,  6,
         0, 29,  7,  8,  9, 10, 11, 12,
@@ -595,7 +568,7 @@ namespace {
         6, 12, 17, 21, 24, 26, 27, 35
     };
 
-    const ubyte diag[] =
+    const uint8_t diag[] =
     {
         0, 0, 0, 0, 0, 0, 0, 8,
         0, 1, 0, 0, 0, 0, 9, 0,
@@ -607,7 +580,7 @@ namespace {
         15, 0, 0, 0, 0, 0, 0, 7
     };
 
-    const ubyte flap[] =
+    const uint8_t flap[] =
     {
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 6, 12, 18, 18, 12, 6, 0,
@@ -619,7 +592,7 @@ namespace {
         0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    const ubyte ptwist[] =
+    const uint8_t ptwist[] =
     {
         0, 0, 0, 0, 0, 0, 0, 0,
         47, 35, 23, 11, 10, 22, 34, 46,
@@ -631,7 +604,7 @@ namespace {
         0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    const ubyte invflap[] =
+    const uint8_t invflap[] =
     {
         8, 16, 24, 32, 40, 48,
         9, 17, 25, 33, 41, 49,
@@ -639,7 +612,7 @@ namespace {
         11, 19, 27, 35, 43, 51
     };
 
-    const ubyte invptwist[] =
+    const uint8_t invptwist[] =
     {
         52, 51, 44, 43, 36, 35, 28, 27, 20, 19, 12, 11,
         53, 50, 45, 42, 37, 34, 29, 26, 21, 18, 13, 10,
@@ -647,7 +620,7 @@ namespace {
         55, 48, 47, 40, 39, 32, 31, 24, 23, 16, 15, 8
     };
 
-    const ubyte file_to_file[] =
+    const uint8_t file_to_file[] =
     {
         0, 1, 2, 3, 3, 2, 1, 0
     };
@@ -823,7 +796,7 @@ namespace {
         -1, -1, -1, -1, -1, -1, -1, -1 }
     };
 
-    const ubyte test45[] =
+    const uint8_t test45[] =
     {
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
@@ -835,7 +808,7 @@ namespace {
         0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    const ubyte mtwist[] =
+    const uint8_t mtwist[] =
     {
         15, 63, 55, 47, 40, 48, 56, 12,
         62, 11, 39, 31, 24, 32, 8, 57,
@@ -848,28 +821,28 @@ namespace {
     };
 #endif
 
-    int32 binomial[5][64];
-    int32 pawnidx[5][24];
-    int32 pfactor[5][4];
+    int32_t binomial[5][64];
+    int32_t pawnidx[5][24];
+    int32_t pfactor[5][4];
 
 #ifdef CONNECTED_KINGS
 
-    int32 multidx[5][10];
-    int32 mfactor[5];
+    int32_t multidx[5][10];
+    int32_t mfactor[5];
 
 #endif
 
     void init_indices (void)
     {
-        int32 i, j, k;
+        int32_t i, j, k;
 
         // binomial[k-1][n] = Bin(n, k)
         for (i = 0; i < 5; ++i)
         {
             for (j = 0; j < 64; ++j)
             {
-                int32 f = j;
-                int32 l = 1;
+                int32_t f = j;
+                int32_t l = 1;
                 for (k = 1; k <= i; ++k)
                 {
                     f *= (j - k);
@@ -880,7 +853,7 @@ namespace {
         }
         for (i = 0; i < 5; ++i)
         {
-            int32 s = 0;
+            int32_t s = 0;
             for (j = 0; j < 6; ++j)
             {
                 pawnidx[i][j] = s;
@@ -914,7 +887,7 @@ namespace {
 
         for (i = 0; i < 5; ++i)
         {
-            int32 s = 0;
+            int32_t s = 0;
             for (j = 0; j < 10; ++j)
             {
                 multidx[i][j] = s;
@@ -929,21 +902,25 @@ namespace {
 
 #ifndef CONNECTED_KINGS
 
-    uint64 encode_piece (TBEntry_piece *ptr, ubyte *norm, int32 *pos, int32 *factor)
+    uint64_t encode_piece (TBEntry_piece *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
-        uint64 idx;
-        int32 i, j, k, m, l, p;
-        int32 n = ptr->num;
+        uint64_t idx;
+        int32_t i, j, k, m, l, p;
+        int32_t n = ptr->num;
 
         if (pos[0] & 0x04)
         {
             for (i = 0; i < n; ++i)
+            {
                 pos[i] ^= 0x07;
+            }
         }
         if (pos[0] & 0x20)
         {
             for (i = 0; i < n; ++i)
+            {
                 pos[i] ^= 0x38;
+            }
         }
 
         for (i = 0; i < n; ++i)
@@ -997,15 +974,15 @@ namespace {
 
         for (; i < n;)
         {
-            int32 t = norm[i];
+            int32_t t = norm[i];
             for (j = i; j < i + t; ++j)
             {
                 for (k = j + 1; k < i + t; ++k)
                 {
-                    if (pos[j] > pos[k]) Swap (pos[j], pos[k]);
+                    if (pos[j] > pos[k]) std::swap (pos[j], pos[k]);
                 }
             }
-            int32 s = 0;
+            int32_t s = 0;
             for (m = i; m < i + t; ++m)
             {
                 p = pos[m];
@@ -1015,18 +992,18 @@ namespace {
                 }
                 s += binomial[m - i][p - j];
             }
-            idx += ((uint64) s) * ((uint64) factor[i]);
+            idx += ((uint64_t) s) * ((uint64_t) factor[i]);
             i += t;
         }
 
         return idx;
     }
 #else
-    uint64 encode_piece (TBEntry_piece *ptr, ubyte *norm, int32 *pos, int32 *factor)
+    uint64_t encode_piece (TBEntry_piece *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
-        uint64 idx;
-        int32 i, j, k, m, l, p;
-        int32 n = ptr->num;
+        uint64_t idx;
+        int32_t i, j, k, m, l, p;
+        int32_t n = ptr->num;
 
         if (ptr->enc_type < 3)
         {
@@ -1191,7 +1168,7 @@ namespace {
 
         for (; i < n;)
         {
-            int32 t = norm[i];
+            int32_t t = norm[i];
             for (j = i; j < i + t; ++j)
             {
                 for (k = j + 1; k < i + t; ++k)
@@ -1202,7 +1179,7 @@ namespace {
                     }
                 }
             }
-            int32 s = 0;
+            int32_t s = 0;
             for (m = i; m < i + t; ++m)
             {
                 p = pos[m];
@@ -1212,7 +1189,7 @@ namespace {
                 }
                 s += binomial[m - i][p - j];
             }
-            idx += ((uint64) s) * ((uint64) factor[i]);
+            idx += ((uint64_t) s) * ((uint64_t) factor[i]);
             i += t;
         }
 
@@ -1221,25 +1198,25 @@ namespace {
 #endif
 
     // determine file of leftmost pawn and sort pawns
-    int32 pawn_file (TBEntry_pawn *ptr, int32 *pos)
+    int32_t pawn_file (TBEntry_pawn *ptr, int32_t *pos)
     {
-        int32 i;
+        int32_t i;
 
         for (i = 1; i < ptr->pawns[0]; ++i)
         {
             if (flap[pos[0]] > flap[pos[i]])
             {
-                Swap (pos[0], pos[i]);
+                std::swap (pos[0], pos[i]);
             }
         }
         return file_to_file[pos[0] & 0x07];
     }
 
-    uint64 encode_pawn (TBEntry_pawn *ptr, ubyte *norm, int32 *pos, int32 *factor)
+    uint64_t encode_pawn (TBEntry_pawn *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
-        uint64 idx;
-        int32 i, j, k, m, s, t;
-        int32 n = ptr->num;
+        uint64_t idx;
+        int32_t i, j, k, m, s, t;
+        int32_t n = ptr->num;
 
         if (pos[0] & 0x04)
         {
@@ -1254,7 +1231,7 @@ namespace {
             {
                 if (ptwist[pos[i]] < ptwist[pos[j]])
                 {
-                    Swap (pos[i], pos[j]);
+                    std::swap (pos[i], pos[j]);
                 }
             }
         }
@@ -1275,20 +1252,20 @@ namespace {
             {
                 for (k = j + 1; k < t; ++k)
                 {
-                    if (pos[j] > pos[k]) Swap (pos[j], pos[k]);
+                    if (pos[j] > pos[k]) std::swap (pos[j], pos[k]);
                 }
             }
             s = 0;
             for (m = i; m < t; ++m)
             {
-                int32 p = pos[m];
+                int32_t p = pos[m];
                 for (k = 0, j = 0; k < i; ++k)
                 {
                     j += (p > pos[k]);
                 }
                 s += binomial[m - i][p - j - 8];
             }
-            idx += ((uint64) s) * ((uint64) factor[i]);
+            idx += ((uint64_t) s) * ((uint64_t) factor[i]);
             i = t;
         }
 
@@ -1301,7 +1278,7 @@ namespace {
                 {
                     if (pos[j] > pos[k])
                     {
-                        Swap (pos[j], pos[k]);
+                        std::swap (pos[j], pos[k]);
                     }
                 }
             }
@@ -1309,26 +1286,26 @@ namespace {
             s = 0;
             for (m = i; m < i + t; ++m)
             {
-                int32 p = pos[m];
+                int32_t p = pos[m];
                 for (k = 0, j = 0; k < i; ++k)
                 {
                     j += (p > pos[k]);
                 }
                 s += binomial[m - i][p - j];
             }
-            idx += uint64 (s) * uint64 (factor[i]);
+            idx += uint64_t (s) * uint64_t (factor[i]);
             i += t;
         }
 
         return idx;
     }
 
-    ubyte decompress_pairs (PairsData *d, uint64 index);
+    uint8_t decompress_pairs (PairsData *d, uint64_t index);
 
     // place k like pieces on n squares
-    int32 subfactor (int32 k, int32 n)
+    int32_t subfactor (int32_t k, int32_t n)
     {
-        int32 i, f, l;
+        int32_t i, f, l;
 
         f = n;
         l = 1;
@@ -1341,12 +1318,12 @@ namespace {
         return f / l;
     }
 
-    uint64 calc_factors_piece (int32 *factor, int32 num, int32 order, ubyte *norm, ubyte enc_type)
+    uint64_t calc_factors_piece (int32_t *factor, int32_t num, int32_t order, uint8_t *norm, uint8_t enc_type)
     {
-        int32 i, k, n;
-        uint64 f;
+        int32_t i, k, n;
+        uint64_t f;
 
-        static int32 pivfac[] =
+        static int32_t pivfac[] =
 #ifndef CONNECTED_KINGS
         { 31332, 28056, 462 };
 #else
@@ -1392,10 +1369,10 @@ namespace {
         return f;
     }
 
-    uint64 calc_factors_pawn (int32 *factor, int32 num, int32 order, int32 order2, ubyte *norm, int32 file)
+    uint64_t calc_factors_pawn (int32_t *factor, int32_t num, int32_t order, int32_t order2, uint8_t *norm, int32_t file)
     {
-        int32 i, k, n;
-        uint64 f;
+        int32_t i, k, n;
+        uint64_t f;
 
         i = norm[0];
         if (order2 < 0x0f) i += norm[i];
@@ -1426,9 +1403,9 @@ namespace {
         return f;
     }
 
-    void set_norm_piece (TBEntry_piece *ptr, ubyte *norm, ubyte *pieces)
+    void set_norm_piece (TBEntry_piece *ptr, uint8_t *norm, uint8_t *pieces)
     {
-        int32 i, j;
+        int32_t i, j;
 
         for (i = 0; i < ptr->num; ++i)
         {
@@ -1457,9 +1434,9 @@ namespace {
         }
     }
 
-    void set_norm_pawn (TBEntry_pawn *ptr, ubyte *norm, ubyte *pieces)
+    void set_norm_pawn (TBEntry_pawn *ptr, uint8_t *norm, uint8_t *pieces)
     {
-        int32 i;
+        int32_t i;
 
         for (i = 0; i < ptr->num; ++i)
         {
@@ -1471,17 +1448,17 @@ namespace {
 
         for (i = ptr->pawns[0] + ptr->pawns[1]; i < ptr->num; i += norm[i])
         {
-            for (int32 j = i; j < ptr->num && pieces[j] == pieces[i]; ++j)
+            for (int32_t j = i; j < ptr->num && pieces[j] == pieces[i]; ++j)
             {
                 norm[i]++;
             }
         }
     }
 
-    void setup_pieces_piece (TBEntry_piece *ptr, unsigned char *data, uint64 *tb_size)
+    void setup_pieces_piece (TBEntry_piece *ptr, unsigned char *data, uint64_t *tb_size)
     {
-        int32 i;
-        int32 order;
+        int32_t i;
+        int32_t order;
 
         for (i = 0; i < ptr->num; ++i)
         {
@@ -1500,10 +1477,10 @@ namespace {
         tb_size[1] = calc_factors_piece (ptr->factor[1], ptr->num, order, ptr->norm[1], ptr->enc_type);
     }
 
-    void setup_pieces_piece_dtz (DTZEntry_piece *ptr, unsigned char *data, uint64 *tb_size)
+    void setup_pieces_piece_dtz (DTZEntry_piece *ptr, unsigned char *data, uint64_t *tb_size)
     {
-        int32 i;
-        int32 order;
+        int32_t i;
+        int32_t order;
 
         for (i = 0; i < ptr->num; ++i)
         {
@@ -1514,10 +1491,10 @@ namespace {
         tb_size[0] = calc_factors_piece (ptr->factor, ptr->num, order, ptr->norm, ptr->enc_type);
     }
 
-    void setup_pieces_pawn (TBEntry_pawn *ptr, unsigned char *data, uint64 *tb_size, int32 f)
+    void setup_pieces_pawn (TBEntry_pawn *ptr, unsigned char *data, uint64_t *tb_size, int32_t f)
     {
-        int32 i, j;
-        int32   order
+        int32_t i, j;
+        int32_t   order
             , order2;
 
         j = 1 + (ptr->pawns[1] > 0);
@@ -1540,10 +1517,10 @@ namespace {
         tb_size[1] = calc_factors_pawn (ptr->file[f].factor[1], ptr->num, order, order2, ptr->file[f].norm[1], f);
     }
 
-    void setup_pieces_pawn_dtz (DTZEntry_pawn *ptr, unsigned char *data, uint64 *tb_size, int32 f)
+    void setup_pieces_pawn_dtz (DTZEntry_pawn *ptr, unsigned char *data, uint64_t *tb_size, int32_t f)
     {
-        int32 i, j;
-        int32   order
+        int32_t i, j;
+        int32_t   order
             , order2;
 
         j = 1 + (ptr->pawns[1] > 0);
@@ -1557,11 +1534,11 @@ namespace {
         tb_size[0] = calc_factors_pawn (ptr->file[f].factor, ptr->num, order, order2, ptr->file[f].norm, f);
     }
 
-    void calc_symlen (PairsData *d, int32 s, char *tmp)
+    void calc_symlen (PairsData *d, int32_t s, char *tmp)
     {
-        int32 s1, s2;
+        int32_t s1, s2;
 
-        int32 w = *(int32 *) (d->sympat + 3 * s);
+        int32_t w = *(int32_t *) (d->sympat + 3 * s);
         s2 = (w >> 12) & 0x0fff;
         if (s2 == 0x0fff)
         {
@@ -1577,10 +1554,10 @@ namespace {
         tmp[s] = 1;
     }
 
-    PairsData *setup_pairs (unsigned char *data, uint64 tb_size, uint64 *size, unsigned char **next, ubyte *flags, int32 wdl)
+    PairsData *setup_pairs (unsigned char *data, uint64_t tb_size, uint64_t *size, unsigned char **next, uint8_t *flags, int32_t wdl)
     {
         PairsData *d;
-        int32 i;
+        int32_t i;
 
         *flags = data[0];
         if (data[0] & 0x80)
@@ -1596,24 +1573,24 @@ namespace {
             return d;
         }
 
-        int32 blocksize = data[1];
-        int32 idxbits = data[2];
-        int32 real_num_blocks = *(uint32 *) (&data[4]);
-        int32 num_blocks = real_num_blocks + *(ubyte *) (&data[3]);
-        int32 max_len = data[8];
-        int32 min_len = data[9];
-        int32 h = max_len - min_len + 1;
-        int32 num_syms = *(ushort *) (&data[10 + 2 * h]);
+        int32_t blocksize = data[1];
+        int32_t idxbits = data[2];
+        int32_t real_num_blocks = *(uint32_t *) (&data[4]);
+        int32_t num_blocks = real_num_blocks + *(uint8_t *) (&data[3]);
+        int32_t max_len = data[8];
+        int32_t min_len = data[9];
+        int32_t h = max_len - min_len + 1;
+        int32_t num_syms = *(uint16_t *) (&data[10 + 2 * h]);
         d = (PairsData *)malloc (sizeof (PairsData) + (h - 1) * sizeof (base_t) +num_syms);
         d->blocksize = blocksize;
         d->idxbits = idxbits;
-        d->offset = (ushort *) (&data[10]);
-        d->symlen = ((ubyte *) d) + sizeof (PairsData) + (h - 1) * sizeof (base_t);
+        d->offset = (uint16_t *) (&data[10]);
+        d->symlen = ((uint8_t *) d) + sizeof (PairsData) + (h - 1) * sizeof (base_t);
         d->sympat = &data[12 + 2 * h];
         d->min_len = min_len;
         *next = &data[12 + 2 * h + 3 * num_syms + (num_syms & 1)];
 
-        int32 num_indices = (tb_size + (1ULL << idxbits) - 1) >> idxbits;
+        int32_t num_indices = (tb_size + (1ULL << idxbits) - 1) >> idxbits;
         size[0] = 6ULL * num_indices;
         size[1] = 2ULL * num_blocks;
         size[2] = (1ULL << blocksize) * real_num_blocks;
@@ -1638,7 +1615,7 @@ namespace {
             d->base[i] = (d->base[i + 1] + d->offset[i] - d->offset[i + 1]) / 2;
         }
 
-#ifdef DECOMP64
+#ifdef _64BIT
         
         for (i = 0; i < h; ++i)
         {
@@ -1659,13 +1636,13 @@ namespace {
         return d;
     }
 
-    int32 init_table_wdl (TBEntry *entry, char *str)
+    int32_t init_table_wdl (TBEntry *entry, char *str)
     {
-        ubyte *next;
-        int32 f, s;
-        uint64 tb_size[8];
-        uint64 size[8 * 3];
-        ubyte flags;
+        uint8_t *next;
+        int32_t f, s;
+        uint64_t tb_size[8];
+        uint64_t size[8 * 3];
+        uint8_t flags;
 
         // first mmap the table into memory
 
@@ -1676,8 +1653,8 @@ namespace {
             return 0;
         }
 
-        ubyte *data = (ubyte *) entry->data;
-        if (((uint32 *) data)[0] != WDL_MAGIC)
+        uint8_t *data = (uint8_t *) entry->data;
+        if (((uint32_t *) data)[0] != WDL_MAGIC)
         {
             printf ("Corrupted table.\n");
             unmap_file (entry->data, entry->mapping);
@@ -1685,8 +1662,8 @@ namespace {
             return 0;
         }
 
-        int32 split = data[4] & 0x01;
-        int32 files = data[4] & 0x02 ? 4 : 1;
+        int32_t split = data[4] & 0x01;
+        int32_t files = data[4] & 0x02 ? 4 : 1;
 
         data += 5;
 
@@ -1717,20 +1694,20 @@ namespace {
                 data += size[3];
             }
 
-            ptr->precomp[0]->sizetable = (ushort *) data;
+            ptr->precomp[0]->sizetable = (uint16_t *) data;
             data += size[1];
             if (split)
             {
-                ptr->precomp[1]->sizetable = (ushort *) data;
+                ptr->precomp[1]->sizetable = (uint16_t *) data;
                 data += size[4];
             }
 
-            data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+            data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
             ptr->precomp[0]->data = data;
             data += size[2];
             if (split)
             {
-                data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+                data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
                 ptr->precomp[1]->data = data;
             }
         }
@@ -1773,23 +1750,23 @@ namespace {
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp[0]->sizetable = (ushort *) data;
+                ptr->file[f].precomp[0]->sizetable = (uint16_t *) data;
                 data += size[6 * f + 1];
                 if (split)
                 {
-                    ptr->file[f].precomp[1]->sizetable = (ushort *) data;
+                    ptr->file[f].precomp[1]->sizetable = (uint16_t *) data;
                     data += size[6 * f + 4];
                 }
             }
 
             for (f = 0; f < files; f++)
             {
-                data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+                data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
                 ptr->file[f].precomp[0]->data = data;
                 data += size[6 * f + 2];
                 if (split)
                 {
-                    data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+                    data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
                     ptr->file[f].precomp[1]->data = data;
                     data += size[6 * f + 5];
                 }
@@ -1799,25 +1776,25 @@ namespace {
         return 1;
     }
 
-    int32 init_table_dtz (TBEntry *entry)
+    int32_t init_table_dtz (TBEntry *entry)
     {
-        ubyte *data = (ubyte *) entry->data;
-        ubyte *next;
-        int32 f, s;
-        uint64 tb_size[4];
-        uint64 size[4 * 3];
+        uint8_t *data = (uint8_t *) entry->data;
+        uint8_t *next;
+        int32_t f, s;
+        uint64_t tb_size[4];
+        uint64_t size[4 * 3];
 
         if (!data)
         {
             return 0;
         }
-        if (((uint32 *) data)[0] != DTZ_MAGIC)
+        if (((uint32_t *) data)[0] != DTZ_MAGIC)
         {
             printf ("Corrupted table.\n");
             return 0;
         }
 
-        int32 files = data[4] & 0x02 ? 4 : 1;
+        int32_t files = data[4] & 0x02 ? 4 : 1;
 
         data += 5;
 
@@ -1834,7 +1811,7 @@ namespace {
             ptr->map = data;
             if (ptr->flags & 2)
             {
-                int32 i;
+                int32_t i;
                 for (i = 0; i < 4; ++i)
                 {
                     ptr->map_idx[i] = (data + 1 - ptr->map);
@@ -1846,10 +1823,10 @@ namespace {
             ptr->precomp->indextable = (char *) data;
             data += size[0];
 
-            ptr->precomp->sizetable = (ushort *) data;
+            ptr->precomp->sizetable = (uint16_t *) data;
             data += size[1];
 
-            data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+            data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
             ptr->precomp->data = data;
             data += size[2];
         }
@@ -1875,7 +1852,7 @@ namespace {
             {
                 if (ptr->flags[f] & 2)
                 {
-                    int32 i;
+                    int32_t i;
                     for (i = 0; i < 4; ++i)
                     {
                         ptr->map_idx[f][i] = (data + 1 - ptr->map);
@@ -1893,13 +1870,13 @@ namespace {
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp->sizetable = (ushort *) data;
+                ptr->file[f].precomp->sizetable = (uint16_t *) data;
                 data += size[3 * f + 1];
             }
 
             for (f = 0; f < files; f++)
             {
-                data = (ubyte *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
+                data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
                 ptr->file[f].precomp->data = data;
                 data += size[3 * f + 2];
             }
@@ -1908,17 +1885,17 @@ namespace {
         return 1;
     }
 
-    ubyte decompress_pairs (PairsData *d, uint64 idx)
+    uint8_t decompress_pairs (PairsData *d, uint64_t idx)
     {
         if (!d->idxbits)
         {
             return d->min_len;
         }
 
-        uint32 mainidx = idx >> d->idxbits;
-        int32 litidx = (idx & ((1 << d->idxbits) - 1)) - (1 << (d->idxbits - 1));
-        uint32 block = *(uint32 *) (d->indextable + 6 * mainidx);
-        litidx += *(ushort *) (d->indextable + 6 * mainidx + 4);
+        uint32_t mainidx = idx >> d->idxbits;
+        int32_t litidx = (idx & ((1 << d->idxbits) - 1)) - (1 << (d->idxbits - 1));
+        uint32_t block = *(uint32_t *) (d->indextable + 6 * mainidx);
+        litidx += *(uint16_t *) (d->indextable + 6 * mainidx + 4);
         if (litidx < 0)
         {
             do
@@ -1935,57 +1912,57 @@ namespace {
             }
         }
 
-        uint32 *ptr = (uint32 *) (d->data + (block << d->blocksize));
+        uint32_t *ptr = (uint32_t *) (d->data + (block << d->blocksize));
 
-        int32 m = d->min_len;
-        ushort *offset = d->offset;
+        int32_t m = d->min_len;
+        uint16_t *offset = d->offset;
         base_t *base = d->base - m;
-        ubyte *symlen = d->symlen;
-        int32 sym, bitcnt;
+        uint8_t *symlen = d->symlen;
+        int32_t sym, bitcnt;
 
-#ifdef DECOMP64
+#ifdef _64BIT
 
-        uint64 code =
-#ifdef _MSC_VER
-            _byteswap_uint64 (*((uint64 *) ptr));
-#else
-            __builtin_bswap64 (*((uint64 *) ptr));
-#endif
+        uint64_t code =
+#   ifdef _MSC_VER
+            _byteswap_uint64 (*((uint64_t *) ptr));
+#   else
+            __builtin_bswap64 (*((uint64_t *) ptr));
+#   endif
         ptr += 2;
         bitcnt = 0; // number of "empty bits" in code
         for (;;)
         {
-            int32 l = m;
+            int32_t l = m;
             while (code < base[l]) ++l;
             sym = offset[l] + ((code - base[l]) >> (64 - l));
-            if (litidx < (int32) symlen[sym] + 1) break;
-            litidx -= (int32) symlen[sym] + 1;
+            if (litidx < (int32_t) symlen[sym] + 1) break;
+            litidx -= (int32_t) symlen[sym] + 1;
             code <<= l;
             bitcnt += l;
             if (bitcnt >= 32)
             {
                 bitcnt -= 32;
                 code |=
-#ifdef _MSC_VER
-            ((uint64) (_byteswap_uint64 (*ptr++))) << bitcnt;
-#else
-            ((uint64) (__builtin_bswap32 (*ptr++))) << bitcnt;
-#endif
+#   ifdef _MSC_VER
+            ((uint64_t) (_byteswap_uint64 (*ptr++))) << bitcnt;
+#   else
+            ((uint64_t) (__builtin_bswap32 (*ptr++))) << bitcnt;
+#   endif
             }
         }
 
 #else
 
-        uint32 next = 0;
-        uint32 code = __builtin_bswap32 (*ptr++);
+        uint32_t next = 0;
+        uint32_t code = __builtin_bswap32 (*ptr++);
         bitcnt = 0; // number of bits in next
         for (;;)
         {
-            int32 l = m;
+            int32_t l = m;
             while (code < base[l]) ++l;
             sym = offset[l] + ((code - base[l]) >> (32 - l));
-            if (litidx < (int32) symlen[sym] + 1) break;
-            litidx -= (int32) symlen[sym] + 1;
+            if (litidx < (int32_t) symlen[sym] + 1) break;
+            litidx -= (int32_t) symlen[sym] + 1;
             code <<= l;
             if (bitcnt < l)
             {
@@ -2004,16 +1981,16 @@ namespace {
 
 #endif
 
-        ubyte *sympat = d->sympat;
+        uint8_t *sympat = d->sympat;
         while (symlen[sym] != 0)
         {
-            int32 w = *(int32 *) (sympat + 3 * sym);
-            int32 s1 = w & 0x0fff;
-            if (litidx < (int32) symlen[s1] + 1)
+            int32_t w = *(int32_t *) (sympat + 3 * sym);
+            int32_t s1 = w & 0x0fff;
+            if (litidx < (int32_t) symlen[s1] + 1)
                 sym = s1;
             else
             {
-                litidx -= (int32) symlen[s1] + 1;
+                litidx -= (int32_t) symlen[s1] + 1;
                 sym = (w >> 12) & 0x0fff;
             }
         }
@@ -2021,9 +1998,9 @@ namespace {
         return *(sympat + 3 * sym);
     }
 
-    void load_dtz_table (char *str, uint64 key1, uint64 key2)
+    void load_dtz_table (char *str, uint64_t key1, uint64_t key2)
     {
-        int32 i;
+        int32_t i;
         TBEntry *ptr, *ptr3;
         TBHashEntry *ptr2;
 
@@ -2085,7 +2062,7 @@ namespace {
         else
         {
             TBEntry_pawn *ptr = (TBEntry_pawn *)entry;
-            int32 f;
+            int32_t f;
             for (f = 0; f < 4; f++)
             {
                 free (ptr->file[f].precomp[0]);
@@ -2106,7 +2083,7 @@ namespace {
         else
         {
             DTZEntry_pawn *ptr = (DTZEntry_pawn *)entry;
-            int32 f;
+            int32_t f;
             for (f = 0; f < 4; f++)
             {
                 free (ptr->file[f].precomp);
@@ -2116,8 +2093,8 @@ namespace {
         free (entry);
     }
 
-    int32 wdl_to_map[5] = { 1, 3, 0, 2, 0 };
-    ubyte pa_flags[5] = { 8, 0, 0, 0, 4 };
+    int32_t wdl_to_map[5] = { 1, 3, 0, 2, 0 };
+    uint8_t pa_flags[5] = { 8, 0, 0, 0, 4 };
 
 }
 
@@ -2126,18 +2103,18 @@ namespace {
     // Given a position with 6 or fewer pieces, produce a text string
     // of the form KQPvKRP, where "KQP" represents the white pieces if
     // mirror == 0 and the black pieces if mirror == 1.
-    void prt_str (Position &pos, char *str, int32 mirror)
+    void prt_str (Position &pos, char *str, int32_t mirror)
     {
         Color color;
         PieceT pt;
-        int32 i;
+        int32_t i;
 
         color = !mirror ? WHITE : BLACK;
         for (pt = KING; pt >= PAWN; --pt)
         {
             for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
             {
-                *str++ = pchr[TB_TOTAL - pt];
+                *str++ = pchr[KING - pt];
             }
         }
         *str++ = 'v';
@@ -2146,7 +2123,7 @@ namespace {
         {
             for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
             {
-                *str++ = pchr[TB_TOTAL - pt];
+                *str++ = pchr[KING - pt];
             }
         }
         *str++ = 0;
@@ -2154,12 +2131,12 @@ namespace {
 
     // Given a position, produce a 64-bit material signature key.
     // If the engine supports such a key, it should equal the engine's key.
-    uint64 calc_key (Position &pos, int32 mirror)
+    uint64_t calc_key (Position &pos, int32_t mirror)
     {
         Color color;
         PieceT pt;
-        int32 i;
-        uint64 key = 0;
+        int32_t i;
+        uint64_t key = 0;
 
         color = !mirror ? WHITE : BLACK;
         for (pt = PAWN; pt <= KING; ++pt)
@@ -2182,20 +2159,19 @@ namespace {
     }
 
     // Produce a 64-bit material key corresponding to the material combination
-    // defined by pcs[16], where pcs[1], ..., pcs[6] is the number of white
-    // pawns, ..., kings and pcs[9], ..., pcs[14] is the number of black
+    // defined by pcs[16], where pcs[0], ..., pcs[5] is the number of white
+    // pawns, ..., kings and pcs[8], ..., pcs[13] is the number of black
     // pawns, ..., kings.
-    uint64 calc_key_from_pcs (int32 *pcs, int32 mirror)
+    uint64_t calc_key_from_pcs (uint8_t *pcs, int32_t mirror)
     {
-        int32 color;
+        int32_t color;
         PieceT pt;
-        int32 i;
-        uint64 key = 0;
+        uint64_t key = 0;
 
         color = !mirror ? 0 : 8;
         for (pt = PAWN; pt <= KING; ++pt)
         {
-            for (i = 0; i < pcs[color + pt]; ++i)
+            for (uint8_t i = 0; i < pcs[color + pt]; ++i)
             {
                 key ^= ZobGlob._.piecesq[WHITE][pt][i];
             }
@@ -2203,7 +2179,7 @@ namespace {
         color ^= 8;
         for (pt = PAWN; pt <= KING; ++pt)
         {
-            for (i = 0; i < pcs[color + pt]; ++i)
+            for (uint8_t i = 0; i < pcs[color + pt]; ++i)
             {
                 key ^= ZobGlob._.piecesq[BLACK][pt][i];
             }
@@ -2213,15 +2189,15 @@ namespace {
     }
 
     // probe_wdl_table and probe_dtz_table require similar adaptations.
-    int32 probe_wdl_table (Position &pos, int32 *success)
+    int32_t probe_wdl_table (Position &pos, int32_t *success)
     {
         TBEntry *ptr;
         TBHashEntry *ptr2;
-        uint64 idx;
-        uint64 key;
-        int32 i;
-        ubyte res;
-        int32 p[TBPIECES];
+        uint64_t idx;
+        uint64_t key;
+        int32_t i;
+        uint8_t res;
+        int32_t p[TBPIECES];
 
         // Obtain the position's material signature key.
         key = pos.matl_key ();
@@ -2270,7 +2246,7 @@ namespace {
             UNLOCK (TB_mutex);
         }
 
-        int32 bside, mirror, cmirror;
+        int32_t bside, mirror, cmirror;
         if (!ptr->symmetric)
         {
             if (key != ptr->key)
@@ -2298,7 +2274,7 @@ namespace {
         if (!ptr->has_pawns)
         {
             TBEntry_piece *entry = (TBEntry_piece *) ptr;
-            ubyte *pc = entry->pieces[bside];
+            uint8_t *pc = entry->pieces[bside];
             for (i = 0; i < entry->num;)
             {
                 Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
@@ -2314,7 +2290,7 @@ namespace {
         else
         {
             TBEntry_pawn *entry = (TBEntry_pawn *)ptr;
-            int32 k = entry->file[0].pieces[0][0] ^ cmirror;
+            int32_t k = entry->file[0].pieces[0][0] ^ cmirror;
             Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & 0x07));
             i = 0;
             do
@@ -2322,8 +2298,8 @@ namespace {
                 p[i++] = pop_lsq (bb) ^ mirror;
             }
             while (bb);
-            int32 f = pawn_file (entry, p);
-            ubyte *pc = entry->file[f].pieces[bside];
+            int32_t f = pawn_file (entry, p);
+            uint8_t *pc = entry->file[f].pieces[bside];
             for ( ; i < entry->num; )
             {
                 bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
@@ -2337,18 +2313,18 @@ namespace {
             res = decompress_pairs (entry->file[f].precomp[bside], idx);
         }
 
-        return ((int32) res) - 2;
+        return ((int32_t) res) - 2;
     }
 
-    int32 probe_dtz_table (Position &pos, int32 wdl, int32 *success)
+    int32_t probe_dtz_table (Position &pos, int32_t wdl, int32_t *success)
     {
         TBEntry *ptr;
-        uint64 idx;
-        int32 i, res;
-        int32 p[TBPIECES];
+        uint64_t idx;
+        int32_t i, res;
+        int32_t p[TBPIECES];
 
         // Obtain the position's material signature key.
-        uint64 key = pos.matl_key ();
+        uint64_t key = pos.matl_key ();
 
         if (DTZ_table[0].key1 != key && DTZ_table[0].key2 != key)
         {
@@ -2379,7 +2355,7 @@ namespace {
                 }
                 ptr = ptr2[i].ptr;
                 char str[16];
-                int32 mirror = (ptr->key != key);
+                int32_t mirror = (ptr->key != key);
                 prt_str (pos, str, mirror);
 
                 if (DTZ_table[DTZ_ENTRIES - 1].entry)
@@ -2401,7 +2377,7 @@ namespace {
             return 0;
         }
 
-        int32 bside, mirror, cmirror;
+        int32_t bside, mirror, cmirror;
         if (!ptr->symmetric)
         {
             if (key != ptr->key)
@@ -2431,7 +2407,7 @@ namespace {
                 *success = -1;
                 return 0;
             }
-            ubyte *pc = entry->pieces;
+            uint8_t *pc = entry->pieces;
             for (i = 0; i < entry->num;)
             {
                 Bitboard bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3),
@@ -2457,7 +2433,7 @@ namespace {
         else
         {
             DTZEntry_pawn *entry = (DTZEntry_pawn *)ptr;
-            int32 k = entry->file[0].pieces[0] ^ cmirror;
+            int32_t k = entry->file[0].pieces[0] ^ cmirror;
             Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & 0x07));
             i = 0;
             do
@@ -2466,14 +2442,14 @@ namespace {
             }
             while (bb);
             
-            int32 f = pawn_file ((TBEntry_pawn *)entry, p);
+            int32_t f = pawn_file ((TBEntry_pawn *)entry, p);
             if ((entry->flags[f] & 1) != bside)
             {
                 *success = -1;
                 return 0;
             }
 
-            ubyte *pc = entry->file[f].pieces;
+            uint8_t *pc = entry->file[f].pieces;
             for ( ; i < entry->num; )
             {
                 bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & 0x07));
@@ -2519,9 +2495,9 @@ namespace {
         return extra;
     }
 
-    int32 probe_ab (Position &pos, int32 alpha, int32 beta, int32 *success)
+    int32_t probe_ab (Position &pos, int32_t alpha, int32_t beta, int32_t *success)
     {
-        int32 v;
+        int32_t v;
         ValMove m_list[64];
         ValMove *moves, *end;
         StateInfo st;
@@ -2582,9 +2558,9 @@ namespace {
     }
 
     // This routine treats a position with en passant captures as one without.
-    int32 probe_dtz_no_ep (Position &pos, int32 *success)
+    int32_t probe_dtz_no_ep (Position &pos, int32_t *success)
     {
-        int32 wdl, dtz;
+        int32_t wdl, dtz;
 
         wdl = probe_ab (pos, -2, 2, success);
 
@@ -2617,7 +2593,7 @@ namespace {
                     || !pos.legal (move, ci.pinneds))
                     continue;
                 pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-                int32 v = -probe_ab (pos, -2, -wdl + 1, success);
+                int32_t v = -probe_ab (pos, -2, -wdl + 1, success);
                 pos.undo_move ();
                 if (*success == 0) return 0;
                 if (v == wdl)
@@ -2634,7 +2610,7 @@ namespace {
 
         if (wdl > 0)
         {
-            int32 best = 0xffff;
+            int32_t best = 0xffff;
             for (moves = m_list; moves < end; ++moves)
             {
                 Move move = moves->move;
@@ -2644,7 +2620,7 @@ namespace {
                     continue;
                 }
                 pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-                int32 v = -TBSyzygy::probe_dtz (pos, success);
+                int32_t v = -TBSyzygy::probe_dtz (pos, success);
                 pos.undo_move ();
                 if (*success == 0) return 0;
                 if (v > 0 && v + 1 < best)
@@ -2654,14 +2630,14 @@ namespace {
         }
         else
         {
-            int32 best = -1;
+            int32_t best = -1;
             end = pos.checkers ()
                 ? generate<EVASION> (m_list, pos)
                 : generate<RELAX> (m_list, pos);
 
             for (moves = m_list; moves < end; ++moves)
             {
-                int32 v;
+                int32_t v;
                 Move move = moves->move;
                 if (!pos.legal (move, ci.pinneds)) continue;
 
@@ -2692,7 +2668,7 @@ namespace {
         }
     }
 
-    int32 wdl_to_dtz[] = {
+    int32_t wdl_to_dtz[] = {
         -1, -101, 0, 101, 1
     };
 
@@ -2702,7 +2678,7 @@ namespace {
     {
         while (1)
         {
-            int32 i = 4, e = std::min (st->clock50, st->null_ply);
+            int32_t i = 4, e = std::min (st->clock50, st->null_ply);
             if (e < i) return false;
             StateInfo *stp = st->p_si->p_si;
             do
@@ -2761,7 +2737,7 @@ namespace TBSyzygy {
     //  2 : win
     int32_t probe_wdl   (Position &pos, int32_t *success)
     {
-        int32 v;
+        int32_t v;
 
         *success = 1;
         v = probe_ab (pos, -2, 2, success);
@@ -2774,7 +2750,7 @@ namespace TBSyzygy {
         if (!(*success)) return 0;
 
         // Now handle en passant.
-        int32 v1 = -3;
+        int32_t v1 = -3;
         // Generate (at least) all legal en passant captures.
         ValMove m_list[MAX_MOVES];
         ValMove *moves;
@@ -2796,7 +2772,7 @@ namespace TBSyzygy {
 
             StateInfo st;
             pos.do_move (capture, st, pos.gives_check (capture, ci) ? &ci : NULL);
-            int32 v0 = -probe_ab (pos, -2, 2, success);
+            int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (*success == 0) return 0;
             if (v1 < v0) v1 = v0;
@@ -2865,13 +2841,13 @@ namespace TBSyzygy {
     int32_t probe_dtz   (Position &pos, int32_t *success)
     {
         *success = 1;
-        int32 v = probe_dtz_no_ep (pos, success);
+        int32_t v = probe_dtz_no_ep (pos, success);
 
         if (pos.en_passant () == SQ_NO) return v;
         if (*success == 0) return 0;
 
         // Now handle en passant.
-        int32 v1 = -3;
+        int32_t v1 = -3;
 
         ValMove m_list[MAX_MOVES];
         ValMove *moves;
@@ -2893,7 +2869,7 @@ namespace TBSyzygy {
 
             StateInfo st;
             pos.do_move (capture, st, pos.gives_check (capture, ci) ? &ci : NULL);
-            int32 v0 = -probe_ab (pos, -2, 2, success);
+            int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (*success == 0) return 0;
             if (v0 > v1) v1 = v0;
@@ -2968,9 +2944,9 @@ namespace TBSyzygy {
     // no moves were filtered out.
     bool root_probe     (Position &pos, Value &TBScore)
     {
-        int32 success;
+        int32_t success;
 
-        int32 dtz = probe_dtz (pos, &success);
+        int32_t dtz = probe_dtz (pos, &success);
         if (!success) return false;
 
         StateInfo st;
@@ -2983,7 +2959,7 @@ namespace TBSyzygy {
             
             pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
             
-            int32 v = 0;
+            int32_t v = 0;
             if (pos.checkers () && dtz > 0)
             {
                 ValMove s[MAX_MOVES];
@@ -3021,11 +2997,11 @@ namespace TBSyzygy {
 
         // Obtain 50-move counter for the root position.
         // In Stockfish there seems to be no clean way, so we do it like this:
-        int32 cnt50 = st.p_si->clock50;
+        int32_t cnt50 = st.p_si->clock50;
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
-        int32 wdl = 0;
+        int32_t wdl = 0;
         if (dtz > 0)
         {
             wdl = (dtz + cnt50 <= 100) ? 2 : 1;
@@ -3053,16 +3029,16 @@ namespace TBSyzygy {
         size_t j = 0;
         if (dtz > 0)
         { // winning (or 50-move rule draw)
-            int32 best = 0xffff;
+            int32_t best = 0xffff;
             for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
             {
-                int32 v = Searcher::RootMoves[i].value[0];
+                int32_t v = Searcher::RootMoves[i].value[0];
                 if (v > 0 && best > v)
                 {
                     best = v;
                 }
             }
-            int32 max = best;
+            int32_t max = best;
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
             if (!has_repeated (st.p_si) && best + cnt50 <= 99)
@@ -3071,7 +3047,7 @@ namespace TBSyzygy {
             }
             for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
             {
-                int32 v = Searcher::RootMoves[i].value[0];
+                int32_t v = Searcher::RootMoves[i].value[0];
                 if (v > 0 && v <= max)
                 {
                     Searcher::RootMoves[j++] = Searcher::RootMoves[i];
@@ -3080,10 +3056,10 @@ namespace TBSyzygy {
         }
         else if (dtz < 0)
         { // losing (or 50-move rule draw)
-            int32 best = 0;
+            int32_t best = 0;
             for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
             {
-                int32 v = Searcher::RootMoves[i].value[0];
+                int32_t v = Searcher::RootMoves[i].value[0];
                 if (best > v)
                 {
                     best = v;
@@ -3125,23 +3101,23 @@ namespace TBSyzygy {
     // no moves were filtered out.
     bool root_probe_wdl (Position &pos, Value &TBScore)
     {
-        int32 success;
+        int32_t success;
 
-        int32 wdl = probe_wdl (pos, &success);
+        int32_t wdl = probe_wdl (pos, &success);
         if (!success) return false;
         TBScore = wdl_to_Value[wdl + 2];
 
         StateInfo st;
         CheckInfo ci (pos);
 
-        int32 best = -2;
+        int32_t best = -2;
 
         // Probe each move.
         for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
         {
             Move move = Searcher::RootMoves[i].pv[0];
             pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-            int32 v = -probe_wdl (pos, &success);
+            int32_t v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
             Searcher::RootMoves[i].value[0] = (Value) v;
@@ -3168,7 +3144,7 @@ namespace TBSyzygy {
     void initialize (const std::string &path)
     {
         char str[16];
-        int32 i, j, k, l;
+        int32_t i, j, k, l;
 
         if (initialized)
         {
