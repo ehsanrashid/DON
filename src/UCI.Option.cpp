@@ -99,12 +99,12 @@ namespace UCI {
         {
             ostringstream os;
             os  << "type string"
-                << " default "  << (_default.empty () ? "<empty>" : _default);
+                << " default "  << _default; //(_default.empty () ? "<empty>" : _default);
             return os.str ();
         }
         StringOption::operator string () const
         {
-            return (_value.empty () ? "<empty>" : _value);
+            return _value; //(_value.empty () ? "<empty>" : _value);
         }
         
         //Option& StringOption::operator= (char *value)
@@ -451,8 +451,20 @@ namespace UCI {
         // Factor for adjusted contempt. Changes playing style.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
 
-        // Analyse Mode
-        Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
+        // TODO::
+        // The number of moves after which the 50-move rule will kick in.
+        // Default 50, min 5, max 50.
+        //
+        // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50,
+        // i.e. the official 50-moves rule.
+        // Setting this option in the range of 10 to 15 moves can be useful to analyse more correctly blockade or fortress positions:
+        // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
+        // - End games with a material advantage that is insufficient for winning (fortress).
+        //
+        // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
+        // It's a reasonably generic way to decide whether a material advantage can be converted or not.
+        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_change_fifty_move_distance));
+
 
         // TODO::
         //// Activate Contempt for position analysis.
@@ -480,19 +492,6 @@ namespace UCI {
         Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
-        // TODO::
-        // The number of moves after which the 50-move rule will kick in.
-        // Default 50, min 5, max 50.
-        //
-        // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50,
-        // i.e. the official 50-moves rule.
-        // Setting this option in the range of 10 to 15 moves can be useful to analyse more correctly blockade or fortress positions:
-        // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
-        // - End games with a material advantage that is insufficient for winning (fortress).
-        //
-        // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
-        // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_change_fifty_move_distance));
 
         // TODO::
         // Maximum search depth for mate search.
@@ -500,7 +499,7 @@ namespace UCI {
         //
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in X", you can use X or a value slightly larger than X in the Mate Search option.
-        // This will prevent Houdini from going too deep in variations that don't lead to mate in the required number of moves.
+        // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
         Options["Mate Search"]                  = OptionPtr (new SpinOption ( 0,  0, 99));
 
         Options["Skill Level"]                  = OptionPtr (new SpinOption (20,  0, 20));
@@ -510,6 +509,16 @@ namespace UCI {
         Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
         Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
         Options["Slow Mover"]                   = OptionPtr (new SpinOption (90, 10, 1000));
+
+        ///Debug Options
+        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
+        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
+        Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
+
+        /// ---------------------------------------------------------------------------------------
+
+        // Analyse Mode
+        Options["UCI_AnalyseMode"]              = OptionPtr (new CheckOption (false, on_change_eval));
 
         // Activate Fischer Random Chess a.k.a. Chess960 games.
         // Default false.
@@ -531,13 +540,9 @@ namespace UCI {
         //// The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
 
-        ///Debug Options
-        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
-        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
-        Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
 
         // TODO::
-        Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
+        //Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
     }
 
