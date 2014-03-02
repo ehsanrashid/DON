@@ -396,7 +396,7 @@ namespace {
         close_tb (fd);
         
         for (i = 0; i < 16; ++i) pcs[i] = 0;
-        //memset (pcs, 0, sizeof (pcs));
+        ///memset (pcs, 0, sizeof (pcs));
 
         color = 0;
         for (s = str; *s; s++)
@@ -2023,14 +2023,14 @@ namespace {
         ptr3->has_pawns = ptr->has_pawns;
         if (ptr3->has_pawns)
         {
-            DTZEntry_pawn *entry = (DTZEntry_pawn *)ptr3;
-            entry->pawns[WHITE] = ((TBEntry_pawn *)ptr)->pawns[WHITE];
-            entry->pawns[BLACK] = ((TBEntry_pawn *)ptr)->pawns[BLACK];
+            DTZEntry_pawn *entry = (DTZEntry_pawn *) ptr3;
+            entry->pawns[WHITE] = ((TBEntry_pawn *) ptr)->pawns[WHITE];
+            entry->pawns[BLACK] = ((TBEntry_pawn *) ptr)->pawns[BLACK];
         }
         else
         {
-            DTZEntry_piece *entry = (DTZEntry_piece *)ptr3;
-            entry->enc_type = ((TBEntry_piece *)ptr)->enc_type;
+            DTZEntry_piece *entry = (DTZEntry_piece *) ptr3;
+            entry->enc_type = ((TBEntry_piece *) ptr)->enc_type;
         }
         if (!init_table_dtz (ptr3))
         {
@@ -2047,7 +2047,7 @@ namespace {
         unmap_file (entry->data, entry->mapping);
         if (!entry->has_pawns)
         {
-            TBEntry_piece *ptr = (TBEntry_piece *)entry;
+            TBEntry_piece *ptr = (TBEntry_piece *) entry;
             free (ptr->precomp[0]);
             if (ptr->precomp[1])
             {
@@ -2056,7 +2056,7 @@ namespace {
         }
         else
         {
-            TBEntry_pawn *ptr = (TBEntry_pawn *)entry;
+            TBEntry_pawn *ptr = (TBEntry_pawn *) entry;
             int32_t f;
             for (f = 0; f < 4; f++)
             {
@@ -2072,12 +2072,12 @@ namespace {
         unmap_file (entry->data, entry->mapping);
         if (!entry->has_pawns)
         {
-            DTZEntry_piece *ptr = (DTZEntry_piece *)entry;
+            DTZEntry_piece *ptr = (DTZEntry_piece *) entry;
             free (ptr->precomp);
         }
         else
         {
-            DTZEntry_pawn *ptr = (DTZEntry_pawn *)entry;
+            DTZEntry_pawn *ptr = (DTZEntry_pawn *) entry;
             int32_t f;
             for (f = 0; f < 4; f++)
             {
@@ -2089,7 +2089,7 @@ namespace {
     }
 
     int32_t wdl_to_map[5] = { 1, 3, 0, 2, 0 };
-    uint8_t pa_flags[5] = { 8, 0, 0, 0, 4 };
+    uint8_t pa_flags  [5] = { 8, 0, 0, 0, 4 };
 
 }
 

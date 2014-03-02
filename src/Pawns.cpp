@@ -285,11 +285,11 @@ namespace Pawns {
         Value bonus = shelter_storm<C> (pos, k_sq);
 
         // If we can castle use the bonus after the castle if is bigger
-        if (pos.can_castle (C, CS_K))
+        if (pos.can_castle (MakeCastling<C, CS_K>::right))
         {
             bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_K)));
         }
-        if (pos.can_castle (C, CS_Q))
+        if (pos.can_castle (MakeCastling<C, CS_Q>::right))
         {
             bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
         }

@@ -175,6 +175,7 @@ namespace MoveGenerator {
                                 generate_castling<MakeCastling<C,  CS_K>::right,  true> (m_list, pos, ci) :
                                 generate_castling<MakeCastling<C,  CS_K>::right, false> (m_list, pos, ci);
                         }
+
                         if (!pos.castle_impeded (MakeCastling<C,  CS_K>::right) && pos.can_castle (MakeCastling<C,  CS_K>::right))
                         {
                             pos.chess960 () ?

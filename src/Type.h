@@ -233,8 +233,8 @@ enum Value : int32_t
     VALUE_MATE      = VALUE_INFINITE - 1,
     VALUE_KNOWN_WIN = VALUE_MATE / 4,
 
-    VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - MAX_PLY,
-    VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
+    VALUE_MATES_IN_MAX_PLY =  VALUE_MATE - int32_t (MAX_PLY),
+    VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + int32_t (MAX_PLY),
 
     VALUE_MG_PAWN   =  198,  VALUE_EG_PAWN   =  258,
     VALUE_MG_KNIGHT =  817,  VALUE_EG_KNIGHT =  846,
@@ -485,8 +485,8 @@ inline char to_char  (Rank r) { return char (int8_t (r) - int8_t (R_1)) + '1'; }
 //}
 
 
-inline Square operator| (File f, Rank r) { return Square (( r << 3) | f); }
-inline Square operator| (Rank r, File f) { return Square ((~r << 3) | f); }
+inline Square operator| (File f, Rank r) { return Square (( r << 3) | int8_t (f)); }
+inline Square operator| (Rank r, File f) { return Square ((~r << 3) | int8_t (f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 inline bool _ok     (Square s) { return !(s & ~int8_t (SQ_H8)); }
 inline File _file   (Square s) { return File (s & int8_t (SQ_H1)); }
@@ -525,15 +525,8 @@ inline std::string to_string (Square s)
 
 inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
 
-
-inline CRight mk_castle_right (Color c)
-{
-    return CRight (CR_W << (c << BLACK));
-}
-inline CRight mk_castle_right (Color c, CSide cs)
-{
-    return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK)));
-}
+inline CRight mk_castle_right (Color c)           { return CRight (CR_W << (c << BLACK)); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK))); }
 
 inline CRight operator~  (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
 

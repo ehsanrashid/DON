@@ -265,9 +265,7 @@ public:
 
     CRight can_castle (CRight cr) const;
     CRight can_castle (Color   c) const;
-    CRight can_castle (Color   c, CSide cs) const;
 
-    CRight castle_right (Color c, Square s) const;
     Square castle_rook  (CRight cr) const;
     bool castle_impeded (CRight cr) const;
 
@@ -288,7 +286,6 @@ public:
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
     Value see_sign (Move m) const;
-
 
 private:
 
@@ -335,21 +332,21 @@ public:
 
     void clear ();
 
-    void   place_piece (Square s, Color c, PieceT pt);
-    void   place_piece (Square s, Piece p);
-    void  remove_piece (Square s);
-    void    move_piece (Square s1, Square s2);
+    void  place_piece (Square s, Color c, PieceT pt);
+    void  place_piece (Square s, Piece p);
+    void remove_piece (Square s);
+    void   move_piece (Square s1, Square s2);
 
 #ifndef NDEBUG
     bool setup (const        char *f, Thread *th = NULL, bool c960 = false, bool full = true);
 #endif
+
     bool setup (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true);
 
     void flip ();
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
-
 
 private:
     void castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook);
@@ -487,7 +484,6 @@ inline Value    Position::non_pawn_material (Color c) const { return _si->non_pa
 
 inline CRight Position::can_castle (CRight cr)           const { return _si->castle_rights & cr; }
 inline CRight Position::can_castle (Color   c)           const { return _si->castle_rights & mk_castle_right (c); }
-inline CRight Position::can_castle (Color   c, CSide cs) const { return _si->castle_rights & mk_castle_right (c, cs); }
 
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rooks[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_paths[cr] & _types_bb[NONE]; }
@@ -572,12 +568,12 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    uint8_t bishop_count = count<BSHP> (c);
+    uint8_t bishop_count = _piece_count[c][BSHP];
     if (bishop_count > 1)
     {
         for (uint8_t pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (list<BSHP> (c)[pc], list<BSHP> (c)[pc+1])) return true;
+            if (opposite_colors (_piece_list[c][BSHP][pc], _piece_list[c][BSHP][pc+1])) return true;
         }
     }
     return false;
@@ -585,16 +581,16 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return (count<BSHP> (WHITE) == 1)
-    //    && (count<BSHP> (BLACK) == 1)
-    //    && opposite_colors (list<BSHP> (WHITE)[0], list<BSHP> (BLACK)[0]);
-    return count<BSHP> (WHITE)
-        && count<BSHP> (BLACK)
+    //return (_piece_count[WHITE][BSHP] == 1)
+    //    && (_piece_count[BLACK][BSHP] == 1)
+    //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
+    return _piece_count[WHITE][BSHP]
+        && _piece_count[BLACK][BSHP]
         && !(((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
         ||   ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
 }
 
-inline bool Position::legal        (Move m) const { return legal (m, pinneds (_active)); }
+inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 
 // capture(m) tests move is capture
 inline bool Position::capture               (Move m) const
@@ -622,7 +618,7 @@ inline bool Position::advanced_pawn_push    (Move m) const
     return (PAWN == _ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
-inline Piece Position::moved_piece(Move m) const
+inline Piece Position::moved_piece  (Move m) const
 {
     return _board[org_sq (m)];
 }
