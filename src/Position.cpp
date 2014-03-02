@@ -224,11 +224,10 @@ bool Position::draw () const
     uint8_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
-        if (sip->p_si == NULL) break;
-        sip = sip->p_si;
-        if (sip->p_si == NULL) break;
-        sip = sip->p_si;
+        //sip = sip->p_si; if (sip == NULL) break; 
+        //sip = sip->p_si; if (sip == NULL) break;
 
+        sip = sip->p_si->p_si;
         if (sip->posi_key == _si->posi_key)
         {
             return true; // Draw at first repetition
@@ -299,7 +298,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 5
     if (++(*step), debug_piece_count)
     {
-        if (pop_count<FULL> (pieces ()) > 32)
+        if (pop_count<FULL> (_types_bb[NONE]) > 32)
         {
             return false;
         }
@@ -307,7 +306,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             return false;
         }
-        if (count () != pop_count<FULL> (pieces ()))
+        if (count () != pop_count<FULL> (_types_bb[NONE]))
         {
             return false;
         }
@@ -369,7 +368,7 @@ bool Position::ok (int8_t *failed_step) const
         // The intersection of the white and black pieces must be empty
         if (pieces (WHITE) & pieces (BLACK)) return false;
 
-        Bitboard occ = pieces ();
+        Bitboard occ = _types_bb[NONE];
         // The union of the white and black pieces must be equal to occupied squares
         if ((pieces (WHITE) | pieces (BLACK)) != occ) return false;
         if ((pieces (WHITE) ^ pieces (BLACK)) != occ) return false;
@@ -518,7 +517,7 @@ Value Position::see      (Move m) const
     int8_t depth = 1;
     swap_list[0] = PieceValue[MG][_ptype (piece_on (dst))];
 
-    Bitboard occupied = pieces () - org;
+    Bitboard occupied = _types_bb[NONE] - org;
 
     MoveT mt = mtype (m);
 
@@ -619,7 +618,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Bitboard chk_blockers  = U64 (0);
     while (pinners)
     {
-        Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & pieces ();
+        Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (!more_than_one (blocker))
         {
             chk_blockers |= (blocker & pieces (c)); // Defending piece
@@ -783,7 +782,7 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if (!(attacks_bb (p, org, pieces ()) & dst)) return false;
+        if (!(attacks_bb (p, org, _types_bb[NONE]) & dst)) return false;
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
@@ -818,7 +817,7 @@ bool Position::pseudo_legal (Move m) const
         {
             // In case of king moves under check we have to remove king so to catch
             // as invalid moves like B1A1 when opposite queen is on C1.
-            if (attackers_to (dst, pieces () - org) & pieces (pasiv)) return false;
+            if (attackers_to (dst, _types_bb[NONE] - org) & pieces (pasiv)) return false;
         }
     }
 
@@ -860,7 +859,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         ASSERT ((pasiv | PAWN) == piece_on (cap));
         ASSERT (empty (dst));
 
-        Bitboard mocc = pieces () - org - cap + dst;
+        Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
         return !(
             (attacks_bb<ROOK> (ksq, mocc) & pieces (pasiv, QUEN, ROOK)) ||
@@ -873,7 +872,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        return !(attackers_to (dst, pieces () - org) & pieces (pasiv)); // Remove 'org' but not place 'dst'
+        return !(attackers_to (dst, _types_bb[NONE] - org) & pieces (pasiv)); // Remove 'org' but not place 'dst'
     }
 
     // A non-king move is legal if and only if it is not pinned or it
@@ -909,7 +908,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     // Can we skip the ugly special cases ?
     if (NORMAL == mt) return false;
 
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[NONE];
 
     if      (CASTLE    == mt)
     {
@@ -1074,7 +1073,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     // Check en-passant is legal for the position
     Square fk_sq = king_sq (activ);
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[NONE];
     for (vector<Move>::const_iterator itr = mov_ep.begin (); itr != mov_ep.end (); ++itr)
     {
         Move m = *itr;
@@ -1102,7 +1101,7 @@ bool Position::can_en_passant (File   ep_f) const
 Score Position::compute_psq_score () const
 {
     Score score  = SCORE_ZERO;
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[NONE];
     while (occ)
     {
         Square s = pop_lsq (occ);
@@ -1749,7 +1748,7 @@ Position::operator string () const
         board += to_char (f, false);
     }
 
-    Bitboard occ = pieces ();
+    Bitboard occ = _types_bb[NONE];
     while (occ)
     {
         Square s = pop_lsq (occ);

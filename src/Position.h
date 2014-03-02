@@ -470,7 +470,7 @@ inline uint8_t  Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //
-inline PieceT   Position::cap_type       () const { return _si->cap_type; }
+inline PieceT   Position::cap_type      () const { return _si->cap_type; }
 //
 inline Piece    Position::cap_piece     () const { return (NONE == cap_type ()) ? EMPTY : (_active | cap_type ()); }
 //
@@ -488,9 +488,9 @@ inline Score    Position::psq_score     () const { return _si->psq_score; }
 
 inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle (CRight cr)           const { return ::can_castle (_si->castle_rights, cr); }
-inline CRight Position::can_castle (Color   c)           const { return ::can_castle (_si->castle_rights, c); }
-inline CRight Position::can_castle (Color   c, CSide cs) const { return ::can_castle (_si->castle_rights, c, cs); }
+inline CRight Position::can_castle (CRight cr)           const { return _si->castle_rights & cr; }
+inline CRight Position::can_castle (Color   c)           const { return _si->castle_rights & mk_castle_right (c); }
+inline CRight Position::can_castle (Color   c, CSide cs) const { return _si->castle_rights & mk_castle_right (c, cs); }
 
 inline CRight Position::castle_right (Color c, File   f) const { return _castle_rights[c][f]; }
 inline CRight Position::castle_right (Color c, Square s) const { return (R_1 == rel_rank (c, s)) ? _castle_rights[c][_file (s)] : CR_NO; }
@@ -500,9 +500,9 @@ inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_
 inline bool Position::castle_impeded (Color c, CSide cs) const
 {
     return (CS_K == cs || CS_Q == cs)
-        ?  (_castle_paths[c][cs]   & pieces ())
-        :  (_castle_paths[c][CS_K] & pieces ())
-        && (_castle_paths[c][CS_Q] & pieces ());
+        ?  (_castle_paths[c][cs]   & _types_bb[NONE])
+        :  (_castle_paths[c][CS_K] & _types_bb[NONE])
+        && (_castle_paths[c][CS_Q] & _types_bb[NONE]);
 }
 
 
@@ -528,9 +528,9 @@ template<PieceT PT>
 inline Bitboard Position::attacks_from (Square s) const
 {
     return (BSHP == PT
-        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, pieces ())
-        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, pieces ())
-        |                 BitBoard::attacks_bb<ROOK> (s, pieces ())
+        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, _types_bb[NONE])
+        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
+        |                 BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
         :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
         :  (NIHT == PT
         ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
@@ -540,18 +540,17 @@ inline Bitboard Position::attacks_from (Square s) const
 // Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return
-        (BitBoard::PawnAttacks[WHITE][s]     & pieces<PAWN> (BLACK)) |
-        (BitBoard::PawnAttacks[BLACK][s]     & pieces<PAWN> (WHITE)) |
-        (BitBoard::PieceAttacks[NIHT][s]     & pieces<NIHT> ())      |
-        (BitBoard::attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))  |
-        (BitBoard::attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))  |
-        (BitBoard::PieceAttacks[KING][s]     & pieces<KING> ());
+    return (BitBoard::PawnAttacks[WHITE][s]    & pieces<PAWN> (BLACK))
+        |  (BitBoard::PawnAttacks[BLACK][s]    & pieces<PAWN> (WHITE))
+        |  (BitBoard::PieceAttacks[NIHT][s]    & pieces<NIHT> ())
+        |  (BitBoard::attacks_bb<BSHP> (s, occ)& pieces (BSHP, QUEN))
+        |  (BitBoard::attacks_bb<ROOK> (s, occ)& pieces (ROOK, QUEN))
+        |  (BitBoard::PieceAttacks[KING][s]    & pieces<KING> ());
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
 {
-    return attackers_to (s, pieces ());
+    return attackers_to (s, _types_bb[NONE]);
 }
 
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'

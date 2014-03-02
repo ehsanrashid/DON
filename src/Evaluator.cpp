@@ -1096,7 +1096,7 @@ namespace Evaluator {
                 ss  << "-------\n"
                     << "Scaling: " << noshowpos
                     << setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
-                    << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase ()) / 128.0) << "% * "
+                    << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
                     << setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
                     << "Total evaluation: " << value_to_cp (value);
 

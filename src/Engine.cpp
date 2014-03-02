@@ -111,6 +111,7 @@ namespace Engine {
         TBSyzygy::initialize (syzygy_path);
 
         //cout << "info string Thread(s) " << Threads.size () << ".\n" << endl; 
+        cout << endl;
 
         UCI   ::start (args);
 
