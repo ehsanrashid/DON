@@ -237,22 +237,22 @@ namespace {
     // for variants where kings can connect and/or captured
     // #define CONNECTED_KINGS
 
-    LOCK_T TB_mutex;
+    static LOCK_T TB_mutex;
 
-    bool  initialized = false;
-    int32_t num_paths = 0;
-    char *path_string = NULL;
-    char **paths      = NULL;
+    static bool  initialized = false;
+    static int32_t num_paths = 0;
+    static char *path_string = NULL;
+    static char **paths      = NULL;
 
-    int32_t TB_num_piece, TB_num_pawn;
-    TBEntry_piece TB_piece[TBMAX_PIECE];
-    TBEntry_pawn TB_pawn  [TBMAX_PAWN];
+    static int32_t TB_num_piece, TB_num_pawn;
+    static TBEntry_piece TB_piece[TBMAX_PIECE];
+    static TBEntry_pawn TB_pawn  [TBMAX_PAWN];
 
-    TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
+    static TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
 #define DTZ_ENTRIES 64
 
-    DTZTableEntry DTZ_table[DTZ_ENTRIES];
+    static DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
     void init_indices (void);
 
@@ -277,7 +277,6 @@ namespace {
 #ifndef _WIN32
             fd = open (file, O_RDONLY);
 #else
-
             fd = CreateFile (file, GENERIC_READ, FILE_SHARE_READ, NULL,
                 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 #endif
@@ -298,8 +297,10 @@ namespace {
     char *map_file (const char *name, const char *suffix, uint64_t *mapping)
     {
         FD fd = open_tb (name, suffix);
-        if (fd == FD_ERR) return NULL;
-
+        if (fd == FD_ERR)
+        {
+            return NULL;
+        }
 #ifndef _WIN32
         
         stat statbuf;
@@ -393,8 +394,9 @@ namespace {
         fd = open_tb (str, WDLSUFFIX);
         if (fd == FD_ERR) return;
         close_tb (fd);
-
-        memset (pcs, 0, sizeof (pcs));
+        
+        for (i = 0; i < 16; ++i) pcs[i] = 0;
+        //memset (pcs, 0, sizeof (pcs));
 
         color = 0;
         for (s = str; *s; s++)
@@ -458,7 +460,6 @@ namespace {
         {
             entry->num += pcs[i];
         }
-
         entry->symmetric = (key == key2);
         entry->has_pawns = ((pcs[W_PAWN] + pcs[B_PAWN]) > 0);
         if (entry->num > TBSyzygy::TB_Largest)
@@ -1342,11 +1343,8 @@ namespace {
                 factor[0] = f;
 
 #ifndef CONNECTED_KINGS
-
                 f *= pivfac[enc_type];
-
 #else
-
                 if (enc_type < 4)
                 {
                     f *= pivfac[enc_type];
@@ -1355,7 +1353,6 @@ namespace {
                 {
                     f *= mfactor[enc_type - 2];
                 }
-
 #endif
 
             }
@@ -1496,8 +1493,8 @@ namespace {
     void setup_pieces_pawn (TBEntry_pawn *ptr, unsigned char *data, uint64_t *tb_size, int32_t f)
     {
         int32_t i, j;
-        int32_t   order
-            , order2;
+        int32_t order
+            ,   order2;
 
         j = 1 + (ptr->pawns[1] > 0);
         order = data[0] & 0x0f;
@@ -1522,8 +1519,8 @@ namespace {
     void setup_pieces_pawn_dtz (DTZEntry_pawn *ptr, unsigned char *data, uint64_t *tb_size, int32_t f)
     {
         int32_t i, j;
-        int32_t   order
-            , order2;
+        int32_t order
+            ,   order2;
 
         j = 1 + (ptr->pawns[1] > 0);
         order = data[0] & 0x0f;
@@ -1532,7 +1529,7 @@ namespace {
         {
             ptr->file[f].pieces[i] = data[i + j] & 0x0f;
         }
-        set_norm_pawn ((TBEntry_pawn *)ptr, ptr->file[f].norm, ptr->file[f].pieces);
+        set_norm_pawn ((TBEntry_pawn *) ptr, ptr->file[f].norm, ptr->file[f].pieces);
         tb_size[0] = calc_factors_pawn (ptr->file[f].factor, ptr->num, order, order2, ptr->file[f].norm, f);
     }
 
@@ -1618,19 +1615,15 @@ namespace {
         }
 
 #ifdef _64BIT
-        
         for (i = 0; i < h; ++i)
         {
             d->base[i] <<= 64 - (min_len + i);
         }
-
 #else
-
         for (i = 0; i < h; ++i)
         {
             d->base[i] <<= 32 - (min_len + i);
         }
-
 #endif
 
         d->offset -= d->min_len;
@@ -1923,7 +1916,6 @@ namespace {
         int32_t sym, bitcnt;
 
 #ifdef _64BIT
-
         uint64_t code =
 #   ifdef _MSC_VER
             _byteswap_uint64 (*((uint64_t *) ptr));
@@ -1980,7 +1972,6 @@ namespace {
             next <<= l;
             bitcnt -= l;
         }
-
 #endif
 
         uint8_t *sympat = d->sympat;
@@ -2238,7 +2229,7 @@ namespace {
                 }
 
 #ifdef _MSC_VER
-
+                ;
 #else
                 // Memory barrier to ensure ptr->ready = 1 is not reordered.
                 __asm__ __volatile__ ("" ::: "memory");
@@ -2593,13 +2584,18 @@ namespace {
                 Move move = moves->move;
                 if (_ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
                     || !pos.legal (move, ci.pinneds))
+                {
                     continue;
+                }
                 pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
                 int32_t v = -probe_ab (pos, -2, -wdl + 1, success);
                 pos.undo_move ();
+
                 if (*success == 0) return 0;
                 if (v == wdl)
+                {
                     return v == 2 ? 1 : 101;
+                }
             }
         }
 
@@ -2663,8 +2659,10 @@ namespace {
 
                 pos.undo_move ();
                 if (*success == 0) return 0;
-                if (v < best)
+                if (best > v)
+                {
                     best = v;
+                }
             }
             return best;
         }
@@ -3122,7 +3120,7 @@ namespace TBSyzygy {
             int32_t v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
-            Searcher::RootMoves[i].value[0] = (Value) v;
+            Searcher::RootMoves[i].value[0] = Value (v);
             if (best < v)
             {
                 best = v;

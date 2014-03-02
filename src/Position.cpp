@@ -291,7 +291,7 @@ bool Position::ok (int8_t *failed_step) const
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (count<KING> (c) != pop_count<FULL> (pieces<KING> (c))) return false;
+            if (_piece_count[c][KING] != pop_count<FULL> (pieces<KING> (c))) return false;
         }
     }
 
@@ -314,7 +314,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                if (count (c, pt) != pop_count<FULL> (pieces (c, pt)))
+                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt)))
                 {
                     return false;
                 }
@@ -327,32 +327,32 @@ bool Position::ok (int8_t *failed_step) const
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            Bitboard colors = pieces (c);
+            Bitboard colors = _color_bb[c];
 
             if (pop_count<FULL> (colors) > 16) return false; // Too many Piece of color
 
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (    (count<PAWN> (c) +
-                max (count<NIHT> (c) - 2, 0) +
-                max (count<BSHP> (c) - 2, 0) +
-                max (count<ROOK> (c) - 2, 0) +
-                max (count<QUEN> (c) - 1, 0)) > 8)
+            if (    (_piece_count[c][PAWN] +
+                max (_piece_count[c][NIHT] - 2, 0) +
+                max (_piece_count[c][BSHP] - 2, 0) +
+                max (_piece_count[c][ROOK] - 2, 0) +
+                max (_piece_count[c][QUEN] - 1, 0)) > 8)
             {
                 return false; // Too many Promoted Piece of color
             }
 
-            if (count<BSHP> (c) > 1)
+            if (_piece_count[c][BSHP] > 1)
             {
-                Bitboard bishops = colors & pieces<BSHP> ();
+                Bitboard bishops = colors & _types_bb[BSHP];
                 uint8_t bishop_count[CLR_NO] =
                 {
                     pop_count<FULL> (LIHT_bb & bishops),
                     pop_count<FULL> (DARK_bb & bishops),
                 };
 
-                if (    (count<PAWN> (c) +
+                if (    (_piece_count[c][PAWN] +
                     max (bishop_count[WHITE] - 1, 0) +
                     max (bishop_count[BLACK] - 1, 0)) > 8)
                 {
@@ -361,35 +361,35 @@ bool Position::ok (int8_t *failed_step) const
             }
 
             // There should be one and only one KING of color
-            Bitboard kings = colors & pieces<KING> ();
+            Bitboard kings = colors & _types_bb[KING];
             if (!kings || more_than_one (kings)) return false;
         }
 
         // The intersection of the white and black pieces must be empty
-        if (pieces (WHITE) & pieces (BLACK)) return false;
+        if (_color_bb[WHITE] & _color_bb[BLACK]) return false;
 
         Bitboard occ = _types_bb[NONE];
         // The union of the white and black pieces must be equal to occupied squares
-        if ((pieces (WHITE) | pieces (BLACK)) != occ) return false;
-        if ((pieces (WHITE) ^ pieces (BLACK)) != occ) return false;
+        if ((_color_bb[WHITE] | _color_bb[BLACK]) != occ) return false;
+        if ((_color_bb[WHITE] ^ _color_bb[BLACK]) != occ) return false;
 
         // The intersection of separate piece type must be empty
         for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
         {
             for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
             {
-                if (pt1 != pt2 && (pieces (pt1) & pieces (pt2))) return false;
+                if (pt1 != pt2 && (_types_bb[pt1] & _types_bb[pt2])) return false;
             }
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if ( (pieces<PAWN> () | pieces<NIHT> () | pieces<BSHP> ()
-            | pieces<ROOK> () | pieces<QUEN> () | pieces<KING> ()) != occ) return false;
-        if ( (pieces<PAWN> () ^ pieces<NIHT> () ^ pieces<BSHP> ()
-            ^ pieces<ROOK> () ^ pieces<QUEN> () ^ pieces<KING> ()) != occ) return false;
+        if ( (_types_bb[PAWN] | _types_bb[NIHT] | _types_bb[BSHP]
+            | _types_bb[ROOK] | _types_bb[QUEN] | _types_bb[KING]) != occ) return false;
+        if ( (_types_bb[PAWN] ^ _types_bb[NIHT] ^ _types_bb[BSHP]
+            ^ _types_bb[ROOK] ^ _types_bb[QUEN] ^ _types_bb[KING]) != occ) return false;
 
         // PAWN rank should not be 1/8
-        if ((pieces<PAWN> () & (R1_bb | R8_bb))) return false;
+        if ((_types_bb[PAWN] & (R1_bb | R8_bb))) return false;
     }
 
     // step 7
@@ -399,7 +399,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (int32_t i = 0; i < count (c, pt); ++i)
+                for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (!_ok (_piece_list[c][pt][i])) return false;
                     if (piece_on (_piece_list[c][pt][i]) != (c | pt)) return false;
@@ -540,7 +540,7 @@ Value Position::see      (Move m) const
 
     // If the opponent has no attackers we are finished
     stm = ~stm;
-    Bitboard stm_attackers = attackers & pieces (stm);
+    Bitboard stm_attackers = attackers & _color_bb[stm];
     if (stm_attackers)
     {
         // The destination square is defended, which makes things rather more
@@ -572,7 +572,7 @@ Value Position::see      (Move m) const
             }
 
             stm = ~stm;
-            stm_attackers = attackers & pieces (stm);
+            stm_attackers = attackers & _color_bb[stm];
 
             ++depth;
         }
@@ -613,7 +613,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Bitboard pinners =
         ( (PieceAttacks[ROOK][ksq] & pieces (QUEN, ROOK))
         | (PieceAttacks[BSHP][ksq] & pieces (QUEN, BSHP)))
-        &  pieces (~king_c);
+        &  _color_bb[~king_c];
 
     Bitboard chk_blockers  = U64 (0);
     while (pinners)
@@ -621,7 +621,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
         Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (!more_than_one (blocker))
         {
-            chk_blockers |= (blocker & pieces (c)); // Defending piece
+            chk_blockers |= (blocker & _color_bb[c]); // Defending piece
         }
     }
 
@@ -685,7 +685,7 @@ bool Position::pseudo_legal (Move m) const
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
         Delta step = king_side ? DEL_E : DEL_W;
-        Bitboard enemies = pieces (pasiv);
+        Bitboard enemies = _color_bb[pasiv];
 
         for (Square s  = org + step;
             s != dst + step; s += step)
@@ -726,7 +726,7 @@ bool Position::pseudo_legal (Move m) const
     if (KING == ct) return false;
 
     // The destination square cannot be occupied by a friendly piece
-    if (pieces (activ) & dst) return false;
+    if (_color_bb[activ] & dst) return false;
 
     // Handle the special case of a piece move
     if (PAWN == pt)
@@ -817,7 +817,7 @@ bool Position::pseudo_legal (Move m) const
         {
             // In case of king moves under check we have to remove king so to catch
             // as invalid moves like B1A1 when opposite queen is on C1.
-            if (attackers_to (dst, _types_bb[NONE] - org) & pieces (pasiv)) return false;
+            if (attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasiv]) return false;
         }
     }
 
@@ -872,7 +872,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // In case of king moves under check we have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        return !(attackers_to (dst, _types_bb[NONE] - org) & pieces (pasiv)); // Remove 'org' but not place 'dst'
+        return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasiv]); // Remove 'org' but not place 'dst'
     }
 
     // A non-king move is legal if and only if it is not pinned or it
@@ -1120,7 +1120,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PieceT pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += PieceValue[MG][pt] * count (c, pt);
+        value += PieceValue[MG][pt] * int32_t (_piece_count[c][pt]);
     }
     return value;
 }
@@ -1224,7 +1224,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
             _si->non_pawn_matl[pasiv] -= PieceValue[MG][ct];
         }
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.piecesq[pasiv][ct][count (pasiv, ct)];
+        _si->matl_key ^= ZobGlob._.piecesq[pasiv][ct][_piece_count[pasiv][ct]];
 
 #ifndef NDEBUG
         if (_thread)
@@ -1300,8 +1300,8 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         place_piece (dst, activ, ppt);
 
         _si->matl_key ^=
-            ZobGlob._.piecesq[activ][PAWN][count (activ, PAWN)] ^
-            ZobGlob._.piecesq[activ][ppt][count (activ, ppt) - 1];
+            ZobGlob._.piecesq[activ][PAWN][_piece_count[activ][PAWN]] ^
+            ZobGlob._.piecesq[activ][ppt][_piece_count[activ][ppt] - 1];
 
         _si->pawn_key ^= ZobGlob._.piecesq[activ][PAWN][org];
 

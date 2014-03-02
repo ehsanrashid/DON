@@ -332,19 +332,20 @@ namespace Searcher {
         RootInTB = false;
 
         // Dynamic draw value: try to avoid repetition draws at early midgame
-        int32_t cf = std::max (70 - RootPos.game_ply (), 0);
+        int32_t cf = max (70 - RootPos.game_ply (), 0);
         DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
         DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
 
-        bool write_search_log = *(Options["Write Search Log"]);
-        string search_log_fn  = *(Options["Search Log File"]);
+        bool write_search_log = bool (*(Options["Write Search Log"]));
+        string search_log_fn  = string (*(Options["Search Log File"]));
 
         if (RootMoves.empty ())
         {
             RootMoves.push_back (RootMove (MOVE_NONE));
             sync_cout
-                << "info depth 0 score "
-                << score_uci (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                << "info"
+                << " depth " << 0
+                << " score " << score_uci (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << sync_endl;
 
             goto finish;
@@ -426,7 +427,7 @@ namespace Searcher {
                 {
                     TBScore = TBScore > VALUE_DRAW ? VALUE_MATES_IN_MAX_PLY - 1
                         :     TBScore < VALUE_DRAW ? VALUE_MATED_IN_MAX_PLY + 1
-                        :     VALUE_DRAW;
+                        :     TBScore;
                 }
             }
             else
@@ -466,7 +467,7 @@ namespace Searcher {
             if (elapsed == 0) elapsed = 1;
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
-                << "Nodes/sec.:  " << RootPos.game_nodes () * 1000 / elapsed    << "\n"
+                << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed    << "\n"
                 << "Hash-Full:   " << TT.permill_full ()                        << "\n"
                 << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (RootMoves[0].pv[0] != MOVE_NONE)
@@ -490,7 +491,7 @@ namespace Searcher {
             << "info"
             << " time "     << elapsed
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * 1000 / elapsed
+            << " nps "      << RootPos.game_nodes () * M_SEC / elapsed
             << " tbhits "   << TBHits
             << " hashfull " << TT.permill_full ()
             << sync_endl;
@@ -905,7 +906,7 @@ namespace {
             && pos.count () <= TBCardinality
             && pos.clock50 () == 0)
         {
-            int found, v = TBSyzygy::probe_wdl (pos, &found);
+            int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
 
             if (found)
             {
@@ -1928,9 +1929,9 @@ namespace {
                 << " score "    << ((!tb && i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
                 << " time "     << elapsed
                 << " nodes "    << pos.game_nodes ()
-                << " nps "      << pos.game_nodes () * 1000 / elapsed
-                << " tbhits "   << TBHits
+                << " nps "      << pos.game_nodes () * M_SEC / elapsed
                 << " hashfull " << TT.permill_full ()
+                << " tbhits "   << TBHits
                 //<< " cpuload "  << // the cpu usage of the engine is x permill.
                 << " pv";
             for (uint8_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
