@@ -2100,53 +2100,47 @@ namespace {
     // mirror == 0 and the black pieces if mirror == 1.
     void prt_str (Position &pos, char *str, int32_t mirror)
     {
-        Color color;
-        PieceT pt;
-        int32_t i;
-
-        color = !mirror ? WHITE : BLACK;
-        for (pt = KING; pt >= PAWN; --pt)
+        Color color = !mirror ? WHITE : BLACK;
+        for (PieceT pt = KING; pt >= PAWN; --pt)
         {
-            for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
+            for (int8_t pc = pos.count (color, pt); pc > 0; --pc)
             {
                 *str++ = pchr[KING - pt];
             }
         }
+
         *str++ = 'v';
         color = ~color;
-        for (pt = KING; pt >= PAWN; --pt)
+        for (PieceT pt = KING; pt >= PAWN; --pt)
         {
-            for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
+            for (int8_t pc = pos.count (color, pt); pc > 0; --pc)
             {
                 *str++ = pchr[KING - pt];
             }
         }
-        *str++ = 0;
+        *str++ = '\0';
     }
 
     // Given a position, produce a 64-bit material signature key.
     // If the engine supports such a key, it should equal the engine's key.
     uint64_t calc_key (Position &pos, int32_t mirror)
     {
-        Color color;
-        PieceT pt;
-        int32_t i;
-        uint64_t key = 0;
+        uint64_t key = U64 (0);
 
-        color = !mirror ? WHITE : BLACK;
-        for (pt = PAWN; pt <= KING; ++pt)
+        Color color = !mirror ? WHITE : BLACK;
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
+            for (uint8_t pc = 0; pc < pos.count (color, pt); ++pc)
             {
-                key ^= ZobGlob._.piecesq[WHITE][pt][i - 1];
+                key ^= ZobGlob._.piecesq[WHITE][pt][pc];
             }
         }
         color = ~color;
-        for (pt = PAWN; pt <= KING; ++pt)
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
+            for (uint8_t pc = 0; pc < pos.count (color, pt); ++pc)
             {
-                key ^= ZobGlob._.piecesq[BLACK][pt][i - 1];
+                key ^= ZobGlob._.piecesq[BLACK][pt][pc];
             }
         }
 
@@ -2159,24 +2153,22 @@ namespace {
     // pawns, ..., kings.
     uint64_t calc_key_from_pcs (uint8_t *pcs, int32_t mirror)
     {
-        int32_t color;
-        PieceT pt;
-        uint64_t key = 0;
+        uint64_t key = U64 (0);
 
-        color = !mirror ? 0 : 8;
-        for (pt = PAWN; pt <= KING; ++pt)
+        int32_t color = !mirror ? 0 : 8;
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (uint8_t i = 0; i < pcs[color + pt]; ++i)
+            for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
             {
-                key ^= ZobGlob._.piecesq[WHITE][pt][i];
+                key ^= ZobGlob._.piecesq[WHITE][pt][pc];
             }
         }
         color ^= 8;
-        for (pt = PAWN; pt <= KING; ++pt)
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (uint8_t i = 0; i < pcs[color + pt]; ++i)
+            for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
             {
-                key ^= ZobGlob._.piecesq[BLACK][pt][i];
+                key ^= ZobGlob._.piecesq[BLACK][pt][pc];
             }
         }
 
@@ -2186,16 +2178,12 @@ namespace {
     // probe_wdl_table and probe_dtz_table require similar adaptations.
     int32_t probe_wdl_table (Position &pos, int32_t *success)
     {
-        TBEntry *ptr;
-        TBHashEntry *ptr2;
-        uint64_t idx;
-        uint64_t key;
+        
         int32_t i;
-        uint8_t res;
         int32_t p[TBPIECES];
 
         // Obtain the position's material signature key.
-        key = pos.matl_key ();
+        uint64_t key = pos.matl_key ();
 
         // Test for KvK.
         if (key == (ZobGlob._.piecesq[WHITE][KING][0] ^ ZobGlob._.piecesq[BLACK][KING][0]))
@@ -2203,7 +2191,7 @@ namespace {
             return 0;
         }
 
-        ptr2 = TB_hash[key >> (64 - TBHASHBITS)];
+        TBHashEntry *ptr2 = TB_hash[key >> (64 - TBHASHBITS)];
         for (i = 0; i < HSHMAX; ++i)
         {
             if (ptr2[i].key == key) break;
@@ -2214,7 +2202,7 @@ namespace {
             return 0;
         }
 
-        ptr = ptr2[i].ptr;
+        TBEntry *ptr = ptr2[i].ptr;
         if (!ptr->ready)
         {
             LOCK (TB_mutex);
@@ -2241,6 +2229,8 @@ namespace {
             UNLOCK (TB_mutex);
         }
 
+        uint64_t idx;
+        uint8_t res;
         int32_t bside, mirror, cmirror;
         if (!ptr->symmetric)
         {
@@ -2270,7 +2260,7 @@ namespace {
         {
             TBEntry_piece *entry = (TBEntry_piece *) ptr;
             uint8_t *pc = entry->pieces[bside];
-            for (i = 0; i < entry->num;)
+            for (i = 0; i < entry->num; )
             {
                 Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
                 do
@@ -2285,8 +2275,8 @@ namespace {
         else
         {
             TBEntry_pawn *entry = (TBEntry_pawn *)ptr;
-            int32_t k = entry->file[0].pieces[0][0] ^ cmirror;
-            Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & 0x07));
+            int32_t k = entry->file[0].pieces[WHITE][PAWN] ^ cmirror;
+            Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & 0x07));
             i = 0;
             do
             {
@@ -2964,8 +2954,8 @@ namespace TBSyzygy {
             int32_t v = 0;
             if (pos.checkers () && dtz > 0)
             {
-                ValMove s[MAX_MOVES];
-                if (generate<LEGAL> (s, pos) == s)
+                ValMove m_list[MAX_MOVES];
+                if (generate<LEGAL> (m_list, pos) == m_list)
                 {
                     v = 1;
                 }
@@ -2994,23 +2984,23 @@ namespace TBSyzygy {
 
             pos.undo_move ();
             if (!success) return false;
-            Searcher::RootMoves[i].value[0] = (Value) v;
+            Searcher::RootMoves[i].value[0] = Value (v);
         }
 
         // Obtain 50-move counter for the root position.
         // In Stockfish there seems to be no clean way, so we do it like this:
-        int32_t cnt50 = st.p_si->clock50;
+        int32_t clk50 = st.p_si->clock50;
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
         int32_t wdl = 0;
         if (dtz > 0)
         {
-            wdl = (dtz + cnt50 <= 100) ? 2 : 1;
+            wdl = (dtz + clk50 <= 100) ? 2 : 1;
         }
         else if (dtz < 0)
         {
-            wdl = (-dtz + cnt50 <= 100) ? -2 : -1;
+            wdl = (-dtz + clk50 <= 100) ? -2 : -1;
         }
 
         // Determine the score to report to the user.
@@ -3020,11 +3010,11 @@ namespace TBSyzygy {
         // because of the way Stockfish converts values to printed scores.
         if (wdl == 1 && dtz <= 100)
         {
-            TBScore = (Value) (((200 - dtz - cnt50) + 1) & ~1);
+            TBScore = (Value) (((200 - dtz - clk50) + 1) & ~1);
         }
         else if (wdl == -1 && dtz >= -100)
         {
-            TBScore = -(Value) (((200 + dtz - cnt50) + 1) & ~1);
+            TBScore = -(Value) (((200 + dtz - clk50) + 1) & ~1);
         }
 
         // Now be a bit smart about filtering out moves.
@@ -3043,14 +3033,14 @@ namespace TBSyzygy {
             int32_t max = best;
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (!has_repeated (st.p_si) && best + cnt50 <= 99)
+            if (!has_repeated (st.p_si) && best + clk50 <= 99)
             {
-                max = 99 - cnt50;
+                max = 99 - clk50;
             }
             for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
             {
                 int32_t v = Searcher::RootMoves[i].value[0];
-                if (v > 0 && v <= max)
+                if (0 < v && v <= max)
                 {
                     Searcher::RootMoves[j++] = Searcher::RootMoves[i];
                 }
@@ -3068,7 +3058,7 @@ namespace TBSyzygy {
                 }
             }
             // Try all moves, unless we approach or have a 50-move rule draw.
-            if (-best * 2 + cnt50 < 100)
+            if (-best * 2 + clk50 < 100)
             {
                 return true;
             }

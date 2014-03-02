@@ -594,11 +594,11 @@ namespace MoveGenerator {
     // Generates all legal moves.
     ValMove* generate<LEGAL>       (ValMove *m_list, const Position &pos)
     {
-        ValMove *end = pos.checkers() ?
-            generate<EVASION> (m_list, pos) :
-            generate<RELAX  > (m_list, pos) ;
+        ValMove *end = pos.checkers ()
+            ? generate<EVASION> (m_list, pos)
+            : generate<RELAX  > (m_list, pos);
 
-        Square k_sq = pos.king_sq (pos.active ());
+        Square   k_sq    = pos.king_sq (pos.active ());
         Bitboard pinneds = pos.pinneds (pos.active ());
 
         ValMove *cur = m_list;
