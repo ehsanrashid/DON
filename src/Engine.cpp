@@ -14,6 +14,7 @@
 #include "DebugLogger.h"
 #include "Thread.h"
 #include "UCI.h"
+#include "Tester.h"
 
 namespace Engine {
 
@@ -113,6 +114,13 @@ namespace Engine {
         //cout << "info string Thread(s) " << Threads.size () << ".\n" << endl; 
         cout << endl;
 
+#ifndef NDEBUG
+        //Tester::main_test ();
+        //system ("pause");
+        //return;
+#endif
+
+
         UCI   ::start (args);
 
     }
@@ -120,7 +128,6 @@ namespace Engine {
     // Exit from engine with exit code. (in case of some crash)
     void exit (int32_t code)
     {
-
         UCI   ::stop ();
         
         if (Searcher::Book.is_open ())
@@ -132,7 +139,6 @@ namespace Engine {
         UCI   ::deinitialize ();
 
         ::exit (code);
-
     }
 
 }

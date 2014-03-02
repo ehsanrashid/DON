@@ -134,7 +134,8 @@ typedef enum CRight : uint8_t
 
     CR_W = CR_W_K | CR_W_Q, // 0011
     CR_B = CR_B_K | CR_B_Q, // 1100
-    CR_A = CR_W   | CR_B    // 1111
+    CR_A = CR_W   | CR_B,   // 1111
+    CR_ALL = 16
 
 } CRight;
 
@@ -570,6 +571,14 @@ inline CRight operator~  (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr <
 //    return os;
 //}
 
+template<Color C, CSide CS>
+struct MakeCastling
+{
+    static const CRight
+    right = (C == WHITE)
+      ? CS == CS_Q ? CR_W_Q : CR_W_K
+      : CS == CS_Q ? CR_B_Q : CR_B_K;
+};
 
 inline bool     _ok (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 

@@ -85,26 +85,28 @@ namespace MoveGenerator {
             // template<GenT GT, Color C>
             // template<CSide SIDE, bool CHESS960>
             // void Generator<GT, KING>::generate_castling()
-            template<CSide SIDE, bool CHESS960>
+            template<CRight CR, bool CHESS960>
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&m_list, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
                 //static_assert (EVASION != GT, "GT must not be EVASION");
-                ASSERT (!pos.castle_impeded (C, SIDE) && pos.can_castle (C, SIDE) && !pos.checkers ());
-                //if (pos.castle_impeded (C, SIDE) || !pos.can_castle (C, SIDE) || pos.checkers ()) return;
+                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
+                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ()) return;
+
+                static const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
 
                 const Color C_  = ((WHITE == C) ? BLACK : WHITE);
                 Square org_king = pos.king_sq (C);
-                Square org_rook = pos.castle_rook (C, SIDE);
+                Square org_rook = pos.castle_rook (CR);
                 if (ROOK != _ptype (pos[org_rook])) return;
 
-                Square dst_king = rel_sq (C, (CS_Q == SIDE) ? SQ_WK_Q : SQ_WK_K);
+                Square dst_king = rel_sq (C, KingSide ? SQ_WK_K : SQ_WK_Q);
 
                 Bitboard enemies = pos.pieces (C_);
 
                 Delta step = CHESS960 ? 
                     dst_king < org_king ? DEL_W : DEL_E :
-                    (CS_Q == SIDE)      ? DEL_W : DEL_E;
+                    KingSide      ? DEL_E : DEL_W;
 
                 for (Square s = org_king + step;
                     s != dst_king + step; s += step)
@@ -158,7 +160,7 @@ namespace MoveGenerator {
 
                 if (CAPTURE != GT)
                 {
-                    if (!pos.castle_impeded (C) && pos.can_castle (C) && !pos.checkers ())
+                    if (pos.can_castle (C) && !pos.checkers ())
                     {
                         CheckInfo cc;
                         if (NULL == ci)
@@ -167,17 +169,17 @@ namespace MoveGenerator {
                             ci = &cc;
                         }
 
-                        if (!pos.castle_impeded (C, CS_K) && pos.can_castle (C, CS_K))
+                        if (!pos.castle_impeded (MakeCastling<C,  CS_K>::right) && pos.can_castle (MakeCastling<C,  CS_K>::right))
                         {
                             pos.chess960 () ?
-                                generate_castling<CS_K,  true> (m_list, pos, ci) :
-                                generate_castling<CS_K, false> (m_list, pos, ci);
+                                generate_castling<MakeCastling<C,  CS_K>::right,  true> (m_list, pos, ci) :
+                                generate_castling<MakeCastling<C,  CS_K>::right, false> (m_list, pos, ci);
                         }
-                        if (!pos.castle_impeded (C, CS_Q) && pos.can_castle (C, CS_Q))
+                        if (!pos.castle_impeded (MakeCastling<C,  CS_K>::right) && pos.can_castle (MakeCastling<C,  CS_K>::right))
                         {
                             pos.chess960 () ?
-                                generate_castling<CS_Q,  true> (m_list, pos, ci) :
-                                generate_castling<CS_Q, false> (m_list, pos, ci);
+                                generate_castling<MakeCastling<C,  CS_Q>::right,  true> (m_list, pos, ci) :
+                                generate_castling<MakeCastling<C,  CS_Q>::right, false> (m_list, pos, ci);
                         }
                     }
                 }

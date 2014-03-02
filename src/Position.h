@@ -156,10 +156,9 @@ private:
     // Pointer for current status information
     StateInfo *_si;
 
-    Square   _castle_rooks[CLR_NO][CS_NO];
-    Bitboard _castle_paths[CLR_NO][CS_NO];
-
-    CRight   _castle_rights[CLR_NO][F_NO];
+    CRight   _castling_mask[SQ_NO];
+    Square   _castle_rooks[CR_ALL];
+    Bitboard _castle_paths[CR_ALL];
 
     // Side on move
     // "w" - WHITE
@@ -267,12 +266,10 @@ public:
     CRight can_castle (CRight cr) const;
     CRight can_castle (Color   c) const;
     CRight can_castle (Color   c, CSide cs) const;
-    // ---
-    CRight castle_right (Color c, File   f) const;
-    CRight castle_right (Color c, Square s) const;
 
-    Square castle_rook  (Color c, CSide cs) const;
-    bool castle_impeded (Color c, CSide cs = CS_NO) const;
+    CRight castle_right (Color c, Square s) const;
+    Square castle_rook  (CRight cr) const;
+    bool castle_impeded (CRight cr) const;
 
 
     Color    active    ()               const;
@@ -492,19 +489,8 @@ inline CRight Position::can_castle (CRight cr)           const { return _si->cas
 inline CRight Position::can_castle (Color   c)           const { return _si->castle_rights & mk_castle_right (c); }
 inline CRight Position::can_castle (Color   c, CSide cs) const { return _si->castle_rights & mk_castle_right (c, cs); }
 
-inline CRight Position::castle_right (Color c, File   f) const { return _castle_rights[c][f]; }
-inline CRight Position::castle_right (Color c, Square s) const { return (R_1 == rel_rank (c, s)) ? _castle_rights[c][_file (s)] : CR_NO; }
-
-inline Square Position::castle_rook  (Color c, CSide cs) const { return _castle_rooks[c][cs]; }
-
-inline bool Position::castle_impeded (Color c, CSide cs) const
-{
-    return (CS_K == cs || CS_Q == cs)
-        ?  (_castle_paths[c][cs]   & _types_bb[NONE])
-        :  (_castle_paths[c][CS_K] & _types_bb[NONE])
-        && (_castle_paths[c][CS_Q] & _types_bb[NONE]);
-}
-
+inline Square Position::castle_rook  (CRight cr) const { return _castle_rooks[cr]; }
+inline bool Position::castle_impeded (CRight cr) const { return _castle_paths[cr] & _types_bb[NONE]; }
 
 // Color of the side on move
 inline Color    Position::active    () const { return _active; }

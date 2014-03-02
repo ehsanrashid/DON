@@ -406,7 +406,8 @@ namespace UCI {
     void stop ()
     {
         exe_stop ();
-        Threads.wait_for_think_finished (); // Cannot quit while search stream active
+        // Cannot quit while search stream active
+        Threads.wait_for_think_finished ();
     }
 
 }

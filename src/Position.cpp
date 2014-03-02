@@ -441,9 +441,13 @@ bool Position::ok (int8_t *failed_step) const
                 CRight cr = mk_castle_right (c, cs);
 
                 if (!can_castle (cr)) continue;
-                if ((castle_right (c, king_sq (c)) & cr) != cr) return false;
-                Square rook = castle_rook (c, cs);
-                if ((c | ROOK) != _board[rook] || castle_right (c, rook) != cr) return false;
+
+                if ( (_castling_mask[king_sq (c)] & cr) != cr
+                  || (_board[_castle_rooks[cr]] != (c | ROOK))
+                  || (_castling_mask[_castle_rooks[cr]] != cr))
+                {
+                    return false;
+                }
             }
         }
     }
@@ -673,15 +677,15 @@ bool Position::pseudo_legal (Move m) const
 
         if (R_1 != r_org || R_1 != r_dst) return false;
 
-        if (castle_impeded (activ)) return false;
+        //if (castle_impeded (activ)) return false;
         if (!can_castle (activ)) return false;
         if (checkers ()) return false;
 
-        bool king_side  = (dst > org);
-        if (castle_impeded (activ, king_side ? CS_K : CS_Q)) return false;
+        bool king_side  = (dst > org); 
+        if (castle_impeded (mk_castle_right(activ, king_side ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "king captures friendly rook"
-        ASSERT (dst == castle_rook (activ, king_side ? CS_K : CS_Q));
+        //ASSERT (dst == castle_rook (activ, king_side ? CS_K : CS_Q));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
         Delta step = king_side ? DEL_E : DEL_W;
@@ -975,10 +979,8 @@ void Position::clear ()
         }
     }
 
-    fill (
-        _castle_rooks[0] + 0,
-        _castle_rooks[0] + sizeof (_castle_rooks) / sizeof (**_castle_rooks),
-        SQ_NO);
+    //fill (_castle_rooks, _castle_rooks + sizeof (_castle_rooks) / sizeof (*_castle_rooks), SQ_NO);
+    memset (_castle_rooks, SQ_NO, sizeof (_castle_rooks));
 
     //_game_ply   = 1;
 
@@ -1028,23 +1030,22 @@ void Position::set_castle (Color c, Square org_rook)
 
     _si->castle_rights |= cr;
 
-    _castle_rights[c][_file (org_king)] |= cr;
-    _castle_rights[c][_file (org_rook)] |= cr;
-
-    _castle_rooks[c][cs] = org_rook;
+    _castling_mask[org_king] |= cr;
+    _castling_mask[org_rook] |= cr;
+    _castle_rooks[cr] = org_rook;
 
     for (Square s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_paths[c][cs] += s;
+            _castle_paths[cr] += s;
         }
     }
     for (Square s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_paths[c][cs] += s;
+            _castle_paths[cr] += s;
         }
     }
 }
@@ -1281,7 +1282,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         dst             = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
         Square dst_rook = rel_sq (activ, king_side ? SQ_WR_K : SQ_WR_Q);
 
-        ASSERT (org_rook == castle_rook (activ, king_side ? CS_K : CS_Q));
+        //ASSERT (org_rook == castle_rook (activ, king_side ? CS_K : CS_Q));
         ASSERT (empty (dst_rook));
 
         castle_king_rook (org, dst, org_rook, dst_rook);
@@ -1314,7 +1315,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     }
 
     // Update castle rights if needed
-    uint8_t cr = _si->castle_rights & (castle_right (activ, org) | castle_right (pasiv, dst));
+    uint8_t cr = _si->castle_rights & (_castling_mask[org] | _castling_mask[dst]);
     if (cr)
     {
         Bitboard b = cr;
@@ -1605,13 +1606,13 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) set_next (to_char (_file (castle_rook (WHITE, CS_K)), false));
-                if (can_castle (CR_W_Q)) set_next (to_char (_file (castle_rook (WHITE, CS_Q)), false));
+                if (can_castle (CR_W_K)) set_next (to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_K>::right]), false));
+                if (can_castle (CR_W_Q)) set_next (to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_Q>::right]), false));
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) set_next (to_char (_file (castle_rook (BLACK, CS_K)), true));
-                if (can_castle (CR_B_Q)) set_next (to_char (_file (castle_rook (BLACK, CS_Q)), true));
+                if (can_castle (CR_B_K)) set_next (to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_K>::right]), true));
+                if (can_castle (CR_B_Q)) set_next (to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_Q>::right]), true));
             }
         }
         else
@@ -1691,13 +1692,13 @@ string Position::fen (bool                  c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) sfen << to_char (_file (castle_rook (WHITE, CS_K)), false);
-                if (can_castle (CR_W_Q)) sfen << to_char (_file (castle_rook (WHITE, CS_Q)), false);
+                if (can_castle (CR_W_K)) sfen << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_K>::right]), false);
+                if (can_castle (CR_W_Q)) sfen << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_Q>::right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) sfen << to_char (_file (castle_rook (BLACK, CS_K)), true);
-                if (can_castle (CR_B_Q)) sfen << to_char (_file (castle_rook (BLACK, CS_Q)), true);
+                if (can_castle (CR_B_K)) sfen << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_K>::right]), true);
+                if (can_castle (CR_B_Q)) sfen << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_Q>::right]), true);
             }
         }
         else

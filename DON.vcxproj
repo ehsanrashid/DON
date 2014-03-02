@@ -596,6 +596,7 @@
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\TB_Syzygy.cpp" />
+    <ClCompile Include="src\Tester.cpp" />
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
@@ -637,6 +638,7 @@
     <ClInclude Include="src\RKISS.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\TB_Syzygy.h" />
+    <ClInclude Include="src\Tester.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />
@@ -649,14 +651,6 @@
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="AssemblyDependencies.dgml" />
-    <None Include="ClassDiagram.cd" />
-    <None Include="CodeMap.dgml">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="IncludeFileDependencies.dgml">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />
     <None Include="src\make-clean.bat" />
