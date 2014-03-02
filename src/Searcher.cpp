@@ -92,7 +92,7 @@ namespace {
 
     // update_stats() updates killers, history, countermoves and followupmoves stats
     // after a fail-high of a quiet move.
-    inline void update_stats (Position &pos, Stack ss[], Move move, uint8_t depth, Move quiet_moves[], uint8_t quiets_count)
+    inline void update_stats (Position &pos, Stack *ss, Move move, uint8_t depth, Move quiet_moves[], uint8_t quiets_count)
     {
         if ((ss)->killers[0] != move)
         {
@@ -128,10 +128,10 @@ namespace {
     void iter_deep_loop (Position &pos);
 
     template <NodeT NT>
-    Value search        (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node);
+    Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node);
 
     template <NodeT NT, bool IN_CHECK>
-    Value search_quien  (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth);
+    Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth);
 
     Value value_to_tt (Value v, int32_t ply);
     Value value_fr_tt (Value v, int32_t ply);
@@ -768,7 +768,7 @@ namespace {
     // search, and searched the first move before splitting, we don't have to repeat
     // all this work again. We also don't need to store anything to the hash table
     // here: This is taken care of after we return from the split point.
-    Value search (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth, bool cut_node)
+    Value search (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
     {
         const bool RootNode = (NT == Root             || NT == SplitPointRoot);
         const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointPV    || NT == SplitPointRoot);
@@ -1033,7 +1033,7 @@ namespace {
             (ss)->current_move = MOVE_NULL;
 
             // Null move dynamic (variable) reduction based on depth and value
-            Depth R = (MAX_NULL_REDUCTION+0) * ONE_MOVE
+            Depth R = 3 * ONE_MOVE
                 +     depth / 4
                 +     int32_t (eval - beta) / VALUE_MG_PAWN * ONE_MOVE;
 
@@ -1093,7 +1093,7 @@ namespace {
                 rbeta = VALUE_INFINITE;
             }
 
-            Depth rdepth = depth - (MAX_NULL_REDUCTION+1) * ONE_MOVE;
+            Depth rdepth = depth - 4 * ONE_MOVE;
 
             ASSERT (rdepth >= ONE_MOVE);
             ASSERT ((ss-1)->current_move != MOVE_NONE);
@@ -1160,8 +1160,8 @@ namespace {
         Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
         bool improving = 
-            /**/(ss)->static_eval >= (ss-2)->static_eval
-            ||  (ss)->static_eval == VALUE_NONE
+            /**/(ss  )->static_eval >= (ss-2)->static_eval
+            ||  (ss  )->static_eval == VALUE_NONE
             ||  (ss-2)->static_eval == VALUE_NONE;
 
         bool singular_ext_node =
@@ -1335,6 +1335,7 @@ namespace {
                     && pos.see_sign (move) < VALUE_ZERO)
                 {
                     if (SPNode) split_point->mutex.lock ();
+
                     continue;
                 }
             }
@@ -1344,6 +1345,7 @@ namespace {
                 && !pos.legal (move, ci.pinneds))
             {
                 --moves_count;
+
                 continue;
             }
 
@@ -1571,7 +1573,7 @@ namespace {
     template <NodeT NT, bool IN_CHECK>
     // search_quien() is the quiescence search function, which is called by the main search function
     // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
-    Value search_quien (Position &pos, Stack ss[], Value alpha, Value beta, Depth depth)
+    Value search_quien (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
     {
         const bool    PVNode = (NT == PV);
 

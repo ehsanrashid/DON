@@ -111,7 +111,7 @@ bool Thread::available_to (const Thread *master) const
 // leave their idle loops and call search(). When all threads have returned from
 // search() then split() returns.
 template <bool FAKE>
-void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
     Depth depth, uint8_t moves_count, MovePicker &move_picker, NodeT node_type, bool cut_node)
 {
     ASSERT (pos.ok ());
@@ -201,8 +201,8 @@ void Thread::split (Position &pos, const Stack ss[], Value alpha, Value beta, Va
 }
 
 // Explicit template instantiations
-template void Thread::split<false> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
-template void Thread::split< true> (Position&, const Stack[], Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
+template void Thread::split<false> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
+template void Thread::split< true> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
 
 // ------------------------------------
 

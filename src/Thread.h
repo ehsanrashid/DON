@@ -192,7 +192,7 @@ struct Thread
     bool available_to (const Thread *master) const;
 
     template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack ss[], Value alpha, Value beta, Value &best_value, Move &best_move,
+    void split (Position &pos, const Searcher::Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, uint8_t moves_count, MovePicker &move_picker, Searcher::NodeT node_type, bool cut_node);
 
 };
