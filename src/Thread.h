@@ -63,7 +63,7 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
-typedef void* (*start_fn)(void*);
+typedef void* (*start_fn) (void*);
 
 #   define lock_init(x)     pthread_mutex_init (&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock (&(x))
@@ -150,8 +150,9 @@ struct ThreadBase
     NativeHandle        handle;
     volatile bool       exit;
 
-    ThreadBase()
-        : exit(false) {}
+    ThreadBase ()
+        : exit (false)
+    {}
 
     virtual ~ThreadBase () {}
 
@@ -204,8 +205,9 @@ struct MainThread
 {
     volatile bool thinking;
 
-    MainThread()
-        : thinking (true) {} // Avoid a race with start_thinking()
+    MainThread ()
+        : thinking (true)
+    {} // Avoid a race with start_thinking ()
 
     virtual void idle_loop ();
 
@@ -219,7 +221,7 @@ struct TimerThread
 
     bool run;
 
-    TimerThread()
+    TimerThread ()
         : run (false)
     {}
 

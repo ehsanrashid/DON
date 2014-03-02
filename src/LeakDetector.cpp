@@ -38,93 +38,94 @@ namespace LeakDetector {
         } LEAK_INFO;
 
 
-        LEAK_INFO *head_ptr = NULL;
-        LEAK_INFO *curr_ptr = NULL;
+        LEAK_INFO *pHead = NULL;
+        LEAK_INFO *pCurr = NULL;
 
         // Makes and appends the allocated memory info to the list
         void append_mem_info (void *mem_ref, size_t size, const char filename[], uint32_t line_no)
         {
             // append the above info to the list
-            LEAK_INFO *new_ptr = (LEAK_INFO *) malloc (sizeof (LEAK_INFO));
-            if (new_ptr)
+            LEAK_INFO *p_new = (LEAK_INFO *) malloc (sizeof (LEAK_INFO));
+            if (p_new)
             {
-                new_ptr->mem_info.address   = mem_ref;
-                new_ptr->mem_info.size      = size;
-                strncpy_s (new_ptr->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
-                new_ptr->mem_info.line_no   = line_no;
-                new_ptr->next = NULL;
+                p_new->mem_info.address   = mem_ref;
+                p_new->mem_info.size      = size;
+                strncpy_s (p_new->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
+                p_new->mem_info.line_no   = line_no;
+                p_new->next = NULL;
 
-                if (curr_ptr)
+                if (pCurr)
                 {
-                    curr_ptr->next = new_ptr;
-                    curr_ptr       = curr_ptr->next;
+                    pCurr->next = p_new;
+                    pCurr       = pCurr->next;
                 }
                 else
                 {
-                    curr_ptr = head_ptr = new_ptr;
+                    pCurr = pHead = p_new;
                 }
             }
         }
         // Removes the allocated memory info if is part of the list
         void remove_mem_info (void *mem_ref)
         {
-            LEAK_INFO *old_ptr = NULL;
-            LEAK_INFO *itr_ptr = head_ptr;
+            LEAK_INFO *p_old = NULL;
+            LEAK_INFO *p_itr = pHead;
             // check if allocate memory is in list
-            while (itr_ptr)
+            while (p_itr)
             {
-                if (itr_ptr->mem_info.address == mem_ref)
+                if (p_itr->mem_info.address == mem_ref)
                 {
-                    if (old_ptr)
+                    if (p_old)
                     {
-                        old_ptr->next = itr_ptr->next;
-                        free (itr_ptr);
+                        p_old->next = p_itr->next;
+                        free (p_itr);
                     }
                     else
                     {
-                        LEAK_INFO *tmp_ptr = head_ptr;
-                        head_ptr = head_ptr->next;
-                        free (tmp_ptr);
+                        LEAK_INFO *p_tmp = pHead;
+                        pHead = pHead->next;
+                        free (p_tmp);
                     }
 
                     return;
                 }
 
-                old_ptr = itr_ptr;
-                itr_ptr = itr_ptr->next;
+                p_old = p_itr;
+                p_itr = p_itr->next;
             }
         }
+
         // Clears all the allocated memory info from the list
         void clear_mem_info ()
         {
-            curr_ptr = head_ptr;
-            while (curr_ptr)
+            pCurr = pHead;
+            while (pCurr)
             {
-                LEAK_INFO *tmp_ptr = curr_ptr;
-                curr_ptr = curr_ptr->next;
-                free (tmp_ptr);
+                LEAK_INFO *p_tmp = pCurr;
+                pCurr = pCurr->next;
+                free (p_tmp);
             }
         }
 
     }
 
     // Replacement of malloc
-    void* xmalloc (size_t size, const char filename[], uint32_t line_no)
+    void* xmalloc (size_t mem_size, const char filename[], uint32_t line_no)
     {
-        void *mem_ref = malloc (size);
+        void *mem_ref = malloc (mem_size);
         if (mem_ref)
         {
-            append_mem_info (mem_ref, size, filename, line_no);
+            append_mem_info (mem_ref, mem_size, filename, line_no);
         }
         return mem_ref;
     }
     // Replacement of calloc
-    void* xcalloc (size_t count, size_t size, const char filename[], uint32_t line_no)
+    void* xcalloc (size_t count, size_t mem_size, const char filename[], uint32_t line_no)
     {
-        void *mem_ref = calloc (count, size);
+        void *mem_ref = calloc (count, mem_size);
         if (mem_ref)
         {
-            append_mem_info (mem_ref, count * size, filename, line_no);
+            append_mem_info (mem_ref, count * mem_size, filename, line_no);
         }
         return mem_ref;
     }
@@ -146,7 +147,7 @@ namespace LeakDetector {
 #           define BUF_SIZE 1024
             char info_buf[BUF_SIZE];
             LEAK_INFO *leak_info;
-            leak_info = head_ptr;
+            leak_info = pHead;
 
             int32_t x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");

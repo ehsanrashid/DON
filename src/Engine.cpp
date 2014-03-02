@@ -40,6 +40,9 @@ namespace Engine {
         if (uci) ss << "id name ";
         ss << Name << " ";
 
+#if defined (VERSION)
+        ss << VERSION << setfill ('0');
+#else
         if (Version.empty ())
         {
             // From compiler, format is "Sep 2 2013"
@@ -61,8 +64,9 @@ namespace Engine {
         }
         else
         {
-            ss << Version;
+            ss << Version << setfill ('0');
         }
+#endif
 
 #ifdef _64BIT
         ss << " x64";

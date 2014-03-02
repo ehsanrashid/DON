@@ -70,7 +70,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
         Engine::exit (EXIT_FAILURE);
     }
 
-    std::cout << "info string Hash size " << (mem_size >> 20) << " MB..." << std::endl;
+    std::cout << "info string Hash size " << (mem_size_b >> 20) << " MB..." << std::endl;
 
     void **ptr =
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
@@ -162,18 +162,26 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         if (0 == i) continue;
 
         // Implement replacement strategy when a collision occurs
-        int8_t gc1 = ((re->gen () == _generation) ? +2 : 0);
-        int8_t gc2 = ((te->gen () == _generation) || (te->bound () == BND_EXACT) ? -2 : 0);
+        int8_t gc;
+        gc  = ((re->gen () == _generation) ? +2 : 0);
+        gc += ((te->gen () == _generation)
+            || (te->bound () == BND_EXACT) ? -2 : 0);
 
-        if ((gc1 + gc2) < 0) continue;
-
-        int8_t rc = ((te->depth () < re->depth ()) ? +1
-                   : (te->depth () > re->depth ()) ? -1
-                   : (te->nodes () < re->nodes ()) ? +1 : 0);
-
-        if ((rc) > 0)
+        if (gc > 0)
         {
             re = te;
+            continue;
+        }
+        if (gc == 0)
+        {
+            int8_t rc = ((te->depth () < re->depth ()) ? +1
+                       : (te->depth () > re->depth ()) ? -1
+                       : (te->nodes () < re->nodes ()) ? +1 : 0);
+            
+            if (rc > 0)
+            {
+                re = te;
+            }
         }
     }
 

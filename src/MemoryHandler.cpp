@@ -39,14 +39,12 @@ namespace MemoryHandler {
 
     namespace {
 
-        bool use_largepages = false;
+        bool UsePages = false;
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
         /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
         
-
-
         typedef INT (*GetLargePageMinimum) (VOID);
 
         VOID ErrorExit (const LPSTR lpAPI, DWORD dwError)
@@ -74,10 +72,10 @@ namespace MemoryHandler {
         
         VOID SetupPrivilege (const LPSTR lpPrivilege, BOOL bEnable)
         {
-            HANDLE process = GetCurrentProcess();
+            HANDLE hProcess = GetCurrentProcess();
             HANDLE hToken;
             // Open process token
-            if (!OpenProcessToken (process, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
+            if (!OpenProcessToken (hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
             {
                 //ErrorExit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
@@ -170,7 +168,7 @@ namespace MemoryHandler {
 
 #   else    // Linux - Unix
 
-
+        int32_t Num;
 
 #   endif
 
@@ -178,7 +176,7 @@ namespace MemoryHandler {
 
     void create_memory  (void *&mem_ref, uint64_t mem_size, uint8_t align)
     {
-        use_largepages = false;
+        UsePages = false;
 
         if (bool (*(Options["Large Pages"])))
         {
@@ -194,8 +192,8 @@ namespace MemoryHandler {
 
             if (mem_ref)
             {
-                use_largepages = true;
-                std::cout << "info string WindowsLargePages Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                UsePages = true;
+                std::cout << "info string LargePages Hash " << (mem_size >> 20) << " MB..." << std::endl;
                 return;
             }
             else
@@ -208,25 +206,25 @@ namespace MemoryHandler {
                 
                 if (mem_ref)
                 {
-                    use_largepages = true;
-                    std::cout << "info string WindowsPages Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                    UsePages = true;
+                    std::cout << "info string Pages Hash " << (mem_size >> 20) << " MB..." << std::endl;
                     return;
                 }
             }
 
 #   else    // Linux - Unix
 
-            int32_t num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (num >= 0)
+            Num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            if (Num >= 0)
             {
-                mem_ref = shmat (num, NULL, 0x0);
+                mem_ref = shmat (Num, NULL, 0x0);
                 if (mem_ref == -1)
                 {
                     //perror ("shmat: Shared memory attach failure");
                     //shmctl (shmid1, IPC_RMID, NULL);
                     //exit(2);
                 }
-                use_largepages = true;
+                UsePages = true;
                 std::cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << std::endl;
                 return;
             }
@@ -239,7 +237,7 @@ namespace MemoryHandler {
 
         }
 
-        MEMALIGN (mem_ref, align, size_t (mem_size));
+        MEMALIGN (mem_ref, align, mem_size);
         if (mem_ref)
         {
             memset (mem_ref, 0, mem_size);
@@ -251,16 +249,20 @@ namespace MemoryHandler {
     {
         if (!mem) return;
 
-        if (use_largepages)
+        if (UsePages)
         {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+            
             VirtualFree (mem, 0, MEM_RELEASE);
-#   else   // Linux - Unix
-            shmdt  (mem);
-            shmctl (num, IPC_RMID, NULL);
-#   endif
 
+#   else   // Linux - Unix
+            
+            shmdt  (mem);
+            shmctl (Num, IPC_RMID, NULL);
+            
+#   endif
+            UsePages = false;
             return;
         }
 

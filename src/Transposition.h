@@ -180,6 +180,7 @@ public:
         free_aligned_memory ();
     }
 
+    // Returns size in MB
     inline uint32_t size () const { return (uint64_t (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE) >> 20; }
 
     inline void master_clear ()
@@ -237,14 +238,17 @@ public:
     inline uint16_t permill_full () const
     {
         uint16_t full_count = 0;
+
+        TranspositionEntry *te = _hash_table;
         uint16_t total_count = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
-        for (uint16_t i = 0; i < total_count; ++i)
+        for (uint16_t i = 0; i < total_count; ++i, ++te)
         {
-            if (_hash_table[i].gen () == _generation)
+            if (te->gen () == _generation)
             {
                 ++full_count;
             }
         }
+
         return (full_count * 1000) / total_count;
     }
 

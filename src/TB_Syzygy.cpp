@@ -2178,7 +2178,6 @@ namespace {
     // probe_wdl_table and probe_dtz_table require similar adaptations.
     int32_t probe_wdl_table (Position &pos, int32_t *success)
     {
-        
         int32_t i;
         int32_t p[TBPIECES];
 
@@ -2298,7 +2297,7 @@ namespace {
             res = decompress_pairs (entry->file[f].precomp[bside], idx);
         }
 
-        return ((int32_t) res) - 2;
+        return (res - 2);
     }
 
     int32_t probe_dtz_table (Position &pos, int32_t wdl, int32_t *success)
@@ -3329,8 +3328,8 @@ namespace TBSyzygy {
             }
         }
 
-        printf ("info string Syzygy Tablebases found %d.\n", TB_num_piece + TB_num_pawn);
-        //std::cout << "info string Syzygy Tablebases found " << (TB_num_piece + TB_num_pawn) << ".\n" << std::endl;
+        //printf ("info string Syzygy Tablebases found %d.\n", TB_num_piece + TB_num_pawn);
+        std::cout << "info string Syzygy Tablebases found " << (TB_num_piece + TB_num_pawn) << ".\n" << std::endl;
 
     }
 

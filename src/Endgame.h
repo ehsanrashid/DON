@@ -33,8 +33,8 @@ namespace EndGame {
         SCALE_FUNS,
 
         // Generic Scaling functions
-        KBPsKs,  // KB+pawns vs K+s
-        KQKRPs,  // KQ vs KR+pawns
+        KBPsKs,  // KBPs vs K+s
+        KQKRPs,  // KQ vs KR+Ps
 
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
