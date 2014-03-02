@@ -357,7 +357,7 @@ namespace UCI {
 
         // Openings Book Options
         // ---------------------
-        Options["Own Book"]                     = OptionPtr (new CheckOption (false));
+        Options["OwnBook"]                     = OptionPtr (new CheckOption (false));
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
@@ -386,7 +386,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 4, MAX_SPLIT_DEPTH, on_change_threads));
+        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
 
         Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
 

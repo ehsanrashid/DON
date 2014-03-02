@@ -326,7 +326,7 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        int32_t piecesCnt;
+        int32_t piece_cnt;
 
         TBHits = TBCardinality = 0;
         RootInTB = false;
@@ -350,7 +350,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (bool (*(Options["Own Book"])) && !Limits.infinite && !Limits.mate_in)
+        if (bool (*(Options["OwnBook"])) && !Limits.infinite && !Limits.mate_in)
         {
             if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in);
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
@@ -378,7 +378,7 @@ namespace Searcher {
                 << endl;
         }
 
-        piecesCnt = RootPos.count ();
+        piece_cnt = RootPos.count ();
         
         TBCardinality = int32_t (*(Options["Syzygy Probe Limit"]));
         if (TBCardinality > TBSyzygy::TB_Largest)
@@ -389,7 +389,7 @@ namespace Searcher {
         TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
         TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
 
-        if (piecesCnt <= TBCardinality)
+        if (piece_cnt <= TBCardinality)
         {
             TBHits = RootMoves.size ();
 

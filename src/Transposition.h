@@ -237,15 +237,15 @@ public:
     inline uint16_t permill_full () const
     {
         uint16_t full_count = 0;
-        uint16_t loop_count = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
-        for (uint16_t i = 0; i < loop_count; ++i)
+        uint16_t total_count = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
+        for (uint16_t i = 0; i < total_count; ++i)
         {
             if (_hash_table[i].gen () == _generation)
             {
                 ++full_count;
             }
         }
-        return (full_count * 1000) / loop_count;
+        return (full_count * 1000) / total_count;
     }
 
     uint32_t resize (uint32_t mem_size_mb, bool force = false);

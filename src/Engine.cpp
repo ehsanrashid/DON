@@ -104,13 +104,11 @@ namespace Engine {
         Pawns    ::initialize ();
         Evaluator::initialize ();
         Threads   .initialize ();
-
         
         TT.resize (int32_t (*(Options["Hash"])), true);
         
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
-
 
         cout << "info string Thread(s) count " << Threads.size () << ".\n" << endl; 
 

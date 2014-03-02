@@ -43,7 +43,7 @@ namespace {
 
 // ------------------------------------
 
-// ThreadBase::notify_one () wakes up the thread when there is some work to do
+// notify_one () wakes up the thread when there is some work to do
 void ThreadBase::notify_one ()
 {
     mutex.lock ();
@@ -51,7 +51,7 @@ void ThreadBase::notify_one ()
     mutex.unlock ();
 }
 
-// ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
+// wait_for() set the thread to sleep until condition 'b' turns true
 void ThreadBase::wait_for (volatile const bool &b)
 {
     mutex.lock ();
@@ -72,7 +72,7 @@ Thread::Thread () //: split_points ()  // Value-initialization bug in MSVC
     idx = Threads.size ();
 }
 
-// Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
+// cutoff_occurred() checks whether a beta cutoff has occurred in the
 // current active split point, or in some ancestor of the split point.
 bool Thread::cutoff_occurred () const
 {
@@ -83,10 +83,10 @@ bool Thread::cutoff_occurred () const
     return false;
 }
 
-// Thread::available_to() checks whether the thread is available to help the
-// thread 'master' at a split point. An obvious requirement is that thread must
-// be idle. With more than two threads, this is not sufficient: If the thread is
-// the master of some split point, it is only available as a slave to the slaves
+// available_to() checks whether the thread is available to help the thread 'master'
+// at a split point. An obvious requirement is that thread must be idle.
+// With more than two threads, this is not sufficient: If the thread is the
+// master of some split point, it is only available as a slave to the slaves
 // which are busy searching the split point at the top of slaves split point
 // stack (the "helpful master concept" in YBWC terminology).
 bool Thread::available_to (const Thread *master) const
@@ -206,7 +206,7 @@ template void Thread::split< true> (Position&, const Stack[], Value, Value, Valu
 
 // ------------------------------------
 
-// TimerThread::idle_loop() is where the timer thread waits msec milliseconds
+// idle_loop() is where the timer thread waits msec milliseconds
 // and then calls check_time(). If msec is 0 thread sleeps until is woken up.
 void TimerThread::idle_loop ()
 {
@@ -224,7 +224,7 @@ void TimerThread::idle_loop ()
 
 // ------------------------------------
 
-// MainThread::idle_loop() is where the main thread is parked waiting to be started
+// idle_loop() is where the main thread is parked waiting to be started
 // when there is a new search. Main thread will launch all the slave threads.
 void MainThread::idle_loop ()
 {
@@ -257,7 +257,7 @@ void MainThread::idle_loop ()
 
 // ------------------------------------
 
-// init() is called at startup to create and launch requested threads, that will
+// initialize() is called at startup to create and launch requested threads, that will
 // go immediately to sleep due to 'sleep_idle' set to true.
 // We cannot use a c'tor becuase Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
@@ -292,12 +292,8 @@ void ThreadPool::read_uci_options ()
 
     ASSERT (req_threads > 0);
 
-    // Value 0 has a special meaning: We determine the optimal minimum split depth
-    // automatically. Anyhow the split depth should never be under 4 plies.
-
-    //min_split_depth = (0 == min_split_depth)
-    //    ? (req_threads < 8 ? 4 : 7) * ONE_MOVE
-    //    : max (4 * ONE_MOVE, min_split_depth);
+    // Value 0 has a special meaning:
+    // Determines the best optimal minimum split depth automatically
     if (0 == min_split_depth)
     {
         min_split_depth = (req_threads < 8 ? 4 : 7) * ONE_MOVE;
@@ -315,7 +311,7 @@ void ThreadPool::read_uci_options ()
     }
 }
 
-// slave_available() tries to find an idle thread
+// available_slave() tries to find an idle thread
 // which is available as a slave for the thread 'master'.
 Thread* ThreadPool::available_slave (const Thread *master) const
 {

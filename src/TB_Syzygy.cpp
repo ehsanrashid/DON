@@ -26,13 +26,13 @@ this code to other chess engines.
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
 #   endif
-//#   ifndef  WIN32_LEAN_AND_MEAN
-//#       define WIN32_LEAN_AND_MEAN
-//#   endif
+#   ifndef  WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
 
 #   include <windows.h>
 
-//#   undef WIN32_LEAN_AND_MEAN
+#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
 #   define SEP_CHAR     ';'
@@ -242,11 +242,11 @@ namespace {
     bool  initialized = false;
     int32_t num_paths = 0;
     char *path_string = NULL;
-    char **paths = NULL;
+    char **paths      = NULL;
 
     int32_t TB_num_piece, TB_num_pawn;
     TBEntry_piece TB_piece[TBMAX_PIECE];
-    TBEntry_pawn TB_pawn[TBMAX_PAWN];
+    TBEntry_pawn TB_pawn  [TBMAX_PAWN];
 
     TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
@@ -2282,7 +2282,7 @@ namespace {
                 Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
                 do
                 {
-                    p[i++] = pop_lsq (bb);
+                    if (i < 6) p[i++] = pop_lsq (bb); else break;
                 }
                 while (bb);
             }
@@ -2297,7 +2297,7 @@ namespace {
             i = 0;
             do
             {
-                p[i++] = pop_lsq (bb) ^ mirror;
+                if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
             }
             while (bb);
             int32_t f = pawn_file (entry, p);
@@ -2307,7 +2307,7 @@ namespace {
                 bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
                 do
                 {
-                    p[i++] = pop_lsq (bb) ^ mirror;
+                    if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
                 }
                 while (bb);
             }
@@ -2416,7 +2416,7 @@ namespace {
                     (PieceT) (pc[i] & 0x07));
                 do
                 {
-                    p[i++] = pop_lsq (bb);
+                    if (i < 6) p[i++] = pop_lsq (bb); else break;
                 }
                 while (bb);
             }
@@ -2440,7 +2440,7 @@ namespace {
             i = 0;
             do
             {
-                p[i++] = pop_lsq (bb) ^ mirror;
+                if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
             }
             while (bb);
             
@@ -2457,7 +2457,7 @@ namespace {
                 bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & 0x07));
                 do
                 {
-                    p[i++] = pop_lsq (bb) ^ mirror;
+                    if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
                 }
                 while (bb);
             }
