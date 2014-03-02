@@ -21,10 +21,10 @@
 
 using namespace std;
 using namespace BitBoard;
+using namespace Time;
 using namespace MoveGenerator;
 using namespace Searcher;
 using namespace Evaluator;
-using namespace Time;
 
 #ifdef _MSC_VER
 #   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
@@ -216,6 +216,7 @@ namespace {
                 << endl;
         }
     }
+
     // Debug < ----------------------------------------------------
 
 } // namespace
@@ -2021,7 +2022,7 @@ void Thread::idle_loop ()
     // Pointer 'split_point' is not null only if we are called from split(), and not
     // at the thread creation. So it means we are the split point's master.
     SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
-    ASSERT (!split_point || (split_point->master_thread == this && searching));
+    ASSERT (!split_point || ((split_point->master_thread == this) && searching));
 
     do
     {

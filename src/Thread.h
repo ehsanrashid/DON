@@ -220,7 +220,8 @@ struct TimerThread
     bool run;
 
     TimerThread()
-        : run(false) {}
+        : run (false)
+    {}
 
     virtual void idle_loop ();
 
@@ -327,8 +328,8 @@ inline uint32_t cpu_count ()
 #   elif __HPUX
 
     pst_dynamic psd;
-    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1) ?
-        1 : psd.psd_proc_cnt;
+    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
+        ? 1 : psd.psd_proc_cnt;
 
     //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
 
@@ -353,9 +354,13 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
     static Mutex m;
 
     if      (sc == IO_LOCK)
+    {
         m.lock ();
+    }
     else if (sc == IO_UNLOCK)
+    {
         m.unlock ();
+    }
     return os;
 }
 

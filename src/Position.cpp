@@ -275,9 +275,9 @@ bool Position::ok (int8_t *failed_step) const
     // step 1
     if (++(*step), !_ok (_active)) return false;
     // step 2
-    if (++(*step), W_KING != piece_on (king_sq (WHITE))) return false;
+    if (++(*step), W_KING != _board[king_sq (WHITE)]) return false;
     // step 3
-    if (++(*step), B_KING != piece_on (king_sq (BLACK))) return false;
+    if (++(*step), B_KING != _board[king_sq (BLACK)]) return false;
 
     // step 4
     if (++(*step), debug_king_count)
@@ -285,7 +285,7 @@ bool Position::ok (int8_t *failed_step) const
         uint8_t king_count[CLR_NO] = {0};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            Piece p = piece_on (s);
+            Piece p = _board[s];
             if (KING == _ptype (p)) ++king_count[_color (p)];
         }
         for (Color c = WHITE; c <= BLACK; ++c)
@@ -402,7 +402,7 @@ bool Position::ok (int8_t *failed_step) const
                 for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (!_ok (_piece_list[c][pt][i])) return false;
-                    if (piece_on (_piece_list[c][pt][i]) != (c | pt)) return false;
+                    if (_board[_piece_list[c][pt][i]] != (c | pt)) return false;
                     if (_index[_piece_list[c][pt][i]] != i) return false;
                 }
             }
@@ -509,13 +509,13 @@ Value Position::see      (Move m) const
     Square dst = dst_sq (m);
 
     // side to move
-    Color stm = _color (piece_on (org));
+    Color stm = _color (_board[org]);
 
     // Gain list
     Value swap_list[32];
 
     int8_t depth = 1;
-    swap_list[0] = PieceValue[MG][_ptype (piece_on (dst))];
+    swap_list[0] = PieceValue[MG][_ptype (_board[dst])];
 
     Bitboard occupied = _types_bb[NONE] - org;
 
@@ -549,7 +549,7 @@ Value Position::see      (Move m) const
         // destination square, where the sides alternately capture, and always
         // capture with the least valuable piece. After each capture, we look for
         // new X-ray attacks from behind the capturing piece.
-        PieceT ct = _ptype (piece_on (org));
+        PieceT ct = _ptype (_board[org]);
 
         do
         {
@@ -597,8 +597,8 @@ Value Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][_ptype (piece_on (org_sq (m)))]
-    <=  PieceValue[MG][_ptype (piece_on (dst_sq (m)))])
+    if (PieceValue[MG][_ptype (_board[org_sq (m)])]
+    <=  PieceValue[MG][_ptype (_board[dst_sq (m)])])
     {
         return VALUE_KNOWN_WIN;
     }
@@ -642,7 +642,7 @@ bool Position::pseudo_legal (Move m) const
     Color activ = _active;
     Color pasiv = ~activ;
 
-    Piece p  = piece_on (org);
+    Piece p  = _board[org];
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
@@ -662,14 +662,14 @@ bool Position::pseudo_legal (Move m) const
     {
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (prom_type (m) - NIHT)) return false;
-        ct = _ptype (piece_on (cap));
+        ct = _ptype (_board[cap]);
     }
     else if (CASTLE    == mt)
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
         if (KING != pt) return false;
-        if ((activ | ROOK) != piece_on (dst)) return false;
+        if ((activ | ROOK) != _board[dst]) return false;
 
         if (R_1 != r_org || R_1 != r_dst) return false;
 
@@ -704,7 +704,7 @@ bool Position::pseudo_legal (Move m) const
         if (PAWN != pt) return false;
         if (R_7 != r_org) return false;
         if (R_8 != r_dst) return false;
-        ct = _ptype (piece_on (cap));
+        ct = _ptype (_board[cap]);
     }
     else if (ENPASSANT == mt)
     {
@@ -718,7 +718,7 @@ bool Position::pseudo_legal (Move m) const
         }
 
         cap += pawn_push (pasiv);
-        if ((pasiv | PAWN) != piece_on (cap)) return false;
+        if ((pasiv | PAWN) != _board[cap]) return false;
 
         ct = PAWN;
     }
@@ -756,7 +756,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_SW:
             // Capture. The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (NONE == ct || activ == _color (piece_on (cap))) return false;
+            if (NONE == ct || activ == _color (_board[cap])) return false;
             // cap and org files must be one del apart, avoids a7h5
             if (1 != file_dist (cap, org)) return false;
             break;
@@ -835,7 +835,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     Color activ = _active;
     Color pasiv = ~activ;
 
-    Piece  p  = piece_on (org);
+    Piece  p  = _board[org];
     PieceT pt = _ptype  (p);
     ASSERT ((activ == _color (p)) && (NONE != pt));
 
@@ -855,8 +855,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
         Square cap = dst + pawn_push (pasiv);
 
         ASSERT (dst == _si->en_passant);
-        ASSERT ((activ | PAWN) == piece_on (org));
-        ASSERT ((pasiv | PAWN) == piece_on (cap));
+        ASSERT ((activ | PAWN) == _board[org]);
+        ASSERT ((pasiv | PAWN) == _board[cap]);
         ASSERT (empty (dst));
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
@@ -892,7 +892,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
-    Piece  p  = piece_on (org);
+    Piece  p  = _board[org];
     PieceT pt = _ptype  (p);
 
     // Direct check ?
@@ -1059,7 +1059,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     Square cap = ep_sq + pawn_push (pasiv);
     if (!(pieces<PAWN> (pasiv) & cap)) return false;
-    //if ((pasiv | PAWN) != piece_on (cap)) return false;
+    //if ((pasiv | PAWN) != _board[cap]) return false;
 
     Bitboard pawns_ep = PawnAttacks[pasiv][ep_sq] & pieces<PAWN> (activ);
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
@@ -1105,7 +1105,7 @@ Score Position::compute_psq_score () const
     while (occ)
     {
         Square s = pop_lsq (occ);
-        Piece  p = piece_on (s);
+        Piece  p = _board[s];
         score += psq[_color (p)][_ptype (p)][s];
     }
     return score;
@@ -1146,14 +1146,14 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
     Square org  = org_sq (m);
     Square dst  = dst_sq (m);
-    Piece  p    = piece_on (org);
+    Piece  p    = _board[org];
     PieceT pt   = _ptype (p);
 
     ASSERT ((EMPTY != p)
         &&  (activ == _color (p))
         &&  (NONE != pt));
     ASSERT (empty (dst)
-        ||  (pasiv == _color (piece_on (dst)))
+        ||  (pasiv == _color (_board[dst]))
         ||  (CASTLE == mtype (m)));
 
     Square cap = dst;
@@ -1169,17 +1169,17 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         {
             uint8_t del_f = file_dist (cap, org);
             ASSERT (0 == del_f || 1 == del_f);
-            if (1 == del_f) ct = _ptype (piece_on (cap));
+            if (1 == del_f) ct = _ptype (_board[cap]);
         }
         else
         {
-            ct = _ptype (piece_on (cap));
+            ct = _ptype (_board[cap]);
         }
     }
     else if (CASTLE    == mt)
     {
         ASSERT (KING == pt);
-        ASSERT (ROOK == _ptype (piece_on (dst)));
+        ASSERT (ROOK == _ptype (_board[dst]));
 
         ct = NONE;
     }
@@ -1189,7 +1189,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         ASSERT (R_7 == rel_rank (activ, org));
         ASSERT (R_8 == rel_rank (activ, dst));
 
-        ct = _ptype (piece_on (cap));
+        ct = _ptype (_board[cap]);
         ASSERT (PAWN != ct);
     }
     else if (ENPASSANT == mt)
@@ -1201,7 +1201,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         ASSERT (empty (cap));  // Capture Square must be empty
 
         cap += pawn_push (pasiv);
-        ASSERT ((pasiv | PAWN) == piece_on (cap));
+        ASSERT ((pasiv | PAWN) == _board[cap]);
         ct = PAWN;
     }
 
@@ -1444,7 +1444,7 @@ void Position::undo_move ()
     }
     else if (PROMOTE   == mt)
     {
-        ASSERT (prom_type (m) == _ptype (piece_on (dst)));
+        ASSERT (prom_type (m) == _ptype (_board[dst]));
         ASSERT (R_8 == rel_rank (activ, dst));
         ASSERT (NIHT <= prom_type (m) && prom_type (m) <= QUEN);
         // Replace the promoted piece with the PAWN
@@ -1453,7 +1453,7 @@ void Position::undo_move ()
     }
     else if (ENPASSANT == mt)
     {
-        ASSERT (PAWN == _ptype (piece_on (dst)));
+        ASSERT (PAWN == _ptype (_board[dst]));
         ASSERT (PAWN == ct);
         ASSERT (R_5 == rel_rank (activ, org));
         ASSERT (R_6 == rel_rank (activ, dst));
@@ -1570,7 +1570,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
         while (f <= F_H)
         {
             Square s = f | r;
-            Piece p  = piece_on (s);
+            Piece p  = _board[s];
 
             if (EMPTY == p)
             {
@@ -1677,7 +1677,7 @@ string Position::fen (bool                  c960, bool full) const
                 ++s;
             }
             if (empty_count) sfen << empty_count;
-            if (F_H >= f)  sfen << CharPiece[piece_on (s)];
+            if (F_H >= f)  sfen << CharPiece[_board[s]];
         }
 
         if (R_1 < r) sfen << '/';
@@ -1754,7 +1754,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
-        board[3 + row_len * (7.5 - r) + 4 * f] = CharPiece[piece_on (s)];
+        board[3 + row_len * (7.5 - r) + 4 * f] = CharPiece[_board[s]];
     }
 
     ostringstream ss;

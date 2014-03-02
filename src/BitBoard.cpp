@@ -337,6 +337,7 @@ namespace BitBoard {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
+        //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
         //for (Bitboard b = 1; b < 256; ++b)
         //{
@@ -473,6 +474,7 @@ namespace BitBoard {
             sbb += " "; sbb += to_char (f);
         }
         sbb += "\n";
+
         while (bb)
         {
             Square s = pop_lsq (bb);

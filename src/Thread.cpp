@@ -388,6 +388,7 @@ void ThreadPool::wait_for_think_finished ()
 
 void prefetch (char *addr)
 {
+
 #   if defined(__INTEL_COMPILER)
     {
         // This hack prevents prefetches from being optimized away by

@@ -25,8 +25,8 @@
 ///             | only in 64-bit mode. For compiling requires hardware with
 ///             | popcnt support.
 ///
-/// - DBSFQ     | 
-/// - DLPAGES   | Enable Large Pages
+/// - DBSFQ     | Bit scan forward
+/// - DLPAGES   | Enable large pages
 
 #ifdef _MSC_VER
 // Disable some silly and noisy warning from MSVC compiler

@@ -143,10 +143,10 @@ namespace {
         uint8_t   symmetric;
         uint8_t   has_pawns;
         uint8_t   enc_type;
-        PairsData *precomp[2];
-        int32_t   factor[2][TBPIECES];
-        uint8_t   pieces[2][TBPIECES];
-        uint8_t   norm  [2][TBPIECES];
+        PairsData *precomp[CLR_NO];
+        int32_t   factor[CLR_NO][TBPIECES];
+        uint8_t   pieces[CLR_NO][TBPIECES];
+        uint8_t   norm  [CLR_NO][TBPIECES];
 
     } TBEntry_piece;
 
@@ -159,14 +159,14 @@ namespace {
         uint8_t   num;
         uint8_t   symmetric;
         uint8_t   has_pawns;
-        uint8_t   pawns[2];
+        uint8_t   pawns[CLR_NO];
 
         struct
         {
             PairsData   *precomp[2];
-            int32_t   factor[2][TBPIECES];
-            uint8_t   pieces[2][TBPIECES];
-            uint8_t   norm  [2][TBPIECES];
+            int32_t   factor[CLR_NO][TBPIECES];
+            uint8_t   pieces[CLR_NO][TBPIECES];
+            uint8_t   norm  [CLR_NO][TBPIECES];
 
         } file[4];
     } TBEntry_pawn;
@@ -204,9 +204,9 @@ namespace {
         struct
         {
             PairsData *precomp;
-            int32_t     factor[TBPIECES];
+            int32_t   factor[TBPIECES];
             uint8_t   pieces[TBPIECES];
-            uint8_t   norm[TBPIECES];
+            uint8_t   norm  [TBPIECES];
 
         } file[4];
 
@@ -246,7 +246,7 @@ namespace {
 
     static int32_t TB_num_piece, TB_num_pawn;
     static TBEntry_piece TB_piece[TBMAX_PIECE];
-    static TBEntry_pawn TB_pawn  [TBMAX_PAWN];
+    static TBEntry_pawn  TB_pawn [TBMAX_PAWN];
 
     static TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
@@ -453,13 +453,16 @@ namespace {
             }
             entry = (TBEntry *) &TB_pawn[TB_num_pawn++];
         }
+
         entry->key = key;
         entry->ready = 0;
         entry->num = 0;
+        
         for (i = 0; i < 16; ++i)
         {
             entry->num += pcs[i];
         }
+        
         entry->symmetric = (key == key2);
         entry->has_pawns = ((pcs[W_PAWN] + pcs[B_PAWN]) > 0);
         if (entry->num > TBSyzygy::TB_Largest)
@@ -470,13 +473,13 @@ namespace {
         if (entry->has_pawns)
         {
             TBEntry_pawn *ptr = (TBEntry_pawn *) entry;
-            ptr->pawns[0] = pcs[W_PAWN];
-            ptr->pawns[1] = pcs[B_PAWN];
+            ptr->pawns[WHITE] = pcs[W_PAWN];
+            ptr->pawns[BLACK] = pcs[B_PAWN];
             if (    pcs[B_PAWN] > 0
                 && (pcs[W_PAWN] == 0 || pcs[B_PAWN] < pcs[W_PAWN]))
             {
-                ptr->pawns[0] = pcs[B_PAWN];
-                ptr->pawns[1] = pcs[W_PAWN];
+                ptr->pawns[WHITE] = pcs[B_PAWN];
+                ptr->pawns[BLACK] = pcs[W_PAWN];
             }
         }
         else
@@ -541,7 +544,7 @@ namespace {
 
     const uint8_t invdiag[] = 
     {
-        0, 9, 18, 27, 36, 45, 54, 63,
+        0,  9, 18, 27, 36, 45, 54, 63,
         7, 14, 21, 28, 35, 42, 49, 56
     };
 
@@ -571,44 +574,44 @@ namespace {
 
     const uint8_t diag[] =
     {
-        0, 0, 0, 0, 0, 0, 0, 8,
-        0, 1, 0, 0, 0, 0, 9, 0,
-        0, 0, 2, 0, 0, 10, 0, 0,
-        0, 0, 0, 3, 11, 0, 0, 0,
-        0, 0, 0, 12, 4, 0, 0, 0,
-        0, 0, 13, 0, 0, 5, 0, 0,
-        0, 14, 0, 0, 0, 0, 6, 0,
-        15, 0, 0, 0, 0, 0, 0, 7
+        0,  0,  0,  0,  0,  0,  0,  8,
+        0,  1,  0,  0,  0,  0,  9,  0,
+        0,  0,  2,  0,  0, 10,  0,  0,
+        0,  0,  0,  3, 11,  0,  0,  0,
+        0,  0,  0, 12,  4,  0,  0,  0,
+        0,  0, 13,  0,  0,  5,  0,  0,
+        0, 14,  0,  0,  0,  0,  6,  0,
+        15, 0,  0,  0,  0,  0,  0,  7
     };
 
     const uint8_t flap[] =
     {
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 6, 12, 18, 18, 12, 6, 0,
-        1, 7, 13, 19, 19, 13, 7, 1,
-        2, 8, 14, 20, 20, 14, 8, 2,
-        3, 9, 15, 21, 21, 15, 9, 3,
-        4, 10, 16, 22, 22, 16, 10, 4,
-        5, 11, 17, 23, 23, 17, 11, 5,
-        0, 0, 0, 0, 0, 0, 0, 0
+        0,  0,  0,  0,  0,  0,  0,  0,
+        0,  6, 12, 18, 18, 12,  6,  0,
+        1,  7, 13, 19, 19, 13,  7,  1,
+        2,  8, 14, 20, 20, 14,  8,  2,
+        3,  9, 15, 21, 21, 15,  9,  3,
+        4, 10, 16, 22, 22, 16, 10,  4,
+        5, 11, 17, 23, 23, 17, 11,  5,
+        0,  0,  0,  0,  0,  0,  0,  0
     };
 
     const uint8_t ptwist[] =
     {
-        0, 0, 0, 0, 0, 0, 0, 0,
+         0,  0,  0,  0,  0,  0,  0,  0,
         47, 35, 23, 11, 10, 22, 34, 46,
-        45, 33, 21, 9, 8, 20, 32, 44,
-        43, 31, 19, 7, 6, 18, 30, 42,
-        41, 29, 17, 5, 4, 16, 28, 40,
-        39, 27, 15, 3, 2, 14, 26, 38,
-        37, 25, 13, 1, 0, 12, 24, 36,
-        0, 0, 0, 0, 0, 0, 0, 0
+        45, 33, 21,  9,  8, 20, 32, 44,
+        43, 31, 19,  7,  6, 18, 30, 42,
+        41, 29, 17,  5,  4, 16, 28, 40,
+        39, 27, 15,  3,  2, 14, 26, 38,
+        37, 25, 13,  1,  0, 12, 24, 36,
+         0,  0,  0,  0,  0,  0,  0,  0
     };
 
     const uint8_t invflap[] =
     {
-        8, 16, 24, 32, 40, 48,
-        9, 17, 25, 33, 41, 49,
+         8, 16, 24, 32, 40, 48,
+         9, 17, 25, 33, 41, 49,
         10, 18, 26, 34, 42, 50,
         11, 19, 27, 35, 43, 51
     };
@@ -617,8 +620,8 @@ namespace {
     {
         52, 51, 44, 43, 36, 35, 28, 27, 20, 19, 12, 11,
         53, 50, 45, 42, 37, 34, 29, 26, 21, 18, 13, 10,
-        54, 49, 46, 41, 38, 33, 30, 25, 22, 17, 14, 9,
-        55, 48, 47, 40, 39, 32, 31, 24, 23, 16, 15, 8
+        54, 49, 46, 41, 38, 33, 30, 25, 22, 17, 14,  9,
+        55, 48, 47, 40, 39, 32, 31, 24, 23, 16, 15,  8
     };
 
     const uint8_t file_to_file[] =
@@ -629,15 +632,15 @@ namespace {
 #ifndef CONNECTED_KINGS
     const short KK_idx[10][64] =
     {
-        { -1, -1, -1, 0, 1, 2, 3, 4,
-        -1, -1, -1, 5, 6, 7, 8, 9,
+        {-1, -1, -1,  0,  1,  2,  3,  4,
+        -1, -1, -1,  5,  6,  7,  8,  9,
         10, 11, 12, 13, 14, 15, 16, 17,
         18, 19, 20, 21, 22, 23, 24, 25,
         26, 27, 28, 29, 30, 31, 32, 33,
         34, 35, 36, 37, 38, 39, 40, 41,
         42, 43, 44, 45, 46, 47, 48, 49,
         50, 51, 52, 53, 54, 55, 56, 57 },
-        { 58, -1, -1, -1, 59, 60, 61, 62,
+        {58, -1, -1, -1, 59, 60, 61, 62,
         63, -1, -1, -1, 64, 65, 66, 67,
         68, 69, 70, 71, 72, 73, 74, 75,
         76, 77, 78, 79, 80, 81, 82, 83,
@@ -715,8 +718,8 @@ namespace {
 
     const short PP_idx[10][64] =
     {
-        { 0, -1, 1, 2, 3, 4, 5, 6,
-        7, 8, 9, 10, 11, 12, 13, 14,
+        { 0, -1,  1,  2,  3,  4,  5,  6,
+         7,  8,  9, 10, 11, 12, 13, 14,
         15, 16, 17, 18, 19, 20, 21, 22,
         23, 24, 25, 26, 27, 28, 29, 30,
         31, 32, 33, 34, 35, 36, 37, 38,
@@ -812,12 +815,12 @@ namespace {
     const uint8_t mtwist[] =
     {
         15, 63, 55, 47, 40, 48, 56, 12,
-        62, 11, 39, 31, 24, 32, 8, 57,
-        54, 38, 7, 23, 16, 4, 33, 49,
-        46, 30, 22, 3, 0, 17, 25, 41,
-        45, 29, 21, 2, 1, 18, 26, 42,
-        53, 37, 6, 20, 19, 5, 34, 50,
-        61, 10, 36, 28, 27, 35, 9, 58,
+        62, 11, 39, 31, 24, 32,  8, 57,
+        54, 38,  7, 23, 16,  4, 33, 49,
+        46, 30, 22,  3,  0, 17, 25, 41,
+        45, 29, 21,  2,  1, 18, 26, 42,
+        53, 37,  6, 20, 19,  5, 34, 50,
+        61, 10, 36, 28, 27, 35,  9, 58,
         14, 60, 52, 44, 43, 51, 59, 13
     };
 #endif
@@ -885,7 +888,6 @@ namespace {
         }
 
 #ifdef CONNECTED_KINGS
-
         for (i = 0; i < 5; ++i)
         {
             int32_t s = 0;
@@ -896,13 +898,11 @@ namespace {
             }
             mfactor[i] = s;
         }
-
 #endif
 
     }
 
 #ifndef CONNECTED_KINGS
-
     uint64_t encode_piece (TBEntry_piece *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
         uint64_t idx;
@@ -971,7 +971,7 @@ namespace {
             i = 2;
             break;
         }
-        idx *= factor[0];
+        idx *= factor[PAWN];
 
         for (; i < n;)
         {
@@ -999,9 +999,7 @@ namespace {
 
         return idx;
     }
-
 #else
-
     uint64_t encode_piece (TBEntry_piece *ptr, uint8_t *norm, int32_t *pos, int32_t *factor)
     {
         uint64_t idx;
@@ -1087,7 +1085,7 @@ namespace {
         { /* 2, e.g. KKvK */
             if (triangle[pos[0]] > triangle[pos[1]])
             {
-                Swap (pos[0], pos[1]);
+                std::swap (pos[0], pos[1]);
             }
             if (pos[0] & 0x04)
             {
@@ -1112,7 +1110,7 @@ namespace {
             }
             if (test45[pos[1]] && triangle[pos[0]] == triangle[pos[1]])
             {
-                Swap (pos[0], pos[1]);
+                std::swap (pos[0], pos[1]);
                 for (i = 0; i < n; ++i)
                 {
                     pos[i] = flipdiag[pos[i] ^ 0x38];
@@ -1127,7 +1125,7 @@ namespace {
             {
                 if (triangle[pos[0]] > triangle[pos[i]])
                 {
-                    Swap (pos[0], pos[i]);
+                    std::swap (pos[0], pos[i]);
                 }
             }
             if (pos[0] & 0x04)
@@ -1157,7 +1155,7 @@ namespace {
                 {
                     if (mtwist[pos[i]] > mtwist[pos[j]])
                     {
-                        Swap (pos[i], pos[j]);
+                        std::swap (pos[i], pos[j]);
                     }
                 }
             }
@@ -1167,7 +1165,7 @@ namespace {
                 idx += binomial[i - 1][mtwist[pos[i]]];
             }
         }
-        idx *= factor[0];
+        idx *= factor[PAWN];
 
         for (; i < n;)
         {
@@ -1178,7 +1176,7 @@ namespace {
                 {
                     if (pos[j] > pos[k])
                     {
-                        Swap (pos[j], pos[k]);
+                        std::swap (pos[j], pos[k]);
                     }
                 }
             }
@@ -1205,7 +1203,7 @@ namespace {
     {
         int32_t i;
 
-        for (i = 1; i < ptr->pawns[0]; ++i)
+        for (i = 1; i < ptr->pawns[WHITE]; ++i)
         {
             if (flap[pos[0]] > flap[pos[i]])
             {
@@ -1228,9 +1226,9 @@ namespace {
                 pos[i] ^= 0x07;
             }
         }
-        for (i = 1; i < ptr->pawns[0]; ++i)
+        for (i = 1; i < ptr->pawns[WHITE]; ++i)
         {
-            for (j = i + 1; j < ptr->pawns[0]; ++j)
+            for (j = i + 1; j < ptr->pawns[WHITE]; ++j)
             {
                 if (ptwist[pos[i]] < ptwist[pos[j]])
                 {
@@ -1238,17 +1236,17 @@ namespace {
                 }
             }
         }
-        t = ptr->pawns[0] - 1;
+        t = ptr->pawns[WHITE] - 1;
         idx = pawnidx[t][flap[pos[0]]];
         for (i = t; i > 0; --i)
         {
             idx += binomial[t - i][ptwist[pos[i]]];
         }
-        idx *= factor[0];
+        idx *= factor[PAWN];
 
         // remaining pawns
-        i = ptr->pawns[0];
-        t = i + ptr->pawns[1];
+        i = ptr->pawns[WHITE];
+        t = i + ptr->pawns[BLACK];
         if (t > i)
         {
             for (j = i; j < t; ++j)
@@ -1333,14 +1331,14 @@ namespace {
         { 31332, 0, 518, 278 };
 #endif
 
-        n = 64 - norm[0];
+        n = 64 - norm[PAWN];
 
         f = 1;
-        for (i = norm[0], k = 0; i < num || k == order; ++k)
+        for (i = norm[PAWN], k = 0; i < num || k == order; ++k)
         {
             if (k == order)
             {
-                factor[0] = f;
+                factor[PAWN] = f;
 
 #ifndef CONNECTED_KINGS
                 f *= pivfac[enc_type];
@@ -1382,13 +1380,13 @@ namespace {
         {
             if (k == order)
             {
-                factor[0] = f;
-                f *= pfactor[norm[0] - 1][file];
+                factor[PAWN] = f;
+                f *= pfactor[norm[PAWN] - 1][file];
             }
             else if (k == order2)
             {
-                factor[norm[0]] = f;
-                f *= subfactor (norm[norm[0]], 48 - norm[0]);
+                factor[norm[PAWN]] = f;
+                f *= subfactor (norm[norm[PAWN]], 48 - norm[PAWN]);
             }
             else
             {
@@ -1414,13 +1412,13 @@ namespace {
         switch (ptr->enc_type)
         {
         case 0:
-            norm[0] = 3;
+            norm[PAWN] = 3;
             break;
         case 2:
-            norm[0] = 2;
+            norm[PAWN] = 2;
             break;
         default:
-            norm[0] = ptr->enc_type - 1;
+            norm[PAWN] = ptr->enc_type - 1;
             break;
         }
 
@@ -1442,10 +1440,10 @@ namespace {
             norm[i] = 0;
         }
 
-        norm[0] = ptr->pawns[0];
-        if (ptr->pawns[1]) norm[ptr->pawns[0]] = ptr->pawns[1];
+        norm[PAWN] = ptr->pawns[WHITE];
+        if (ptr->pawns[BLACK]) norm[ptr->pawns[WHITE]] = ptr->pawns[BLACK];
 
-        for (i = ptr->pawns[0] + ptr->pawns[1]; i < ptr->num; i += norm[i])
+        for (i = ptr->pawns[WHITE] + ptr->pawns[BLACK]; i < ptr->num; i += norm[i])
         {
             for (int32_t j = i; j < ptr->num && pieces[j] == pieces[i]; ++j)
             {
@@ -1461,19 +1459,19 @@ namespace {
 
         for (i = 0; i < ptr->num; ++i)
         {
-            ptr->pieces[0][i] = data[i + 1] & 0x0f;
+            ptr->pieces[WHITE][i] = data[i + 1] & 0x0f;
         }
         order = data[0] & 0x0f;
-        set_norm_piece (ptr, ptr->norm[0], ptr->pieces[0]);
-        tb_size[0] = calc_factors_piece (ptr->factor[0], ptr->num, order, ptr->norm[0], ptr->enc_type);
+        set_norm_piece (ptr, ptr->norm[WHITE], ptr->pieces[WHITE]);
+        tb_size[0] = calc_factors_piece (ptr->factor[WHITE], ptr->num, order, ptr->norm[WHITE], ptr->enc_type);
 
         for (i = 0; i < ptr->num; ++i)
         {
-            ptr->pieces[1][i] = data[i + 1] >> 4;
+            ptr->pieces[BLACK][i] = data[i + 1] >> 4;
         }
         order = data[0] >> 4;
-        set_norm_piece (ptr, ptr->norm[1], ptr->pieces[1]);
-        tb_size[1] = calc_factors_piece (ptr->factor[1], ptr->num, order, ptr->norm[1], ptr->enc_type);
+        set_norm_piece (ptr, ptr->norm[BLACK], ptr->pieces[BLACK]);
+        tb_size[1] = calc_factors_piece (ptr->factor[BLACK], ptr->num, order, ptr->norm[BLACK], ptr->enc_type);
     }
 
     void setup_pieces_piece_dtz (DTZEntry_piece *ptr, unsigned char *data, uint64_t *tb_size)
@@ -1496,24 +1494,24 @@ namespace {
         int32_t order
             ,   order2;
 
-        j = 1 + (ptr->pawns[1] > 0);
+        j = 1 + (ptr->pawns[BLACK] > 0);
         order = data[0] & 0x0f;
-        order2 = ptr->pawns[1] ? (data[1] & 0x0f) : 0x0f;
+        order2 = ptr->pawns[BLACK] ? (data[1] & 0x0f) : 0x0f;
         for (i = 0; i < ptr->num; ++i)
         {
-            ptr->file[f].pieces[0][i] = data[i + j] & 0x0f;
+            ptr->file[f].pieces[WHITE][i] = data[i + j] & 0x0f;
         }
-        set_norm_pawn (ptr, ptr->file[f].norm[0], ptr->file[f].pieces[0]);
-        tb_size[0] = calc_factors_pawn (ptr->file[f].factor[0], ptr->num, order, order2, ptr->file[f].norm[0], f);
+        set_norm_pawn (ptr, ptr->file[f].norm[WHITE], ptr->file[f].pieces[WHITE]);
+        tb_size[0] = calc_factors_pawn (ptr->file[f].factor[WHITE], ptr->num, order, order2, ptr->file[f].norm[WHITE], f);
 
         order = data[0] >> 4;
-        order2 = ptr->pawns[1] ? (data[1] >> 4) : 0x0f;
+        order2 = ptr->pawns[BLACK] ? (data[1] >> 4) : 0x0f;
         for (i = 0; i < ptr->num; ++i)
         {
-            ptr->file[f].pieces[1][i] = data[i + j] >> 4;
+            ptr->file[f].pieces[BLACK][i] = data[i + j] >> 4;
         }
-        set_norm_pawn (ptr, ptr->file[f].norm[1], ptr->file[f].pieces[1]);
-        tb_size[1] = calc_factors_pawn (ptr->file[f].factor[1], ptr->num, order, order2, ptr->file[f].norm[1], f);
+        set_norm_pawn (ptr, ptr->file[f].norm[BLACK], ptr->file[f].pieces[BLACK]);
+        tb_size[1] = calc_factors_pawn (ptr->file[f].factor[BLACK], ptr->num, order, order2, ptr->file[f].norm[BLACK], f);
     }
 
     void setup_pieces_pawn_dtz (DTZEntry_pawn *ptr, unsigned char *data, uint64_t *tb_size, int32_t f)
@@ -1522,9 +1520,9 @@ namespace {
         int32_t order
             ,   order2;
 
-        j = 1 + (ptr->pawns[1] > 0);
+        j = 1 + (ptr->pawns[BLACK] > 0);
         order = data[0] & 0x0f;
-        order2 = ptr->pawns[1] ? (data[1] & 0x0f) : 0x0f;
+        order2 = ptr->pawns[BLACK] ? (data[1] & 0x0f) : 0x0f;
         for (i = 0; i < ptr->num; ++i)
         {
             ptr->file[f].pieces[i] = data[i + j] & 0x0f;
@@ -1564,9 +1562,13 @@ namespace {
             d = (PairsData *) malloc (sizeof (PairsData));
             d->idxbits = 0;
             if (wdl)
+            {
                 d->min_len = data[1];
+            }
             else
+            {
                 d->min_len = 0;
+            }
             *next = data + 2;
             size[0] = size[1] = size[2] = 0;
             return d;
@@ -1665,51 +1667,51 @@ namespace {
         if (!entry->has_pawns)
         {
             TBEntry_piece *ptr = (TBEntry_piece *)entry;
-            setup_pieces_piece (ptr, data, &tb_size[0]);
+            setup_pieces_piece (ptr, data, tb_size+0);
             data += ptr->num + 1;
             data += ((uintptr_t) data) & 0x01;
 
-            ptr->precomp[0] = setup_pairs (data, tb_size[0], &size[0], &next, &flags, 1);
+            ptr->precomp[WHITE] = setup_pairs (data, tb_size[0], size+(0), &next, &flags, 1);
             data = next;
             if (split)
             {
-                ptr->precomp[1] = setup_pairs (data, tb_size[1], &size[3], &next, &flags, 1);
+                ptr->precomp[BLACK] = setup_pairs (data, tb_size[1], size+(3), &next, &flags, 1);
                 data = next;
             }
             else
             {
-                ptr->precomp[1] = NULL;
+                ptr->precomp[BLACK] = NULL;
             }
 
-            ptr->precomp[0]->indextable = (char *) data;
+            ptr->precomp[WHITE]->indextable = (char *) data;
             data += size[0];
             if (split)
             {
-                ptr->precomp[1]->indextable = (char *) data;
+                ptr->precomp[BLACK]->indextable = (char *) data;
                 data += size[3];
             }
 
-            ptr->precomp[0]->sizetable = (uint16_t *) data;
+            ptr->precomp[WHITE]->sizetable = (uint16_t *) data;
             data += size[1];
             if (split)
             {
-                ptr->precomp[1]->sizetable = (uint16_t *) data;
+                ptr->precomp[BLACK]->sizetable = (uint16_t *) data;
                 data += size[4];
             }
 
             data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
-            ptr->precomp[0]->data = data;
+            ptr->precomp[WHITE]->data = data;
             data += size[2];
             if (split)
             {
                 data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
-                ptr->precomp[1]->data = data;
+                ptr->precomp[BLACK]->data = data;
             }
         }
         else
         {
             TBEntry_pawn *ptr = (TBEntry_pawn *)entry;
-            s = 1 + (ptr->pawns[1] > 0);
+            s = 1 + (ptr->pawns[BLACK] > 0);
             for (f = 0; f < 4; f++)
             {
                 setup_pieces_pawn ((TBEntry_pawn *)ptr, data, &tb_size[2 * f], f);
@@ -1719,37 +1721,37 @@ namespace {
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp[0] = setup_pairs (data, tb_size[2 * f], &size[6 * f], &next, &flags, 1);
+                ptr->file[f].precomp[WHITE] = setup_pairs (data, tb_size[2 * f], size+(6 * f), &next, &flags, 1);
                 data = next;
                 if (split)
                 {
-                    ptr->file[f].precomp[1] = setup_pairs (data, tb_size[2 * f + 1], &size[6 * f + 3], &next, &flags, 1);
+                    ptr->file[f].precomp[BLACK] = setup_pairs (data, tb_size[2 * f + 1], size+(6 * f + 3), &next, &flags, 1);
                     data = next;
                 }
                 else
                 {
-                    ptr->file[f].precomp[1] = NULL;
+                    ptr->file[f].precomp[BLACK] = NULL;
                 }
             }
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp[0]->indextable = (char *) data;
+                ptr->file[f].precomp[WHITE]->indextable = (char *) data;
                 data += size[6 * f];
                 if (split)
                 {
-                    ptr->file[f].precomp[1]->indextable = (char *) data;
+                    ptr->file[f].precomp[BLACK]->indextable = (char *) data;
                     data += size[6 * f + 3];
                 }
             }
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp[0]->sizetable = (uint16_t *) data;
+                ptr->file[f].precomp[WHITE]->sizetable = (uint16_t *) data;
                 data += size[6 * f + 1];
                 if (split)
                 {
-                    ptr->file[f].precomp[1]->sizetable = (uint16_t *) data;
+                    ptr->file[f].precomp[BLACK]->sizetable = (uint16_t *) data;
                     data += size[6 * f + 4];
                 }
             }
@@ -1757,12 +1759,12 @@ namespace {
             for (f = 0; f < files; f++)
             {
                 data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
-                ptr->file[f].precomp[0]->data = data;
+                ptr->file[f].precomp[WHITE]->data = data;
                 data += size[6 * f + 2];
                 if (split)
                 {
                     data = (uint8_t *) ((((uintptr_t) data) + 0x3f) & ~0x3f);
-                    ptr->file[f].precomp[1]->data = data;
+                    ptr->file[f].precomp[BLACK]->data = data;
                     data += size[6 * f + 5];
                 }
             }
@@ -1796,11 +1798,11 @@ namespace {
         if (!entry->has_pawns)
         {
             DTZEntry_piece *ptr = (DTZEntry_piece *)entry;
-            setup_pieces_piece_dtz (ptr, data, &tb_size[0]);
+            setup_pieces_piece_dtz (ptr, data, tb_size+0);
             data += ptr->num + 1;
             data += ((uintptr_t) data) & 0x01;
 
-            ptr->precomp = setup_pairs (data, tb_size[0], &size[0], &next, &(ptr->flags), 0);
+            ptr->precomp = setup_pairs (data, tb_size[0], size+(0), &next, &(ptr->flags), 0);
             data = next;
 
             ptr->map = data;
@@ -1828,7 +1830,7 @@ namespace {
         else
         {
             DTZEntry_pawn *ptr = (DTZEntry_pawn *) entry;
-            s = 1 + (ptr->pawns[1] > 0);
+            s = 1 + (ptr->pawns[BLACK] > 0);
             for (f = 0; f < 4; f++)
             {
                 setup_pieces_pawn_dtz (ptr, data, &tb_size[f], f);
@@ -1838,7 +1840,7 @@ namespace {
 
             for (f = 0; f < files; f++)
             {
-                ptr->file[f].precomp = setup_pairs (data, tb_size[f], &size[3 * f], &next, &(ptr->flags[f]), 0);
+                ptr->file[f].precomp = setup_pairs (data, tb_size[f], size+(3 * f), &next, &(ptr->flags[f]), 0);
                 data = next;
             }
 
@@ -1909,11 +1911,11 @@ namespace {
 
         uint32_t *ptr = (uint32_t *) (d->data + (block << d->blocksize));
 
-        int32_t m = d->min_len;
-        uint16_t *offset = d->offset;
-        base_t *base = d->base - m;
-        uint8_t *symlen = d->symlen;
-        int32_t sym, bitcnt;
+        int32_t     m       = d->min_len;
+        uint16_t    *offset = d->offset;
+        base_t      *base   = d->base - m;
+        uint8_t     *symlen = d->symlen;
+        int32_t     sym, bitcnt;
 
 #ifdef _64BIT
         uint64_t code =
@@ -2022,8 +2024,8 @@ namespace {
         if (ptr3->has_pawns)
         {
             DTZEntry_pawn *entry = (DTZEntry_pawn *)ptr3;
-            entry->pawns[0] = ((TBEntry_pawn *)ptr)->pawns[0];
-            entry->pawns[1] = ((TBEntry_pawn *)ptr)->pawns[1];
+            entry->pawns[WHITE] = ((TBEntry_pawn *)ptr)->pawns[WHITE];
+            entry->pawns[BLACK] = ((TBEntry_pawn *)ptr)->pawns[BLACK];
         }
         else
         {

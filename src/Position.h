@@ -201,7 +201,7 @@ public:
     const Square* operator[] (Piece p)  const;
 
     bool empty     (Square s)           const;
-    Piece piece_on (Square s)           const;
+    //Piece piece_on (Square s)           const;
 
     Square king_sq (Color c)            const;
 
@@ -407,7 +407,7 @@ inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
 inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
-inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
+//inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
@@ -633,7 +633,7 @@ inline bool Position::capture_or_promotion  (Move m) const
 
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == _ptype (piece_on (org_sq (m)))) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == _ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
 inline Piece Position::moved_piece(Move m) const

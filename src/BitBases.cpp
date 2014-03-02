@@ -37,7 +37,8 @@ namespace BitBases {
             INVALID = 0,
             UNKNOWN = 1,
             DRAW    = 2,
-            WIN     = 4
+            WIN     = 4,
+            LOSE    = 8
 
         } Result;
 
@@ -73,10 +74,10 @@ namespace BitBases {
 
         inline KPKPosition::KPKPosition (uint32_t idx)
         {
-            _wk_sq   = Square((idx >>  0) & 0x3F);
-            _bk_sq   = Square((idx >>  6) & 0x3F);
-            _active  = Color ((idx >> 12) & 0x01);
-            _p_sq    = File  ((idx >> 13) & 0x03) | Rank (int8_t (R_7) - (idx >> 15));
+            _wk_sq  = Square((idx >>  0) & 0x3F);
+            _bk_sq  = Square((idx >>  6) & 0x3F);
+            _active = Color ((idx >> 12) & 0x01);
+            _p_sq   = File  ((idx >> 13) & 0x03) | Rank (int8_t (R_7) - (idx >> 15));
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
