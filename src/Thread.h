@@ -18,7 +18,7 @@ const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
 const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
 // Windows or MinGW
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
@@ -260,7 +260,7 @@ struct ThreadPool
 inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
 {
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
     int32_t tm = msec;
 

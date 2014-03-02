@@ -21,7 +21,7 @@ this code to other chess engines.
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()

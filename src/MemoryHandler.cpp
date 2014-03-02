@@ -4,7 +4,7 @@
 
 #include "UCI.h"
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   include <tchar.h>
 #   include <stdio.h>
@@ -188,7 +188,7 @@ namespace MemoryHandler {
             /* Vlad0 */
             mem_ref = VirtualAlloc (
                         NULL,                                   // System selects address
-                        SIZE_T (mem_size),                      // Size of allocation
+                        mem_size,                               // Size of allocation
                         MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);                        // Protection of Allocation
 
@@ -202,7 +202,7 @@ namespace MemoryHandler {
             {
                 mem_ref = VirtualAlloc (
                         NULL,                   // System selects address
-                        SIZE_T (mem_size),      // Size of allocation
+                        mem_size,               // Size of allocation
                         MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);        // Protection of Allocation
                 

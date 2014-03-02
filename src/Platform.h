@@ -64,7 +64,7 @@ typedef unsigned __int64        uint64_t;
 #endif
 
 // Windows or MinGW
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   ifdef _WIN64
 #       ifndef _64BIT
@@ -142,7 +142,6 @@ typedef unsigned __int64        uint64_t;
     } } while (false)
 
 #   else
-
 #       include <cassert>
 
 #       define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )

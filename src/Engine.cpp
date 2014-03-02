@@ -110,7 +110,7 @@ namespace Engine {
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
 
-        cout << "info string Thread(s) count " << Threads.size () << ".\n" << endl; 
+        //cout << "info string Thread(s) " << Threads.size () << ".\n" << endl; 
 
         UCI   ::start (args);
 

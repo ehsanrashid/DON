@@ -14,7 +14,7 @@
 #include <ctime>
 
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   ifdef _MSC_VER
 #       pragma warning (disable: 4996) // Function _ftime() may be unsafe
