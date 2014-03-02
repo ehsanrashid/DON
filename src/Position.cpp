@@ -204,8 +204,8 @@ Position& Position::operator= (const Position &pos)
 bool Position::draw () const
 {
     // Draw by Material?
-    if (   !pieces<PAWN> ()
-        && (non_pawn_material (WHITE) + non_pawn_material (BLACK)
+    if (   (_types_bb[PAWN] == U64 (0))
+        && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK]
         <= VALUE_MG_BISHOP))
     {
         return true;
@@ -685,16 +685,14 @@ bool Position::pseudo_legal (Move m) const
         if (castle_impeded (mk_castle_right(activ, king_side ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "king captures friendly rook"
-        //ASSERT (dst == castle_rook (activ, king_side ? CS_K : CS_Q));
+        ASSERT (dst == castle_rook (mk_castle_right(activ, king_side ? CS_K : CS_Q)));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
         Delta step = king_side ? DEL_E : DEL_W;
-        Bitboard enemies = _color_bb[pasiv];
-
         for (Square s  = org + step;
             s != dst + step; s += step)
         {
-            if (attackers_to (s) & enemies)
+            if (attackers_to (s) & _color_bb[pasiv])
             {
                 return false;
             }
@@ -1078,9 +1076,7 @@ bool Position::can_en_passant (Square ep_sq) const
     for (vector<Move>::const_iterator itr = mov_ep.begin (); itr != mov_ep.end (); ++itr)
     {
         Move m = *itr;
-        Square org = org_sq (m);
-        Square dst = dst_sq (m);
-        Bitboard mocc = occ - org - cap + dst;
+        Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         if (!((attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasiv, QUEN, ROOK))
             | (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasiv, QUEN, BSHP))))
         {
@@ -1106,8 +1102,7 @@ Score Position::compute_psq_score () const
     while (occ)
     {
         Square s = pop_lsq (occ);
-        Piece  p = _board[s];
-        score += psq[_color (p)][_ptype (p)][s];
+        score += psq[_color (_board[s])][_ptype (_board[s])][s];
     }
     return score;
 }

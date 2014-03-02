@@ -400,7 +400,7 @@ inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c]
 inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
 
-inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
+INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 //inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }

@@ -91,11 +91,13 @@ namespace MoveGenerator {
             {
                 //static_assert (EVASION != GT, "GT must not be EVASION");
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
-                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ()) return;
-
-                static const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
-
+                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ())
+                {
+                    return;
+                }
+                const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
                 const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+
                 Square org_king = pos.king_sq (C);
                 Square org_rook = pos.castle_rook (CR);
                 if (ROOK != _ptype (pos[org_rook])) return;
@@ -176,7 +178,7 @@ namespace MoveGenerator {
                                 generate_castling<MakeCastling<C,  CS_K>::right, false> (m_list, pos, ci);
                         }
 
-                        if (!pos.castle_impeded (MakeCastling<C,  CS_K>::right) && pos.can_castle (MakeCastling<C,  CS_K>::right))
+                        if (!pos.castle_impeded (MakeCastling<C,  CS_Q>::right) && pos.can_castle (MakeCastling<C,  CS_Q>::right))
                         {
                             pos.chess960 () ?
                                 generate_castling<MakeCastling<C,  CS_Q>::right,  true> (m_list, pos, ci) :
@@ -246,8 +248,7 @@ namespace MoveGenerator {
                     }
                     else
                     {
-                        //(const void*) (ci); // silence a warning under MSVC
-                        (void) ci;
+                        (void) ci; // silence a warning under MSVC
                     }
                 }
             }
@@ -263,13 +264,12 @@ namespace MoveGenerator {
                 const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
                 const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
 
-                Bitboard bbRR7 = rel_rank_bb (C, R_7);
-                Bitboard bbRR3 = rel_rank_bb (C, R_3);
+                Bitboard RR7_bb = rel_rank_bb (C, R_7);
+                Bitboard RR3_bb = rel_rank_bb (C, R_3);
 
                 Bitboard pawns = pos.pieces<PAWN> (C);
-                Bitboard pawns_on_R7 = pawns &  bbRR7;
-                Bitboard pawns_on_Rx = pawns & ~bbRR7;
-                Bitboard occ = pos.pieces ();
+                Bitboard pawns_on_R7 = pawns &  RR7_bb;
+                Bitboard pawns_on_Rx = pawns & ~RR7_bb;
 
                 Bitboard enemies;
                 switch (GT)
@@ -283,10 +283,10 @@ namespace MoveGenerator {
                 // Pawn single-push and double-push, no promotions
                 if (CAPTURE != GT)
                 {
-                    empties = (QUIET == GT || QUIET_CHECK == GT) ? targets : ~occ;
+                    empties = (QUIET == GT || QUIET_CHECK == GT) ? targets : ~pos.pieces ();
 
                     Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx   ) & empties;
-                    Bitboard push_2 = shift_del<PUSH> (push_1 & bbRR3) & empties;
+                    Bitboard push_2 = shift_del<PUSH> (push_1 & RR3_bb) & empties;
 
                     switch (GT)
                     {
@@ -314,7 +314,7 @@ namespace MoveGenerator {
                             if (pawns_chk_dis)
                             {
                                 Bitboard push_cd_1 = shift_del<PUSH> (pawns_chk_dis    ) & empties;
-                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & bbRR3) & empties;
+                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & RR3_bb) & empties;
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -368,10 +368,10 @@ namespace MoveGenerator {
                 // Promotions (queening and under-promotions)
                 if (pawns_on_R7)
                 {
-                    Bitboard bbRR8 = rel_rank_bb (C, R_8);
-
+                    Bitboard RR8_bb = rel_rank_bb (C, R_8);
+                    
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & bbRR8))
+                    if (EVASION != GT || (targets & RR8_bb))
                     {
                         if      (CAPTURE == GT) empties = ~pos.pieces ();
                         else if (EVASION == GT) empties &= targets;
@@ -469,9 +469,9 @@ namespace MoveGenerator {
     {
         ASSERT (!pos.checkers ());
 
-        Color active    =  pos.active ();
+        Color active    = pos.active ();
         Bitboard occ    = pos.pieces ();
-        Bitboard empties= ~pos.pieces ();
+        Bitboard empties= ~occ;
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
@@ -500,7 +500,7 @@ namespace MoveGenerator {
         Bitboard occ    = pos.pieces ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
-        // Pawns excluded will be generated together with direct checks
+        // Pawns excluded, will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers)
         {
@@ -577,7 +577,7 @@ namespace MoveGenerator {
         SERIALIZE (m_list, org_king, moves);
 
         // If double check, then only a king move can save the day
-        if (1 == checker_count && pop_count<FULL> (friends) > 1)
+        if (1 == checker_count && pos.count (active) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
             Bitboard targets = BetweenSq[check_sq][org_king] + check_sq;
