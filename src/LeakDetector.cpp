@@ -163,7 +163,7 @@ namespace LeakDetector {
                 //x = sprintf_s (info_buf, BUF_SIZE, "Address : %p\n", leak_info->mem_info.address);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
                 x = sprintf (info_buf, "Size    : %u bytes\n", leak_info->mem_info.size);
-                //x = sprintf_s (info_buf, BUF_SIZE, "Size    : %"PR_SIZET"u bytes\n", leak_info->mem_info.size);
+                //x = sprintf_s (info_buf, BUF_SIZE, "Size    : %lu bytes\n", leak_info->mem_info.size);
                 fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
                 x = sprintf (info_buf, "Filename: %s\n", leak_info->mem_info.filename);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Filename: %s\n", leak_info->mem_info.filename);

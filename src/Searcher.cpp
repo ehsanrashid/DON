@@ -457,8 +457,7 @@ namespace Searcher {
         TBHits = TBCardinality = 0;
         RootInTB = false;
 
-        // Dynamic draw value: try to avoid repetition draws at early midgame
-        int32_t cf = max (70 - RootPos.game_ply (), 0);
+        int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
         DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
         DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
 
@@ -819,9 +818,6 @@ namespace Searcher {
                     }
                 }
 
-                // Duration of iteration
-                point iter_duration = now () - SearchTime;
-
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
                 if (skill.enabled () && skill.time_to_pick (depth))
                 {
@@ -837,7 +833,7 @@ namespace Searcher {
                 {
                     string search_log_fn = *(Options["Search Log File"]);
                     Log log (search_log_fn);
-                    log << pretty_pv (pos, depth, RootMoves[0].value[0], iter_duration, &RootMoves[0].pv[0]) << endl;
+                    log << pretty_pv (pos, depth, RootMoves[0].value[0], now () - SearchTime, &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Have found a "mate in x"?
@@ -851,8 +847,6 @@ namespace Searcher {
                 // Do we have time for the next iteration? Can we stop searching now?
                 if (Limits.use_time_management () && !Signals.stop && !Signals.stop_on_ponderhit)
                 {
-                    bool stop = false; // Local variable, not the volatile Signals.stop
-
                     // Take in account some extra time if the best move has changed
                     if ((4 < depth && depth < 50) && (1 == MultiPV))
                     {
@@ -863,12 +857,7 @@ namespace Searcher {
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
                     if (   1 == RootMoves.size ()
-                        || iter_duration > TimeMgr.available_time ())
-                    {
-                        stop = true;
-                    }
-
-                    if (stop)
+                        || now () - SearchTime > TimeMgr.available_time ())
                     {
                         // If we are allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
@@ -1656,7 +1645,7 @@ namespace Searcher {
             // case of Signals.stop or thread.cutoff_occurred() are set, but this is
             // harmless because return value is discarded anyhow in the parent nodes.
             // If we are in a singular extension search then return a fail low score.
-            // A split node has at least one move, the one tried before to be splitted.
+            // A split node has at least one move, the one tried before to be split.
             if (!moves_count)
             {
                 return excluded_move

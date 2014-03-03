@@ -119,8 +119,8 @@ namespace Engine {
         cout << endl;
 
 #ifndef NDEBUG
-        Tester::main_test ();
-        system ("pause");
+        //Tester::main_test ();
+        //system ("pause");
         //return;
 #endif
 

@@ -9,38 +9,40 @@ TranspositionTable TT;
 using namespace std;
 
 const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TEntry);  // 16
+
 const uint8_t  TranspositionTable::CLUSTER_SIZE     = 4;
 
 #ifdef _64BIT
-const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
-//const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x24; // 36
+const uint32_t TranspositionTable::MAX_HASH_BIT     = 32;
+//const uint32_t TranspositionTable::MAX_HASH_BIT     = 36;
 #else
-const uint32_t TranspositionTable::MAX_HASH_BIT     = 0x20; // 32
+const uint32_t TranspositionTable::MAX_HASH_BIT     = 32;
 #endif
 
 const uint32_t TranspositionTable::DEF_TT_SIZE      = 128;
+
 const uint32_t TranspositionTable::MIN_TT_SIZE      = 4;
 
-const uint32_t TranspositionTable::MAX_TT_SIZE      = (uint32_t (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
+const uint32_t TranspositionTable::MAX_TT_SIZE      = (U64 (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
 
-void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alignment)
+void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_bb, uint8_t alignment)
 {
 
     ASSERT (0 == (alignment & (alignment - 1)));
-    ASSERT (0 == (mem_size_b & (alignment - 1)));
+    ASSERT (0 == (mem_size_bb & (alignment - 1)));
 
 #ifdef LPAGES
     
-    uint8_t offset = max<int8_t> (alignment-1, sizeof (void *));
+    uint8_t offset = max<uint8_t> (alignment-1, sizeof (void *));
 
-    MemoryHandler::create_memory (_mem, mem_size_b, alignment);
+    MemoryHandler::create_memory (_mem, mem_size_bb, alignment);
     if (!_mem)
     {
-        cerr << "ERROR: Failed to allocate " << (mem_size_b >> 20) << " MB Hash..." << endl;
+        cerr << "ERROR: Failed to allocate " << (mem_size_bb >> 20) << " MB Hash..." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
-    //memset (_mem, 0, mem_size_b);
+    //memset (_mem, 0, mem_size_bb);
 
     void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
     _hash_table = (TEntry *) (ptr);
@@ -48,7 +50,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
 #else
 
     // We need to use malloc provided by C.
-    // First we need to allocate memory of mem_size_b + max (alignment, sizeof (void *)).
+    // First we need to allocate memory of mem_size_bb + max (alignment, sizeof (void *)).
     // We need 'bytes' because user requested it.
     // We need to add 'alignment' because malloc can give us any address and
     // we need to find multiple of 'alignment', so at maximum multiple
@@ -61,24 +63,23 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
     // Then checking for error returned by malloc, if it returns NULL then 
     // alloc_aligned_memory will fail and return NULL or exit().
 
-    uint8_t offset = max (alignment, uint8_t (sizeof (void *)));
+    uint8_t offset = max<uint8_t> (alignment, sizeof (void *));
 
-    void *mem = calloc (mem_size_b + offset, 1);
+    void *mem = calloc (mem_size_bb + offset, 1);
     if (!mem)
     {
-        cerr << "ERROR: Failed to allocate Hash " << (mem_size_b >> 20) << " MB..." << endl;
+        cerr << "ERROR: Failed to allocate Hash " << (mem_size_bb >> 20) << " MB..." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
-    std::cout << "info string Hash size " << (mem_size_b >> 20) << " MB..." << std::endl;
+    std::cout << "info string Hash size " << (mem_size_bb >> 20) << " MB..." << std::endl;
 
     void **ptr =
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
 
+    ptr[-1]     = mem;
     _hash_table = (TEntry *) (ptr);
-
-    ptr[-1] = mem;
 
 #endif
 
@@ -94,30 +95,24 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
     if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
-    uint64_t mem_size_b   = uint64_t (mem_size_mb) << 20;
-    uint64_t _entry_count = (mem_size_b) / TENTRY_SIZE;
-    //uint32_t cluster_count = _entry_count / CLUSTER_SIZE;
+    uint64_t mem_size_bb   = uint64_t (mem_size_mb) << 20;
+    uint64_t cluster_count = (mem_size_bb) / sizeof (TEntry[CLUSTER_SIZE]);
+    uint64_t   entry_count = uint64_t (CLUSTER_SIZE) << scan_msq (cluster_count);
 
-    uint8_t bit_hash = scan_msq (_entry_count);
-    ASSERT (bit_hash < MAX_HASH_BIT);
-    if (bit_hash >= MAX_HASH_BIT)
-    {
-        bit_hash = MAX_HASH_BIT - 1;
-    }
+    ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
 
-    _entry_count = uint32_t (1) << bit_hash;
-    mem_size_b   = _entry_count * TENTRY_SIZE;
+    mem_size_bb  = entry_count * TENTRY_SIZE;
     
-    if (force || _entry_count != entries ())
+    if (force || entry_count != entries ())
     {
         free_aligned_memory ();
 
-        alloc_aligned_memory (mem_size_b, CACHE_LINE_SIZE);
+        alloc_aligned_memory (mem_size_bb, CACHE_LINE_SIZE);
         
-        _hash_mask = (_entry_count - CLUSTER_SIZE);
+        _hash_mask = (entry_count - CLUSTER_SIZE);
     }
 
-    return (mem_size_b >> 20);
+    return (mem_size_bb >> 20);
 }
 
 // store() writes a new entry in the transposition table.
@@ -185,7 +180,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    re->save (key32, move, depth, bound, nodes/1000, value, eval, _generation);
+    re->save (key32, move, depth, bound, nodes >> 16, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -193,6 +188,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
 const TEntry* TranspositionTable::retrieve (Key key) const
 {
     uint32_t key32 = uint32_t (key >> 32);
+
     const TEntry *te = get_cluster (key);
     for (uint8_t i = 0; i < CLUSTER_SIZE; ++i, ++te)
     {

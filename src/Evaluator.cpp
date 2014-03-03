@@ -548,33 +548,35 @@ namespace Evaluator {
                     score -= ThreatenedByPawnPenalty[PT];
                 }
 
-                // Penalty for bishop with same coloured pawns
-                if (BSHP == PT)
-                {
-                    //// Give a bonus if we are a bishop and can pin a piece or
-                    //// can give a discovered check through an x-ray attack.
-                    //if (   (PieceAttacks[BSHP][ek_sq] & s)
-                    //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
-                    //{
-                    //    score += PinBonus;
-                    //}
-
-                    score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
-                }
-
-                // Penalty for knight when there are few enemy pawns
-                if (NIHT == PT)
-                {
-                    score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C_), 0);
-                }
-
                 if (BSHP == PT || NIHT == PT)
                 {
+
+                    // Penalty for bishop with same coloured pawns
+                    if (BSHP == PT)
+                    {
+                        //// Give a bonus if we are a bishop and can pin a piece or
+                        //// can give a discovered check through an x-ray attack.
+                        //if (   (PieceAttacks[BSHP][ek_sq] & s)
+                        //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
+                        //{
+                        //    score += PinBonus;
+                        //}
+
+                        score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
+                    }
+
+                    // Penalty for knight when there are few enemy pawns
+                    if (NIHT == PT)
+                    {
+                        score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C_), 0);
+                    }
+
                     // Bishop and knight outposts squares
                     if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]))
                     {
                         score += evaluate_outposts<PT, C> (pos, ei, s);
                     }
+
                     // Bishop or knight behind a pawn
                     if (rel_rank (C, s) < R_5
                         && (pos.pieces<PAWN> () & (s + pawn_push (C))))
@@ -583,63 +585,65 @@ namespace Evaluator {
                     }
                 }
 
-                if ((ROOK == PT || QUEN == PT)
-                    && R_5 <= rel_rank (C, s))
+                if (ROOK == PT || QUEN == PT)
                 {
-                    // Major piece on 7th rank and enemy king trapped on 8th
-                    if (R_7 == rel_rank (C, s)
-                        && R_8 == rel_rank (C, ek_sq))
+                    // Special extra evaluation for rooks
+                    if (ROOK == PT)
                     {
-                        score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
-                    }
-
-                    // Major piece attacking enemy pawns on the same rank/file
-                    Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                    if (pawns)
-                    {
-                        score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15> (pawns));
-                    }
-                }
-
-                // Special extra evaluation for rooks
-                if (ROOK == PT)
-                {
-                    //// Give a bonus if we are a rook and can pin a piece or
-                    //// can give a discovered check through an x-ray attack.
-                    //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                    //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
-                    //{
-                    //    score += PinBonus;
-                    //}
-
-                    // Give a bonus for a rook on a open or semi-open file
-                    if (ei.pi->semiopen (C, _file (s)))
-                    {
-                        score += ei.pi->semiopen (C_, _file (s))
-                            ? RookOpenFileBonus
-                            : RookSemiopenFileBonus;
-
-                        //// Give more bonus if the rook is doubled
-                        //if (front_sqs_bb (C_, s) & pos.pieces<ROOK> (C))
+                        //// Give a bonus if we are a rook and can pin a piece or
+                        //// can give a discovered check through an x-ray attack.
+                        //if (   (PieceAttacks[ROOK][ek_sq] & s)
+                        //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
                         //{
-                        //    score += ei.pi->semiopen (C_, _file (s))
-                        //        ? RookDoubledOpenBonus
-                        //        : RookDoubledSemiopenBonus;
+                        //    score += PinBonus;
                         //}
+
+                        // Give a bonus for a rook on a open or semi-open file
+                        if (ei.pi->semiopen (C, _file (s)))
+                        {
+                            score += ei.pi->semiopen (C_, _file (s))
+                                ? RookOpenFileBonus
+                                : RookSemiopenFileBonus;
+
+                            //// Give more bonus if the rook is doubled
+                            //if (front_sqs_bb (C_, s) & pos.pieces<ROOK> (C))
+                            //{
+                            //    score += ei.pi->semiopen (C_, _file (s))
+                            //        ? RookDoubledOpenBonus
+                            //        : RookDoubledSemiopenBonus;
+                            //}
+                        }
+
+                        if (mob > 3 || ei.pi->semiopen (C, _file (s)))
+                        {
+                            continue;
+                        }
+
+                        // Penalize rooks which are trapped by a king. Penalize more if the
+                        // king has lost its castling capability.
+                        if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                            && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                            && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
+                        {
+                            score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                        }
                     }
 
-                    if (mob > 3 || ei.pi->semiopen (C, _file (s)))
+                    if (R_5 <= rel_rank (C, s))
                     {
-                        continue;
-                    }
+                        // Major piece on 7th rank and enemy king trapped on 8th
+                        if (R_7 == rel_rank (C, s)
+                            && R_8 == rel_rank (C, ek_sq))
+                        {
+                            score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
+                        }
 
-                    // Penalize rooks which are trapped by a king. Penalize more if the
-                    // king has lost its castling capability.
-                    if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
-                        && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                        && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
-                    {
-                        score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                        // Major piece attacking enemy pawns on the same rank/file
+                        Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
+                        if (pawns)
+                        {
+                            score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * int32_t (pop_count<MAX15> (pawns));
+                        }
                     }
                 }
 

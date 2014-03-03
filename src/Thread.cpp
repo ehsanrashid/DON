@@ -411,6 +411,6 @@ void prefetch (char *addr)
 
 #else
 
-void prefetch (char *addr) {}
+void prefetch (char *) {}
 
 #endif

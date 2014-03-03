@@ -10,7 +10,7 @@
 
 #include "Type.h"
 #include "MemoryHandler.h"
-#include "LeakDetector.h"
+//#include "LeakDetector.h"
 
 #ifdef _MSC_VER
 #   pragma warning (push)
@@ -29,11 +29,6 @@
 //  Eval Value   2
 // ----------------
 //  total        16 byte
-
-#ifdef _MSC_VER
-//#   pragma pack( [ show ] | [ push | pop ] [, identifier ] , n  )
-#   pragma pack (push, 2)
-#endif
 
 typedef struct TEntry
 {
@@ -79,10 +74,6 @@ public:
 
 } TEntry;
 
-#ifdef _MSC_VER
-#   pragma pack (pop)
-#endif
-
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of CLUSTER_SIZE number of entry.
 // Each non-empty entry contains information of exactly one position.
@@ -95,13 +86,13 @@ private:
 
 #ifdef LPAGES
 
-    void               * _mem;
+    void    *_mem;
 
 #endif
 
-    TEntry *_hash_table;
-    uint32_t            _hash_mask;
-    uint8_t             _generation;
+    TEntry  *_hash_table;
+    uint64_t _hash_mask;
+    uint8_t  _generation;
 
     void alloc_aligned_memory (uint64_t size, uint8_t alignment);
 
@@ -135,7 +126,7 @@ public:
 
     // Total size for Transposition entry in byte
     static const uint8_t  TENTRY_SIZE;
-    // Number of entry in a cluster
+    // Number of entries in a cluster
     static const uint8_t  CLUSTER_SIZE;
 
     // Max power of hash for cluster
@@ -143,17 +134,14 @@ public:
 
     // Default size for Transposition table in mega-byte
     static const uint32_t DEF_TT_SIZE;
-
     // Minimum size for Transposition table in mega-byte
     static const uint32_t MIN_TT_SIZE;
-
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> 64 Bit
     // 032768 MB = 032 GB   -> 32 Bit
     static const uint32_t MAX_TT_SIZE;
 
     bool clear_hash;
-
 
     TranspositionTable ()
         : _hash_table (NULL)
@@ -178,7 +166,7 @@ public:
         free_aligned_memory ();
     }
 
-    inline uint32_t entries () const
+    inline uint64_t entries () const
     {
         return (_hash_mask + CLUSTER_SIZE);
     }
@@ -186,7 +174,7 @@ public:
     // Returns size in MB
     inline uint32_t size () const
     {
-        return (uint64_t (entries () * TENTRY_SIZE) >> 20);
+        return ((entries () * TENTRY_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -195,10 +183,9 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (_hash_table && clear_hash)
+        if (clear_hash && _hash_table)
         {
-            uint64_t mem_size_b  = uint64_t (entries () * TENTRY_SIZE);
-            std::memset (_hash_table, 0, mem_size_b);
+            std::memset (_hash_table, 0, entries () * TENTRY_SIZE);
             _generation = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }
@@ -231,7 +218,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     inline TEntry* get_cluster (const Key key) const
     {
-        return _hash_table + (uint32_t (key) & _hash_mask);
+        return _hash_table + (key & _hash_mask);
     }
 
     // permill_full() returns an approximation of the per-mille of the 
@@ -242,10 +229,10 @@ public:
     // hash, are using <x>%. of the state of full.
     inline uint16_t permill_full () const
     {
-        uint16_t full_count = 0;
+        uint32_t full_count = 0;
 
         TEntry *te = _hash_table;
-        uint16_t total_count = std::min (uint32_t (10000), entries ());
+        uint16_t total_count = std::min (U64 (10000), entries ());
         for (uint16_t i = 0; i < total_count; ++i, ++te)
         {
             if (te->gen () == _generation)

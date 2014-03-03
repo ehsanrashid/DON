@@ -42,18 +42,18 @@ typedef unsigned __int32        uint32_t;
 typedef   signed __int64         int64_t;
 typedef unsigned __int64        uint64_t;
 
-#   define  S32(X) (X## i32)
+#   define  S32(X) (X##i32)
 #   define  U32(X) (X##ui32)
-#   define  S64(X) (X## i64)
+#   define  S64(X) (X##i64)
 #   define  U64(X) (X##ui64)
 
 #else
 
 #   include <inttypes.h>
 
-#   define S32(X) (X## L )
-#   define U32(X) (X##UL )
-#   define S64(X) (X## LL)
+#   define S32(X) (X##L)
+#   define U32(X) (X##UL)
+#   define S64(X) (X##LL)
 #   define U64(X) (X##ULL)
 
 #endif
