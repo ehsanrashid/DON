@@ -246,7 +246,7 @@ public:
         uint16_t full_count = 0;
 
         TEntry *te = _hash_table;
-        uint16_t total_count = std::min (U32 (10000), entries ());
+        uint16_t total_count = std::min (uint32_t (10000), entries ());
         for (uint16_t i = 0; i < total_count; ++i, ++te)
         {
             if (te->gen () == _generation)

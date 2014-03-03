@@ -566,7 +566,7 @@ namespace MoveGenerator {
 
             if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
-                slid_attacks |= LineSq[check_sq][org_king] - check_sq;
+                slid_attacks |= LineRaySq[check_sq][org_king] - check_sq;
             }
         }
 

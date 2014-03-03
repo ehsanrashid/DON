@@ -518,7 +518,7 @@ namespace Evaluator {
 
                 if (ei.pinned_pieces[C] & s)
                 {
-                    attacks &= LineSq[fk_sq][s];
+                    attacks &= LineRaySq[fk_sq][s];
                 }
 
                 ei.attacked_by[C][PT] |= attacks;

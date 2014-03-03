@@ -8,10 +8,6 @@ namespace Zobrist {
     using namespace std;
     using namespace BitBoard;
 
-    const Key MATL_KEY_PG = U64 (0xB76D8438E5D28230);
-    const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
-    const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
-
     RKISS   Rkiss;
     Key     Exclusion;
 
@@ -46,7 +42,7 @@ namespace Zobrist {
     {
         Key pawn_key = U64 (0);
 
-        //Bitboard pawns = pos.pieces (PAWN);
+        //Bitboard pawns = pos.pieces<PAWN> ();
         //while (pawns)
         //{
         //    Square s = pop_lsq (pawns);

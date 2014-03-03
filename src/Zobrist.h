@@ -18,9 +18,9 @@ namespace Zobrist {
     //                  781
     const uint16_t SIZE_RANDOM = 781;
 
-    extern const Key MATL_KEY_PG; // = U64 (0xB76D8438E5D28230);
-    extern const Key PAWN_KEY_PG; // = U64 (0x37FC40DA841E1692);
-    extern const Key POSI_KEY_PG; // = U64 (0x463B96181691FC9C);
+    const Key MATL_KEY_PG = U64 (0xB76D8438E5D28230);
+    const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
+    const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
 
     extern RKISS Rkiss;
     extern Key   Exclusion;

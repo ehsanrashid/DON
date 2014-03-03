@@ -10,151 +10,17 @@ namespace BitBoard {
 
     using namespace std;
 
-    const Bitboard FA_bb = U64 (0x0101010101010101);
-    const Bitboard FB_bb = FA_bb << 1;//U64 (0x0202020202020202);
-    const Bitboard FC_bb = FA_bb << 2;//U64 (0x0404040404040404);
-    const Bitboard FD_bb = FA_bb << 3;//U64 (0x0808080808080808);
-    const Bitboard FE_bb = FA_bb << 4;//U64 (0x1010101010101010);
-    const Bitboard FF_bb = FA_bb << 5;//U64 (0x2020202020202020);
-    const Bitboard FG_bb = FA_bb << 6;//U64 (0x4040404040404040);
-    const Bitboard FH_bb = FA_bb << 7;//U64 (0x8080808080808080);
-
-    const Bitboard R1_bb = U64 (0x00000000000000FF);
-    const Bitboard R2_bb = R1_bb << (8 * 1);//U64 (0x000000000000FF00);
-    const Bitboard R3_bb = R1_bb << (8 * 2);//U64 (0x0000000000FF0000);
-    const Bitboard R4_bb = R1_bb << (8 * 3);//U64 (0x00000000FF000000);
-    const Bitboard R5_bb = R1_bb << (8 * 4);//U64 (0x000000FF00000000);
-    const Bitboard R6_bb = R1_bb << (8 * 5);//U64 (0x0000FF0000000000);
-    const Bitboard R7_bb = R1_bb << (8 * 6);//U64 (0x00FF000000000000);
-    const Bitboard R8_bb = R1_bb << (8 * 7);//U64 (0xFF00000000000000);
-
-    const Bitboard R1_bb_ = ~R1_bb;//U64 (0xFFFFFFFFFFFFFF00);    // 56 Not RANK-1
-    const Bitboard R8_bb_ = ~R8_bb;//U64 (0x00FFFFFFFFFFFFFF);    // 56 Not RANK-8
-    const Bitboard FA_bb_ = ~FA_bb;//U64 (0xFEFEFEFEFEFEFEFE);    // 56 Not FILE-A
-    const Bitboard FH_bb_ = ~FH_bb;//U64 (0x7F7F7F7F7F7F7F7F);    // 56 Not FILE-H
-
-    const Bitboard D18_bb = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
-    const Bitboard D81_bb = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
-
-    const Bitboard LIHT_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard DARK_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
-
-    const Bitboard CRNR_bb = U64(0x8100000000000081);             // 04 CORNER squares.
-    const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
-
     // FILE & RANK distance
     uint8_t FileRankDist[F_NO][R_NO];
     uint8_t   SquareDist[SQ_NO][SQ_NO];
 
-    const Delta PawnDeltas[CLR_NO][3] =
-    {
-        { DEL_NW, DEL_NE, DEL_O },
-        { DEL_SE, DEL_SW, DEL_O },
-    };
-    const Delta PieceDeltas[NONE][9] =
-    {
-        { DEL_O },
-        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
-        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
-        { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-    };
-
-    // SQUARES
-    CACHE_ALIGN(64) const Bitboard Square_bb[SQ_NO] =
-    {
-#undef S_16
-#undef S_8
-#undef S_4
-#undef S_2
-#define S_2(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
-#define S_4(n)       S_2(2*(n)),       S_2(2*(n)+1)
-#define S_8(n)       S_4(2*(n)),       S_4(2*(n)+1)
-#define S_16(n)      S_8(2*(n)),       S_8(2*(n)+1)
-        S_16 (0), S_16 (1), S_16 (2), S_16 (3),
-#undef S_16
-#undef S_8
-#undef S_4
-#undef S_2
-    };
-    // FILES
-    CACHE_ALIGN(64) const Bitboard   File_bb[F_NO] =
-    {
-        FA_bb,
-        FB_bb,
-        FC_bb,
-        FD_bb,
-        FE_bb,
-        FF_bb,
-        FG_bb,
-        FH_bb
-    };
-    // RANKS
-    CACHE_ALIGN(64) const Bitboard   Rank_bb[R_NO] =
-    {
-        R1_bb,
-        R2_bb,
-        R3_bb,
-        R4_bb,
-        R5_bb,
-        R6_bb,
-        R7_bb,
-        R8_bb
-    };
-
-    // ADJACENT FILES used for isolated-pawn
-    CACHE_ALIGN(64) const Bitboard AdjFile_bb[F_NO] =
-    {
-        FB_bb,
-        FA_bb | FC_bb,
-        FB_bb | FD_bb,
-        FC_bb | FE_bb,
-        FD_bb | FF_bb,
-        FE_bb | FG_bb,
-        FF_bb | FH_bb,
-        FG_bb
-    };
-    // ADJACENT RANKS
-    CACHE_ALIGN(64) const Bitboard AdjRank_bb[R_NO] =
-    {
-        R2_bb,
-        R1_bb | R3_bb,
-        R2_bb | R4_bb,
-        R3_bb | R5_bb,
-        R4_bb | R6_bb,
-        R5_bb | R7_bb,
-        R6_bb | R8_bb,
-        R7_bb,
-    };
-    // FRONT RANK
-    CACHE_ALIGN(64) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
-    {
-        R2_bb | R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R5_bb | R6_bb | R7_bb | R8_bb,
-        R6_bb | R7_bb | R8_bb,
-        R7_bb | R8_bb,
-        R8_bb,
-        0,
-
-        0,
-        R1_bb,
-        R2_bb | R1_bb,
-        R3_bb | R2_bb | R1_bb,
-        R4_bb | R3_bb | R2_bb | R1_bb,
-        R5_bb | R4_bb | R3_bb | R2_bb | R1_bb,
-        R6_bb | R5_bb | R4_bb | R3_bb | R2_bb | R1_bb,
-        R7_bb | R6_bb | R5_bb | R4_bb | R3_bb | R2_bb | R1_bb
-    };
     // FRONT SQUARES
     CACHE_ALIGN(64)       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
     // ---
 
     CACHE_ALIGN(64) Bitboard BetweenSq[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard    LineSq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard LineRaySq[SQ_NO][SQ_NO];
 
     CACHE_ALIGN (64) Bitboard DistanceRings[SQ_NO][F_NO];
 
@@ -447,7 +313,7 @@ namespace BitBoard {
                 if (NONE == pt) continue;
 
                 BetweenSq[s1][s2] = (attacks_bb (Piece (pt), s1, Square_bb[s2]) & attacks_bb (Piece (pt), s2, Square_bb[s1]));
-                LineSq   [s1][s2] = (attacks_bb (Piece (pt), s1,       U64 (0)) & attacks_bb (Piece (pt), s2,       U64 (0))) + s1 + s2;
+                LineRaySq[s1][s2] = (attacks_bb (Piece (pt), s1,       U64 (0)) & attacks_bb (Piece (pt), s2,       U64 (0))) + s1 + s2;
             }
         }
 
