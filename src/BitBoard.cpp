@@ -10,10 +10,6 @@ namespace BitBoard {
 
     using namespace std;
 
-    // FILE & RANK distance
-    uint8_t FileRankDist[F_NO][R_NO];
-    uint8_t   SquareDist[SQ_NO][SQ_NO];
-
     // FRONT SQUARES
     CACHE_ALIGN(64)       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
@@ -47,6 +43,11 @@ namespace BitBoard {
 
     CACHE_ALIGN(64) uint8_t      BShift[SQ_NO];
     CACHE_ALIGN(64) uint8_t      RShift[SQ_NO];
+
+    // FILE & RANK distance
+    uint8_t FileRankDist[F_NO][R_NO];
+    uint8_t   SquareDist[SQ_NO][SQ_NO];
+
 
     namespace {
 

@@ -199,8 +199,7 @@ public:
         {
             uint64_t mem_size_b  = uint64_t (entries () * TENTRY_SIZE);
             std::memset (_hash_table, 0, mem_size_b);
-
-            _generation  = 0;
+            _generation = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }
         clear_hash = false;
@@ -259,6 +258,7 @@ public:
     }
 
     uint32_t resize (uint32_t mem_size_mb, bool force = false);
+
     inline uint32_t resize ()
     {
         return resize (size (), true);

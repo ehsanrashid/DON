@@ -261,50 +261,48 @@ namespace Searcher {
             bool enabled ()                   const { return (level < 20); }
             bool time_to_pick (uint8_t depth) const { return (depth == (1 + level)); }
 
-            Move pick_move ();
+            // When playing with strength handicap choose best move among the MultiPV set
+            // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+            Move pick_move ()
+            {
+                static RKISS rk;
+                // PRNG sequence should be not deterministic
+                for (int32_t i = now () % 50; i > 0; --i) rk.rand64 ();
+
+                move = MOVE_NONE;
+
+                // RootMoves are already sorted by score in descending order
+                Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
+                Value weakness = Value (120 - 2 * level);
+                Value max_v    = -VALUE_INFINITE;
+
+                // Choose best move. For each move score we add two terms both dependent on
+                // weakness, one deterministic and bigger for weaker moves, and one random,
+                // then we choose the move with the resulting highest score.
+                for (uint8_t i = 0; i < MultiPV; ++i)
+                {
+                    Value v = RootMoves[i].value[0];
+
+                    // Don't allow crazy blunders even at very low skills
+                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2 * VALUE_MG_PAWN))
+                    {
+                        break;
+                    }
+
+                    // This is our magic formula
+                    v += (weakness * int32_t (RootMoves[0].value[0] - v)
+                        + variance * int32_t (rk.rand<uint32_t> () % weakness)) / 128;
+
+                    if (v > max_v)
+                    {
+                        max_v = v;
+                        move = RootMoves[i].pv[0];
+                    }
+                }
+                return move;
+            }
 
         } Skill;
-
-        // When playing with strength handicap choose best move among the MultiPV set
-        // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-        Move Skill::pick_move ()
-        {
-            static RKISS rk;
-            // PRNG sequence should be not deterministic
-            for (int32_t i = now () % 50; i > 0; --i) rk.rand64 ();
-
-            move = MOVE_NONE;
-
-            // RootMoves are already sorted by score in descending order
-            Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
-            Value weakness = Value (120 - 2 * level);
-            Value max_v    = -VALUE_INFINITE;
-
-            // Choose best move. For each move score we add two terms both dependent on
-            // weakness, one deterministic and bigger for weaker moves, and one random,
-            // then we choose the move with the resulting highest score.
-            for (uint8_t i = 0; i < MultiPV; ++i)
-            {
-                Value v = RootMoves[i].value[0];
-
-                // Don't allow crazy blunders even at very low skills
-                if (i > 0 && RootMoves[i-1].value[0] > (v + 2 * VALUE_MG_PAWN))
-                {
-                    break;
-                }
-
-                // This is our magic formula
-                v += (weakness * int32_t (RootMoves[0].value[0] - v)
-                    + variance * int32_t (rk.rand<uint32_t> () % weakness)) / 128;
-
-                if (v > max_v)
-                {
-                    max_v = v;
-                    move = RootMoves[i].pv[0];
-                }
-            }
-            return move;
-        }
 
         // _perft() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.

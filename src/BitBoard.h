@@ -41,9 +41,6 @@ namespace BitBoard {
     const Bitboard CRNR_bb = U64(0x8100000000000081);             // 04 CORNER squares.
     const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
 
-    extern uint8_t FileRankDist[F_NO][R_NO];
-    extern uint8_t   SquareDist[SQ_NO][SQ_NO];
-
     const Delta PawnDeltas[CLR_NO][3] =
     {
         { DEL_NW, DEL_NE, DEL_O },
@@ -173,6 +170,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern uint8_t       BShift[SQ_NO];
     CACHE_ALIGN(64) extern uint8_t       RShift[SQ_NO];
 
+    extern uint8_t FileRankDist[F_NO][R_NO];
+    extern uint8_t   SquareDist[SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
