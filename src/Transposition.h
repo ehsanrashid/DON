@@ -35,7 +35,7 @@
 #   pragma pack (push, 2)
 #endif
 
-typedef struct TranspositionEntry
+typedef struct TEntry
 {
 
 private:
@@ -77,7 +77,7 @@ public:
         _gen = g;
     }
 
-} TranspositionEntry;
+} TEntry;
 
 #ifdef _MSC_VER
 #   pragma pack (pop)
@@ -99,7 +99,7 @@ private:
 
 #endif
 
-    TranspositionEntry *_hash_table;
+    TEntry *_hash_table;
     uint32_t            _hash_mask;
     uint8_t             _generation;
 
@@ -125,12 +125,10 @@ private:
 #   endif
 
             _hash_table = NULL;
-
+            _hash_mask  = 0;
+            _generation = 0;
+            clear_hash  = false;
         }
-
-        _hash_mask      = 0;
-        _generation     = 0;
-        clear_hash      = false;
     }
 
 public:
@@ -180,13 +178,15 @@ public:
         free_aligned_memory ();
     }
 
-    // Returns size in MB
-    inline uint32_t size () const { return (uint64_t (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE) >> 20; }
-
-    inline void master_clear ()
+    inline uint32_t entries () const
     {
-        clear_hash = true;
-        clear ();
+        return (_hash_mask + CLUSTER_SIZE);
+    }
+
+    // Returns size in MB
+    inline uint32_t size () const
+    {
+        return (uint64_t (entries () * TENTRY_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -197,13 +197,19 @@ public:
     {
         if (_hash_table && clear_hash)
         {
-            uint64_t mem_size_b  = (_hash_mask + CLUSTER_SIZE) * TENTRY_SIZE;
+            uint64_t mem_size_b  = uint64_t (entries () * TENTRY_SIZE);
             std::memset (_hash_table, 0, mem_size_b);
 
             _generation  = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }
         clear_hash = false;
+    }
+
+    inline void master_clear ()
+    {
+        clear_hash = true;
+        clear ();
     }
 
     // new_gen() is called at the beginning of every new search.
@@ -213,18 +219,18 @@ public:
 
     // refresh() updates the 'Generation' of the entry to avoid aging.
     // Normally called after a TranspositionTable hit.
-    inline void refresh (const TranspositionEntry &te) const
+    inline void refresh (const TEntry &te) const
     {
-        const_cast<TranspositionEntry&> (te).gen (_generation);
+        const_cast<TEntry&> (te).gen (_generation);
     }
-    inline void refresh (const TranspositionEntry *te) const
+    inline void refresh (const TEntry *te) const
     {
-        const_cast<TranspositionEntry*> (te)->gen (_generation);
+        const_cast<TEntry*> (te)->gen (_generation);
     }
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    inline TranspositionEntry* get_cluster (const Key key) const
+    inline TEntry* get_cluster (const Key key) const
     {
         return _hash_table + (uint32_t (key) & _hash_mask);
     }
@@ -239,8 +245,8 @@ public:
     {
         uint16_t full_count = 0;
 
-        TranspositionEntry *te = _hash_table;
-        uint16_t total_count = std::min (U64 (10000), uint64_t (_hash_mask + CLUSTER_SIZE));
+        TEntry *te = _hash_table;
+        uint16_t total_count = std::min (U32 (10000), entries ());
         for (uint16_t i = 0; i < total_count; ++i, ++te)
         {
             if (te->gen () == _generation)
@@ -262,7 +268,7 @@ public:
     void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
 
     // retrieve() looks up the entry in the transposition table.
-    const TranspositionEntry* retrieve (Key key) const;
+    const TEntry* retrieve (Key key) const;
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&

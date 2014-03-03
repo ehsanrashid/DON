@@ -7,7 +7,11 @@
 
 namespace Tester {
 
+#ifndef NDEBUG
+
     extern void main_test ();
+
+#endif
 
 }
 

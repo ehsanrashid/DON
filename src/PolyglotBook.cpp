@@ -16,19 +16,19 @@ using namespace MoveGenerator;
 #define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 
 
-inline bool operator== (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator== (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return (pe1.key == pe2.key)
         && (pe1.move == pe2.move)
         && (pe1.weight == pe2.weight);
 }
 
-inline bool operator!= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator!= (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return !(pe1 == pe2);
 }
 
-inline bool operator>  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator>  (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return (pe1.key != pe2.key)
         ? (pe1.key > pe2.key)
@@ -36,7 +36,7 @@ inline bool operator>  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     //: (pe1.weight > pe2.weight);  // order by weight value
 }
 
-inline bool operator<  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator<  (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return (pe1.key != pe2.key)
         ? (pe1.key < pe2.key)
@@ -44,7 +44,7 @@ inline bool operator<  (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     //: (pe1.weight < pe2.weight);  // order by weight value
 }
 
-inline bool operator>= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator>= (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return (pe1.key != pe2.key)
         ? (pe1.key >= pe2.key)
@@ -52,7 +52,7 @@ inline bool operator>= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     //: (pe1.weight >= pe2.weight);  // order by weight value
 }
 
-inline bool operator<= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBook::PolyglotEntry &pe2)
+inline bool operator<= (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
 {
     return (pe1.key != pe2.key)
         ? (pe1.key <= pe2.key)
@@ -60,7 +60,7 @@ inline bool operator<= (const PolyglotBook::PolyglotEntry &pe1, const PolyglotBo
     //: (pe1.weight <= pe2.weight);  // order by weight value
 }
 
-PolyglotBook::PolyglotEntry::operator string () const
+PolyglotBook::PEntry::operator string () const
 {
     ostringstream spe;
 
@@ -93,7 +93,7 @@ PolyglotBook& PolyglotBook::operator>> (T &t)
     return *this;
 }
 template<>
-PolyglotBook& PolyglotBook::operator>> (PolyglotEntry &pe)
+PolyglotBook& PolyglotBook::operator>> (PEntry &pe)
 {
     *this >> pe.key >> pe.move >> pe.weight >> pe.learn;
     return *this;
@@ -111,7 +111,7 @@ PolyglotBook& PolyglotBook::operator<< (T &t)
     return *this;
 }
 template<>
-PolyglotBook& PolyglotBook::operator<< (PolyglotEntry &pe)
+PolyglotBook& PolyglotBook::operator<< (PEntry &pe)
 {
     *this << pe.key << pe.move << pe.weight << pe.learn;
     return *this;
@@ -178,7 +178,7 @@ uint64_t PolyglotBook::find_index (const Key key)
     uint64_t beg = uint64_t (0);
     uint64_t end = uint64_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
 
-    PolyglotEntry pe;
+    PEntry pe;
 
     ASSERT (beg <= end);
 
@@ -243,12 +243,12 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     Move move = MOVE_NONE;
 
-    PolyglotEntry pe;
+    PEntry pe;
 
     uint16_t max_weight = 0;
     uint32_t sum_weight = 0;
 
-    //vector<PolyglotEntry> pe_list;
+    //vector<PEntry> pe_list;
     //while ((*this >> pe), (pe.key == key) && good ())
     //{
     //    pe_list.push_back (pe);
@@ -259,7 +259,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //
     //if (pick_best)
     //{
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    vector<PEntry>::const_iterator itr = pe_list.begin ();
     //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
@@ -279,7 +279,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
     //    uint32_t rand = (_rkiss.rand<uint32_t> () % sum_weight);
-    //    vector<PolyglotEntry>::const_iterator itr = pe_list.begin ();
+    //    vector<PEntry>::const_iterator itr = pe_list.begin ();
     //    while (itr != pe_list.end ())
     //    {
     //        pe = *itr;
@@ -380,9 +380,9 @@ string PolyglotBook::read_entries (const Position &pos)
 
     seekg (STM_POS (index));
 
-    PolyglotEntry pe;
+    PEntry pe;
 
-    vector<PolyglotEntry> pe_list;
+    vector<PEntry> pe_list;
 
     uint32_t sum_weight = 0;
     while ((*this >> pe), (pe.key == key) && good ())
@@ -392,7 +392,7 @@ string PolyglotBook::read_entries (const Position &pos)
     }
 
     ostringstream ss;
-    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PolyglotEntry _pe)
+    for_each (pe_list.begin (), pe_list.end (), [&ss, &sum_weight] (PEntry _pe)
     {
         ss  << setfill ('0')
             << _pe << " prob: " << right << fixed << width_prec (6, 2)
@@ -403,7 +403,7 @@ string PolyglotBook::read_entries (const Position &pos)
     return ss.str ();
 }
 
-void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
+void PolyglotBook::insert_entry (const PolyglotBook::PEntry &pe)
 {
     if (!fstream::is_open () || !(_mode & ios_base::out)) return;
 
@@ -428,16 +428,16 @@ void PolyglotBook::insert_entry (const PolyglotBook::PolyglotEntry &pe)
 
 }
 
-void PolyglotBook::import_pgn (const string &fn_pgn)
-{
-    (void) fn_pgn;
-}
-
-void PolyglotBook::merge_book (const string &fn_book)
-{
-    (void) fn_book;
-
-}
+//void PolyglotBook::import_pgn (const string &fn_pgn)
+//{
+//    (void) fn_pgn;
+//}
+//
+//void PolyglotBook::merge_book (const string &fn_book)
+//{
+//    (void) fn_book;
+//
+//}
 
 //void PolyglotBook::dump ()
 //{

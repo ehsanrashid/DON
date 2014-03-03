@@ -35,14 +35,14 @@ public:
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    typedef struct PolyglotEntry
+    typedef struct PEntry
     {
         uint64_t key;
         uint16_t move;
         uint16_t weight;
         uint32_t learn;
 
-        PolyglotEntry ()
+        PEntry ()
             : key (U64 (0))
             , move (MOVE_NONE)
             , weight (0)
@@ -53,15 +53,15 @@ public:
 
         template<class charT, class Traits>
         friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const PolyglotEntry &pe)
+            operator<< (std::basic_ostream<charT, Traits> &os, const PEntry &pe)
         {
             os << std::string (pe);
             return os;
         }
 
-    } PolyglotEntry;
+    } PEntry;
 
-    static const uint8_t SIZE_PGENTRY   = sizeof (PolyglotEntry);
+    static const uint8_t SIZE_PGENTRY   = sizeof (PEntry);
     static const uint8_t SIZE_PGHEADER  = 0*SIZE_PGENTRY;
 
     static const uint64_t  ERROR_INDEX  = uint64_t (-1);
@@ -131,14 +131,14 @@ public:
 
     std::string read_entries (const Position &pos);
 
-    void insert_entry (const PolyglotBook::PolyglotEntry &pe);
+    void insert_entry (const PolyglotBook::PEntry &pe);
 
 
     void write ();
 
-    void import_pgn (const std::string &fn_pgn);
+    //void import_pgn (const std::string &fn_pgn);
 
-    void merge_book (const std::string &fn_book);
+    //void merge_book (const std::string &fn_book);
 
     //void dump ();
     //void info ();

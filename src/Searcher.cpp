@@ -375,7 +375,7 @@ namespace Searcher {
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
 
-        const TranspositionEntry *te;
+        const TEntry *te;
         do
         {
             pv.push_back (m);
@@ -413,7 +413,7 @@ namespace Searcher {
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
 
-        const TranspositionEntry *te;
+        const TEntry *te;
         do
         {
             te = TT.retrieve (pos.posi_key ());
@@ -907,7 +907,7 @@ namespace Searcher {
             SplitPoint *split_point;
             Key     posi_key;
 
-            const TranspositionEntry *te;
+            const TEntry *te;
 
             Move    best_move
                 ,   tt_move
@@ -1739,7 +1739,7 @@ namespace Searcher {
             Key posi_key = pos.posi_key ();
 
             // Transposition table lookup
-            const TranspositionEntry *te;
+            const TEntry *te;
             Move  tt_move;
             Value tt_value;
 

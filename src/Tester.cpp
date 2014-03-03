@@ -10,12 +10,11 @@
 
 namespace Tester {
 
-    //#ifndef NDEBUG
-
-    using namespace std;
+#ifndef NDEBUG
 
     namespace {
 
+        using namespace std;
         using namespace BitBoard;
 
         void test_type ()
@@ -588,6 +587,6 @@ namespace Tester {
         test_uci ();
     }
 
-    //#endif
+#endif
 
 }

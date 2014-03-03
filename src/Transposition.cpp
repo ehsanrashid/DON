@@ -8,7 +8,7 @@ TranspositionTable TT;
 
 using namespace std;
 
-const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TranspositionEntry);  // 16
+const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TEntry);  // 16
 const uint8_t  TranspositionTable::CLUSTER_SIZE     = 4;
 
 #ifdef _64BIT
@@ -43,7 +43,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
     //memset (_mem, 0, mem_size_b);
 
     void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
-    _hash_table = (TranspositionEntry *) (ptr);
+    _hash_table = (TEntry *) (ptr);
 
 #else
 
@@ -76,7 +76,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size_b, uint8_t alig
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
 
-    _hash_table = (TranspositionEntry *) (ptr);
+    _hash_table = (TEntry *) (ptr);
 
     ptr[-1] = mem;
 
@@ -107,14 +107,14 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
 
     _entry_count = uint32_t (1) << bit_hash;
     mem_size_b   = _entry_count * TENTRY_SIZE;
-
-    if (force || _hash_mask != (_entry_count - CLUSTER_SIZE))
+    
+    if (force || _entry_count != entries ())
     {
         free_aligned_memory ();
 
         alloc_aligned_memory (mem_size_b, CACHE_LINE_SIZE);
         
-        _hash_mask  = (_entry_count - CLUSTER_SIZE);
+        _hash_mask = (_entry_count - CLUSTER_SIZE);
     }
 
     return (mem_size_b >> 20);
@@ -140,9 +140,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
-    TranspositionEntry *te = get_cluster (key);
+    TEntry *te = get_cluster (key);
     // By default replace first entry
-    TranspositionEntry *re = te;
+    TEntry *re = te;
 
     for (uint8_t i = 0; i < CLUSTER_SIZE; ++i, ++te)
     {
@@ -190,10 +190,10 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
 
 // retrieve() looks up the entry in the transposition table.
 // Returns a pointer to the entry found or NULL if not found.
-const TranspositionEntry* TranspositionTable::retrieve (Key key) const
+const TEntry* TranspositionTable::retrieve (Key key) const
 {
     uint32_t key32 = uint32_t (key >> 32);
-    const TranspositionEntry *te = get_cluster (key);
+    const TEntry *te = get_cluster (key);
     for (uint8_t i = 0; i < CLUSTER_SIZE; ++i, ++te)
     {
         if (te->key () == key32) return te;

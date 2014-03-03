@@ -5,11 +5,6 @@
 #ifndef _PLATFORM_H_INC_
 #define _PLATFORM_H_INC_
 
-//#undef POPCNT
-//#pragma comment (linker, "/stack:xxx /heap:yyy")
-
-
-
 /// For Linux and OSX configuration is done automatically using Makefile. To get
 /// started type 'make help'.
 ///
@@ -37,7 +32,7 @@
 #   pragma warning (disable: 6326) // Constant comparison
 
 // MSVC does not support <inttypes.h>
-//#       include <stdint.h>
+//#   include <stdint.h>
 typedef   signed __int8          int8_t;
 typedef unsigned __int8         uint8_t;
 typedef   signed __int16         int16_t;

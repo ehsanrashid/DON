@@ -111,7 +111,7 @@ namespace Engine {
         Threads   .initialize ();
         
         TT.resize (int32_t (*(Options["Hash"])), true);
-        
+
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
 

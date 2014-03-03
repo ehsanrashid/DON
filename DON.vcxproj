@@ -234,7 +234,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
-    <TargetName>$(ProjectName)_x64-modern</TargetName>
+    <TargetName>$(ProjectName)_x64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -242,11 +242,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
-    <TargetName>$(ProjectName)_64bit</TargetName>
+    <TargetName>$(ProjectName)_arm</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
-    <TargetName>$(ProjectName)_x64-modern</TargetName>
+    <TargetName>$(ProjectName)_x64</TargetName>
     <GenerateManifest>false</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">
@@ -255,7 +255,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
-    <TargetName>$(ProjectName)_64bit</TargetName>
+    <TargetName>$(ProjectName)_arm</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -279,6 +279,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -324,7 +325,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>VERSION="2.0";</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -385,7 +386,7 @@
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LPAGES;POPCNT;BSFQ;PREFETCH;WIN64;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -398,6 +399,7 @@
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>/analyze:stacksize32788</AdditionalOptions>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -436,6 +438,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <MinimalRebuild>false</MinimalRebuild>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
@@ -480,6 +483,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -546,7 +550,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LPAGES;POPCNT;BSFQ;PREFETCH;WIN64;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -558,6 +562,7 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>/analyze:stacksize32788</AdditionalOptions>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
