@@ -67,25 +67,6 @@ namespace Zobrist {
     {
         Key posi_key = U64 (0);
 
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        //{
-        //    Piece p = pos[s];
-        //    posi_key ^= _.piecesq[_color (p)][_ptype (p)][s];
-        //}
-
-        //for (Color c = WHITE; c <= BLACK; ++c)
-        //{
-        //    for (PieceT pt = PAWN; pt <= KING; ++pt)
-        //    {
-        //        vector<Square> sq_lst = squares (pos[c] & pos[pt]);
-        //        for (int32_t pc = 0; pc < sq_lst.size (); ++pc)
-        //        {
-        //            Square s = sq_lst[pc];
-        //            posi_key ^= _.piecesq[c][pt][s];
-        //        }
-        //    }
-        //}
-
         //Bitboard occ = pos.pieces ();
         //while (occ)
         //{

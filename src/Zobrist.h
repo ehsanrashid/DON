@@ -31,7 +31,7 @@ namespace Zobrist {
     public:
         Key random[SIZE_RANDOM];
 
-        //CACHE_ALIGN (64)
+        CACHE_ALIGN(64)
         struct _
         {
             Key piecesq[CLR_NO][NONE][SQ_NO];// [COLOR][PIECE][SQUARE]
