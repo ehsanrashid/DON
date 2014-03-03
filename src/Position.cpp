@@ -963,17 +963,16 @@ void Position::clear ()
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        _board  [s] = EMPTY;
+        _board[s] = EMPTY;
         _index[s] = -1;
     }
-    for (Color c = WHITE; c <= BLACK; ++c)
+
+    for (PieceT pt = PAWN; pt <= KING; ++pt)
     {
-        for (PieceT pt = PAWN; pt <= KING; ++pt)
+        for (int32_t i = 0; i < 16; ++i)
         {
-            for (int32_t i = 0; i < 16; ++i)
-            {
-                _piece_list[c][pt][i] = SQ_NO;
-            }
+            _piece_list[WHITE][pt][i] = SQ_NO;
+            _piece_list[BLACK][pt][i] = SQ_NO;
         }
     }
 

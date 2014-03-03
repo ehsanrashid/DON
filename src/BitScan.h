@@ -99,16 +99,16 @@ INLINE Square scan_msq (Bitboard bb)
 // Assembly code by Heinz van Saanen
 INLINE Square scan_lsq (Bitboard bb)
 {
-    Bitboard index;
-    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
-    return Square (index);
+    Bitboard sq;
+    __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
+    return Square (sq);
 }
 
 INLINE Square scan_msq (Bitboard bb)
 {
-    Bitboard index;
-    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
-    return Square (index);
+    Bitboard sq;
+    __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
+    return Square (sq);
 }
 
 #   endif

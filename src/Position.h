@@ -16,12 +16,13 @@
 class Position;
 struct Thread;
 
+
 // FORSYTH–EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-
+#ifndef NDEBUG
 // 88 is the max FEN length - r1n1k1r1/1B1b1q1n/1p1p1p1p/p1p1p1p1/1P1P1P1P/P1P1P1P1/1b1B1Q1N/R1N1K1R1 w KQkq - 12 1000
 const uint8_t MAX_FEN     = 88;
-
+#endif
 // N-FEN (NATURAL-FEN)
 // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 // X-FEN (CHESS960-FEN) (Fischer Random Chess)
@@ -144,6 +145,7 @@ private:
 
     // Board for storing pieces.
     Piece    _board   [SQ_NO];
+
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[TOTS];
 
@@ -626,11 +628,13 @@ inline Piece Position::moved_piece  (Move m) const
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
     ASSERT (empty (s));
-    _board[s]    = (c | pt);
+    _board[s] = (c | pt);
+
     Bitboard bb      = BitBoard::Square_bb[s];
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
+
     // Update piece list, put piece at [s] index
     _index[s]  = _piece_count[c][pt]++;
     _piece_list[c][pt][_index[s]] = s;
@@ -648,15 +652,16 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece  p  = _board [s];
+    Piece  p  = _board[s];
     Color  c  = _color (p);
     PieceT pt = _ptype (p);
+    _board[s] = EMPTY;
 
-    _board [s]   = EMPTY;
     Bitboard bb      = ~BitBoard::Square_bb[s];
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
+
     _piece_count[c][pt]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.
@@ -678,8 +683,8 @@ inline void  Position::  move_piece (Square s1, Square s2)
     Color  c  = _color (p);
     PieceT pt = _ptype (p);
 
-    _board[s1]  = EMPTY;
-    _board[s2]  = p;
+    _board[s1] = EMPTY;
+    _board[s2] = p;
 
     Bitboard bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
     _color_bb[c]    ^= bb;

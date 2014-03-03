@@ -287,7 +287,6 @@ namespace BitBoard {
     // Rotate LEFT (toward MSB)
     inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
 
-
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64 (0))
     {
         Bitboard slid_attacks = U64 (0);
