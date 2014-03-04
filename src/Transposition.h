@@ -94,7 +94,7 @@ private:
     uint64_t _hash_mask;
     uint8_t  _generation;
 
-    void alloc_aligned_memory (uint64_t size, uint8_t alignment);
+    void alloc_aligned_memory (uint64_t mem_size, uint8_t alignment);
 
     // free_aligned_memory() free the allocated memory
     void free_aligned_memory ()
