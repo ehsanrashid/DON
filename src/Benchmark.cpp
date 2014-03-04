@@ -104,7 +104,7 @@ void benchmark (istream &is, const Position &pos)
     }
     else
     {
-        ifstream fstm_fen (fen_fn.c_str ());
+        ifstream fstm_fen (fen_fn);
 
         if (!fstm_fen.is_open ())
         {
@@ -132,7 +132,7 @@ void benchmark (istream &is, const Position &pos)
     uint32_t total = fens.size ();
     for (uint32_t i = 0; i < total; ++i)
     {
-        Position root_pos (fens[i], Threads.main (), chess960);
+        Position root_pos (fens[i], Threadpool.main (), chess960);
 
         cerr
             << "\n--------------\n" 
@@ -146,8 +146,8 @@ void benchmark (istream &is, const Position &pos)
         }
         else
         {
-            Threads.start_thinking (root_pos, limits, states);
-            Threads.wait_for_think_finished ();
+            Threadpool.start_thinking (root_pos, limits, states);
+            Threadpool.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();
         }
     }

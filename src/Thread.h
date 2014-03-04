@@ -13,10 +13,6 @@
 #include "MovePicker.h"
 #include "Searcher.h"
 
-const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
-const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
-const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
-
 // Windows or MinGW
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -79,209 +75,216 @@ typedef void* (*start_fn) (void*);
 
 #endif
 
-extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
+namespace Threads {
 
+    const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
+    const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
+    const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
 
-struct Mutex
-{
-private:
-    friend struct ConditionVariable;
-    Lock _lock;
+    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
 
-public:
-    Mutex ()         { lock_init (_lock); }
-    ~Mutex ()        { lock_destroy (_lock); }
+    struct Mutex
+    {
+    private:
+        friend struct ConditionVariable;
+        Lock _lock;
 
-    void lock ()     { lock_grab (_lock); }
+    public:
+        Mutex () { lock_init (_lock); }
+        ~Mutex () { lock_destroy (_lock); }
 
-    void unlock ()   { lock_release (_lock); }
-};
+        void lock () { lock_grab (_lock); }
 
-struct ConditionVariable
-{
-private:
-    WaitCondition cond;
+        void unlock () { lock_release (_lock); }
+    };
 
-public:
-    ConditionVariable ()     { cond_init (cond); }
-    ~ConditionVariable ()    { cond_destroy (cond); }
+    struct ConditionVariable
+    {
+    private:
+        WaitCondition cond;
 
-    void wait (Mutex &m)     { cond_wait (cond, m._lock); }
+    public:
+        ConditionVariable () { cond_init (cond); }
+        ~ConditionVariable () { cond_destroy (cond); }
 
-    void wait_for (Mutex &m, int32_t ms) { timed_wait (cond, m._lock, ms); }
-    
-    void notify_one ()       { cond_signal (cond); }
-};
+        void wait (Mutex &m) { cond_wait (cond, m._lock); }
 
-struct Thread;
+        void wait_for (Mutex &m, int32_t ms) { timed_wait (cond, m._lock, ms); }
 
-struct SplitPoint
-{
-    // Const data after split point has been setup
-    const Position         *pos;
-    const Searcher::Stack  *ss;
-    Thread                 *master_thread;
-    Depth                   depth;
-    Value                   beta;
-    Searcher::NodeT         node_type;
-    bool                    cut_node;
+        void notify_one () { cond_signal (cond); }
+    };
 
-    // Const pointers to shared data
-    MovePicker             *move_picker;
-    SplitPoint             *parent_split_point;
+    struct Thread;
 
-    // Shared data
-    Mutex                   mutex;
-    volatile uint64_t       slaves_mask;
-    volatile uint64_t       nodes;
-    volatile uint8_t        moves_count;
-    volatile Value          alpha;
-    volatile Value          best_value;
-    volatile Move           best_move;
-    volatile bool           cut_off;
-};
+    struct SplitPoint
+    {
+        // Const data after split point has been setup
+        const Position         *pos;
+        const Searcher::Stack  *ss;
+        Thread                 *master_thread;
+        Depth                   depth;
+        Value                   beta;
+        Searcher::NodeT         node_type;
+        bool                    cut_node;
 
-// ThreadBase struct is the base of the hierarchy from where
-// we derive all the specialized thread classes.
-struct ThreadBase
-{
-    Mutex               mutex;
-    ConditionVariable   sleep_condition;
-    NativeHandle        handle;
-    volatile bool       exit;
+        // Const pointers to shared data
+        MovePicker             *move_picker;
+        SplitPoint             *parent_split_point;
 
-    ThreadBase ()
-        : exit (false)
-    {}
+        // Shared data
+        Mutex                   mutex;
+        volatile uint64_t       slaves_mask;
+        volatile uint64_t       nodes;
+        volatile uint8_t        moves_count;
+        volatile Value          alpha;
+        volatile Value          best_value;
+        volatile Move           best_move;
+        volatile bool           cut_off;
+    };
 
-    virtual ~ThreadBase () {}
+    // ThreadBase struct is the base of the hierarchy from where
+    // we derive all the specialized thread classes.
+    struct ThreadBase
+    {
+        Mutex               mutex;
+        ConditionVariable   sleep_condition;
+        NativeHandle        handle;
+        volatile bool       exit;
 
-    virtual void idle_loop () = 0;
+        ThreadBase ()
+            : exit (false)
+        {}
 
-    void notify_one ();
+        virtual ~ThreadBase () {}
 
-    void wait_for (volatile const bool &b);
-};
+        virtual void idle_loop () = 0;
 
-// Thread struct keeps together all the thread related stuff like locks, state
-// and especially split points. We also use per-thread pawn and material hash
-// tables so that once we get a pointer to an entry its life time is unlimited
-// and we don't have to care about someone changing the entry under our feet.
-struct Thread
-    : public ThreadBase
-{
-    SplitPoint           split_points[MAX_SPLIT_POINT_THREADS];
-    Material::Table      material_table;
-    Pawns   ::Table      pawns_table;
-    EndGame ::Endgames   endgames;
+        void notify_one ();
 
-    Position            *active_pos;
+        void wait_for (volatile const bool &b);
+    };
 
-    uint8_t              idx;
-    uint8_t              max_ply;
+    // Thread struct keeps together all the thread related stuff like locks, state
+    // and especially split points. We also use per-thread pawn and material hash
+    // tables so that once we get a pointer to an entry its life time is unlimited
+    // and we don't have to care about someone changing the entry under our feet.
+    struct Thread
+        : public ThreadBase
+    {
+        SplitPoint           split_points[MAX_SPLIT_POINT_THREADS];
+        Material::Table      material_table;
+        Pawns::Table      pawns_table;
+        EndGame::Endgames   endgames;
 
-    SplitPoint* volatile active_split_point;
-    volatile uint8_t     split_point_threads;
-    volatile bool        searching;
+        Position            *active_pos;
 
-    Thread ();
+        uint8_t              idx;
+        uint8_t              max_ply;
 
-    virtual void idle_loop ();
+        SplitPoint* volatile active_split_point;
+        volatile uint8_t     split_point_threads;
+        volatile bool        searching;
 
-    bool cutoff_occurred () const;
+        Thread ();
 
-    bool available_to (const Thread *master) const;
+        virtual void idle_loop ();
 
-    template <bool FAKE>
-    void split (Position &pos, const Searcher::Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-        Depth depth, uint8_t moves_count, MovePicker &move_picker, Searcher::NodeT node_type, bool cut_node);
+        bool cutoff_occurred () const;
 
-};
+        bool available_to (const Thread *master) const;
 
-// MainThread and TimerThread are derived classes used to characterize the two
-// special threads: the main one and the recurring timer.
-struct MainThread
-    : public Thread
-{
-    volatile bool thinking;
+        template <bool FAKE>
+        void split (Position &pos, const Searcher::Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
+            Depth depth, uint8_t moves_count, MovePicker &move_picker, Searcher::NodeT node_type, bool cut_node);
 
-    MainThread ()
-        : thinking (true)
-    {} // Avoid a race with start_thinking ()
+    };
 
-    virtual void idle_loop ();
+    // MainThread and TimerThread are derived classes used to characterize the two
+    // special threads: the main one and the recurring timer.
+    struct MainThread
+        : public Thread
+    {
+        volatile bool thinking;
 
-};
+        MainThread ()
+            : thinking (true)
+        {} // Avoid a race with start_thinking ()
 
-struct TimerThread
-    : public ThreadBase
-{
-    // This is the minimum interval in msec between two check_time() calls
-    static const int32_t Resolution = 5;
+        virtual void idle_loop ();
 
-    bool run;
+    };
 
-    TimerThread ()
-        : run (false)
-    {}
+    struct TimerThread
+        : public ThreadBase
+    {
+        // This is the minimum interval in msec between two check_time() calls
+        static const int32_t Resolution = 5;
 
-    virtual void idle_loop ();
+        bool run;
 
-};
+        TimerThread ()
+            : run (false)
+        {}
 
-// ThreadPool struct handles all the threads related stuff like init, starting,
-// parking and, the most important, launching a slave thread at a split point.
-// All the access to shared thread data is done through this class.
-struct ThreadPool
-    : public std::vector<Thread*>
-{
-    bool                sleep_idle;
-    Depth               min_split_depth;
-    uint8_t             max_split_point_threads;
-    Mutex               mutex;
-    ConditionVariable   sleep_condition;
-    TimerThread        *timer;
+        virtual void idle_loop ();
 
-    // No c'tor and d'tor, threads rely on globals that should
-    // be initialized and valid during the whole thread lifetime.
-    void   initialize (); 
-    void deinitialize (); 
+    };
 
-    MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
+    // ThreadPool struct handles all the threads related stuff like initializing,
+    // starting, parking and, the most important, launching a slave thread
+    // at a split point.
+    // All the access to shared thread data is done through this class.
+    struct ThreadPool
+        : public std::vector<Thread*>
+    {
+        bool                sleep_idle;
+        Depth               min_split_depth;
+        uint8_t             max_split_point_threads;
+        Mutex               mutex;
+        ConditionVariable   sleep_condition;
+        TimerThread        *timer;
 
-    void read_uci_options();
+        // No c'tor and d'tor, threads rely on globals that should
+        // be initialized and valid during the whole thread lifetime.
+        void   initialize ();
+        void deinitialize ();
 
-    Thread* available_slave (const Thread *master) const;
+        MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
-    void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateInfoStackPtr &states);
+        void read_uci_options ();
 
-    void wait_for_think_finished ();
-};
+        Thread* available_slave (const Thread *master) const;
 
-// timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-// conversion from milliseconds to struct timespec, as used by pthreads.
-inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
-{
+        void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateInfoStackPtr &states);
+
+        void wait_for_think_finished ();
+    };
+
+    // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
+    // conversion from milliseconds to struct timespec, as used by pthreads.
+    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
+    {
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-    int32_t tm = msec;
+        int32_t tm = msec;
 
 #else    // Linux - Unix
 
-    timespec ts
-        ,   *tm = &ts;
-    uint64_t ms = Time::now() + msec;
+        timespec ts
+            ,   *tm = &ts;
+        uint64_t ms = Time::now() + msec;
 
-    ts.tv_sec = ms / Time::M_SEC;
-    ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
+        ts.tv_sec = ms / Time::M_SEC;
+        ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
 
 #endif
 
-    cond_timedwait (sleep_cond, sleep_lock, tm);
+        cond_timedwait (sleep_cond, sleep_lock, tm);
+
+    }
 
 }
-
 
 //#if __cplusplus > 199711L
 //#   include <thread>
@@ -353,7 +356,7 @@ typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 {
-    static Mutex m;
+    static Threads::Mutex m;
 
     if      (sc == IO_LOCK)
     {
@@ -366,7 +369,8 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
     return os;
 }
 
-extern ThreadPool Threads;
+
+extern Threads::ThreadPool Threadpool;
 
 extern void prefetch (char *addr);
 

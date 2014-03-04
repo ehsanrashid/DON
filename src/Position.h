@@ -14,8 +14,12 @@
 #include "Zobrist.h"
 
 class Position;
-struct Thread;
 
+namespace Threads {
+
+    struct Thread;
+
+}
 
 // FORSYTH–EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
@@ -172,7 +176,7 @@ private:
 
     uint64_t _game_nodes;
 
-    Thread  *_thread;
+    Threads::Thread  *_thread;
 
 public:
 
@@ -182,16 +186,16 @@ public:
 
     Position () { clear (); }
 #ifndef NDEBUG
-    Position (const char        *f, Thread *th = NULL, bool c960 = false, bool full = true)
+    Position (const char        *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
 #endif
-    Position (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true)
+    Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Thread *th = NULL) { *this = pos; _thread = th; }
+    Position (const Position &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
     explicit Position (int32_t dummy) { ++dummy; }
 
     Position& operator= (const Position &pos);
@@ -280,7 +284,7 @@ public:
     uint64_t game_nodes ()              const;
     void     game_nodes (uint64_t nodes);
 
-    Thread* thread     ()               const;
+    Threads::Thread* thread ()          const;
 
     bool draw ()                        const;
     bool ok (int8_t *failed_step = NULL) const;
@@ -340,10 +344,10 @@ public:
     void   move_piece (Square s1, Square s2);
 
 #ifndef NDEBUG
-    bool setup (const        char *f, Thread *th = NULL, bool c960 = false, bool full = true);
+    bool setup (const        char *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 #endif
 
-    bool setup (const std::string &f, Thread *th = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 
     void flip ();
 
@@ -372,9 +376,9 @@ public:
     operator std::string () const;
 
 #ifndef NDEBUG
-    static bool parse (Position &pos, const        char *fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const        char *fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
 #endif
-    static bool parse (Position &pos, const std::string &fen, Thread *thread = NULL, bool c960 = false, bool full = true);
+    static bool parse (Position &pos, const std::string &fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
 
 
     template<class charT, class Traits>
@@ -505,7 +509,7 @@ inline bool     Position::chess960  () const { return _chess960; }
 inline uint64_t Position::game_nodes() const { return _game_nodes; }
 inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
-inline Thread*  Position::thread    () const { return _thread; }
+inline Threads::Thread*  Position::thread    () const { return _thread; }
 
 template<PieceT PT>
 // Attacks of the PTYPE from the square

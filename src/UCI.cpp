@@ -15,6 +15,8 @@ namespace UCI {
 
     using namespace std;
     using namespace MoveGenerator;
+    using namespace Threads;
+    using namespace Notation;
 
     typedef istringstream cmdstream;
 
@@ -164,7 +166,7 @@ namespace UCI {
             
             Key posi_key = RootPos.posi_key ();
 
-            RootPos.setup (fen, Threads.main (), bool (*(Options["UCI_Chess960"])));
+            RootPos.setup (fen, Threadpool.main (), bool (*(Options["UCI_Chess960"])));
             
             if (posi_key != RootPos.posi_key ())
             {
@@ -238,7 +240,7 @@ namespace UCI {
                 }
             }
 
-            Threads.start_thinking (RootPos, limits, SetupStates);
+            Threadpool.start_thinking (RootPos, limits, SetupStates);
         }
 
         inline void exe_ponderhit ()
@@ -331,13 +333,14 @@ namespace UCI {
         inline void exe_perft (cmdstream &cstm)
         {
             string token;
-            // Read perft depth
+            // Read perft 'depth'
             if (cstm >> token)
             {
                 stringstream ss;
                 ss  << *(Options["Hash"])    << " "
                     << *(Options["Threads"]) << " "
-                    << token << " current perft";
+                    << "current"             << " "
+                    << token << " perft";
 
                 benchmark (ss, RootPos);
             }
@@ -346,14 +349,14 @@ namespace UCI {
         inline void exe_stop ()
         {
             Searcher::Signals.stop = true;
-            Threads.main ()->notify_one (); // Could be sleeping
+            Threadpool.main ()->notify_one (); // Could be sleeping
         }
 
     }
 
     void start (const string &args)
     {
-        RootPos.setup (FEN_N, Threads.main (), bool (*(Options["UCI_Chess960"])));
+        RootPos.setup (FEN_N, Threadpool.main (), bool (*(Options["UCI_Chess960"])));
 
         bool running = args.empty ();
         string cmd = args;
@@ -407,7 +410,12 @@ namespace UCI {
     {
         exe_stop ();
         // Cannot quit while search stream active
-        Threads.wait_for_think_finished ();
+        Threadpool.wait_for_think_finished ();
+
+        if (Searcher::Book.is_open ())
+        {
+            Searcher::Book.close ();
+        }
     }
 
 }

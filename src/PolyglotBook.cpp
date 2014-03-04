@@ -12,6 +12,7 @@
 
 using namespace std;
 using namespace MoveGenerator;
+using namespace Notation;
 
 #define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
 

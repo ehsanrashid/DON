@@ -10,13 +10,15 @@
 #include "BitCount.h"
 #include "MoveGenerator.h"
 #include "Transposition.h"
-#include "Notation.h"
 #include "Thread.h"
+#include "Notation.h"
 #include "UCI.h"
 
 using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
+using namespace Threads;
+using namespace Notation;
 
 const string CharPiece ("PNBRQK  pnbrqk");
 const string CharColor ("wb-");

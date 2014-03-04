@@ -73,7 +73,7 @@ public:
 inline void log_debug (bool on)
 {
     on  ? DebugLogger::instance ().start ()
-        : DebugLogger::instance ().stop  ();
+        : DebugLogger::instance ().stop ();
 }
 
 #endif // _DEBUG_LOGGER_H_INC_

@@ -20,17 +20,19 @@
 #include "Log.h"
 
 using namespace std;
-using namespace BitBoard;
 using namespace Time;
-using namespace MoveGenerator;
 using namespace Searcher;
-using namespace Evaluator;
 
 #ifdef _MSC_VER
 #   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
 #endif
 
 namespace Searcher {
+
+    using namespace BitBoard;
+    using namespace MoveGenerator;
+    using namespace Evaluator;
+    using namespace Notation;
 
     namespace {
 
@@ -161,11 +163,11 @@ namespace Searcher {
 
             uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
             uint8_t sel_depth = 0;
-            for (uint8_t i = 0; i < Threads.size (); ++i)
+            for (uint8_t i = 0; i < Threadpool.size (); ++i)
             {
-                if (sel_depth < Threads[i]->max_ply)
+                if (sel_depth < Threadpool[i]->max_ply)
                 {
-                    sel_depth = Threads[i]->max_ply;
+                    sel_depth = Threadpool[i]->max_ply;
                 }
             }
 
@@ -993,7 +995,7 @@ namespace Searcher {
 
             if (RootNode)
             {
-                if (Threads.main () == thread)
+                if (Threadpool.main () == thread)
                 {
                     elapsed = now () - SearchTime;
                     if (elapsed > InfoDuration)
@@ -1036,7 +1038,7 @@ namespace Searcher {
                 {
                     Signals.first_root_move = (1 == moves_count);
 
-                    if (Threads.main () == thread)
+                    if (Threadpool.main () == thread)
                     {
                         elapsed = now () - SearchTime;
                         if (elapsed > InfoDuration)
@@ -1329,8 +1331,8 @@ namespace Searcher {
 
                 // Step 19. Check for splitting the search
                 if (!SPNode
-                    && depth >= Threads.min_split_depth
-                    && Threads.available_slave (thread)
+                    && depth >= Threadpool.min_split_depth
+                    && Threadpool.available_slave (thread)
                     && thread->split_point_threads < MAX_SPLIT_POINT_THREADS)
                 {
                     ASSERT (best_value < beta);
@@ -1799,19 +1801,19 @@ namespace Searcher {
         
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (uint8_t i = 0; i < Threads.size (); ++i)
+        for (uint8_t i = 0; i < Threadpool.size (); ++i)
         {
-            Threads[i]->max_ply = 0;
+            Threadpool[i]->max_ply = 0;
         }
 
-        Threads.sleep_idle = *(Options["Idle Threads Sleep"]);
-        Threads.timer->run = true;
-        Threads.timer->notify_one ();// Wake up the recurring timer
+        Threadpool.sleep_idle = *(Options["Idle Threads Sleep"]);
+        Threadpool.timer->run = true;
+        Threadpool.timer->notify_one ();// Wake up the recurring timer
 
         iter_deep_loop (RootPos);   // Let's start searching !
 
-        Threads.timer->run = false; // Stop the timer
-        Threads.sleep_idle = true;  // Send idle threads to sleep
+        Threadpool.timer->run = false; // Stop the timer
+        Threadpool.sleep_idle = true;  // Send idle threads to sleep
 
 
         if (RootInTB)
@@ -1914,184 +1916,189 @@ namespace Searcher {
 
 }
 
-// check_time () is called by the timer thread when the timer triggers.
-// It is used to print debug info and, more importantly,
-// to detect when out of available time and thus stop the search.
-void check_time ()
-{
-    static point last_time = now ();
+namespace Threads {
 
-    uint64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
-
-    point now_time = now ();
-    if (now_time - last_time >= M_SEC)
+    // check_time () is called by the timer thread when the timer triggers.
+    // It is used to print debug info and, more importantly,
+    // to detect when out of available time and thus stop the search.
+    void check_time ()
     {
-        last_time = now_time;
-        dbg_print ();
-    }
+        static point last_time = now ();
 
-    if (Limits.ponder)
-    {
-        return;
-    }
+        uint64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
 
-    if (Limits.nodes > 0)
-    {
-        Threads.mutex.lock ();
-
-        nodes = RootPos.game_nodes ();
-
-        // Loop across all split points and sum accumulated SplitPoint nodes plus
-        // all the currently active positions nodes.
-        for (uint8_t i = 0; i < Threads.size (); ++i)
+        point now_time = now ();
+        if (now_time - last_time >= M_SEC)
         {
-            for (uint8_t j = 0; j < Threads[i]->split_point_threads; ++j)
-            {
-                SplitPoint &sp = Threads[i]->split_points[j];
-                sp.mutex.lock ();
-                nodes += sp.nodes;
-                uint64_t sm = sp.slaves_mask;
-                while (sm != U64 (0))
-                {
-                    Position *pos = Threads[pop_lsq (sm)]->active_pos;
-                    if (pos) nodes += pos->game_nodes();
-                }
-                sp.mutex.unlock ();
-            }
+            last_time = now_time;
+            dbg_print ();
         }
-        Threads.mutex.unlock ();
-    }
 
-    point elapsed = now_time - SearchTime;
-
-    bool still_at_first_move = 
-        /**/Signals.first_root_move
-        && !Signals.failed_low_at_root
-        && elapsed > TimeMgr.available_time () * 3 / 4;
-
-    bool no_more_time = 
-        /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
-        ||   still_at_first_move;
-
-    if (   (Limits.use_time_management () && no_more_time)
-        || (Limits.move_time && elapsed >= Limits.move_time)
-        || (Limits.nodes && nodes >= Limits.nodes))
-    {
-        Signals.stop = true;
-    }
-
-}
-
-// Thread::idle_loop () is where the thread is parked when it has no work to do
-void Thread::idle_loop ()
-{
-    // Pointer 'split_point' is not null only if we are called from split(), and not
-    // at the thread creation. So it means we are the split point's master.
-    SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
-    ASSERT (!split_point || ((split_point->master_thread == this) && searching));
-
-    do
-    {
-        // If we are not searching, wait for a condition to be signaled instead of
-        // wasting CPU time polling for work.
-        while ((!searching && Threads.sleep_idle) || exit)
+        if (Limits.ponder)
         {
-            if (exit)
+            return;
+        }
+
+        if (Limits.nodes > 0)
+        {
+            Threadpool.mutex.lock ();
+
+            nodes = RootPos.game_nodes ();
+
+            // Loop across all split points and sum accumulated SplitPoint nodes plus
+            // all the currently active positions nodes.
+            for (uint8_t i = 0; i < Threadpool.size (); ++i)
             {
-                ASSERT (split_point == NULL);
-                return;
+                for (uint8_t j = 0; j < Threadpool[i]->split_point_threads; ++j)
+                {
+                    SplitPoint &sp = Threadpool[i]->split_points[j];
+                    sp.mutex.lock ();
+                    nodes += sp.nodes;
+                    uint64_t sm = sp.slaves_mask;
+                    while (sm != U64 (0))
+                    {
+                        Position *pos = Threadpool[pop_lsq (sm)]->active_pos;
+                        if (pos) nodes += pos->game_nodes ();
+                    }
+                    sp.mutex.unlock ();
+                }
             }
 
-            // Grab the lock to avoid races with Thread::notify_one ()
-            mutex.lock ();
+            Threadpool.mutex.unlock ();
+        }
 
-            // If we are master and all slaves have finished then exit idle_loop
+        point elapsed = now_time - SearchTime;
+
+        bool still_at_first_move =
+            /**/Signals.first_root_move
+            && !Signals.failed_low_at_root
+            && elapsed > TimeMgr.available_time () * 3 / 4;
+
+        bool no_more_time =
+            /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
+            ||   still_at_first_move;
+
+        if ((Limits.use_time_management () && no_more_time)
+            || (Limits.move_time && elapsed >= Limits.move_time)
+            || (Limits.nodes && nodes >= Limits.nodes))
+        {
+            Signals.stop = true;
+        }
+
+    }
+
+    // Thread::idle_loop () is where the thread is parked when it has no work to do
+    void Thread::idle_loop ()
+    {
+        // Pointer 'split_point' is not null only if we are called from split(), and not
+        // at the thread creation. So it means we are the split point's master.
+        SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
+        ASSERT (!split_point || ((split_point->master_thread == this) && searching));
+
+        do
+        {
+            // If we are not searching, wait for a condition to be signaled instead of
+            // wasting CPU time polling for work.
+            while ((!searching && Threadpool.sleep_idle) || exit)
+            {
+                if (exit)
+                {
+                    ASSERT (split_point == NULL);
+                    return;
+                }
+
+                // Grab the lock to avoid races with Thread::notify_one ()
+                mutex.lock ();
+
+                // If we are master and all slaves have finished then exit idle_loop
+                if (split_point && !split_point->slaves_mask)
+                {
+                    mutex.unlock ();
+                    break;
+                }
+
+                // Do sleep after retesting sleep conditions under lock protection, in
+                // particular we need to avoid a deadlock in case a master thread has,
+                // in the meanwhile, allocated us and sent the notify_one () call before
+                // we had the chance to grab the lock.
+                if (!searching && !exit)
+                {
+                    sleep_condition.wait (mutex);
+                }
+
+                mutex.unlock ();
+            }
+
+            // If this thread has been assigned work, launch a search
+            if (searching)
+            {
+                ASSERT (!exit);
+
+                Threadpool.mutex.lock ();
+
+                ASSERT (searching);
+                ASSERT (active_split_point);
+                SplitPoint *sp = active_split_point;
+
+                Threadpool.mutex.unlock ();
+
+                Stack stack[MAX_PLY_6]
+                    , *ss = stack+2; // To allow referencing (ss-2)
+
+                Position pos (*(sp)->pos, this);
+
+                memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
+                (ss)->split_point = sp;
+
+                (sp)->mutex.lock ();
+
+                ASSERT (active_pos == NULL);
+
+                active_pos = &pos;
+
+                switch ((sp)->node_type)
+                {
+                case Root:  search<SplitPointRoot > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case PV:    search<SplitPointPV   > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case NonPV: search<SplitPointNonPV> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                default: ASSERT (false);
+                }
+
+                ASSERT (searching);
+
+                searching  = false;
+                active_pos = NULL;
+                (sp)->slaves_mask &= ~(U64 (1) << idx);
+                (sp)->nodes += pos.game_nodes ();
+
+                // Wake up master thread so to allow it to return from the idle loop
+                // in case we are the last slave of the split point.
+                if (Threadpool.sleep_idle
+                    && this != (sp)->master_thread
+                    && !(sp)->slaves_mask)
+                {
+                    ASSERT (!sp->master_thread->searching);
+                    (sp)->master_thread->notify_one ();
+                }
+
+                // After releasing the lock we cannot access anymore any SplitPoint
+                // related data in a safe way becuase it could have been released under
+                // our feet by the sp master. Also accessing other Thread objects is
+                // unsafe because if we are exiting there is a chance are already freed.
+                (sp)->mutex.unlock ();
+            }
+
+            // If this thread is the master of a split point and all slaves have finished
+            // their work at this split point, return from the idle loop.
             if (split_point && !split_point->slaves_mask)
             {
-                mutex.unlock ();
-                break;
+                split_point->mutex.lock ();
+                bool finished = !split_point->slaves_mask; // Retest under lock protection
+                split_point->mutex.unlock ();
+                if (finished) return;
             }
-
-            // Do sleep after retesting sleep conditions under lock protection, in
-            // particular we need to avoid a deadlock in case a master thread has,
-            // in the meanwhile, allocated us and sent the notify_one () call before
-            // we had the chance to grab the lock.
-            if (!searching && !exit)
-            {
-                sleep_condition.wait (mutex);
-            }
-
-            mutex.unlock ();
         }
-
-        // If this thread has been assigned work, launch a search
-        if (searching)
-        {
-            ASSERT (!exit);
-
-            Threads.mutex.lock ();
-
-            ASSERT (searching);
-            ASSERT (active_split_point);
-            SplitPoint *sp = active_split_point;
-
-            Threads.mutex.unlock ();
-
-            Stack stack[MAX_PLY_6]
-                , *ss = stack+2; // To allow referencing (ss-2)
-
-            Position pos (*(sp)->pos, this);
-
-            memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
-            (ss)->split_point = sp;
-
-            (sp)->mutex.lock ();
-
-            ASSERT (active_pos == NULL);
-
-            active_pos = &pos;
-
-            switch ((sp)->node_type)
-            {
-            case Root : search<SplitPointRoot > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-            case PV   : search<SplitPointPV   > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-            case NonPV: search<SplitPointNonPV> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-            default   : ASSERT (false);
-            }
-
-            ASSERT (searching);
-
-            searching  = false;
-            active_pos = NULL;
-            (sp)->slaves_mask &= ~(U64 (1) << idx);
-            (sp)->nodes += pos.game_nodes ();
-
-            // Wake up master thread so to allow it to return from the idle loop
-            // in case we are the last slave of the split point.
-            if (   Threads.sleep_idle
-                && this != (sp)->master_thread
-                && !(sp)->slaves_mask)
-            {
-                ASSERT (!sp->master_thread->searching);
-                (sp)->master_thread->notify_one ();
-            }
-
-            // After releasing the lock we cannot access anymore any SplitPoint
-            // related data in a safe way becuase it could have been released under
-            // our feet by the sp master. Also accessing other Thread objects is
-            // unsafe because if we are exiting there is a chance are already freed.
-            (sp)->mutex.unlock ();
-        }
-
-        // If this thread is the master of a split point and all slaves have finished
-        // their work at this split point, return from the idle loop.
-        if (split_point && !split_point->slaves_mask)
-        {
-            split_point->mutex.lock ();
-            bool finished = !split_point->slaves_mask; // Retest under lock protection
-            split_point->mutex.unlock ();
-            if (finished) return;
-        }
+        while (true);
     }
-    while (true);
+
 }

@@ -89,7 +89,7 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-//        cout << "info string Processor(s) found " << cpu_count () << ".\n";
+//        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
 #ifdef POPCNT
         cout << "info string POPCNT available." << endl;
@@ -108,17 +108,33 @@ namespace Engine {
         Searcher ::initialize ();
         Pawns    ::initialize ();
         Evaluator::initialize ();
-        Threads   .initialize ();
+        Threadpool.initialize ();
         
         TT.resize (int32_t (*(Options["Hash"])), true);
 
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
 
-        //cout << "info string Thread(s) " << Threads.size () << ".\n" << endl; 
         cout << endl;
 
 #ifndef NDEBUG
+
+        //TT.resize (4, true);
+        //TT.new_gen ();
+        //TT.store (Key(U64(0x0000000100000001)), Move(123), Depth(7), Bound(1), 1, Value(1), Value(2));
+        //TT.store (Key(U64(0x0000000200000001)), Move(124), Depth(5), Bound(1), 1, Value(1), Value(2));
+        //TT.store (Key(U64(0x0000000300000001)), Move(125), Depth(1), Bound(1), 1, Value(1), Value(2));
+        //string hash_fn = "hash.dat";
+        //ofstream ohash_file (hash_fn, ios_base::out | ios_base::binary);
+        //ohash_file << TT;
+        //ohash_file.close ();
+
+        //TT.master_clear ();
+        //
+        //ifstream ihash_file (hash_fn, ios_base::in | ios_base::binary);
+        //ihash_file >> TT;
+        //ihash_file.close ();
+
         //Tester::main_test ();
         //system ("pause");
         //return;
@@ -131,15 +147,10 @@ namespace Engine {
     // Exit from engine with exit code. (in case of some crash)
     void exit (int32_t code)
     {
-        UCI   ::stop ();
+        UCI::stop ();
         
-        if (Searcher::Book.is_open ())
-        {
-            Searcher::Book.close ();
-        }
-
-        Threads.deinitialize ();
-        UCI   ::deinitialize ();
+        Threadpool.deinitialize ();
+        UCI::deinitialize ();
 
         ::exit (code);
     }

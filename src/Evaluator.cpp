@@ -12,10 +12,11 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using namespace std;
-using namespace BitBoard;
-
 namespace Evaluator {
+
+    using namespace std;
+    using namespace BitBoard;
+    using namespace Threads;
 
     namespace {
 

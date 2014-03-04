@@ -18,6 +18,7 @@ UCI::OptionMap Options;
 namespace UCI {
 
     using namespace ::std;
+    using namespace Threads;
 
     namespace OptionType {
 
@@ -221,16 +222,20 @@ namespace UCI {
 
         void on_save_hash       (const Option &)
         {
-            ofstream ohash_file (*(Options["Hash File"]), ios_base::out | ios_base::binary);
+            string hash_fn = string (*(Options["Hash File"]));
+            ofstream ohash_file (hash_fn, ios_base::out | ios_base::binary);
             ohash_file << TT;
             ohash_file.close ();
+            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
         }
 
         void on_load_hash       (const Option &)
         {
-            ifstream ihash_file (*(Options["Hash File"]), ios_base::in | ios_base::binary);
+            string hash_fn = string (*(Options["Hash File"]));
+            ifstream ihash_file (hash_fn, ios_base::in | ios_base::binary);
             ihash_file >> TT;
             ihash_file.close ();
+            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
         }
 
         void on_change_book     (const Option &)
@@ -238,18 +243,15 @@ namespace UCI {
             if (Searcher::Book.is_open ()) Searcher::Book.close ();
         }
 
-
         void on_change_tb_syzygy(const Option &opt)
         {
             string syzygy_path = string (opt);
             TBSyzygy::initialize (syzygy_path);
         }
         
-
-
         void on_change_threads  (const Option &)
         {
-            Threads.read_uci_options ();
+            Threadpool.read_uci_options ();
         }
 
         void on_change_eval     (const Option &)
@@ -306,6 +308,8 @@ namespace UCI {
         Options["Clear Hash"]                   = OptionPtr (new ButtonOption (on_clear_hash));
 
         // This option prevents the Hash Memory from being cleared between successive games or positions belonging to different games.
+        // Default false
+        //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
         Options["Never Clear Hash"]             = OptionPtr (new CheckOption (false));
@@ -333,7 +337,7 @@ namespace UCI {
 
         // File name for saving or loading the hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
-        // By default Houdini will use the hash.dat file in the "My Documents" folder of the current user.
+        // By default DON will use the hash.dat file in the "My Documents" folder of the current user.
         Options["Hash File"]                    = OptionPtr (new StringOption ("hash.dat"));
 
         // Save the current hash table to a disk file specified by the Hash File option.
@@ -379,16 +383,20 @@ namespace UCI {
         // as the extra hyper-threads would usually degrade the performance of the engine. 
         Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
 
-        // When using multiple threads, the Split Depth parameter defines the minimum depth at which work will be split between cores.
-        // Default 0, min 4, max 99.
+        // Minimum depth at which work will be split between cores, when using multiple threads.
+        // Default 0, min 0, max 15.
         //
         // Default 0 means auto setting which depends on the threads
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
 
+        // Maximum number of threads per split point.
+        // Default 5, min 4, max 8.
         Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
 
+        //
+        // Default true
         Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 
         // Game Play Options
@@ -443,9 +451,9 @@ namespace UCI {
         //Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
 
         // Factor for adjusted contempt. Changes playing style.
-        Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, 50));
+        // Default 0, min -50, max +50.
+        Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, +50));
 
-        // TODO::
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, min 5, max 50.
         //

@@ -1940,9 +1940,9 @@ namespace {
                 bitcnt -= 32;
                 code |=
 #   ifdef _MSC_VER
-            ((uint64_t) (_byteswap_uint64 (*ptr++))) << bitcnt;
+                    ((uint64_t) (_byteswap_uint64 (*ptr++))) << bitcnt;
 #   else
-            ((uint64_t) (__builtin_bswap32 (*ptr++))) << bitcnt;
+                    ((uint64_t) (__builtin_bswap32 (*ptr++))) << bitcnt;
 #   endif
             }
         }
@@ -1950,7 +1950,13 @@ namespace {
 #else
 
         uint32_t next = 0;
-        uint32_t code = __builtin_bswap32 (*ptr++);
+        uint32_t code =
+#   ifdef _MSC_VER
+            _byteswap_ulong (*ptr++);
+#   else
+            __builtin_bswap32 (*ptr++);
+#   endif
+
         bitcnt = 0; // number of bits in next
         for (;;)
         {
@@ -1967,7 +1973,12 @@ namespace {
                     code |= (next >> (32 - l));
                     l -= bitcnt;
                 }
-                next = __builtin_bswap32 (*ptr++);
+                next =
+#   ifdef _MSC_VER
+                    _byteswap_ulong (*ptr++);
+#   else
+                    __builtin_bswap32 (*ptr++);
+#   endif                    
                 bitcnt = 32;
             }
             code |= (next >> (32 - l));
