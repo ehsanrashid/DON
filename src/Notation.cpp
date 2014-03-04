@@ -59,7 +59,7 @@ AmbT ambiguity (Move m, const Position &pos)
     //    amb_move = false,
     //    amb_file = false,
     //    amb_rank = false;
-    //Bitboard b = (pos.attacks_from (p, dst) & pos.pieces (pos.active (), pt)) - org;
+    //Bitboard b = (attacks_bb (p, dst, pos.pieces () & pos.pieces (pos.active (), pt)) - org;
     //while (b)
     //{
     //    Square sq = pop_lsq (b);

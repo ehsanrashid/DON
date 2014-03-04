@@ -646,7 +646,7 @@ bool Position::pseudo_legal (Move m) const
     Color activ = _active;
     Color pasiv = ~activ;
 
-    Piece p  = _board[org];
+    Piece p = _board[org];
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
@@ -1328,7 +1328,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         {
             // Direct check ?
             if (ci->checking_sq[pt] & dst) _si->checkers += dst;
-
+            
             // Discovery check ?
             if (QUEN != pt)
             {
@@ -1337,13 +1337,13 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
                     if (ROOK != pt)
                     {
                         _si->checkers |=
-                            attacks_from<ROOK> (king_sq (pasiv)) &
+                            attacks_bb<ROOK> (king_sq (pasiv), _types_bb[NONE]) &
                             pieces (activ, QUEN, ROOK);
                     }
                     if (BSHP != pt)
                     {
                         _si->checkers |=
-                            attacks_from<BSHP> (king_sq (pasiv)) &
+                            attacks_bb<BSHP> (king_sq (pasiv), _types_bb[NONE]) &
                             pieces (activ, QUEN, BSHP);
                     }
                 }

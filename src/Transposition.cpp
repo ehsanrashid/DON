@@ -32,7 +32,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size, uint8_t alignm
 
 #ifdef LPAGES
     
-    uint8_t offset = max<uint8_t> (alignment-1, sizeof (void *));
+    uint8_t offset = max<int8_t> (alignment-1, sizeof (void *));
 
     MemoryHandler::create_memory (_mem, mem_size, alignment);
     if (!_mem)
@@ -62,7 +62,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size, uint8_t alignm
     // Then checking for error returned by malloc, if it returns NULL then 
     // alloc_aligned_memory will fail and return NULL or exit().
 
-    uint8_t offset = max<uint8_t> (alignment, sizeof (void *));
+    uint8_t offset = max<int8_t> (alignment, sizeof (void *));
 
     void *mem = calloc (mem_size + offset, 1);
     if (!mem)
@@ -132,7 +132,7 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
 // * if the depth of e1 is bigger than the depth of e2.
 void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval)
 {
-    uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
+    uint32_t key32 = key >> 32; // 32 upper-bit of key inside cluster
 
     TTEntry *tte = get_cluster (key);
     // By default replace first entry
@@ -179,14 +179,14 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    rte->save (key32, move, depth, bound, nodes >> 16, value, eval, _generation);
+    rte->save (key32, move, depth, bound, (nodes >> 16), value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
 // Returns a pointer to the entry found or NULL if not found.
 const TTEntry* TranspositionTable::retrieve (Key key) const
 {
-    uint32_t key32 = uint32_t (key >> 32);
+    uint32_t key32 = key >> 32;
 
     const TTEntry *tte = get_cluster (key);
     for (uint8_t i = 0; i < CLUSTER_ENTRY; ++i, ++tte)

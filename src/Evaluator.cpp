@@ -785,9 +785,9 @@ namespace Evaluator {
 
                 // Analyse enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
-
-                Bitboard   rook_check = pos.attacks_from<ROOK> (k_sq) & safe_sq;
-                Bitboard bishop_check = pos.attacks_from<BSHP> (k_sq) & safe_sq;
+                
+                Bitboard   rook_check = attacks_bb<ROOK>(k_sq, pos.pieces()) & safe_sq;
+                Bitboard bishop_check = attacks_bb<BSHP>(k_sq, pos.pieces()) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
@@ -803,7 +803,7 @@ namespace Evaluator {
                 if (safe_check) attack_units += BishopCheck * pop_count<MAX15> (safe_check);
 
                 // Enemy knights safe checks
-                safe_check = pos.attacks_from<NIHT> (k_sq) & safe_sq & ei.attacked_by[C_][NIHT];
+                safe_check = PieceAttacks[NIHT][k_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
@@ -900,13 +900,13 @@ namespace Evaluator {
                     {
                         // squares to queen
                         Bitboard queen_squares = FrontSqs_bb[C][s];
-
+                        
                         Bitboard unsafe_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
-                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
                         {
                             unsafe_squares = queen_squares;
                         }
@@ -917,7 +917,7 @@ namespace Evaluator {
 
                         Bitboard defended_squares;
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
-                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & pos.attacks_from<ROOK> (s)))
+                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
                         {
                             defended_squares = queen_squares;
                         }

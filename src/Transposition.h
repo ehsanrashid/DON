@@ -232,7 +232,7 @@ public:
         uint32_t full_count = 0;
 
         TTEntry *tte = _hash_table;
-        uint16_t total_count = std::min (U64 (10000), entries ());
+        uint16_t total_count = std::min (10000, int32_t (entries ()));
         for (uint16_t i = 0; i < total_count; ++i, ++tte)
         {
             if (tte->gen () == _generation)

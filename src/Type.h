@@ -688,7 +688,7 @@ inline std::basic_ostream<charT, Traits>&
 
 
 inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply ); }
+inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&

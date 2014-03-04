@@ -749,10 +749,10 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-
+            
             Bitboard path = FrontSqs_bb[_stong_side][sp_sq];
             if (    (path & pos.pieces<KING> (_weak_side))
-                || ((path & pos.attacks_from<BSHP> (wb_sq)) && SquareDist[wb_sq][sp_sq] >= 3))
+                || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) && SquareDist[wb_sq][sp_sq] >= 3))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -811,7 +811,7 @@ namespace EndGame {
             }
 
             break;
-
+            
         case 1:
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
             // square in front of the frontmost pawn's path, and the square diagonally
@@ -819,7 +819,7 @@ namespace EndGame {
             if (   wk_sq == block_sq1
                 && opposite_colors (wk_sq, sb_sq)
                 && (wb_sq == block_sq2
-                || (pos.attacks_from<BSHP> (block_sq2) & pos.pieces<BSHP> (_weak_side))
+                || (attacks_bb<BSHP> (block_sq2, pos.pieces ()) & pos.pieces<BSHP> (_weak_side))
                 || FileRankDist[r1][r2] >= 2))
             {
                 return SCALE_FACTOR_DRAW;
@@ -828,7 +828,7 @@ namespace EndGame {
             if (   wk_sq == block_sq2
                 && opposite_colors (wk_sq, sb_sq)
                 && (wb_sq == block_sq1
-                || (pos.attacks_from<BSHP> (block_sq1) & pos.pieces<BSHP> (_weak_side))))
+                || (attacks_bb<BSHP> (block_sq1, pos.pieces ()) & pos.pieces<BSHP> (_weak_side))))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -877,10 +877,10 @@ namespace EndGame {
         Square sp_sq = pos.list<PAWN> (_stong_side)[0];
         Square sb_sq = pos.list<BSHP> (_weak_side)[0];
         Square wk_sq = pos.king_sq (_weak_side);
-
+        
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if (FrontSqs_bb[_stong_side][sp_sq] & pos.attacks_from<BSHP> (sb_sq))
+        if (FrontSqs_bb[_stong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ()))
         {
             return ScaleFactor (SquareDist[wk_sq][sp_sq]);
         }
