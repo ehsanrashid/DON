@@ -30,7 +30,7 @@
 // ----------------
 //  total        16 byte
 
-typedef struct TEntry
+typedef struct TTEntry
 {
 
 private:
@@ -72,7 +72,7 @@ public:
         _gen = g;
     }
 
-} TEntry;
+} TTEntry;
 
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of CLUSTER_ENTRY number of entry.
@@ -90,7 +90,7 @@ private:
 
 #endif
 
-    TEntry  *_hash_table;
+    TTEntry  *_hash_table;
     uint64_t _hash_mask;
     uint8_t  _generation;
 
@@ -205,18 +205,18 @@ public:
 
     // refresh() updates the 'Generation' of the entry to avoid aging.
     // Normally called after a TranspositionTable hit.
-    inline void refresh (const TEntry &te) const
+    inline void refresh (const TTEntry &tte) const
     {
-        const_cast<TEntry&> (te).gen (_generation);
+        const_cast<TTEntry&> (tte).gen (_generation);
     }
-    inline void refresh (const TEntry *te) const
+    inline void refresh (const TTEntry *tte) const
     {
-        const_cast<TEntry*> (te)->gen (_generation);
+        const_cast<TTEntry*> (tte)->gen (_generation);
     }
 
     // get_cluster() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    inline TEntry* get_cluster (const Key key) const
+    inline TTEntry* get_cluster (const Key key) const
     {
         return _hash_table + (key & _hash_mask);
     }
@@ -231,11 +231,11 @@ public:
     {
         uint32_t full_count = 0;
 
-        TEntry *te = _hash_table;
+        TTEntry *tte = _hash_table;
         uint16_t total_count = std::min (U64 (10000), entries ());
-        for (uint16_t i = 0; i < total_count; ++i, ++te)
+        for (uint16_t i = 0; i < total_count; ++i, ++tte)
         {
-            if (te->gen () == _generation)
+            if (tte->gen () == _generation)
             {
                 ++full_count;
             }
@@ -254,8 +254,8 @@ public:
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
 
-    // inquire() looks up the entry in the transposition table.
-    const TEntry* inquire (Key key) const;
+    // retrieve() looks up the entry in the transposition table.
+    const TTEntry* retrieve (Key key) const;
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&

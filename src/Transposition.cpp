@@ -8,7 +8,7 @@ TranspositionTable TT;
 
 using namespace std;
 
-const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TEntry);  // 16
+const uint8_t  TranspositionTable::TENTRY_SIZE      = sizeof (TTEntry);  // 16
 
 const uint8_t  TranspositionTable::CLUSTER_ENTRY    = 4;
 
@@ -44,7 +44,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size, uint8_t alignm
     //memset (_mem, 0, mem_size);
 
     void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
-    _hash_table = (TEntry *) (ptr);
+    _hash_table = (TTEntry *) (ptr);
 
 #else
 
@@ -78,7 +78,7 @@ void TranspositionTable::alloc_aligned_memory (uint64_t mem_size, uint8_t alignm
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
 
     ptr[-1]     = mem;
-    _hash_table = (TEntry *) (ptr);
+    _hash_table = (TTEntry *) (ptr);
 
 #endif
 
@@ -95,7 +95,7 @@ uint32_t TranspositionTable::resize (uint32_t mem_size_mb, bool force)
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
     uint64_t mem_size      = uint64_t (mem_size_mb) << 20;
-    uint64_t cluster_count = (mem_size) / sizeof (TEntry[CLUSTER_ENTRY]);
+    uint64_t cluster_count = (mem_size) / sizeof (TTEntry[CLUSTER_ENTRY]);
     uint64_t   entry_count = uint64_t (CLUSTER_ENTRY) << scan_msq (cluster_count);
 
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
@@ -134,21 +134,21 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
 {
     uint32_t key32 = uint32_t (key >> 32); // 32 upper-bit of key
 
-    TEntry *te = get_cluster (key);
+    TTEntry *tte = get_cluster (key);
     // By default replace first entry
-    TEntry *re = te;
+    TTEntry *rte = tte;
 
-    for (uint8_t i = 0; i < CLUSTER_ENTRY; ++i, ++te)
+    for (uint8_t i = 0; i < CLUSTER_ENTRY; ++i, ++tte)
     {
-        if (!te->key () || te->key () == key32) // Empty or Old then overwrite
+        if (!tte->key () || tte->key () == key32) // Empty or Old then overwrite
         {
             // Preserve any existing TT move
             if (MOVE_NONE == move)
             {
-                move = te->move ();
+                move = tte->move ();
             }
 
-            re = te;
+            rte = tte;
             break;
         }
 
@@ -157,41 +157,41 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
 
         // Implement replacement strategy when a collision occurs
         int8_t gc;
-        gc  = ((re->gen () == _generation) ? +2 : 0);
-        gc += ((te->gen () == _generation)
-            || (te->bound () == BND_EXACT) ? -2 : 0);
+        gc  = ((rte->gen () == _generation) ? +2 : 0);
+        gc += ((tte->gen () == _generation)
+            || (tte->bound () == BND_EXACT) ? -2 : 0);
 
         if (gc < 0) continue;
         if (gc > 0)
         {
-            re = te;
+            rte = tte;
             continue;
         }
         // gc == 0
-        int8_t rc = ((te->depth () < re->depth ()) ? +1
-                   : (te->depth () > re->depth ()) ? -1
-                   : (te->nodes () < re->nodes ()) ? +1 : 0);
+        int8_t rc = ((tte->depth () < rte->depth ()) ? +1
+                   : (tte->depth () > rte->depth ()) ? -1
+                   : (tte->nodes () < rte->nodes ()) ? +1 : 0);
 
         if (rc > 0)
         {
-            re = te;
+            rte = tte;
             continue;
         }
     }
 
-    re->save (key32, move, depth, bound, nodes >> 16, value, eval, _generation);
+    rte->save (key32, move, depth, bound, nodes >> 16, value, eval, _generation);
 }
 
-// inquire() looks up the entry in the transposition table.
+// retrieve() looks up the entry in the transposition table.
 // Returns a pointer to the entry found or NULL if not found.
-const TEntry* TranspositionTable::inquire (Key key) const
+const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     uint32_t key32 = uint32_t (key >> 32);
 
-    const TEntry *te = get_cluster (key);
-    for (uint8_t i = 0; i < CLUSTER_ENTRY; ++i, ++te)
+    const TTEntry *tte = get_cluster (key);
+    for (uint8_t i = 0; i < CLUSTER_ENTRY; ++i, ++tte)
     {
-        if (te->key () == key32) return te;
+        if (tte->key () == key32) return tte;
     }
     return NULL;
 }

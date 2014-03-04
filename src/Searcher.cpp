@@ -377,20 +377,20 @@ namespace Searcher {
             Key posi_key = pos.posi_key ();
 
             // Transposition table lookup
-            const TEntry *te;
+            const TTEntry *tte;
             Move  tt_move;
             Value tt_value;
 
-            te       = TT.inquire (posi_key);
-            tt_move  = te ?              te->move ()              : MOVE_NONE;
-            tt_value = te ? value_fr_tt (te->value (), (ss)->ply) : VALUE_NONE;
+            tte      = TT.retrieve (posi_key);
+            tt_move  = tte ?              tte->move ()              : MOVE_NONE;
+            tt_value = tte ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
-            if (te
-                && te->depth () >= tt_depth
+            if (   tte
+                && tte->depth () >= tt_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (PVNode ?  te->bound () == BND_EXACT
-                : tt_value >= beta ? (te->bound () &  BND_LOWER)
-                /**/               : (te->bound () &  BND_UPPER)))
+                && (PVNode ?  tte->bound () == BND_EXACT
+                : tt_value >= beta ? (tte->bound () &  BND_LOWER)
+                /**/               : (tte->bound () &  BND_UPPER)))
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
                 return tt_value;
@@ -406,17 +406,17 @@ namespace Searcher {
             }
             else
             {
-                if (te)
+                if (tte)
                 {
                     // Never assume anything on values stored in TT
-                    Value e_value = te->eval ();
+                    Value e_value = tte->eval ();
                     if (VALUE_NONE == e_value) e_value = evaluate (pos);
                     best_value = (ss)->static_eval = e_value;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
                     {
-                        if (te->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
+                        if (tte->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
                         }
@@ -430,7 +430,7 @@ namespace Searcher {
                 // Stand pat. Return immediately if static value is at least beta
                 if (best_value >= beta)
                 {
-                    if (!te)
+                    if (!tte)
                     {
                         TT.store (
                             pos.posi_key (),
@@ -597,7 +597,7 @@ namespace Searcher {
             SplitPoint *split_point;
             Key     posi_key;
 
-            const TEntry *te;
+            const TTEntry *tte;
 
             Move    best_move
                 , tt_move
@@ -626,7 +626,7 @@ namespace Searcher {
                 best_move   = split_point->best_move;
                 best_value  = split_point->best_value;
 
-                te       = NULL;
+                tte      = NULL;
                 tt_move  = excluded_move = MOVE_NONE;
                 tt_value = VALUE_NONE;
 
@@ -684,24 +684,25 @@ namespace Searcher {
 
             posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
 
-            te       = TT.inquire (posi_key);
+            tte      = TT.retrieve (posi_key);
             tt_move  = (ss)->tt_move = RootNode ? RootMoves[IndexPV].pv[0]
-            :          te ?              te->move ()              : MOVE_NONE;
-            tt_value = te ? value_fr_tt (te->value (), (ss)->ply) : VALUE_NONE;
+            :          tte ?              tte->move ()              : MOVE_NONE;
+            tt_value = tte ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
             // At PV nodes we check for exact scores, while at non-PV nodes we check for
             // a fail high/low. Biggest advantage at probing at PV nodes is to have a
             // smooth experience in analysis mode. We don't probe at Root nodes otherwise
             // we should also update RootMoveList to avoid bogus output.
             if (!RootNode
-                && te
-                && te->depth () >= depth
+                && tte
+                && tte->depth () >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (PVNode ?  te->bound () == BND_EXACT
-                : tt_value >= beta ? (te->bound () &  BND_LOWER)
-                /**/               : (te->bound () &  BND_UPPER)))
+                && (PVNode ?  tte->bound () == BND_EXACT
+                : tt_value >= beta ? (tte->bound () &  BND_LOWER)
+                /**/               : (tte->bound () &  BND_UPPER)))
             {
-                TT.refresh (te);
+                TT.refresh (tte);
+
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                 // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
@@ -763,17 +764,17 @@ namespace Searcher {
             }
             else
             {
-                if (te)
+                if (tte)
                 {
                     // Never assume anything on values stored in TT
-                    Value e_value = te->eval ();
+                    Value e_value = tte->eval ();
                     if (VALUE_NONE == e_value) e_value = evaluate (pos);
                     eval = (ss)->static_eval = e_value;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
                     {
-                        if (te->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
+                        if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
                         {
                             eval = tt_value;
                         }
@@ -951,8 +952,8 @@ namespace Searcher {
 
                 (ss)->skip_null_move = false;
 
-                te = TT.inquire (posi_key);
-                tt_move = te ? te->move () : MOVE_NONE;
+                tte = TT.retrieve (posi_key);
+                tt_move = tte ? tte->move () : MOVE_NONE;
             }
 
         moves_loop: // When in check and at SPNode search starts from here
@@ -985,8 +986,8 @@ namespace Searcher {
                 && depth >= 8 * ONE_MOVE
                 && tt_move != MOVE_NONE
                 && !excluded_move         // Recursive singular search is not allowed
-                && (te->bound () & BND_LOWER)
-                && (te->depth () >= depth - 3 * ONE_MOVE);
+                && (tte->bound () & BND_LOWER)
+                && (tte->depth () >= depth - 3 * ONE_MOVE);
 
             point elapsed;
 
@@ -1609,7 +1610,7 @@ namespace Searcher {
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
 
-        const TEntry *te;
+        const TTEntry *tte;
         do
         {
             pv.push_back (m);
@@ -1617,11 +1618,11 @@ namespace Searcher {
             ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *si++);
-            te = TT.inquire (pos.posi_key ());
+            tte = TT.retrieve (pos.posi_key ());
 
         }
-        while (te // Local copy, TT could change
-            && (m = te->move ()) != MOVE_NONE
+        while (tte // Local copy, TT could change
+            && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
             && (ply < MAX_PLY)
@@ -1646,12 +1647,12 @@ namespace Searcher {
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
 
-        const TEntry *te;
+        const TTEntry *tte;
         do
         {
-            te = TT.inquire (pos.posi_key ());
+            tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
-            if (!te || te->move() != pv[ply])
+            if (!tte || tte->move() != pv[ply])
             {
                 TT.store (
                     pos.posi_key (),
