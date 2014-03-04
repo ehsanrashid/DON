@@ -337,7 +337,7 @@ namespace Searcher {
         template <NodeT NT, bool IN_CHECK>
         // search_quien() is the quiescence search function, which is called by the main search function
         // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
-        Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
+        inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = (NT == PV);
 
@@ -381,7 +381,7 @@ namespace Searcher {
             Move  tt_move;
             Value tt_value;
 
-            te       = TT.retrieve (posi_key);
+            te       = TT.inquire (posi_key);
             tt_move  = te ?              te->move ()              : MOVE_NONE;
             tt_value = te ? value_fr_tt (te->value (), (ss)->ply) : VALUE_NONE;
 
@@ -584,7 +584,7 @@ namespace Searcher {
         // search, and searched the first move before splitting, we don't have to repeat
         // all this work again. We also don't need to store anything to the hash table
         // here: This is taken care of after we return from the split point.
-        Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
+        inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = (NT == Root             || NT == SplitPointRoot);
             const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointPV    || NT == SplitPointRoot);
@@ -684,7 +684,7 @@ namespace Searcher {
 
             posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
 
-            te       = TT.retrieve (posi_key);
+            te       = TT.inquire (posi_key);
             tt_move  = (ss)->tt_move = RootNode ? RootMoves[IndexPV].pv[0]
             :          te ?              te->move ()              : MOVE_NONE;
             tt_value = te ? value_fr_tt (te->value (), (ss)->ply) : VALUE_NONE;
@@ -951,7 +951,7 @@ namespace Searcher {
 
                 (ss)->skip_null_move = false;
 
-                te = TT.retrieve (posi_key);
+                te = TT.inquire (posi_key);
                 tt_move = te ? te->move () : MOVE_NONE;
             }
 
@@ -1391,7 +1391,7 @@ namespace Searcher {
         // user stops the search, or the maximum search depth is reached.
         // Time management; with iterative deepining enabled you can specify how long
         // you want the computer to think rather than how deep you want it to think. 
-        void iter_deep_loop (Position &pos)
+        inline void iter_deep_loop (Position &pos)
         {
             Stack stack[MAX_PLY_6]
             , *ss = stack+2; // To allow referencing (ss-2)
@@ -1617,7 +1617,7 @@ namespace Searcher {
             ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
 
             pos.do_move (pv[ply++], *si++);
-            te = TT.retrieve (pos.posi_key ());
+            te = TT.inquire (pos.posi_key ());
 
         }
         while (te // Local copy, TT could change
@@ -1649,7 +1649,7 @@ namespace Searcher {
         const TEntry *te;
         do
         {
-            te = TT.retrieve (pos.posi_key ());
+            te = TT.inquire (pos.posi_key ());
             // Don't overwrite correct entries
             if (!te || te->move() != pv[ply])
             {

@@ -193,7 +193,7 @@ namespace MemoryHandler {
             if (mem_ref)
             {
                 UsePages = true;
-                std::cout << "info string LargePages Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                std::cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << std::endl;
                 return;
             }
             else
@@ -207,7 +207,7 @@ namespace MemoryHandler {
                 if (mem_ref)
                 {
                     UsePages = true;
-                    std::cout << "info string Pages Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                    std::cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << std::endl;
                     return;
                 }
             }

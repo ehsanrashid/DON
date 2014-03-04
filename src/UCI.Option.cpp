@@ -217,7 +217,6 @@ namespace UCI {
         void on_resize_hash     (const Option &opt)
         {
             TT.resize (int32_t (opt), false);
-            sync_cout << "info string Hash size " << TT.size () << " MB." << sync_endl;
         }
 
         void on_save_hash       (const Option &)

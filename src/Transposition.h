@@ -75,7 +75,7 @@ public:
 } TEntry;
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of CLUSTER_SIZE number of entry.
+// and each cluster consists of CLUSTER_ENTRY number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -127,7 +127,7 @@ public:
     // Total size for Transposition entry in byte
     static const uint8_t  TENTRY_SIZE;
     // Number of entries in a cluster
-    static const uint8_t  CLUSTER_SIZE;
+    static const uint8_t  CLUSTER_ENTRY;
 
     // Max power of hash for cluster
     static const uint32_t MAX_HASH_BIT;
@@ -168,7 +168,7 @@ public:
 
     inline uint64_t entries () const
     {
-        return (_hash_mask + CLUSTER_SIZE);
+        return (_hash_mask + CLUSTER_ENTRY);
     }
 
     // Returns size in MB
@@ -254,8 +254,8 @@ public:
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
 
-    // retrieve() looks up the entry in the transposition table.
-    const TEntry* retrieve (Key key) const;
+    // inquire() looks up the entry in the transposition table.
+    const TEntry* inquire (Key key) const;
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -265,7 +265,7 @@ public:
             uint8_t dummy = 0;
             os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
             os.write ((const char *) &TranspositionTable::TENTRY_SIZE, sizeof (dummy));
-            os.write ((const char *) &TranspositionTable::CLUSTER_SIZE, sizeof (dummy));
+            os.write ((const char *) &TranspositionTable::CLUSTER_ENTRY, sizeof (dummy));
             os.write ((const char *) &dummy, sizeof (dummy));
             os.write ((const char *) &tt._generation, sizeof (tt._generation));
             os.write ((const char *) &tt._hash_mask, sizeof (tt._hash_mask));

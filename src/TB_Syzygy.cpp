@@ -3135,7 +3135,7 @@ namespace TBSyzygy {
     void initialize (std::string &path)
     {
         char str[16];
-        int32_t i, j, k, l;
+        int32_t i;
 
         if (initialized)
         {
@@ -3175,6 +3175,7 @@ namespace TBSyzygy {
         path_string = (char *) malloc (path.length () + 1);
         strcpy (path_string, path.c_str ());
 
+        int32_t j, k, l;
         num_paths = 0;
         i = 0;
         while (true)
@@ -3230,6 +3231,7 @@ namespace TBSyzygy {
                 TB_hash[i][j].ptr = NULL;
             }
         }
+
         for (i = 0; i < DTZ_ENTRIES; ++i)
         {
             DTZ_table[i].entry = NULL;
@@ -3328,8 +3330,9 @@ namespace TBSyzygy {
             }
         }
 
-        //printf ("info string Syzygy Tablebases found %d.\n", TB_num_piece + TB_num_pawn);
-        std::cout << "info string Syzygy Tablebases found " << (TB_num_piece + TB_num_pawn) << ".\n" << std::endl;
+        int32_t TB_total = TB_num_piece + TB_num_pawn;
+        //printf ("info string Syzygy Tablebases found %d.\n", TB_total);
+        std::cout << "info string Syzygy Tablebases found " << (TB_total) << ".\n" << std::endl;
 
     }
 
