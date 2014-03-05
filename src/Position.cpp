@@ -35,6 +35,8 @@ const Value PieceValue[PHASE_NO][TOTS] =
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
+static void prefetch (char *addr);
+
 #ifndef NDEBUG
 bool _ok (const   char *fen, bool c960, bool full)
 {
@@ -1281,7 +1283,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         //ASSERT (org_rook == castle_rook (activ, king_side ? CS_K : CS_Q));
         ASSERT (empty (dst_rook));
 
-        castle_king_rook (org, dst, org_rook, dst_rook);
+        exchange_king_rook (org, dst, org_rook, dst_rook);
 
         posi_k ^= ZobGlob._.piecesq[_active][KING][org     ] ^ ZobGlob._.piecesq[_active][KING][dst     ];
         posi_k ^= ZobGlob._.piecesq[_active][ROOK][org_rook] ^ ZobGlob._.piecesq[_active][ROOK][dst_rook];
@@ -1437,7 +1439,7 @@ void Position::undo_move ()
         Square dst_rook = rel_sq (activ, king_side ? SQ_WR_K : SQ_WR_Q);
 
         ct  = NONE;
-        castle_king_rook (dst, org, dst_rook, org_rook);
+        exchange_king_rook (dst, org, dst_rook, org_rook);
     }
     else if (PROMOTE   == mt)
     {
@@ -2137,3 +2139,43 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     return true;
 }
+
+
+// prefetch() preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall
+// the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
+#ifdef PREFETCH
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+void prefetch (char *addr)
+{
+
+#   if defined(__INTEL_COMPILER)
+    {
+        // This hack prevents prefetches from being optimized away by
+        // Intel compiler. Both MSVC and gcc seem not be affected by this.
+        __asm__ ("");
+    }
+#   endif
+
+    _mm_prefetch (addr, _MM_HINT_T0);
+}
+
+#else
+
+void prefetch (char *addr)
+{
+    __builtin_prefetch (addr);
+}
+
+#endif
+
+#else
+
+void prefetch (char *) {}
+
+#endif

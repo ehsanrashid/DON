@@ -90,9 +90,9 @@ namespace BitBoard {
         CACHE_ALIGN(64) Bitboard BTable_bb[MAX_B_MOVES];
         CACHE_ALIGN(64) Bitboard RTable_bb[MAX_R_MOVES];
 
-        typedef uint16_t (*Index) (Square s, Bitboard occ);
+        typedef uint16_t (*FnIndex) (Square s, Bitboard occ);
 
-        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index)
+        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const FnIndex m_index)
         {
 
             const uint16_t MagicBoosters[R_NO] =

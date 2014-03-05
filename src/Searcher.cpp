@@ -830,7 +830,7 @@ namespace Searcher {
             // the score by more than futility_margin (depth) if we do a null move.
             if (!PVNode
                 && !(ss)->skip_null_move
-                && depth < 9 * ONE_MOVE
+                && depth < 9 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN
@@ -1696,6 +1696,7 @@ namespace Searcher {
         RootInTB = false;
 
         int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+        //cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
         DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
         DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
 
@@ -2100,5 +2101,4 @@ namespace Threads {
         }
         while (true);
     }
-
 }

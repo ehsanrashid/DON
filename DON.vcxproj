@@ -325,7 +325,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>VERSION;POPCNT;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -483,7 +483,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
-      <UndefinePreprocessorDefinitions>VERSION;POPCNT;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -657,6 +657,10 @@
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AssemblyDependencies.dgml" />
+    <None Include="ClassDiagram.cd" />
+    <None Include="CodeMap.dgml" />
+    <None Include="IncludeFileDependencies.dgml" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />
     <None Include="src\make-clean.bat" />

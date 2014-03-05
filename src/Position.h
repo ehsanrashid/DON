@@ -299,9 +299,9 @@ private:
 
 public:
 
-    template<PieceT PT>
-    // Attacks of the PTYPE from the square
-    Bitboard attacks_from (Square s) const;
+    //template<PieceT PT>
+    //// Attacks of the PTYPE from the square
+    //Bitboard attacks_from (Square s) const;
 
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
@@ -355,7 +355,7 @@ public:
     Value compute_non_pawn_material (Color c) const;
 
 private:
-    void castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook);
+    void exchange_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook);
 
 public:
     // do/undo move
@@ -511,19 +511,19 @@ inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
 
 inline Threads::Thread*  Position::thread    () const { return _thread; }
 
-template<PieceT PT>
-// Attacks of the PTYPE from the square
-inline Bitboard Position::attacks_from (Square s) const
-{
-    return (BSHP == PT
-        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, _types_bb[NONE])
-        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
-        |                 BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
-        :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
-        :  (NIHT == PT
-        ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
-        :  U64 (0);
-}
+//template<PieceT PT>
+//// Attacks of the PTYPE from the square
+//inline Bitboard Position::attacks_from (Square s) const
+//{
+//    return (BSHP == PT
+//        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, _types_bb[NONE])
+//        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
+//        |                 BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
+//        :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
+//        :  (NIHT == PT
+//        ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
+//        :  U64 (0);
+//}
 
 // Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
@@ -702,8 +702,8 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _piece_list[c][pt][_index[s2]] = s2;
 }
 
-// castle_king_rook() exchanges the king and rook
-inline void Position::castle_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook)
+// exchange_king_rook() exchanges the king and rook
+inline void Position::exchange_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook)
 {
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (org_king);

@@ -118,23 +118,6 @@ namespace Engine {
         cout << endl;
 
 #ifndef NDEBUG
-
-        //TT.resize (4, true);
-        //TT.new_gen ();
-        //TT.store (Key(U64(0x0000000100000001)), Move(123), Depth(7), Bound(1), 1, Value(1), Value(2));
-        //TT.store (Key(U64(0x0000000200000001)), Move(124), Depth(5), Bound(1), 1, Value(1), Value(2));
-        //TT.store (Key(U64(0x0000000300000001)), Move(125), Depth(1), Bound(1), 1, Value(1), Value(2));
-        //string hash_fn = "hash.dat";
-        //ofstream ohash_file (hash_fn, ios_base::out | ios_base::binary);
-        //ohash_file << TT;
-        //ohash_file.close ();
-
-        //TT.master_clear ();
-        //
-        //ifstream ihash_file (hash_fn, ios_base::in | ios_base::binary);
-        //ihash_file >> TT;
-        //ihash_file.close ();
-
         //Tester::main_test ();
         //system ("pause");
         //return;

@@ -436,5 +436,4 @@ namespace Notation {
 
         return spv.str ();
     }
-
 }
