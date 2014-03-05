@@ -1803,7 +1803,6 @@ namespace Searcher {
                 TBHits = 0;
             }
         }
-        
 
         // Reset the threads, still sleeping: will wake up at split time
         for (uint8_t i = 0; i < Threadpool.size (); ++i)
@@ -1820,12 +1819,10 @@ namespace Searcher {
         Threadpool.timer->run = false; // Stop the timer
         Threadpool.sleep_idle = true;  // Send idle threads to sleep
 
-
         if (RootInTB)
         {
             // If we mangled the hash key, unmangle it here
         }
-
 
         if (write_search_log)
         {

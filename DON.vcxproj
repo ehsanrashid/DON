@@ -325,7 +325,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;POPCNT;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
