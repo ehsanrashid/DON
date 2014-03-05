@@ -269,9 +269,10 @@ namespace UCI {
             log_debug (bool (opt));
         }
 
+        // TODO::
         void on_query           (const Option &opt)
         {
-            // TODO::
+            
             (void) opt;
         }
 

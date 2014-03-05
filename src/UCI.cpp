@@ -84,6 +84,7 @@ namespace UCI {
             }
         }
 
+        // TODO::
         // exe_register() is the command to try to register an engine or to tell the engine that registration
         // will be done later. This command should always be sent if the engine has sent "registration error"
         // at program startup.
@@ -120,12 +121,11 @@ namespace UCI {
                         code += string (" ", !code.empty ()) + token;
                     }
 
-                    // TODO::
+                    
                     cout << name << "\n" << code << endl;
                 }
                 else if (token == "later")
                 {
-                    // TODO::
 
                 }
             }

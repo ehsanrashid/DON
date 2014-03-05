@@ -547,8 +547,8 @@ namespace EndGame {
     }
 
     template<>
-    // KRP vs KB. TODO::
-    //
+    // KRP vs KB.
+    // TODO::
     ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 1));

@@ -719,7 +719,9 @@ namespace Searcher {
                 return tt_value;
             }
 
+            // TODO::
             // Step 4-TB. Tablebase probe
+            /*
             if (!RootNode
                 && depth >= TBProbeDepth
                 && pos.count () <= TBCardinality
@@ -757,6 +759,7 @@ namespace Searcher {
                     return value;
                 }
             }
+            */
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
             if (in_check)
