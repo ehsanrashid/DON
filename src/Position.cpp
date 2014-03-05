@@ -2152,7 +2152,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-void prefetch (char *addr)
+static void prefetch (char *addr)
 {
 
 #   if defined(__INTEL_COMPILER)
@@ -2168,7 +2168,7 @@ void prefetch (char *addr)
 
 #else
 
-void prefetch (char *addr)
+static void prefetch (char *addr)
 {
     __builtin_prefetch (addr);
 }
@@ -2177,6 +2177,6 @@ void prefetch (char *addr)
 
 #else
 
-void prefetch (char *) {}
+static void prefetch (char *) {}
 
 #endif

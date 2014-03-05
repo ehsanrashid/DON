@@ -1158,7 +1158,6 @@ namespace Searcher {
                         && pos.see_sign (move) < VALUE_ZERO)
                     {
                         if (SPNode) split_point->mutex.lock ();
-
                         continue;
                     }
                 }
@@ -1168,7 +1167,6 @@ namespace Searcher {
                     && !pos.legal (move, ci.pinneds))
                 {
                     --moves_count;
-
                     continue;
                 }
 

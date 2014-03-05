@@ -177,7 +177,7 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        ASSERT (pos.legal (m));
+        //ASSERT (pos.legal (m));
 
         string san;
 
@@ -285,7 +285,7 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                default:       ASSERT (false);               break;
+                //default:       ASSERT (false);               break;
                 }
             }
 
