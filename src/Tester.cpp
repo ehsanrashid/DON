@@ -222,7 +222,7 @@ namespace Tester {
 
             ASSERT (pos.active () == WHITE);
             ASSERT (pos.castle_rights () == CR_A);
-            ASSERT (pos.en_passant () == SQ_NO);
+            ASSERT (pos.en_passant_sq () == SQ_NO);
             ASSERT (pos.clock50 () == 0);
             ASSERT (pos.game_move () == 1);
 
@@ -266,7 +266,7 @@ namespace Tester {
             ASSERT (pos[SQ_F6] == B_BSHP);
 
             ASSERT (pos.castle_rights () == CR_W);
-            ASSERT (pos.en_passant () == SQ_NO);
+            ASSERT (pos.en_passant_sq () == SQ_NO);
             ASSERT (pos.clock50 () == 4);
             ASSERT (pos.game_move () == 11);
 
@@ -280,7 +280,7 @@ namespace Tester {
             ASSERT (equals (buf, "8/8/1R5p/q5pk/PR3pP1/7P/8/7K b - g3 0 10"));
             ASSERT (pos.active () == BLACK);
             ASSERT (pos.castle_rights () == CR_NO);
-            ASSERT (pos.en_passant () == SQ_G3);
+            ASSERT (pos.en_passant_sq () == SQ_G3);
             ASSERT (pos.clock50 () == 0);
             ASSERT (pos.game_move () == 10);
 
@@ -318,7 +318,7 @@ namespace Tester {
 
             ASSERT (pos.active () == WHITE);
             ASSERT (pos.castle_rights () == CR_NO);
-            ASSERT (pos.en_passant () == SQ_NO);
+            ASSERT (pos.en_passant_sq () == SQ_NO);
             ASSERT (pos.clock50 () == 1);
             ASSERT (pos.game_move () == 25);
 
@@ -359,7 +359,7 @@ namespace Tester {
 
             ASSERT (pos.active () == BLACK);
             ASSERT (pos.castle_rights () == CR_NO);
-            ASSERT (pos.en_passant () == SQ_NO);
+            ASSERT (pos.en_passant_sq () == SQ_NO);
             ASSERT (pos.clock50 () == 3);
             ASSERT (pos.game_move () == 12);
 

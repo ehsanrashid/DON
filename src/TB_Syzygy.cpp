@@ -2746,7 +2746,7 @@ namespace TBSyzygy {
         v = probe_ab (pos, -2, 2, success);
 
         // If en passant is not possible, we are done.
-        if (pos.en_passant () == SQ_NO)
+        if (pos.en_passant_sq () == SQ_NO)
         {
             return v;
         }
@@ -2846,7 +2846,7 @@ namespace TBSyzygy {
         *success = 1;
         int32_t v = probe_dtz_no_ep (pos, success);
 
-        if (pos.en_passant () == SQ_NO) return v;
+        if (pos.en_passant_sq () == SQ_NO) return v;
         if (*success == 0) return 0;
 
         // Now handle en passant.

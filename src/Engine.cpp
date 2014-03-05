@@ -14,6 +14,7 @@
 #include "DebugLogger.h"
 #include "Thread.h"
 #include "UCI.h"
+#include "Notation.h"
 #include "Tester.h"
 
 namespace Engine {
@@ -35,54 +36,54 @@ namespace Engine {
 
     string info (bool uci)
     {
-        ostringstream ss;
+        ostringstream os;
 
-        if (uci) ss << "id name ";
-        ss << Name << " ";
+        if (uci) os << "id name ";
+        os << Name << " ";
 
 #if defined (VERSION)
-        ss << VERSION << setfill ('0');
+        os << VERSION << setfill ('0');
 #else
         if (Version.empty ())
         {
             // From compiler, format is "Sep 2 2013"
-            istringstream sdate (__DATE__);
+            istringstream is (__DATE__);
 
             string month
                 ,  day
                 ,  year;
 
-            sdate
+            is
                 >> month
                 >> day
                 >> year;
 
-            ss  << setfill ('0')
+            os  << setfill ('0')
                 << setw (2) << (day) //<< '-'
                 << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
                 << setw (2) << (year.substr (2));
         }
         else
         {
-            ss << Version << setfill ('0');
+            os << Version << setfill ('0');
         }
 #endif
 
 #ifdef _64BIT
-        ss << " x64";
+        os << " x64";
 #else
-        ss << " w32";
+        os << " w32";
 #endif
 
 #ifdef POPCNT
-        ss << "-modern";
+        os << "-modern";
 #endif
 
-        ss  << "\n" 
+        os  << "\n" 
             << ((uci) ? "id author " : "(c) 2014 ")
             << Author << "\n";
 
-        return ss.str ();
+        return os.str ();
     }
 
     void run (const std::string &args)
@@ -118,6 +119,13 @@ namespace Engine {
         cout << endl;
 
 #ifndef NDEBUG
+
+        //Position pos ("8/4k3/8/1N6/3p4/1N3N2/4K3/8 w - - 0 1");
+        //cout << pos;
+        //cout << MoveGenerator::MoveList<MoveGenerator::LEGAL> (pos).size () << endl;
+        //string m = "Nbd2";
+        //cout << (int) Notation::move_from_san (m, pos) << endl;
+        //cout << (int) mk_move (SQ_B1, SQ_D2);
         //Tester::main_test ();
         //system ("pause");
         //return;

@@ -300,10 +300,10 @@ namespace MoveGenerator {
                     case QUIET_CHECK:
                         if (ci)
                         {
-                            Bitboard attack = PawnAttacks[C_][ci->king_sq];
+                            Bitboard pawn_attacks = PawnAttacks[C_][ci->king_sq];
 
-                            push_1 &= attack;
-                            push_2 &= attack;
+                            push_1 &= pawn_attacks;
+                            push_2 &= pawn_attacks;
 
                             // pawns which give discovered check
                             Bitboard pawns_chk_dis = pawns_on_Rx & ci->discoverers;
@@ -337,13 +337,12 @@ namespace MoveGenerator {
                     SERIALIZE_PAWNS (m_list, LCAP, l_attacks);
                     SERIALIZE_PAWNS (m_list, RCAP, r_attacks);
 
-                    Square ep_sq = pos.en_passant ();
+                    Square ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
                     {
                         ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
-
-                        Bitboard bbRR5 = rel_rank_bb (C, R_5);
-                        Bitboard pawns_on_R5 = pawns_on_Rx & bbRR5;
+                        // RR5_bb
+                        Bitboard pawns_on_R5 = pawns_on_Rx & rel_rank_bb (C, R_5);
                         if (pawns_on_R5)
                         {
                             // An en-passant capture can be an evasion only if the checking piece
@@ -354,7 +353,7 @@ namespace MoveGenerator {
                             {
                                 Bitboard pawns_ep = PawnAttacks[C_][ep_sq] & pawns_on_R5;
                                 ASSERT (pawns_ep);
-                                ASSERT (pop_count<FULL> (pawns_ep) <= 2);
+                                ASSERT (pop_count<MAX15> (pawns_ep) <= 2);
 
                                 while (pawns_ep)
                                 {

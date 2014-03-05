@@ -459,7 +459,7 @@ bool Position::ok (int8_t *failed_step) const
     // step 11
     if (++(*step), debug_en_passant)
     {
-        Square ep_sq = _si->en_passant;
+        Square ep_sq = _si->en_passant_sq;
         if (SQ_NO != ep_sq)
         {
             if (!can_en_passant (ep_sq)) return false;
@@ -715,7 +715,7 @@ bool Position::pseudo_legal (Move m) const
     else if (ENPASSANT == mt)
     {
         if (   PAWN != pt
-            || _si->en_passant != dst
+            || _si->en_passant_sq != dst
             || R_5 != r_org
             || R_6 != r_dst
             || !empty (dst))
@@ -860,7 +860,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // we do it simply by testing whether the king is attacked after the move is made.
         Square cap = dst + pawn_push (pasiv);
 
-        ASSERT (dst == _si->en_passant);
+        ASSERT (dst == _si->en_passant_sq);
         ASSERT ((activ | PAWN) == _board[org]);
         ASSERT ((pasiv | PAWN) == _board[cap]);
         ASSERT (empty (dst));
@@ -985,8 +985,8 @@ void Position::clear ()
 
     //_game_ply   = 1;
 
-    _sb.en_passant = SQ_NO;
-    _sb.cap_type   = NONE;
+    _sb.en_passant_sq = SQ_NO;
+    _sb.capture_type  = NONE;
     _si = &_sb;
 }
 // setup() sets the fen on the position
@@ -1194,7 +1194,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     else if (ENPASSANT == mt)
     {
         ASSERT (PAWN == pt);                // Moving type must be pawn
-        ASSERT (dst == _si->en_passant);    // Destination must be en-passant
+        ASSERT (dst == _si->en_passant_sq); // Destination must be en-passant
         ASSERT (R_5 == rel_rank (activ, org));
         ASSERT (R_6 == rel_rank (activ, dst));
         ASSERT (empty (cap));  // Capture Square must be empty
@@ -1249,10 +1249,10 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     }
 
     // Reset old en-passant square
-    if (SQ_NO != _si->en_passant)
+    if (SQ_NO != _si->en_passant_sq)
     {
-        posi_k ^= Zob._.en_passant[_file (_si->en_passant)];
-        _si->en_passant = SQ_NO;
+        posi_k ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        _si->en_passant_sq = SQ_NO;
     }
 
     // Do move according to move type
@@ -1373,7 +1373,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
             Square ep_sq = Square ((idst + iorg) / 2);
             if (can_en_passant (ep_sq))
             {
-                _si->en_passant = ep_sq;
+                _si->en_passant_sq = ep_sq;
                 posi_k ^= Zob._.en_passant[_file (ep_sq)];
             }
         }
@@ -1386,7 +1386,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
     // Update the key with the final value
     _si->posi_key   = posi_k;
-    _si->cap_type   = ct;
+    _si->capture_type   = ct;
     _si->last_move  = m;
     ++_si->null_ply;
     ++_game_ply;
@@ -1421,7 +1421,7 @@ void Position::undo_move ()
     MoveT mt = mtype (m);
     ASSERT (empty (org) || CASTLE == mt);
 
-    PieceT ct = _si->cap_type;
+    PieceT ct = _si->capture_type;
     ASSERT (KING != ct);
 
     Square cap = dst;
@@ -1456,7 +1456,7 @@ void Position::undo_move ()
         ASSERT (PAWN == ct);
         ASSERT (R_5 == rel_rank (activ, org));
         ASSERT (R_6 == rel_rank (activ, dst));
-        ASSERT (dst == _si->p_si->en_passant);
+        ASSERT (dst == _si->p_si->en_passant_sq);
         cap -= pawn_push (activ);
         ASSERT (empty (cap));
         move_piece (dst, org); // Put the piece back at the origin square
@@ -1488,10 +1488,10 @@ void Position::do_null_move (StateInfo &n_si)
     n_si.p_si = _si;
     _si       = &n_si;
 
-    if (SQ_NO != _si->en_passant)
+    if (SQ_NO != _si->en_passant_sq)
     {
-        _si->posi_key ^= Zob._.en_passant[_file (_si->en_passant)];
-        _si->en_passant = SQ_NO;
+        _si->posi_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        _si->en_passant_sq = SQ_NO;
     }
 
     _active = ~_active;
@@ -1522,27 +1522,27 @@ void Position::undo_null_move ()
 void Position::flip ()
 {
     string fen_, ch;
-    stringstream sfen (fen ());
+    stringstream ss (fen ());
     // 1. Piece placement
     for (Rank rank = R_8; rank >= R_1; --rank)
     {
-        getline (sfen, ch, rank > R_1 ? '/' : ' ');
+        getline (ss, ch, rank > R_1 ? '/' : ' ');
         fen_.insert (0, ch + (fen_.empty () ? " " : "/"));
     }
     // 2. Active color
-    sfen >> ch;
+    ss >> ch;
     fen_ += (ch == "w" ? "B" : "W"); // Will be lowercased later
     fen_ += " ";
     // 3. Castling availability
-    sfen >> ch;
+    ss >> ch;
     fen_ += ch + " ";
     transform (fen_.begin (), fen_.end (), fen_.begin (), toggle_case);
 
     // 4. En-passant square
-    sfen >> ch;
+    ss >> ch;
     fen_ += (ch == "-" ? ch : ch.replace (1, 1, ch[1] == '3' ? "6" : "3"));
     // 5-6. Half and full moves
-    getline (sfen, ch);
+    getline (ss, ch);
     fen_ += ch;
 
     setup (fen_, _thread, _chess960);
@@ -1632,7 +1632,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
         set_next ('-');
     }
     set_next (' ');
-    Square ep_sq = _si->en_passant;
+    Square ep_sq = _si->en_passant_sq;
     if (SQ_NO != ep_sq)
     {
         if (R_6 != rel_rank (_active, ep_sq)) return false;
@@ -1661,7 +1661,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
 #endif
 string Position::fen (bool                  c960, bool full) const
 {
-    ostringstream sfen;
+    ostringstream os;
 
     for (Rank r = R_8; r >= R_1; --r)
     {
@@ -1675,14 +1675,14 @@ string Position::fen (bool                  c960, bool full) const
                 ++f;
                 ++s;
             }
-            if (empty_count) sfen << empty_count;
-            if (F_H >= f)  sfen << CharPiece[_board[s]];
+            if (empty_count) os << empty_count;
+            if (F_H >= f)  os << CharPiece[_board[s]];
         }
 
-        if (R_1 < r) sfen << '/';
+        if (R_1 < r) os << '/';
     }
 
-    sfen << " " << CharColor[_active] << " ";
+    os << " " << CharColor[_active] << " ";
 
     if (can_castle (CR_A))
     {
@@ -1690,40 +1690,40 @@ string Position::fen (bool                  c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) sfen << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_K>::right]), false);
-                if (can_castle (CR_W_Q)) sfen << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_Q>::right]), false);
+                if (can_castle (CR_W_K)) os << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_K>::right]), false);
+                if (can_castle (CR_W_Q)) os << to_char (_file (_castle_rooks[MakeCastling<WHITE, CS_Q>::right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) sfen << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_K>::right]), true);
-                if (can_castle (CR_B_Q)) sfen << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_Q>::right]), true);
+                if (can_castle (CR_B_K)) os << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_K>::right]), true);
+                if (can_castle (CR_B_Q)) os << to_char (_file (_castle_rooks[MakeCastling<BLACK, CS_Q>::right]), true);
             }
         }
         else
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) sfen << 'K';
-                if (can_castle (CR_W_Q)) sfen << 'Q';
+                if (can_castle (CR_W_K)) os << 'K';
+                if (can_castle (CR_W_Q)) os << 'Q';
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) sfen << 'k';
-                if (can_castle (CR_B_Q)) sfen << 'q';
+                if (can_castle (CR_B_K)) os << 'k';
+                if (can_castle (CR_B_Q)) os << 'q';
             }
         }
     }
     else
     {
-        sfen << '-';
+        os << '-';
     }
 
-    sfen << (SQ_NO == _si->en_passant ?
-        " - " : " " + to_string (_si->en_passant) + " ");
+    os << (SQ_NO == _si->en_passant_sq ?
+        " - " : " " + to_string (_si->en_passant_sq) + " ");
 
-    if (full) sfen << _si->clock50 << " " << game_move ();
+    if (full) os << int16_t (_si->clock50) << " " << game_move ();
 
-    return sfen.str ();
+    return os.str ();
 }
 
 // string() returns an ASCII representation of the position to be
@@ -1767,8 +1767,9 @@ Position::operator string () const
     Bitboard chks = checkers ();
     while (chks) ss << to_string (pop_lsq (chks)) << " ";
 
-    ss  << "\nLegal moves: ";
-    for (MoveList<LEGAL> itr (*this); *itr; ++itr)
+    MoveList<LEGAL> itr (*this);
+    ss  << "\nLegal moves (" << dec << itr.size () << "): ";
+    for ( ; *itr; ++itr)
     {
         ss << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
     }
@@ -1957,7 +1958,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         Square ep_sq  = to_square (ep_f, ep_r);
         if (pos.can_en_passant (ep_sq))
         {
-            pos._si->en_passant = ep_sq;
+            pos._si->en_passant_sq = ep_sq;
         }
     }
     // 50-move clock and game-move count
@@ -1985,7 +1986,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
+    pos._si->clock50 = (SQ_NO != pos._si->en_passant_sq) ? 0 : clk50;
     pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->matl_key = Zob.compute_matl_key (pos);
@@ -2010,15 +2011,15 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     pos.clear ();
 
-    istringstream sfen (fen);
+    istringstream is (fen);
     uint8_t ch;
 
-    sfen >> noskipws;
+    is >> noskipws;
 
     // 1. Piece placement on Board
     size_t idx;
     Square s = SQ_A8;
-    while ((sfen >> ch) && !isspace (ch))
+    while ((is >> ch) && !isspace (ch))
     {
         if (isdigit (ch))
         {
@@ -2041,7 +2042,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 2. Active color
-    sfen >> ch;
+    is >> ch;
     pos._active = Color (CharColor.find (ch));
 
     // 3. Castling rights availability
@@ -2050,11 +2051,11 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    sfen >> ch;
+    is >> ch;
     if (c960)
     {
 
-        while ((sfen >> ch) && !isspace (ch))
+        while ((is >> ch) && !isspace (ch))
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
@@ -2073,7 +2074,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
     else
     {
-        while ((sfen >> ch) && !isspace (ch))
+        while ((is >> ch) && !isspace (ch))
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
@@ -2097,8 +2098,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // 4. En-passant square. Ignore if no pawn capture is possible
     uint8_t col, row;
-    if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
-        && ((sfen >> row) && (row == '3' || row == '6')))
+    if (   ((is >> col) && (col >= 'a' && col <= 'h'))
+        && ((is >> row) && (row == '3' || row == '6')))
     {
         if (   !(WHITE == pos._active && '6' != row)
             && !(BLACK == pos._active && '3' != row))
@@ -2106,7 +2107,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
             Square ep_sq = to_square (col, row);
             if (pos.can_en_passant (ep_sq))
             {
-                pos._si->en_passant = ep_sq;
+                pos._si->en_passant_sq = ep_sq;
             }
         }
     }
@@ -2115,7 +2116,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     int32_t clk50 = 0, g_move = 1;
     if (full)
     {
-        sfen >> skipws >> clk50 >> g_move;
+        is >> skipws >> clk50 >> g_move;
         // Rule 50 draw case
         if (100 < clk50) return false;
         if (0 >= g_move) g_move = 1;
@@ -2123,7 +2124,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
+    pos._si->clock50 = (SQ_NO != pos._si->en_passant_sq) ? 0 : clk50;
     pos._game_ply = max (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->matl_key = Zob.compute_matl_key (pos);

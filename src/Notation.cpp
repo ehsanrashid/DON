@@ -17,31 +17,31 @@ namespace Notation {
     namespace {
 
         // value to string
-        string value_to_string (Value v)
+        const string value_to_string (Value v)
         {
-            stringstream svl;
+            ostringstream os;
 
             if (abs (v) < VALUE_MATES_IN_MAX_PLY)
             {
-                svl << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+                os << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
             }
             else
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    svl <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+                    os <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
-                    svl << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+                    os << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
                 }
             }
 
-            return svl.str ();
+            return os.str ();
         }
 
         // time to string
-        string time_to_string (uint64_t msecs)
+        const string time_to_string (uint64_t msecs)
         {
             const uint32_t MSecMinute = M_SEC * 60;
             const uint32_t MSecHour   = MSecMinute * 60;
@@ -50,14 +50,14 @@ namespace Notation {
             uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
             uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
-            stringstream stm;
+            ostringstream os;
 
-            if (hours) stm << hours << ':';
-            stm << setfill ('0')
+            if (hours) os << hours << ':';
+            os  << setfill ('0')
                 << setw (2) << minutes << ':'
                 << setw (2) << seconds;
 
-            return stm.str ();
+            return os.str ();
         }
 
     }
@@ -71,83 +71,33 @@ namespace Notation {
         Square org = org_sq (m);
         Square dst = dst_sq (m);
         Piece p    = pos[org];
-        PieceT pt  = _ptype (p);
-
-        //uint8_t n = 0;
-        //uint8_t f = 0;
-        //uint8_t r = 0;
-        //for (MoveList<LEGAL> itr (pos); *itr; ++itr)
-        //{
-        //    Move mm = *itr;
-        //    if (org_sq (mm) != org)
-        //    {
-        //        if (pos[org_sq (mm)] == p && dst_sq (mm) == dst)
-        //        {
-        //            ++n;
-        //            if (_file (org_sq (mm)) == _file (org))
-        //            {
-        //                ++f;
-        //            }
-        //            if (_rank (org_sq (mm)) == _rank (org))
-        //            {
-        //                ++r;
-        //            }
-        //        }
-        //    }
-        //}
-        //if (!n) return AMB_NONE;
-        //if (!f) return AMB_RANK;
-        //if (!r) return AMB_FILE;
-        //return AMB_SQR;
 
         // Disambiguation if we have more then one piece with destination 'dst'
         // note that for pawns is not needed because starting file is explicit.
 
         Bitboard pinneds = pos.pinneds (pos.active ());
 
-        //bool
-        //    amb_move = false,
-        //    amb_file = false,
-        //    amb_rank = false;
-        //Bitboard b = (attacks_bb (p, dst, pos.pieces () & pos.pieces (pos.active (), pt)) - org;
-        //while (b)
-        //{
-        //    Square sq = pop_lsq (b);
-        //    // Pinned pieces are not included in the possible sub-set
-        //    if (!pos.legal (mk_move (sq, dst), pinneds))
-        //    {
-        //        continue;
-        //    }
-        //    amb_file |= (_file (sq) == _file (org));
-        //    amb_rank |= (_rank (sq) == _rank (org));
-        //    amb_move = true;
-        //}
-        //if (!amb_move) return AMB_NONE;
-        //if (!amb_file) return AMB_RANK;
-        //if (!amb_rank) return AMB_FILE;
-        //return AMB_SQR;
-
-        Bitboard others, b;
-        others = b = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), pt)) - org;
+        Bitboard amb, b;
+        amb = b = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), _ptype (p))) - org;
         while (b)
         {
-            org = pop_lsq (b);
-            Move move = mk_move (org, dst);
+            Square amb_org = pop_lsq (b);
+            Move move = mk_move (amb_org, dst);
             if (!pos.legal (move, pinneds))
             {
-                others -= org;
+                amb -= amb_org;
             }
         }
 
-        //if (!(others)) return AMB_NONE;
-        //if (!(others & file_bb (org))) return AMB_RANK;
-        //if (!(others & rank_bb (org))) return AMB_FILE;
+        //if (!(amb)) return AMB_NONE;
+        //if (!(amb & file_bb (org))) return AMB_RANK;
+        //if (!(amb & rank_bb (org))) return AMB_FILE;
         //return AMB_SQR;
 
-        if (others)
+        if (amb)
         {
-            if (!(others & file_bb (org))) return AMB_RANK;
-            if (!(others & rank_bb (org))) return AMB_FILE;
+            if (!(amb & file_bb (org))) return AMB_RANK;
+            if (!(amb & rank_bb (org))) return AMB_FILE;
             return AMB_SQR;
         }
         return AMB_NONE;
@@ -155,21 +105,22 @@ namespace Notation {
 
     // move_from_can(can, pos) takes a position and a string representing a move in
     // simple coordinate algebraic notation and returns an equivalent legal move if any.
-    Move move_from_can (string &can, const Position &pos)
+    Move move_from_can (const string &can, const Position &pos)
     {
-        if (5 == can.length ())
+        string scan = can;
+        if (5 == scan.length ())
         {
             // promotion piece in lowercase
-            if (isupper (uint8_t (can[4])))
+            if (isupper (uint8_t (scan[4])))
             {
-                can[4] = uint8_t (tolower (can[4]));
+                scan[4] = uint8_t (tolower (scan[4]));
             }
         }
 
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
-            if (can == move_to_can (m, pos.chess960 ()))
+            if (scan == move_to_can (m, pos.chess960 ()))
             {
                 return m;
             }
@@ -177,16 +128,25 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    // TODO::
-    Move move_from_san (string &san, const Position &pos)
+    // move_from_san(can, pos) takes a position and a string representing a move in
+    // single algebraic notation and returns an equivalent legal move if any.
+    Move move_from_san (const string &san, Position &pos)
     {
+        for (MoveList<LEGAL> itr (pos); *itr; ++itr)
+        {
+            Move m = *itr;
+            if (san == move_to_san (m, pos))
+            {
+                return m;
+            }
+        }
         return MOVE_NONE;
     }
-    //Move move_from_lan (string &lan, const Position &pos)
+    //Move move_from_lan (const string &lan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
-    //Move move_from_fan (std::string &lan, const Position &pos)
+    //Move move_from_fan (const std::string &lan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
@@ -226,80 +186,79 @@ namespace Notation {
         Piece  p   = pos[org];
         PieceT pt  = _ptype (p);
 
-        //    switch (pt)
-        //    {
-        //    case PAWN:
-        //        san = "";
-        //        if (pos.capture (m))
-        //        {
-        //            san += to_char (_file (org));
-        //            san += 'x';
-        //        }
-        //
-        //        san += to_string (dst);
-        //
-        //        if (PROMOTE == mtype (m))
-        //        {
-        //            switch (prom_type (m))
-        //            {
-        //            case QUEN: san += "Q"; break;
-        //            case ROOK: san += "R"; break;
-        //            case BSHP: san += "B"; break;
-        //            case NIHT: san += "N"; break;
-        //            default: ASSERT (false); // "Wrong Promotion Piece"
-        //            }
-        //        }
-        //        goto move_marker;
-        //
-        //    case KING:
-        //        if (CASTLE == mtype (m))
-        //        {
-        //            CSide cs = ((WHITE == pos.active ()) ?
-        //                (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
-        //                (dst == SQ_C8) ? CS_Q : (dst == SQ_G8) ? CS_K : CS_NO);
-        //
-        //            switch (cs)
-        //            {
-        //            case CS_Q: san  = "O-";
-        //            case CS_K: san += "O-O"; break;
-        //            }
-        //            goto move_marker;
-        //        }
-        //        // NOTE: no break
-        //    default:
-        //        // piece notation
-        //        san = to_char (pt);
-        //
-        //        break;
-        //    }
-        //
-        //    switch (ambiguity (m, pos))
-        //    {
-        //    case AMB_NONE:                               break;
-        //    case AMB_RANK: san += to_char (_file (org)); break;
-        //    case AMB_FILE: san += to_char (_rank (org)); break;
-        //    case AMB_SQR:  san += to_string (org);       break;
-        //    default:       ASSERT (false);               break;
-        //    }
-        //
+        //switch (pt)
+        //{
+        //case PAWN:
+        //    san = "";
         //    if (pos.capture (m))
         //    {
+        //        san += to_char (_file (org));
         //        san += 'x';
         //    }
         //
         //    san += to_string (dst);
-        //    // promote ????????
-        //move_marker:
-        //    // Marker for check & checkmate
-        //    if (pos.gives_check (m, CheckInfo (pos)))
-        //    {
-        //        StateInfo sinfo;
-        //        Position p = pos;
-        //        p.do_move (m, sinfo);
-        //        uint8_t legalmove = generate<LEGAL> (p).size ();
         //
-        //        san += (legalmove ? '+' : '#');
+        //    if (PROMOTE == mtype (m))
+        //    {
+        //        switch (prom_type (m))
+        //        {
+        //        case QUEN: san += "Q"; break;
+        //        case ROOK: san += "R"; break;
+        //        case BSHP: san += "B"; break;
+        //        case NIHT: san += "N"; break;
+        //        default: ASSERT (false); // "Wrong Promotion Piece"
+        //        }
         //    }
+        //    goto move_marker;
+        //
+        //case KING:
+        //    if (CASTLE == mtype (m))
+        //    {
+        //        CSide cs = ((WHITE == pos.active ()) ?
+        //            (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
+        //            (dst == SQ_C8) ? CS_Q : (dst == SQ_G8) ? CS_K : CS_NO);
+        //
+        //        switch (cs)
+        //        {
+        //        case CS_Q: san  = "O-";
+        //        case CS_K: san += "O-O"; break;
+        //        }
+        //        goto move_marker;
+        //    }
+        //    // NOTE: no break
+        //default:
+        //    // piece notation
+        //    san = CharPiece[pt];
+        //
+        //    break;
+        //}
+        //
+        //switch (ambiguity (m, pos))
+        //{
+        //case AMB_NONE:                               break;
+        //case AMB_RANK: san += to_char (_file (org)); break;
+        //case AMB_FILE: san += to_char (_rank (org)); break;
+        //case AMB_SQR:  san += to_string (org);       break;
+        //default:       ASSERT (false);               break;
+        //}
+        //
+        //if (pos.capture (m))
+        //{
+        //    san += 'x';
+        //}
+        //
+        //san += to_string (dst);
+        //// promote ????????
+        //move_marker:
+        //// Marker for check & checkmate
+        //if (pos.gives_check (m, CheckInfo (pos)))
+        //{
+        //    StateInfo sinfo;
+        //    Position p = pos;
+        //    p.do_move (m, sinfo);
+        //    uint8_t legalmove = MoveList<LEGAL> (p).size ();
+        //    san += (legalmove ? '+' : '#');
+        //}
 
         MoveT mt = mtype (m);
         switch (mt)
@@ -334,14 +293,15 @@ namespace Notation {
             san += to_string (dst);
             if (PROMOTE == mt && PAWN == pt) san += string ("=") + CharPiece[prom_type (m)];
         }
-            break;
         }
 
+        CheckInfo ci (pos);
+        bool gives_check = pos.gives_check (m, ci);
         // Move marker for check & checkmate
-        if (pos.gives_check (m, CheckInfo (pos)))
+        if (gives_check)
         {
             StateInfo si;
-            pos.do_move (m, si);
+            pos.do_move (m, si, gives_check ? &ci : NULL);
             san += (MoveList<LEGAL> (pos).size () ? "+" : "#");
             pos.undo_move ();
         }
@@ -371,20 +331,20 @@ namespace Notation {
     //            If the engine is getting mated use negative values for y.
     const string score_uci (Value v, Value alpha, Value beta)
     {
-        stringstream svl;
+        ostringstream os;
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            svl << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
+            os << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
         }
         else
         {
-            svl << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+            os << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
         }
 
-        svl << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+        os << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
-        return svl.str ();
+        return os.str ();
     }
 
     // pretty_pv() returns formated human-readable search information, typically to be
@@ -395,28 +355,28 @@ namespace Notation {
         const uint64_t K = 1000;
         const uint64_t M = 1000000;
 
-        stringstream spv;
+        ostringstream os;
 
-        spv << setw (3) << uint32_t (depth)
+        os  << setw (3) << uint32_t (depth)
             << setw (8) << value_to_string (value)
             << setw (8) << time_to_string (msecs);
 
-        if (pos.game_nodes () < M)
+        if      (pos.game_nodes () < M)
         {
-            spv << setw (8) << pos.game_nodes () / 1 << "  ";
+            os << setw (8) << pos.game_nodes () / 1 << "  ";
         }
         else if (pos.game_nodes () < K * M)
         {
-            spv << setw (7) << pos.game_nodes () / K << "K  ";
+            os << setw (7) << pos.game_nodes () / K << "K  ";
         }
         else
         {
-            spv << setw (7) << pos.game_nodes () / M << "M  ";
+            os << setw (7) << pos.game_nodes () / M << "M  ";
         }
 
         StateInfoStack states;
 
-        string  padding = string (spv.str ().length (), ' ');
+        string  padding = string (os.str ().length (), ' ');
         uint16_t length = padding.length ();
 
         const Move *m = pv;
@@ -425,10 +385,10 @@ namespace Notation {
             string san = move_to_san (*m, pos);
             if (length + san.length () > 80)
             {
-                spv << "\n" + padding;
+                os << "\n" + padding;
                 length = padding.length ();
             }
-            spv << san << " ";
+            os << san << " ";
             length += san.length () + 1;
             states.push (StateInfo ());
             pos.do_move (*m, states.top ());
@@ -441,7 +401,7 @@ namespace Notation {
             --m;
         }
 
-        return spv.str ();
+        return os.str ();
     }
 
 }

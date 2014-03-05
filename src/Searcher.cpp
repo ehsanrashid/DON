@@ -159,7 +159,7 @@ namespace Searcher {
             ASSERT (elapsed >= 0);
             if (elapsed == 0) elapsed = 1;
 
-            stringstream spv;
+            ostringstream os;
 
             uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
             uint8_t sel_depth = 0;
@@ -194,9 +194,9 @@ namespace Searcher {
                 }
 
                 // Not at first line
-                if (spv.rdbuf ()->in_avail ()) spv << "\n";
+                if (os.rdbuf ()->in_avail ()) os << "\n";
 
-                spv << "info"
+                os  << "info"
                     << " multipv "  << uint32_t (i + 1)
                     << " depth "    << uint32_t (d)
                     << " seldepth " << uint32_t (sel_depth)
@@ -210,11 +210,11 @@ namespace Searcher {
                     << " pv";
                 for (uint8_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
-                    spv << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
+                    os << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
                 }
             }
 
-            return spv.str ();
+            return os.str ();
         }
 
         typedef struct Skill
@@ -800,7 +800,7 @@ namespace Searcher {
                 }
             }
 
-            if (pos.cap_type () == NONE
+            if (   pos.capture_type () == NONE
                 && (ss)->static_eval != VALUE_NONE
                 && (ss-1)->static_eval != VALUE_NONE
                 && (move = (ss-1)->current_move) != MOVE_NULL
@@ -924,7 +924,7 @@ namespace Searcher {
 
                 // Initialize a MovePicker object for the current position,
                 // and prepare to search the moves.
-                MovePicker mp (pos, tt_move, History, pos.cap_type ());
+                MovePicker mp (pos, tt_move, History, pos.capture_type ());
 
                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                 {

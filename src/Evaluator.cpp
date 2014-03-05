@@ -784,7 +784,7 @@ namespace Evaluator {
                     }
                 }
 
-                // Analyse enemy's safe distance checks for sliders and knights
+                // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
                 
                 Bitboard   rook_check = attacks_bb<ROOK>(k_sq, pos.pieces()) & safe_sq;

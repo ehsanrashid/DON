@@ -225,7 +225,7 @@
         <Point X="11.547" Y="9.422" />
       </Path>
     </AssociationLine>
-    <AssociationLine Name="cap_type" Type="PieceT" FixedFromPoint="true" FixedToPoint="true">
+    <AssociationLine Name="capture_type" Type="PieceT" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="20.812" Y="8.75" />
         <Point X="20.812" Y="1.942" />
@@ -251,7 +251,7 @@
       <Field Name="en_passant" />
       <Field Name="posi_key" />
       <Field Name="last_move" />
-      <Field Name="cap_type" />
+      <Field Name="capture_type" />
       <Field Name="checkers" />
       <Field Name="p_si" />
     </ShowAsAssociation>

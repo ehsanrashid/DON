@@ -62,20 +62,20 @@ typedef struct StateInfo
 {
 public:
 
-    Value non_pawn_matl[CLR_NO];
-    Score psq_score;
+    Value   non_pawn_matl[CLR_NO];
+    Score   psq_score;
 
     // Hash key of materials.
-    Key matl_key;
+    Key     matl_key;
     // Hash key of pawns.
-    Key pawn_key;
+    Key     pawn_key;
 
     // Castling-rights information for both side.
-    CRight castle_rights;
+    CRight  castle_rights;
 
     // "In passing" - Target square in algebraic notation.
     // If there's no en-passant target square is "-".
-    Square en_passant;
+    Square  en_passant_sq;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
     uint8_t clock50;
@@ -85,11 +85,11 @@ public:
     // -------------------------------------
 
     // Hash key of position.
-    Key posi_key;
+    Key     posi_key;
     // Move played on the previous position.
-    Move last_move;
+    Move    last_move;
     // Piece type captured.
-    PieceT cap_type;
+    PieceT  capture_type;
     // Checkers bitboard
     Bitboard checkers;
 
@@ -114,7 +114,7 @@ public:
     // Check discoverer pieces
     Bitboard discoverers;
     // Enemy king square
-    Square king_sq;
+    Square   king_sq;
 
     CheckInfo () {}
 
@@ -241,16 +241,16 @@ public:
     // Castling rights for both side
     CRight castle_rights () const;
     // Target square in algebraic notation. If there's no en passant target square is "-"
-    Square en_passant () const;
+    Square en_passant_sq () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
     uint8_t clock50 () const;
     // Last move played
     Move  last_move () const;
     // Last piece type captured
-    PieceT cap_type () const;
+    PieceT capture_type () const;
     // Last piece captured
-    Piece cap_piece () const;
+    Piece capture_piece () const;
     //
     Bitboard checkers () const;
     //
@@ -463,16 +463,16 @@ inline const Square* Position::list (Color c) const { return _piece_list[c][PT];
 // Castling rights for both side
 inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
-inline Square   Position::en_passant    () const { return _si->en_passant; }
+inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
 inline uint8_t  Position::clock50       () const { return _si->clock50; }
 //
 inline Move     Position::last_move     () const { return _si->last_move; }
 //
-inline PieceT   Position::cap_type      () const { return _si->cap_type; }
+inline PieceT   Position::capture_type  () const { return _si->capture_type; }
 //
-inline Piece    Position::cap_piece     () const { return (NONE == cap_type ()) ? EMPTY : (_active | cap_type ()); }
+inline Piece    Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
 //
 inline Bitboard Position::checkers      () const { return _si->checkers; }
 //
@@ -605,7 +605,7 @@ inline bool Position::capture               (Move m) const
     return (NORMAL == mt || PROMOTE == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt)
-        ?  _ok (_si->en_passant)
+        ?  _ok (_si->en_passant_sq)
         :  false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
@@ -615,7 +615,7 @@ inline bool Position::capture_or_promotion  (Move m) const
     return (NORMAL == mt)
         ?  !empty (dst_sq (m))
         :  (ENPASSANT == mt)
-        ?  _ok (_si->en_passant)
+        ?  _ok (_si->en_passant_sq)
         :  (CASTLE != mt);
 }
 

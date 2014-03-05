@@ -94,7 +94,7 @@ namespace Zobrist {
         Bitboard b = pos.castle_rights ();
         while (b) posi_key ^= _.castle_right[0][pop_lsq (b)];
 
-        Square ep_sq = pos.en_passant ();
+        Square ep_sq = pos.en_passant_sq ();
         if (SQ_NO != ep_sq) posi_key ^= _.en_passant[_file (ep_sq)];
 
         if (WHITE == pos.active ()) posi_key ^= _.mover_side;
@@ -241,14 +241,14 @@ namespace Zobrist {
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
 
-        istringstream sfen (fen);
+        istringstream is (fen);
         uint8_t ch;
 
-        sfen >> noskipws;
+        is >> noskipws;
 
         size_t idx;
         Square s = SQ_A8;
-        while ((sfen >> ch) && !isspace (ch))
+        while ((is >> ch) && !isspace (ch))
         {
             if (isdigit (ch))
             {
@@ -266,13 +266,13 @@ namespace Zobrist {
             }
         }
 
-        sfen >> ch;
+        is >> ch;
         if ('w' == ch) fen_key ^= _.mover_side;
 
-        sfen >> ch;
+        is >> ch;
         if (c960)
         {
-            while ((sfen >> ch) && !isspace (ch))
+            while ((is >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
                 uint8_t sym = tolower (ch);
@@ -288,7 +288,7 @@ namespace Zobrist {
         }
         else
         {
-            while ((sfen >> ch) && !isspace (ch))
+            while ((is >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
                 switch (toupper (ch))
@@ -301,8 +301,8 @@ namespace Zobrist {
         }
 
         uint8_t col, row;
-        if (   ((sfen >> col) && (col >= 'a' && col <= 'h'))
-            && ((sfen >> row) && (row == '3' || row == '6')))
+        if (   ((is >> col) && (col >= 'a' && col <= 'h'))
+            && ((is >> row) && (row == '3' || row == '6')))
         {
             fen_key ^= _.en_passant[to_file (col)];
         }
