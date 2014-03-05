@@ -179,7 +179,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         }
     }
 
-    rte->save (key32, move, depth, bound, (nodes >> 16), value, eval, _generation);
+    rte->save (key32, move, depth, bound, (nodes >> 12), value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.

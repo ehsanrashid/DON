@@ -39,14 +39,14 @@ namespace Notation {
 
     extern const std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[]);
 
-    template<class charT, class Traits>
-    inline std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
-    {
-            os << move_to_can (m);
-            return os;
-    }
+}
 
+template<class charT, class Traits>
+inline std::basic_ostream<charT, Traits>&
+operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
+{
+    os << Notation::move_to_can (m);
+    return os;
 }
 
 #endif // _NOTATION_H_INC_
