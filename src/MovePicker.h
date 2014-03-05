@@ -93,12 +93,6 @@ private:
 
     } StageT;
 
-    template<MoveGenerator::GenT>
-    // value() assign a numerical move ordering score to each move in a move list.
-    // The moves with highest scores will be picked first.
-    void value ();
-
-    void generate_next_stage ();
 
     const Position     &pos;
 
@@ -126,6 +120,36 @@ private:
     ValMove *bad_captures_end;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
+
+    template<MoveGenerator::GenT>
+    // value() assign a numerical move ordering score to each move in a move list.
+    // The moves with highest scores will be picked first.
+    void value ();
+
+    void generate_next_stage ();
+
+    // Our insertion sort, guaranteed to be stable, as is needed
+    inline void insertion_sort ()
+    {
+        for (ValMove *p = cur + 1; p < end; ++p)
+        {
+            ValMove tmp = *p;
+            ValMove *q;
+            for (q = p; q != cur && *(q-1) < tmp; --q)
+            {
+                *q = *(q-1);
+            }
+            *q = tmp;
+        }
+    }
+
+    // Picks and moves to the front the best move in the range [cur, end],
+    // it is faster than sorting all the moves in advance when moves are few, as
+    // normally are the possible captures.
+    inline void pick_best ()
+    {
+        std::swap (*cur, *std::max_element (cur, end));
+    }
 
 public:
 

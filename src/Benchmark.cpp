@@ -13,6 +13,7 @@
 using namespace std;
 using namespace Searcher;
 using namespace Time;
+using namespace Threads;
 
 namespace {
 

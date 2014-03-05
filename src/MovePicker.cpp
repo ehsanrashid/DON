@@ -7,34 +7,6 @@ using namespace std;
 using namespace Searcher;
 using namespace MoveGenerator;
 
-namespace {
-
-    // Our insertion sort, guaranteed to be stable, as is needed
-    inline void insertion_sort (ValMove *beg, ValMove *end)
-    {
-        for (ValMove *p = beg + 1; p < end; ++p)
-        {
-            ValMove tmp = *p;
-            ValMove *q;
-            for (q = p; q != beg && *(q-1) < tmp; --q)
-            {
-                *q = *(q-1);
-            }
-            *q = tmp;
-        }
-    }
-
-    // Picks and moves to the front the best move in the range [beg, end),
-    // it is faster than sorting all the moves in advance when moves are few, as
-    // normally are the possible captures.
-    inline ValMove* pick_best (ValMove *beg, ValMove *end)
-    {
-        swap (*beg, *max_element (beg, end));
-        return beg;
-    }
-
-}
-
 // Constructors of the MovePicker class. As arguments we pass information
 // to help it to return the (presumably) good moves first, to decide which
 // moves to return (in the quiescence search, for instance, we only want to
@@ -206,7 +178,6 @@ void MovePicker::value<EVASION> ()
 void MovePicker::generate_next_stage ()
 {
     cur = m_list;
-    //stage = StageT (uint8_t (stage) + 1);
     switch (++stage)
     {
 
@@ -219,7 +190,7 @@ void MovePicker::generate_next_stage ()
         if (end > cur + 1)
         {   
             value<CAPTURE> ();
-            insertion_sort  (cur, end);
+            insertion_sort ();
         }
 
         return;
@@ -291,7 +262,7 @@ void MovePicker::generate_next_stage ()
         {
             value<QUIET> ();
             end = partition (cur, end, ValMove ());
-            insertion_sort  (cur, end);
+            insertion_sort ();
         }
         return;
 
@@ -300,7 +271,7 @@ void MovePicker::generate_next_stage ()
         end = quiets_end;
         if (depth >= 3 * ONE_MOVE)
         {
-            insertion_sort (cur, end);
+            insertion_sort ();
         }
 
         return;
@@ -317,7 +288,7 @@ void MovePicker::generate_next_stage ()
         if (end > cur + 1)
         {
             value<EVASION> ();
-            //insertion_sort (cur, end);
+            insertion_sort ();
         }
 
         return;
@@ -373,7 +344,8 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S1:
             do
             {
-                move = pick_best (cur++, end)->move;
+                pick_best ();
+                move = (cur++)->move;
                 if (move != tt_move)
                 {
                     if (pos.see_sign (move) >= VALUE_ZERO) return move;
@@ -423,7 +395,8 @@ Move MovePicker::next_move<false> ()
         case EVASIONS_S2: case CAPTURES_S3: case CAPTURES_S4:
             do
             {
-                move = pick_best (cur++, end)->move;
+                pick_best ();
+                move = (cur++)->move;
                 if (move != tt_move)
                 {
                     return move;
@@ -435,7 +408,8 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S5:
             do
             {
-                move = pick_best (cur++, end)->move;
+                pick_best ();
+                move = (cur++)->move;
                 if (move != tt_move && pos.see (move) > capture_threshold)
                 {
                     return move;
@@ -447,7 +421,8 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S6:
             do
             {
-                move = pick_best (cur++, end)->move;
+                pick_best ();
+                move = (cur++)->move;
                 if (dst_sq (move) == recapture_sq)
                 {
                     return move;

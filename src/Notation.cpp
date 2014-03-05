@@ -14,6 +14,55 @@ namespace Notation {
     using namespace MoveGenerator;
     using namespace Time;
 
+    namespace {
+
+        // value to string
+        string value_to_string (Value v)
+        {
+            stringstream svl;
+
+            if (abs (v) < VALUE_MATES_IN_MAX_PLY)
+            {
+                svl << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+            }
+            else
+            {
+                if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
+                {
+                    svl <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+                }
+                else                //if (v <= VALUE_MATED_IN_MAX_PLY)
+                {
+                    svl << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+                }
+            }
+
+            return svl.str ();
+        }
+
+        // time to string
+        string time_to_string (uint64_t msecs)
+        {
+            const uint32_t MSecMinute = M_SEC * 60;
+            const uint32_t MSecHour   = MSecMinute * 60;
+
+            uint64_t hours   =   msecs / MSecHour;
+            uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
+            uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
+
+            stringstream stm;
+
+            if (hours) stm << hours << ':';
+            stm << setfill ('0')
+                << setw (2) << minutes << ':'
+                << setw (2) << seconds;
+
+            return stm.str ();
+        }
+
+    }
+
+
     // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
     // NOTE: for pawns it is not needed because 'org' file is explicit.
     AmbiguityT ambiguity (Move m, const Position &pos)
@@ -138,7 +187,6 @@ namespace Notation {
     //{
     //    return MOVE_NONE;
     //}
-
 
     // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
     // The only special case is castling moves,
@@ -314,7 +362,7 @@ namespace Notation {
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.
     //            If the engine is getting mated use negative values for y.
-    string score_uci (Value v, Value alpha, Value beta)
+    const string score_uci (Value v, Value alpha, Value beta)
     {
         stringstream svl;
 
@@ -332,59 +380,10 @@ namespace Notation {
         return svl.str ();
     }
 
-    namespace {
-
-        // value to string
-        string value_to_string (Value v)
-        {
-            stringstream svl;
-
-            if (abs (v) < VALUE_MATES_IN_MAX_PLY)
-            {
-                svl << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
-            }
-            else
-            {
-                if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
-                {
-                    svl <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
-                }
-                else                //if (v <= VALUE_MATED_IN_MAX_PLY)
-                {
-                    svl << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
-                }
-            }
-
-            return svl.str ();
-        }
-
-        // time to string
-        string time_to_string (uint64_t msecs)
-        {
-            const uint32_t MSecMinute = M_SEC * 60;
-            const uint32_t MSecHour   = MSecMinute * 60;
-
-            uint64_t hours   =   msecs / MSecHour;
-            uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
-            uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
-
-            stringstream stm;
-
-            if (hours) stm << hours << ':';
-            stm << setfill ('0')
-                << setw (2) << minutes << ':'
-                << setw (2) << seconds;
-
-            return stm.str ();
-        }
-
-    }
-
-
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file. It uses the two helpers below to pretty
     // format the time and score respectively.
-    string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
+    const string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
     {
         const uint64_t K = 1000;
         const uint64_t M = 1000000;
