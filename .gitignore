@@ -13,7 +13,6 @@
 *.cproject
 *.settings/
 
-
 *.bin
 *.pgn
 *.dat
@@ -175,5 +174,3 @@ $RECYCLE.BIN/
 *.jbn
 *.ues
 *.oek
-
-/*.vcxproj

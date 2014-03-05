@@ -475,18 +475,18 @@ bool Position::ok (int8_t *failed_step) const
     // step 13
     if (++(*step), debug_matl_key)
     {
-        if (ZobGlob.compute_matl_key (*this) != _si->matl_key) return false;
+        if (Zob.compute_matl_key (*this) != _si->matl_key) return false;
     }
     // step 14
     if (++(*step), debug_pawn_key)
     {
-        if (ZobGlob.compute_pawn_key (*this) != _si->pawn_key) return false;
+        if (Zob.compute_pawn_key (*this) != _si->pawn_key) return false;
     }
 
     // step 15
     if (++(*step), debug_posi_key)
     {
-        if (ZobGlob.compute_posi_key (*this) != _si->posi_key) return false;
+        if (Zob.compute_posi_key (*this) != _si->posi_key) return false;
     }
 
     // step 16
@@ -1216,21 +1216,21 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         // If the captured piece is a pawn
         if (PAWN == ct) // Update pawn hash key
         {
-            _si->pawn_key ^= ZobGlob._.piecesq[pasiv][PAWN][cap];
+            _si->pawn_key ^= Zob._.piecesq[pasiv][PAWN][cap];
         }
         else            // Update non-pawn material
         {
             _si->non_pawn_matl[pasiv] -= PieceValue[MG][ct];
         }
         // Update Hash key of material situation and prefetch access to material_table
-        _si->matl_key ^= ZobGlob._.piecesq[pasiv][ct][_piece_count[pasiv][ct]];
+        _si->matl_key ^= Zob._.piecesq[pasiv][ct][_piece_count[pasiv][ct]];
 
 #ifndef NDEBUG
         if (_thread)
 #endif
             prefetch ((char *) _thread->material_table[_si->matl_key]);
         // Update Hash key of position
-        posi_k ^= ZobGlob._.piecesq[pasiv][ct][cap];
+        posi_k ^= Zob._.piecesq[pasiv][ct][cap];
         // Update incremental scores
         _si->psq_score -= psq[pasiv][ct][cap];
         // Reset Rule-50 draw counter
@@ -1251,7 +1251,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     // Reset old en-passant square
     if (SQ_NO != _si->en_passant)
     {
-        posi_k ^= ZobGlob._.en_passant[_file (_si->en_passant)];
+        posi_k ^= Zob._.en_passant[_file (_si->en_passant)];
         _si->en_passant = SQ_NO;
     }
 
@@ -1266,10 +1266,10 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                ZobGlob._.piecesq[activ][PAWN][org] ^
-                ZobGlob._.piecesq[activ][PAWN][dst];
+                Zob._.piecesq[activ][PAWN][org] ^
+                Zob._.piecesq[activ][PAWN][dst];
         }
-        posi_k ^= ZobGlob._.piecesq[activ][pt][org] ^ ZobGlob._.piecesq[activ][pt][dst];
+        posi_k ^= Zob._.piecesq[activ][pt][org] ^ Zob._.piecesq[activ][pt][dst];
         _si->psq_score += psq[activ][pt][dst] - psq[activ][pt][org];
     }
     else if (CASTLE  == mt)
@@ -1285,8 +1285,8 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
         exchange_king_rook (org, dst, org_rook, dst_rook);
 
-        posi_k ^= ZobGlob._.piecesq[_active][KING][org     ] ^ ZobGlob._.piecesq[_active][KING][dst     ];
-        posi_k ^= ZobGlob._.piecesq[_active][ROOK][org_rook] ^ ZobGlob._.piecesq[_active][ROOK][dst_rook];
+        posi_k ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
+        posi_k ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
 
         _si->psq_score += psq[activ][KING][dst     ] - psq[activ][KING][org     ];
         _si->psq_score += psq[activ][ROOK][dst_rook] - psq[activ][ROOK][org_rook];
@@ -1299,12 +1299,12 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         place_piece (dst, activ, ppt);
 
         _si->matl_key ^=
-            ZobGlob._.piecesq[activ][PAWN][_piece_count[activ][PAWN]] ^
-            ZobGlob._.piecesq[activ][ppt][_piece_count[activ][ppt] - 1];
+            Zob._.piecesq[activ][PAWN][_piece_count[activ][PAWN]] ^
+            Zob._.piecesq[activ][ppt][_piece_count[activ][ppt] - 1];
 
-        _si->pawn_key ^= ZobGlob._.piecesq[activ][PAWN][org];
+        _si->pawn_key ^= Zob._.piecesq[activ][PAWN][org];
 
-        posi_k ^= ZobGlob._.piecesq[activ][PAWN][org] ^ ZobGlob._.piecesq[activ][ppt][dst];
+        posi_k ^= Zob._.piecesq[activ][PAWN][org] ^ Zob._.piecesq[activ][ppt][dst];
 
         // Update incremental score
         _si->psq_score += psq[activ][ppt][dst] - psq[activ][PAWN][org];
@@ -1320,7 +1320,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         _si->castle_rights &= ~cr;
         while (b)
         {
-            posi_k ^= ZobGlob._.castle_right[0][pop_lsq (b)];
+            posi_k ^= Zob._.castle_right[0][pop_lsq (b)];
         }
     }
 
@@ -1361,7 +1361,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
     // Switch side to move
     _active = pasiv;
-    posi_k ^= ZobGlob._.mover_side;
+    posi_k ^= Zob._.mover_side;
 
     // Handle pawn en-passant square setting
     if (PAWN == pt)
@@ -1374,7 +1374,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant = ep_sq;
-                posi_k ^= ZobGlob._.en_passant[_file (ep_sq)];
+                posi_k ^= Zob._.en_passant[_file (ep_sq)];
             }
         }
 
@@ -1490,12 +1490,12 @@ void Position::do_null_move (StateInfo &n_si)
 
     if (SQ_NO != _si->en_passant)
     {
-        _si->posi_key ^= ZobGlob._.en_passant[_file (_si->en_passant)];
+        _si->posi_key ^= Zob._.en_passant[_file (_si->en_passant)];
         _si->en_passant = SQ_NO;
     }
 
     _active = ~_active;
-    _si->posi_key ^= ZobGlob._.mover_side;
+    _si->posi_key ^= Zob._.mover_side;
 
     prefetch ((char *) TT.get_cluster (_si->posi_key));
 
@@ -1988,9 +1988,9 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
     pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
-    pos._si->matl_key = ZobGlob.compute_matl_key (pos);
-    pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
-    pos._si->posi_key = ZobGlob.compute_posi_key (pos);
+    pos._si->matl_key = Zob.compute_matl_key (pos);
+    pos._si->pawn_key = Zob.compute_pawn_key (pos);
+    pos._si->posi_key = Zob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
     pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
@@ -2126,9 +2126,9 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     pos._si->clock50 = (SQ_NO != pos._si->en_passant) ? 0 : clk50;
     pos._game_ply = max (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
-    pos._si->matl_key = ZobGlob.compute_matl_key (pos);
-    pos._si->pawn_key = ZobGlob.compute_pawn_key (pos);
-    pos._si->posi_key = ZobGlob.compute_posi_key (pos);
+    pos._si->matl_key = Zob.compute_matl_key (pos);
+    pos._si->pawn_key = Zob.compute_pawn_key (pos);
+    pos._si->posi_key = Zob.compute_posi_key (pos);
     pos._si->psq_score = pos.compute_psq_score ();
     pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
     pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);

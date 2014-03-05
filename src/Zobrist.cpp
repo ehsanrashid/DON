@@ -3,6 +3,9 @@
 #include "Position.h"
 #include "RKISS.h"
 
+//Zobrist::Zob ZobRnd;
+const Zobrist::Zob &Zob = ZobPG; //ZobRnd;
+
 namespace Zobrist {
 
     using namespace std;
@@ -309,7 +312,7 @@ namespace Zobrist {
 
     void initialize ()
     {
-        //ZobRand.initialize (rkiss);
+        //ZobRnd.initialize (rkiss);
 
         Exclusion = Rkiss.rand64 ();
     }
@@ -547,9 +550,3 @@ const Zobrist::Zob ZobPG =
     U64 (0xF8D626AAAF278509)
 
 };
-
-//Zobrist::Zob ZobRand;
-
-const Zobrist::Zob &ZobGlob =
-    //ZobRand;
-    ZobPG;

@@ -65,8 +65,10 @@ namespace Zobrist {
 
 }
 
+
 extern const Zobrist::Zob  ZobPG;
-//extern       Zobrist::Zob  ZobRand;
-extern const Zobrist::Zob &ZobGlob;
+//extern       Zobrist::Zob  ZobRnd;
+
+extern const Zobrist::Zob &Zob;
 
 #endif // _ZOBRIST_H_INC_

@@ -2145,7 +2145,7 @@ namespace TBSyzygy {
             {
                 for (uint8_t pc = 0; pc < pos.count (color, pt); ++pc)
                 {
-                    key ^= ZobGlob._.piecesq[WHITE][pt][pc];
+                    key ^= Zob._.piecesq[WHITE][pt][pc];
                 }
             }
             color = ~color;
@@ -2153,7 +2153,7 @@ namespace TBSyzygy {
             {
                 for (uint8_t pc = 0; pc < pos.count (color, pt); ++pc)
                 {
-                    key ^= ZobGlob._.piecesq[BLACK][pt][pc];
+                    key ^= Zob._.piecesq[BLACK][pt][pc];
                 }
             }
 
@@ -2173,7 +2173,7 @@ namespace TBSyzygy {
             {
                 for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
                 {
-                    key ^= ZobGlob._.piecesq[WHITE][pt][pc];
+                    key ^= Zob._.piecesq[WHITE][pt][pc];
                 }
             }
             color ^= 8;
@@ -2181,7 +2181,7 @@ namespace TBSyzygy {
             {
                 for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
                 {
-                    key ^= ZobGlob._.piecesq[BLACK][pt][pc];
+                    key ^= Zob._.piecesq[BLACK][pt][pc];
                 }
             }
 
@@ -2198,7 +2198,7 @@ namespace TBSyzygy {
             uint64_t key = pos.matl_key ();
 
             // Test for KvK.
-            if (key == (ZobGlob._.piecesq[WHITE][KING][0] ^ ZobGlob._.piecesq[BLACK][KING][0]))
+            if (key == (Zob._.piecesq[WHITE][KING][0] ^ Zob._.piecesq[BLACK][KING][0]))
             {
                 return 0;
             }

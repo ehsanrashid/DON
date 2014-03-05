@@ -62,7 +62,6 @@ namespace Notation {
 
     }
 
-
     // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
     // NOTE: for pawns it is not needed because 'org' file is explicit.
     AmbiguityT ambiguity (Move m, const Position &pos)
@@ -178,12 +177,16 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    //Move move_from_san (string &san, const Position &pos)
+    // TODO::
+    Move move_from_san (string &san, const Position &pos)
+    {
+        return MOVE_NONE;
+    }
+    //Move move_from_lan (string &lan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
-    //
-    //Move move_from_lan (string &lan, const Position &pos)
+    //Move move_from_fan (std::string &lan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
@@ -346,14 +349,18 @@ namespace Notation {
         return san;
     }
 
+    // TODO::
     //// move_to_lan(m, pos) takes a position and a legal move as input
     //// and returns its long algebraic notation representation.
     //const string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
-    //
-    //
     //    return lan;
+    //}
+    //const std::string move_to_fan (Move m, Position &pos)
+    //{
+    //    string fan;
+    //    return fan;
     //}
 
     // score_uci() converts a value to a string suitable
@@ -383,7 +390,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file. It uses the two helpers below to pretty
     // format the time and score respectively.
-    const string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move pv[])
+    const string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move *pv)
     {
         const uint64_t K = 1000;
         const uint64_t M = 1000000;
@@ -436,4 +443,5 @@ namespace Notation {
 
         return spv.str ();
     }
+
 }
