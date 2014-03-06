@@ -833,6 +833,7 @@ bool Position::pseudo_legal (Move m) const
 // legal(m, pinned) tests whether a pseudo-legal move is legal
 bool Position::legal        (Move m, Bitboard pinned) const
 {
+    ASSERT (_ok (m));
     ASSERT (pinned == pinneds (_active));
 
     Square org  = org_sq (m);

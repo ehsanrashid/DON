@@ -399,7 +399,6 @@ inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bo
             //        {
             //            part = trim (part);
             //        }
-
             //        if (keep_empty || !empty (part))
             //        {
             //            list[idx++] = part;
@@ -411,7 +410,6 @@ inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bo
             //    }
             //    token   = strtok (NULL, delim_s);
             //}
-
             ////ASSERT (idx == count);
             //list[idx] = NULL;
             //if (dup) free (dup);

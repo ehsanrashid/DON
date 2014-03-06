@@ -22,9 +22,7 @@
 #endif
 
 namespace Threads {
-
     struct SplitPoint;
-
 }
 
 typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;

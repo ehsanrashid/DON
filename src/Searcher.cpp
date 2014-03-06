@@ -469,7 +469,7 @@ namespace Searcher {
                     : pos.gives_check (move, ci);
 
                 // Futility pruning
-                if (!PVNode
+                if (   !PVNode
                     && !IN_CHECK
                     && !gives_check
                     && futility_base > -VALUE_KNOWN_WIN
@@ -502,7 +502,7 @@ namespace Searcher {
                     && !pos.can_castle (pos.active ());
 
                 // Don't search moves with negative SEE values
-                if (!PVNode
+                if (   !PVNode
                     && (!IN_CHECK || evasion_prunable)
                     && move != tt_move
                     && mtype (move) != PROMOTE
@@ -657,6 +657,7 @@ namespace Searcher {
                     thread->max_ply = (ss)->ply;
                 }
             }
+
             if (!RootNode)
             {
                 // Step 2. Check for aborted search and immediate draw
@@ -694,7 +695,7 @@ namespace Searcher {
             // a fail high/low. Biggest advantage at probing at PV nodes is to have a
             // smooth experience in analysis mode. We don't probe at Root nodes otherwise
             // we should also update RootMoveList to avoid bogus output.
-            if (!RootNode
+            if (   !RootNode
                 && tte
                 && tte->depth () >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
@@ -707,7 +708,7 @@ namespace Searcher {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                 // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
-                if (tt_value >= beta
+                if (   tt_value >= beta
                     && tt_move != MOVE_NONE
                     && !pos.capture_or_promotion (tt_move)
                     && !in_check)
@@ -721,7 +722,7 @@ namespace Searcher {
             // TODO::
             // Step 4-TB. Tablebase probe
             /*
-            if (!RootNode
+            if (   !RootNode
                 && depth >= TBProbeDepth
                 && pos.count () <= TBCardinality
                 && pos.clock50 () == 0)
@@ -810,7 +811,7 @@ namespace Searcher {
             }
 
             // Step 6. Razoring (skipped when in check)
-            if (!PVNode
+            if (   !PVNode
                 && depth < 4 * ONE_MOVE
                 && eval + razor_margin (depth) <= alpha
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
@@ -830,7 +831,7 @@ namespace Searcher {
             // Step 7. Futility pruning: child node (skipped when in check)
             // We're betting that the opponent doesn't have a move that will reduce
             // the score by more than futility_margin (depth) if we do a null move.
-            if (!PVNode
+            if (   !PVNode
                 && !(ss)->skip_null_move
                 //&& depth < 9 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
@@ -842,7 +843,7 @@ namespace Searcher {
             }
 
             // Step 8. Null move search with verification search (is omitted in PV nodes)
-            if (!PVNode
+            if (   !PVNode
                 && !(ss)->skip_null_move
                 && depth >= 2 * ONE_MOVE
                 && eval >= beta
@@ -878,6 +879,7 @@ namespace Searcher {
                     {
                         null_value = beta;
                     }
+
                     if (depth < 12 * ONE_MOVE)
                     {
                         return null_value;
@@ -885,10 +887,10 @@ namespace Searcher {
 
                     // Do verification search at high depths
                     (ss)->skip_null_move = true;
-
+                    // TODO::
                     Value veri_value = depth-R < ONE_MOVE
                         ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                        : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false);
+                        : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true
 
                     (ss)->skip_null_move = false;
 
@@ -903,7 +905,7 @@ namespace Searcher {
             // If we have a very good capture (i.e. SEE > see[captured_piece_type])
             // and a reduced search returns a value much above beta,
             // we can (almost) safely prune the previous move.
-            if (!PVNode
+            if (   !PVNode
                 && depth >= 5 * ONE_MOVE
                 && !(ss)->skip_null_move
                 && eval >= alpha + 200 // TODO::
@@ -945,7 +947,7 @@ namespace Searcher {
             }
 
             // Step 10. Internal iterative deepening (skipped when in check)
-            if (depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
+            if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
                 && tt_move == MOVE_NONE
                 && (PVNode || (ss)->static_eval + Value (256) >= beta))
             {
@@ -990,7 +992,7 @@ namespace Searcher {
                 !RootNode && !SPNode
                 && depth >= 8 * ONE_MOVE
                 && tt_move != MOVE_NONE
-                && !excluded_move         // Recursive singular search is not allowed
+                && excluded_move == MOVE_NONE // Recursive singular search is not allowed
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - 3 * ONE_MOVE);
 
@@ -1080,7 +1082,7 @@ namespace Searcher {
                 // is singular and should be extended. To verify this we do a reduced search
                 // on all the other moves but the tt_move, if result is lower than tt_value minus
                 // a margin then we extend tt_move.
-                if (singular_ext_node
+                if (   singular_ext_node
                     && move == tt_move
                     && ext != DEPTH_ZERO
                     && pos.legal (move, ci.pinneds)
@@ -1108,14 +1110,14 @@ namespace Searcher {
                 Depth new_depth = depth - ONE_MOVE + ext;
 
                 // Step 13. Pruning at shallow depth (exclude PV nodes)
-                if (!PVNode
+                if (   !PVNode
                     && !capture_or_promotion
                     && !in_check
                     && !dangerous
                     && best_value > VALUE_MATED_IN_MAX_PLY)
                 {
                     // Move count based pruning
-                    if (depth < 16 * ONE_MOVE
+                    if (   depth < 16 * ONE_MOVE
                         && moves_count >= FutilityMoveCounts[improving][depth])
                     {
                         if (SPNode) split_point->mutex.lock ();
@@ -1153,7 +1155,7 @@ namespace Searcher {
                     }
 
                     // Prune moves with negative SEE at low depths
-                    if (predicted_depth < 4 * ONE_MOVE
+                    if (   predicted_depth < 4 * ONE_MOVE
                         && pos.see_sign (move) < VALUE_ZERO)
                     {
                         if (SPNode) split_point->mutex.lock ();
@@ -1162,7 +1164,7 @@ namespace Searcher {
                 }
 
                 // Check for legality only before to do the move
-                if (!RootNode && !SPNode
+                if (   !RootNode && !SPNode
                     && !pos.legal (move, ci.pinneds))
                 {
                     --moves_count;
@@ -1184,7 +1186,7 @@ namespace Searcher {
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (!is_pv_move
+                if (   !is_pv_move
                     && depth >= 3 * ONE_MOVE
                     && !capture_or_promotion
                     && move != tt_move
@@ -1195,7 +1197,8 @@ namespace Searcher {
 
                     if (!PVNode && cut_node)
                     {
-                        (ss)->reduction += ONE_MOVE;
+                        // TODO::
+                        (ss)->reduction += ONE_MOVE; // 3 * ONE_PLY / 4;
                     }
                     else if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
                     {
@@ -1331,7 +1334,7 @@ namespace Searcher {
                 }
 
                 // Step 19. Check for splitting the search
-                if (!SPNode
+                if (   !SPNode
                     && depth >= Threadpool.min_split_depth
                     && Threadpool.available_slave (thread)
                     && thread->split_point_threads < MAX_SPLIT_POINT_THREADS)
@@ -1491,7 +1494,7 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to research.
-                        if ((alpha >= best_value || best_value >= beta)
+                        if (   (alpha >= best_value || best_value >= beta)
                             && (elapsed = now () - SearchTime) > InfoDuration)
                         {
                             sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
@@ -1499,7 +1502,7 @@ namespace Searcher {
 
                         // In case of failing low/high increase aspiration window and
                         // research, otherwise exit the loop.
-                        if (best_value <= alpha)
+                        if      (best_value <= alpha)
                         {
                             alpha = max (best_value - delta, -VALUE_INFINITE);
 
@@ -1599,7 +1602,7 @@ namespace Searcher {
     Time::point         SearchTime;
 
     // initialize the PRNG only once
-    PolyglotBook        ZOB_SIZE;
+    PolyglotBook        Book;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
@@ -1884,7 +1887,7 @@ namespace Searcher {
         // Init reductions array
         for (uint8_t hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
         {
-            for (uint8_t mc = 1; mc < 64; ++mc) // move count
+            for (uint8_t mc = 1; mc < 64; ++mc) // move-count
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
@@ -1977,7 +1980,7 @@ namespace Threads {
             /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
             ||   still_at_first_move;
 
-        if ((Limits.use_time_management () && no_more_time)
+        if (   (Limits.use_time_management () && no_more_time)
             || (Limits.move_time && elapsed >= Limits.move_time)
             || (Limits.nodes && nodes >= Limits.nodes))
         {
@@ -2072,7 +2075,7 @@ namespace Threads {
 
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case we are the last slave of the split point.
-                if (Threadpool.sleep_idle
+                if (   Threadpool.sleep_idle
                     && this != (sp)->master_thread
                     && !(sp)->slaves_mask)
                 {
