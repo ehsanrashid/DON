@@ -60,7 +60,7 @@ namespace {
     // calculate the quad words (64bits) needed to be copied.
     const uint8_t STATE_COPY_SIZE = offsetof (StateInfo, posi_key);
 
-    CACHE_ALIGN(32) Score psq[CLR_NO][NONE][SQ_NO];
+    CACHE_ALIGN(32) Score PSQ[CLR_NO][NONE][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -183,8 +183,8 @@ void Position::initialize ()
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Score psq_score = score + PSQT[pt][s];
-            psq[WHITE][pt][ s] = +psq_score;
-            psq[BLACK][pt][~s] = -psq_score;
+            PSQ[WHITE][pt][ s] = +psq_score;
+            PSQ[BLACK][pt][~s] = -psq_score;
         }
     }
 }
@@ -1106,7 +1106,7 @@ Score Position::compute_psq_score () const
     while (occ)
     {
         Square s = pop_lsq (occ);
-        score += psq[_color (_board[s])][_ptype (_board[s])][s];
+        score += PSQ[_color (_board[s])][_ptype (_board[s])][s];
     }
     return score;
 }
@@ -1233,7 +1233,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         // Update Hash key of position
         posi_k ^= Zob._.piecesq[pasiv][ct][cap];
         // Update incremental scores
-        _si->psq_score -= psq[pasiv][ct][cap];
+        _si->psq_score -= PSQ[pasiv][ct][cap];
         // Reset Rule-50 draw counter
         _si->clock50 = 0;
     }
@@ -1271,7 +1271,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
                 Zob._.piecesq[activ][PAWN][dst];
         }
         posi_k ^= Zob._.piecesq[activ][pt][org] ^ Zob._.piecesq[activ][pt][dst];
-        _si->psq_score += psq[activ][pt][dst] - psq[activ][pt][org];
+        _si->psq_score += PSQ[activ][pt][dst] - PSQ[activ][pt][org];
     }
     else if (CASTLE  == mt)
     {
@@ -1289,8 +1289,8 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         posi_k ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
         posi_k ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
 
-        _si->psq_score += psq[activ][KING][dst     ] - psq[activ][KING][org     ];
-        _si->psq_score += psq[activ][ROOK][dst_rook] - psq[activ][ROOK][org_rook];
+        _si->psq_score += PSQ[activ][KING][dst     ] - PSQ[activ][KING][org     ];
+        _si->psq_score += PSQ[activ][ROOK][dst_rook] - PSQ[activ][ROOK][org_rook];
     }
     else if (PROMOTE == mt)
     {
@@ -1308,7 +1308,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         posi_k ^= Zob._.piecesq[activ][PAWN][org] ^ Zob._.piecesq[activ][ppt][dst];
 
         // Update incremental score
-        _si->psq_score += psq[activ][ppt][dst] - psq[activ][PAWN][org];
+        _si->psq_score += PSQ[activ][ppt][dst] - PSQ[activ][PAWN][org];
         // Update material
         _si->non_pawn_matl[activ] += PieceValue[MG][ppt];
     }

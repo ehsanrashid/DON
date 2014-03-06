@@ -17,9 +17,9 @@ using namespace Threads;
 
 namespace {
 
-    const uint8_t TOT_FEN = 30;
+    const uint8_t FEN_TOTAL = 30;
 
-    const char* default_fens[TOT_FEN] =
+    const char* DefaultFens[FEN_TOTAL] =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -97,7 +97,7 @@ void benchmark (istream &is, const Position &pos)
 
     if      (fen_fn == "default")
     {
-        fens.assign (default_fens, default_fens + TOT_FEN);
+        fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
     }
     else if (fen_fn == "current")
     {
