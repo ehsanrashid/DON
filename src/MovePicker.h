@@ -148,7 +148,10 @@ private:
     // normally are the possible captures.
     inline void pick_best ()
     {
-        std::swap (*cur, *std::max_element (cur, end));
+        if (cur < end - 1)
+        {
+            std::swap (*cur, *std::max_element (cur, end));
+        }
     }
 
 public:

@@ -1,6 +1,6 @@
 #include "Engine.h"
 //#include "LeakDetector.h"
-#include "xcstring.h"
+//#include "xcstring.h"
 
 using namespace std;
 
@@ -39,6 +39,7 @@ int32_t main (int32_t argc, const char* const argv[])
 
     string args = arg_str (argc, argv);
     Engine::run (args);
+
     //system ("pause");
     //atexit (report_leak);
     Engine::exit (EXIT_SUCCESS);

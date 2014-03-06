@@ -1974,7 +1974,7 @@ namespace Threads {
         bool still_at_first_move =
             /**/Signals.first_root_move
             && !Signals.failed_low_at_root
-            && elapsed > TimeMgr.available_time () * 3 / 4;
+            && elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4;
 
         bool no_more_time =
             /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution

@@ -187,10 +187,9 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (m_list, pos);
-        if (end > cur + 1)
+        if (cur < end - 1)
         {   
             value<CAPTURE> ();
-            insertion_sort ();
         }
 
         return;
@@ -258,7 +257,7 @@ void MovePicker::generate_next_stage ()
 
     case QUIETS_1_S1:
         end = quiets_end = generate<QUIET> (m_list, pos);
-        if (end > cur)
+        if (cur < end)
         {
             value<QUIET> ();
             end = partition (cur, end, ValMove ());
@@ -285,10 +284,9 @@ void MovePicker::generate_next_stage ()
 
     case EVASIONS_S2:
         end = generate<EVASION> (m_list, pos);
-        if (end > cur + 1)
+        if (cur < end - 1)
         {
             value<EVASION> ();
-            insertion_sort ();
         }
 
         return;
