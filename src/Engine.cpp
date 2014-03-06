@@ -119,13 +119,6 @@ namespace Engine {
         cout << endl;
 
 #ifndef NDEBUG
-
-        //Position pos ("8/4k3/8/1N6/3p4/1N3N2/4K3/8 w - - 0 1");
-        //cout << pos;
-        //cout << MoveGenerator::MoveList<MoveGenerator::LEGAL> (pos).size () << endl;
-        //string m = "Nbd2";
-        //cout << (int) Notation::move_from_san (m, pos) << endl;
-        //cout << (int) mk_move (SQ_B1, SQ_D2);
         //Tester::main_test ();
         //system ("pause");
         //return;

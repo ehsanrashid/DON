@@ -191,7 +191,6 @@ void MovePicker::generate_next_stage ()
         {   
             value<CAPTURE> ();
         }
-
         return;
 
     case KILLERS_S1:
@@ -252,7 +251,6 @@ void MovePicker::generate_next_stage ()
         //{
         //    (--end)->move = MOVE_NONE;
         //}
-
         return;
 
     case QUIETS_1_S1:
@@ -272,14 +270,12 @@ void MovePicker::generate_next_stage ()
         {
             insertion_sort ();
         }
-
         return;
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = m_list + MAX_MOVES - 1;
         end = bad_captures_end;
-
         return;
 
     case EVASIONS_S2:
@@ -288,12 +284,10 @@ void MovePicker::generate_next_stage ()
         {
             value<EVASION> ();
         }
-
         return;
 
     case QUIET_CHECKS_S3:
         end = generate<QUIET_CHECK> (m_list, pos);
-
         return;
 
     case EVASIONS:
@@ -305,7 +299,6 @@ void MovePicker::generate_next_stage ()
 
     case STOP:
         end = cur + 1; // Avoid another generate_next_stage() call
-
         return;
 
     default:
