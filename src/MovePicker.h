@@ -84,11 +84,11 @@ private:
     typedef enum StageT : uint8_t
     {
         MAIN_STAGE, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
-        EVASIONS, EVASIONS_S2,
-        QSEARCH_0, CAPTURES_S3, QUIET_CHECKS_S3,
-        QSEARCH_1, CAPTURES_S4,
-        PROBCUT, CAPTURES_S5,
-        RECAPTURE, CAPTURES_S6,
+        EVASIONS  , EVASIONS_S2,
+        QSEARCH_0 , CAPTURES_S3, QUIET_CHECKS_S3,
+        QSEARCH_1 , CAPTURES_S4,
+        PROBCUT   , CAPTURES_S5,
+        RECAPTURE , CAPTURES_S6,
         STOP
 
     } StageT;
@@ -133,8 +133,7 @@ private:
     {
         for (ValMove *p = cur + 1; p < end; ++p)
         {
-            ValMove tmp = *p;
-            ValMove *q;
+            ValMove tmp = *p, *q;
             for (q = p; q != cur && *(q-1) < tmp; --q)
             {
                 *q = *(q-1);

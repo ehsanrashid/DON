@@ -35,7 +35,6 @@ const Value PieceValue[PHASE_NO][TOTS] =
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
-static void prefetch (char *addr);
 
 #ifndef NDEBUG
 bool _ok (const   char *fen, bool c960, bool full)
@@ -165,6 +164,45 @@ namespace {
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
+
+    // prefetch() preloads the given address in L1/L2 cache.
+    // This is a non-blocking function that doesn't stall
+    // the CPU waiting for data to be loaded from memory,
+    // which can be quite slow.
+#ifdef PREFETCH
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+    void prefetch (char *addr)
+    {
+
+#   if defined(__INTEL_COMPILER)
+        {
+            // This hack prevents prefetches from being optimized away by
+            // Intel compiler. Both MSVC and gcc seem not be affected by this.
+            __asm__ ("");
+        }
+#   endif
+
+        _mm_prefetch (addr, _MM_HINT_T0);
+    }
+
+#else
+
+    void prefetch (char *addr)
+    {
+        __builtin_prefetch (addr);
+    }
+
+#endif
+
+#else
+
+    void prefetch (char *) {}
+
+#endif
 
     char toggle_case (char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
@@ -2141,43 +2179,3 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     return true;
 }
-
-
-// prefetch() preloads the given address in L1/L2 cache.
-// This is a non-blocking function that doesn't stall
-// the CPU waiting for data to be loaded from memory,
-// which can be quite slow.
-#ifdef PREFETCH
-
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-
-static void prefetch (char *addr)
-{
-
-#   if defined(__INTEL_COMPILER)
-    {
-        // This hack prevents prefetches from being optimized away by
-        // Intel compiler. Both MSVC and gcc seem not be affected by this.
-        __asm__ ("");
-    }
-#   endif
-
-    _mm_prefetch (addr, _MM_HINT_T0);
-}
-
-#else
-
-static void prefetch (char *addr)
-{
-    __builtin_prefetch (addr);
-}
-
-#endif
-
-#else
-
-static void prefetch (char *) {}
-
-#endif

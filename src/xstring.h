@@ -232,7 +232,7 @@ namespace std {
         return count;
     }
 
-    inline std::vector<std::string> split_str (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
+    inline std::vector<std::string> strsplit (const std::string &s, char delim = ' ', bool keep_empty = false, bool trim_entry = false)
     {
         std::vector<std::string> s_list;
 

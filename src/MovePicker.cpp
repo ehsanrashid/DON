@@ -157,7 +157,7 @@ void MovePicker::value<EVASION> ()
         Move m = itr->move;
 
         Value gain_value = pos.see_sign (m);
-        if (gain_value < VALUE_ZERO)
+        if      (gain_value < VALUE_ZERO)
         {
             itr->value = gain_value - VALUE_KNOWN_WIN; // At the bottom
         }
@@ -339,7 +339,10 @@ Move MovePicker::next_move<false> ()
                 move = (cur++)->move;
                 if (move != tt_move)
                 {
-                    if (pos.see_sign (move) >= VALUE_ZERO) return move;
+                    if (pos.see_sign (move) >= VALUE_ZERO)
+                    {
+                        return move;
+                    }
                     // Losing capture, move it to the tail of the array
                     (bad_captures_end--)->move = move;
                 }

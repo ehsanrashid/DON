@@ -125,7 +125,7 @@ inline void remove_at (char s[], size_t pos)
 inline char* remove (char s[], char c = ' ')
 {
     assert (s);
-    if (!s)     return NULL;
+    if (!s) return NULL;
 
     //char const *p_read  = s;
     //char       *p_write = s;
@@ -155,7 +155,10 @@ inline char* remove (char s[], char c = ' ')
     //return s;
 
     char *p = strchr (s, c);
-    if (p)  strcpy (p, p + 1);
+    if (p)
+    {
+        strcpy (p, p + 1);
+    }
     return s;
 }
 // Purge all char 'c'
@@ -205,7 +208,7 @@ inline char* remove_substr (char s[], const char sub[])
     {
         //strcpy (p, p + length);
         std::memmove (p, p + length, strlen (p + length) + 1);
-        p = strstr (p , sub);
+        p = strstr (p, sub);
     }
     return s;
 }
@@ -321,7 +324,7 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
 {
     assert (s);
     if (!s)     return 0;
-    
+
     size_t count = 0;
     const size_t length = strlen (sub);
     if (0 < length)
@@ -348,33 +351,32 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
     return count;
 }
 
-inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, unsigned int *num_splits = NULL)
+inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, unsigned int *num_splits = NULL)
 {
     assert (s);
     if (!s) return NULL;
 
-    char *p = s;
-    char *l = NULL;
+    int length = strlen (s);
+    char *p1 = s;
     unsigned int count = 0;
-    while (*p)
+    while (p1 <= s + length)
     {
+        char *p0 = p1;
         if (!keep_empty)
         {
-            while (*p && *p == delim) { l=p; ++p; }
+            while (*p0 && *p0 == delim) ++p0;
+            if (empty (p0)) break;
         }
-        p = strchr (p, delim);
-        if (!p) break;
+        p1 = strchr (p0, delim);
         ++count;
-        l=p;
-        ++p;
+        if (!p1) break;
+        ++p1;
     }
-    count += (keep_empty ? (l <= (s + strlen (s) - 1)) : (s[strlen (s) - 1] != delim));
-    
 
-    char **list = NULL;
-    list =
+    char **list =
         (char**) malloc ((count+1) * sizeof (char *));
         //(char**) calloc ((count+1), sizeof (char *));
+
     if (list)
     {
         unsigned int idx = 0;
@@ -415,42 +417,34 @@ inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bo
         // --------------------------------------
 
         // --- only have to free list[0] and list, works for keep_empty
-        
-        if (count > 0)
+
+        char *dp = strdup (s);
+        p1 = dp;
+        while (p1 <= dp + length)
         {
-            p = strdup (s);
-            list[idx++] = p;
-            p = strchr (p, delim);
-            if (p) *p++ = '\0';
-            while (p)
+            char *p0 = p1;
+            if (!keep_empty)
             {
-                if (!keep_empty)
-                {
-                    while (*p && delim == *p) ++p;
-                }
-        
-                //ASSERT (idx <= count);
-                char *part  = p;
-                p = strchr (p, delim);
-                if (p) *p++ = '\0';
-        
-                if (part)
-                {
-                    if (trim_entry)
-                    {
-                        part = trim (part);
-                    }
-                    if (keep_empty || !empty (part))
-                    {
-                        if (idx < count) list[idx++] = part;
-                    }
-                }
+                while (*p1 && *p1 == delim) ++p1;
+                if (empty(p1)) break;
+                if (p0 != p1) strcpy (p0, p1);
             }
+            p1 = strchr (p0, delim);
+            if (p1) *p1 = '\0';
+            if (trim_entry)
+            {
+                p0 = trim (p0);
+            }
+            if (keep_empty || !empty (p0))
+            {
+                list[idx++] = p0;
+            }
+            if (!p1) break;
+            ++p1;
         }
 
-        //ASSERT (idx == count);
-        if (idx == count) list[idx] = NULL;
-
+        assert (idx == count);
+        list[idx] = NULL;
     }
 
     if (num_splits)
@@ -472,9 +466,9 @@ inline long  to_long (const char s[])
 {
     assert (s);
     if (!s)     return 0L;
-    
+
     //return atol (s);
-    
+
     char *end;
     long l = strtol (s, &end, 10);
     assert (LONG_MIN > l && l < LONG_MAX);
