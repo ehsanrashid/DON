@@ -180,7 +180,7 @@ namespace std {
         return s;
     }
 
-    inline std::string& remove_substring (std::string &s, const std::string &sub)
+    inline std::string& remove_substr (std::string &s, const std::string &sub)
     {
         const size_t length = sub.length ();
         if (0 < length)

@@ -197,7 +197,7 @@ inline char* remove_all (char s[], char c = ' ')
 }
 
 // Remove (first occurence of) sub
-inline char* remove_substring (char s[], const char sub[])
+inline char* remove_substr (char s[], const char sub[])
 {
     const size_t length = strlen (sub);
     char *p = strstr (s, sub);
@@ -348,107 +348,109 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
     return count;
 }
 
-inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, intptr_t *num_splits = NULL)
+inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, unsigned int *num_splits = NULL)
 {
     assert (s);
-    if (!s)     return NULL;
+    if (!s) return NULL;
+
+    char *p = s;
+    char *l = NULL;
+    unsigned int count = 0;
+    while (*p)
+    {
+        if (!keep_empty)
+        {
+            while (*p && *p == delim) { l=p; ++p; }
+        }
+        p = strchr (p, delim);
+        if (!p) break;
+        ++count;
+        l=p;
+        ++p;
+    }
+    count += (keep_empty ? (l <= (s + strlen (s) - 1)) : (s[strlen (s) - 1] != delim));
+    
 
     char **list = NULL;
-    size_t count = 0;
-
-    if (s)
+    list =
+        (char**) malloc ((count+1) * sizeof (char *));
+        //(char**) calloc ((count+1), sizeof (char *));
+    if (list)
     {
-        char *p;
-        char *l; // last delim
+        unsigned int idx = 0;
 
-        p = strchr (s, delim);
-        l = NULL;
-        while (p)
+        // --- have to free all list[0...n] and list, not works for keep_empty
+
+        //const char delim_s[] = { delim, '\0' };
+        //char *dup = strdup (s);
+        //if (dup)
+        //{
+        //    char *token = strtok (dup, delim_s);
+        //    while (token)
+        //    {
+        //        //ASSERT (idx <= count);
+        //        char *part  = strdup (token);
+        //        if (part)
+        //        {
+        //            if (trim_entry)
+        //            {
+        //                part = trim (part);
+        //            }
+        //            if (keep_empty || !empty (part))
+        //            {
+        //                list[idx++] = part;
+        //            }
+        //            else
+        //            {
+        //                free (part);
+        //            }
+        //        }
+        //        token   = strtok (NULL, delim_s);
+        //    }
+        //    //ASSERT (idx == count);
+        //    list[idx] = NULL;
+        //    free (dup);
+        //}
+
+        // --------------------------------------
+
+        // --- only have to free list[0] and list, works for keep_empty
+        
+        if (count > 0)
         {
-            ++count;
-            l = p;
-            ++p;
-            if (!keep_empty)
-            {
-                while (*p && delim == *p++) l = p;
-            }
-            p = strchr (p, delim);
-        }
-        // Add space for trailing token.
-        count += (l <= (s + strlen (s) - 1));
-
-        list =
-            (char**) malloc ((count + 1) * sizeof (*list));
-        //(char**) calloc ((count + 1), sizeof (*list));
-        if (list)
-        {
-            size_t idx = 0;
-
-            // --- have to free all list[0...n] and list, not works for keep_empty
-
-            //const char delim_s[] = { delim, '\0' };
-            //char *dup   = strdup (s);
-            //char *token = strtok (dup, delim_s);
-            //while (token)
-            //{
-            //    //ASSERT (idx <= count);
-            //    char *part  = strdup (token);
-            //    if (part)
-            //    {
-            //        if (trim_entry)
-            //        {
-            //            part = trim (part);
-            //        }
-            //        if (keep_empty || !empty (part))
-            //        {
-            //            list[idx++] = part;
-            //        }
-            //        else
-            //        {
-            //            free (part);
-            //        }
-            //    }
-            //    token   = strtok (NULL, delim_s);
-            //}
-            ////ASSERT (idx == count);
-            //list[idx] = NULL;
-            //if (dup) free (dup);
-
-            // --------------------------------------
-
-            // --- only have to free list[0] and list, works for keep_empty
-
             p = strdup (s);
             list[idx++] = p;
-
             p = strchr (p, delim);
+            if (p) *p++ = '\0';
             while (p)
             {
-                *p++ = '\0';
                 if (!keep_empty)
                 {
                     while (*p && delim == *p) ++p;
                 }
-
+        
                 //ASSERT (idx <= count);
                 char *part  = p;
+                p = strchr (p, delim);
+                if (p) *p++ = '\0';
+        
                 if (part)
                 {
                     if (trim_entry)
                     {
                         part = trim (part);
                     }
-
                     if (keep_empty || !empty (part))
                     {
                         if (idx < count) list[idx++] = part;
                     }
                 }
-                p = strchr (p, delim);
             }
-            //ASSERT (idx == count);
-            if (idx == count) list[idx] = NULL;
         }
+
+        //ASSERT (idx == count);
+        if (idx == count) list[idx] = NULL;
+
     }
 
     if (num_splits)
