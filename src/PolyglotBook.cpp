@@ -127,14 +127,14 @@ PolyglotBook::PolyglotBook()
 
 #ifndef NDEBUG
 PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
-    : fstream (fn_book, mode | ios_base::binary)
+    : fstream (fn_book, mode|ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
     , _size_book (0)
 {}
 #endif
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
-    : fstream (fn_book, mode | ios_base::binary)
+    : fstream (fn_book, mode|ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
     , _size_book (0)
@@ -153,7 +153,7 @@ PolyglotBook::~PolyglotBook ()
 bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
 {
     close ();
-    fstream::open (fn_book, mode | ios_base::binary);
+    fstream::open (fn_book, mode|ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _fn_book = fn_book;
     _mode    = mode;
@@ -163,7 +163,7 @@ bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
 bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 {
     close ();
-    fstream::open (fn_book, mode | ios_base::binary);
+    fstream::open (fn_book, mode|ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _fn_book = fn_book;
     _mode    = mode;

@@ -102,46 +102,46 @@ namespace BitBoard {
     CACHE_ALIGN(64) const Bitboard AdjFile_bb[F_NO] =
     {
         FB_bb,
-        FA_bb | FC_bb,
-        FB_bb | FD_bb,
-        FC_bb | FE_bb,
-        FD_bb | FF_bb,
-        FE_bb | FG_bb,
-        FF_bb | FH_bb,
+        FA_bb|FC_bb,
+        FB_bb|FD_bb,
+        FC_bb|FE_bb,
+        FD_bb|FF_bb,
+        FE_bb|FG_bb,
+        FF_bb|FH_bb,
         FG_bb
     };
     // ADJACENT RANKS
     CACHE_ALIGN(64) const Bitboard AdjRank_bb[R_NO] =
     {
         R2_bb,
-        R1_bb | R3_bb,
-        R2_bb | R4_bb,
-        R3_bb | R5_bb,
-        R4_bb | R6_bb,
-        R5_bb | R7_bb,
-        R6_bb | R8_bb,
+        R1_bb|R3_bb,
+        R2_bb|R4_bb,
+        R3_bb|R5_bb,
+        R4_bb|R6_bb,
+        R5_bb|R7_bb,
+        R6_bb|R8_bb,
         R7_bb,
     };
     // FRONT RANK
     CACHE_ALIGN(64) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
-        R2_bb | R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R3_bb | R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R4_bb | R5_bb | R6_bb | R7_bb | R8_bb,
-        R5_bb | R6_bb | R7_bb | R8_bb,
-        R6_bb | R7_bb | R8_bb,
-        R7_bb | R8_bb,
+        R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
+        R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
+        R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
+        R5_bb|R6_bb|R7_bb|R8_bb,
+        R6_bb|R7_bb|R8_bb,
+        R7_bb|R8_bb,
         R8_bb,
         0,
 
         0,
         R1_bb,
-        R2_bb | R1_bb,
-        R3_bb | R2_bb | R1_bb,
-        R4_bb | R3_bb | R2_bb | R1_bb,
-        R5_bb | R4_bb | R3_bb | R2_bb | R1_bb,
-        R6_bb | R5_bb | R4_bb | R3_bb | R2_bb | R1_bb,
-        R7_bb | R6_bb | R5_bb | R4_bb | R3_bb | R2_bb | R1_bb
+        R2_bb|R1_bb,
+        R3_bb|R2_bb|R1_bb,
+        R4_bb|R3_bb|R2_bb|R1_bb,
+        R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
+        R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
+        R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
     };
 
     CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];

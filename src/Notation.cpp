@@ -17,7 +17,7 @@ namespace Notation {
     namespace {
 
         // value to string
-        const string value_to_string (Value v)
+        const string pretty_value (Value v)
         {
             ostringstream os;
 
@@ -41,7 +41,7 @@ namespace Notation {
         }
 
         // time to string
-        const string time_to_string (uint64_t msecs)
+        const string pretty_time (uint64_t msecs)
         {
             const uint32_t MSecMinute = M_SEC * 60;
             const uint32_t MSecHour   = MSecMinute * 60;
@@ -146,7 +146,7 @@ namespace Notation {
     //{
     //    return MOVE_NONE;
     //}
-    //Move move_from_fan (const std::string &lan, const Position &pos)
+    //Move move_from_fan (const string &fan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
@@ -358,8 +358,8 @@ namespace Notation {
         ostringstream os;
 
         os  << setw (3) << uint32_t (depth)
-            << setw (8) << value_to_string (value)
-            << setw (8) << time_to_string (msecs);
+            << setw (8) << pretty_value (value)
+            << setw (8) << pretty_time (msecs);
 
         if      (pos.game_nodes () < M)
         {

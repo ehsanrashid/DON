@@ -16,9 +16,9 @@ namespace Zobrist {
 
     void Zob::initialize (RKISS rk)
     {
-        for (uint16_t i = 0; i < SIZE_RANDOM; ++i)
+        for (uint16_t i = 0; i < ZOB_SIZE; ++i)
         {
-            random[i] = rk.rand64 ();
+            zobrist[i] = rk.rand64 ();
         }
     }
 
@@ -62,7 +62,6 @@ namespace Zobrist {
             }
         }
 
-
         return pawn_key;
     }
     // Hash key of the complete position.
@@ -92,12 +91,20 @@ namespace Zobrist {
         }
 
         Bitboard b = pos.castle_rights ();
-        while (b) posi_key ^= _.castle_right[0][pop_lsq (b)];
+        while (b)
+        {
+            posi_key ^= _.castle_right[0][pop_lsq (b)];
+        }
 
         Square ep_sq = pos.en_passant_sq ();
-        if (SQ_NO != ep_sq) posi_key ^= _.en_passant[_file (ep_sq)];
-
-        if (WHITE == pos.active ()) posi_key ^= _.mover_side;
+        if (SQ_NO != ep_sq)
+        {
+            posi_key ^= _.en_passant[_file (ep_sq)];
+        }
+        if (WHITE == pos.active ())
+        {
+            posi_key ^= _.mover_side;
+        }
 
         return posi_key;
     }

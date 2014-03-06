@@ -105,16 +105,16 @@ void benchmark (istream &is, const Position &pos)
     }
     else
     {
-        ifstream fstm_fen (fen_fn);
+        ifstream iffen (fen_fn);
 
-        if (!fstm_fen.is_open ())
+        if (!iffen.is_open ())
         {
             cerr << "ERROR: Unable to open file ... \'" << fen_fn << "\'" << endl;
             return;
         }
 
         string fen;
-        while (getline (fstm_fen, fen))
+        while (getline (iffen, fen))
         {
             if (!fen.empty ())
             {
@@ -122,7 +122,7 @@ void benchmark (istream &is, const Position &pos)
             }
         }
 
-        fstm_fen.close ();
+        iffen.close ();
     }
 
     StateInfoStackPtr states;

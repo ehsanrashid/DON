@@ -411,11 +411,7 @@ namespace UCI {
         exe_stop ();
         // Cannot quit while search stream active
         Threadpool.wait_for_think_finished ();
-
-        if (Searcher::Book.is_open ())
-        {
-            Searcher::Book.close ();
-        }
+        Searcher::Book.close ();
     }
 
 }

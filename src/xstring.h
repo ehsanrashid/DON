@@ -59,7 +59,7 @@ namespace std {
     }
 
     // char case-sensitive equals
-    //inline bool equals_c (char c1, char c2)     { return (c1 == c2); }
+    //inline bool equals_c (char c1, char c2) { return (c1 == c2); }
 
     // string case-sensitive equals
     inline bool  equals (const std::string &s1, const std::string &s2)
@@ -88,7 +88,6 @@ namespace std {
 
     }
 
-    /*
     // trim from head
     inline std::string& ltrim (std::string &s, char c = ' ')
     {
@@ -334,7 +333,7 @@ namespace std {
     //    return path.find_last_of ("/\\");
     //
     //}
-    */
+
 }
 
 #endif // _XSTRING_H_INC_

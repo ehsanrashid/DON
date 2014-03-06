@@ -436,11 +436,10 @@ namespace MoveGenerator {
 
         Color active    = pos.active ();
 
-        Bitboard targets =
-            CAPTURE == GT ?  pos.pieces (~active) :
-            QUIET   == GT ? ~pos.pieces ()        :
-            RELAX   == GT ? ~pos.pieces (active)  :
-            U64 (0);
+        Bitboard targets = CAPTURE == GT ?  pos.pieces (~active)
+            :              QUIET   == GT ? ~pos.pieces ()
+            :              RELAX   == GT ? ~pos.pieces (active)
+            :              U64 (0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (m_list, pos, targets)
             :  BLACK == active ? generate_moves<GT, BLACK> (m_list, pos, targets)

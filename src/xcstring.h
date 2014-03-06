@@ -122,7 +122,6 @@ inline void remove_at (char s[], size_t pos)
     std::memmove (s + pos, s + pos + 1, length - pos);
 }
 
-
 inline char* remove (char s[], char c = ' ')
 {
     assert (s);
@@ -388,7 +387,7 @@ inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bo
             // --- have to free all list[0...n] and list, not works for keep_empty
 
             //const char delim_s[] = { delim, '\0' };
-            //char *dup   = _strdup (s);
+            //char *dup   = strdup (s);
             //char *token = strtok (dup, delim_s);
             //while (token)
             //{
@@ -421,7 +420,7 @@ inline char** split_str (char s[], char delim = ' ', bool keep_empty = false, bo
 
             // --- only have to free list[0] and list, works for keep_empty
 
-            p = _strdup (s);
+            p = strdup (s);
             list[idx++] = p;
 
             p = strchr (p, delim);

@@ -93,7 +93,7 @@ public:
 public:
 
     PolyglotBook();
-    // mode = std::ios_base::in | std::ios_base::out
+    // mode = std::ios_base::in|std::ios_base::out
 #ifndef NDEBUG
     PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
 #endif

@@ -105,7 +105,7 @@ namespace Searcher {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value bonus = Value (1 << depth); //Value (1 * depth * depth * depth);
+            Value bonus = Value (1 * depth * depth * depth); // Value (1 << depth)
             History.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (uint8_t i = 0; i < quiets_count; ++i)
             {
@@ -359,11 +359,11 @@ namespace Searcher {
                     ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
-            StateInfo   si;
+            StateInfo si;
 
-            Move    best_move = MOVE_NONE;
+            Move  best_move = MOVE_NONE;
 
-            Value   best_value
+            Value best_value
                 , old_alpha;
 
             // To flag EXACT a node with eval above alpha and no available moves
@@ -372,8 +372,7 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that we are going to use. Note that in search_quien we use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth tt_depth = IN_CHECK
-                || depth >= DEPTH_QS_CHECKS
+            Depth tt_depth = IN_CHECK || depth >= DEPTH_QS_CHECKS
                 ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             Key posi_key = pos.posi_key ();
@@ -522,7 +521,7 @@ namespace Searcher {
 
                 Value value =
                     gives_check
-                    ? -search_quien<NT, true> (pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
+                    ? -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
                     : -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 
                 pos.undo_move ();
@@ -597,21 +596,21 @@ namespace Searcher {
             ASSERT (depth > DEPTH_ZERO);
 
             SplitPoint *split_point;
-            Key     posi_key;
+            Key   posi_key;
 
             const TTEntry *tte;
 
-            Move    best_move
+            Move  best_move
                 , tt_move
                 , excluded_move
                 , move;
 
-            Value   best_value
+            Value best_value
                 , tt_value
                 , eval;
 
             uint8_t moves_count
-                , quiets_count;
+                ,   quiets_count;
 
             Move quiet_moves[MAX_QUIET_COUNT] = { MOVE_NONE };
 
@@ -866,7 +865,7 @@ namespace Searcher {
                 // Null window (alpha, beta) = (beta-1, beta):
                 Value null_value = (depth-R < ONE_MOVE)
                     ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
-                    : -search      <NonPV> (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
+                    : -search      <NonPV       > (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
 
                 (ss+1)->skip_null_move = false;
                 // Undo null move
@@ -1237,9 +1236,9 @@ namespace Searcher {
                     value =
                         new_depth < ONE_MOVE
                         ? (gives_check
-                        ? -search_quien<NonPV, true> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                         : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        : -search      <NonPV> (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
+                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
                 }
 
                 // Principal Variation Search
@@ -1251,9 +1250,9 @@ namespace Searcher {
                     value =
                         new_depth < ONE_MOVE
                         ? gives_check
-                        ? -search_quien<PV, true> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                        ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                         : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                        : -search      <PV> (pos, ss+1, -beta, -alpha, new_depth, false);
+                        : -search      <PV       > (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
 
                 // Step 17. Undo move
@@ -1399,7 +1398,7 @@ namespace Searcher {
         inline void iter_deep_loop (Position &pos)
         {
             Stack stack[MAX_PLY_6]
-            , *ss = stack+2; // To allow referencing (ss-2)
+                , *ss = stack+2; // To allow referencing (ss-2)
 
             memset (ss-2, 0, 5 * sizeof (Stack));
             (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
@@ -1569,7 +1568,7 @@ namespace Searcher {
                     // Stop the search early:
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (1 == RootMoves.size ()
+                    if (   RootMoves.size () == 1
                         || now () - SearchTime > TimeMgr.available_time ())
                     {
                         // If we are allowed to ponder do not stop the search now but
@@ -1600,7 +1599,7 @@ namespace Searcher {
     Time::point         SearchTime;
 
     // initialize the PRNG only once
-    PolyglotBook        Book;
+    PolyglotBook        ZOB_SIZE;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
@@ -1719,7 +1718,7 @@ namespace Searcher {
 
         if (bool (*(Options["OwnBook"])) && !Limits.infinite && !Limits.mate_in)
         {
-            if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in);
+            if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
             if (   book_move != MOVE_NONE
                 && count (RootMoves.begin (), RootMoves.end (), book_move))

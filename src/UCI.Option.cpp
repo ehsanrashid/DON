@@ -223,24 +223,24 @@ namespace UCI {
         void on_save_hash       (const Option &)
         {
             string hash_fn = string (*(Options["Hash File"]));
-            ofstream ohash_file (hash_fn, ios_base::out | ios_base::binary);
-            ohash_file << TT;
-            ohash_file.close ();
+            ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
+            ofhash << TT;
+            ofhash.close ();
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
         }
 
         void on_load_hash       (const Option &)
         {
             string hash_fn = string (*(Options["Hash File"]));
-            ifstream ihash_file (hash_fn, ios_base::in | ios_base::binary);
-            ihash_file >> TT;
-            ihash_file.close ();
+            ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
+            ifhash >> TT;
+            ifhash.close ();
             sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
         }
 
         void on_change_book     (const Option &)
         {
-            if (Searcher::Book.is_open ()) Searcher::Book.close ();
+            Searcher::Book.close ();
         }
 
         void on_change_tb_syzygy(const Option &opt)
