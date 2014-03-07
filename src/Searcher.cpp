@@ -833,7 +833,7 @@ namespace Searcher {
             // the score by more than futility_margin (depth) if we do a null move.
             if (   !PVNode
                 && !(ss)->skip_null_move
-                //&& depth < 9 * ONE_MOVE // TODO::
+                && depth < 7 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN
@@ -908,7 +908,7 @@ namespace Searcher {
             if (   !PVNode
                 && depth >= 5 * ONE_MOVE
                 && !(ss)->skip_null_move
-                && eval >= alpha + 200 // TODO::
+                //&& eval >= alpha + 200 // TODO::
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY)
             {
                 Value rbeta  = beta + 200;

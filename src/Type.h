@@ -499,7 +499,7 @@ inline Square operator~(Square s) { return Square (s ^ int8_t (SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
 inline Square operator!(Square s) { return Square (s ^ int8_t (SQ_H1)); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * SQ_H1)); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * int8_t (SQ_H1))); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
 inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
 

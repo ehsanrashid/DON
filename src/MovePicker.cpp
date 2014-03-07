@@ -122,7 +122,8 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = m_list; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])] - _ptype (pos[org_sq (m)]);
+        itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])]
+        - _ptype (pos[org_sq (m)]) - 1;
 
         MoveT mt = mtype (m);
         if      (PROMOTE == mt)
@@ -164,7 +165,7 @@ void MovePicker::value<EVASION> ()
         else if (pos.capture (m))
         {
             itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])]
-            - _ptype (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
+            - _ptype (pos[org_sq (m)]) - 1 + VALUE_KNOWN_WIN;
         }
         else
         {
@@ -178,6 +179,7 @@ void MovePicker::value<EVASION> ()
 void MovePicker::generate_next_stage ()
 {
     cur = m_list;
+
     switch (++stage)
     {
 
@@ -187,8 +189,7 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (m_list, pos);
-        // TODO::
-        if (cur < end) //(cur < end - 1)
+        if (cur < end)
         {   
             value<CAPTURE> ();
         }
