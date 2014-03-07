@@ -59,7 +59,7 @@ namespace {
     // calculate the quad words (64bits) needed to be copied.
     const uint8_t STATE_COPY_SIZE = offsetof (StateInfo, posi_key);
 
-    CACHE_ALIGN(32) Score PSQ[CLR_NO][NONE][SQ_NO];
+    CACHE_ALIGN(64) Score PSQ[CLR_NO][NONE][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -175,7 +175,7 @@ namespace {
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    void prefetch (char *addr)
+    inline void prefetch (char *addr)
     {
 
 #   if defined(__INTEL_COMPILER)
@@ -191,7 +191,7 @@ namespace {
 
 #else
 
-    void prefetch (char *addr)
+    inline void prefetch (char *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -200,7 +200,7 @@ namespace {
 
 #else
 
-    void prefetch (char *) {}
+    inline void prefetch (char *) {}
 
 #endif
 
