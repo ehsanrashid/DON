@@ -147,7 +147,7 @@ private:
     // normally are the possible captures.
     inline void pick_best ()
     {
-        //if (cur < end - 1) // TODO::
+        if (cur < end - 1) // TODO::
         {
             std::swap (*cur, *std::max_element (cur, end));
         }
