@@ -340,8 +340,8 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
             if (empty(p1)) break;
             if (p0 != p1) p0 = p1;
         }
-        p1 = strchr (p0, delim);
         ++count;
+        p1 = strchr (p0, delim);
         if (!p1) break;
         ++p1;
     }
@@ -362,7 +362,7 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
     //    char *token = strtok (dup, delim_s);
     //    while (token)
     //    {
-    //        //ASSERT (idx <= count);
+    //        assert (idx <= count);
     //        char *part  = strdup (token);
     //        if (part)
     //        {
@@ -381,7 +381,7 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
     //        }
     //        token   = strtok (NULL, delim_s);
     //    }
-    //    //ASSERT (idx == count);
+    //    assert (idx == count);
     //    list[idx] = NULL;
     //    free (dup);
     //}

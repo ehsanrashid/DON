@@ -887,10 +887,10 @@ namespace Searcher {
 
                     // Do verification search at high depths
                     (ss)->skip_null_move = true;
-                    // TODO::
+
                     Value veri_value = depth-R < ONE_MOVE
                         ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                        : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true
+                        : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true // TODO::
 
                     (ss)->skip_null_move = false;
 
@@ -1114,6 +1114,7 @@ namespace Searcher {
                     && !capture_or_promotion
                     && !in_check
                     && !dangerous
+                 /* &&  move != tt_move Already implicit in the next condition */
                     && best_value > VALUE_MATED_IN_MAX_PLY)
                 {
                     // Move count based pruning
@@ -1197,8 +1198,7 @@ namespace Searcher {
 
                     if (!PVNode && cut_node)
                     {
-                        // TODO::
-                        (ss)->reduction += ONE_MOVE; // 3 * ONE_PLY / 4;
+                        (ss)->reduction += ONE_MOVE; // 3 * ONE_PLY / 4; // TODO::
                     }
                     else if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
                     {
@@ -1210,11 +1210,11 @@ namespace Searcher {
                         (ss)->reduction = max (DEPTH_ZERO, (ss)->reduction - ONE_MOVE);
                     }
 
-                    Depth reduce_depth = max (new_depth - (ss)->reduction, ONE_MOVE);
+                    Depth red_depth = max (new_depth - (ss)->reduction, ONE_MOVE);
 
                     if (SPNode) alpha = split_point->alpha;
 
-                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, reduce_depth, true);
+                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if (value > alpha && (ss)->reduction >= 4 * ONE_MOVE)
