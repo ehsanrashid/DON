@@ -80,21 +80,22 @@ inline void insert_at (char s[], size_t pos, char c)
     //s += pos;
     //while (c)
     //{
-    //    std::swap (*s, c);
+    //    swap (*s, c);
     //    ++s;
     //}
     //*s = '\0';
 
     size_t length = strlen (s);
 
-    //s[length + 1] = '\0';
+    //s[length+1] = '\0';
     //for (size_t i = length; i > pos; --i)
     //{
     //    s[i] = s[i - 1];
     //}
     //s[pos] = c;
-
-    std::memmove (s + pos + 1, s + pos, length - pos); // (s + make_room_at + room_to_make, s + make_room_at, size - (make_room_at + room_to_make) + 1)
+    
+    // (s + make_room_at + room_to_make, s + make_room_at, size - (make_room_at + room_to_make) + 1)
+    memmove (s + pos + 1, s + pos, length - pos);
     s[pos] = c;
 
 }
@@ -107,7 +108,7 @@ inline void remove_at (char s[], size_t pos)
     //s += pos;
     //while (*s)
     //{
-    //    *s = *(s + 1);
+    //    *s = *(s+1);
     //    ++s;
     //}
 
@@ -119,7 +120,7 @@ inline void remove_at (char s[], size_t pos)
     //}
     //// --- s[length - 1] = '\0';
 
-    std::memmove (s + pos, s + pos + 1, length - pos);
+    memmove (s + pos, s + pos + 1, length - pos);
 }
 
 inline char* remove (char s[], char c = ' ')
@@ -127,76 +128,51 @@ inline char* remove (char s[], char c = ' ')
     assert (s);
     if (!s) return NULL;
 
-    //char const *p_read  = s;
-    //char       *p_write = s;
-    //while (*p_read)
-    //{
-    //    if (c != *p_read)
-    //    {
-    //        if (p_write != p_read)
-    //        {
-    //            *p_write = *p_read;
-    //        }
-    //        ++p_write;
-    //    }
-    //    else
-    //    {
-    //        // write all character after 1st miss-match
-    //        while (*++p_read)
-    //        {
-    //            *p_write = *p_read;
-    //            ++p_write;
-    //        }
-    //        break;
-    //    }
-    //    ++p_read;
-    //}
-    //*p_write = '\0';
-    //return s;
+    //char *p = s;
+    //while (*p && c != *p) ++p;
+    //strcpy (p, p+1);
 
     char *p = strchr (s, c);
     if (p)
     {
-        strcpy (p, p + 1);
+        strcpy (p, p+1);
     }
+
     return s;
 }
+
 // Purge all char 'c'
 inline char* remove_all (char s[], char c = ' ')
 {
     assert (s);
     if (!s)     return NULL;
 
-    //char *p = remove (s, s + strlen (s), c);
-    //*p = '\0';
-    //return s;
-
-    //char const *p_read  = s;
-    //char       *p_write = s;
-    //while (*p_read)
+    //char *p = s;
+    //while (*p)
     //{
-    //    if (c != *p_read)
-    //    {
-    //        if (p_write != p_read)
-    //        {
-    //            *p_write = *p_read;
-    //        }
-    //        ++p_write;
-    //    }
-    //    ++p_read;
+    //    //if (c == *p)
+    //    //{
+    //    //    strcpy (p, p+1);
+    //    //    continue;
+    //    //}
+    //    //++p;
+    //    // ----------------------
+    //    while (*p && c != *p) ++p;
+    //    char *q = p;
+    //    while (*q && c == *q) ++q;
+    //    strcpy (p, q);
     //}
-    //*p_write = '\0';
-    //return s;
 
     char *p = strchr (s, c);
     while (p)
     {
-        //strcpy (p, p + 1);
-        std::memmove (p, p + 1, strlen (p + 1) + 1);
+        char *q = p;
+        while (*q && c == *q) ++q;
+        strcpy (p, q);
         p = strchr (p, c);
     }
-    return s;
 
+    return s;
 }
 
 // Remove (first occurence of) sub
@@ -206,8 +182,8 @@ inline char* remove_substr (char s[], const char sub[])
     char *p = strstr (s, sub);
     while (p)
     {
-        //strcpy (p, p + length);
-        std::memmove (p, p + length, strlen (p + length) + 1);
+        strcpy (p, p + length);
+        //memmove (p, p + length, strlen (p + length) + 1);
         p = strstr (p, sub);
     }
     return s;
@@ -244,9 +220,9 @@ inline char* remove_dup (char s[])
 inline char* ltrim (char s[], char c = ' ')
 {
     assert (s);
-    if (!s)     return NULL;
+    if (!s) return NULL;
 
-    const size_t length = strlen (s);
+    size_t length = strlen (s);
     if (0 < length)
     {
 
@@ -255,11 +231,7 @@ inline char* ltrim (char s[], char c = ' ')
         //if (0 != span) strcpy (s, s + span);
 
         const char *p = s;
-        while (*p)
-        {
-            if (c != *p) break;
-            ++p;
-        }
+        while (*p && c == *p) ++p;
         if (p != s) strcpy (s, p);
 
     }
@@ -268,7 +240,7 @@ inline char* ltrim (char s[], char c = ' ')
 inline char* rtrim (char s[], char c = ' ')
 {
     assert (s);
-    if (!s)     return NULL;
+    if (!s) return NULL;
 
     size_t length = strlen (s);
     if (0 == length) return s;
@@ -284,7 +256,7 @@ inline char* rtrim (char s[], char c = ' ')
 inline char*  trim (char s[], char c = ' ')
 {
     assert (s);
-    if (!s)     return NULL;
+    if (!s) return NULL;
 
     return ltrim (rtrim (s, c), c);
 }
@@ -323,10 +295,10 @@ inline char* substr (const char s[], size_t start = 0, size_t size = 1)
 inline size_t count_substr (const char s[], const char sub[], bool overlap = true)
 {
     assert (s);
-    if (!s)     return 0;
+    if (!s) return 0;
 
     size_t count = 0;
-    const size_t length = strlen (sub);
+    size_t length = strlen (sub);
     if (0 < length)
     {
         //while (*s)
@@ -356,7 +328,7 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
     assert (s);
     if (!s) return NULL;
 
-    int length = strlen (s);
+    size_t length = strlen (s);
     char *p1 = s;
     unsigned int count = 0;
     while (p1 <= s + length)
@@ -364,8 +336,9 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
         char *p0 = p1;
         if (!keep_empty)
         {
-            while (*p0 && *p0 == delim) ++p0;
-            if (empty (p0)) break;
+            while (*p1 && delim == *p1) ++p1;
+            if (empty(p1)) break;
+            if (p0 != p1) p0 = p1;
         }
         p1 = strchr (p0, delim);
         ++count;
@@ -377,75 +350,72 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
         (char**) malloc ((count+1) * sizeof (char *));
         //(char**) calloc ((count+1), sizeof (char *));
 
-    if (list)
+    if (!list) return NULL;
+
+    unsigned int idx = 0;
+    // --- have to free all list[0...n] and list, not works for keep_empty
+
+    //const char delim_s[] = { delim, '\0' };
+    //char *dup = strdup (s);
+    //if (dup)
+    //{
+    //    char *token = strtok (dup, delim_s);
+    //    while (token)
+    //    {
+    //        //ASSERT (idx <= count);
+    //        char *part  = strdup (token);
+    //        if (part)
+    //        {
+    //            if (trim_entry)
+    //            {
+    //                part = trim (part);
+    //            }
+    //            if (keep_empty || !empty (part))
+    //            {
+    //                list[idx++] = part;
+    //            }
+    //            else
+    //            {
+    //                free (part);
+    //            }
+    //        }
+    //        token   = strtok (NULL, delim_s);
+    //    }
+    //    //ASSERT (idx == count);
+    //    list[idx] = NULL;
+    //    free (dup);
+    //}
+
+    // --------------------------------------
+
+    // --- only have to free list[0] and list, works for keep_empty
+    char *dup = strdup (s);
+    p1 = dup;
+    while (p1 <= dup + length)
     {
-        unsigned int idx = 0;
-
-        // --- have to free all list[0...n] and list, not works for keep_empty
-
-        //const char delim_s[] = { delim, '\0' };
-        //char *dup = strdup (s);
-        //if (dup)
-        //{
-        //    char *token = strtok (dup, delim_s);
-        //    while (token)
-        //    {
-        //        //ASSERT (idx <= count);
-        //        char *part  = strdup (token);
-        //        if (part)
-        //        {
-        //            if (trim_entry)
-        //            {
-        //                part = trim (part);
-        //            }
-        //            if (keep_empty || !empty (part))
-        //            {
-        //                list[idx++] = part;
-        //            }
-        //            else
-        //            {
-        //                free (part);
-        //            }
-        //        }
-        //        token   = strtok (NULL, delim_s);
-        //    }
-        //    //ASSERT (idx == count);
-        //    list[idx] = NULL;
-        //    free (dup);
-        //}
-
-        // --------------------------------------
-
-        // --- only have to free list[0] and list, works for keep_empty
-
-        char *dp = strdup (s);
-        p1 = dp;
-        while (p1 <= dp + length)
+        char *p0 = p1;
+        if (!keep_empty)
         {
-            char *p0 = p1;
-            if (!keep_empty)
-            {
-                while (*p1 && *p1 == delim) ++p1;
-                if (empty(p1)) break;
-                if (p0 != p1) strcpy (p0, p1);
-            }
-            p1 = strchr (p0, delim);
-            if (p1) *p1 = '\0';
-            if (trim_entry)
-            {
-                p0 = trim (p0);
-            }
-            if (keep_empty || !empty (p0))
-            {
-                list[idx++] = p0;
-            }
-            if (!p1) break;
-            ++p1;
+            while (*p1 && delim == *p1) ++p1;
+            if (empty(p1)) break;
+            if (p0 != p1) strcpy (p0, p1);
         }
-
-        assert (idx == count);
-        list[idx] = NULL;
+        p1 = strchr (p0, delim);
+        if (p1) *p1 = '\0';
+        if (trim_entry)
+        {
+            p0 = trim (p0);
+        }
+        if (keep_empty || !empty (p0))
+        {
+            list[idx++] = p0;
+        }
+        if (!p1) break;
+        ++p1;
     }
+
+    assert (idx == count);
+    list[idx] = NULL;
 
     if (num_splits)
     {

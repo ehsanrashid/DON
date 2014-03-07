@@ -187,7 +187,8 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (m_list, pos);
-        if (cur < end - 1)
+        // TODO::
+        if (cur < end) //(cur < end - 1)
         {   
             value<CAPTURE> ();
         }
