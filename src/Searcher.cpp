@@ -105,7 +105,7 @@ namespace Searcher {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value bonus = Value (1 * depth * depth * depth); // Value (1 << depth)
+            Value bonus = Value (1 * depth * depth); // Value (1 << depth)
             History.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (uint8_t i = 0; i < quiets_count; ++i)
             {
@@ -519,8 +519,7 @@ namespace Searcher {
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? &ci : NULL);
 
-                Value value =
-                    gives_check
+                Value value = gives_check
                     ? -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
                     : -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 
@@ -618,8 +617,8 @@ namespace Searcher {
             CheckInfo  ci (pos);
 
             // Step 1. Initialize node
-            Thread *thread      = pos.thread ();
-            bool    in_check    = pos.checkers ();
+            Thread *thread  = pos.thread ();
+            bool   in_check = pos.checkers ();
 
             if (SPNode)
             {
@@ -833,7 +832,7 @@ namespace Searcher {
             // the score by more than futility_margin (depth) if we do a null move.
             if (   !PVNode
                 && !(ss)->skip_null_move
-                && depth < 7 * ONE_MOVE // TODO::
+                && depth < 9 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN

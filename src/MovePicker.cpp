@@ -190,7 +190,7 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S6:
         end = generate<CAPTURE> (m_list, pos);
         if (cur < end)
-        {   
+        {
             value<CAPTURE> ();
         }
         return;
@@ -257,12 +257,9 @@ void MovePicker::generate_next_stage ()
 
     case QUIETS_1_S1:
         end = quiets_end = generate<QUIET> (m_list, pos);
-        if (cur < end)
-        {
-            value<QUIET> ();
-            end = partition (cur, end, ValMove ());
-            insertion_sort ();
-        }
+        value<QUIET> ();
+        end = partition (cur, end, ValMove ());
+        insertion_sort ();
         return;
 
     case QUIETS_2_S1:
@@ -282,7 +279,7 @@ void MovePicker::generate_next_stage ()
 
     case EVASIONS_S2:
         end = generate<EVASION> (m_list, pos);
-        if (cur < end - 1)
+        if (cur < end)
         {
             value<EVASION> ();
         }
@@ -367,7 +364,8 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case QUIETS_1_S1: case QUIETS_2_S1:
+        case QUIETS_1_S1:
+        case QUIETS_2_S1:
             do
             {
                 move = (cur++)->move;
@@ -388,7 +386,9 @@ Move MovePicker::next_move<false> ()
         case BAD_CAPTURES_S1:
             return (cur--)->move;
 
-        case EVASIONS_S2: case CAPTURES_S3: case CAPTURES_S4:
+        case EVASIONS_S2:
+        case CAPTURES_S3:
+        case CAPTURES_S4:
             do
             {
                 pick_best ();
