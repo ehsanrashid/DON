@@ -25,7 +25,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
 {
     ASSERT (d > DEPTH_ZERO);
 
-    bad_captures_end = m_list + MAX_MOVES - 1;
+    bad_captures_end = m_list+MAX_MOVES-1;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
@@ -189,7 +189,7 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (m_list, pos);
-        if (cur < end)
+        if (m_list < end - 1)
         {
             value<CAPTURE> ();
         }
@@ -273,13 +273,13 @@ void MovePicker::generate_next_stage ()
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
-        cur = m_list + MAX_MOVES - 1;
+        cur = m_list+MAX_MOVES-1;
         end = bad_captures_end;
         return;
 
     case EVASIONS_S2:
         end = generate<EVASION> (m_list, pos);
-        if (cur < end)
+        if (m_list < end - 1)
         {
             value<EVASION> ();
         }
@@ -297,7 +297,7 @@ void MovePicker::generate_next_stage ()
         stage = STOP;
 
     case STOP:
-        end = cur + 1; // Avoid another generate_next_stage() call
+        end = cur+1; // Avoid another generate_next_stage() call
         return;
 
     default:
