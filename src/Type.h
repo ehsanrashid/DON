@@ -593,27 +593,27 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 //}
 
 
-inline Square org_sq (Move m) { return Square ((m >> 6) & int8_t (SQ_H8)); }
-inline Square dst_sq (Move m) { return Square ((m >> 0) & int8_t (SQ_H8)); }
+inline Square org_sq    (Move m) { return Square ((m >> 6) & int8_t (SQ_H8)); }
+inline Square dst_sq    (Move m) { return Square ((m >> 0) & int8_t (SQ_H8)); }
 inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
-inline MoveT mtype   (Move m)    { return MoveT (PROMOTE & m); }
+inline MoveT mtype      (Move m) { return MoveT (PROMOTE & m); }
 
-inline void org_sq (Move &m, Square org)
+inline void org_sq      (Move &m, Square org)
 {
     m &= 0xF03F;
     m |= (org << 6);
 }
-inline void dst_sq (Move &m, Square dst)
+inline void dst_sq      (Move &m, Square dst)
 {
     m &= 0xFFC0;
     m |= (dst << 0);
 }
-inline void prom_type (Move &m, PieceT pt)
+inline void prom_type   (Move &m, PieceT pt)
 {
     m &= 0x0FFF;
     m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
 }
-inline void mtype (Move &m, MoveT mt)
+inline void mtype       (Move &m, MoveT mt)
 {
     m &= ~PROMOTE;
     m |= mt;

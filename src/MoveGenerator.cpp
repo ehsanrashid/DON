@@ -50,7 +50,7 @@ namespace MoveGenerator {
                         if (ci)
                         {
                             if (   (BSHP == PT || ROOK == PT || QUEN == PT)
-                                && !(PieceAttacks[PT][s] & targets & ci->checking_sq[PT]))
+                                && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT]))
                             {
                                 continue;
                             }
@@ -64,7 +64,7 @@ namespace MoveGenerator {
                     Bitboard moves = attacks_bb<PT> (s, occ) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci) moves &= ci->checking_sq[PT];
+                        if (ci) moves &= ci->checking_bb[PT];
                     }
 
                     SERIALIZE (m_list, s, moves);
@@ -564,7 +564,7 @@ namespace MoveGenerator {
 
             if (_ptype (pos[check_sq]) > NIHT) // A slider
             {
-                slid_attacks |= LineRaySq[check_sq][org_king] - check_sq;
+                slid_attacks |= LineRay_bb[check_sq][org_king] - check_sq;
             }
         }
 
@@ -578,7 +578,7 @@ namespace MoveGenerator {
         if (1 == checker_count && pos.count (active) > 1)
         {
             // Generates blocking evasions or captures of the checking piece
-            Bitboard targets = BetweenSq[check_sq][org_king] + check_sq;
+            Bitboard targets = Between_bb[check_sq][org_king] + check_sq;
 
             return WHITE == active ? generate_moves<EVASION, WHITE> (m_list, pos, targets)
                 :  BLACK == active ? generate_moves<EVASION, BLACK> (m_list, pos, targets)

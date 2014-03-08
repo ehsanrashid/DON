@@ -465,7 +465,7 @@ namespace Searcher {
                 ASSERT (_ok (move));
 
                 bool gives_check = mtype (move) == NORMAL && !ci.discoverers
-                    ? ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                    ? ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
                     : pos.gives_check (move, ci);
 
                 // Futility pruning
@@ -718,9 +718,7 @@ namespace Searcher {
                 return tt_value;
             }
 
-            // TODO::
             // Step 4-TB. Tablebase probe
-            /*
             if (   !RootNode
                 && depth >= TBProbeDepth
                 && pos.count () <= TBCardinality
@@ -758,7 +756,6 @@ namespace Searcher {
                     return value;
                 }
             }
-            */
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
             if (in_check)
@@ -1063,7 +1060,7 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool gives_check = NORMAL == mtype (move) && !ci.discoverers
-                    ?       ci.checking_sq[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                    ?       ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
                     :       pos.gives_check (move, ci);
 
                 bool dangerous = gives_check

@@ -2468,11 +2468,11 @@ namespace TBSyzygy {
         // Add underpromotion captures to list of captures.
         ValMove*add_underprom_caps (Position &pos, ValMove *m_list, ValMove *end)
         {
-            ValMove *moves, *extra = end;
+            ValMove *cur, *extra = end;
 
-            for (moves = m_list; moves < end; ++moves)
+            for (cur = m_list; cur < end; ++cur)
             {
-                Move move = moves->move;
+                Move move = cur->move;
                 if (mtype (move) == PROMOTE && !pos.empty (dst_sq (move)))
                 {
                     (*extra++).move = Move (move - (1 << 12));
@@ -2488,7 +2488,7 @@ namespace TBSyzygy {
         {
             int32_t v;
             ValMove m_list[64];
-            ValMove *moves, *end;
+            ValMove *cur, *end;
             StateInfo st;
 
             // Generate (at least) all legal non-ep captures including (under)promotions.
@@ -2506,20 +2506,20 @@ namespace TBSyzygy {
 
             CheckInfo ci (pos);
 
-            for (moves = m_list; moves < end; ++moves)
+            for (cur = m_list; cur < end; ++cur)
             {
-                Move capture = moves->move;
-                if (!pos.capture (capture) || mtype (capture) == ENPASSANT
-                    || !pos.legal (capture, ci.pinneds))
+                Move move = cur->move;
+                if (!pos.capture (move) || mtype (move) == ENPASSANT
+                    || !pos.legal (move, ci.pinneds))
                 {
                     continue;
                 }
 
-                pos.do_move (capture, st, pos.gives_check (capture, ci) ? &ci : NULL);
+                pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
                 v = -probe_ab (pos, -beta, -alpha, success);
                 pos.undo_move ();
 
-                if (*success == 0) return 0;
+                if (!*success) return 0;
                 if (v > alpha)
                 {
                     if (v >= beta)
@@ -2533,7 +2533,7 @@ namespace TBSyzygy {
 
             v = probe_wdl_table (pos, success);
 
-            if (*success == 0) return 0;
+            if (!*success) return 0;
             if (alpha >= v)
             {
                 *success = 1 + (alpha > 0);
@@ -2553,7 +2553,7 @@ namespace TBSyzygy {
 
             wdl = probe_ab (pos, -2, 2, success);
 
-            if (*success == 0) return 0;
+            if (!*success) return 0;
 
             if (wdl == 0) return 0;
 
@@ -2563,7 +2563,7 @@ namespace TBSyzygy {
             }
 
             ValMove m_list[MAX_MOVES];
-            ValMove *moves, *end = NULL;
+            ValMove *cur, *end = NULL;
             StateInfo st;
             CheckInfo ci (pos);
 
@@ -2575,9 +2575,9 @@ namespace TBSyzygy {
                     ? generate<EVASION> (m_list, pos)
                     : generate<RELAX> (m_list, pos);
 
-                for (moves = m_list; moves < end; ++moves)
+                for (cur = m_list; cur < end; ++cur)
                 {
-                    Move move = moves->move;
+                    Move move = cur->move;
                     if (_ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
                         || !pos.legal (move, ci.pinneds))
                     {
@@ -2587,7 +2587,7 @@ namespace TBSyzygy {
                     int32_t v = -probe_ab (pos, -2, -wdl + 1, success);
                     pos.undo_move ();
 
-                    if (*success == 0) return 0;
+                    if (!*success) return 0;
                     if (v == wdl)
                     {
                         return v == 2 ? 1 : 101;
@@ -2605,9 +2605,9 @@ namespace TBSyzygy {
             if (wdl > 0)
             {
                 int32_t best = 0xffff;
-                for (moves = m_list; moves < end; ++moves)
+                for (cur = m_list; cur < end; ++cur)
                 {
-                    Move move = moves->move;
+                    Move move = cur->move;
                     if (pos.capture (move) || _ptype (pos.moved_piece (move)) == PAWN
                         || !pos.legal (move, ci.pinneds))
                     {
@@ -2616,7 +2616,7 @@ namespace TBSyzygy {
                     pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
                     int32_t v = -TBSyzygy::probe_dtz (pos, success);
                     pos.undo_move ();
-                    if (*success == 0) return 0;
+                    if (!*success) return 0;
                     if (v > 0 && v + 1 < best)
                         best = v + 1;
                 }
@@ -2629,10 +2629,10 @@ namespace TBSyzygy {
                     ? generate<EVASION> (m_list, pos)
                     : generate<RELAX> (m_list, pos);
 
-                for (moves = m_list; moves < end; ++moves)
+                for (cur = m_list; cur < end; ++cur)
                 {
                     int32_t v;
-                    Move move = moves->move;
+                    Move move = cur->move;
                     if (!pos.legal (move, ci.pinneds)) continue;
 
                     pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
@@ -2654,7 +2654,7 @@ namespace TBSyzygy {
                     }
 
                     pos.undo_move ();
-                    if (*success == 0) return 0;
+                    if (!*success) return 0;
                     if (best > v)
                     {
                         best = v;
@@ -2748,7 +2748,7 @@ namespace TBSyzygy {
         int32_t v1 = -3;
         // Generate (at least) all legal en passant captures.
         ValMove m_list[MAX_MOVES];
-        ValMove *moves;
+        ValMove *cur;
 
         ValMove *end = pos.checkers ()
             ? generate<EVASION> (m_list, pos)
@@ -2756,20 +2756,20 @@ namespace TBSyzygy {
 
         CheckInfo ci (pos);
 
-        for (moves = m_list; moves < end; ++moves)
+        for (cur = m_list; cur < end; ++cur)
         {
-            Move capture = moves->move;
-            if (mtype (capture) != ENPASSANT
-                || !pos.legal (capture, ci.pinneds))
+            Move move = cur->move;
+            if (mtype (move) != ENPASSANT
+                || !pos.legal (move, ci.pinneds))
             {
                 continue;
             }
 
             StateInfo st;
-            pos.do_move (capture, st, pos.gives_check (capture, ci) ? &ci : NULL);
+            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
             int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
-            if (*success == 0) return 0;
+            if (!*success) return 0;
             if (v1 < v0) v1 = v0;
         }
         if (v1 > -3)
@@ -2781,23 +2781,23 @@ namespace TBSyzygy {
             else if (v == 0)
             {
                 // Check whether there is at least one legal non-ep move.
-                for (moves = m_list; moves < end; ++moves)
+                for (cur = m_list; cur < end; ++cur)
                 {
-                    Move capture = moves->move;
-                    if (mtype (capture) == ENPASSANT) continue;
-                    if (pos.legal (capture, ci.pinneds)) break;
+                    Move move = cur->move;
+                    if (mtype (move) == ENPASSANT) continue;
+                    if (pos.legal (move, ci.pinneds)) break;
                 }
-                if (moves == end && !pos.checkers ())
+                if (cur == end && !pos.checkers ())
                 {
                     end = generate<QUIET> (end, pos);
-                    for (; moves < end; ++moves)
+                    for (; cur < end; ++cur)
                     {
-                        Move move = moves->move;
+                        Move move = cur->move;
                         if (pos.legal (move, ci.pinneds)) break;
                     }
                 }
                 // If not, then we are forced to play the losing ep capture.
-                if (moves == end)
+                if (cur == end)
                 {
                     v = v1;
                 }
@@ -2839,13 +2839,13 @@ namespace TBSyzygy {
         int32_t v = probe_dtz_no_ep (pos, success);
 
         if (pos.en_passant_sq () == SQ_NO) return v;
-        if (*success == 0) return 0;
+        if (!*success) return 0;
 
         // Now handle en passant.
         int32_t v1 = -3;
 
         ValMove m_list[MAX_MOVES];
-        ValMove *moves;
+        ValMove *cur;
 
         ValMove *end = pos.checkers ()
             ? generate<EVASION> (m_list, pos)
@@ -2853,20 +2853,20 @@ namespace TBSyzygy {
 
         CheckInfo ci (pos);
 
-        for (moves = m_list; moves < end; ++moves)
+        for (cur = m_list; cur < end; ++cur)
         {
-            Move capture = moves->move;
-            if (mtype (capture) != ENPASSANT
-                || !pos.legal (capture, ci.pinneds))
+            Move move = cur->move;
+            if (mtype (move) != ENPASSANT
+                || !pos.legal (move, ci.pinneds))
             {
                 continue;
             }
 
             StateInfo st;
-            pos.do_move (capture, st, pos.gives_check (capture, ci) ? &ci : NULL);
+            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
             int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
-            if (*success == 0) return 0;
+            if (!*success) return 0;
             if (v0 > v1) v1 = v0;
         }
         if (v1 > -3)
@@ -2906,22 +2906,22 @@ namespace TBSyzygy {
             }
             else
             {
-                for (moves = m_list; moves < end; ++moves)
+                for (cur = m_list; cur < end; ++cur)
                 {
-                    Move move = moves->move;
+                    Move move = cur->move;
                     if (mtype (move) == ENPASSANT) continue;
                     if (pos.legal (move, ci.pinneds)) break;
                 }
-                if (moves == end && !pos.checkers ())
+                if (cur == end && !pos.checkers ())
                 {
                     end = generate<QUIET> (end, pos);
-                    for (; moves < end; ++moves)
+                    for (; cur < end; ++cur)
                     {
-                        Move move = moves->move;
+                        Move move = cur->move;
                         if (pos.legal (move, ci.pinneds)) break;
                     }
                 }
-                if (moves == end)
+                if (cur == end)
                 {
                     v = v1;
                 }

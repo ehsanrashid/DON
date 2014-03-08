@@ -271,7 +271,7 @@
       <Field Name="king_sq" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
-      <Field Name="checking_sq" />
+      <Field Name="checking_bb" />
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="HashTable&lt;Entry, SIZE&gt;">

@@ -519,7 +519,7 @@ namespace Evaluator {
 
                 if (ei.pinned_pieces[C] & s)
                 {
-                    attacks &= LineRaySq[fk_sq][s];
+                    attacks &= LineRay_bb[fk_sq][s];
                 }
 
                 ei.attacked_by[C][PT] |= attacks;
@@ -558,7 +558,7 @@ namespace Evaluator {
                         //// Give a bonus if we are a bishop and can pin a piece or
                         //// can give a discovered check through an x-ray attack.
                         //if (   (PieceAttacks[BSHP][ek_sq] & s)
-                        //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
+                        //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ()))
                         //{
                         //    score += PinBonus;
                         //}
@@ -594,7 +594,7 @@ namespace Evaluator {
                         //// Give a bonus if we are a rook and can pin a piece or
                         //// can give a discovered check through an x-ray attack.
                         //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                        //    && !more_than_one (BetweenSq[s][ek_sq] & pos.pieces ()))
+                        //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ()))
                         //{
                         //    score += PinBonus;
                         //}

@@ -146,8 +146,8 @@ namespace BitBoard {
 
     CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard BetweenSq[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard LineRaySq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
 
@@ -254,10 +254,10 @@ namespace BitBoard {
     // For instance,
     // between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for square d5 and e6 set.
     // If s1 and s2 are not on the same rank, file or diagonal, 0 is returned.
-    //inline Bitboard between_sq (Square s1, Square s2) { return BetweenSq[s1][s2]; }
+    //inline Bitboard between_sq (Square s1, Square s2) { return Between_bb[s1][s2]; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned    (Square s1, Square s2, Square s3) { return LineRaySq[s1][s2] & s3; }
+    inline bool sqrs_aligned    (Square s1, Square s2, Square s3) { return LineRay_bb[s1][s2] & s3; }
 
     inline bool more_than_one (Bitboard bb) { return bool ((bb) & (bb - 1)); }
 

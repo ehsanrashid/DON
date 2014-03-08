@@ -15,8 +15,8 @@ namespace BitBoard {
 
     // ---
 
-    CACHE_ALIGN(64) Bitboard BetweenSq[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard LineRaySq[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
     CACHE_ALIGN (64) Bitboard DistanceRings[SQ_NO][F_NO];
 
@@ -313,8 +313,8 @@ namespace BitBoard {
 
                 if (NONE == pt) continue;
 
-                BetweenSq[s1][s2] = (attacks_bb (Piece (pt), s1, Square_bb[s2]) & attacks_bb (Piece (pt), s2, Square_bb[s1]));
-                LineRaySq[s1][s2] = (attacks_bb (Piece (pt), s1,       U64 (0)) & attacks_bb (Piece (pt), s2,       U64 (0))) + s1 + s2;
+                Between_bb[s1][s2] = (attacks_bb (Piece (pt), s1, Square_bb[s2]) & attacks_bb (Piece (pt), s2, Square_bb[s1]));
+                LineRay_bb[s1][s2] = (attacks_bb (Piece (pt), s1,       U64 (0)) & attacks_bb (Piece (pt), s2,       U64 (0))) + s1 + s2;
             }
         }
 

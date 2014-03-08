@@ -664,7 +664,7 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Bitboard chk_blockers  = U64 (0);
     while (pinners)
     {
-        Bitboard blocker = BetweenSq[ksq][pop_lsq (pinners)] & _types_bb[NONE];
+        Bitboard blocker = Between_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (!more_than_one (blocker))
         {
             chk_blockers |= (blocker & _color_bb[c]); // Defending piece
@@ -843,7 +843,7 @@ bool Position::pseudo_legal (Move m) const
             {
                 // Our move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
-                if (!((chkrs & cap) || (BetweenSq[scan_lsq (chkrs)][king_sq (activ)] & dst)))
+                if (!((chkrs & cap) || (Between_bb[scan_lsq (chkrs)][king_sq (activ)] & dst)))
                 {
                     return false;
                 }
@@ -851,7 +851,7 @@ bool Position::pseudo_legal (Move m) const
             else
             {
                 // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((BetweenSq[scan_lsq (chkrs)][king_sq (activ)] | chkrs) & dst))
+                if (!((Between_bb[scan_lsq (chkrs)][king_sq (activ)] | chkrs) & dst))
                 {
                     return false;
                 }
@@ -941,7 +941,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     PieceT pt = _ptype  (p);
 
     // Direct check ?
-    if (ci.checking_sq[pt] & dst) return true;
+    if (ci.checking_bb[pt] & dst) return true;
 
     // Discovery check ?
     if (UNLIKELY (ci.discoverers) && ci.discoverers & org)
@@ -1370,7 +1370,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         if (NORMAL == mt)
         {
             // Direct check ?
-            if (ci->checking_sq[pt] & dst) _si->checkers += dst;
+            if (ci->checking_bb[pt] & dst) _si->checkers += dst;
             
             // Discovery check ?
             if (QUEN != pt)

@@ -106,7 +106,7 @@ typedef struct CheckInfo
 {
 public:
     // Checking squares from which the enemy king can be checked
-    Bitboard checking_sq[NONE];
+    Bitboard checking_bb[NONE];
     // Pinned pieces
     Bitboard pinneds;
     // Check discoverer pieces
@@ -721,12 +721,12 @@ inline CheckInfo::CheckInfo (const Position &pos)
     pinneds = pos.pinneds (active);
     discoverers = pos.discoverers (active);
 
-    checking_sq[PAWN] = BitBoard::PawnAttacks[pasive][king_sq];
-    checking_sq[NIHT] = BitBoard::PieceAttacks[NIHT][king_sq];
-    checking_sq[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
-    checking_sq[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
-    checking_sq[QUEN] = checking_sq[BSHP] | checking_sq[ROOK];
-    checking_sq[KING] = U64 (0);
+    checking_bb[PAWN] = BitBoard::PawnAttacks[pasive][king_sq];
+    checking_bb[NIHT] = BitBoard::PieceAttacks[NIHT][king_sq];
+    checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
+    checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
+    checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
+    checking_bb[KING] = U64 (0);
 }
 
 typedef std::stack<StateInfo>   StateInfoStack;
