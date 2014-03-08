@@ -62,6 +62,25 @@ this code to other chess engines.
 
 #endif
 
+#if defined(_MSC_VER)    // Visual Studio
+#   define swap32   _byteswap_ulong
+#   define swap64   _byteswap_uint64
+#elif GCC_VERSION >= 430
+#   include <byteswap.h>
+#   if defined(__builtin_bswap32)
+#       define swap32   __builtin_bswap32
+#       define swap64   __builtin_bswap64
+#   else
+#       define swap32   __bswap_32
+#       define swap64   __bswap_64
+#   endif
+#else
+#   define swap32   __builtin_bswap32
+#   define swap64   __builtin_bswap64
+//static inline uint32_t swap32(uint32_t x) {}
+//static inline uint64_t swap64(uint64_t x) {}
+#endif
+
 #include "BitBoard.h"
 #include "BitCount.h"
 #include "Zobrist.h"
@@ -93,13 +112,9 @@ namespace TBSyzygy {
         struct TBHashEntry;
 
 #ifdef _64BIT
-
         typedef uint64_t base_t;
-
 #else
-
         typedef uint32_t base_t;
-
 #endif
 
         typedef struct PairsData
@@ -1912,19 +1927,16 @@ namespace TBSyzygy {
 
             uint32_t *ptr = (uint32_t *) (d->data + (block << d->blocksize));
 
-            int32_t     min_len = d->min_len;
-            uint16_t    *offset = d->offset;
-            base_t      *base   = d->base - min_len;
-            uint8_t     *symlen = d->symlen;
-            int32_t     sym, bitcnt;
+            int32_t   min_len = d->min_len;
+            uint16_t *offset  = d->offset;
+            base_t   *base    = d->base - min_len;
+            uint8_t  *symlen  = d->symlen;
+            int32_t   sym, bitcnt;
 
 #ifdef _64BIT
-            uint64_t code =
-#   ifdef _MSC_VER
-                _byteswap_uint64 (*((uint64_t *) ptr));
-#   else
-                __builtin_bswap64 (*((uint64_t *) ptr));
-#   endif
+
+            uint64_t code = swap64 (*((uint64_t *) ptr));
+
             ptr += 2;
             bitcnt = 0; // number of "empty bits" in code
             for (;;)
@@ -1939,24 +1951,14 @@ namespace TBSyzygy {
                 if (bitcnt >= 32)
                 {
                     bitcnt -= 32;
-                    code |=
-#   ifdef _MSC_VER
-                        ((uint64_t) (_byteswap_ulong (*ptr++))) << bitcnt;
-#   else
-                        ((uint64_t) (__builtin_bswap32 (*ptr++))) << bitcnt;
-#   endif
+                    code |= ((uint64_t) (swap32 (*ptr++))) << bitcnt;
                 }
             }
 
 #else
 
             uint32_t next = 0;
-            uint32_t code =
-#   ifdef _MSC_VER
-                _byteswap_ulong (*ptr++);
-#   else
-                __builtin_bswap32 (*ptr++);
-#   endif
+            uint32_t code = swap32 (*ptr++);
 
             bitcnt = 0; // number of bits in next
             for (;;)
@@ -1974,12 +1976,7 @@ namespace TBSyzygy {
                         code |= (next >> (32 - l));
                         l -= bitcnt;
                     }
-                    next =
-#   ifdef _MSC_VER
-                        _byteswap_ulong (*ptr++);
-#   else
-                        __builtin_bswap32 (*ptr++);
-#   endif                    
+                    next = swap32 (*ptr++);
                     bitcnt = 32;
                 }
                 code |= (next >> (32 - l));
