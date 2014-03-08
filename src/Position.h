@@ -585,8 +585,8 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return (_piece_count[WHITE][BSHP] == 1)
-    //    && (_piece_count[BLACK][BSHP] == 1)
+    //return _piece_count[WHITE][BSHP]
+    //    && _piece_count[BLACK][BSHP]
     //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
     return _piece_count[WHITE][BSHP]
         && _piece_count[BLACK][BSHP]

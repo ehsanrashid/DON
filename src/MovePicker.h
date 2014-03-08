@@ -155,9 +155,9 @@ private:
 
 public:
 
-    MovePicker (const Position &, Move,        const HistoryStats &, PieceT);
-    MovePicker (const Position &, Move, Depth, const HistoryStats &, Square);
-    MovePicker (const Position &, Move, Depth, const HistoryStats &, Move[], Move[], Searcher::Stack[]);
+    MovePicker (const Position&, Move,        const HistoryStats&, PieceT);
+    MovePicker (const Position&, Move, Depth, const HistoryStats&, Square);
+    MovePicker (const Position&, Move, Depth, const HistoryStats&, Move*, Move*, Searcher::Stack*);
 
     template<bool SpNode>
     Move next_move ();

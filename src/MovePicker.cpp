@@ -13,7 +13,7 @@ using namespace MoveGenerator;
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move cm[], Move fm[], Stack s[])
+MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Move *fm, Stack *s)
     : pos (p)
     , history (h)
     , ss (s)
