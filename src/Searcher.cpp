@@ -96,7 +96,7 @@ namespace Searcher {
 
         // update_stats() updates killers, history, countermoves and followupmoves stats
         // after a fail-high of a quiet move.
-        inline void update_stats (Position &pos, Stack *ss, Move move, uint8_t depth, Move quiet_moves[], uint8_t quiets_count)
+        inline void update_stats (Position &pos, Stack *ss, Move move, uint8_t depth, Move *quiet_moves, uint8_t quiets_count)
         {
             if ((ss)->killers[0] != move)
             {
@@ -105,7 +105,7 @@ namespace Searcher {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value bonus = Value (1 * depth * depth); // Value (1 << depth)
+            Value bonus = Value (1 * depth * depth);
             History.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (uint8_t i = 0; i < quiets_count; ++i)
             {
@@ -313,7 +313,10 @@ namespace Searcher {
         {
             if (c) { ++Hits[0]; if (h) ++Hits[1]; }
         }
-        void dbg_mean_of (uint64_t v)    { ++Means[0]; Means[1] += v;   }
+        void dbg_mean_of (uint64_t v)
+        {
+            ++Means[0]; Means[1] += v;
+        }
 
         inline void dbg_print ()
         {

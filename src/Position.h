@@ -242,21 +242,21 @@ public:
     Square en_passant_sq () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint8_t clock50 () const;
+    uint8_t clock50 ()      const;
     // Last move played
-    Move  last_move () const;
+    Move  last_move ()      const;
     // Last piece type captured
-    PieceT capture_type () const;
+    PieceT capture_type ()  const;
     // Last piece captured
-    Piece capture_piece () const;
+    Piece capture_piece ()  const;
     //
-    Bitboard checkers () const;
+    Bitboard checkers ()    const;
     //
-    Key matl_key () const;
+    Key matl_key ()         const;
     //
-    Key pawn_key () const;
+    Key pawn_key ()         const;
     //
-    Key posi_key () const;
+    Key posi_key ()         const;
 
     Key posi_key_exclusion () const;
 
@@ -274,17 +274,17 @@ public:
     bool castle_impeded (CRight cr) const;
 
 
-    Color    active    ()               const;
-    uint16_t game_ply  ()               const;
-    uint16_t game_move ()               const;
-    bool     chess960  ()               const;
+    Color    active    ()           const;
+    uint16_t game_ply  ()           const;
+    uint16_t game_move ()           const;
+    bool     chess960  ()           const;
+    bool     draw      ()           const;
 
-    uint64_t game_nodes ()              const;
+    uint64_t game_nodes ()          const;
     void     game_nodes (uint64_t nodes);
 
-    Threads::Thread* thread ()          const;
+    Threads::Thread* thread ()      const;
 
-    bool draw ()                        const;
     bool ok (int8_t *failed_step = NULL) const;
 
     // Static Exchange Evaluation (SEE)
@@ -304,9 +304,9 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard checkers    (Color c) const;
-    Bitboard pinneds     (Color c) const;
-    Bitboard discoverers (Color c) const;
+    Bitboard checkers    (Color c)   const;
+    Bitboard pinneds     (Color c)   const;
+    Bitboard discoverers (Color c)   const;
 
     bool pseudo_legal (Move m)                   const;
     bool legal        (Move m, Bitboard pinned)  const;
@@ -391,7 +391,7 @@ public:
     friend std::basic_istream<charT, Traits>&
         operator>> (std::basic_istream<charT, Traits> &is, Position &pos)
     {
-        //is >> std::string (pos);
+        //is >> fen; pos.setup
         return is;
     }
 
@@ -399,33 +399,33 @@ public:
 
 // -------------------------------
 
-INLINE Piece         Position::operator[] (Square s) const { return _board[s]; }
-inline Bitboard      Position::operator[] (Color  c) const { return _color_bb[c];  }
-inline Bitboard      Position::operator[] (PieceT pt)const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p) const { return _piece_list[_color (p)][_ptype (p)]; }
+INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; }
+inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
+inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
+inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[_color (p)][_ptype (p)]; }
 
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 //inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
 
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces (Color  c)            const { return _color_bb[c];  }
+inline Bitboard Position::pieces (Color  c)           const { return _color_bb[c];  }
 
-inline Bitboard Position::pieces (PieceT pt)           const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (PieceT pt)          const { return _types_bb[pt]; }
 template<PieceT PT>
-inline Bitboard Position::pieces ()                    const { return _types_bb[PT]; }
+inline Bitboard Position::pieces ()                   const { return _types_bb[PT]; }
 
-inline Bitboard Position::pieces (Color c, PieceT pt)  const { return _color_bb[c]  & _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]  & _types_bb[pt]; }
 template<PieceT PT>
-inline Bitboard Position::pieces (Color c)             const { return _color_bb[c]  & _types_bb[PT]; }
+inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]  & _types_bb[PT]; }
 
-inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb[p1] | _types_bb[p2]; }
+inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1] | _types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 //inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 
 
-inline int32_t Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
+inline int32_t Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 
 template<PieceT PT>
 inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
@@ -486,8 +486,8 @@ inline Score    Position::psq_score     () const { return _si->psq_score; }
 
 inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle (CRight cr)           const { return _si->castle_rights & cr; }
-inline CRight Position::can_castle (Color   c)           const { return _si->castle_rights & mk_castle_right (c); }
+inline CRight Position::can_castle (CRight cr)        const { return _si->castle_rights & cr; }
+inline CRight Position::can_castle (Color   c)        const { return _si->castle_rights & mk_castle_right (c); }
 
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rooks[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_paths[cr] & _types_bb[NONE]; }
