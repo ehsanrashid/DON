@@ -261,7 +261,10 @@ void MovePicker::generate_next_stage ()
         {
             value<QUIET> ();
             end = partition (cur, end, ValMove ());
-            insertion_sort ();
+            if (m_list < end - 1)
+            {
+                insertion_sort ();
+            }
         }
         return;
 
