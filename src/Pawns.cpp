@@ -215,20 +215,20 @@ namespace Pawns {
     template<Color C>
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
-    Value Entry::shelter_storm (const Position &pos, Square k_sq)
+    Value Entry::shelter_storm (const Position &pos, Square king_sq)
     {
         const Color C_ = ((WHITE == C) ? BLACK : WHITE);
 
         Value safety = MaxSafetyBonus;
 
-        Bitboard front_pawns = pos.pieces (PAWN) & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq));
+        Bitboard front_pawns = pos.pieces (PAWN) & (FrontRank_bb[C][_rank (king_sq)] | rank_bb (king_sq));
         Bitboard pawns[CLR_NO] =
         {
             front_pawns & pos.pieces (C ),
             front_pawns & pos.pieces (C_),
         };
 
-        File kf = max (F_B, min (F_G, _file (k_sq)));
+        File kf = max (F_B, min (F_G, _file (king_sq)));
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
             Bitboard mid_pawns;
@@ -237,8 +237,8 @@ namespace Pawns {
             Rank b_rk = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
 
             if (   (MID_EDGE_bb & (f | b_rk))
-                && _file (k_sq) == f
-                && rel_rank (C, k_sq) == b_rk - 1)
+                && _file (king_sq) == f
+                && rel_rank (C, king_sq) == b_rk - 1)
             {
                 safety += Value (200);
             }
@@ -265,24 +265,24 @@ namespace Pawns {
     template<Color C>
     // Entry::update_safety() calculates and caches a bonus for king safety. It is
     // called only when king square changes, about 20% of total king_safety() calls.
-    Score Entry::update_safety (const Position &pos, Square k_sq)
+    Score Entry::update_safety (const Position &pos, Square king_sq)
     {
-        _king_sq[C] = k_sq;
+        _king_sq[C] = king_sq;
         _castle_rights[C] = pos.can_castle(C);
         _kp_min_dist  [C] = 0;
 
         Bitboard pawns = pos.pieces (C, PAWN);
         if (pawns)
         {
-            while (!(DistanceRings[k_sq][_kp_min_dist[C]++] & pawns));
+            while (!(DistanceRings[king_sq][_kp_min_dist[C]++] & pawns));
         }
 
-        if (rel_rank(C, k_sq) > R_4)
+        if (rel_rank(C, king_sq) > R_4)
         {
             return _king_safety[C] = mk_score (0, -16 * _kp_min_dist[C]);
         }
 
-        Value bonus = shelter_storm<C> (pos, k_sq);
+        Value bonus = shelter_storm<C> (pos, king_sq);
 
         // If we can castle use the bonus after the castle if is bigger
         if (pos.can_castle (MakeCastling<C, CS_K>::right))
@@ -299,7 +299,7 @@ namespace Pawns {
 
     // Explicit template instantiation
     // -------------------------------
-    template Score Entry::update_safety<WHITE> (const Position &pos, Square k_sq);
-    template Score Entry::update_safety<BLACK> (const Position &pos, Square k_sq);
+    template Score Entry::update_safety<WHITE> (const Position &pos, Square king_sq);
+    template Score Entry::update_safety<BLACK> (const Position &pos, Square king_sq);
 
 } // namespace Pawns

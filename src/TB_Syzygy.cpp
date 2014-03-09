@@ -77,8 +77,6 @@ this code to other chess engines.
 #else
 #   define swap32   __builtin_bswap32
 #   define swap64   __builtin_bswap64
-//static inline uint32_t swap32(uint32_t x) {}
-//static inline uint64_t swap64(uint64_t x) {}
 #endif
 
 #include "BitBoard.h"
@@ -142,11 +140,10 @@ namespace TBSyzygy {
             uint8_t   has_pawns;
 
         }
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-        ;
-#else
-        __attribute__ ((__may_alias__));
+#if !defined(_MSC_VER)
+        __attribute__ ((__may_alias__))
 #endif
+        ;
 
         typedef struct TBEntry TBEntry;
 
@@ -257,10 +254,10 @@ namespace TBSyzygy {
 
         LOCK_T TB_mutex;
 
-        bool  initialized = false;
-        int32_t num_paths = 0;
-        char *path_string = NULL;
-        char **paths      = NULL;
+        bool Initialized = false;
+        int32_t NumPaths = 0;
+        char *PathString = NULL;
+        char **Paths     = NULL;
 
         uint32_t TB_num_piece, TB_num_pawn;
         TBEntry_piece TB_piece[TBMAX_PIECE];
@@ -284,9 +281,9 @@ namespace TBSyzygy {
             FD fd;
             char file[256];
 
-            for (i = 0; i < num_paths; ++i)
+            for (i = 0; i < NumPaths; ++i)
             {
-                strcpy (file, paths[i]);
+                strcpy (file, Paths[i]);
                 strcat (file, "/");
                 strcat (file, filename);
                 strcat (file, suffix);
@@ -395,7 +392,7 @@ namespace TBSyzygy {
             }
         }
 
-        char pchr[] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
+        char PieceChar[] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
 
         void init_tb (char *filename)
         {
@@ -640,7 +637,7 @@ namespace TBSyzygy {
             55, 48, 47, 40, 39, 32, 31, 24, 23, 16, 15, 8
         };
 
-        const uint8_t File_To_File[] =
+        const uint8_t File_to_File[] =
         {
             0, 1, 2, 3, 3, 2, 1, 0
         };
@@ -841,14 +838,14 @@ namespace TBSyzygy {
         };
 #endif
 
-        int32_t binomial[5][64];
-        int32_t pawnidx[5][24];
-        int32_t pfactor[5][4];
+        int32_t Binomial[5][64];
+        int32_t PawnIdx [5][24];
+        int32_t PFactor [5][4];
 
 #ifdef CONNECTED_KINGS
 
-        int32_t multidx[5][10];
-        int32_t mfactor[5];
+        int32_t MultIdx[5][10];
+        int32_t MFactor[5];
 
 #endif
 
@@ -856,7 +853,7 @@ namespace TBSyzygy {
         {
             int32_t i, j, k;
 
-            // binomial[k-1][n] = Bin(n, k)
+            // Binomial[k-1][n] = Bin(n, k)
             for (i = 0; i < 5; ++i)
             {
                 for (j = 0; j < 64; ++j)
@@ -868,7 +865,7 @@ namespace TBSyzygy {
                         f *= (j - k);
                         l *= (k + 1);
                     }
-                    binomial[i][j] = f / l;
+                    Binomial[i][j] = f / l;
                 }
             }
             for (i = 0; i < 5; ++i)
@@ -876,31 +873,31 @@ namespace TBSyzygy {
                 int32_t s = 0;
                 for (j = 0; j < 6; ++j)
                 {
-                    pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
+                    PawnIdx[i][j] = s;
+                    s += (i == 0) ? 1 : Binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
-                pfactor[i][0] = s;
+                PFactor[i][0] = s;
                 s = 0;
                 for (; j < 12; ++j)
                 {
-                    pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
+                    PawnIdx[i][j] = s;
+                    s += (i == 0) ? 1 : Binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
-                pfactor[i][1] = s;
+                PFactor[i][1] = s;
                 s = 0;
                 for (; j < 18; ++j)
                 {
-                    pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
+                    PawnIdx[i][j] = s;
+                    s += (i == 0) ? 1 : Binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
-                pfactor[i][2] = s;
+                PFactor[i][2] = s;
                 s = 0;
                 for (; j < 24; ++j)
                 {
-                    pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
+                    PawnIdx[i][j] = s;
+                    s += (i == 0) ? 1 : Binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
-                pfactor[i][3] = s;
+                PFactor[i][3] = s;
             }
 
 #ifdef CONNECTED_KINGS
@@ -909,10 +906,10 @@ namespace TBSyzygy {
                 int32_t s = 0;
                 for (j = 0; j < 10; ++j)
                 {
-                    multidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][Mtwist[InvTriangle[j]]];
+                    MultIdx[i][j] = s;
+                    s += (i == 0) ? 1 : Binomial[i - 1][Mtwist[InvTriangle[j]]];
                 }
-                mfactor[i] = s;
+                MFactor[i] = s;
             }
 #endif
 
@@ -1007,7 +1004,7 @@ namespace TBSyzygy {
                     {
                         j += (p > pos[l]);
                     }
-                    s += binomial[m - i][p - j];
+                    s += Binomial[m - i][p - j];
                 }
                 idx += ((uint64_t) s) * ((uint64_t) factor[i]);
                 i += t;
@@ -1175,10 +1172,10 @@ namespace TBSyzygy {
                         }
                     }
                 }
-                idx = multidx[norm[0] - 1][Triangle[pos[0]]];
+                idx = MultIdx[norm[0] - 1][Triangle[pos[0]]];
                 for (i = 1; i < norm[0]; ++i)
                 {
-                    idx += binomial[i - 1][Mtwist[pos[i]]];
+                    idx += Binomial[i - 1][Mtwist[pos[i]]];
                 }
             }
             idx *= factor[PAWN];
@@ -1204,7 +1201,7 @@ namespace TBSyzygy {
                     {
                         j += (p > pos[l]);
                     }
-                    s += binomial[m - i][p - j];
+                    s += Binomial[m - i][p - j];
                 }
                 idx += ((uint64_t) s) * ((uint64_t) factor[i]);
                 i += t;
@@ -1226,7 +1223,7 @@ namespace TBSyzygy {
                     std::swap (pos[0], pos[i]);
                 }
             }
-            return File_To_File[pos[0] & 0x07];
+            return File_to_File[pos[0] & 0x07];
         }
 
         uint64_t encode_pawn (TBEntry_pawn *tbep, uint8_t *norm, int32_t *pos, int32_t *factor)
@@ -1253,10 +1250,10 @@ namespace TBSyzygy {
                 }
             }
             t = tbep->pawns[WHITE] - 1;
-            idx = pawnidx[t][Flap[pos[0]]];
+            idx = PawnIdx[t][Flap[pos[0]]];
             for (i = t; i > 0; --i)
             {
-                idx += binomial[t - i][Ptwist[pos[i]]];
+                idx += Binomial[t - i][Ptwist[pos[i]]];
             }
             idx *= factor[PAWN];
 
@@ -1280,7 +1277,7 @@ namespace TBSyzygy {
                     {
                         j += (p > pos[k]);
                     }
-                    s += binomial[m - i][p - j - 8];
+                    s += Binomial[m - i][p - j - 8];
                 }
                 idx += ((uint64_t) s) * ((uint64_t) factor[i]);
                 i = t;
@@ -1308,7 +1305,7 @@ namespace TBSyzygy {
                     {
                         j += (p > pos[k]);
                     }
-                    s += binomial[m - i][p - j];
+                    s += Binomial[m - i][p - j];
                 }
                 idx += uint64_t (s) * uint64_t (factor[i]);
                 i += t;
@@ -1365,7 +1362,7 @@ namespace TBSyzygy {
                     }
                     else
                     {
-                        f *= mfactor[enc_type - 2];
+                        f *= MFactor[enc_type - 2];
                     }
 #endif
 
@@ -1397,7 +1394,7 @@ namespace TBSyzygy {
                 if (k == order)
                 {
                     factor[PAWN] = f;
-                    f *= pfactor[norm[PAWN] - 1][file];
+                    f *= PFactor[norm[PAWN] - 1][file];
                 }
                 else if (k == order2)
                 {
@@ -2091,8 +2088,8 @@ namespace TBSyzygy {
             if (tbe) free (tbe);
         }
 
-        int32_t wdl_to_map[5] = { 1, 3, 0, 2, 0 };
-        uint8_t pa_flags  [5] = { 8, 0, 0, 0, 4 };
+        int32_t Wdl_to_Map[5] = { 1, 3, 0, 2, 0 };
+        uint8_t PA_Flags  [5] = { 8, 0, 0, 0, 4 };
 
     }
 
@@ -2108,7 +2105,7 @@ namespace TBSyzygy {
             {
                 for (int8_t pc = pos.count (color, pt); pc > 0; --pc)
                 {
-                    *str++ = pchr[KING - pt];
+                    *str++ = PieceChar[KING - pt];
                 }
             }
 
@@ -2118,7 +2115,7 @@ namespace TBSyzygy {
             {
                 for (int8_t pc = pos.count (color, pt); pc > 0; --pc)
                 {
-                    *str++ = pchr[KING - pt];
+                    *str++ = PieceChar[KING - pt];
                 }
             }
             *str++ = '\0';
@@ -2410,9 +2407,9 @@ namespace TBSyzygy {
 
                 if (entry->flags & 2)
                 {
-                    res = entry->map[entry->map_idx[wdl_to_map[wdl + 2]] + res];
+                    res = entry->map[entry->map_idx[Wdl_to_Map[wdl + 2]] + res];
                 }
-                if (!(entry->flags & pa_flags[wdl + 2]) || (wdl & 1))
+                if (!(entry->flags & PA_Flags[wdl + 2]) || (wdl & 1))
                 {
                     res *= 2;
                 }
@@ -2452,9 +2449,9 @@ namespace TBSyzygy {
 
                 if (entry->flags[f] & 2)
                 {
-                    res = entry->map[entry->map_idx[f][wdl_to_map[wdl + 2]] + res];
+                    res = entry->map[entry->map_idx[f][Wdl_to_Map[wdl + 2]] + res];
                 }
-                if (!(entry->flags[f] & pa_flags[wdl + 2]) || (wdl & 1))
+                if (!(entry->flags[f] & PA_Flags[wdl + 2]) || (wdl & 1))
                 {
                     res *= 2;
                 }
@@ -2662,7 +2659,7 @@ namespace TBSyzygy {
             }
         }
 
-        int32_t wdl_to_dtz[] = { -1, -101, 0, 101, 1 };
+        int32_t Wdl_to_Dtz[] = { -1, -101, 0, 101, 1 };
 
         Value Wdl_to_Value[5] =
         {
@@ -2827,7 +2824,7 @@ namespace TBSyzygy {
         }
         if (v1 > -3)
         {
-            v1 = wdl_to_dtz[v1 + 2];
+            v1 = Wdl_to_Dtz[v1 + 2];
             if (v < -100)
             {
                 if (v1 >= 0)
@@ -2938,7 +2935,7 @@ namespace TBSyzygy {
                 else
                 {
                     v = -probe_wdl (pos, &success);
-                    v = wdl_to_dtz[v + 2];
+                    v = Wdl_to_Dtz[v + 2];
                 }
             }
             
@@ -3098,10 +3095,10 @@ namespace TBSyzygy {
         char filename[16];
         uint32_t i;
 
-        if (initialized)
+        if (Initialized)
         {
-            free (paths);
-            free (path_string);
+            free (Paths);
+            free (PathString);
             
             TBEntry *tbe;
             for (i = 0; i < TB_num_piece; ++i)
@@ -3125,7 +3122,7 @@ namespace TBSyzygy {
         else
         {
             init_indices ();
-            initialized = true;
+            Initialized = true;
         }
 
         //path = "C:/RTB6/wdl; C:/RTB6/dtz";
@@ -3134,47 +3131,47 @@ namespace TBSyzygy {
         
         uint32_t length = path.length ();
         std::replace (path.begin (), path.end (), '\\', '/');
-        //path_string = (char *) malloc (length + 1);
-        //strcpy (path_string, path.c_str ());
-        path_string = strdup (path.c_str ());
+        //PathString = (char *) malloc (length + 1);
+        //strcpy (PathString, path.c_str ());
+        PathString = strdup (path.c_str ());
 
         
-        num_paths = 0;
+        NumPaths = 0;
         i = 0;
         while (i < length)
         {
-            while (path_string[i] && isspace (path_string[i]))
+            while (PathString[i] && isspace (PathString[i]))
             {
-                path_string[i++] = '\0';
+                PathString[i++] = '\0';
             }
-            if (!path_string[i]) break;
+            if (!PathString[i]) break;
             
-            if (path_string[i] != SEP_CHAR)
+            if (PathString[i] != SEP_CHAR)
             {
-                ++num_paths;
+                ++NumPaths;
             }
             
-            while (path_string[i] && path_string[i] != SEP_CHAR)
+            while (PathString[i] && PathString[i] != SEP_CHAR)
             {
                 ++i;
             }
-            if (!path_string[i]) break;
+            if (!PathString[i]) break;
             
-            path_string[i] = '\0';
+            PathString[i] = '\0';
             ++i;
         }
 
-        paths = (char **) malloc (num_paths * sizeof (char *));
-        for (int32_t n = i = 0; n < num_paths; ++n)
+        Paths = (char **) malloc (NumPaths * sizeof (char *));
+        for (int32_t n = i = 0; n < NumPaths; ++n)
         {
-            while (!path_string[i])
+            while (!PathString[i])
             {
                 ++i;
             }
             
-            paths[n] = &path_string[i];
+            Paths[n] = &PathString[i];
             
-            while (path_string[i])
+            while (PathString[i])
             {
                 ++i;
             }
@@ -3203,7 +3200,7 @@ namespace TBSyzygy {
 
         for (i = 1; i < 6; ++i)
         {
-            sprintf (filename, "K%cvK", pchr[i]);
+            sprintf (filename, "K%cvK", PieceChar[i]);
             init_tb (filename);
         }
 
@@ -3211,7 +3208,7 @@ namespace TBSyzygy {
         {
             for (j = i; j < 6; ++j)
             {
-                sprintf (filename, "K%cvK%c", pchr[i], pchr[j]);
+                sprintf (filename, "K%cvK%c", PieceChar[i], PieceChar[j]);
                 init_tb (filename);
             }
         }
@@ -3220,7 +3217,7 @@ namespace TBSyzygy {
         {
             for (j = i; j < 6; ++j)
             {
-                sprintf (filename, "K%c%cvK", pchr[i], pchr[j]);
+                sprintf (filename, "K%c%cvK", PieceChar[i], PieceChar[j]);
                 init_tb (filename);
             }
         }
@@ -3231,7 +3228,7 @@ namespace TBSyzygy {
             {
                 for (k = 1; k < 6; ++k)
                 {
-                    sprintf (filename, "K%c%cvK%c", pchr[i], pchr[j], pchr[k]);
+                    sprintf (filename, "K%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k]);
                     init_tb (filename);
                 }
             }
@@ -3243,7 +3240,7 @@ namespace TBSyzygy {
             {
                 for (k = j; k < 6; ++k)
                 {
-                    sprintf (filename, "K%c%c%cvK", pchr[i], pchr[j], pchr[k]);
+                    sprintf (filename, "K%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k]);
                     init_tb (filename);
                 }
             }
@@ -3257,7 +3254,7 @@ namespace TBSyzygy {
                 {
                     for (l = (i == k) ? j : k; l < 6; ++l)
                     {
-                        sprintf (filename, "K%c%cvK%c%c", pchr[i], pchr[j], pchr[k], pchr[l]);
+                        sprintf (filename, "K%c%cvK%c%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
                     }
                 }
@@ -3272,7 +3269,7 @@ namespace TBSyzygy {
                 {
                     for (l = 1; l < 6; ++l)
                     {
-                        sprintf (filename, "K%c%c%cvK%c", pchr[i], pchr[j], pchr[k], pchr[l]);
+                        sprintf (filename, "K%c%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
                     }
                 }
@@ -3287,7 +3284,7 @@ namespace TBSyzygy {
                 {
                     for (l = k; l < 6; ++l)
                     {
-                        sprintf (filename, "K%c%c%c%cvK", pchr[i], pchr[j], pchr[k], pchr[l]);
+                        sprintf (filename, "K%c%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
                     }
                 }

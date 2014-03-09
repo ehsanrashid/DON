@@ -756,9 +756,8 @@ bool Position::pseudo_legal (Move m) const
         ASSERT (dst == castle_rook (mk_castle_right(activ, king_side ? CS_K : CS_Q)));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
-        Delta step = king_side ? DEL_E : DEL_W;
-        for (Square s  = org + step;
-            s != dst + step; s += step)
+        Delta step = (king_side ? DEL_W : DEL_E);
+        for (Square s = dst; s != org; s += step)
         {
             if (attackers_to (s) & _color_bb[pasiv])
             {
@@ -1139,15 +1138,15 @@ bool Position::can_en_passant (Square ep_sq) const
     }
 
     // Check en-passant is legal for the position
-    Square fk_sq = king_sq (activ);
+    Square kng_sq = king_sq (activ);
     Bitboard occ = _types_bb[NONE];
     for (vector<Move>::const_iterator itr = mov_ep.begin (); itr != mov_ep.end (); ++itr)
     {
         Move m = *itr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         
-        if (!((attacks_bb<ROOK> (fk_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            | (attacks_bb<BSHP> (fk_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
+        if (!((attacks_bb<ROOK> (kng_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            | (attacks_bb<BSHP> (kng_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
         {
             return true;
         }

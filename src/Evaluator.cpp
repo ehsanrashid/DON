@@ -713,9 +713,9 @@ namespace Evaluator {
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
-            Square k_sq = pos.king_sq (C);
+            Square king_sq = pos.king_sq (C);
             // King shelter and enemy pawns storm
-            Score score = ei.pi->king_safety<C> (pos, k_sq);
+            Score score = ei.pi->king_safety<C> (pos, king_sq);
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])
@@ -765,7 +765,7 @@ namespace Evaluator {
                 // squares around the king attacked by enemy rooks...
                 undefended_attacked = undefended & ei.attacked_by[C_][ROOK] & ~pos.pieces (C_);
                 // Consider only squares where the enemy rook gives check
-                undefended_attacked &= PieceAttacks[ROOK][k_sq];
+                undefended_attacked &= PieceAttacks[ROOK][king_sq];
 
                 if (undefended_attacked)
                 {
@@ -787,8 +787,8 @@ namespace Evaluator {
                 // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
                 
-                Bitboard   rook_check = attacks_bb<ROOK>(k_sq, pos.pieces()) & safe_sq;
-                Bitboard bishop_check = attacks_bb<BSHP>(k_sq, pos.pieces()) & safe_sq;
+                Bitboard   rook_check = attacks_bb<ROOK>(king_sq, pos.pieces()) & safe_sq;
+                Bitboard bishop_check = attacks_bb<BSHP>(king_sq, pos.pieces()) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
@@ -804,7 +804,7 @@ namespace Evaluator {
                 if (safe_check) attack_units += BishopCheck * pop_count<MAX15> (safe_check);
 
                 // Enemy knights safe checks
-                safe_check = PieceAttacks[NIHT][k_sq] & safe_sq & ei.attacked_by[C_][NIHT];
+                safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
