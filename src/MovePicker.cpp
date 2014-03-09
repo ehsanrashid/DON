@@ -257,9 +257,12 @@ void MovePicker::generate_next_stage ()
 
     case QUIETS_1_S1:
         end = quiets_end = generate<QUIET> (m_list, pos);
-        value<QUIET> ();
-        end = partition (cur, end, ValMove ());
-        insertion_sort ();
+        if (m_list < end)
+        {
+            value<QUIET> ();
+            end = partition (cur, end, ValMove ());
+            insertion_sort ();
+        }
         return;
 
     case QUIETS_2_S1:
