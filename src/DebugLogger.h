@@ -15,7 +15,7 @@ typedef class LogFile
 {
 
 public:
-    LogFile(const std::string& fn = "log.txt")
+    LogFile(const std::string& fn = "Log.txt")
         : std::ofstream(fn, std::ios_base::out|std::ios_base::app)
     {}
     
@@ -56,7 +56,7 @@ public:
     {
         // Guaranteed to be destroyed.
         // Instantiated on first use.
-        static DebugLogger _instance ("debug_log.txt");
+        static DebugLogger _instance ("DebugLog.txt");
         return _instance;
     }
 

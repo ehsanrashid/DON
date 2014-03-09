@@ -108,13 +108,16 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 const BitCountT FULL  = CNT_64_FULL;
 const BitCountT MAX15 = CNT_64_MAX15;
 
-const Bitboard M1_64 = U64 (0x5555555555555555);
-const Bitboard M2_64 = U64 (0x3333333333333333);
-const Bitboard M4_64 = U64 (0x0F0F0F0F0F0F0F0F);
-const Bitboard MX_64 = U64 (0x2222222222222222);
-const Bitboard H4_64 = U64 (0x1111111111111111);
-const Bitboard H8_64 = U64 (0x0101010101010101);
+namespace {
 
+    const Bitboard M1_64 = U64 (0x5555555555555555);
+    const Bitboard M2_64 = U64 (0x3333333333333333);
+    const Bitboard M4_64 = U64 (0x0F0F0F0F0F0F0F0F);
+    const Bitboard MX_64 = U64 (0x2222222222222222);
+    const Bitboard H4_64 = U64 (0x1111111111111111);
+    const Bitboard H8_64 = U64 (0x0101010101010101);
+
+}
 
 template<>
 // Pop count of the Bitboard (64-bit)
@@ -146,11 +149,15 @@ INLINE uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
 const BitCountT FULL  = CNT_32_FULL;
 const BitCountT MAX15 = CNT_32_MAX15;
 
-const uint32_t M1_32 = U32 (0x55555555);
-const uint32_t M2_32 = U32 (0x33333333);
-const uint32_t M4_32 = U32 (0x0F0F0F0F);
-const uint32_t H4_32 = U32 (0x11111111);
-const uint32_t H8_32 = U32 (0x01010101);
+namespace {
+
+    const uint32_t M1_32 = U32 (0x55555555);
+    const uint32_t M2_32 = U32 (0x33333333);
+    const uint32_t M4_32 = U32 (0x0F0F0F0F);
+    const uint32_t H4_32 = U32 (0x11111111);
+    const uint32_t H8_32 = U32 (0x01010101);
+
+}
 
 template<>
 // Pop count of the Bitboard (32-bit)

@@ -37,7 +37,7 @@
 
 //#define OTLOG
 //#define ETLOG
-//#define FTLOG   except_log
+//#define FTLOG   ExceptLog
 
 namespace TrivialLogger {
 
@@ -53,7 +53,7 @@ namespace TrivialLogger {
 
     private:
 
-        static ::std::unique_ptr<implementation::TriLoggerImpl> _p_tl_impl;
+        static std::unique_ptr<implementation::TriLoggerImpl> _p_tl_impl;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable
@@ -75,7 +75,7 @@ namespace TrivialLogger {
         static void activate (bool const active);
 
         // return reference to pointer to output stream
-        static ::std::ostream*& ostream_ptr ();
+        static std::ostream*& ostream_ptr ();
 
     } TriLogger;
 
@@ -89,7 +89,7 @@ namespace TrivialLogger {
 
     namespace implementation
     {
-        extern ::std::unique_ptr<TriLogger> p_trilog;
+        extern std::unique_ptr<TriLogger> p_trilog;
     }
 }
 
@@ -128,7 +128,7 @@ namespace TrivialLogger {
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
-    << "\'"<<#var<<" = "<<var<<"\'" << ::std::endl; \
+    << "\'"<<#var<<" = "<<var<<"\'" << std::endl;   \
     } } while (false)
 
 // macro prints value of constant strings to the logger stream
@@ -139,7 +139,7 @@ namespace TrivialLogger {
     << "[" << Time::now () << "] "                  \
     << "\""<< __FILE__<<"\" ("<<__LINE__<< ") "     \
     << __FUNCTION__ << " () : "                     \
-    << "\"" << msg << "\"" << ::std::endl;          \
+    << "\"" << msg << "\"" << std::endl;            \
     } } while (false)
 
 
@@ -156,7 +156,7 @@ namespace TrivialLogger {
 //        if (log.is_active())
 //        {
 //            *(log.ostream_ptr()) << t1 << " (" << t2 << ") : ";
-//            *(log.ostream_ptr()) << t3 << " = " << t4 << ::std::endl;
+//            *(log.ostream_ptr()) << t3 << " = " << t4 << std::endl;
 //        } 
 //    }
 //    
@@ -165,7 +165,7 @@ namespace TrivialLogger {
 //    {
 //        if (log.is_active())
 //        {
-//            *(log.ostream_ptr()) << t << ::std::endl;
+//            *(log.ostream_ptr()) << t << std::endl;
 //        } 
 //    }
 //}

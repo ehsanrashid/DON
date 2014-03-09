@@ -21,7 +21,7 @@
 
 namespace TrivialLogger {
 
-    using namespace ::std;
+    using namespace std;
 
     namespace implementation {
 
@@ -241,22 +241,22 @@ namespace TrivialLogger {
         //template<typename T>
         //T const max (T const x1, T const x2) { return (x1 > x2 ? x1 : x2); }
 
-        const char_type* get_log_fn ()  { return XSTR (FTLOG); }
-        const char_type* get_def_fn ()  { return "except_log"; }
+        const char_type* get_log_fn () { return XSTR (FTLOG); }
+        const char_type* get_def_fn () { return "ExceptLog"; }
         // extension C string
-        const char_type* get_log_ext () { return ".txt"; }
+        const char_type* get_log_ext() { return ".txt"; }
 
     }
 
     // convert definition of the FTLOG to the C string
-    const char_type *log_fn  = implementation::get_log_fn ();
-    const char_type *def_fn  = implementation::get_def_fn ();
-    const char_type *log_ext = implementation::get_log_ext ();
+    const char_type *Log_fn  = implementation::get_log_fn ();
+    const char_type *Def_fn  = implementation::get_def_fn ();
+    const char_type *Log_ext = implementation::get_log_ext ();
 
     // container for final file name
-    char_type filename[(MAX (sizeof (log_fn), sizeof(def_fn)) + sizeof (log_ext)) / sizeof(char_type)];
+    char_type Filename[(MAX (sizeof (Log_fn), sizeof(Def_fn)) + sizeof (Log_ext)) / sizeof(char_type)];
     // create file name
-    uint32_t const length = implementation::create_filename (filename, implementation::get_log_fn(), implementation::get_log_ext(), implementation::get_def_fn());
+    uint32_t const Length = implementation::create_filename (Filename, implementation::get_log_fn(), implementation::get_log_ext(), implementation::get_def_fn());
 
 #       undef STR
 #       undef XSTR
@@ -265,7 +265,7 @@ namespace TrivialLogger {
 
     // new file is opened and its destruction is managed by unique_ptr
     unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        unique_ptr<ostream> (new ofstream (filename, ios_base::out|ios_base::app));
+        unique_ptr<ostream> (new ofstream (Filename, ios_base::out|ios_base::app));
     // set pointer output stream
     ostream *implementation::TriLoggerImpl::_outstream = _outstream_ptr.get ();
 
@@ -273,7 +273,7 @@ namespace TrivialLogger {
     { 
         if (!implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ofstream (filename, ios_base::out|ios_base::app));
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ofstream (Filename, ios_base::out|ios_base::app));
             // set pointer output stream
             implementation::TriLoggerImpl::_outstream =
                 implementation::TriLoggerImpl::_outstream_ptr.get ();

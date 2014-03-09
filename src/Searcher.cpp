@@ -232,7 +232,7 @@ namespace Searcher {
                 }
             }
 
-            bool enabled ()                   const { return (level < 20); }
+            bool enabled ()                   const { return (level < MAX_SKILL_LEVEL); }
             bool time_to_pick (uint8_t depth) const { return (depth == (1 + level)); }
 
             // When playing with strength handicap choose best move among the MultiPV set
@@ -551,7 +551,7 @@ namespace Searcher {
         {
             const bool RootNode = (NT == Root             || NT == SplitPointRoot);
             const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointPV    || NT == SplitPointRoot);
-            const bool   SPNode = (NT == SplitPointPV  || NT == SplitPointNonPV || NT == SplitPointRoot);
+            const bool   SPNode = (NT == SplitPointNonPV  || NT == SplitPointPV    || NT == SplitPointRoot);
 
             ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
@@ -659,8 +659,8 @@ namespace Searcher {
             // we should also update RootMoveList to avoid bogus output.
             if (   !RootNode
                 && tte
-                && tte->depth () >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
+                && tte->depth () >= depth
                 && (PVNode ?  tte->bound () == BND_EXACT
                 : tt_value >= beta ? (tte->bound () &  BND_LOWER)
                 /**/               : (tte->bound () &  BND_UPPER)))
@@ -726,39 +726,38 @@ namespace Searcher {
                 eval = (ss)->static_eval = VALUE_NONE;
                 goto moves_loop;
             }
-            else
-            {
-                if (tte)
-                {
-                    // Never assume anything on values stored in TT
-                    Value e_value = tte->eval ();
-                    if (VALUE_NONE == e_value) e_value = evaluate (pos);
-                    eval = (ss)->static_eval = e_value;
 
-                    // Can tt_value be used as a better position evaluation?
-                    if (VALUE_NONE != tt_value)
+            if (tte)
+            {
+                // Never assume anything on values stored in TT
+                Value e_value = tte->eval ();
+                if (VALUE_NONE == e_value) e_value = evaluate (pos);
+                eval = (ss)->static_eval = e_value;
+
+                // Can tt_value be used as a better position evaluation?
+                if (VALUE_NONE != tt_value)
+                {
+                    if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
                     {
-                        if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
-                        {
-                            eval = tt_value;
-                        }
+                        eval = tt_value;
                     }
                 }
-                else
-                {
-                    eval = (ss)->static_eval = evaluate (pos);
+            }
+            else
+            {
+                eval = (ss)->static_eval = evaluate (pos);
 
-                    TT.store (
-                        posi_key,
-                        MOVE_NONE,
-                        DEPTH_NONE,
-                        BND_NONE,
-                        pos.game_nodes (),
-                        VALUE_NONE,
-                        (ss)->static_eval);
-                }
+                TT.store (
+                    posi_key,
+                    MOVE_NONE,
+                    DEPTH_NONE,
+                    BND_NONE,
+                    pos.game_nodes (),
+                    VALUE_NONE,
+                    (ss)->static_eval);
             }
 
+            // Updates Gains
             if (   pos.capture_type () == NONE
                 && (ss)->static_eval != VALUE_NONE
                 && (ss-1)->static_eval != VALUE_NONE

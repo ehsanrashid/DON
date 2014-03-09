@@ -120,16 +120,16 @@ namespace UCI {
 
 
         template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits> &os, const Option &opt)
+        inline std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits> &os, const Option &opt)
         {
             os << opt.operator() ();
             return os;
         }
 
         template<class charT, class Traits>
-        inline ::std::basic_ostream<charT, Traits>&
-            operator<< (::std::basic_ostream<charT, Traits> &os, const Option *opt)
+        inline std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits> &os, const Option *opt)
         {
             os << opt->operator() ();
             return os;
@@ -137,16 +137,16 @@ namespace UCI {
 
     }
 
-    typedef ::std::unique_ptr<OptionType::Option> OptionPtr;
+    typedef std::unique_ptr<OptionType::Option> OptionPtr;
 
-    typedef ::std::map<std::string, OptionPtr, ::std::string_less_nocase_comparer> OptionMap;
+    typedef std::map<std::string, OptionPtr, std::string_less_nocase_comparer> OptionMap;
 
     extern void   initialize ();
     extern void deinitialize ();
 
     template<class charT, class Traits>
-    inline ::std::basic_ostream<charT, Traits>&
-        operator<< (::std::basic_ostream<charT, Traits> &os, const OptionMap &options)
+    inline std::basic_ostream<charT, Traits>&
+        operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
         for (uint8_t idx = 0; idx < options.size (); ++idx)
         {
@@ -168,7 +168,7 @@ namespace UCI {
 
     // ---------------------------------------------
 
-    extern void start (const ::std::string &args = "");
+    extern void start (const std::string &args = "");
 
     extern void stop ();
 }

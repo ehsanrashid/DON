@@ -18,7 +18,7 @@ namespace LeakDetector {
 }
 
 #define LEN_FILENAME        256
-#define FILE_OUTPUT         "leak_info.txt"
+#define FILE_OUTPUT         "LeakInfo.txt"
 #define malloc(size)        LeakDetector::xmalloc (size, __FILE__, __LINE__)
 #define calloc(count, size) LeakDetector::xcalloc (count, size, __FILE__, __LINE__)
 #define free(mem_ref)       LeakDetector::xfree (mem_ref)

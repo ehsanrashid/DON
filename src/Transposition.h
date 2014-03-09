@@ -103,16 +103,10 @@ private:
         {
 
 #   ifdef LPAGES
-
             MemoryHandler::free_memory (_mem);
             _mem =
-
 #   else
-
-            void *mem = ((void **) _hash_table)[-1];
-            free (mem);
-            mem =
-
+            free (((void **) _hash_table)[-1]);
 #   endif
 
             _hash_table = NULL;

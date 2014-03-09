@@ -17,8 +17,9 @@ UCI::OptionMap Options;
 
 namespace UCI {
 
-    using namespace ::std;
+    using namespace std;
     using namespace Threads;
+    using namespace Searcher;
 
     namespace OptionType {
 
@@ -269,12 +270,12 @@ namespace UCI {
             log_debug (bool (opt));
         }
 
-        // TODO::
-        void on_query           (const Option &opt)
-        {
-            
-            (void) opt;
-        }
+        //// TODO::
+        //void on_query           (const Option &opt)
+        //{
+        //    
+        //    (void) opt;
+        //}
 
     }
 
@@ -284,15 +285,16 @@ namespace UCI {
         // Hash Memory Options
         // -------------------
 
-        // Amount of hash table memory used by engine, in MB.
-        // Default 128, min 4, max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
+        // The amount of memory to use for hash table during search by engine, in MB (megabytes).
+        // This number should be smaller than the amount of physical memory for your system.
+        // Default 128, Min 4, Max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144 MB).
         //
         // For infinite analysis or long time control matches you should use the largest hash that fits in the physical memory of your system.
         // For example, on a system with 4 GB of memory you can use up to 2048 MB hash size.
         // For shorter games, for example 3 to 5 minute games, it'val better to use 256 MB or 512 MB as this will provide the best performance.
-        // For 16 min games 1024 or 2048 MB hash size should be fine.
+        // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         = OptionPtr (new SpinOption (
@@ -361,8 +363,12 @@ namespace UCI {
 
         // Openings Book Options
         // ---------------------
+        // Whether or not the engine should use the opening book.
         Options["OwnBook"]                     = OptionPtr (new CheckOption (false));
+        // The filename of the Opening book.
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
+        // Whether or not to always play the best move from the opening book.
+        // False will lead to more variety in opening play.
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
         // End Game Table Bases Options
@@ -376,8 +382,9 @@ namespace UCI {
         // Cores and Threads Options
         // -------------------------
 
-        // Maximum number of threads (cores) used by the analysis.
-        // Default is hardware-dependent, min 1, max 32 (Standard) or 64 (Pro).
+        // The maximum number of threads (cores) to use during the search.
+        // This number should be set to the number of cores in your CPU.
+        // Default is hardware-dependent, Min 1, Max 32 (Standard) or 64 (Pro).
         //
         // DON will automatically limit the number of threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
@@ -385,7 +392,7 @@ namespace UCI {
         Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
-        // Default 0, min 0, max 15.
+        // Default 0, Min 0, Max 15.
         //
         // Default 0 means auto setting which depends on the threads
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
@@ -393,31 +400,35 @@ namespace UCI {
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
 
         // Maximum number of threads per split point.
-        // Default 5, min 4, max 8.
+        // Default 5, Min 4, Max 8.
         Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
 
-        //
+        // If this is set to true, threads are suspended when there is no work to do.
+        // This saves CPU power consumption, but waking a thread takes a small bit of time.
+        // For maximum performance, set this option to false,
+        // but if you need to reduce power consumption (i.e. on mobile devices) set this option to true.
         // Default true
         Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
 
         // Game Play Options
         // -----------------
 
-        // Have the engine think during its opponent's time.
+        // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       = OptionPtr (new CheckOption (true));
 
-        // Number of principal variations shown.
-        // Default 1, min 1, max 32.
+        // The number of principal variations (alternate lines of analysis) to display.
+        // Specify 1 to just get the best line. Asking for more lines slows down the search.
+        // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 32));
+        Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 50));
 
         // TODO::
         //// Limit the multi-PV analysis to moves within a range of the best move.
-        //// Default 0, min 0, max 999.
+        //// Default 0, Min 0, Max 999.
         ////
         //// Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         //// A value of 0 means that this parameter will not be taken into account.
@@ -425,7 +436,7 @@ namespace UCI {
 
         // TODO::
         //// Level of contempt to avoid draws in game play.
-        //// Default 1, min 0 (none), max 2 (aggressive).
+        //// Default 1, Min 0 (none), Max 2 (aggressive).
         ////
         //// The notion of "contempt" implies that engine will try to avoid draws by evaluating its own position slightly too optimistically.
         //// The Contempt level can be chosen between 0 (none) and 2 (aggressive), the default value of 1 should be a good compromise in most situations.
@@ -451,12 +462,15 @@ namespace UCI {
         //// If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
         //Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
 
+        // Roughly equivalent to "optimism."
         // Factor for adjusted contempt. Changes playing style.
-        // Default 0, min -50, max +50.
+        // Positive values of contempt favor more "risky" play,
+        // while negative values will favor draws. Zero is neutral.
+        // Default 0, Min -50, Max +50.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, +50));
 
         // The number of moves after which the 50-move rule will kick in.
-        // Default 50, min 5, max 50.
+        // Default 50, Min 5, Max 50.
         //
         // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50,
         // i.e. the official 50-moves rule.
@@ -490,57 +504,66 @@ namespace UCI {
 
         Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
-
+        
+        // Degree of agressiveness.
         Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        // Degree of cowardice.
         Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
         Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
 
 
         // TODO::
         // Maximum search depth for mate search.
-        // Default 0, min 0, max 99.
+        // Default 0, Min 0, Max 99.
         //
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in X", you can use X or a value slightly larger than X in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
         Options["Mate Search"]                  = OptionPtr (new SpinOption ( 0,  0, 99));
-
-        Options["Skill Level"]                  = OptionPtr (new SpinOption (20,  0, 20));
+        // How well you want engine to play.
+        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
+        Options["Skill Level"]                  = OptionPtr (new SpinOption (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL));
 
         Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption (40,  0, 50));
         Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60,  0, 30000));
         Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
+        // The minimum amount of time to analyze, in milliseconds.
         Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
+        // Move fast if small value
         Options["Slow Mover"]                   = OptionPtr (new SpinOption (90, 10, 1000));
 
-        ///Debug Options
+        // Debug Options
+        // -------------
+        // Whether or not to write a debug log.
         Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
+        // Whether or not to write a search log.
         Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
-        Options["Search Log File"]              = OptionPtr (new StringOption ("search_log.txt"));
+        // The filename of the search log.
+        Options["Search Log File"]              = OptionPtr (new StringOption ("SearchLog.txt"));
 
         /// ---------------------------------------------------------------------------------------
 
-        // Activate Fischer Random Chess a.k.a. Chess960 games.
+        // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
+        // Chess960 is a chess variant where the back ranks are scrambled.
+        // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        //
-        // The Chess960 feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["UCI_Chess960"]                 = OptionPtr (new CheckOption (false));
 
         // TODO::
         //// Activate the strength limit specified in the UCI_Elo parameter.
+        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //// Default false.
         ////
-        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["UCI_LimitStrength"]            = OptionPtr (new CheckOption (false));
 
         //// UCI-protocol compliant version of Strength parameter.
-        //// Default 3000, min 1200, max 3000.
-        ////
         //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
-        //// The UCI_ELO feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        //// Default 3000, Min 1200, Max 3000.
         //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
 
         // TODO::
+        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
 
     }

@@ -52,7 +52,7 @@ public:
 };
 
 //template<class T>
-//::std::ostream& operator<< (::std::ostream &ostream, const Forest<T> &forest)
+//std::ostream& operator<< (std::ostream &ostream, const Forest<T> &forest)
 //{
 //    forest.print (ostream);
 //    return ostream;

@@ -31,6 +31,8 @@ namespace Searcher {
 
     using namespace Threads;
 
+    const uint8_t MAX_SKILL_LEVEL = 20;
+
     //const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
     //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
     //const uint16_t MAX_THREAT = 90;

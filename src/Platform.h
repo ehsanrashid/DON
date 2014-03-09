@@ -118,7 +118,7 @@ typedef unsigned __int64        uint64_t;
 //#define CLEANTLOG
 //#define OTLOG
 //#define ETLOG
-#define FTLOG   except_log
+#define FTLOG   ExceptLog
 
 #   ifdef TRI_LOGGER
 
