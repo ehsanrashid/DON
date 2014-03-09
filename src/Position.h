@@ -149,7 +149,7 @@ private:
     Piece    _board   [SQ_NO];
 
     Bitboard _color_bb[CLR_NO];
-    Bitboard _types_bb[TOTS];
+    Bitboard _types_bb[TOTL];
 
     Square   _piece_list [CLR_NO][NONE][16];
     uint8_t  _piece_count[CLR_NO][NONE];
@@ -330,7 +330,7 @@ private:
     void set_castle (Color c, Square org_rook);
 
     bool can_en_passant (Square ep_sq) const;
-    bool can_en_passant (File   ep_f) const;
+    //bool can_en_passant (File   ep_f) const;
 
 public:
 
@@ -387,13 +387,13 @@ public:
         return os;
     }
 
-    template<class charT, class Traits>
-    friend std::basic_istream<charT, Traits>&
-        operator>> (std::basic_istream<charT, Traits> &is, Position &pos)
-    {
-        //is >> fen; pos.setup
-        return is;
-    }
+    //template<class charT, class Traits>
+    //friend std::basic_istream<charT, Traits>&
+    //    operator>> (std::basic_istream<charT, Traits> &is, Position &pos)
+    //{
+    //    //is >> fen; pos.setup
+    //    return is;
+    //}
 
 } Position;
 
@@ -622,10 +622,7 @@ inline bool Position::advanced_pawn_push    (Move m) const
     return (PAWN == _ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 
-inline Piece Position::moved_piece  (Move m) const
-{
-    return _board[org_sq (m)];
-}
+inline Piece Position:: moved_piece (Move m) const { return _board[org_sq (m)]; }
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {

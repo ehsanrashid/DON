@@ -335,7 +335,7 @@ namespace Notation {
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            os << "cp " << int32_t (v) * 100 / int32_t (VALUE_MG_PAWN);
+            os << "cp " << 100 * int32_t (v) / int32_t (VALUE_MG_PAWN);
         }
         else
         {

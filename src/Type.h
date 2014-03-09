@@ -149,7 +149,7 @@ typedef enum PieceT : int8_t
     QUEN  , // 100 - QUEEN
     KING  , // 101 - KING
     NONE  , // 110 - NONE
-    TOTS    // 111 - TOTS
+    TOTL    // 111 - TOTL
 
 } PieceT;
 
@@ -446,7 +446,7 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (uint8_t (d) / i); 
 extern const std::string CharPiece;
 extern const std::string CharColor;
 
-extern const Value PieceValue[PHASE_NO][TOTS];
+extern const Value PieceValue[PHASE_NO][TOTL];
 
 
 inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
@@ -579,7 +579,7 @@ inline Piece operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
 
 inline bool      _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceT _ptype (Piece p) { return PieceT (p & TOTS); }
+inline PieceT _ptype (Piece p) { return PieceT (p & TOTL); }
 inline Color  _color (Piece p) { return Color (p >> 3); }
 
 inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }

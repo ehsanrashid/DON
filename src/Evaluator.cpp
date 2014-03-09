@@ -30,7 +30,7 @@ namespace Evaluator {
 
             // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
             // attacked_by[color][NONE] contains all squares attacked by the given color.
-            Bitboard attacked_by[CLR_NO][TOTS];
+            Bitboard attacked_by[CLR_NO][TOTL];
 
             // king_ring[color] is the zone around the king which is considered
             // by the king safety evaluation. This consists of the squares directly

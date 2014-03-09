@@ -74,8 +74,10 @@ namespace Searcher {
 
         std::vector<Move>  search_moves;   // search these moves only restrict
 
-        LimitsT () { std::memset (this, 0, sizeof (LimitsT)); }
-
+        LimitsT     () { clear (); }
+        
+        void clear  () { std::memset (this, 0, sizeof (LimitsT)); }
+        
         bool use_time_management () const
         {
             return !(infinite | mate_in | move_time | depth | nodes);

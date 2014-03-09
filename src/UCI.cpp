@@ -10,6 +10,8 @@
 #include "Benchmark.h"
 #include "Notation.h"
 #include "Thread.h"
+#include "DebugLogger.h"
+
 
 namespace UCI {
 
@@ -25,10 +27,13 @@ namespace UCI {
         // Root position
         Position RootPos (0);
 
+        Searcher::LimitsT Limits;
+
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
         // Needed by repetition draw detection.
         StateInfoStackPtr SetupStates;
+
 
         inline void exe_uci ()
         {
@@ -131,7 +136,7 @@ namespace UCI {
             }
         }
 
-        // position(cmd) is called when engine receives the "position" UCI command.
+        // exe_position(cmd) is called when engine receives the "position" UCI command.
         // The function sets up the position:
         //  - starting position ("startpos")
         //  - fen-string position ("fen")
@@ -206,26 +211,25 @@ namespace UCI {
         //  - mate
         //  - infinite
         //  - ponder
-        // and starts the search.
+        // Starts the search.
         inline void exe_go (cmdstream &cstm)
         {
-            Searcher::LimitsT limits;
+            Limits.clear ();
             string  token;
             int32_t value;
-
             while (cstm >> token)
             {
-                if      (token == "wtime")      cstm >> limits.game_clock[WHITE].time;
-                else if (token == "btime")      cstm >> limits.game_clock[BLACK].time;
-                else if (token == "winc")       cstm >> limits.game_clock[WHITE].inc;
-                else if (token == "binc")       cstm >> limits.game_clock[BLACK].inc;
-                else if (token == "movetime")   { cstm >> value; limits.move_time   = value; }
-                else if (token == "movestogo")  { cstm >> value; limits.moves_to_go = value; }
-                else if (token == "depth")      { cstm >> value; limits.depth       = value; }
-                else if (token == "nodes")      { cstm >> value; limits.nodes       = value; }
-                else if (token == "mate")       { cstm >> value; limits.mate_in     = value; }
-                else if (token == "infinite")   limits.infinite  = true;
-                else if (token == "ponder")     limits.ponder    = true;
+                if      (token == "wtime")      cstm >> Limits.game_clock[WHITE].time;
+                else if (token == "btime")      cstm >> Limits.game_clock[BLACK].time;
+                else if (token == "winc")       cstm >> Limits.game_clock[WHITE].inc;
+                else if (token == "binc")       cstm >> Limits.game_clock[BLACK].inc;
+                else if (token == "movetime")   { cstm >> value; Limits.move_time   = value; }
+                else if (token == "movestogo")  { cstm >> value; Limits.moves_to_go = value; }
+                else if (token == "depth")      { cstm >> value; Limits.depth       = value; }
+                else if (token == "nodes")      { cstm >> value; Limits.nodes       = value; }
+                else if (token == "mate")       { cstm >> value; Limits.mate_in     = value; }
+                else if (token == "infinite")   Limits.infinite  = true;
+                else if (token == "ponder")     Limits.ponder    = true;
                 // parse and validate search moves (if any)
                 else if      (token == "searchmoves")
                 {
@@ -235,12 +239,12 @@ namespace UCI {
                         
                         if (MOVE_NONE == m) continue;
                         
-                        limits.search_moves.push_back (m);
+                        Limits.search_moves.push_back (m);
                     }
                 }
             }
 
-            Threadpool.start_thinking (RootPos, limits, SetupStates);
+            Threadpool.start_thinking (RootPos, Limits, SetupStates);
         }
 
         inline void exe_ponderhit ()
@@ -250,10 +254,21 @@ namespace UCI {
 
         inline void exe_debug (cmdstream &cstm)
         {
-            (void) cstm;
-            // debug on/off
+            string token;
+            if (cstm >> token)
+            {
+                if      (token == "on")
+                {
+                    log_debug (true);
+                }
+                else if (token == "off")
+                {
+                    log_debug (false);
+                }
+            }
         }
 
+        // Print the RootPos
         inline void exe_print ()
         {
             sync_cout << RootPos << sync_endl;
@@ -345,6 +360,7 @@ namespace UCI {
             }
         }
 
+        // Stops the search
         inline void exe_stop ()
         {
             Searcher::Signals.stop = true;
@@ -353,6 +369,10 @@ namespace UCI {
 
     }
 
+    // Wait for a command from the user, parse this text string as an UCI command,
+    // and call the appropriate functions. Also intercepts EOF from stdin to ensure
+    // that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
+    // commands, the function also supports a few debug commands.
     void start (const string &args)
     {
         RootPos.setup (FEN_N, Threadpool.main (), bool (*(Options["UCI_Chess960"])));

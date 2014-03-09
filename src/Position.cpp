@@ -23,7 +23,7 @@ using namespace Notation;
 const string CharPiece ("PNBRQK  pnbrqk");
 const string CharColor ("wb-");
 
-const Value PieceValue[PHASE_NO][TOTS] =
+const Value PieceValue[PHASE_NO][TOTL] =
 {
     { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
@@ -1127,10 +1127,10 @@ bool Position::can_en_passant (Square ep_sq) const
 
     return false;
 }
-bool Position::can_en_passant (File   ep_f) const
-{
-    return can_en_passant (ep_f | rel_rank (_active, R_6));
-}
+//bool Position::can_en_passant (File   ep_f) const
+//{
+//    return can_en_passant (ep_f | rel_rank (_active, R_6));
+//}
 
 // compute_psq_score () computes the incremental scores for the middle
 // game and the endgame. These functions are used to initialize the incremental
@@ -1183,13 +1183,12 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
     Square org  = org_sq (m);
     Square dst  = dst_sq (m);
-    Piece  p    = _board[org];
-    PieceT pt   = _ptype (p);
+    PieceT pt   = _ptype (_board[org]);
 
-    ASSERT ((EMPTY != p)
-        &&  (activ == _color (p))
+    ASSERT ((EMPTY != _board[org])
+        &&  (activ == _color (_board[org]))
         &&  (NONE != pt));
-    ASSERT (empty (dst)
+    ASSERT ((EMPTY == _board[dst])
         ||  (pasiv == _color (_board[dst]))
         ||  (CASTLE == mtype (m)));
 
@@ -1364,7 +1363,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         }
     }
 
-    // Updates checkers if any
+    // Update checkers bitboard: piece must be already moved
     _si->checkers = U64 (0);
     if (ci)
     {
@@ -1429,9 +1428,9 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     prefetch((char*) TT.get_cluster (posi_k));
 
     // Update the key with the final value
-    _si->posi_key   = posi_k;
+    _si->posi_key       = posi_k;
     _si->capture_type   = ct;
-    _si->last_move  = m;
+    _si->last_move      = m;
     ++_si->null_ply;
     ++_game_ply;
     ++_game_nodes;
@@ -1584,7 +1583,7 @@ void Position::flip ()
 
     // 4. En-passant square
     ss >> ch;
-    fen_ += (ch == "-" ? ch : ch.replace (1, 1, ch[1] == '3' ? "6" : "3"));
+    fen_ += ((ch == "-") ? ch : ch.replace (1, 1, (ch[1] == '3') ? "6" : "3"));
     // 5-6. Half and full moves
     getline (ss, ch);
     fen_ += ch;
@@ -1808,8 +1807,15 @@ Position::operator string () const
         << "\nKey: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key;
 
     ss  << "\nCheckers: ";
-    Bitboard chks = checkers ();
-    while (chks) ss << to_string (pop_lsq (chks)) << " ";
+    Bitboard chkrs = checkers ();
+    if (chkrs)
+    {
+        while (chkrs) ss << to_string (pop_lsq (chkrs)) << " ";
+    }
+    else
+    {
+        ss  << "<none>";
+    }
 
     MoveList<LEGAL> itr (*this);
     ss  << "\nLegal moves (" << dec << itr.size () << "): ";

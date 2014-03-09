@@ -157,7 +157,7 @@ void benchmark (istream &is, const Position &pos)
     }
 
     elapsed = now () - elapsed;
-    // Ensure positivity to avoid a 'divide by zero'
+    // Ensure non-zero to avoid a 'divide by zero'
     if (elapsed == 0) elapsed = 1;
 
     cerr

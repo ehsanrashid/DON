@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (uint8_t depth)
         {
-            return Value (100 * depth);
+            return Value (100 * uint32_t (depth));
         }
 
         template<bool PVNode>
@@ -68,7 +68,7 @@ namespace Searcher {
         // Dynamic razoring margin based on depth
         inline Value razor_margin (uint8_t depth)
         {
-            return Value (512 + 16 * depth);
+            return Value (512 + 16 * uint32_t (depth));
         }
 
         TimeManager TimeMgr;
@@ -1025,13 +1025,13 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check = NORMAL == mtype (move) && !ci.discoverers
-                    ?       ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
-                    :       pos.gives_check (move, ci);
+                bool gives_check = (NORMAL == mtype (move)) && !ci.discoverers
+                                ?   ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
+                                :   pos.gives_check (move, ci);
 
                 bool dangerous = gives_check
-                    ||      NORMAL != mtype (move)
-                    ||      pos.advanced_pawn_push (move);
+                            ||  (NORMAL != mtype (move))
+                            ||  pos.advanced_pawn_push (move);
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1127,20 +1127,27 @@ namespace Searcher {
                 }
 
                 // Check for legality only before to do the move
-                if (   !RootNode && !SPNode
-                    && !pos.legal (move, ci.pinneds))
+                if (!SPNode)
                 {
-                    --moves_count;
-                    continue;
+                    if (!RootNode)
+                    {
+                        // Not legal decrement move-count & continue
+                        if (!pos.legal (move, ci.pinneds))
+                        {
+                            --moves_count;
+                            continue;
+                        }
+                    }
+
+                    if (!capture_or_promotion &&
+                        quiets_count < MAX_QUIET_COUNT)
+                    {
+                        quiet_moves[quiets_count++] = move;
+                    }
                 }
 
                 bool is_pv_move = PVNode && (1 == moves_count);
                 (ss)->current_move = move;
-
-                if (!SPNode && !capture_or_promotion)
-                {
-                    if (quiets_count < MAX_QUIET_COUNT) quiet_moves[quiets_count++] = move;
-                }
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? &ci : NULL);
@@ -1256,7 +1263,7 @@ namespace Searcher {
                         // We record how often the best move has been changed in each
                         // iteration. This information is used for time management:
                         // When the best move changes frequently, we allocate some more time.
-                        if (!is_pv_move) // (value > alpha)
+                        if (value > alpha) // (!is_pv_move)
                         {
                             ++BestMoveChanges;
                         }
@@ -1272,18 +1279,15 @@ namespace Searcher {
 
                 if (value > best_value)
                 {
-                    if (SPNode) split_point->best_value = value;
-                    best_value = value;
+                    best_value = (SPNode) ? split_point->best_value = value : value;
 
                     if (value > alpha)
                     {
-                        if (SPNode) split_point->best_move = move;
-                        best_move = move;
+                        best_move = (SPNode) ? split_point->best_move = move : move;
 
                         if (PVNode && value < beta) // Update alpha! Always alpha < beta
                         {
-                            if (SPNode) split_point->alpha = value;
-                            alpha = value;
+                            alpha = (SPNode) ? split_point->alpha = value : value;
                         }
                         else
                         {
@@ -1303,12 +1307,12 @@ namespace Searcher {
                 {
                     ASSERT (best_value < beta);
 
-                    dbg_hit_on (thread->split_point_threads == 0);
+                    //dbg_hit_on (thread->split_point_threads == 0);
                     //dbg_hit_on (thread->split_point_threads == 1);
                     //dbg_hit_on (thread->split_point_threads == 2);
                     //dbg_hit_on (thread->split_point_threads == 3);
                     
-                    dbg_mean_of (thread->split_point_threads);
+                    //dbg_mean_of (thread->split_point_threads);
                     //dbg_mean_of (depth);
 
                     thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
@@ -1328,9 +1332,9 @@ namespace Searcher {
             // A split node has at least one move, the one tried before to be split.
             if (!moves_count)
             {
-                return excluded_move
-                    ? alpha : in_check
-                    ? mated_in ((ss)->ply) : DrawValue[pos.active ()];
+                return excluded_move ? alpha
+                    : in_check ? mated_in ((ss)->ply)
+                    : DrawValue[pos.active ()];
             }
 
             // If we have pruned all the moves without searching return a fail-low score
@@ -1348,11 +1352,11 @@ namespace Searcher {
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
-            // Quiet best move
-            if (best_value >= beta)
+            // Quiet best move:
+            if (best_value >= beta && best_move != MOVE_NONE)
             {
                 // Update killers, history, counter moves and followup moves
-                if (best_move && !in_check && !pos.capture_or_promotion (best_move))
+                if (!in_check && !pos.capture_or_promotion (best_move))
                 {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                 }
@@ -1522,15 +1526,16 @@ namespace Searcher {
                 }
 
                 // Have found a "mate in x"?
-                if (Limits.mate_in
+                if (   Limits.mate_in
                     && best_value >= VALUE_MATES_IN_MAX_PLY
-                    && VALUE_MATE - best_value <= 2 * Limits.mate_in)
+                    && VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate_in)
                 {
                     Signals.stop = true;
                 }
 
                 // Do we have time for the next iteration? Can we stop searching now?
-                if (Limits.use_time_management () && !Signals.stop && !Signals.stop_on_ponderhit)
+                if (   Limits.use_time_management ()
+                    && !Signals.stop && !Signals.stop_on_ponderhit)
                 {
                     // Take in account some extra time if the best move has changed
                     if ((4 < depth && depth < 50) && (1 == MultiPV))
@@ -1764,8 +1769,8 @@ namespace Searcher {
                 if (!TB50MoveRule)
                 {
                     TBScore = TBScore > VALUE_DRAW ? VALUE_MATES_IN_MAX_PLY - 1
-                        :     TBScore < VALUE_DRAW ? VALUE_MATED_IN_MAX_PLY + 1
-                        :     TBScore;
+                            : TBScore < VALUE_DRAW ? VALUE_MATED_IN_MAX_PLY + 1
+                            : TBScore;
                 }
             }
             else
@@ -1802,7 +1807,7 @@ namespace Searcher {
             if (elapsed == 0) elapsed = 1;
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
-                << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed    << "\n"
+                << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed   << "\n"
                 << "Hash-Full:   " << TT.permill_full ()                        << "\n"
                 << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (RootMoves[0].pv[0] != MOVE_NONE)
