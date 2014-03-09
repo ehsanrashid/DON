@@ -16,9 +16,9 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(m_list, org, moves)         while (moves) { (m_list++)->move = mk_move<NORMAL> ((org), pop_lsq (moves)); }
+#define SERIALIZE(m_list, org, moves)         while (moves) { (m_list++)->move = mk_move<NORMAL> (org, pop_lsq (moves)); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define SERIALIZE_PAWNS(m_list, delta, moves) while (moves) { Square dst = pop_lsq (moves); (m_list++)->move = mk_move<NORMAL> (dst - (delta), dst); }
+#define SERIALIZE_PAWNS(m_list, delta, moves) while (moves) { Square dst = pop_lsq (moves); (m_list++)->move = mk_move<NORMAL> (dst - delta, dst); }
 
     namespace {
 
@@ -526,8 +526,6 @@ namespace MoveGenerator {
 
         Color active = pos.active ();
 
-        uint8_t checker_count = pop_count<MAX15> (checkers);
-
         Square org_king  = pos.king_sq (active);
         Bitboard friends = pos.pieces (active);
         Square check_sq;
@@ -554,18 +552,15 @@ namespace MoveGenerator {
 
         check_sq = SQ_NO;
         Bitboard slid_attacks = U64 (0);
+        Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
         // Find squares attacked by slider checkers, we will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
-        while (checkers)
+        while (sliders)
         {
-            check_sq = pop_lsq (checkers);
+            check_sq = pop_lsq (sliders);
 
             ASSERT (_color (pos[check_sq]) == ~active);
-
-            if (_ptype (pos[check_sq]) > NIHT) // A slider
-            {
-                slid_attacks |= LineRay_bb[check_sq][org_king] - check_sq;
-            }
+            slid_attacks |= LineRay_bb[check_sq][org_king] - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
@@ -575,17 +570,18 @@ namespace MoveGenerator {
         SERIALIZE (m_list, org_king, moves);
 
         // If double check, then only a king move can save the day
-        if (1 == checker_count && pos.count (active) > 1)
+        if (more_than_one (checkers) || pos.count (active) == 1)
         {
-            // Generates blocking evasions or captures of the checking piece
-            Bitboard targets = Between_bb[check_sq][org_king] + check_sq;
-
-            return WHITE == active ? generate_moves<EVASION, WHITE> (m_list, pos, targets)
-                :  BLACK == active ? generate_moves<EVASION, BLACK> (m_list, pos, targets)
-                :  m_list;
+            return m_list;
         }
 
-        return m_list;
+        if (check_sq == SQ_NO) check_sq = scan_lsq (checkers);
+        // Generates blocking evasions or captures of the checking piece
+        Bitboard targets = Between_bb[check_sq][org_king] + check_sq;
+
+        return WHITE == active ? generate_moves<EVASION, WHITE> (m_list, pos, targets)
+            :  BLACK == active ? generate_moves<EVASION, BLACK> (m_list, pos, targets)
+            :  m_list;
     }
 
     template<>

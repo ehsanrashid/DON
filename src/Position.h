@@ -416,12 +416,12 @@ inline Bitboard Position::pieces (PieceT pt)          const { return _types_bb[p
 template<PieceT PT>
 inline Bitboard Position::pieces ()                   const { return _types_bb[PT]; }
 
-inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]  & _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]&_types_bb[pt]; }
 template<PieceT PT>
-inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]  & _types_bb[PT]; }
+inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]&_types_bb[PT]; }
 
-inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1] | _types_bb[p2]; }
-inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c] & (_types_bb[p1] | _types_bb[p2]); }
+inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
+inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 //inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
 
@@ -527,12 +527,12 @@ inline Threads::Thread*  Position::thread    () const { return _thread; }
 // Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (BitBoard::PawnAttacks[WHITE][s]    & pieces<PAWN> (BLACK))
-        |  (BitBoard::PawnAttacks[BLACK][s]    & pieces<PAWN> (WHITE))
-        |  (BitBoard::PieceAttacks[NIHT][s]    & pieces<NIHT> ())
-        |  (BitBoard::attacks_bb<BSHP> (s, occ)& pieces (BSHP, QUEN))
-        |  (BitBoard::attacks_bb<ROOK> (s, occ)& pieces (ROOK, QUEN))
-        |  (BitBoard::PieceAttacks[KING][s]    & pieces<KING> ());
+    return (BitBoard::PawnAttacks[WHITE][s]    & _types_bb[PAWN]&_color_bb[BLACK])
+        |  (BitBoard::PawnAttacks[BLACK][s]    & _types_bb[PAWN]&_color_bb[WHITE])
+        |  (BitBoard::PieceAttacks[NIHT][s]    & _types_bb[NIHT])
+        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
+        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
+        |  (BitBoard::PieceAttacks[KING][s]    & _types_bb[KING]);
 }
 // Attackers to the square
 inline Bitboard Position::attackers_to (Square s) const
@@ -543,7 +543,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (king_sq (c)) & pieces (~c);
+    return attackers_to (king_sq (c)) & _color_bb[~c];
 }
 
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.

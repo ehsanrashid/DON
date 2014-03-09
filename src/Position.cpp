@@ -136,7 +136,7 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<int8_t PT>
-    INLINE PieceT min_attacker       (const Bitboard bb[], const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PieceT min_attacker (const Bitboard *bb, const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (b)
@@ -160,7 +160,7 @@ namespace {
     }
 
     template<>
-    INLINE PieceT min_attacker<KING> (const Bitboard [], const Square &, const Bitboard &, Bitboard &, Bitboard &)
+    INLINE PieceT min_attacker<KING> (const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
@@ -359,10 +359,10 @@ bool Position::ok (int8_t *failed_step) const
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             if (1 != king_count[c]) return false;
-            if (_piece_count[c][KING] != pop_count<FULL> (pieces<KING> (c))) return false;
+            if (_piece_count[c][KING] != pop_count<FULL> (_color_bb[c]&_types_bb[KING])) return false;
         }
     }
-
+    
     // step 5
     if (++(*step), debug_piece_count)
     {
@@ -382,7 +382,7 @@ bool Position::ok (int8_t *failed_step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                if (_piece_count[c][pt] != pop_count<FULL> (pieces (c, pt)))
+                if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
                 {
                     return false;
                 }
@@ -434,30 +434,30 @@ bool Position::ok (int8_t *failed_step) const
         }
 
         // The intersection of the white and black pieces must be empty
-        if (_color_bb[WHITE] & _color_bb[BLACK]) return false;
+        if (_color_bb[WHITE]&_color_bb[BLACK]) return false;
 
         Bitboard occ = _types_bb[NONE];
         // The union of the white and black pieces must be equal to occupied squares
-        if ((_color_bb[WHITE] | _color_bb[BLACK]) != occ) return false;
-        if ((_color_bb[WHITE] ^ _color_bb[BLACK]) != occ) return false;
+        if ((_color_bb[WHITE]|_color_bb[BLACK]) != occ) return false;
+        if ((_color_bb[WHITE]^_color_bb[BLACK]) != occ) return false;
 
         // The intersection of separate piece type must be empty
         for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
         {
             for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
             {
-                if (pt1 != pt2 && (_types_bb[pt1] & _types_bb[pt2])) return false;
+                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2])) return false;
             }
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if ( (_types_bb[PAWN] | _types_bb[NIHT] | _types_bb[BSHP]
-            | _types_bb[ROOK] | _types_bb[QUEN] | _types_bb[KING]) != occ) return false;
-        if ( (_types_bb[PAWN] ^ _types_bb[NIHT] ^ _types_bb[BSHP]
-            ^ _types_bb[ROOK] ^ _types_bb[QUEN] ^ _types_bb[KING]) != occ) return false;
+        if ( (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
+             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != occ) return false;
+        if ( (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
+             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != occ) return false;
 
         // PAWN rank should not be 1/8
-        if ((_types_bb[PAWN] & (R1_bb | R8_bb))) return false;
+        if ((_types_bb[PAWN]&(R1_bb|R8_bb))) return false;
     }
 
     // step 7
@@ -683,8 +683,8 @@ Bitboard Position::check_blockers (Color c, Color king_c) const
     Square ksq = king_sq (king_c);
     // Pinners are sliders that give check when a pinned piece is removed
     Bitboard pinners =
-        ( (PieceAttacks[ROOK][ksq] & pieces (QUEN, ROOK))
-        | (PieceAttacks[BSHP][ksq] & pieces (QUEN, BSHP)))
+        ( (PieceAttacks[ROOK][ksq] & (_types_bb[QUEN]|_types_bb[ROOK]))
+        | (PieceAttacks[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP])))
         &  _color_bb[~king_c];
 
     Bitboard chk_blockers  = U64 (0);
@@ -932,9 +932,9 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return !(
-            (attacks_bb<ROOK> (ksq, mocc) & pieces (pasiv, QUEN, ROOK)) ||
-            (attacks_bb<BSHP> (ksq, mocc) & pieces (pasiv, QUEN, BSHP)));
+        
+        return !((attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            ||   (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP]))));
     }
 
     // If the moving piece is a king.
@@ -1006,8 +1006,8 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = occ - org - cap + dst;
         // if any attacker then in check
-        return (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, QUEN, ROOK))
-            || (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, QUEN, BSHP));
+        return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])));
     }
 
     ASSERT (false);
@@ -1125,10 +1125,10 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (R_6 == rel_rank (activ, ep_sq));
 
     Square cap = ep_sq + pawn_push (pasiv);
-    if (!(pieces<PAWN> (pasiv) & cap)) return false;
+    if (!((_color_bb[pasiv]&_types_bb[PAWN]) & cap)) return false;
     //if ((pasiv | PAWN) != _board[cap]) return false;
 
-    Bitboard pawns_ep = PawnAttacks[pasiv][ep_sq] & pieces<PAWN> (activ);
+    Bitboard pawns_ep = PawnAttacks[pasiv][ep_sq] & _color_bb[activ]&_types_bb[PAWN];
     ASSERT (pop_count<FULL> (pawns_ep) <= 2);
     if (!pawns_ep) return false;
 
@@ -1145,8 +1145,9 @@ bool Position::can_en_passant (Square ep_sq) const
     {
         Move m = *itr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
-        if (!((attacks_bb<ROOK> (fk_sq, mocc) & pieces (pasiv, QUEN, ROOK))
-            | (attacks_bb<BSHP> (fk_sq, mocc) & pieces (pasiv, QUEN, BSHP))))
+        
+        if (!((attacks_bb<ROOK> (fk_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            | (attacks_bb<BSHP> (fk_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
         {
             return true;
         }
@@ -1408,13 +1409,13 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
                     {
                         _si->checkers |=
                             attacks_bb<ROOK> (king_sq (pasiv), _types_bb[NONE]) &
-                            pieces (activ, QUEN, ROOK);
+                            (_color_bb[activ]&(_types_bb[QUEN]|_types_bb[ROOK]));
                     }
                     if (BSHP != pt)
                     {
                         _si->checkers |=
                             attacks_bb<BSHP> (king_sq (pasiv), _types_bb[NONE]) &
-                            pieces (activ, QUEN, BSHP);
+                            (_color_bb[activ]&(_types_bb[QUEN]|_types_bb[BSHP]));
                     }
                 }
             }
