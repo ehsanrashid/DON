@@ -52,23 +52,20 @@ namespace Searcher {
 
         inline Value futility_margin (uint8_t depth)
         {
-            return Value (100 * uint32_t (depth));
+            return Value (100 * depth);
         }
 
         template<bool PVNode>
         inline Depth reduction (bool imp, uint8_t depth, uint8_t move_num)
         {
             depth = depth / int8_t (ONE_MOVE);
-            if (depth    > 63) depth    = 63;
-            if (move_num > 63) move_num = 63;
-
-            return Depth (Reductions[PVNode][imp][depth][move_num]);
+            return Depth (Reductions[PVNode][imp][depth > 63 ? 63 : depth][move_num > 63 ? 63 : move_num]);
         }
 
         // Dynamic razoring margin based on depth
         inline Value razor_margin (uint8_t depth)
         {
-            return Value (512 + 16 * uint32_t (depth));
+            return Value (512 + 16 * depth);
         }
 
         TimeManager TimeMgr;
@@ -220,7 +217,7 @@ namespace Searcher {
         typedef struct Skill
         {
             uint8_t level;
-            Move   move;
+            Move    move;
 
             Skill (uint8_t lvl)
                 : level (lvl)
@@ -270,7 +267,7 @@ namespace Searcher {
                     v += (weakness * int32_t (RootMoves[0].value[0] - v)
                         + variance * int32_t (rk.rand<uint32_t> () % weakness)) / 128;
 
-                    if (v > max_v)
+                    if (max_v < v)
                     {
                         max_v = v;
                         move = RootMoves[i].pv[0];
@@ -795,7 +792,7 @@ namespace Searcher {
             // the score by more than futility_margin (depth) if we do a null move.
             if (   !PVNode
                 && !(ss)->skip_null_move
-                //&& depth < 7 * ONE_MOVE // TODO::
+                && depth < 7 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN
