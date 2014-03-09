@@ -1260,13 +1260,15 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
         {
             _si->non_pawn_matl[pasiv] -= PieceValue[MG][ct];
         }
-        // Update Hash key of material situation and prefetch access to material_table
+        // Update Hash key of material situation
         _si->matl_key ^= Zob._.piecesq[pasiv][ct][_piece_count[pasiv][ct]];
 
+        // Update prefetch access to material_table
 #ifndef NDEBUG
         if (_thread)
 #endif
             prefetch ((char *) _thread->material_table[_si->matl_key]);
+
         // Update Hash key of position
         posi_k ^= Zob._.piecesq[pasiv][ct][cap];
         // Update incremental scores
@@ -1416,11 +1418,15 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
             }
         }
 
+        // Update prefetch access to pawns_table
 #ifndef NDEBUG
         if (_thread)
 #endif
             prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
     }
+
+    // Prefetch TT access as soon as we know the new hash key
+    prefetch((char*) TT.get_cluster (posi_k));
 
     // Update the key with the final value
     _si->posi_key   = posi_k;
