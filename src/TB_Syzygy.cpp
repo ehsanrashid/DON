@@ -26,13 +26,13 @@ this code to other chess engines.
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
+//#   ifndef  WIN32_LEAN_AND_MEAN
+//#       define WIN32_LEAN_AND_MEAN
+//#   endif
 
 #   include <windows.h>
 
-#   undef WIN32_LEAN_AND_MEAN
+//#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
 #   define SEP_CHAR     ';'
@@ -264,7 +264,7 @@ namespace TBSyzygy {
 
         uint32_t TB_num_piece, TB_num_pawn;
         TBEntry_piece TB_piece[TBMAX_PIECE];
-        TBEntry_pawn  TB_pawn[TBMAX_PAWN];
+        TBEntry_pawn  TB_pawn [TBMAX_PAWN];
 
         TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
@@ -415,7 +415,7 @@ namespace TBSyzygy {
             ///memset (pcs, 0, sizeof (pcs));
 
             color = 0;
-            for (s = filename; *s; s++)
+            for (s = filename; *s; ++s)
             {
                 switch (*s)
                 {
@@ -438,7 +438,7 @@ namespace TBSyzygy {
                     pcs[KING|color]++;
                     break;
                 case 'v':
-                    color = 0x08;
+                    color = 8;
                     break;
                 }
             }
@@ -529,7 +529,7 @@ namespace TBSyzygy {
             if (key2 != key) add_to_hash (tbe, key2);
         }
 
-        const char offdiag[] =
+        const char OffDiag[] =
         {
             0, -1, -1, -1, -1, -1, -1, -1,
             +1, 0, -1, -1, -1, -1, -1, -1,
@@ -541,7 +541,7 @@ namespace TBSyzygy {
             +1, +1, +1, +1, +1, +1, +1, 0
         };
 
-        const uint8_t triangle[] =
+        const uint8_t Triangle[] =
         {
             6, 0, 1, 2, 2, 1, 0, 6,
             0, 7, 3, 4, 4, 3, 7, 0,
@@ -553,18 +553,18 @@ namespace TBSyzygy {
             6, 0, 1, 2, 2, 1, 0, 6
         };
 
-        const uint8_t invtriangle[] =
+        const uint8_t InvTriangle[] =
         {
             1, 2, 3, 10, 11, 19, 0, 9, 18, 27
         };
 
-        const uint8_t invdiag[] =
+        const uint8_t InvDiag[] =
         {
             0, 9, 18, 27, 36, 45, 54, 63,
             7, 14, 21, 28, 35, 42, 49, 56
         };
 
-        const uint8_t flipdiag[] =
+        const uint8_t FlipDiag[] =
         {
             0, 8, 16, 24, 32, 40, 48, 56,
             1, 9, 17, 25, 33, 41, 49, 57,
@@ -576,7 +576,7 @@ namespace TBSyzygy {
             7, 15, 23, 31, 39, 47, 55, 63
         };
 
-        const uint8_t lower[] =
+        const uint8_t Lower[] =
         {
             28, 0, 1, 2, 3, 4, 5, 6,
             0, 29, 7, 8, 9, 10, 11, 12,
@@ -588,7 +588,7 @@ namespace TBSyzygy {
             6, 12, 17, 21, 24, 26, 27, 35
         };
 
-        const uint8_t diag[] =
+        const uint8_t Diag[] =
         {
             0, 0, 0, 0, 0, 0, 0, 8,
             0, 1, 0, 0, 0, 0, 9, 0,
@@ -600,7 +600,7 @@ namespace TBSyzygy {
             15, 0, 0, 0, 0, 0, 0, 7
         };
 
-        const uint8_t flap[] =
+        const uint8_t Flap[] =
         {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 6, 12, 18, 18, 12, 6, 0,
@@ -612,7 +612,7 @@ namespace TBSyzygy {
             0, 0, 0, 0, 0, 0, 0, 0
         };
 
-        const uint8_t ptwist[] =
+        const uint8_t Ptwist[] =
         {
             0, 0, 0, 0, 0, 0, 0, 0,
             47, 35, 23, 11, 10, 22, 34, 46,
@@ -624,7 +624,7 @@ namespace TBSyzygy {
             0, 0, 0, 0, 0, 0, 0, 0
         };
 
-        const uint8_t invflap[] =
+        const uint8_t InvFlap[] =
         {
             8, 16, 24, 32, 40, 48,
             9, 17, 25, 33, 41, 49,
@@ -632,7 +632,7 @@ namespace TBSyzygy {
            11, 19, 27, 35, 43, 51
         };
 
-        const uint8_t invptwist[] =
+        const uint8_t InvPtwist[] =
         {
             52, 51, 44, 43, 36, 35, 28, 27, 20, 19, 12, 11,
             53, 50, 45, 42, 37, 34, 29, 26, 21, 18, 13, 10,
@@ -640,7 +640,7 @@ namespace TBSyzygy {
             55, 48, 47, 40, 39, 32, 31, 24, 23, 16, 15, 8
         };
 
-        const uint8_t file_to_file[] =
+        const uint8_t File_To_File[] =
         {
             0, 1, 2, 3, 3, 2, 1, 0
         };
@@ -816,7 +816,7 @@ namespace TBSyzygy {
             -1, -1, -1, -1, -1, -1, -1, -1 }
         };
 
-        const uint8_t test45[] =
+        const uint8_t Test45[] =
         {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -828,7 +828,7 @@ namespace TBSyzygy {
             0, 0, 0, 0, 0, 0, 0, 0
         };
 
-        const uint8_t mtwist[] =
+        const uint8_t Mtwist[] =
         {
             15, 63, 55, 47, 40, 48, 56, 12,
             62, 11, 39, 31, 24, 32,  8, 57,
@@ -877,28 +877,28 @@ namespace TBSyzygy {
                 for (j = 0; j < 6; ++j)
                 {
                     pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][ptwist[invflap[j]]];
+                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
                 pfactor[i][0] = s;
                 s = 0;
                 for (; j < 12; ++j)
                 {
                     pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][ptwist[invflap[j]]];
+                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
                 pfactor[i][1] = s;
                 s = 0;
                 for (; j < 18; ++j)
                 {
                     pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][ptwist[invflap[j]]];
+                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
                 pfactor[i][2] = s;
                 s = 0;
                 for (; j < 24; ++j)
                 {
                     pawnidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][ptwist[invflap[j]]];
+                    s += (i == 0) ? 1 : binomial[i - 1][Ptwist[InvFlap[j]]];
                 }
                 pfactor[i][3] = s;
             }
@@ -910,7 +910,7 @@ namespace TBSyzygy {
                 for (j = 0; j < 10; ++j)
                 {
                     multidx[i][j] = s;
-                    s += (i == 0) ? 1 : binomial[i - 1][mtwist[invtriangle[j]]];
+                    s += (i == 0) ? 1 : binomial[i - 1][Mtwist[InvTriangle[j]]];
                 }
                 mfactor[i] = s;
             }
@@ -942,12 +942,12 @@ namespace TBSyzygy {
 
             for (i = 0; i < n; ++i)
             {
-                if (offdiag[pos[i]]) break;
+                if (OffDiag[pos[i]]) break;
             }
-            if (i < (tbep->enc_type == 0 ? 3 : 2) && offdiag[pos[i]] > 0)
+            if (i < (tbep->enc_type == 0 ? 3 : 2) && OffDiag[pos[i]] > 0)
             {
                 for (i = 0; i < n; ++i)
-                    pos[i] = flipdiag[pos[i]];
+                    pos[i] = FlipDiag[pos[i]];
             }
             switch (tbep->enc_type)
             {
@@ -956,34 +956,34 @@ namespace TBSyzygy {
                 i = (pos[1] > pos[0]);
                 j = (pos[2] > pos[0]) + (pos[2] > pos[1]);
 
-                if (offdiag[pos[0]])
-                    idx = triangle[pos[0]] * 63*62 + (pos[1] - i) * 62 + (pos[2] - j);
-                else if (offdiag[pos[1]])
-                    idx = 6*63*62 + diag[pos[0]] * 28*62 + lower[pos[1]] * 62 + pos[2] - j;
-                else if (offdiag[pos[2]])
-                    idx = 6*63*62 + 4*28*62 + (diag[pos[0]]) * 7*28 + (diag[pos[1]] - i) * 28 + lower[pos[2]];
+                if (OffDiag[pos[0]])
+                    idx = Triangle[pos[0]] * 63*62 + (pos[1] - i) * 62 + (pos[2] - j);
+                else if (OffDiag[pos[1]])
+                    idx = 6*63*62 + Diag[pos[0]] * 28*62 + Lower[pos[1]] * 62 + pos[2] - j;
+                else if (OffDiag[pos[2]])
+                    idx = 6*63*62 + 4*28*62 + (Diag[pos[0]]) * 7*28 + (Diag[pos[1]] - i) * 28 + Lower[pos[2]];
                 else
-                    idx = 6*63*62 + 4*28*62 + 4*7*28 + (diag[pos[0]] * 7*6) + (diag[pos[1]] - i) * 6 + (diag[pos[2]] - j);
+                    idx = 6*63*62 + 4*28*62 + 4*7*28 + (Diag[pos[0]] * 7*6) + (Diag[pos[1]] - i) * 6 + (Diag[pos[2]] - j);
                 i = 3;
                 break;
 
             case 1: /* K3 */
                 j = (pos[2] > pos[0]) + (pos[2] > pos[1]);
 
-                idx = KK_idx[triangle[pos[0]]][pos[1]];
+                idx = KK_idx[Triangle[pos[0]]][pos[1]];
                 if (idx < 441)
                     idx = idx + 441 * (pos[2] - j);
                 else
                 {
-                    idx = 441*62 + (idx - 441) + 21 * lower[pos[2]];
-                    if (!offdiag[pos[2]])
+                    idx = 441*62 + (idx - 441) + 21 * Lower[pos[2]];
+                    if (!OffDiag[pos[2]])
                         idx -= j * 21;
                 }
                 i = 3;
                 break;
 
             default: /* K2 */
-                idx = KK_idx[triangle[pos[0]]][pos[1]];
+                idx = KK_idx[Triangle[pos[0]]][pos[1]];
                 i = 2;
                 break;
             }
@@ -1041,13 +1041,13 @@ namespace TBSyzygy {
 
                 for (i = 0; i < n; ++i)
                 {
-                    if (offdiag[pos[i]]) break;
+                    if (OffDiag[pos[i]]) break;
                 }
-                if (i < (tbep->enc_type == 0 ? 3 : 2) && offdiag[pos[i]] > 0)
+                if (i < (tbep->enc_type == 0 ? 3 : 2) && OffDiag[pos[i]] > 0)
                 {
                     for (i = 0; i < n; ++i)
                     {
-                        pos[i] = flipdiag[pos[i]];
+                        pos[i] = FlipDiag[pos[i]];
                     }
                 }
 
@@ -1058,21 +1058,21 @@ namespace TBSyzygy {
                     i = (pos[1] > pos[0]);
                     j = (pos[2] > pos[0]) + (pos[2] > pos[1]);
 
-                    if (offdiag[pos[0]])
+                    if (OffDiag[pos[0]])
                     {
-                        idx = triangle[pos[0]] * 63*62 + (pos[1] - i) * 62 + (pos[2] - j);
+                        idx = Triangle[pos[0]] * 63*62 + (pos[1] - i) * 62 + (pos[2] - j);
                     }
-                    else if (offdiag[pos[1]])
+                    else if (OffDiag[pos[1]])
                     {
-                        idx = 6*63*62 + diag[pos[0]] * 28*62 + lower[pos[1]] * 62 + pos[2] - j;
+                        idx = 6*63*62 + Diag[pos[0]] * 28*62 + Lower[pos[1]] * 62 + pos[2] - j;
                     }
-                    else if (offdiag[pos[2]])
+                    else if (OffDiag[pos[2]])
                     {
-                        idx = 6*63*62 + 4*28*62 + (diag[pos[0]]) * 7*28 + (diag[pos[1]] - i) * 28 + lower[pos[2]];
+                        idx = 6*63*62 + 4*28*62 + (Diag[pos[0]]) * 7*28 + (Diag[pos[1]] - i) * 28 + Lower[pos[2]];
                     }
                     else
                     {
-                        idx = 6*63*62 + 4*28*62 + 4*7*28 + (diag[pos[0]] * 7*6) + (diag[pos[1]] - i) * 6 + (diag[pos[2]] - j);
+                        idx = 6*63*62 + 4*28*62 + 4*7*28 + (Diag[pos[0]] * 7*6) + (Diag[pos[1]] - i) * 6 + (Diag[pos[2]] - j);
                     }
                     i = 3;
                     break;
@@ -1080,17 +1080,17 @@ namespace TBSyzygy {
                 case 2: /* 11 */
                     i = (pos[1] > pos[0]);
 
-                    if (offdiag[pos[0]])
+                    if (OffDiag[pos[0]])
                     {
-                        idx = triangle[pos[0]] * 63 + (pos[1] - i);
+                        idx = Triangle[pos[0]] * 63 + (pos[1] - i);
                     }
-                    else if (offdiag[pos[1]])
+                    else if (OffDiag[pos[1]])
                     {
-                        idx = 6*63 + diag[pos[0]] * 28 + lower[pos[1]];
+                        idx = 6*63 + Diag[pos[0]] * 28 + Lower[pos[1]];
                     }
                     else
                     {
-                        idx = 6*63 + 4*28 + (diag[pos[0]]) * 7 + (diag[pos[1]] - i);
+                        idx = 6*63 + 4*28 + (Diag[pos[0]]) * 7 + (Diag[pos[1]] - i);
                     }
                     i = 2;
                     break;
@@ -1099,7 +1099,7 @@ namespace TBSyzygy {
             }
             else if (tbep->enc_type == 3)
             { /* 2, e.g. KKvK */
-                if (triangle[pos[0]] > triangle[pos[1]])
+                if (Triangle[pos[0]] > Triangle[pos[1]])
                 {
                     std::swap (pos[0], pos[1]);
                 }
@@ -1117,29 +1117,29 @@ namespace TBSyzygy {
                         pos[i] ^= 0x38;
                     }
                 }
-                if (offdiag[pos[0]] > 0 || (offdiag[pos[0]] == 0 && offdiag[pos[1]] > 0))
+                if (OffDiag[pos[0]] > 0 || (OffDiag[pos[0]] == 0 && OffDiag[pos[1]] > 0))
                 {
                     for (i = 0; i < n; ++i)
                     {
-                        pos[i] = flipdiag[pos[i]];
+                        pos[i] = FlipDiag[pos[i]];
                     }
                 }
-                if (test45[pos[1]] && triangle[pos[0]] == triangle[pos[1]])
+                if (Test45[pos[1]] && Triangle[pos[0]] == Triangle[pos[1]])
                 {
                     std::swap (pos[0], pos[1]);
                     for (i = 0; i < n; ++i)
                     {
-                        pos[i] = flipdiag[pos[i] ^ 0x38];
+                        pos[i] = FlipDiag[pos[i] ^ 0x38];
                     }
                 }
-                idx = PP_idx[triangle[pos[0]]][pos[1]];
+                idx = PP_idx[Triangle[pos[0]]][pos[1]];
                 i = 2;
             }
             else
             { /* 3 and higher, e.g. KKKvK and KKKKvK */
                 for (i = 1; i < norm[0]; ++i)
                 {
-                    if (triangle[pos[0]] > triangle[pos[i]])
+                    if (Triangle[pos[0]] > Triangle[pos[i]])
                     {
                         std::swap (pos[0], pos[i]);
                     }
@@ -1158,27 +1158,27 @@ namespace TBSyzygy {
                         pos[i] ^= 0x38;
                     }
                 }
-                if (offdiag[pos[0]] > 0)
+                if (OffDiag[pos[0]] > 0)
                 {
                     for (i = 0; i < n; ++i)
                     {
-                        pos[i] = flipdiag[pos[i]];
+                        pos[i] = FlipDiag[pos[i]];
                     }
                 }
                 for (i = 1; i < norm[0]; ++i)
                 {
                     for (j = i + 1; j < norm[0]; ++j)
                     {
-                        if (mtwist[pos[i]] > mtwist[pos[j]])
+                        if (Mtwist[pos[i]] > Mtwist[pos[j]])
                         {
                             std::swap (pos[i], pos[j]);
                         }
                     }
                 }
-                idx = multidx[norm[0] - 1][triangle[pos[0]]];
+                idx = multidx[norm[0] - 1][Triangle[pos[0]]];
                 for (i = 1; i < norm[0]; ++i)
                 {
-                    idx += binomial[i - 1][mtwist[pos[i]]];
+                    idx += binomial[i - 1][Mtwist[pos[i]]];
                 }
             }
             idx *= factor[PAWN];
@@ -1221,12 +1221,12 @@ namespace TBSyzygy {
 
             for (i = 1; i < tbep->pawns[WHITE]; ++i)
             {
-                if (flap[pos[0]] > flap[pos[i]])
+                if (Flap[pos[0]] > Flap[pos[i]])
                 {
                     std::swap (pos[0], pos[i]);
                 }
             }
-            return file_to_file[pos[0] & 0x07];
+            return File_To_File[pos[0] & 0x07];
         }
 
         uint64_t encode_pawn (TBEntry_pawn *tbep, uint8_t *norm, int32_t *pos, int32_t *factor)
@@ -1246,17 +1246,17 @@ namespace TBSyzygy {
             {
                 for (j = i + 1; j < tbep->pawns[WHITE]; ++j)
                 {
-                    if (ptwist[pos[i]] < ptwist[pos[j]])
+                    if (Ptwist[pos[i]] < Ptwist[pos[j]])
                     {
                         std::swap (pos[i], pos[j]);
                     }
                 }
             }
             t = tbep->pawns[WHITE] - 1;
-            idx = pawnidx[t][flap[pos[0]]];
+            idx = pawnidx[t][Flap[pos[0]]];
             for (i = t; i > 0; --i)
             {
-                idx += binomial[t - i][ptwist[pos[i]]];
+                idx += binomial[t - i][Ptwist[pos[i]]];
             }
             idx *= factor[PAWN];
 
@@ -2233,6 +2233,7 @@ namespace TBSyzygy {
 
             uint64_t idx;
             uint8_t res;
+
             int32_t bside, mirror, cmirror;
             if (!tbe->symmetric)
             {
@@ -2601,7 +2602,7 @@ namespace TBSyzygy {
 
             if (wdl > 0)
             {
-                int32_t best = 0xffff;
+                int32_t best = 0xFFFF;
                 for (cur = m_list; cur < end; ++cur)
                 {
                     Move move = cur->move;
@@ -2661,51 +2662,9 @@ namespace TBSyzygy {
             }
         }
 
-        int32_t wdl_to_dtz[] = {
-            -1, -101, 0, 101, 1
-        };
+        int32_t wdl_to_dtz[] = { -1, -101, 0, 101, 1 };
 
-        // Check whether there has been at least one repetition of positions
-        // since the last capture or pawn move.
-        bool has_repeated (StateInfo *st)
-        {
-            while (true)
-            {
-                int32_t i = 4, e = std::min (st->clock50, st->null_ply);
-                if (e < i) return false;
-                StateInfo *stp = st->p_si->p_si;
-                do
-                {
-                    stp = stp->p_si->p_si;
-                    if (stp->posi_key == st->posi_key)
-                    {
-                        return true;
-                    }
-                    i += 2;
-                }
-                while (i <= e);
-                st = st->p_si;
-            }
-
-            //const StateInfo *stp = st;
-            //uint8_t ply = min (st->null_ply, st->clock50);
-            //while (ply >= 2)
-            //{
-            //    if (sip->p_si == NULL) break;
-            //    sip = sip->p_si;
-            //    if (sip->p_si == NULL) break;
-            //    sip = sip->p_si;
-            //
-            //    if (sip->posi_key == st->posi_key)
-            //    {
-            //        return true; // Draw at first repetition
-            //    }
-            //    ply -= 2;
-            //}
-
-        }
-
-        Value wdl_to_Value[5] =
+        Value Wdl_to_Value[5] =
         {
             VALUE_MATED_IN_MAX_PLY + 1,
             VALUE_DRAW - 2,
@@ -2864,7 +2823,7 @@ namespace TBSyzygy {
             int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (!*success) return 0;
-            if (v0 > v1) v1 = v0;
+            if (v1 < v0) v1 = v0;
         }
         if (v1 > -3)
         {
@@ -3005,17 +2964,17 @@ namespace TBSyzygy {
         }
 
         // Determine the score to report to the user.
-        TBScore = wdl_to_Value[wdl + 2];
+        TBScore = Wdl_to_Value[wdl + 2];
         // If the position is winning or losing, but too few moves left, adjust the
         // score to show how close it is to winning or losing. Weird rounding is
         // because of the way Stockfish converts values to printed scores.
         if      (wdl == 1 && dtz <= 100)
         {
-            TBScore = +Value (((200 - dtz - clk50) + 1) & ~1);
+            TBScore = +Value (((200 - clk50 - dtz) + 1) & ~1);
         }
         else if (wdl == -1 && dtz >= -100)
         {
-            TBScore = -Value (((200 + dtz - clk50) + 1) & ~1);
+            TBScore = -Value (((200 - clk50 + dtz) + 1) & ~1);
         }
 
         // Now be a bit smart about filtering out moves.
@@ -3026,7 +2985,7 @@ namespace TBSyzygy {
             for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
             {
                 int32_t v = Searcher::RootMoves[i].value[0];
-                if (v > 0 && best > v)
+                if (0 < v && v < best)
                 {
                     best = v;
                 }
@@ -3034,7 +2993,7 @@ namespace TBSyzygy {
             int32_t max = best;
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (!has_repeated (st.p_si) && best + clk50 <= 99)
+            if (!pos.has_repeated () && best + clk50 <= 99)
             {
                 max = 99 - clk50;
             }
@@ -3098,7 +3057,7 @@ namespace TBSyzygy {
 
         int32_t wdl = probe_wdl (pos, &success);
         if (!success) return false;
-        TBScore = wdl_to_Value[wdl + 2];
+        TBScore = Wdl_to_Value[wdl + 2];
 
         StateInfo st;
         CheckInfo ci (pos);

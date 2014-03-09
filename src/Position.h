@@ -279,6 +279,7 @@ public:
     uint16_t game_move ()           const;
     bool     chess960  ()           const;
     bool     draw      ()           const;
+    bool     has_repeated ()        const;
 
     uint64_t game_nodes ()          const;
     void     game_nodes (uint64_t nodes);
