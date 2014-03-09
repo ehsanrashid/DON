@@ -262,15 +262,14 @@ bool Position::draw () const
     }
 
     // Draw by Threefold Repetition?
-    const StateInfo *sip = _si;
+    const StateInfo *psi = _si;
     uint8_t ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
-        //sip = sip->p_si; if (sip == NULL) break; 
-        //sip = sip->p_si; if (sip == NULL) break;
-
-        sip = sip->p_si->p_si;
-        if (sip->posi_key == _si->posi_key)
+        //psi = psi->p_si; if (psi == NULL) break; 
+        //psi = psi->p_si; if (psi == NULL) break;
+        psi = psi->p_si->p_si;
+        if (psi->posi_key == _si->posi_key)
         {
             return true; // Draw at first repetition
         }
@@ -293,10 +292,10 @@ bool Position::ok (int8_t *failed_step) const
     // What features of the position should be verified?
     const bool debug_all = true;
 
-    const bool debug_king_count  = debug_all || false;
-    const bool debug_piece_count = debug_all || false;
-    const bool debug_bitboards   = debug_all || false;
-    const bool debug_piece_list  = debug_all || false;
+    const bool debug_king_count    = debug_all || false;
+    const bool debug_piece_count   = debug_all || false;
+    const bool debug_bitboards     = debug_all || false;
+    const bool debug_piece_list    = debug_all || false;
 
     const bool debug_king_capture  = debug_all || false;
     const bool debug_checker_count = debug_all || false;

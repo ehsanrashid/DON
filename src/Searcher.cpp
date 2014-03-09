@@ -1303,6 +1303,14 @@ namespace Searcher {
                 {
                     ASSERT (best_value < beta);
 
+                    dbg_hit_on (thread->split_point_threads == 0);
+                    //dbg_hit_on (thread->split_point_threads == 1);
+                    //dbg_hit_on (thread->split_point_threads == 2);
+                    //dbg_hit_on (thread->split_point_threads == 3);
+                    
+                    dbg_mean_of (thread->split_point_threads);
+                    //dbg_mean_of (depth);
+
                     thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 
                     if (best_value >= beta) break;

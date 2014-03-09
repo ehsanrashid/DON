@@ -7,6 +7,7 @@
 
 #include <streambuf>
 #include <fstream>
+#include <cstring>
 #include "noncopyable.h"
 
 namespace std {

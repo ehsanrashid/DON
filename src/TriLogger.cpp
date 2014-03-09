@@ -53,7 +53,7 @@ namespace TrivialLogger {
 
     TriLogger::TriLogger ()
     {
-        if (NULL == _p_tl_impl.get ())
+        if (!_p_tl_impl.get ())
         {
             TriLogger::_p_tl_impl.reset (new implementation::TriLoggerImpl ());
         }
@@ -89,7 +89,7 @@ namespace TrivialLogger {
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
+        if (!implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
             implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
         }
@@ -107,7 +107,7 @@ namespace TrivialLogger {
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
+        if (!implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
             implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
         }
@@ -241,17 +241,17 @@ namespace TrivialLogger {
         //template<typename T>
         //T const max (T const x1, T const x2) { return (x1 > x2 ? x1 : x2); }
 
-        const char_type* get_log_fn()   { return XSTR(FTLOG); }
-        const char_type* get_def_fn()   { return "except_log"; }
+        const char_type* get_log_fn ()  { return XSTR (FTLOG); }
+        const char_type* get_def_fn ()  { return "except_log"; }
         // extension C string
-        const char_type* get_log_ext()  { return ".txt"; }
+        const char_type* get_log_ext () { return ".txt"; }
 
     }
 
     // convert definition of the FTLOG to the C string
-    const char_type *log_fn  = implementation::get_log_fn();
-    const char_type *def_fn  = implementation::get_def_fn();
-    const char_type *log_ext = implementation::get_log_ext();
+    const char_type *log_fn  = implementation::get_log_fn ();
+    const char_type *def_fn  = implementation::get_def_fn ();
+    const char_type *log_ext = implementation::get_log_ext ();
 
     // container for final file name
     char_type filename[(MAX (sizeof (log_fn), sizeof(def_fn)) + sizeof (log_ext)) / sizeof(char_type)];
@@ -265,15 +265,15 @@ namespace TrivialLogger {
 
     // new file is opened and its destruction is managed by unique_ptr
     unique_ptr<ostream> implementation::TriLoggerImpl::_outstream_ptr =
-        unique_ptr<ostream> (new ofstream (filename, ios_base::out | ios_base::app));
+        unique_ptr<ostream> (new ofstream (filename, ios_base::out|ios_base::app));
     // set pointer output stream
     ostream *implementation::TriLoggerImpl::_outstream = _outstream_ptr.get ();
 
     void implementation::init_tri_logger_impl ()
     { 
-        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
+        if (!implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
-            implementation::TriLoggerImpl::_outstream_ptr.reset (new ofstream (filename, ios_base::out | ios_base::app));
+            implementation::TriLoggerImpl::_outstream_ptr.reset (new ofstream (filename, ios_base::out|ios_base::app));
             // set pointer output stream
             implementation::TriLoggerImpl::_outstream =
                 implementation::TriLoggerImpl::_outstream_ptr.get ();
@@ -293,7 +293,7 @@ namespace TrivialLogger {
 
     void implementation::init_tri_logger_impl ()
     {
-        if (NULL == implementation::TriLoggerImpl::_outstream_ptr.get ())
+        if (!implementation::TriLoggerImpl::_outstream_ptr.get ())
         {
             implementation::TriLoggerImpl::_outstream_ptr.reset (new null_stream ());
             implementation::TriLoggerImpl::_outstream =
@@ -307,7 +307,7 @@ namespace TrivialLogger {
 
     TriLogger& instance ()
     {
-        if (NULL == implementation::p_trilog.get ())
+        if (!implementation::p_trilog.get ())
         {
             implementation::p_trilog.reset (new TriLogger ());
         }

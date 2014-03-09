@@ -16,7 +16,7 @@ typedef class LogFile
 
 public:
     LogFile(const std::string& fn = "log.txt")
-        : std::ofstream(fn, std::ios_base::out | std::ios_base::app)
+        : std::ofstream(fn, std::ios_base::out|std::ios_base::app)
     {}
     
     ~LogFile()
@@ -25,7 +25,6 @@ public:
     }
 
 } LogFile;
-
 
 // Singleton I/O logger class
 typedef class DebugLogger : std::noncopyable
@@ -65,7 +64,7 @@ public:
     {
         if (!_fstm.is_open ())
         {
-            _fstm.open (_log_fn, std::ios_base::out | std::ios_base::app);
+            _fstm.open (_log_fn, std::ios_base::out|std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
             std::cin .rdbuf (& _inbuf);
@@ -87,15 +86,15 @@ public:
 
 } DebugLogger;
 
-inline void log_debug (bool on)
+inline void log_debug (bool b)
 {
-    on  ? DebugLogger::instance ().start ()
+    (b) ? DebugLogger::instance ().start ()
         : DebugLogger::instance ().stop ();
 }
+
 
 extern void dbg_hit_on (bool h, bool c = true);
 extern void dbg_mean_of (uint64_t v);
 extern void dbg_print ();
-
 
 #endif // _DEBUG_LOGGER_H_INC_

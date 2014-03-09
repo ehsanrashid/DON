@@ -339,7 +339,7 @@ namespace UCI {
                 stringstream ss;
                 ss  << *(Options["Hash"])    << " "
                     << *(Options["Threads"]) << " "
-                    << "current " << token << " perft";
+                    << token << " perft current";
 
                 benchmark (ss, RootPos);
             }
