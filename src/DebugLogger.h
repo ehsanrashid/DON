@@ -10,6 +10,23 @@
 #include "tiebuffer.h"
 #include "Time.h"
 
+typedef class LogFile
+    : public std::ofstream
+{
+
+public:
+    LogFile(const std::string& fn = "log.txt")
+        : std::ofstream(fn, std::ios_base::out | std::ios_base::app)
+    {}
+    
+    ~LogFile()
+    {
+        if (is_open ()) close ();
+    }
+
+} LogFile;
+
+
 // Singleton I/O logger class
 typedef class DebugLogger : std::noncopyable
 {
@@ -75,5 +92,10 @@ inline void log_debug (bool on)
     on  ? DebugLogger::instance ().start ()
         : DebugLogger::instance ().stop ();
 }
+
+extern void dbg_hit_on (bool h, bool c = true);
+extern void dbg_mean_of (uint64_t v);
+extern void dbg_print ();
+
 
 #endif // _DEBUG_LOGGER_H_INC_
