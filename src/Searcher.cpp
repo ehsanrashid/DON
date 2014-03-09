@@ -59,7 +59,7 @@ namespace Searcher {
         inline Depth reduction (bool imp, uint8_t depth, uint8_t move_num)
         {
             depth = depth / int8_t (ONE_MOVE);
-            return Depth (Reductions[PVNode][imp][depth > 63 ? 63 : depth][move_num > 63 ? 63 : move_num]);
+            return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
         // Dynamic razoring margin based on depth
@@ -68,8 +68,8 @@ namespace Searcher {
             return Value (512 + 16 * depth);
         }
 
-        TimeManager TimeMgr;
 
+        TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
 
@@ -418,7 +418,7 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, tt_move, depth, History, dst_sq ((ss-1)->current_move));
+            MovePicker mp (pos, History, tt_move, depth, dst_sq ((ss-1)->current_move));
             CheckInfo  ci (pos);
 
             Move move;
@@ -883,7 +883,7 @@ namespace Searcher {
 
                 // Initialize a MovePicker object for the current position,
                 // and prepare to search the moves.
-                MovePicker mp (pos, tt_move, History, pos.capture_type ());
+                MovePicker mp (pos, History, tt_move, pos.capture_type ());
 
                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                 {
@@ -937,7 +937,7 @@ namespace Searcher {
                 FollowupMoves[pos[own_move_sq]][own_move_sq].second,
             };
 
-            MovePicker mp (pos, tt_move, depth, History, cm, fm, ss);
+            MovePicker mp (pos, History, tt_move, depth, cm, fm, ss);
 
             Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 

@@ -36,7 +36,7 @@ public:
 
     inline void clear ()
     {
-        std::memset (_table, 0, sizeof (_table));
+        memset (_table, 0, sizeof (_table));
     }
 
     inline void update (Piece p, Square s, Move m)
@@ -93,6 +93,11 @@ private:
 
     } StageT;
 
+    ValMove  m_list[MAX_MOVES]
+        ,   *cur
+        ,   *end
+        ,   *quiets_end
+        ,   *bad_captures_end;
 
     const Position     &pos;
 
@@ -112,12 +117,6 @@ private:
     Value   capture_threshold;
 
     uint8_t stage;
-
-    ValMove  m_list[MAX_MOVES];
-    ValMove *cur;
-    ValMove *end;
-    ValMove *quiets_end;
-    ValMove *bad_captures_end;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
@@ -155,11 +154,11 @@ private:
 
 public:
 
-    MovePicker (const Position&, Move,        const HistoryStats&, PieceT);
-    MovePicker (const Position&, Move, Depth, const HistoryStats&, Square);
-    MovePicker (const Position&, Move, Depth, const HistoryStats&, Move*, Move*, Searcher::Stack*);
+    MovePicker (const Position&, const HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
+    MovePicker (const Position&, const HistoryStats&, Move, Depth, Square);
+    MovePicker (const Position&, const HistoryStats&, Move,        PieceT);
 
-    template<bool SpNode>
+    template<bool SPNode>
     Move next_move ();
 
 };

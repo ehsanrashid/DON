@@ -13,15 +13,15 @@ using namespace MoveGenerator;
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Move *cm, Move *fm, Stack *s)
-    : pos (p)
+MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Depth d, Move *cm, Move *fm, Stack *s)
+    : cur (m_list)
+    , end (m_list)
+    , pos (p)
     , history (h)
     , ss (s)
     , counter_moves (cm)
     , followup_moves (fm)
     , depth (d)
-    , cur (m_list)
-    , end (m_list)
 {
     ASSERT (d > DEPTH_ZERO);
 
@@ -33,14 +33,15 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats &h, Square sq)
-    : pos (p)
+MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Depth d, Square sq)
+    : cur (m_list)
+    , end (m_list)
+    , pos (p)
     , history (h)
     , ss (NULL)
     , counter_moves (NULL)
     , followup_moves (NULL)
-    , cur (m_list)
-    , end (m_list)
+    , depth (d)
 {
     ASSERT (d <= DEPTH_ZERO);
 
@@ -75,14 +76,15 @@ MovePicker::MovePicker (const Position &p, Move ttm, Depth d, const HistoryStats
     end += (tt_move != MOVE_NONE);
 }
 
-MovePicker::MovePicker (const Position &p, Move ttm,          const HistoryStats &h, PieceT pt)
-    : pos (p)
+MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,          PieceT pt)
+    : cur (m_list)
+    , end (m_list)
+    , pos (p)
     , history (h)
     , ss (NULL)
     , counter_moves (NULL)
     , followup_moves (NULL)
-    , cur (m_list)
-    , end (m_list)
+    , depth (DEPTH_ZERO)
 {
     ASSERT (!pos.checkers ());
 

@@ -36,11 +36,11 @@ namespace MoveGenerator {
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
-        EVASION,     // Save king in check
+        EVASION,     // Save the friendly king from check
         CAPTURE,     // Change material balance where an enemy piece is captured.
-        QUIET,       // Do not change material, thus no captures nor promotions.
-        CHECK,       // Any way checks the enemy King.
-        QUIET_CHECK, // Do not change material and only checks the enemy King.
+        QUIET,       // Do not capture pieces but under-promotion is allowed.
+        CHECK,       // Checks the enemy King in any way possible.
+        QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
 
         // ------------------------
         LEGAL        // Legal moves
@@ -58,32 +58,30 @@ namespace MoveGenerator {
 
     private:
 
-        ValMove m_list[MAX_MOVES];
-        ValMove *beg
+        ValMove m_list[MAX_MOVES]
             ,   *cur
             ,   *end;
 
     public:
         explicit MoveList (const Position &pos)
-            : beg (m_list)
-            , cur (m_list)
+            : cur (m_list)
             , end (generate<GT>(m_list, pos))
         {
             end->move = MOVE_NONE;
         }
 
-        void operator++ () { ++cur; }
-        void operator-- () { --cur; }
-        //void begin      () { cur = beg+0; }
-        //void endin      () { cur = end-1; }
+        inline void operator++ () { ++cur; }
+        inline void operator-- () { --cur; }
+        //inline void begin      () { cur = m_list; }
+        //inline void endin      () { cur = end-1; }
 
-        Move operator* () const { return cur->move; }
+        inline Move operator* () const { return cur->move; }
 
-        uint16_t size  () const { return end - beg; }
+        inline uint16_t size  () const { return end - m_list; }
 
         bool contains (Move m) const
         {
-            for (const ValMove *itr = beg; itr != end; ++itr)
+            for (const ValMove *itr = m_list; itr != end; ++itr)
             {
                 if (itr->move == m) return true;
             }
