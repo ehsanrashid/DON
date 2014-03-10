@@ -34,10 +34,10 @@ namespace Zobrist {
         //CACHE_ALIGN(64)
         struct _
         {
-            Key piecesq[CLR_NO][NONE][SQ_NO];// [COLOR][PIECE][SQUARE]
-            Key castle_right[CLR_NO][CS_NO]; // [COLOR][CASTLE SIDE]
-            Key en_passant[F_NO];            // [ENPASSANT FILE]
-            Key mover_side;                  // COLOR
+            Key piecesq     [CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
+            Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]
+            Key en_passant  [F_NO];                 // [ENPASSANT FILE]
+            Key mover_side;                         // COLOR
 
         } _;
 
