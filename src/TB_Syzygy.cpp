@@ -290,8 +290,7 @@ namespace TBSyzygy {
 #ifndef _WIN32
                 fd = open (file, O_RDONLY);
 #else
-                fd = CreateFile (file, GENERIC_READ, FILE_SHARE_READ, NULL,
-                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                fd = CreateFile (file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 #endif
                 if (fd != FD_ERR) return fd;
             }
@@ -314,6 +313,7 @@ namespace TBSyzygy {
             {
                 return NULL;
             }
+
 #ifndef _WIN32
 
             stat statbuf;
@@ -326,14 +326,11 @@ namespace TBSyzygy {
                 printf ("Could not mmap() %s.\n", name);
                 exit (EXIT_FAILURE);
             }
-
 #else
-
             DWORD size_low, size_high;
             size_low = GetFileSize (fd, &size_high);
-            //  *size = ((uint64_t)size_high) << 32 | ((uint64_t)size_low);
-            HANDLE map = CreateFileMapping (fd, NULL, PAGE_READONLY, size_high, size_low,
-                NULL);
+            //*size = ((uint64_t) size_high) << 32 | ((uint64_t) size_low);
+            HANDLE map = CreateFileMapping (fd, NULL, PAGE_READONLY, size_high, size_low, NULL);
             if (map == NULL)
             {
                 printf ("CreateFileMapping() failed.\n");
@@ -346,31 +343,25 @@ namespace TBSyzygy {
                 printf ("MapViewOfFile() failed, name = %s%s, error = %lu.\n", name, suffix, GetLastError ());
                 exit (EXIT_FAILURE);
             }
-
 #endif
 
             close_tb (fd);
             return data;
         }
 
-#ifndef _WIN32
+
 
         void unmap_file (char *data, uint64_t size)
         {
+#ifndef _WIN32
             if (!data) return;
             munmap (data, size);
-        }
-
 #else
-
-        void unmap_file (char *data, uint64_t mapping)
-        {
             if (!data) return;
             UnmapViewOfFile (data);
-            CloseHandle ((HANDLE) mapping);
-        }
-
+            CloseHandle ((HANDLE) size);
 #endif
+        }
 
         void add_to_hash (TBEntry *tbe, uint64_t key)
         {
@@ -446,7 +437,7 @@ namespace TBSyzygy {
                     break;
                 }
             }
-            key = calc_key_from_pcs (pcs, 0);
+            key  = calc_key_from_pcs (pcs, 0);
             key2 = calc_key_from_pcs (pcs, 1);
             if (pcs[W_PAWN] + pcs[B_PAWN] == 0)
             {
