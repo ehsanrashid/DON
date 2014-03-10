@@ -765,7 +765,7 @@ bool Position::pseudo_legal (Move m) const
             }
         }
 
-        //ct = NONE;
+        ct = NONE;
         return true;
     }
     else if (PROMOTE   == mt)
@@ -800,16 +800,20 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (PAWN == pt)
     {
-        // Move direction must be compatible with pawn color
         // We have already handled promotion moves, so destination
-        Delta delta = dst - org;
-
-        if ((activ == WHITE) != (delta > DEL_O)) return false;
-
+        // cannot be on the 8th/1st rank.
         if (R_1 == r_org || R_8 == r_org) return false;
         if (R_1 == r_dst || R_2 == r_dst) return false;
-        if (NORMAL == mt && (R_7 == r_org || R_8 == r_dst)) return false;
+        if (NORMAL == mt)
+        {
+            if (R_7 == r_org || R_8 == r_dst) return false;
+        }
 
+        /*
+        // Move direction must be compatible with pawn color
+        //Delta delta = dst - org;
+        //if ((activ == WHITE) != (delta > DEL_O)) return false;
+        
         // Proceed according to the square delta between the origin and destiny squares.
         switch (delta)
         {
@@ -818,7 +822,6 @@ bool Position::pseudo_legal (Move m) const
             // Pawn push. The destination square must be empty.
             if (!empty (dst)) return false;
             break;
-
         case DEL_NE:
         case DEL_NW:
         case DEL_SE:
@@ -829,25 +832,39 @@ bool Position::pseudo_legal (Move m) const
             // cap and org files must be one del apart, avoids a7h5
             if (1 != file_dist (cap, org)) return false;
             break;
-
         case DEL_NN:
         case DEL_SS:
             // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
-
             if (   R_2 != r_org
                 || R_4 != r_dst
                 || !empty (dst)
-                || !empty (org + pawn_push (activ)))
+                || !empty (dst - pawn_push (activ)))
             {
                 return false;
             }
             break;
-
         default:
             return false;
         }
+        */
+        
+        if (!( (PawnAttacks[activ][org] & _color_bb[pasiv] & dst    // Not a capture
+                && (NONE != ct)
+                && (activ != _color (_board[cap])))
+            || (   (org + pawn_push (activ) == dst)                 // Not a single push
+                && empty (dst))
+            || (   (R_2 == r_org)                                   // Not a double push
+                && (R_4 == r_dst)
+                && (0 == file_dist (cap, org))
+                //&& (org + 2*pawn_push (activ) == dst)
+                && empty (dst)
+                && empty (dst - pawn_push (activ)))))
+        {
+            return false;
+        }
+        
     }
     else
     {
@@ -855,7 +872,7 @@ bool Position::pseudo_legal (Move m) const
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
-    // and pl_move_is_legal() relies on this. So we have to take care that the
+    // and legal() relies on this. So we have to take care that the
     // same kind of moves are filtered out here.
     Bitboard chkrs = checkers ();
     if (chkrs)
