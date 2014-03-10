@@ -800,19 +800,22 @@ namespace Searcher {
                     return ver_value;
                 }
             }
-
+            
             // Step 7. Futility pruning: child node (skipped when in check)
             // We're betting that the opponent doesn't have a move that will reduce
             // the score by more than futility_margin (depth) if we do a null move.
             if (   !PVNode
                 && !(ss)->skip_null_move
-                //&& depth < 7 * ONE_MOVE // TODO::
-                && eval - futility_margin (depth) >= beta
+                && depth < 9 * ONE_MOVE // TODO::
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN
                 && pos.non_pawn_material (pos.active ()))
             {
-                return eval - futility_margin (depth);
+                Value eval_fut = eval - futility_margin (depth);
+                if (eval_fut >= beta)
+                {
+                    return eval_fut;
+                }
             }
 
             // Step 8. Null move search with verification search (is omitted in PV nodes)
