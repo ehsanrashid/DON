@@ -364,7 +364,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // Whether or not the engine should use the opening book.
-        Options["OwnBook"]                     = OptionPtr (new CheckOption (false));
+        Options["OwnBook"]                      = OptionPtr (new CheckOption (false));
         // The filename of the Opening book.
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         // Whether or not to always play the best move from the opening book.

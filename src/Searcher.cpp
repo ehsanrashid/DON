@@ -884,7 +884,7 @@ namespace Searcher {
             if (   !PVNode
                 && depth >= 5 * ONE_MOVE
                 && !(ss)->skip_null_move
-                && eval >= alpha + 200 // TODO::
+                && eval >= alpha + 50 // TODO::
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY)
             {
                 Value rbeta  = beta + 200;
@@ -1263,7 +1263,7 @@ namespace Searcher {
                 {
                     split_point->mutex.lock ();
                     best_value = split_point->best_value;
-                    alpha = split_point->alpha;
+                    alpha      = split_point->alpha;
                 }
 
                 // Finished searching the move. If Signals.stop is true, the search
@@ -1289,7 +1289,7 @@ namespace Searcher {
                         // We record how often the best move has been changed in each
                         // iteration. This information is used for time management:
                         // When the best move changes frequently, we allocate some more time.
-                        if (value > alpha) // (!is_pv_move)
+                        if (!is_pv_move) // (value > alpha)
                         {
                             ++BestMoveChanges;
                         }
