@@ -819,7 +819,7 @@ bool Position::pseudo_legal (Move m) const
         Delta delta = dst - org;
         if ((activ == WHITE) != (delta > DEL_O)) return false;
         
-        // Proceed according to the square delta between the origin and destiny squares.
+        // Proceed according to the delta between the origin and destiny squares.
         switch (delta)
         {
         case DEL_N:
@@ -917,7 +917,10 @@ bool Position::pseudo_legal (Move m) const
         {
             // In case of king moves under check we have to remove king so to catch
             // as invalid moves like B1A1 when opposite queen is on C1.
-            if (attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasiv]) return false;
+            if (attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasiv])
+            {
+                return false;
+            }
         }
     }
 
