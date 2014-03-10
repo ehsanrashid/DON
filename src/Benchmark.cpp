@@ -60,17 +60,17 @@ namespace {
 // There are five optional parameters:
 //  - transposition table size (default is 32 MB).
 //  - number of search threads that should be used (default is 1 thread).
-//  - filename where to look for positions in fen format (defaults are the positions defined above)
-//     * default for builtin position
-//     * current for current position
-//     * filename containing fens position
 //  - limit value spent for each position (default is 13 depth),
 //  - type of the limit value:
-//     * depth (default).
-//     * time in secs
-//     * number of nodes.
-//     * mate in moves
-// example: bench 32 1 default 10 depth
+//     * 'depth' (default).
+//     * 'time' in secs
+//     * 'nodes' to search.
+//     * 'mate' in moves
+//  - filename where to look for positions in fen format (defaults are the positions defined above)
+//     * 'default' for builtin position
+//     * 'current' for current position
+//     * '<filename>' containing fens position
+// example: bench 32 1 10 depth default
 void benchmark (istream &is, const Position &pos)
 {
     string token;

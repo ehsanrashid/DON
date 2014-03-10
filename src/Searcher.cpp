@@ -330,7 +330,10 @@ namespace Searcher {
                 , old_alpha;
 
             // To flag EXACT a node with eval above alpha and no available moves
-            if (PVNode) old_alpha = alpha;
+            if (PVNode)
+            {
+                old_alpha = alpha;
+            }
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that we are going to use. Note that in search_quien we use
@@ -352,7 +355,7 @@ namespace Searcher {
             if (   tte
                 && tte->depth () >= tt_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (PVNode ?  tte->bound () == BND_EXACT
+                && (        PVNode ?  tte->bound () == BND_EXACT
                 : tt_value >= beta ? (tte->bound () &  BND_LOWER)
                 /**/               : (tte->bound () &  BND_UPPER)))
             {
@@ -373,9 +376,9 @@ namespace Searcher {
                 if (tte)
                 {
                     // Never assume anything on values stored in TT
-                    Value e_value = tte->eval ();
-                    if (VALUE_NONE == e_value) e_value = evaluate (pos);
-                    best_value = (ss)->static_eval = e_value;
+                    Value eval = tte->eval ();
+                    if (VALUE_NONE == eval) eval = evaluate (pos);
+                    best_value = (ss)->static_eval = eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
@@ -409,7 +412,13 @@ namespace Searcher {
                     return best_value;
                 }
 
-                if (PVNode && best_value > alpha) alpha = best_value;
+                if (PVNode)
+                {
+                    if (alpha < best_value)
+                    {
+                        alpha = best_value;
+                    }
+                }
 
                 futility_base = best_value + Value (128);
             }
@@ -445,7 +454,10 @@ namespace Searcher {
 
                     if (futility_value < beta)
                     {
-                        if (futility_value > best_value) best_value = futility_value;
+                        if (best_value < futility_value)
+                        {
+                            best_value = futility_value;
+                        }
                         continue;
                     }
 
@@ -453,7 +465,10 @@ namespace Searcher {
                     // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
                     if (futility_base < beta && pos.see (move) <= VALUE_ZERO)
                     {
-                        if (futility_base > best_value) best_value = futility_base;
+                        if (best_value < futility_base)
+                        {
+                            best_value = futility_base;
+                        }
                         continue;
                     }
                 }
@@ -491,13 +506,13 @@ namespace Searcher {
                 ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Check for new best move
-                if (value > best_value)
+                if (best_value < value)
                 {
                     best_value = value;
 
-                    if (value > alpha)
+                    if (alpha < value)
                     {
-                        if (PVNode && value < beta) // Update alpha here! Always alpha < beta
+                        if (PVNode && beta > value) // Update alpha here! Always alpha < beta
                         {
                             alpha = value;
                             best_move = move;
@@ -661,7 +676,7 @@ namespace Searcher {
                 && tte
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= depth
-                && (PVNode ?  tte->bound () == BND_EXACT
+                && (        PVNode ?  tte->bound () == BND_EXACT
                 : tt_value >= beta ? (tte->bound () &  BND_LOWER)
                 /**/               : (tte->bound () &  BND_UPPER)))
             {
@@ -730,9 +745,9 @@ namespace Searcher {
             if (tte)
             {
                 // Never assume anything on values stored in TT
-                Value e_value = tte->eval ();
-                if (VALUE_NONE == e_value) e_value = evaluate (pos);
-                eval = (ss)->static_eval = e_value;
+                Value eval_ = tte->eval ();
+                if (VALUE_NONE == eval_) eval_ = evaluate (pos);
+                eval = (ss)->static_eval = eval_;
 
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
@@ -815,7 +830,7 @@ namespace Searcher {
                 // Null move dynamic (variable) reduction based on depth and value
                 Depth R = 3 * ONE_MOVE
                     +     depth / 4
-                    +     int32_t (eval - beta) / VALUE_MG_PAWN * ONE_MOVE;
+                    +     (int32_t (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
 
                 // Do null move
                 pos.do_null_move (si);
@@ -905,7 +920,7 @@ namespace Searcher {
             }
 
             // Step 10. Internal iterative deepening (skipped when in check)
-            if (   depth >= (PVNode ? 5 * ONE_MOVE : 8 * ONE_MOVE)
+            if (   depth >= ((PVNode ? 5: 8) * ONE_MOVE)
                 && tt_move == MOVE_NONE
                 && (PVNode || (ss)->static_eval + Value (256) >= beta))
             {
@@ -1042,7 +1057,7 @@ namespace Searcher {
                 // a margin then we extend tt_move.
                 if (   singular_ext_node
                     && move == tt_move
-                    && ext != DEPTH_ZERO
+                    && ext == DEPTH_ZERO
                     && pos.legal (move, ci.pinneds)
                     && abs (tt_value) < VALUE_KNOWN_WIN)
                 {
@@ -1079,7 +1094,10 @@ namespace Searcher {
                     if (   depth < 16 * ONE_MOVE
                         && moves_count >= FutilityMoveCounts[improving][depth])
                     {
-                        if (SPNode) split_point->mutex.lock ();
+                        if (SPNode)
+                        {
+                            split_point->mutex.lock ();
+                        }
                         continue;
                     }
 
@@ -1117,7 +1135,10 @@ namespace Searcher {
                     if (   predicted_depth < 4 * ONE_MOVE
                         && pos.see_sign (move) < VALUE_ZERO)
                     {
-                        if (SPNode) split_point->mutex.lock ();
+                        if (SPNode)
+                        {
+                            split_point->mutex.lock ();
+                        }
                         continue;
                     }
                 }
@@ -1177,7 +1198,10 @@ namespace Searcher {
 
                     Depth red_depth = max (new_depth - (ss)->reduction, ONE_MOVE);
 
-                    if (SPNode) alpha = split_point->alpha;
+                    if (SPNode)
+                    {
+                        alpha = split_point->alpha;
+                    }
 
                     value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
@@ -1199,7 +1223,10 @@ namespace Searcher {
                 // Step 16. Full depth search, when LMR is skipped or fails high
                 if (full_depth_search)
                 {
-                    if (SPNode) alpha = split_point->alpha;
+                    if (SPNode)
+                    {
+                        alpha = split_point->alpha;
+                    }
 
                     value =
                         new_depth < ONE_MOVE
@@ -1289,7 +1316,10 @@ namespace Searcher {
                         {
                             ASSERT (value >= beta); // Fail high
 
-                            if (SPNode) split_point->cut_off = true;
+                            if (SPNode)
+                            {
+                                split_point->cut_off = true;
+                            }
                             break;
                         }
                     }
@@ -1317,7 +1347,10 @@ namespace Searcher {
                 }
             }
 
-            if (SPNode) return best_value;
+            if (SPNode)
+            {
+                return best_value;
+            }
 
             // Step 20. Check for mate and stalemate
             // All legal moves have been searched and if there are no legal moves, it
