@@ -125,6 +125,7 @@ namespace BitBoard {
     // FRONT RANK
     CACHE_ALIGN(64) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
+        {
         R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
         R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
         R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -133,7 +134,8 @@ namespace BitBoard {
         R7_bb|R8_bb,
         R8_bb,
         0,
-
+        },
+        {
         0,
         R1_bb,
         R2_bb|R1_bb,
@@ -142,6 +144,7 @@ namespace BitBoard {
         R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
         R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
         R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
+        }
     };
 
     CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];

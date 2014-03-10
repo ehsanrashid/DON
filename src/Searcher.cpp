@@ -806,7 +806,7 @@ namespace Searcher {
             // the score by more than futility_margin (depth) if we do a null move.
             if (   !PVNode
                 && !(ss)->skip_null_move
-                && depth < 7 * ONE_MOVE // TODO::
+                //&& depth < 7 * ONE_MOVE // TODO::
                 && eval - futility_margin (depth) >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
                 && abs (eval) < VALUE_KNOWN_WIN
@@ -918,7 +918,7 @@ namespace Searcher {
                     }
                 }
             }
-
+            
             // Step 10. Internal iterative deepening (skipped when in check)
             if (   depth >= ((PVNode ? 5: 8) * ONE_MOVE)
                 && tt_move == MOVE_NONE
@@ -1036,13 +1036,13 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check = (NORMAL == mtype (move)) && !ci.discoverers
+                bool gives_check= (NORMAL == mtype (move)) && !ci.discoverers
                                 ?   ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
                                 :   pos.gives_check (move, ci);
 
-                bool dangerous = gives_check
-                            ||  (NORMAL != mtype (move))
-                            ||  pos.advanced_pawn_push (move);
+                bool dangerous  = gives_check
+                                ||  (NORMAL != mtype (move))
+                                ||  pos.advanced_pawn_push (move);
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1156,8 +1156,8 @@ namespace Searcher {
                         }
                     }
 
-                    if (!capture_or_promotion &&
-                        quiets_count < MAX_QUIET_COUNT)
+                    if (   !capture_or_promotion
+                        && quiets_count < MAX_QUIET_COUNT)
                     {
                         quiet_moves[quiets_count++] = move;
                     }
@@ -1359,7 +1359,7 @@ namespace Searcher {
             // harmless because return value is discarded anyhow in the parent nodes.
             // If we are in a singular extension search then return a fail low score.
             // A split node has at least one move, the one tried before to be split.
-            if (!moves_count)
+            if (0 == moves_count)
             {
                 return excluded_move ? alpha
                     : in_check ? mated_in ((ss)->ply)
