@@ -750,10 +750,10 @@ bool Position::pseudo_legal (Move m) const
         if (checkers ()) return false;
 
         bool king_side  = (dst > org); 
-        if (castle_impeded (mk_castle_right(activ, king_side ? CS_K : CS_Q))) return false;
+        if (castle_impeded (mk_castle_right (activ, king_side ? CS_K : CS_Q))) return false;
 
-        // Castle is always encoded as "king captures friendly rook"
-        ASSERT (dst == castle_rook (mk_castle_right(activ, king_side ? CS_K : CS_Q)));
+        // Castle is always encoded as "King captures friendly Rook"
+        ASSERT (dst == castle_rook (mk_castle_right (activ, king_side ? CS_K : CS_Q)));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
 
         Delta step = (king_side ? DEL_W : DEL_E);
