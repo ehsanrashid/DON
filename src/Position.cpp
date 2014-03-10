@@ -740,14 +740,17 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (KING != pt) return false;
-        if ((activ | ROOK) != _board[dst]) return false;
-
-        if (R_1 != r_org || R_1 != r_dst) return false;
-
-        //if (castle_impeded (activ)) return false;
-        if (!can_castle (activ)) return false;
-        if (checkers ()) return false;
+        if (!( KING == pt
+            && R_1 == r_org
+            && R_1 == r_dst
+            && (activ | ROOK) == _board[dst]
+            && can_castle (activ)
+            && !checkers ()
+            //&& !castle_impeded (activ)
+            ))
+        {
+            return false;
+        }
 
         bool king_side  = (dst > org); 
         if (castle_impeded (mk_castle_right (activ, king_side ? CS_K : CS_Q))) return false;
@@ -765,23 +768,26 @@ bool Position::pseudo_legal (Move m) const
             }
         }
 
-        ct = NONE;
+        //ct = NONE;
         return true;
     }
     else if (PROMOTE   == mt)
     {
-        if (PAWN != pt) return false;
-        if (R_7 != r_org) return false;
-        if (R_8 != r_dst) return false;
+        if (!( PAWN == pt
+            && R_7 == r_org
+            && R_8 == r_dst))
+        {
+            return false;
+        }
         ct = _ptype (_board[cap]);
     }
     else if (ENPASSANT == mt)
     {
-        if (   PAWN != pt
-            || _si->en_passant_sq != dst
-            || R_5 != r_org
-            || R_6 != r_dst
-            || !empty (dst))
+        if (!( PAWN == pt
+            && _si->en_passant_sq == dst
+            && R_5 == r_org
+            && R_6 == r_dst
+            && EMPTY == _board[dst]))
         {
             return false;
         }
@@ -808,11 +814,10 @@ bool Position::pseudo_legal (Move m) const
         {
             if (R_7 == r_org || R_8 == r_dst) return false;
         }
-
-        /*
+        
         // Move direction must be compatible with pawn color
-        //Delta delta = dst - org;
-        //if ((activ == WHITE) != (delta > DEL_O)) return false;
+        Delta delta = dst - org;
+        if ((activ == WHITE) != (delta > DEL_O)) return false;
         
         // Proceed according to the square delta between the origin and destiny squares.
         switch (delta)
@@ -820,27 +825,36 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!empty (dst)) return false;
+            if (!( EMPTY == _board[dst]
+                && 0 == FileRankDist[_file (dst)][_file (org)]))
+            {
+                return false;
+            }
             break;
         case DEL_NE:
         case DEL_NW:
         case DEL_SE:
         case DEL_SW:
-            // Capture. The destination square must be occupied by an enemy piece
+            // The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
-            if (NONE == ct || activ == _color (_board[cap])) return false;
-            // cap and org files must be one del apart, avoids a7h5
-            if (1 != file_dist (cap, org)) return false;
+            // File distance b/w cap and org must be one, avoids a7h5
+            if (!( NONE != ct
+                && pasiv == _color (_board[cap])
+                && 1 == FileRankDist[_file (cap)][_file (org)]))
+            {
+                return false;
+            }
             break;
         case DEL_NN:
         case DEL_SS:
             // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
-            if (   R_2 != r_org
-                || R_4 != r_dst
-                || !empty (dst)
-                || !empty (dst - pawn_push (activ)))
+            if (!( R_2 == r_org
+                && R_4 == r_dst
+                && EMPTY == _board[dst]
+                && EMPTY == _board[dst - pawn_push (activ)]
+                && 0 == FileRankDist[_file (dst)][_file (org)]))
             {
                 return false;
             }
@@ -848,22 +862,22 @@ bool Position::pseudo_legal (Move m) const
         default:
             return false;
         }
-        */
         
-        if (!( (PawnAttacks[activ][org] & _color_bb[pasiv] & dst    // Not a capture
-                && (NONE != ct)
-                && (activ != _color (_board[cap])))
-            || (   (org + pawn_push (activ) == dst)                 // Not a single push
-                && empty (dst))
-            || (   (R_2 == r_org)                                   // Not a double push
-                && (R_4 == r_dst)
-                && (0 == file_dist (cap, org))
-                //&& (org + 2*pawn_push (activ) == dst)
-                && empty (dst)
-                && empty (dst - pawn_push (activ)))))
-        {
-            return false;
-        }
+        
+        //if (!( (PawnAttacks[activ][org] & _color_bb[pasiv] & dst    // Not a capture
+        //        && (NONE != ct)
+        //        && (activ != _color (_board[cap])))
+        //    || (   (org + pawn_push (activ) == dst)                 // Not a single push
+        //        && empty (dst))
+        //    || (   (R_2 == r_org)                                   // Not a double push
+        //        && (R_4 == r_dst)
+        //        && (0 == file_dist (cap, org))
+        //        //&& (org + 2*pawn_push (activ) == dst)
+        //        && empty (dst)
+        //        && empty (dst - pawn_push (activ)))))
+        //{
+        //    return false;
+        //}
         
     }
     else
