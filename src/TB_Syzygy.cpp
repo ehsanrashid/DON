@@ -254,9 +254,7 @@ namespace TBSyzygy {
         // for variants where kings can connect and/or captured
         // #define CONNECTED_KINGS
 
-    }
-        
-
+    //}
         LOCK_T TB_mutex;
 
         bool Initialized = false;
@@ -272,7 +270,7 @@ namespace TBSyzygy {
 
         DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
-    namespace {
+    //namespace {
 
         void init_indices (void);
 
@@ -3058,7 +3056,8 @@ namespace TBSyzygy {
             }
         }
         
-        RootMoves.resize (j > 0 ? j : 1, RootMove (MOVE_NONE));
+        //RootMoves.resize (j > 0 ? j : 1, RootMove (MOVE_NONE));
+        RootMoves.resize (j, RootMove (MOVE_NONE));
 
         return true;
     }
