@@ -294,7 +294,7 @@ namespace Searcher {
                 pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
                 leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
                 pos.undo_move ();
-            };
+            }
 
             return leaf_count;
         }
@@ -1424,7 +1424,7 @@ namespace Searcher {
             Value best_value = -VALUE_INFINITE
                 , alpha      = -VALUE_INFINITE
                 , beta       = +VALUE_INFINITE
-                , delta      =  VALUE_ZERO;
+                , window     =  VALUE_ZERO;
 
             int32_t depth    =  DEPTH_ZERO;
 
@@ -1463,11 +1463,11 @@ namespace Searcher {
                     // Reset aspiration window starting size
                     if (depth >= 5) // 3
                     {
-                        //delta = Value (16);
-                        delta = Value (max (16, 25 - depth));
+                        //window = Value (16);
+                        window = Value (max (16, 25 - depth));
 
-                        alpha = max (RootMoves[IndexPV].value[1] - delta, -VALUE_INFINITE);
-                        beta  = min (RootMoves[IndexPV].value[1] + delta, +VALUE_INFINITE);
+                        alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
+                        beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
 
                     point elapsed;
@@ -1510,21 +1510,21 @@ namespace Searcher {
                         // research, otherwise exit the loop.
                         if      (best_value <= alpha)
                         {
-                            alpha = max (best_value - delta, -VALUE_INFINITE);
+                            alpha = max (best_value - window, -VALUE_INFINITE);
 
                             Signals.failed_low_at_root = true;
                             Signals.stop_on_ponderhit  = false;
                         }
                         else if (best_value >= beta)
                         {
-                            beta = min (best_value + delta, +VALUE_INFINITE);
+                            beta = min (best_value + window, +VALUE_INFINITE);
                         }
                         else
                         {
                             break;
                         }
 
-                        delta += delta / 2;
+                        window += window / 2;
 
                         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                     }
