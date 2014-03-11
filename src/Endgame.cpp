@@ -418,7 +418,7 @@ namespace EndGame {
         }
         else
         {
-            value = Value (PushClose[SquareDist[sk_sq][wk_sq]] / 2);
+            value = Value (PushClose[SquareDist[sk_sq][wk_sq]] / 8);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
