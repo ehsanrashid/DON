@@ -26,13 +26,13 @@ this code to other chess engines.
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
 #   endif
-//#   ifndef  WIN32_LEAN_AND_MEAN
-//#       define WIN32_LEAN_AND_MEAN
-//#   endif
+#   ifndef  WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
 
 #   include <windows.h>
 
-//#   undef WIN32_LEAN_AND_MEAN
+#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
 #   define SEP_CHAR     ';'
@@ -61,6 +61,8 @@ this code to other chess engines.
 #   define UNLOCK(x)    pthread_mutex_unlock (&(x))
 
 #endif
+
+//#define swap(a,b) {int tmp=a;a=b;b=tmp;}
 
 #if defined(_MSC_VER)    // Visual Studio
 #   define swap32   _byteswap_ulong
@@ -141,7 +143,7 @@ namespace TBSyzygy {
 
         }
 #if !defined(_MSC_VER)
-        __attribute__ ((__may_alias__))
+        __attribute__((__may_alias__))
 #endif
         ;
 
@@ -383,7 +385,7 @@ namespace TBSyzygy {
             }
         }
 
-        char PieceChar[] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
+        char PieceChar[NONE] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
 
         void init_tb (char *filename)
         {
@@ -400,7 +402,7 @@ namespace TBSyzygy {
             close_tb (fd);
 
             for (i = 0; i < 16; ++i) pcs[i] = 0;
-            ///memset (pcs, 0, sizeof (pcs));
+            //memset (pcs, 0, sizeof (pcs));
 
             color = 0;
             for (s = filename; *s; ++s)
@@ -960,12 +962,16 @@ namespace TBSyzygy {
 
                 idx = KK_idx[Triangle[pos[0]]][pos[1]];
                 if (idx < 441)
+                {
                     idx = idx + 441 * (pos[2] - j);
+                }
                 else
                 {
                     idx = 441*62 + (idx - 441) + 21 * Lower[pos[2]];
                     if (!OffDiag[pos[2]])
+                    {
                         idx -= j * 21;
+                    }
                 }
                 i = 3;
                 break;
@@ -1209,6 +1215,7 @@ namespace TBSyzygy {
 
             for (i = 1; i < tbep->pawns[WHITE]; ++i)
             {
+                ASSERT (pos[i] < SQ_NO);
                 if (Flap[pos[0]] > Flap[pos[i]])
                 {
                     swap (pos[0], pos[i]);
@@ -2172,6 +2179,9 @@ namespace TBSyzygy {
         {
             int32_t i;
             int32_t p[NONE];
+            
+            for (i = 0; i < NONE; ++i) p[i] = 0;
+            //memset (p, 0, sizeof (p));
 
             // Obtain the position's material signature key.
             Key key = pos.matl_key ();
@@ -2257,7 +2267,7 @@ namespace TBSyzygy {
                     Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
-                        if (i < 6) p[i++] = pop_lsq (bb); else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb); else break;
                     }
                     while (bb);
                 }
@@ -2272,7 +2282,7 @@ namespace TBSyzygy {
                 i = 0;
                 do
                 {
-                    if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
                 }
                 while (bb);
                 int32_t f   = pawn_file (tbep, p);
@@ -2282,7 +2292,7 @@ namespace TBSyzygy {
                     bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
-                        if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
                     }
                     while (bb);
                 }
@@ -2299,6 +2309,9 @@ namespace TBSyzygy {
             uint64_t idx;
             int32_t i, res;
             int32_t p[NONE];
+            
+            for (i = 0; i < NONE; ++i) p[i] = 0;
+            //memset (p, 0, sizeof (p));
 
             // Obtain the position's material signature key.
             uint64_t key = pos.matl_key ();
@@ -2390,7 +2403,7 @@ namespace TBSyzygy {
                     Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
-                        if (i < 6) p[i++] = pop_lsq (bb); else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb); else break;
                     }
                     while (bb);
                 }
@@ -2414,7 +2427,7 @@ namespace TBSyzygy {
                 i = 0;
                 do
                 {
-                    if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
                 }
                 while (bb);
 
@@ -2431,7 +2444,7 @@ namespace TBSyzygy {
                     bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & TOTL));
                     do
                     {
-                        if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
                     }
                     while (bb);
                 }
@@ -3029,7 +3042,8 @@ namespace TBSyzygy {
                 }
             }
         }
-        RootMoves.resize (j, RootMove (MOVE_NONE));
+        
+        if (j > 0) RootMoves.resize (j, RootMove (MOVE_NONE));
 
         return true;
     }
@@ -3184,35 +3198,35 @@ namespace TBSyzygy {
             DTZ_table[i].entry = NULL;
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
             sprintf (filename, "K%cvK", PieceChar[i]);
             init_tb (filename);
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
                 sprintf (filename, "K%cvK%c", PieceChar[i], PieceChar[j]);
                 init_tb (filename);
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
                 sprintf (filename, "K%c%cvK", PieceChar[i], PieceChar[j]);
                 init_tb (filename);
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
-                for (k = 1; k < 6; ++k)
+                for (k = 1; k < NONE; ++k)
                 {
                     sprintf (filename, "K%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k]);
                     init_tb (filename);
@@ -3220,11 +3234,11 @@ namespace TBSyzygy {
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
-                for (k = j; k < 6; ++k)
+                for (k = j; k < NONE; ++k)
                 {
                     sprintf (filename, "K%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k]);
                     init_tb (filename);
@@ -3232,13 +3246,13 @@ namespace TBSyzygy {
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
-                for (k = i; k < 6; ++k)
+                for (k = i; k < NONE; ++k)
                 {
-                    for (l = (i == k) ? j : k; l < 6; ++l)
+                    for (l = (i == k) ? j : k; l < NONE; ++l)
                     {
                         sprintf (filename, "K%c%cvK%c%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
@@ -3247,13 +3261,13 @@ namespace TBSyzygy {
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
-                for (k = j; k < 6; ++k)
+                for (k = j; k < NONE; ++k)
                 {
-                    for (l = 1; l < 6; ++l)
+                    for (l = 1; l < NONE; ++l)
                     {
                         sprintf (filename, "K%c%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
@@ -3262,13 +3276,13 @@ namespace TBSyzygy {
             }
         }
 
-        for (i = 1; i < 6; ++i)
+        for (i = 1; i < NONE; ++i)
         {
-            for (j = i; j < 6; ++j)
+            for (j = i; j < NONE; ++j)
             {
-                for (k = j; k < 6; ++k)
+                for (k = j; k < NONE; ++k)
                 {
-                    for (l = k; l < 6; ++l)
+                    for (l = k; l < NONE; ++l)
                     {
                         sprintf (filename, "K%c%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
                         init_tb (filename);
