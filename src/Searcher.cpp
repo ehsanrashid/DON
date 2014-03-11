@@ -85,7 +85,7 @@ namespace Searcher {
             ,       FollowupMoves;
 
         int32_t     TBCardinality;
-        uint64_t    TBHits;
+        uint16_t    TBHits;
         bool        RootInTB;
         bool        TB50MoveRule;
         Depth       TBProbeDepth;
@@ -699,8 +699,8 @@ namespace Searcher {
             // Step 4-TB. Tablebase probe
             if (   !RootNode
                 && depth >= TBProbeDepth
-                && pos.count () <= TBCardinality
-                && pos.clock50 () == 0)
+                && pos.clock50 () == 0
+                && pos.count () <= TBCardinality)
             {
                 int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
 
@@ -711,14 +711,14 @@ namespace Searcher {
                     Value value;
                     if (TB50MoveRule)
                     {
-                        value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t (ss->ply)
-                            :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t (ss->ply)
+                        value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
+                            :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
                             :   VALUE_DRAW + 2 * v;
                     }
                     else
                     {
-                        value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t (ss->ply)
-                            :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t (ss->ply)
+                        value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
+                            :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
                             :   VALUE_DRAW;
                     }
 
@@ -728,7 +728,7 @@ namespace Searcher {
                         depth + 6 * ONE_MOVE,
                         BND_EXACT,
                         pos.game_nodes (),
-                        value_to_tt (value, ss->ply),
+                        value_to_tt (value, (ss)->ply),
                         VALUE_NONE);
 
                     return value;

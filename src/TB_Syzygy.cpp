@@ -101,8 +101,6 @@ namespace TBSyzygy {
 
 #define WDLSUFFIX       ".rtbw"
 #define DTZSUFFIX       ".rtbz"
-#define WDLDIR          "RTBWDIR"
-#define DTZDIR          "RTBZDIR"
 
 #define WDL_MAGIC       0x5D23E871
 #define DTZ_MAGIC       0xA50C66D7
@@ -2696,14 +2694,13 @@ namespace TBSyzygy {
         int32_t v1 = -3;
         // Generate (at least) all legal en passant captures.
         ValMove m_list[MAX_MOVES];
-        ValMove *cur;
-
         ValMove *end = pos.checkers ()
             ? generate<EVASION> (m_list, pos)
             : generate<CAPTURE> (m_list, pos);
 
         CheckInfo ci (pos);
 
+        ValMove *cur;
         for (cur = m_list; cur < end; ++cur)
         {
             Move move = cur->move;
@@ -2793,14 +2790,13 @@ namespace TBSyzygy {
         int32_t v1 = -3;
 
         ValMove m_list[MAX_MOVES];
-        ValMove *cur;
-
         ValMove *end = pos.checkers ()
             ? generate<EVASION> (m_list, pos)
             : generate<CAPTURE> (m_list, pos);
 
         CheckInfo ci (pos);
 
+        ValMove *cur;
         for (cur = m_list; cur < end; ++cur)
         {
             Move move = cur->move;
@@ -3123,7 +3119,7 @@ namespace TBSyzygy {
         if (path.empty ()) return;
         
         uint32_t length = path.length ();
-        //replace (path.begin (), path.end (), '\\', '/');
+        replace (path.begin (), path.end (), '\\', '/');
         PathString = strdup (path.c_str ());
         
         NumPaths = 0;
