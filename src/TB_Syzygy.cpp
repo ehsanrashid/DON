@@ -128,12 +128,12 @@ namespace TBSyzygy {
             int32_t   blocksize;
             int32_t   idxbits;
             int32_t   min_len;
-            base_t  base[1]; // C++ complains about base[]...
+            base_t    base[1]; // C++ complains about base[]...
         } PairsData;
 
         struct TBEntry
         {
-            char    *data;
+            char      *data;
             uint64_t  key;
             uint64_t  mapping;
             uint8_t   ready;
@@ -151,7 +151,7 @@ namespace TBSyzygy {
 
         typedef struct TBEntry_piece
         {
-            char    *data;
+            char      *data;
             uint64_t  key;
             uint64_t  mapping;
             uint8_t   ready;
@@ -168,7 +168,7 @@ namespace TBSyzygy {
 
         typedef struct TBEntry_pawn
         {
-            char    *data;
+            char      *data;
             uint64_t  key;
             uint64_t  mapping;
             uint8_t   ready;
@@ -179,7 +179,7 @@ namespace TBSyzygy {
 
             struct
             {
-                PairsData   *precomp[2];
+                PairsData *precomp[2];
                 int32_t   factor[CLR_NO][NONE];
                 uint8_t   pieces[CLR_NO][NONE];
                 uint8_t   norm  [CLR_NO][NONE];
@@ -189,7 +189,7 @@ namespace TBSyzygy {
 
         typedef struct DTZEntry_piece
         {
-            char    *data;
+            char      *data;
             uint64_t  key;
             uint64_t  mapping;
             uint8_t   ready;
@@ -197,7 +197,7 @@ namespace TBSyzygy {
             uint8_t   symmetric;
             bool      has_pawns;
             uint8_t   enc_type;
-            PairsData   *precomp;
+            PairsData *precomp;
             int32_t   factor[NONE];
             uint8_t   pieces[NONE];
             uint8_t   norm  [NONE];
@@ -208,15 +208,15 @@ namespace TBSyzygy {
 
         typedef struct DTZEntry_pawn
         {
-            char *data;
+            char     *data;
             uint64_t key;
             uint64_t mapping;
-            uint8_t ready;
-            uint8_t num;
-            uint8_t symmetric;
-            uint8_t has_pawns;
-            uint8_t pawns[2];
-
+            uint8_t  ready;
+            uint8_t  num;
+            uint8_t  symmetric;
+            uint8_t  has_pawns;
+            uint8_t  pawns[2];
+             
             struct
             {
                 PairsData *precomp;
@@ -1900,10 +1900,10 @@ namespace TBSyzygy {
                 return d->min_len;
             }
 
-            uint32_t mainidx = idx >> d->idxbits;
-            int32_t  litidx = (idx & ((U64 (1) << d->idxbits) - 1)) - (U64 (1) << (d->idxbits - 1));
-            uint32_t block = *(uint32_t *) (d->indextable + 6 * mainidx);
-            litidx += *(uint16_t *) (d->indextable + 6 * mainidx + 4);
+            uint32_t mainidx = uint32_t (idx >> d->idxbits);
+            int32_t litidx = ((idx) & (((1) << d->idxbits) - 1)) - ((1) << (d->idxbits - 1));
+            int32_t block = *(int32_t *) (d->indextable + NONE * mainidx);
+            litidx += *(int16_t *) (d->indextable + NONE * mainidx + 4);
             if (litidx < 0)
             {
                 do
@@ -3043,7 +3043,7 @@ namespace TBSyzygy {
             }
         }
         
-        if (j > 0) RootMoves.resize (j, RootMove (MOVE_NONE));
+        RootMoves.resize (j > 0 ? j : 1, RootMove (MOVE_NONE));
 
         return true;
     }
