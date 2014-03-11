@@ -3056,8 +3056,8 @@ namespace TBSyzygy {
             }
         }
         
-        //RootMoves.resize (j > 0 ? j : 1, RootMove (MOVE_NONE));
-        RootMoves.resize (j, RootMove (MOVE_NONE));
+        RootMoves.resize (j > 0 ? j : 1, RootMove (MOVE_NONE));
+        //RootMoves.resize (j, RootMove (MOVE_NONE));
 
         return true;
     }
