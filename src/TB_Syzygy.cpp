@@ -391,7 +391,7 @@ namespace TBSyzygy {
             TBEntry *tbe;
             int32_t i, j;
             uint8_t pcs[16];
-            uint64_t key, key2;
+            Key key, key2;
             int32_t color;
             char *s;
 
@@ -1990,7 +1990,7 @@ namespace TBSyzygy {
             return *(sympat + 3 * sym);
         }
 
-        void load_dtz_table (char *filename, uint64_t key1, uint64_t key2)
+        void load_dtz_table (char *filename, Key key1, Key key2)
         {
             int32_t i;
             TBEntry *tbe, *ptbe;
@@ -2109,14 +2109,15 @@ namespace TBSyzygy {
                     *str++ = PieceChar[KING - pt];
                 }
             }
+            
             *str++ = '\0';
         }
 
         // Given a position, produce a 64-bit material signature key.
         // If the engine supports such a key, it should equal the engine's key.
-        uint64_t calc_key (Position &pos, int32_t mirror)
+        Key calc_key (Position &pos, int32_t mirror)
         {
-            uint64_t key = U64 (0);
+            Key key = U64 (0);
 
             Color color = !mirror ? WHITE : BLACK;
             for (PieceT pt = PAWN; pt <= KING; ++pt)
@@ -2142,9 +2143,9 @@ namespace TBSyzygy {
         // defined by pcs[16], where pcs[0], ..., pcs[5] is the number of white
         // pawns, ..., kings and pcs[8], ..., pcs[13] is the number of black
         // pawns, ..., kings.
-        uint64_t calc_key_from_pcs (uint8_t *pcs, int32_t mirror)
+        Key calc_key_from_pcs (uint8_t *pcs, int32_t mirror)
         {
-            uint64_t key = U64 (0);
+            Key key = U64 (0);
 
             int32_t color = !mirror ? 0 : 8;
             for (PieceT pt = PAWN; pt <= KING; ++pt)
@@ -2173,7 +2174,7 @@ namespace TBSyzygy {
             int32_t p[NONE];
 
             // Obtain the position's material signature key.
-            uint64_t key = pos.matl_key ();
+            Key key = pos.matl_key ();
 
             // Test for KvK.
             if (key == (Zob._.piecesq[WHITE][KING][0] ^ Zob._.piecesq[BLACK][KING][0]))
@@ -2289,7 +2290,7 @@ namespace TBSyzygy {
                 res = decompress_pairs (tbep->file[f].precomp[bside], idx);
             }
 
-            return (res - 2);
+            return (int32_t (res) - 2);
         }
 
         int32_t probe_dtz_table (Position &pos, int32_t wdl, int32_t *success)
@@ -2452,14 +2453,15 @@ namespace TBSyzygy {
         }
 
         // Add underpromotion captures to list of captures.
-        ValMove*add_underprom_caps (Position &pos, ValMove *m_list, ValMove *end)
+        ValMove* add_underprom_caps (Position &pos, ValMove *m_list, ValMove *end)
         {
             ValMove *cur, *extra = end;
 
             for (cur = m_list; cur < end; ++cur)
             {
                 Move move = cur->move;
-                if (mtype (move) == PROMOTE && !pos.empty (dst_sq (move)))
+                if (   mtype (move) == PROMOTE
+                    && !pos.empty (dst_sq (move)))
                 {
                     (*extra++).move = Move (move - (1 << 12));
                     (*extra++).move = Move (move - (2 << 12));
@@ -2473,7 +2475,7 @@ namespace TBSyzygy {
         int32_t probe_ab (Position &pos, int32_t alpha, int32_t beta, int32_t *success)
         {
             int32_t v;
-            ValMove m_list[64];
+            ValMove m_list[MAX_MOVES];
             ValMove *cur, *end;
             StateInfo st;
 
@@ -2703,7 +2705,7 @@ namespace TBSyzygy {
         for (cur = m_list; cur < end; ++cur)
         {
             Move move = cur->move;
-            if (mtype (move) != ENPASSANT
+            if (   mtype (move) != ENPASSANT
                 || !pos.legal (move, ci.pinneds))
             {
                 continue;
@@ -2981,7 +2983,7 @@ namespace TBSyzygy {
             int32_t max = best;
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (!pos.has_repeated () && best + clk50 <= 99)
+            if (!pos.repeated () && best + clk50 <= 99)
             {
                 max = 99 - clk50;
             }

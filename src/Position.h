@@ -274,12 +274,12 @@ public:
     bool castle_impeded (CRight cr) const;
 
 
-    Color    active    ()           const;
-    uint16_t game_ply  ()           const;
-    uint16_t game_move ()           const;
-    bool     chess960  ()           const;
-    bool     draw      ()           const;
-    bool     has_repeated ()        const;
+    Color    active    ()   const;
+    uint16_t game_ply  ()   const;
+    uint16_t game_move ()   const;
+    bool     chess960  ()   const;
+    bool     draw      ()   const;
+    bool     repeated  ()   const;
 
     uint64_t game_nodes ()          const;
     void     game_nodes (uint64_t nodes);

@@ -287,12 +287,12 @@ bool Position::draw () const
 
 // Check whether there has been at least one repetition of positions
 // since the last capture or pawn move.
-bool Position::has_repeated () const
+bool Position::repeated () const
 {
     StateInfo *si = _si;
     while (true)
     {
-        int32_t i = 4, e = std::min (si->clock50, si->null_ply);
+        int32_t i = 4, e = min (si->clock50, si->null_ply);
         if (e < i) return false;
         StateInfo *psi = si->p_si->p_si;
         do
