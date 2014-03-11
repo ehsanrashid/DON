@@ -2254,7 +2254,7 @@ namespace TBSyzygy {
                 uint8_t *pc = tbep->pieces[bside];
                 for (i = 0; i < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
+                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
                         if (i < 6) p[i++] = pop_lsq (bb); else break;
@@ -2268,18 +2268,18 @@ namespace TBSyzygy {
             {
                 TBEntry_pawn *tbep = (TBEntry_pawn *) tbe;
                 int32_t k = tbep->file[0].pieces[WHITE][PAWN] ^ cmirror;
-                Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & 0x07));
+                Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & TOTL));
                 i = 0;
                 do
                 {
                     if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
                 }
                 while (bb);
-                int32_t f = pawn_file (tbep, p);
+                int32_t f   = pawn_file (tbep, p);
                 uint8_t *pc = tbep->file[f].pieces[bside];
                 for (; i < tbe->num;)
                 {
-                    bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
+                    bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
                         if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;
@@ -2387,7 +2387,7 @@ namespace TBSyzygy {
                 uint8_t *pc = entry->pieces;
                 for (i = 0; i < entry->num;)
                 {
-                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & 0x07));
+                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
                     do
                     {
                         if (i < 6) p[i++] = pop_lsq (bb); else break;
@@ -2410,7 +2410,7 @@ namespace TBSyzygy {
             {
                 DTZEntry_pawn *entry = (DTZEntry_pawn *) tbe;
                 int32_t k = entry->file[0].pieces[0] ^ cmirror;
-                Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & 0x07));
+                Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & TOTL));
                 i = 0;
                 do
                 {
@@ -2428,7 +2428,7 @@ namespace TBSyzygy {
                 uint8_t *pc = entry->file[f].pieces;
                 for (; i < entry->num;)
                 {
-                    bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & 0x07));
+                    bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & TOTL));
                     do
                     {
                         if (i < 6) p[i++] = pop_lsq (bb) ^ mirror; else break;

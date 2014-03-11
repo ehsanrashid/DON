@@ -1703,7 +1703,7 @@ namespace Searcher {
 
         int32_t piece_cnt;
 
-        TBHits = TBCardinality = 0;
+        TBHits = 0;
         RootInTB = false;
 
         int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
