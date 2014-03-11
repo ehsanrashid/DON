@@ -88,7 +88,9 @@ this code to other chess engines.
 
 namespace TBSyzygy {
 
+    using namespace std;
     using namespace MoveGenerator;
+    using namespace Searcher;
 
     // CORE
     namespace {
@@ -984,7 +986,7 @@ namespace TBSyzygy {
                 {
                     for (k = j + 1; k < i + t; ++k)
                     {
-                        if (pos[j] > pos[k]) std::swap (pos[j], pos[k]);
+                        if (pos[j] > pos[k]) swap (pos[j], pos[k]);
                     }
                 }
                 int32_t s = 0;
@@ -1089,7 +1091,7 @@ namespace TBSyzygy {
             { /* 2, e.g. KKvK */
                 if (Triangle[pos[0]] > Triangle[pos[1]])
                 {
-                    std::swap (pos[0], pos[1]);
+                    swap (pos[0], pos[1]);
                 }
                 if (pos[0] & 0x04)
                 {
@@ -1114,7 +1116,7 @@ namespace TBSyzygy {
                 }
                 if (Test45[pos[1]] && Triangle[pos[0]] == Triangle[pos[1]])
                 {
-                    std::swap (pos[0], pos[1]);
+                    swap (pos[0], pos[1]);
                     for (i = 0; i < n; ++i)
                     {
                         pos[i] = FlipDiag[pos[i] ^ 0x38];
@@ -1129,7 +1131,7 @@ namespace TBSyzygy {
                 {
                     if (Triangle[pos[0]] > Triangle[pos[i]])
                     {
-                        std::swap (pos[0], pos[i]);
+                        swap (pos[0], pos[i]);
                     }
                 }
                 if (pos[0] & 0x04)
@@ -1159,7 +1161,7 @@ namespace TBSyzygy {
                     {
                         if (Mtwist[pos[i]] > Mtwist[pos[j]])
                         {
-                            std::swap (pos[i], pos[j]);
+                            swap (pos[i], pos[j]);
                         }
                     }
                 }
@@ -1180,7 +1182,7 @@ namespace TBSyzygy {
                     {
                         if (pos[j] > pos[k])
                         {
-                            std::swap (pos[j], pos[k]);
+                            swap (pos[j], pos[k]);
                         }
                     }
                 }
@@ -1211,7 +1213,7 @@ namespace TBSyzygy {
             {
                 if (Flap[pos[0]] > Flap[pos[i]])
                 {
-                    std::swap (pos[0], pos[i]);
+                    swap (pos[0], pos[i]);
                 }
             }
             return File_to_File[pos[0] & 0x07];
@@ -1236,7 +1238,7 @@ namespace TBSyzygy {
                 {
                     if (Ptwist[pos[i]] < Ptwist[pos[j]])
                     {
-                        std::swap (pos[i], pos[j]);
+                        swap (pos[i], pos[j]);
                     }
                 }
             }
@@ -1257,7 +1259,7 @@ namespace TBSyzygy {
                 {
                     for (k = j + 1; k < t; ++k)
                     {
-                        if (pos[j] > pos[k]) std::swap (pos[j], pos[k]);
+                        if (pos[j] > pos[k]) swap (pos[j], pos[k]);
                     }
                 }
                 s = 0;
@@ -1283,7 +1285,7 @@ namespace TBSyzygy {
                     {
                         if (pos[j] > pos[k])
                         {
-                            std::swap (pos[j], pos[k]);
+                            swap (pos[j], pos[k]);
                         }
                     }
                 }
@@ -2477,7 +2479,7 @@ namespace TBSyzygy {
             int32_t v;
             ValMove m_list[MAX_MOVES];
             ValMove *cur, *end;
-            StateInfo st;
+            StateInfo si;
 
             // Generate (at least) all legal non-ep captures including (under)promotions.
             // It is OK to generate more, as long as they are filtered out below.
@@ -2503,7 +2505,7 @@ namespace TBSyzygy {
                     continue;
                 }
 
-                pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+                pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
                 v = -probe_ab (pos, -beta, -alpha, success);
                 pos.undo_move ();
 
@@ -2552,7 +2554,7 @@ namespace TBSyzygy {
 
             ValMove m_list[MAX_MOVES];
             ValMove *cur, *end = NULL;
-            StateInfo st;
+            StateInfo si;
             CheckInfo ci (pos);
 
             if (wdl > 0)
@@ -2571,7 +2573,7 @@ namespace TBSyzygy {
                     {
                         continue;
                     }
-                    pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
                     int32_t v = -probe_ab (pos, -2, -wdl + 1, success);
                     pos.undo_move ();
 
@@ -2601,7 +2603,7 @@ namespace TBSyzygy {
                     {
                         continue;
                     }
-                    pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
                     int32_t v = -TBSyzygy::probe_dtz (pos, success);
                     pos.undo_move ();
                     if (!*success) return 0;
@@ -2623,8 +2625,8 @@ namespace TBSyzygy {
                     Move move = cur->move;
                     if (!pos.legal (move, ci.pinneds)) continue;
 
-                    pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
-                    if (st.clock50 == 0)
+                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                    if (si.clock50 == 0)
                     {
                         if (wdl == -2)
                         {
@@ -2638,7 +2640,7 @@ namespace TBSyzygy {
                     }
                     else
                     {
-                        v = -TBSyzygy::probe_dtz (pos, success) - 1;
+                        v = -probe_dtz (pos, success) - 1;
                     }
 
                     pos.undo_move ();
@@ -2711,8 +2713,8 @@ namespace TBSyzygy {
                 continue;
             }
 
-            StateInfo st;
-            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+            StateInfo si;
+            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
             int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (!*success) return 0;
@@ -2808,8 +2810,8 @@ namespace TBSyzygy {
                 continue;
             }
 
-            StateInfo st;
-            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+            StateInfo si;
+            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
             int32_t v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (!*success) return 0;
@@ -2890,15 +2892,15 @@ namespace TBSyzygy {
         int32_t dtz = probe_dtz (pos, &success);
         if (!success) return false;
 
-        StateInfo st;
+        StateInfo si;
         CheckInfo ci (pos);
 
         // Probe each move.
-        for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+        for (size_t i = 0; i < RootMoves.size (); ++i)
         {
-            Move move = Searcher::RootMoves[i].pv[0];
+            Move move = RootMoves[i].pv[0];
             
-            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
             
             bool mate = false;
             if (pos.checkers () && dtz > 0)
@@ -2913,7 +2915,12 @@ namespace TBSyzygy {
             int32_t v = 0;
             if (!mate)
             {
-                if (st.clock50 != 0)
+                if (si.clock50 == 0)
+                {
+                    v = -probe_wdl (pos, &success);
+                    v = Wdl_to_Dtz[v + 2];
+                }
+                else
                 {
                     v = -probe_dtz (pos, &success);
                     if      (v > 0)
@@ -2925,16 +2932,11 @@ namespace TBSyzygy {
                         --v;
                     }
                 }
-                else
-                {
-                    v = -probe_wdl (pos, &success);
-                    v = Wdl_to_Dtz[v + 2];
-                }
             }
             
             pos.undo_move ();
             if (!success) return false;
-            Searcher::RootMoves[i].value[0] = Value (v);
+            RootMoves[i].value[0] = Value (v);
         }
 
         // Obtain 50-move counter for the root position.
@@ -2972,9 +2974,9 @@ namespace TBSyzygy {
         if      (dtz > 0)
         { // winning (or 50-move rule draw)
             int32_t best = 0xFFFF;
-            for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+            for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                int32_t v = Searcher::RootMoves[i].value[0];
+                int32_t v = RootMoves[i].value[0];
                 if (0 < v && v < best)
                 {
                     best = v;
@@ -2987,21 +2989,21 @@ namespace TBSyzygy {
             {
                 max = 99 - clk50;
             }
-            for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+            for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                int32_t v = Searcher::RootMoves[i].value[0];
+                int32_t v = RootMoves[i].value[0];
                 if (0 < v && v <= max)
                 {
-                    Searcher::RootMoves[j++] = Searcher::RootMoves[i];
+                    RootMoves[j++] = RootMoves[i];
                 }
             }
         }
         else if (dtz < 0)
         { // losing (or 50-move rule draw)
             int32_t best = 0;
-            for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+            for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                int32_t v = Searcher::RootMoves[i].value[0];
+                int32_t v = RootMoves[i].value[0];
                 if (best > v)
                 {
                     best = v;
@@ -3012,26 +3014,26 @@ namespace TBSyzygy {
             {
                 return true;
             }
-            for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+            for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                if (Searcher::RootMoves[i].value[0] == best)
+                if (RootMoves[i].value[0] == best)
                 {
-                    Searcher::RootMoves[j++] = Searcher::RootMoves[i];
+                    RootMoves[j++] = RootMoves[i];
                 }
             }
         }
         else
         { // drawing
             // Try all moves that preserve the draw.
-            for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+            for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                if (Searcher::RootMoves[i].value[0] == VALUE_ZERO)
+                if (RootMoves[i].value[0] == VALUE_ZERO)
                 {
-                    Searcher::RootMoves[j++] = Searcher::RootMoves[i];
+                    RootMoves[j++] = RootMoves[i];
                 }
             }
         }
-        Searcher::RootMoves.resize (j, Searcher::RootMove (MOVE_NONE));
+        RootMoves.resize (j, RootMove (MOVE_NONE));
 
         return true;
     }
@@ -3049,20 +3051,20 @@ namespace TBSyzygy {
         if (!success) return false;
         TBScore = Wdl_to_Value[wdl + 2];
 
-        StateInfo st;
+        StateInfo si;
         CheckInfo ci (pos);
 
         int32_t best = -2;
 
         // Probe each move.
-        for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+        for (size_t i = 0; i < RootMoves.size (); ++i)
         {
-            Move move = Searcher::RootMoves[i].pv[0];
-            pos.do_move (move, st, pos.gives_check (move, ci) ? &ci : NULL);
+            Move move = RootMoves[i].pv[0];
+            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
             int32_t v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
-            Searcher::RootMoves[i].value[0] = Value (v);
+            RootMoves[i].value[0] = Value (v);
             if (best < v)
             {
                 best = v;
@@ -3070,20 +3072,19 @@ namespace TBSyzygy {
         }
 
         size_t j = 0;
-        for (size_t i = 0; i < Searcher::RootMoves.size (); ++i)
+        for (size_t i = 0; i < RootMoves.size (); ++i)
         {
-            if (Searcher::RootMoves[i].value[0] == best)
+            if (RootMoves[i].value[0] == best)
             {
-                Searcher::RootMoves[j++] = Searcher::RootMoves[i];
+                RootMoves[j++] = RootMoves[i];
             }
         }
-        Searcher::RootMoves.resize (j, Searcher::RootMove (MOVE_NONE));
+        RootMoves.resize (j, RootMove (MOVE_NONE));
 
         return true;
     }
 
-
-    void initialize (std::string &path)
+    void initialize (string &path)
     {
         char filename[16];
         uint32_t i;
@@ -3118,16 +3119,12 @@ namespace TBSyzygy {
             Initialized = true;
         }
 
-        //path = "C:/RTB6/wdl; C:/RTB6/dtz";
-
+        //path = "C:/RTB6/wdl;C:/RTB6/dtz";
         if (path.empty ()) return;
         
         uint32_t length = path.length ();
-        std::replace (path.begin (), path.end (), '\\', '/');
-        //PathString = (char *) malloc (length + 1);
-        //strcpy (PathString, path.c_str ());
+        //replace (path.begin (), path.end (), '\\', '/');
         PathString = strdup (path.c_str ());
-
         
         NumPaths = 0;
         i = 0;
@@ -3286,7 +3283,7 @@ namespace TBSyzygy {
 
         int32_t TB_total = TB_num_piece + TB_num_pawn;
         //printf ("info string Syzygy Tablebases found %d.\n", TB_total);
-        std::cout << "info string Syzygy Tablebases found " << (TB_total) << ".\n" << std::endl;
+        cout << "info string Syzygy Tablebases found " << (TB_total) << "." << endl;
 
     }
 
