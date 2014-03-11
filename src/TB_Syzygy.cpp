@@ -1900,10 +1900,10 @@ namespace TBSyzygy {
                 return d->min_len;
             }
 
-            uint32_t mainidx = uint32_t (idx >> d->idxbits);
+            uint32_t mainidx = (idx >> d->idxbits);
             int32_t litidx = ((idx) & (((1) << d->idxbits) - 1)) - ((1) << (d->idxbits - 1));
-            int32_t block = *(int32_t *) (d->indextable + NONE * mainidx);
-            litidx += *(int16_t *) (d->indextable + NONE * mainidx + 4);
+            uint32_t block = *(uint32_t *) (d->indextable + mainidx * int32_t (NONE));
+            litidx += *(int16_t *) (d->indextable + mainidx * int32_t (NONE) + 4);
             if (litidx < 0)
             {
                 do
@@ -2264,10 +2264,12 @@ namespace TBSyzygy {
                 uint8_t *pc = tbep->pieces[bside];
                 for (i = 0; i < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
+                    uint8_t pp = pc[i]-1;
+                    Bitboard bb = pos.pieces (Color ((pp ^ cmirror) >> 3), PieceT (pp & TOTL));
                     do
                     {
-                        if (i < NONE) p[i++] = pop_lsq (bb); else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb); else
+                            break;
                     }
                     while (bb);
                 }
@@ -2277,22 +2279,25 @@ namespace TBSyzygy {
             else
             {
                 TBEntry_pawn *tbep = (TBEntry_pawn *) tbe;
-                int32_t k = tbep->file[0].pieces[WHITE][PAWN] ^ cmirror;
+                int32_t k = tbep->file[0].pieces[WHITE][PAWN] ^ cmirror - 1;
                 Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & TOTL));
                 i = 0;
                 do
                 {
-                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
+                        break;
                 }
                 while (bb);
                 int32_t f   = pawn_file (tbep, p);
                 uint8_t *pc = tbep->file[f].pieces[bside];
                 for (; i < tbe->num;)
                 {
-                    bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
+                    uint8_t pp = pc[i]-1;
+                    bb = pos.pieces (Color ((pp ^ cmirror) >> 3), PieceT (pp & TOTL));
                     do
                     {
-                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
+                            break;
                     }
                     while (bb);
                 }
@@ -2400,10 +2405,12 @@ namespace TBSyzygy {
                 uint8_t *pc = entry->pieces;
                 for (i = 0; i < entry->num;)
                 {
-                    Bitboard bb = pos.pieces (Color ((pc[i] ^ cmirror) >> 3), PieceT (pc[i] & TOTL));
+                    uint8_t pp = pc[i]-1;
+                    Bitboard bb = pos.pieces (Color ((pp ^ cmirror) >> 3), PieceT (pp & TOTL));
                     do
                     {
-                        if (i < NONE) p[i++] = pop_lsq (bb); else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb); else
+                            break;
                     }
                     while (bb);
                 }
@@ -2422,12 +2429,13 @@ namespace TBSyzygy {
             else
             {
                 DTZEntry_pawn *entry = (DTZEntry_pawn *) tbe;
-                int32_t k = entry->file[0].pieces[0] ^ cmirror;
-                Bitboard bb = pos.pieces ((Color) (k >> 3), (PieceT) (k & TOTL));
+                int32_t k = entry->file[0].pieces[0] ^ cmirror - 1;
+                Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & TOTL));
                 i = 0;
                 do
                 {
-                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                    if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
+                        break;
                 }
                 while (bb);
 
@@ -2441,10 +2449,12 @@ namespace TBSyzygy {
                 uint8_t *pc = entry->file[f].pieces;
                 for (; i < entry->num;)
                 {
-                    bb = pos.pieces ((Color) ((pc[i] ^ cmirror) >> 3), (PieceT) (pc[i] & TOTL));
+                    uint8_t pp = pc[i]-1;
+                    bb = pos.pieces (Color ((pp ^ cmirror) >> 3), PieceT (pp & TOTL));
                     do
                     {
-                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else break;
+                        if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
+                            break;
                     }
                     while (bb);
                 }
