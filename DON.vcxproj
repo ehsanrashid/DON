@@ -325,7 +325,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;POPCNT;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
@@ -483,12 +483,12 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
-      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VERSION;POPCNT;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>
       </OptimizeReferences>

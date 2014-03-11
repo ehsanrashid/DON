@@ -254,6 +254,9 @@ namespace TBSyzygy {
         // for variants where kings can connect and/or captured
         // #define CONNECTED_KINGS
 
+    }
+        
+
         LOCK_T TB_mutex;
 
         bool Initialized = false;
@@ -268,6 +271,8 @@ namespace TBSyzygy {
         TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
         DTZTableEntry DTZ_table[DTZ_ENTRIES];
+
+    namespace {
 
         void init_indices (void);
 
@@ -2279,7 +2284,7 @@ namespace TBSyzygy {
             else
             {
                 TBEntry_pawn *tbep = (TBEntry_pawn *) tbe;
-                int32_t k = tbep->file[0].pieces[WHITE][PAWN] ^ cmirror - 1;
+                int32_t k   = (tbep->file[0].pieces[WHITE][PAWN] ^ cmirror) - 1;
                 Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & TOTL));
                 i = 0;
                 do
@@ -2429,7 +2434,7 @@ namespace TBSyzygy {
             else
             {
                 DTZEntry_pawn *entry = (DTZEntry_pawn *) tbe;
-                int32_t k = entry->file[0].pieces[0] ^ cmirror - 1;
+                int32_t k   = (entry->file[0].pieces[0] ^ cmirror) - 1;
                 Bitboard bb = pos.pieces (Color (k >> 3), PieceT (k & TOTL));
                 i = 0;
                 do
