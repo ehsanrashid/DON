@@ -793,18 +793,19 @@ namespace Searcher {
             {
                 // Step 6. Razoring
                 if (   depth < 4 * ONE_MOVE
-                    && eval + razor_margin (depth) <= alpha
                     && abs (beta) < VALUE_MATES_IN_MAX_PLY
                     && tt_move == MOVE_NONE
-                    && !pos.pawn_on_7thR (pos.active ()))
+                    /*&& !pos.pawn_on_7thR (pos.active ())*/) // TODO::
                 {
                     Value ralpha = alpha - razor_margin (depth);
-
-                    Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-
-                    if (ver_value <= ralpha)
+                    if (eval <= ralpha)
                     {
-                        return ver_value;
+                        Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+
+                        if (ver_value <= ralpha)
+                        {
+                            return ver_value;
+                        }
                     }
                 }
             
@@ -872,7 +873,7 @@ namespace Searcher {
 
                         Value veri_value = depth-R < ONE_MOVE
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true // TODO::
+                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, true); // TODO::
 
                         (ss)->skip_null_move = false;
 
@@ -934,7 +935,7 @@ namespace Searcher {
                 && tt_move == MOVE_NONE
                 && (PVNode || (ss)->static_eval + Value (256) >= beta))
             {
-                Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4);
+                Depth d = depth - 3 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4); // TODO::
 
                 (ss)->skip_null_move = true;
 
