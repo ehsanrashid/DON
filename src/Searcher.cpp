@@ -358,7 +358,7 @@ namespace Searcher {
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (        PVNode ?  tte->bound () == BND_EXACT
                 : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                /**/               : (tte->bound () &  BND_UPPER)))
+                :                    (tte->bound () &  BND_UPPER)))
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
                 return tt_value;
@@ -680,7 +680,7 @@ namespace Searcher {
                     && tte->depth () >= depth
                     && (        PVNode ?  tte->bound () == BND_EXACT
                     : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                    /**/               : (tte->bound () &  BND_UPPER)))
+                    :                    (tte->bound () &  BND_UPPER)))
                 {
                     TT.refresh (tte);
 
@@ -1190,8 +1190,8 @@ namespace Searcher {
                     && depth >= 3 * ONE_MOVE
                     && !capture_or_promotion
                     && move != tt_move
-                    && move != (ss)->killers[0]
-                /**/&& move != (ss)->killers[1])
+                    && (move != (ss)->killers[0])
+                    && (move != (ss)->killers[1]))
                 {
                     (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
 
@@ -1662,7 +1662,7 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
-        while (ply);
+        while (ply != 0);
 
     }
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
@@ -1702,7 +1702,7 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
-        while (ply);
+        while (ply != 0);
 
     }
 
