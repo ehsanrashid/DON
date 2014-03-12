@@ -72,6 +72,7 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
+        
 
         double  BestMoveChanges;
 
@@ -819,12 +820,13 @@ namespace Searcher {
             }
 
             // Step 8. Null move search with verification search (is omitted in PV nodes)
-            if (   !PVNode
+            if (   /*ForceNullMove ||*/
+                (  !PVNode
                 && !(ss)->skip_null_move
                 && depth >= 2 * ONE_MOVE
                 && eval >= beta
                 && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                && pos.non_pawn_material (pos.active ()))
+                && pos.non_pawn_material (pos.active ())))
             {
                 ASSERT (eval >= beta);
 
@@ -1610,6 +1612,7 @@ namespace Searcher {
 
     // initialize the PRNG only once
     PolyglotBook        Book;
+    bool                ForceNullMove;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to
@@ -1706,10 +1709,10 @@ namespace Searcher {
         TBHits = 0;
         RootInTB = false;
 
-        int32_t cf = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
-        //cf = cf * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
-        DrawValue[ RootColor] = VALUE_DRAW - Value (cf);
-        DrawValue[~RootColor] = VALUE_DRAW + Value (cf);
+        int32_t con_fact = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+        //con_fact = con_fact * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
+        DrawValue[ RootColor] = VALUE_DRAW - Value (con_fact);
+        DrawValue[~RootColor] = VALUE_DRAW + Value (con_fact);
 
         bool write_search_log = bool (*(Options["Write Search Log"]));
         string search_log_fn  = string (*(Options["Search Log File"]));

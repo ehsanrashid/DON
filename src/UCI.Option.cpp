@@ -260,7 +260,12 @@ namespace UCI {
             Evaluator::initialize ();
         }
 
-        void on_change_fifty_move_distance (const Option &opt)
+        void on_force_null_move (const Option &opt)
+        {
+            Searcher::ForceNullMove = bool (opt);
+        }
+
+        void on_fifty_move_dist (const Option &opt)
         {
             Position::fifty_move_distance = 2 * int32_t (opt);
         }
@@ -468,6 +473,8 @@ namespace UCI {
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -50, Max +50.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, +50));
+        
+        Options["Force Null Move"]              = OptionPtr (new CheckOption (false, on_force_null_move));
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -480,7 +487,7 @@ namespace UCI {
         //
         // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_change_fifty_move_distance));
+        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_fifty_move_dist));
 
 
         // TODO::
