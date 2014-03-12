@@ -40,7 +40,7 @@ namespace Searcher {
         const bool FakeSplit            = false;
 
         //const uint8_t MAX_NULL_REDUCTION = 3;
-        const uint8_t MAX_QUIET_COUNT   = 64;
+        const uint8_t MAX_QUIETS        = 64;
 
         const point   InfoDuration      = 3000; // 3 sec
 
@@ -318,7 +318,7 @@ namespace Searcher {
             // Check for an instant draw or maximum ply reached
             if (pos.draw () || (ss)->ply > MAX_PLY)
             {
-                return (ss)->ply > MAX_PLY && !IN_CHECK
+                return ((ss)->ply > MAX_PLY && !IN_CHECK)
                     ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
@@ -338,7 +338,7 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that we are going to use. Note that in search_quien we use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth tt_depth = IN_CHECK || depth >= DEPTH_QS_CHECKS
+            Depth tt_depth = (IN_CHECK || depth >= DEPTH_QS_CHECKS)
                 ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             Key posi_key = pos.posi_key ();
@@ -565,8 +565,8 @@ namespace Searcher {
         inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = (NT == Root             || NT == SplitPointRoot);
-            const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointPV    || NT == SplitPointRoot);
-            const bool   SPNode = (NT == SplitPointNonPV  || NT == SplitPointPV    || NT == SplitPointRoot);
+            const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointRoot    || NT == SplitPointPV);
+            const bool   SPNode = (NT == SplitPointNonPV  || NT == SplitPointRoot    || NT == SplitPointPV);
 
             ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
@@ -589,7 +589,7 @@ namespace Searcher {
             uint8_t moves_count
                 ,   quiets_count;
 
-            Move quiet_moves[MAX_QUIET_COUNT] = { MOVE_NONE };
+            Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
 
             StateInfo  si;
             CheckInfo  ci (pos);
@@ -640,7 +640,7 @@ namespace Searcher {
                 // Step 2. Check for aborted search and immediate draw
                 if (Signals.stop || pos.draw () || (ss)->ply > MAX_PLY)
                 {
-                    return (ss)->ply > MAX_PLY && !in_check
+                    return ((ss)->ply > MAX_PLY && !in_check)
                         ? evaluate (pos) : DrawValue[pos.active ()];
                 }
 
@@ -653,7 +653,10 @@ namespace Searcher {
                 alpha = max (mated_in ((ss)->ply +0), alpha);
                 beta  = min (mates_in ((ss)->ply +1), beta);
 
-                if (alpha >= beta) return alpha;
+                if (alpha >= beta)
+                {
+                    return alpha;
+                }
             }
 
             // Step 4. Transposition table lookup
@@ -778,11 +781,12 @@ namespace Searcher {
             }
 
             // Updates Gains
-            if (   pos.capture_type () == NONE
-                && (ss)->static_eval != VALUE_NONE
-                && (ss-1)->static_eval != VALUE_NONE
-                && (move = (ss-1)->current_move) != MOVE_NULL
-                && mtype (move) == NORMAL)
+            if (   (pos.capture_type () == NONE)
+                && ((ss)->static_eval != VALUE_NONE)
+                && ((ss-1)->static_eval != VALUE_NONE)
+                && ((move = (ss-1)->current_move) != MOVE_NULL)
+                && (mtype (move) == NORMAL)
+               )
             {
                 Square dst = dst_sq (move);
                 Gains.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
@@ -791,16 +795,16 @@ namespace Searcher {
             if (!PVNode) // (is omitted in PV nodes)
             {
                 // Step 6. Razoring
-                if (   depth < 4 * ONE_MOVE
-                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                    && tt_move == MOVE_NONE
-                    && !pos.pawn_on_7thR (pos.active ())) // TODO::
+                if (   (depth < 4 * ONE_MOVE)
+                    && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                    && (tt_move == MOVE_NONE)
+                    && !pos.pawn_on_7thR (pos.active ()) // TODO::
+                   )
                 {
                     Value ralpha = alpha - razor_margin (depth);
                     if (eval <= ralpha)
                     {
                         Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-
                         if (ver_value <= ralpha)
                         {
                             return ver_value;
@@ -811,11 +815,12 @@ namespace Searcher {
                 // Step 7. Futility pruning: child node
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
-                if (   !(ss)->skip_null_move
-                    && depth < 9 * ONE_MOVE // TODO::
-                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                    && abs (eval) < VALUE_KNOWN_WIN
-                    && pos.non_pawn_material (pos.active ()))
+                if (   (!(ss)->skip_null_move)
+                    && (depth < 9 * ONE_MOVE) // TODO::
+                    && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                    && (abs (eval) < VALUE_KNOWN_WIN)
+                    && pos.non_pawn_material (pos.active ())
+                   )
                 {
                     Value eval_fut = eval - futility_margin (depth);
                     if (eval_fut >= beta)
@@ -826,11 +831,13 @@ namespace Searcher {
 
                 // Step 8. Null move search with verification search
                 if (   /*ForceNullMove ||*/
-                    (  !(ss)->skip_null_move
-                    && depth >= 2 * ONE_MOVE
-                    && eval >= beta
-                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                    && pos.non_pawn_material (pos.active ())))
+                    (  (!(ss)->skip_null_move)
+                    && (depth >= 2 * ONE_MOVE)
+                    && (eval >= beta)
+                    && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                    && pos.non_pawn_material (pos.active ())
+                    )
+                   )
                 {
                     ASSERT (eval >= beta);
 
@@ -861,7 +868,6 @@ namespace Searcher {
                         {
                             null_value = beta;
                         }
-
                         if (depth < 12 * ONE_MOVE)
                         {
                             return null_value;
@@ -870,7 +876,7 @@ namespace Searcher {
                         // Do verification search at high depths
                         (ss)->skip_null_move = true;
 
-                        Value veri_value = depth-R < ONE_MOVE
+                        Value veri_value = (depth-R < ONE_MOVE)
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
                             : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // TODO::
 
@@ -887,10 +893,11 @@ namespace Searcher {
                 // If we have a very good capture (i.e. SEE > see[captured_piece_type])
                 // and a reduced search returns a value much above beta,
                 // we can (almost) safely prune the previous move.
-                if (   depth >= 5 * ONE_MOVE
-                    && !(ss)->skip_null_move
-                    && eval >= alpha + 50 // TODO::
-                    && abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                if (   (depth >= 5 * ONE_MOVE)
+                    && (!(ss)->skip_null_move)
+                    && (eval >= alpha + 50) // TODO::
+                    && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                   )
                 {
                     Value rbeta  = beta + 200;
                     if (rbeta > VALUE_INFINITE)
@@ -898,7 +905,7 @@ namespace Searcher {
                         rbeta = VALUE_INFINITE;
                     }
 
-                    Depth rdepth = depth - 4 * ONE_MOVE;
+                    Depth rdepth = (depth - 4 * ONE_MOVE);
 
                     ASSERT (rdepth >= ONE_MOVE);
                     ASSERT ((ss-1)->current_move != MOVE_NONE);
@@ -930,9 +937,10 @@ namespace Searcher {
             }
 
             // Step 10. Internal iterative deepening (skipped when in check)
-            if (   depth >= ((PVNode ? 5: 8) * ONE_MOVE)
-                && tt_move == MOVE_NONE
-                && (PVNode || (ss)->static_eval + Value (256) >= beta))
+            if (   (depth >= ((PVNode ? 5: 8) * ONE_MOVE))
+                && (tt_move == MOVE_NONE)
+                && (PVNode || (ss)->static_eval + Value (256) >= beta)
+               )
             {
                 Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4); // TODO::
 
@@ -967,17 +975,19 @@ namespace Searcher {
             Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
             bool improving =
-                /**/(ss)->static_eval >= (ss-2)->static_eval
-                ||  (ss)->static_eval == VALUE_NONE
-                ||  (ss-2)->static_eval == VALUE_NONE;
+                (   ((ss)->static_eval >= (ss-2)->static_eval)
+                ||  ((ss)->static_eval == VALUE_NONE)
+                ||  ((ss-2)->static_eval == VALUE_NONE)
+                );
 
             bool singular_ext_node =
-                !RootNode && !SPNode
-                && depth >= 8 * ONE_MOVE
-                && tt_move != MOVE_NONE
-                && excluded_move == MOVE_NONE // Recursive singular search is not allowed
+                (  (!RootNode && !SPNode)
+                && (depth >= 8 * ONE_MOVE)
+                && (tt_move != MOVE_NONE)
+                && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
                 && (tte->bound () & BND_LOWER)
-                && (tte->depth () >= depth - 3 * ONE_MOVE);
+                && (tte->depth () >= depth - 3 * ONE_MOVE)
+                );
 
             point elapsed;
 
@@ -1046,13 +1056,13 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check= (NORMAL == mtype (move)) && !ci.discoverers
+                bool gives_check= ((NORMAL == mtype (move)) && !ci.discoverers)
                                 ?   ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
                                 :   pos.gives_check (move, ci);
 
-                bool dangerous  = gives_check
+                bool dangerous  = ( (gives_check)
                                 ||  (NORMAL != mtype (move))
-                                ||  pos.advanced_pawn_push (move);
+                                ||  (pos.advanced_pawn_push (move)));
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1065,11 +1075,12 @@ namespace Searcher {
                 // is singular and should be extended. To verify this we do a reduced search
                 // on all the other moves but the tt_move, if result is lower than tt_value minus
                 // a margin then we extend tt_move.
-                if (   singular_ext_node
-                    && move == tt_move
-                    && ext == DEPTH_ZERO
-                    && pos.legal (move, ci.pinneds)
-                    && abs (tt_value) < VALUE_KNOWN_WIN)
+                if (   (singular_ext_node)
+                    && (move == tt_move)
+                    && (ext == DEPTH_ZERO)
+                    && (pos.legal (move, ci.pinneds))
+                    && (abs (tt_value) < VALUE_KNOWN_WIN)
+                   )
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
@@ -1170,7 +1181,7 @@ namespace Searcher {
                     }
 
                     if (   !capture_or_promotion
-                        && quiets_count < MAX_QUIET_COUNT)
+                        && quiets_count < MAX_QUIETS)
                     {
                         quiet_moves[quiets_count++] = move;
                     }

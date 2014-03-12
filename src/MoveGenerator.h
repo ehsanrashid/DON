@@ -9,7 +9,7 @@
 
 class Position;
 
-const uint16_t MAX_MOVES = 256;
+const uint8_t MAX_MOVES = 255;
 
 typedef struct ValMove
 {
