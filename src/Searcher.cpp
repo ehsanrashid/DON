@@ -73,7 +73,6 @@ namespace Searcher {
 
         Value   DrawValue[CLR_NO];
         
-
         double  BestMoveChanges;
 
         uint8_t MultiPV
