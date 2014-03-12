@@ -343,22 +343,22 @@ namespace UCI {
         // .    Press the Load Hash from File button, and OK in the options window.
         // -----------------------------------------------------------------------------------------
 
-        // File name for saving or loading the hash file with the Save Hash to File or Load Hash from File buttons.
+        // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
-        // By default DON will use the hash.dat file in the "My Documents" folder of the current user.
+        // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    = OptionPtr (new StringOption ("hash.dat"));
 
-        // Save the current hash table to a disk file specified by the Hash File option.
+        // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
         // The size of the file will be identical to the size of the hash memory, so this operation could take a while.
         // This feature can be used to interrupt and restart a deep analysis at any time.
         Options["Save Hash"]                    = OptionPtr (new ButtonOption (on_save_hash));
 
-        // Load a previously saved hash file from disk.
+        // Load a previously saved Hash file from disk.
         // Use the Load Hash File button after loading the game or position, but before starting the analysis.
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
-        // The size of the hash memory will automatically be set to the size of the saved file.
+        // The size of the Hash memory will automatically be set to the size of the saved file.
         // Please make sure to check the Never Clear Hash option,
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
         Options["Load Hash"]                    = OptionPtr (new ButtonOption (on_load_hash));
@@ -368,11 +368,11 @@ namespace UCI {
 
         // Openings Book Options
         // ---------------------
-        // Whether or not the engine should use the opening book.
+        // Whether or not the engine should use the Opening Book.
         Options["OwnBook"]                      = OptionPtr (new CheckOption (false));
-        // The filename of the Opening book.
+        // The filename of the Opening Book.
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
-        // Whether or not to always play the best move from the opening book.
+        // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
 
@@ -387,11 +387,11 @@ namespace UCI {
         // Cores and Threads Options
         // -------------------------
 
-        // The maximum number of threads (cores) to use during the search.
+        // The maximum number of Threads (cores) to use during the search.
         // This number should be set to the number of cores in your CPU.
         // Default is hardware-dependent, Min 1, Max 32 (Standard) or 64 (Pro).
         //
-        // DON will automatically limit the number of threads to the number of logical processors of your hardware.
+        // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
         Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
@@ -399,7 +399,7 @@ namespace UCI {
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
         //
-        // Default 0 means auto setting which depends on the threads
+        // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
@@ -467,7 +467,7 @@ namespace UCI {
         //// If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
         //Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
 
-        // Roughly equivalent to "optimism."
+        // Roughly equivalent to "Optimism."
         // Factor for adjusted contempt. Changes playing style.
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
@@ -485,9 +485,9 @@ namespace UCI {
         // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
         // - End games with a material advantage that is insufficient for winning (fortress).
         //
-        // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
+        // By setting 50 Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_50_move_dist));
+        Options["50 Move Distance"]             = OptionPtr (new SpinOption (50,  5, 50, on_50_move_dist));
 
 
         // TODO::
