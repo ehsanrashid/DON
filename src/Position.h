@@ -178,7 +178,7 @@ private:
 
 public:
 
-    static uint8_t fifty_move_distance;
+    static uint8_t _50_move_dist;
 
     static void initialize ();
 

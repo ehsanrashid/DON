@@ -265,9 +265,9 @@ namespace UCI {
             Searcher::ForceNullMove = bool (opt);
         }
 
-        void on_fifty_move_dist (const Option &opt)
+        void on_50_move_dist (const Option &opt)
         {
-            Position::fifty_move_distance = 2 * int32_t (opt);
+            Position::_50_move_dist = 2 * int32_t (opt);
         }
 
         void on_log_debug       (const Option &opt)
@@ -487,7 +487,7 @@ namespace UCI {
         //
         // By setting FiftyMoveDistance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_fifty_move_dist));
+        Options["Fifty Move Distance"]          = OptionPtr (new SpinOption (50,  5, 50, on_50_move_dist));
 
 
         // TODO::

@@ -669,71 +669,73 @@ namespace Searcher {
             :          tte ?              tte->move ()              : MOVE_NONE;
             tt_value = tte ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
-            // At PV nodes we check for exact scores, while at non-PV nodes we check for
-            // a fail high/low. Biggest advantage at probing at PV nodes is to have a
-            // smooth experience in analysis mode. We don't probe at Root nodes otherwise
-            // we should also update RootMoveList to avoid bogus output.
-            if (   !RootNode
-                && tte
-                && tt_value != VALUE_NONE // Only in case of TT access race
-                && tte->depth () >= depth
-                && (        PVNode ?  tte->bound () == BND_EXACT
-                : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                /**/               : (tte->bound () &  BND_UPPER)))
+            if (!RootNode)
             {
-                TT.refresh (tte);
-
-                (ss)->current_move = tt_move; // Can be MOVE_NONE
-
-                // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
-                if (   tt_value >= beta
-                    && tt_move != MOVE_NONE
-                    && !pos.capture_or_promotion (tt_move)
-                    && !in_check)
+                // At PV nodes we check for exact scores, while at non-PV nodes we check for
+                // a fail high/low. Biggest advantage at probing at PV nodes is to have a
+                // smooth experience in analysis mode. We don't probe at Root nodes otherwise
+                // we should also update RootMoveList to avoid bogus output.
+                if (   tte
+                    && tt_value != VALUE_NONE // Only in case of TT access race
+                    && tte->depth () >= depth
+                    && (        PVNode ?  tte->bound () == BND_EXACT
+                    : tt_value >= beta ? (tte->bound () &  BND_LOWER)
+                    /**/               : (tte->bound () &  BND_UPPER)))
                 {
-                    update_stats (pos, ss, tt_move, depth, NULL, 0);
-                }
+                    TT.refresh (tte);
 
-                return tt_value;
-            }
+                    (ss)->current_move = tt_move; // Can be MOVE_NONE
 
-            // Step 4-TB. Tablebase probe
-            if (   !RootNode
-                && depth >= TBProbeDepth
-                && pos.clock50 () == 0
-                && pos.count () <= TBCardinality)
-            {
-                int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
-
-                if (found)
-                {
-                    ++TBHits;
-
-                    Value value;
-                    if (TB50MoveRule)
+                    // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
+                    if (   tt_value >= beta
+                        && tt_move != MOVE_NONE
+                        && !pos.capture_or_promotion (tt_move)
+                        && !in_check)
                     {
-                        value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
-                            :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
-                            :   VALUE_DRAW + 2 * v;
-                    }
-                    else
-                    {
-                        value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
-                            :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
-                            :   VALUE_DRAW;
+                        update_stats (pos, ss, tt_move, depth, NULL, 0);
                     }
 
-                    TT.store (
-                        posi_key,
-                        MOVE_NONE,
-                        depth + 6 * ONE_MOVE,
-                        BND_EXACT,
-                        pos.game_nodes (),
-                        value_to_tt (value, (ss)->ply),
-                        VALUE_NONE);
-
-                    return value;
+                    return tt_value;
                 }
+
+                // Step 4-TB. Tablebase probe
+                if (   depth >= TBProbeDepth
+                    && pos.clock50 () == 0
+                    && pos.count () <= TBCardinality)
+                {
+                    int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
+
+                    if (found)
+                    {
+                        ++TBHits;
+
+                        Value value;
+                        if (TB50MoveRule)
+                        {
+                            value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
+                                :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
+                                :   VALUE_DRAW + 2 * v;
+                        }
+                        else
+                        {
+                            value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
+                                :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
+                                :   VALUE_DRAW;
+                        }
+
+                        TT.store (
+                            posi_key,
+                            MOVE_NONE,
+                            depth + 6 * ONE_MOVE,
+                            BND_EXACT,
+                            pos.game_nodes (),
+                            value_to_tt (value, (ss)->ply),
+                            VALUE_NONE);
+
+                        return value;
+                    }
+                }
+
             }
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -1090,65 +1092,68 @@ namespace Searcher {
                 // Update current move (this must be done after singular extension search)
                 Depth new_depth = depth - ONE_MOVE + ext;
 
-                // Step 13. Pruning at shallow depth (exclude PV nodes)
-                if (   !PVNode
-                    && !capture_or_promotion
-                    && !in_check
-                    && !dangerous
-                 /* &&  move != tt_move Already implicit in the next condition */
-                    && best_value > VALUE_MATED_IN_MAX_PLY)
+                if (!PVNode)
                 {
-                    // Move count based pruning
-                    if (   depth < 16 * ONE_MOVE
-                        && moves_count >= FutilityMoveCounts[improving][depth])
+                    // Step 13. Pruning at shallow depth (exclude PV nodes)
+                    if (   !capture_or_promotion
+                        && !in_check
+                        && !dangerous
+                     /* &&  move != tt_move Already implicit in the next condition */
+                        && best_value > VALUE_MATED_IN_MAX_PLY)
                     {
-                        if (SPNode)
+                        // Move count based pruning
+                        if (   depth < 16 * ONE_MOVE
+                            && moves_count >= FutilityMoveCounts[improving][depth])
                         {
-                            split_point->mutex.lock ();
-                        }
-                        continue;
-                    }
-
-                    // Value based pruning
-                    // We illogically ignore reduction condition depth >= 3*ONE_MOVE for predicted depth,
-                    // but fixing this made program slightly weaker.
-                    Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, moves_count);
-
-                    // Futility pruning: parent node
-                    if (predicted_depth < 7 * ONE_MOVE)
-                    {
-                        Value futility_value = (ss)->static_eval + futility_margin (predicted_depth)
-                            + Value (128) + Gains[pos[org_sq (move)]][dst_sq (move)];
-
-                        if (futility_value <= alpha)
-                        {
-                            if (best_value < futility_value)
-                            {
-                                best_value = futility_value;
-                            }
-
                             if (SPNode)
                             {
                                 split_point->mutex.lock ();
-                                if (split_point->best_value < best_value)
+                            }
+                            continue;
+                        }
+
+                        // Value based pruning
+                        // We illogically ignore reduction condition depth >= 3*ONE_MOVE for predicted depth,
+                        // but fixing this made program slightly weaker.
+                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, moves_count);
+
+                        // Futility pruning: parent node
+                        if (predicted_depth < 7 * ONE_MOVE)
+                        {
+                            Value futility_value = (ss)->static_eval + futility_margin (predicted_depth)
+                                + Value (128) + Gains[pos[org_sq (move)]][dst_sq (move)];
+
+                            if (futility_value <= alpha)
+                            {
+                                if (best_value < futility_value)
                                 {
-                                    split_point->best_value = best_value;
+                                    best_value = futility_value;
                                 }
+
+                                if (SPNode)
+                                {
+                                    split_point->mutex.lock ();
+                                    if (split_point->best_value < best_value)
+                                    {
+                                        split_point->best_value = best_value;
+                                    }
+                                }
+                                continue;
+                            }
+                        }
+
+                        // Prune moves with negative SEE at low depths
+                        if (   predicted_depth < 4 * ONE_MOVE
+                            && pos.see_sign (move) < VALUE_ZERO)
+                        {
+                            if (SPNode)
+                            {
+                                split_point->mutex.lock ();
                             }
                             continue;
                         }
                     }
 
-                    // Prune moves with negative SEE at low depths
-                    if (   predicted_depth < 4 * ONE_MOVE
-                        && pos.see_sign (move) < VALUE_ZERO)
-                    {
-                        if (SPNode)
-                        {
-                            split_point->mutex.lock ();
-                        }
-                        continue;
-                    }
                 }
 
                 // Check for legality only before to do the move
@@ -1245,17 +1250,20 @@ namespace Searcher {
                 }
 
                 // Principal Variation Search
-                // For PV nodes only, do a full PV search on the first move or after a fail
-                // high (in the latter case search only if value < beta), otherwise let the
-                // parent node fail low with value <= alpha and to try another move.
-                if (PVNode && (is_pv_move || (value > alpha && (RootNode || value < beta))))
+                if (PVNode)
                 {
-                    value =
-                        new_depth < ONE_MOVE
-                        ? gives_check
-                        ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                        : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                        : -search      <PV       > (pos, ss+1, -beta, -alpha, new_depth, false);
+                    // For PV nodes only, do a full PV search on the first move or after a fail
+                    // high (in the latter case search only if value < beta), otherwise let the
+                    // parent node fail low with value <= alpha and to try another move.
+                    if (is_pv_move || (value > alpha && (RootNode || value < beta)))
+                    {
+                        value =
+                            new_depth < ONE_MOVE
+                            ? gives_check
+                            ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                            : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                            : -search      <PV       > (pos, ss+1, -beta, -alpha, new_depth, false);
+                    }
                 }
 
                 // Step 17. Undo move

@@ -208,11 +208,11 @@ namespace {
 
 } // namespace
 
-uint8_t Position::fifty_move_distance;
+uint8_t Position::_50_move_dist;
 
 void Position::initialize ()
 {
-    fifty_move_distance = 2 * int32_t (*(Options["Fifty Move Distance"]));  
+    _50_move_dist = 2 * int32_t (*(Options["Fifty Move Distance"]));  
 
     for (PieceT pt = PAWN; pt <= KING; ++pt)
     {
@@ -254,8 +254,8 @@ bool Position::draw () const
     }
 
     // Draw by 50 moves Rule?
-    if (    fifty_move_distance <  _si->clock50
-        || (fifty_move_distance == _si->clock50
+    if (    _50_move_dist <  _si->clock50
+        || (_50_move_dist == _si->clock50
         && (!_si->checkers || MoveList<LEGAL> (*this).size ())))
     {
         return true;
