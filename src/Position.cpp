@@ -775,7 +775,10 @@ bool Position::pseudo_legal (Move m) const
     if      (NORMAL    == mt)
     {
         // Is not a promotion, so promotion piece must be empty
-        if (PAWN != (prom_type (m) - NIHT)) return false;
+        if (PAWN != (prom_type (m) - NIHT))
+        {
+            return false;
+        }
         ct = _ptype (_board[cap]);
     }
     else if (CASTLE    == mt)
@@ -795,8 +798,10 @@ bool Position::pseudo_legal (Move m) const
         }
 
         bool king_side  = (dst > org); 
-        if (castle_impeded (mk_castle_right (activ, king_side ? CS_K : CS_Q))) return false;
-
+        if (castle_impeded (mk_castle_right (activ, king_side ? CS_K : CS_Q)))
+        {
+            return false;
+        }
         // Castle is always encoded as "King captures friendly Rook"
         ASSERT (dst == castle_rook (mk_castle_right (activ, king_side ? CS_K : CS_Q)));
         dst = rel_sq (activ, king_side ? SQ_WK_K : SQ_WK_Q);
@@ -835,15 +840,22 @@ bool Position::pseudo_legal (Move m) const
         }
 
         cap += pawn_push (pasiv);
-        if ((pasiv | PAWN) != _board[cap]) return false;
-
+        if ((pasiv | PAWN) != _board[cap])
+        {
+            return false;
+        }
         ct = PAWN;
     }
 
-    if (KING == ct) return false;
-
+    if (KING == ct)
+    {
+        return false;
+    }
     // The destination square cannot be occupied by a friendly piece
-    if (_color_bb[activ] & dst) return false;
+    if (_color_bb[activ] & dst)
+    {
+        return false;
+    }
 
     // Handle the special case of a piece move
     if (PAWN == pt)
@@ -859,8 +871,10 @@ bool Position::pseudo_legal (Move m) const
         
         // Move direction must be compatible with pawn color
         Delta delta = dst - org;
-        if ((activ == WHITE) != (delta > DEL_O)) return false;
-        
+        if ((activ == WHITE) != (delta > DEL_O))
+        {
+            return false;
+        }
         // Proceed according to the delta between the origin and destiny squares.
         switch (delta)
         {
@@ -904,7 +918,6 @@ bool Position::pseudo_legal (Move m) const
         default:
             return false;
         }
-        
         
         //if (!( (PawnAttacks[activ][org] & _color_bb[pasiv] & dst    // Not a capture
         //        && (NONE != ct)
