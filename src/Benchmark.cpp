@@ -156,6 +156,10 @@ void benchmark (istream &is, const Position &pos)
         }
     }
 
+    cerr<< "\n---------------------------\n";
+
+    dbg_print (); // Just before to exit
+
     elapsed = now () - elapsed;
     // Ensure non-zero to avoid a 'divide by zero'
     if (elapsed == 0) elapsed = 1;
@@ -166,6 +170,5 @@ void benchmark (istream &is, const Position &pos)
         << "Nodes searched  : " << nodes   << "\n"
         << "Nodes/second    : " << nodes * 1000 / elapsed
         << endl;
-    dbg_print ();
-    system ("pause");
+
 }
