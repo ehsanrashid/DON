@@ -25,9 +25,7 @@ René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 */
 
-#include "base64.h"
-
-#include <iostream>
+#include "Base64.h"
 
 using namespace std;
 
@@ -100,7 +98,6 @@ string encode_base64 (const string &decoded_string)
     }
 
     return encoded;
-
 }
 
 string decode_base64 (const string &encoded_string)
@@ -118,7 +115,6 @@ string decode_base64 (const string &encoded_string)
     while (decoded_len-- && is_base64 (*decoded_bytes))
     {
         char_array_4[i++] = *(decoded_bytes++);
-
         if (i ==4)
         {
             for (i = 0; i < 4; ++i)

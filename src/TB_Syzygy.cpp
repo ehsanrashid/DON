@@ -404,8 +404,8 @@ namespace TBSyzygy {
             if (fd == FD_ERR) return;
             close_tb (fd);
 
-            for (i = 0; i < 16; ++i) pcs[i] = 0;
-            //memset (pcs, 0, sizeof (pcs));
+            //for (i = 0; i < 16; ++i) pcs[i] = 0;
+            memset (pcs, 0, sizeof (pcs));
 
             color = 0;
             for (s = filename; *s; ++s)
@@ -2160,7 +2160,7 @@ namespace TBSyzygy {
             int32_t color = !mirror ? 0 : 8;
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
+                for (uint8_t pc = 0; pc < pcs[color|pt]; ++pc)
                 {
                     key ^= Zob._.piecesq[WHITE][pt][pc];
                 }
@@ -2168,7 +2168,7 @@ namespace TBSyzygy {
             color ^= 8;
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (uint8_t pc = 0; pc < pcs[color + pt]; ++pc)
+                for (uint8_t pc = 0; pc < pcs[color|pt]; ++pc)
                 {
                     key ^= Zob._.piecesq[BLACK][pt][pc];
                 }
@@ -2183,8 +2183,8 @@ namespace TBSyzygy {
             int32_t i;
             int32_t p[NONE];
             
-            for (i = 0; i < NONE; ++i) p[i] = 0;
-            //memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0;
+            memset (p, 0, sizeof (p));
 
             // Obtain the position's material signature key.
             Key key = pos.matl_key ();
@@ -2318,8 +2318,8 @@ namespace TBSyzygy {
             int32_t i, res;
             int32_t p[NONE];
             
-            for (i = 0; i < NONE; ++i) p[i] = 0;
-            //memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0;
+            memset (p, 0, sizeof (p));
 
             // Obtain the position's material signature key.
             uint64_t key = pos.matl_key ();

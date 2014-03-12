@@ -988,8 +988,15 @@ bool Position::legal        (Move m, Bitboard pinned) const
     Square ksq = king_sq (activ);
 
     MoveT mt = mtype (m);
-
-    if      (CASTLE    == mt)
+    if      (NORMAL    == mt)
+    {
+        goto piece_check;
+    }
+    else if (PROMOTE   == mt)
+    {
+        goto pin_check;
+    }
+    else if (CASTLE    == mt)
     {
         // Castling moves are checked for legality during move generation.
         return (KING == pt);
@@ -1012,6 +1019,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
             ||   (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP]))));
     }
 
+piece_check:
     // If the moving piece is a king.
     if (KING == pt)
     {
@@ -1021,6 +1029,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasiv]); // Remove 'org' but not place 'dst'
     }
 
+pin_check:
     // A non-king move is legal if and only if it is not pinned or it
     // is moving along the ray towards or away from the king or
     // is a blocking evasion or a capture of the checking piece.
