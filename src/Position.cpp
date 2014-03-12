@@ -341,25 +341,33 @@ bool Position::ok (int8_t *failed_step) const
 
     *step = 0;
     // step 1
-    if (++(*step), !_ok (_active)) return false;
+    if (++(*step), !_ok (_active))
+    {
+        return false;
+    }
     // step 2
-    if (++(*step), W_KING != _board[king_sq (WHITE)]) return false;
+    if (++(*step), W_KING != _board[king_sq (WHITE)])
+    {
+        return false;
+    }
     // step 3
-    if (++(*step), B_KING != _board[king_sq (BLACK)]) return false;
-
+    if (++(*step), B_KING != _board[king_sq (BLACK)])
+    {
+        return false;
+    }
     // step 4
     if (++(*step), debug_king_count)
     {
-        uint8_t king_count[CLR_NO] = {0};
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            Piece p = _board[s];
-            if (KING == _ptype (p)) ++king_count[_color (p)];
-        }
         for (Color c = WHITE; c <= BLACK; ++c)
         {
-            if (1 != king_count[c]) return false;
-            if (_piece_count[c][KING] != pop_count<FULL> (_color_bb[c]&_types_bb[KING])) return false;
+            if (1 != std::count (_board, _board + SQ_NO, c|KING))
+            {
+                return false;
+            }
+            if (_piece_count[c][KING] != pop_count<FULL> (_color_bb[c]&_types_bb[KING]))
+            {
+                return false;
+            }
         }
     }
     
@@ -397,8 +405,10 @@ bool Position::ok (int8_t *failed_step) const
         {
             Bitboard colors = _color_bb[c];
 
-            if (pop_count<FULL> (colors) > 16) return false; // Too many Piece of color
-
+            if (pop_count<FULL> (colors) > 16) // Too many Piece of color
+            {
+                return false;
+            }
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
@@ -430,34 +440,57 @@ bool Position::ok (int8_t *failed_step) const
 
             // There should be one and only one KING of color
             Bitboard kings = colors & _types_bb[KING];
-            if (!kings || more_than_one (kings)) return false;
+            if (!kings || more_than_one (kings))
+            {
+                return false;
+            }
         }
 
         // The intersection of the white and black pieces must be empty
-        if (_color_bb[WHITE]&_color_bb[BLACK]) return false;
-
+        if (_color_bb[WHITE]&_color_bb[BLACK])
+        {
+            return false;
+        }
         Bitboard occ = _types_bb[NONE];
         // The union of the white and black pieces must be equal to occupied squares
-        if ((_color_bb[WHITE]|_color_bb[BLACK]) != occ) return false;
-        if ((_color_bb[WHITE]^_color_bb[BLACK]) != occ) return false;
+        if ((_color_bb[WHITE]|_color_bb[BLACK]) != occ)
+        {
+            return false;
+        }
+        if ((_color_bb[WHITE]^_color_bb[BLACK]) != occ)
+        {
+            return false;
+        }
 
         // The intersection of separate piece type must be empty
         for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
         {
             for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
             {
-                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2])) return false;
+                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
+                {
+                    return false;
+                }
             }
         }
 
         // The union of separate piece type must be equal to occupied squares
         if ( (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != occ) return false;
+             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != occ)
+        {
+            return false;
+        }
         if ( (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != occ) return false;
+             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != occ)
+        {
+            return false;
+        }
 
         // PAWN rank should not be 1/8
-        if ((_types_bb[PAWN]&(R1_bb|R8_bb))) return false;
+        if ((_types_bb[PAWN]&(R1_bb|R8_bb)))
+        {
+            return false;
+        }
     }
 
     // step 7
@@ -469,9 +502,18 @@ bool Position::ok (int8_t *failed_step) const
             {
                 for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
-                    if (!_ok (_piece_list[c][pt][i])) return false;
-                    if (_board[_piece_list[c][pt][i]] != (c | pt)) return false;
-                    if (_index[_piece_list[c][pt][i]] != i) return false;
+                    if (!_ok (_piece_list[c][pt][i]))
+                    {
+                        return false;
+                    }
+                    if (_board[_piece_list[c][pt][i]] != (c | pt))
+                    {
+                        return false;
+                    }
+                    if (_index[_piece_list[c][pt][i]] != i)
+                    {
+                        return false;
+                    }
                 }
             }
         }

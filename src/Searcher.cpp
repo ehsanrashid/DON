@@ -743,6 +743,9 @@ namespace Searcher {
                 goto moves_loop;
             }
 
+            // Rest of code is skipped when in check
+            // -------------------------------------
+
             if (tte)
             {
                 // Never assume anything on values stored in TT
@@ -784,146 +787,146 @@ namespace Searcher {
                 Gains.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
             }
 
-            // Step 6. Razoring (skipped when in check)
-            if (   !PVNode
-                && depth < 4 * ONE_MOVE
-                && eval + razor_margin (depth) <= alpha
-                && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                && tt_move == MOVE_NONE
-                && !pos.pawn_on_7thR (pos.active ()))
+            if (!PVNode) // (is omitted in PV nodes)
             {
-                Value ralpha = alpha - razor_margin (depth);
-
-                Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-
-                if (ver_value <= ralpha)
+                // Step 6. Razoring
+                if (   depth < 4 * ONE_MOVE
+                    && eval + razor_margin (depth) <= alpha
+                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
+                    && tt_move == MOVE_NONE
+                    && !pos.pawn_on_7thR (pos.active ()))
                 {
-                    return ver_value;
+                    Value ralpha = alpha - razor_margin (depth);
+
+                    Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+
+                    if (ver_value <= ralpha)
+                    {
+                        return ver_value;
+                    }
                 }
-            }
             
-            // Step 7. Futility pruning: child node (skipped when in check)
-            // We're betting that the opponent doesn't have a move that will reduce
-            // the score by more than futility_margin (depth) if we do a null move.
-            if (   !PVNode
-                && !(ss)->skip_null_move
-                && depth < 9 * ONE_MOVE // TODO::
-                && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                && abs (eval) < VALUE_KNOWN_WIN
-                && pos.non_pawn_material (pos.active ()))
-            {
-                Value eval_fut = eval - futility_margin (depth);
-                if (eval_fut >= beta)
+                // Step 7. Futility pruning: child node
+                // We're betting that the opponent doesn't have a move that will reduce
+                // the score by more than futility_margin (depth) if we do a null move.
+                if (   !(ss)->skip_null_move
+                    && depth < 9 * ONE_MOVE // TODO::
+                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
+                    && abs (eval) < VALUE_KNOWN_WIN
+                    && pos.non_pawn_material (pos.active ()))
                 {
-                    return eval_fut;
+                    Value eval_fut = eval - futility_margin (depth);
+                    if (eval_fut >= beta)
+                    {
+                        return eval_fut;
+                    }
                 }
+
+                // Step 8. Null move search with verification search
+                if (   /*ForceNullMove ||*/
+                    (  !(ss)->skip_null_move
+                    && depth >= 2 * ONE_MOVE
+                    && eval >= beta
+                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
+                    && pos.non_pawn_material (pos.active ())))
+                {
+                    ASSERT (eval >= beta);
+
+                    (ss)->current_move = MOVE_NULL;
+
+                    // Null move dynamic (variable) reduction based on depth and value
+                    Depth R = 3 * ONE_MOVE
+                        +     depth / 4
+                        +     (int32_t (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
+
+                    // Do null move
+                    pos.do_null_move (si);
+                    (ss+1)->skip_null_move = true;
+
+                    // Null window (alpha, beta) = (beta-1, beta):
+                    Value null_value = (depth-R < ONE_MOVE)
+                        ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
+                        : -search      <NonPV       > (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
+
+                    (ss+1)->skip_null_move = false;
+                    // Undo null move
+                    pos.undo_null_move ();
+
+                    if (null_value >= beta)
+                    {
+                        // Do not return unproven mate scores
+                        if (null_value >= VALUE_MATES_IN_MAX_PLY)
+                        {
+                            null_value = beta;
+                        }
+
+                        if (depth < 12 * ONE_MOVE)
+                        {
+                            return null_value;
+                        }
+
+                        // Do verification search at high depths
+                        (ss)->skip_null_move = true;
+
+                        Value veri_value = depth-R < ONE_MOVE
+                            ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
+                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true // TODO::
+
+                        (ss)->skip_null_move = false;
+
+                        if (veri_value >= beta)
+                        {
+                            return null_value;
+                        }
+                    }
+                }
+
+                // Step 9. ProbCut
+                // If we have a very good capture (i.e. SEE > see[captured_piece_type])
+                // and a reduced search returns a value much above beta,
+                // we can (almost) safely prune the previous move.
+                if (   depth >= 5 * ONE_MOVE
+                    && !(ss)->skip_null_move
+                    && eval >= alpha + 50 // TODO::
+                    && abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                {
+                    Value rbeta  = beta + 200;
+                    if (rbeta > VALUE_INFINITE)
+                    {
+                        rbeta = VALUE_INFINITE;
+                    }
+
+                    Depth rdepth = depth - 4 * ONE_MOVE;
+
+                    ASSERT (rdepth >= ONE_MOVE);
+                    ASSERT ((ss-1)->current_move != MOVE_NONE);
+                    ASSERT ((ss-1)->current_move != MOVE_NULL);
+
+                    // Initialize a MovePicker object for the current position,
+                    // and prepare to search the moves.
+                    MovePicker mp (pos, History, tt_move, pos.capture_type ());
+
+                    while ((move = mp.next_move<false> ()) != MOVE_NONE)
+                    {
+                        if (!pos.legal (move, ci.pinneds)) continue;
+
+                        (ss)->current_move = move;
+
+                        pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+
+                        Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
+
+                        pos.undo_move ();
+
+                        if (value >= rbeta)
+                        {
+                            return value;
+                        }
+                    }
+                }
+
             }
 
-            // Step 8. Null move search with verification search (is omitted in PV nodes)
-            if (   /*ForceNullMove ||*/
-                (  !PVNode
-                && !(ss)->skip_null_move
-                && depth >= 2 * ONE_MOVE
-                && eval >= beta
-                && abs (beta) < VALUE_MATES_IN_MAX_PLY
-                && pos.non_pawn_material (pos.active ())))
-            {
-                ASSERT (eval >= beta);
-
-                (ss)->current_move = MOVE_NULL;
-
-                // Null move dynamic (variable) reduction based on depth and value
-                Depth R = 3 * ONE_MOVE
-                    +     depth / 4
-                    +     (int32_t (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
-
-                // Do null move
-                pos.do_null_move (si);
-                (ss+1)->skip_null_move = true;
-
-                // Null window (alpha, beta) = (beta-1, beta):
-                Value null_value = (depth-R < ONE_MOVE)
-                    ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
-                    : -search      <NonPV       > (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
-
-                (ss+1)->skip_null_move = false;
-                // Undo null move
-                pos.undo_null_move ();
-
-                if (null_value >= beta)
-                {
-                    // Do not return unproven mate scores
-                    if (null_value >= VALUE_MATES_IN_MAX_PLY)
-                    {
-                        null_value = beta;
-                    }
-
-                    if (depth < 12 * ONE_MOVE)
-                    {
-                        return null_value;
-                    }
-
-                    // Do verification search at high depths
-                    (ss)->skip_null_move = true;
-
-                    Value veri_value = depth-R < ONE_MOVE
-                        ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                        : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // true // TODO::
-
-                    (ss)->skip_null_move = false;
-
-                    if (veri_value >= beta)
-                    {
-                        return null_value;
-                    }
-                }
-            }
-
-            // Step 9. ProbCut (skipped when in check)
-            // If we have a very good capture (i.e. SEE > see[captured_piece_type])
-            // and a reduced search returns a value much above beta,
-            // we can (almost) safely prune the previous move.
-            if (   !PVNode
-                && depth >= 5 * ONE_MOVE
-                && !(ss)->skip_null_move
-                && eval >= alpha + 50 // TODO::
-                && abs (beta) < VALUE_MATES_IN_MAX_PLY)
-            {
-                Value rbeta  = beta + 200;
-                if (rbeta > VALUE_INFINITE)
-                {
-                    rbeta = VALUE_INFINITE;
-                }
-
-                Depth rdepth = depth - 4 * ONE_MOVE;
-
-                ASSERT (rdepth >= ONE_MOVE);
-                ASSERT ((ss-1)->current_move != MOVE_NONE);
-                ASSERT ((ss-1)->current_move != MOVE_NULL);
-
-                // Initialize a MovePicker object for the current position,
-                // and prepare to search the moves.
-                MovePicker mp (pos, History, tt_move, pos.capture_type ());
-
-                while ((move = mp.next_move<false> ()) != MOVE_NONE)
-                {
-                    if (!pos.legal (move, ci.pinneds)) continue;
-
-                    (ss)->current_move = move;
-
-                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
-
-                    Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
-
-                    pos.undo_move ();
-
-                    if (value >= rbeta)
-                    {
-                        return value;
-                    }
-                }
-            }
-            
             // Step 10. Internal iterative deepening (skipped when in check)
             if (   depth >= ((PVNode ? 5: 8) * ONE_MOVE)
                 && tt_move == MOVE_NONE
