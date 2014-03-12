@@ -795,7 +795,7 @@ namespace Searcher {
                 if (   depth < 4 * ONE_MOVE
                     && abs (beta) < VALUE_MATES_IN_MAX_PLY
                     && tt_move == MOVE_NONE
-                    /*&& !pos.pawn_on_7thR (pos.active ())*/) // TODO::
+                    && !pos.pawn_on_7thR (pos.active ())) // TODO::
                 {
                     Value ralpha = alpha - razor_margin (depth);
                     if (eval <= ralpha)
@@ -873,7 +873,7 @@ namespace Searcher {
 
                         Value veri_value = depth-R < ONE_MOVE
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, true); // TODO::
+                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // TODO::
 
                         (ss)->skip_null_move = false;
 
@@ -935,7 +935,7 @@ namespace Searcher {
                 && tt_move == MOVE_NONE
                 && (PVNode || (ss)->static_eval + Value (256) >= beta))
             {
-                Depth d = depth - 3 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4); // TODO::
+                Depth d = depth - 2 * ONE_MOVE - (PVNode ? DEPTH_ZERO : depth / 4); // TODO::
 
                 (ss)->skip_null_move = true;
 
@@ -1475,7 +1475,7 @@ namespace Searcher {
                 for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
                 {
                     // Reset aspiration window starting size
-                    if (depth >= 5) // 3
+                    if (depth >= 5)
                     {
                         //window = Value (16);
                         window = Value (max (16, 25 - depth));
@@ -1538,7 +1538,7 @@ namespace Searcher {
                             break;
                         }
 
-                        window += window / 2;
+                        window += window / 2; // int32_t (window) * 0.75; // TODO::
 
                         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                     }
