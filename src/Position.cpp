@@ -1231,15 +1231,15 @@ bool Position::can_en_passant (Square ep_sq) const
     }
 
     // Check en-passant is legal for the position
-    Square kng_sq = king_sq (activ);
+    Square ksq = king_sq (activ);
     Bitboard occ = _types_bb[NONE];
     for (vector<Move>::const_iterator itr = mov_ep.begin (); itr != mov_ep.end (); ++itr)
     {
         Move m = *itr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         
-        if (!((attacks_bb<ROOK> (kng_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            | (attacks_bb<BSHP> (kng_sq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
+        if (!((attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            | (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
         {
             return true;
         }
