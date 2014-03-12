@@ -31,15 +31,19 @@ René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 using namespace std;
 
-static const string base64_chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789+/";
+namespace {
+
+    const string base64_chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
 
 
-static inline bool is_base64 (unsigned char c)
-{
-    return (c != '=') && (isalnum (c) || (c == '+') || (c == '/'));
+    inline bool is_base64 (unsigned char c)
+    {
+        return (c != '=') && (isalnum (c) || (c == '+') || (c == '/'));
+    }
+
 }
 
 string encode_base64 (const string &decoded_string)
