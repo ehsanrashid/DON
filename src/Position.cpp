@@ -568,6 +568,7 @@ bool Position::ok (int8_t *failed_step) const
         Square ep_sq = _si->en_passant_sq;
         if (SQ_NO != ep_sq)
         {
+            if (R_6 != rel_rank (_active, ep_sq)) return false;
             if (!can_en_passant (ep_sq)) return false;
         }
     }
