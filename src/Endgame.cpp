@@ -75,8 +75,7 @@ namespace EndGame {
 
         // Get the material key of a Position out of the given endgame key code
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
-        // and then let a Position object to do the work for us. Note that the
-        // fen string could correspond to an illegal position.
+        // and then let a Position object to do the work for us.
         inline Key key (const string &code, Color c)
         {
             uint8_t length = code.length (); 
@@ -90,9 +89,10 @@ namespace EndGame {
             };
 
             transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-            string empty (1, char ('0' + 8 - length));
-            if ("0" == empty) empty = "";
-            string fen = sides[0] + empty + sides[1] + "/8/8/8/8/8/8/8 w - - 0 1";
+            
+            string fen = sides[0] + char (8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
+                       + sides[1] + char (8 - sides[1].length() + '0') + " w - - 0 1";
+
             return Position (fen).matl_key ();
         }
 
