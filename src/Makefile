@@ -200,9 +200,9 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
-# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums -Wno-pragmas -fno-exceptions
+# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums -Wno-pragmas -fexceptions
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fexceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)
@@ -300,14 +300,10 @@ ifeq ($(optimize),yes)
 	endif
 
 	ifeq ($(comp),clang)
+		CXXFLAGS += -O3
+	
 		ifeq ($(os),osx)
-			# Clang on OS X supports LTO
-			CXXFLAGS += -O4
-		else
-			CXXFLAGS += -O3
-		endif
-
-		ifeq ($(os),osx)
+			CXXFLAGS += -flto
 			ifeq ($(arch),i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif

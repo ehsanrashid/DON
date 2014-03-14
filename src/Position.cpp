@@ -1240,7 +1240,7 @@ bool Position::can_en_passant (Square ep_sq) const
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         
         if (!((attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            | (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
+           || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasiv]&(_types_bb[QUEN]|_types_bb[BSHP])))))
         {
             return true;
         }
