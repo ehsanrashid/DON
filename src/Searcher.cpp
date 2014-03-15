@@ -1484,11 +1484,12 @@ namespace Searcher {
                 // MultiPV loop. We perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
                 {
-                    // Reset aspiration window starting size
+                    // Reset Aspiration window starting size
                     if (depth >= 5)
                     {
-                        //window = Value (16);
-                        window = Value (max (16, 25 - depth));
+                        window = 
+                            //Value (depth < 23 ? 12 : depth < 31 ? 16 : 20);
+                            Value (11 + depth / 4);
 
                         alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
@@ -1541,7 +1542,7 @@ namespace Searcher {
                         }
                         else if (best_value >= beta)
                         {
-                            beta = min (best_value + window, +VALUE_INFINITE);
+                            beta  = min (best_value + window, +VALUE_INFINITE);
                         }
                         else
                         {
@@ -1603,7 +1604,7 @@ namespace Searcher {
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
                     if (   RootMoves.size () == 1
-                        || now () - SearchTime > TimeMgr.available_time ())
+                        || (now () - SearchTime) > TimeMgr.available_time ())
                     {
                         // If we are allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
