@@ -78,14 +78,13 @@ namespace EndGame {
         // and then let a Position object to do the work for us.
         inline Key key (const string &code, Color c)
         {
-            uint8_t length = code.length (); 
-            ASSERT (0 < length && length <= 8);
+            ASSERT (0 < code.length () && code.length () <= 8);
             ASSERT (code[0] == 'K');
 
             string sides[CLR_NO] =
             {
-                code.substr (   code.find('K', 1)), // Lossing
-                code.substr (0, code.find('K', 1)), // Winning
+                code.substr (   code.find('K', 1)), // Weak
+                code.substr (0, code.find('K', 1)), // Strong
             };
 
             transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);

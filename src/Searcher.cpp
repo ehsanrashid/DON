@@ -1490,7 +1490,7 @@ namespace Searcher {
                 for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
                 {
                     // Reset Aspiration window starting size
-                    if (depth >= 5)
+                    if (depth >= 4)
                     {
                         window = 
                             //Value (depth < 23 ? 12 : depth < 31 ? 16 : 20);
@@ -2016,7 +2016,7 @@ namespace Threads {
         bool still_at_first_move =
                ( Signals.first_root_move)
             && (!Signals.failed_low_at_root)
-            && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4);
+            && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4); // TODO::
 
         bool no_more_time =
                (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)

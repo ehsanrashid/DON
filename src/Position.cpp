@@ -256,7 +256,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _50_move_dist <  _si->clock50
         || (_50_move_dist == _si->clock50
-        && (!_si->checkers || MoveList<LEGAL> (*this).size ())))
+          && (!_si->checkers || MoveList<LEGAL> (*this).size ())))
     {
         return true;
     }
@@ -1757,7 +1757,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
     return true;
 }
 #endif
-string Position::fen (bool                  c960, bool full) const
+string Position::fen (bool                 c960, bool full) const
 {
     ostringstream os;
 
