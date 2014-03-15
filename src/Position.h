@@ -160,9 +160,9 @@ private:
     // Pointer for current status information
     StateInfo *_si;
 
-    CRight   _castling_mask[SQ_NO];
-    Square   _castle_rooks[CR_ALL];
-    Bitboard _castle_paths[CR_ALL];
+    CRight   _castle_mask[SQ_NO];
+    Square   _castle_rook[CR_ALL];
+    Bitboard _castle_path[CR_ALL];
 
     // Side on move
     // "w" - WHITE
@@ -175,6 +175,19 @@ private:
     uint64_t _game_nodes;
 
     Threads::Thread  *_thread;
+
+    // ------------------------
+
+    void set_castle (Color c, Square org_rook);
+
+    bool can_en_passant (Square ep_sq) const;
+    //bool can_en_passant (File   ep_f) const;
+
+    Bitboard check_blockers (Color piece_c, Color king_c) const;
+
+    template<bool DO>
+    void do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook);
+
 
 public:
 
@@ -292,12 +305,6 @@ public:
     Value see      (Move m) const;
     Value see_sign (Move m) const;
 
-private:
-
-    Bitboard check_blockers (Color c, Color king_c) const;
-
-public:
-
     //template<PieceT PT>
     //// Attacks of the PTYPE from the square
     //Bitboard attacks_from (Square s) const;
@@ -326,15 +333,6 @@ public:
     bool bishops_pair (Color c) const;
     bool opposite_bishops ()    const;
 
-private:
-
-    void set_castle (Color c, Square org_rook);
-
-    bool can_en_passant (Square ep_sq) const;
-    //bool can_en_passant (File   ep_f) const;
-
-public:
-
     void clear ();
 
     void  place_piece (Square s, Color c, PieceT pt);
@@ -353,10 +351,6 @@ public:
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
-private:
-    void exchange_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook);
-
-public:
     // do/undo move
     void do_move (Move m, StateInfo &n_si, const CheckInfo *ci);
     void do_move (Move m, StateInfo &n_si);
@@ -490,8 +484,8 @@ inline Value    Position::non_pawn_material (Color c) const { return _si->non_pa
 inline CRight Position::can_castle (CRight cr)        const { return _si->castle_rights & cr; }
 inline CRight Position::can_castle (Color   c)        const { return _si->castle_rights & mk_castle_right (c); }
 
-inline Square Position::castle_rook  (CRight cr) const { return _castle_rooks[cr]; }
-inline bool Position::castle_impeded (CRight cr) const { return _castle_paths[cr] & _types_bb[NONE]; }
+inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
+inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 
 // Color of the side on move
 inline Color    Position::active    () const { return _active; }
@@ -543,7 +537,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (king_sq (c)) & _color_bb[~c];
+    return attackers_to (_piece_list[c][KING][0]) & _color_bb[~c];
 }
 
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
@@ -586,13 +580,13 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return _piece_count[WHITE][BSHP]
-    //    && _piece_count[BLACK][BSHP]
+    //return _piece_count[WHITE][BSHP] != 0
+    //    && _piece_count[BLACK][BSHP] != 0
     //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
-    return _piece_count[WHITE][BSHP]
-        && _piece_count[BLACK][BSHP]
+    return _piece_count[WHITE][BSHP] != 0
+        && _piece_count[BLACK][BSHP] != 0
         && !(((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
-        ||   ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
+           ||((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
 }
 
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
@@ -698,15 +692,23 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _piece_list[c][pt][_index[s2]] = s2;
 }
 
-// exchange_king_rook() exchanges the king and rook
-inline void Position::exchange_king_rook (Square org_king, Square dst_king, Square org_rook, Square dst_rook)
+/// Position::do_castling() is a helper used to do/undo a castling move. This
+/// is a bit tricky, especially in Chess960.
+template<bool DO>
+inline void Position::do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook)
 {
-    // Remove both pieces first since squares could overlap in chess960
-    remove_piece (org_king);
-    remove_piece (org_rook);
+    // Move the piece. The tricky Chess960 castle is handled earlier
+    bool king_side = (dst_king > org_king);
+    org_rook = dst_king; // castle is always encoded as "King captures friendly Rook"
+    dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
+    dst_king = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
 
-    place_piece (dst_king, _active, KING);
-    place_piece (dst_rook, _active, ROOK);
+    // Remove both pieces first since squares could overlap in chess960
+    remove_piece (DO ? org_king : dst_king);
+    remove_piece (DO ? org_rook : dst_rook);
+
+    place_piece (DO ? dst_king : org_king, _active, KING);
+    place_piece (DO ? dst_rook : org_rook, _active, ROOK);
 }
 
 

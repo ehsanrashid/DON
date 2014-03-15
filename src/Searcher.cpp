@@ -835,9 +835,8 @@ namespace Searcher {
                     && (depth >= 2 * ONE_MOVE)
                     && (eval >= beta)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
-                    && pos.non_pawn_material (pos.active ())
-                    )
-                   )
+                    && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
+                    ))
                 {
                     ASSERT (eval >= beta);
 

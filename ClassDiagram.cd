@@ -29,8 +29,8 @@
       <Field Name="_color_bb" />
       <Field Name="_types_bb" />
       <Field Name="_piece_list" />
-      <Field Name="_castle_rooks" />
-      <Field Name="_castle_paths" />
+      <Field Name="_castle_rook" />
+      <Field Name="_castle_path" />
     </ShowAsCollectionAssociation>
   </Class>
   <Class Name="std::basic_null_buffer&lt;charT, Traits&gt;" Collapsed="true">
