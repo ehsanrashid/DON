@@ -71,7 +71,7 @@ namespace Threads {
         max_ply = split_point_threads = 0;
         active_split_point = NULL;
         active_pos         = NULL;
-        idx = Threadpool.size ();
+        idx = Threadpool.size (); // Starts from 0
     }
 
     // cutoff_occurred() checks whether a beta cutoff has occurred in the
@@ -118,7 +118,7 @@ namespace Threads {
     {
         ASSERT (pos.ok ());
         ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
-        ASSERT (depth >= Threadpool.min_split_depth);
+        ASSERT (depth >= Threadpool.split_depth);
         ASSERT (searching);
         ASSERT (split_point_threads < MAX_SPLIT_POINT_THREADS);
 
@@ -152,40 +152,37 @@ namespace Threads {
         active_split_point = &sp;
         active_pos = NULL;
 
-        uint8_t slaves_count = 1; // This thread is always included
-        Thread *slave;
-
-        while ((slave = Threadpool.available_slave (this)) != NULL
-            && ++slaves_count <= Threadpool.max_split_point_threads && !FAKE)
+        if (!FAKE)
         {
-            sp.slaves_mask |= (U64 (1) << slave->idx);
-            slave->active_split_point = &sp;
-            slave->searching = true; // Slave leaves idle_loop()
-            slave->notify_one (); // Could be sleeping
+            Thread *slave;
+            while ((slave = Threadpool.available_slave (this)) != NULL)
+            {
+                sp.slaves_mask |= (U64 (1) << slave->idx);
+                slave->active_split_point = &sp;
+                slave->searching = true; // Slave leaves idle_loop()
+                slave->notify_one (); // Could be sleeping
+            }
         }
 
         // Everything is set up. The master thread enters the idle loop, from which
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
         // their work at this split point.
-        if (slaves_count > 1 || FAKE)
-        {
-            sp.mutex.unlock ();
-            Threadpool.mutex.unlock ();
+        sp.mutex.unlock ();
+        Threadpool.mutex.unlock ();
 
-            Thread::idle_loop (); // Force a call to base class idle_loop()
+        Thread::idle_loop (); // Force a call to base class idle_loop()
 
-            // In helpful master concept a master can help only a sub-tree of its split
-            // point, and because here is all finished is not possible master is booked.
-            ASSERT (!searching);
-            ASSERT (!active_pos);
+        // In helpful master concept a master can help only a sub-tree of its split
+        // point, and because here is all finished is not possible master is booked.
+        ASSERT (!searching);
+        ASSERT (!active_pos);
 
-            // We have returned from the idle loop, which means that all threads are finished.
-            // Note that setting 'searching' and decreasing split_point_threads is
-            // done under lock protection to avoid a race with Thread::available_to().
-            Threadpool.mutex.lock ();
-            sp.mutex.lock ();
-        }
+        // We have returned from the idle loop, which means that all threads are finished.
+        // Note that setting 'searching' and decreasing split_point_threads is
+        // done under lock protection to avoid a race with Thread::available_to().
+        Threadpool.mutex.lock ();
+        sp.mutex.lock ();
 
         searching = true;
 
@@ -288,25 +285,24 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::read_uci_options ()
     {
-        min_split_depth         = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-        max_split_point_threads = int32_t (*(Options["Split Point Threads"]));
-        uint8_t req_threads     = int32_t (*(Options["Threads"]));
+        split_depth     = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
+        uint8_t threads = int32_t (*(Options["Threads"]));
 
-        ASSERT (req_threads > 0);
+        ASSERT (threads > 0);
 
         // Value 0 has a special meaning:
         // Determines the best optimal minimum split depth automatically
-        if (0 == min_split_depth)
+        if (0 == split_depth)
         {
-            min_split_depth = (req_threads < 8 ? 4 : 7) * ONE_MOVE;
+            split_depth = (threads < 8 ? 4 : 7) * ONE_MOVE;
         }
 
-        while (size () < req_threads)
+        while (size () < threads)
         {
             push_back (new_thread<Thread> ());
         }
 
-        while (size () > req_threads)
+        while (size () > threads)
         {
             delete_thread (back ());
             pop_back ();
@@ -314,8 +310,7 @@ namespace Threads {
 
         //cout
         //    << "info string Thread(s) " << size () << ".\n"
-        //    << "info string Split Depth " << min_split_depth << ".\n"
-        //    << "info string Split Point Thread(s) " << uint16_t (max_split_point_threads) << "."
+        //    << "info string Split Depth " << split_depth << ".\n"
         //    << endl;
 
     }

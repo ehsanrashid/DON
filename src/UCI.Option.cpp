@@ -374,7 +374,7 @@ namespace UCI {
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               = OptionPtr (new CheckOption (false));
+        Options["Best Book Move"]               = OptionPtr (new CheckOption (true));
 
         // End Game Table Bases Options
         // ----------------------------
@@ -403,10 +403,6 @@ namespace UCI {
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
-
-        // Maximum number of threads per split point.
-        // Default 5, Min 4, Max 8.
-        Options["Split Point Threads"]          = OptionPtr (new SpinOption ( 5, 4, MAX_SPLIT_POINT_THREADS, on_change_threads));
 
         // If this is set to true, threads are suspended when there is no work to do.
         // This saves CPU power consumption, but waking a thread takes a small bit of time.

@@ -238,8 +238,7 @@ namespace Threads {
         : public std::vector<Thread*>
     {
         bool                sleep_idle;
-        Depth               min_split_depth;
-        uint8_t             max_split_point_threads;
+        Depth               split_depth;
         Mutex               mutex;
         ConditionVariable   sleep_condition;
         TimerThread        *timer;
