@@ -156,10 +156,9 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
         if (0 == i) continue;
 
         // Implement replacement strategy when a collision occurs
-        int8_t gc;
-        gc  = ((rte->gen () == _generation) ? +2 : 0);
-        gc += ((tte->gen () == _generation)
-            || (tte->bound () == BND_EXACT) ? -2 : 0);
+        int8_t gc = ((rte->gen () == _generation) ? +2 : 0);
+        gc       += ((tte->gen () == _generation)
+                  || (tte->bound () == BND_EXACT) ? -2 : 0);
 
         if (gc < 0) continue;
         if (gc > 0)
@@ -168,11 +167,18 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, ui
             continue;
         }
         // gc == 0
-        int8_t rc = ((tte->depth () < rte->depth ()) ? +1
-                   : (tte->depth () > rte->depth ()) ? -1
-                   : (tte->nodes () < rte->nodes ()) ? +1 : 0);
-
-        if (rc > 0)
+        int8_t dc = ((tte->depth () < rte->depth ()) ? +1
+                   : (tte->depth () > rte->depth ()) ? -1 : 0);
+                   
+        if (dc < 0) continue;
+        if (dc > 0)
+        {
+            rte = tte;
+            continue;
+        }
+        // dc == 0
+        int8_t nc = ((tte->nodes () < rte->nodes ()) ? +1 : 0);
+        if (nc > 0)
         {
             rte = tte;
             continue;

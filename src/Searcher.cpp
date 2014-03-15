@@ -816,7 +816,7 @@ namespace Searcher {
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
                 if (   (!(ss)->skip_null_move)
-                    && (depth < 9 * ONE_MOVE) // TODO::
+                    && (depth < 7 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
@@ -1490,7 +1490,7 @@ namespace Searcher {
                 for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
                 {
                     // Reset Aspiration window starting size
-                    if (depth >= 4)
+                    if (depth >= 5)
                     {
                         window = 
                             //Value (depth < 23 ? 12 : depth < 31 ? 16 : 20);
