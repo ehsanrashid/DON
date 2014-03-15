@@ -677,9 +677,9 @@ namespace Searcher {
                 // a fail high/low. Biggest advantage at probing at PV nodes is to have a
                 // smooth experience in analysis mode. We don't probe at Root nodes otherwise
                 // we should also update RootMoveList to avoid bogus output.
-                if (   tte
-                    && tt_value != VALUE_NONE // Only in case of TT access race
-                    && tte->depth () >= depth
+                if (   (tte != NULL)
+                    && (tt_value != VALUE_NONE) // Only in case of TT access race
+                    && (tte->depth () >= depth)
                     && (        PVNode ?  tte->bound () == BND_EXACT
                     : tt_value >= beta ? (tte->bound () &  BND_LOWER)
                     :                    (tte->bound () &  BND_UPPER)))
@@ -689,10 +689,10 @@ namespace Searcher {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                     // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
-                    if (   tt_value >= beta
-                        && tt_move != MOVE_NONE
-                        && !pos.capture_or_promotion (tt_move)
-                        && !in_check)
+                    if (   (tt_value >= beta)
+                        && (tt_move != MOVE_NONE)
+                        && (!pos.capture_or_promotion (tt_move))
+                        && (!in_check))
                     {
                         update_stats (pos, ss, tt_move, depth, NULL, 0);
                     }
@@ -701,9 +701,9 @@ namespace Searcher {
                 }
 
                 // Step 4-TB. Tablebase probe
-                if (   depth >= TBProbeDepth
-                    && pos.clock50 () == 0
-                    && pos.count () <= TBCardinality)
+                if (   (depth >= TBProbeDepth)
+                    && (pos.clock50 () == 0)
+                    && (pos.count () <= TBCardinality))
                 {
                     int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
 
@@ -750,7 +750,7 @@ namespace Searcher {
             // Rest of code is skipped when in check
             // -------------------------------------
 
-            if (tte)
+            if (tte != NULL)
             {
                 // Never assume anything on values stored in TT
                 Value eval_ = tte->eval ();
@@ -798,7 +798,7 @@ namespace Searcher {
                 if (   (depth < 4 * ONE_MOVE)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (tt_move == MOVE_NONE)
-                    && !pos.pawn_on_7thR (pos.active ()) // TODO::
+                    && (!pos.pawn_on_7thR (pos.active ())) // TODO::
                    )
                 {
                     Value ralpha = alpha - razor_margin (depth);
@@ -819,7 +819,7 @@ namespace Searcher {
                     && (depth < 9 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
-                    && pos.non_pawn_material (pos.active ())
+                    && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
                    )
                 {
                     Value eval_fut = eval - futility_margin (depth);
@@ -975,8 +975,8 @@ namespace Searcher {
             Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
             bool improving =
-                (   ((ss)->static_eval >= (ss-2)->static_eval)
-                ||  ((ss)->static_eval == VALUE_NONE)
+                (   ((ss  )->static_eval >= (ss-2)->static_eval)
+                ||  ((ss  )->static_eval == VALUE_NONE)
                 ||  ((ss-2)->static_eval == VALUE_NONE)
                 );
 
@@ -1113,8 +1113,8 @@ namespace Searcher {
                         && best_value > VALUE_MATED_IN_MAX_PLY)
                     {
                         // Move count based pruning
-                        if (   depth < 16 * ONE_MOVE
-                            && moves_count >= FutilityMoveCounts[improving][depth])
+                        if (   (depth < 16 * ONE_MOVE)
+                            && (moves_count >= FutilityMoveCounts[improving][depth]))
                         {
                             if (SPNode)
                             {
@@ -1154,8 +1154,8 @@ namespace Searcher {
                         }
 
                         // Prune moves with negative SEE at low depths
-                        if (   predicted_depth < 4 * ONE_MOVE
-                            && pos.see_sign (move) < VALUE_ZERO)
+                        if (   (predicted_depth < 4 * ONE_MOVE)
+                            && (pos.see_sign (move) < VALUE_ZERO))
                         {
                             if (SPNode)
                             {
@@ -1180,8 +1180,8 @@ namespace Searcher {
                         }
                     }
 
-                    if (   !capture_or_promotion
-                        && quiets_count < MAX_QUIETS)
+                    if (   (!capture_or_promotion)
+                        && (quiets_count < MAX_QUIETS))
                     {
                         quiet_moves[quiets_count++] = move;
                     }
@@ -1197,10 +1197,10 @@ namespace Searcher {
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   !is_pv_move
-                    && depth >= 3 * ONE_MOVE
-                    && !capture_or_promotion
-                    && move != tt_move
+                if (   (!is_pv_move)
+                    && (depth >= 3 * ONE_MOVE)
+                    && (!capture_or_promotion)
+                    && (move != tt_move)
                     && (move != (ss)->killers[0])
                     && (move != (ss)->killers[1]))
                 {
@@ -1253,7 +1253,7 @@ namespace Searcher {
                     }
 
                     value =
-                        new_depth < ONE_MOVE
+                        (new_depth < ONE_MOVE)
                         ? (gives_check
                         ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                         : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
@@ -1269,10 +1269,10 @@ namespace Searcher {
                     if (is_pv_move || (value > alpha && (RootNode || value < beta)))
                     {
                         value =
-                            new_depth < ONE_MOVE
-                            ? gives_check
+                            (new_depth < ONE_MOVE)
+                            ? (gives_check
                             ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                            : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
+                            : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
                             : -search      <PV       > (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
@@ -1352,25 +1352,28 @@ namespace Searcher {
                     }
                 }
 
+                // Not Split Point node
                 // Step 19. Check for splitting the search
-                if (   !SPNode
-                    && depth >= Threadpool.min_split_depth
-                    && Threadpool.available_slave (thread)
-                    && thread->split_point_threads < MAX_SPLIT_POINT_THREADS)
+                if (!SPNode)
                 {
-                    ASSERT (best_value < beta);
+                    if (   (Threadpool.min_split_depth <= depth)
+                        && (Threadpool.available_slave (thread) != NULL)
+                        && (thread->split_point_threads < MAX_SPLIT_POINT_THREADS))
+                    {
+                        ASSERT (best_value < beta);
 
-                    //dbg_hit_on (thread->split_point_threads == 0);
-                    //dbg_hit_on (thread->split_point_threads == 1);
-                    //dbg_hit_on (thread->split_point_threads == 2);
-                    //dbg_hit_on (thread->split_point_threads == 3);
-                    
-                    //dbg_mean_of (thread->split_point_threads);
-                    //dbg_mean_of (depth);
+                        //dbg_hit_on (thread->split_point_threads == 0);
+                        //dbg_hit_on (thread->split_point_threads == 1);
+                        //dbg_hit_on (thread->split_point_threads == 2);
+                        //dbg_hit_on (thread->split_point_threads == 3);
 
-                    thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
+                        //dbg_mean_of (thread->split_point_threads);
+                        //dbg_mean_of (depth);
 
-                    if (best_value >= beta) break;
+                        thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
+
+                        if (best_value >= beta) break;
+                    }
                 }
             }
 
@@ -1458,9 +1461,12 @@ namespace Searcher {
 
             // Do we have to play with skill handicap? In this case enable MultiPV search
             // that we will use behind the scenes to retrieve a set of possible moves.
-            if (skill.enabled () && MultiPV < 4)
+            if (skill.enabled ())
             {
-                MultiPV = 4;
+                if (MultiPV < 4)
+                {
+                    MultiPV = 4;
+                }
             }
             // Minimum MultiPV & RootMoves.size()
             if (MultiPV > RootMoves.size ())
@@ -1549,15 +1555,16 @@ namespace Searcher {
                             break;
                         }
 
-                        window += window / 2; // int32_t (window) * 0.75; // TODO::
+                        window += window / 2;
 
                         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                     }
-                    while (true); //(alpha < beta)
+                    while (alpha < beta);
 
                     // Sort the PV lines searched so far and update the GUI
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
-                    elapsed = now () - SearchTime;
+                    
+                    elapsed = (now () - SearchTime);
                     if ((IndexPV + 1) == MultiPV || elapsed > InfoDuration)
                     {
                         sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
@@ -1579,23 +1586,25 @@ namespace Searcher {
                 {
                     string search_log_fn = *(Options["Search Log File"]);
                     LogFile log (search_log_fn);
-                    log << pretty_pv (pos, depth, RootMoves[0].value[0], now () - SearchTime, &RootMoves[0].pv[0]) << endl;
+                    log << pretty_pv (pos, depth, RootMoves[0].value[0], (now () - SearchTime), &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Have found a "mate in x"?
                 if (   Limits.mate_in
-                    && best_value >= VALUE_MATES_IN_MAX_PLY
-                    && VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate_in)
+                    && (best_value >= VALUE_MATES_IN_MAX_PLY)
+                    && (VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate_in))
                 {
                     Signals.stop = true;
                 }
 
                 // Do we have time for the next iteration? Can we stop searching now?
                 if (   Limits.use_time_management ()
-                    && !Signals.stop && !Signals.stop_on_ponderhit)
+                    && !Signals.stop
+                    && !Signals.stop_on_ponderhit)
                 {
                     // Take in account some extra time if the best move has changed
-                    if ((4 < depth && depth < 50) && (1 == MultiPV))
+                    if (   (4 < depth && depth < 50)
+                        && (1 == MultiPV))
                     {
                         TimeMgr.pv_instability (BestMoveChanges);
                     }
@@ -1603,8 +1612,8 @@ namespace Searcher {
                     // Stop the search early:
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (   RootMoves.size () == 1
-                        || (now () - SearchTime) > TimeMgr.available_time ())
+                    if (   (RootMoves.size () == 1)
+                        || ((now () - SearchTime) > TimeMgr.available_time ()))
                     {
                         // If we are allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
