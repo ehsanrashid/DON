@@ -1627,6 +1627,7 @@ namespace Searcher {
                     }
                 }
             }
+
         }
 
     } // namespace
@@ -2013,13 +2014,13 @@ namespace Threads {
         point elapsed = now_time - SearchTime;
 
         bool still_at_first_move =
-            /**/Signals.first_root_move
-            && !Signals.failed_low_at_root
-            && elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4;
+               ( Signals.first_root_move)
+            && (!Signals.failed_low_at_root)
+            && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4);
 
         bool no_more_time =
-            /**/ elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution
-            ||   still_at_first_move;
+               (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)
+            || (still_at_first_move);
 
         if (   (Limits.use_time_management () && no_more_time)
             || (Limits.move_time && elapsed >= Limits.move_time)

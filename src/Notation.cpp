@@ -79,7 +79,7 @@ namespace Notation {
 
         Bitboard amb, b;
         amb = b = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), _ptype (p))) - org;
-        while (b)
+        while (b != U64 (0))
         {
             Square amb_org = pop_lsq (b);
             Move move = mk_move (amb_org, dst);

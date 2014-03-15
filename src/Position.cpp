@@ -312,51 +312,36 @@ bool Position::repeated () const
 
 
 // Position consistency test, for debugging
-bool Position::ok (int8_t *failed_step) const
+bool Position::ok (int8_t *step) const
 {
-    int8_t dummy_step, *step = failed_step ? failed_step : &dummy_step;
-
     // What features of the position should be verified?
-    const bool debug_all = true;
+    const bool test_all = true;
 
-    const bool debug_king_count    = debug_all || false;
-    const bool debug_piece_count   = debug_all || false;
-    const bool debug_bitboards     = debug_all || false;
-    const bool debug_piece_list    = debug_all || false;
+    const bool test_king_count    = test_all || false;
+    const bool test_piece_count   = test_all || false;
+    const bool test_bitboards     = test_all || false;
+    const bool test_piece_list    = test_all || false;
+    const bool test_king_capture  = test_all || false;
+    const bool test_castle_rights = test_all || false;
+    const bool test_en_passant    = test_all || false;
+    const bool test_matl_key      = test_all || false;
+    const bool test_pawn_key      = test_all || false;
+    const bool test_posi_key      = test_all || false;
+    const bool test_inc_eval      = test_all || false;
+    const bool test_np_material   = test_all || false;
 
-    const bool debug_king_capture  = debug_all || false;
-    const bool debug_checker_count = debug_all || false;
-
-    const bool debug_castle_rights = debug_all || false;
-    const bool debug_en_passant    = debug_all || false;
-
-    const bool debug_clock50       = debug_all || false;
-
-    const bool debug_matl_key      = debug_all || false;
-    const bool debug_pawn_key      = debug_all || false;
-    const bool debug_posi_key      = debug_all || false;
-
-    const bool debug_incremental_eval  = debug_all || false;
-    const bool debug_non_pawn_material = debug_all || false;
-
-    *step = 0;
+    if (step) *step = 1;
     // step 1
-    if (++(*step), !_ok (_active))
+    if ( (WHITE != _active && BLACK != _active)
+      || (W_KING != _board[_piece_list[WHITE][KING][0]])
+      || (B_KING != _board[_piece_list[BLACK][KING][0]])
+      || (_si->clock50 > 100)
+       )
     {
         return false;
     }
     // step 2
-    if (++(*step), W_KING != _board[_piece_list[WHITE][KING][0]])
-    {
-        return false;
-    }
-    // step 3
-    if (++(*step), B_KING != _board[_piece_list[BLACK][KING][0]])
-    {
-        return false;
-    }
-    // step 4
-    if (++(*step), debug_king_count)
+    if (step && ++(*step), test_king_count)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
@@ -370,19 +355,12 @@ bool Position::ok (int8_t *failed_step) const
             }
         }
     }
-    
-    // step 5
-    if (++(*step), debug_piece_count)
+    // step 3
+    if (step && ++(*step), test_piece_count)
     {
-        if (pop_count<FULL> (_types_bb[NONE]) > 32)
-        {
-            return false;
-        }
-        if (count () > 32)
-        {
-            return false;
-        }
-        if (count () != pop_count<FULL> (_types_bb[NONE]))
+        if (   pop_count<FULL> (_types_bb[NONE]) > 32
+            || count () > 32
+            || count () != pop_count<FULL> (_types_bb[NONE]))
         {
             return false;
         }
@@ -397,10 +375,48 @@ bool Position::ok (int8_t *failed_step) const
             }
         }
     }
-
-    // step 6
-    if (++(*step), debug_bitboards)
+    // step 4
+    if (step && ++(*step), test_bitboards)
     {
+        // The intersection of the white and black pieces must be empty
+        if (_color_bb[WHITE]&_color_bb[BLACK])
+        {
+            return false;
+        }
+        // The intersection of separate piece type must be empty
+        for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
+        {
+            for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
+            {
+                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        // The union of the white and black pieces must be equal to occupied squares
+        if (  ((_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE])
+           || ((_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE]))
+        {
+            return false;
+        }
+
+        // The union of separate piece type must be equal to occupied squares
+        if ( ((_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
+             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE])
+          || ((_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
+             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]))
+        {
+            return false;
+        }
+
+        // PAWN rank should not be 1/8
+        if ((_types_bb[PAWN]&(R1_bb|R8_bb)))
+        {
+            return false;
+        }
+
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             Bitboard colors = _color_bb[c];
@@ -440,61 +456,14 @@ bool Position::ok (int8_t *failed_step) const
 
             // There should be one and only one KING of color
             Bitboard kings = colors & _types_bb[KING];
-            if (!kings || more_than_one (kings))
+            if (kings == U64 (0) || more_than_one (kings))
             {
                 return false;
             }
         }
-
-        // The intersection of the white and black pieces must be empty
-        if (_color_bb[WHITE]&_color_bb[BLACK])
-        {
-            return false;
-        }
-        Bitboard occ = _types_bb[NONE];
-        // The union of the white and black pieces must be equal to occupied squares
-        if ((_color_bb[WHITE]|_color_bb[BLACK]) != occ)
-        {
-            return false;
-        }
-        if ((_color_bb[WHITE]^_color_bb[BLACK]) != occ)
-        {
-            return false;
-        }
-
-        // The intersection of separate piece type must be empty
-        for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
-        {
-            for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
-            {
-                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
-                {
-                    return false;
-                }
-            }
-        }
-
-        // The union of separate piece type must be equal to occupied squares
-        if ( (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != occ)
-        {
-            return false;
-        }
-        if ( (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != occ)
-        {
-            return false;
-        }
-
-        // PAWN rank should not be 1/8
-        if ((_types_bb[PAWN]&(R1_bb|R8_bb)))
-        {
-            return false;
-        }
     }
-
-    // step 7
-    if (++(*step), debug_piece_list)
+    // step 5
+    if (step && ++(*step), test_piece_list)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
@@ -502,15 +471,9 @@ bool Position::ok (int8_t *failed_step) const
             {
                 for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
                 {
-                    if (!_ok (_piece_list[c][pt][i]))
-                    {
-                        return false;
-                    }
-                    if (_board[_piece_list[c][pt][i]] != (c | pt))
-                    {
-                        return false;
-                    }
-                    if (_index[_piece_list[c][pt][i]] != i)
+                    if (   !_ok (_piece_list[c][pt][i])
+                        || _board[_piece_list[c][pt][i]] != (c | pt)
+                        || _index[_piece_list[c][pt][i]] != i)
                     {
                         return false;
                     }
@@ -525,24 +488,17 @@ bool Position::ok (int8_t *failed_step) const
             }
         }
     }
-
-    // step 8
-    if (++(*step), debug_king_capture)
+    // step 6
+    if (step && ++(*step), test_king_capture)
     {
-        if (checkers (~_active))
+        if (  (attackers_to (_piece_list[~_active][KING][0]) & _color_bb[_active])
+           || (pop_count<FULL> (_si->checkers)) > 2)
         {
             return false;
         }
     }
-
-    // step 9
-    if (++(*step), debug_checker_count)
-    {
-        if (pop_count<FULL> (checkers ()) > 2) return false;
-    }
-
-    // step 10
-    if (++(*step), debug_castle_rights)
+    // step 7
+    if (step && ++(*step), test_castle_rights)
     {
         for (Color c = WHITE; c <= BLACK; ++c)
         {
@@ -561,9 +517,8 @@ bool Position::ok (int8_t *failed_step) const
             }
         }
     }
-
-    // step 11
-    if (++(*step), debug_en_passant)
+    // step 8
+    if (step && ++(*step), test_en_passant)
     {
         Square ep_sq = _si->en_passant_sq;
         if (SQ_NO != ep_sq)
@@ -572,38 +527,28 @@ bool Position::ok (int8_t *failed_step) const
             if (!can_en_passant (ep_sq)) return false;
         }
     }
-
-    // step 12
-    if (++(*step), debug_clock50)
-    {
-        if (_si->clock50 > 100) return false;
-    }
-
-    // step 13
-    if (++(*step), debug_matl_key)
+    // step 9
+    if (step && ++(*step), test_matl_key)
     {
         if (Zob.compute_matl_key (*this) != _si->matl_key) return false;
     }
-    // step 14
-    if (++(*step), debug_pawn_key)
+    // step 10
+    if (step && ++(*step), test_pawn_key)
     {
         if (Zob.compute_pawn_key (*this) != _si->pawn_key) return false;
     }
-
-    // step 15
-    if (++(*step), debug_posi_key)
+    // step 11
+    if (step && ++(*step), test_posi_key)
     {
         if (Zob.compute_posi_key (*this) != _si->posi_key) return false;
     }
-
-    // step 16
-    if (++(*step), debug_incremental_eval)
+    // step 12
+    if (step && ++(*step), test_inc_eval)
     {
         if (compute_psq_score () != _si->psq_score) return false;
     }
-
-    // step 17
-    if (++(*step), debug_non_pawn_material)
+    // step 13
+    if (step && ++(*step), test_np_material)
     {
         if (   (compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE])
             || (compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK]))
@@ -612,7 +557,6 @@ bool Position::ok (int8_t *failed_step) const
         }
     }
 
-    *step = 0;
     return true;
 }
 
@@ -731,7 +675,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
         &  _color_bb[~king_c];
 
     Bitboard chk_blockers = U64 (0);
-    while (pinners)
+    while (pinners != U64 (0))
     {
         Bitboard blocker = Between_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (!more_than_one (blocker))
@@ -744,7 +688,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
 }
 
 
-// pseudo_legal(m) tests whether a random move is pseudo-legal.
+// pseudo_legal() tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
@@ -984,8 +928,8 @@ bool Position::pseudo_legal (Move m) const
     return true;
 }
 
-// legal(m, pinned) tests whether a pseudo-legal move is legal
-bool Position::       legal (Move m, Bitboard pinned) const
+// legal() tests whether a pseudo-legal move is legal
+bool Position::legal        (Move m, Bitboard pinned) const
 {
     ASSERT (_ok (m));
     ASSERT (pinned == pinneds (_active));
@@ -1047,8 +991,8 @@ bool Position::       legal (Move m, Bitboard pinned) const
     return false;
 }
 
-// gives_check(m) tests whether a pseudo-legal move gives a check
-bool Position::gives_check     (Move m, const CheckInfo &ci) const
+// gives_check() tests whether a pseudo-legal move gives a check
+bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
     ASSERT (_color (_board[org_sq (m)]) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
@@ -1107,7 +1051,7 @@ bool Position::gives_check     (Move m, const CheckInfo &ci) const
     return false;
 }
 
-// gives_checkmate(m) tests whether a pseudo-legal move gives a checkmate
+// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
 bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 {
     if (!gives_check (m, ci)) return false;
@@ -1224,7 +1168,7 @@ bool Position::can_en_passant (Square ep_sq) const
     if (ep_pawns == U64(0)) return false;
 
     vector<Move> ep_mlist;
-    while (ep_pawns)
+    while (ep_pawns != U64 (0))
     {
         ep_mlist.push_back (mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq));
     }
@@ -1259,7 +1203,7 @@ Score Position::compute_psq_score () const
 {
     Score score  = SCORE_ZERO;
     Bitboard occ = _types_bb[NONE];
-    while (occ)
+    while (occ != U64 (0))
     {
         Square s = pop_lsq (occ);
         score += PSQ[_color (_board[s])][_ptype (_board[s])][s];
@@ -1471,7 +1415,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     {
         Bitboard b = cr;
         _si->castle_rights &= ~cr;
-        while (b)
+        while (b != U64 (0))
         {
             posi_k ^= Zob._.castle_right[0][pop_lsq (b)];
         }
@@ -1902,7 +1846,7 @@ Position::operator string () const
     }
 
     Bitboard occ = _types_bb[NONE];
-    while (occ)
+    while (occ != U64 (0))
     {
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);

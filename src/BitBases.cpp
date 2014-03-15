@@ -130,7 +130,7 @@ namespace BitBases {
             Result r = INVALID;
 
             Bitboard b = PieceAttacks[KING][(WHITE == C) ? _wk_sq : _bk_sq];
-            while (b)
+            while (b != U64 (0))
             {
                 r |= (WHITE == C) ?
                     db[index(C_, _bk_sq, pop_lsq (b), _p_sq)] :

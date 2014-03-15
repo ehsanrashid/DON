@@ -70,7 +70,7 @@ namespace Zobrist {
         Key posi_key = U64 (0);
 
         //Bitboard occ = pos.pieces ();
-        //while (occ)
+        //while (occ != U64 (0))
         //{
         //    Square s = pop_lsq (occ);
         //    Piece p = pos[s];
@@ -91,7 +91,7 @@ namespace Zobrist {
         }
 
         Bitboard b = pos.castle_rights ();
-        while (b)
+        while (b != U64 (0))
         {
             posi_key ^= _.castle_right[0][pop_lsq (b)];
         }

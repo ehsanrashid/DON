@@ -279,13 +279,11 @@ public:
 
     Score psq_score () const;
 
-
     CRight can_castle (CRight cr) const;
     CRight can_castle (Color   c) const;
 
     Square castle_rook  (CRight cr) const;
     bool castle_impeded (CRight cr) const;
-
 
     Color    active    ()   const;
     uint16_t game_ply  ()   const;
@@ -299,7 +297,7 @@ public:
 
     Threads::Thread* thread ()      const;
 
-    bool ok (int8_t *failed_step = NULL) const;
+    bool ok (int8_t *step = NULL) const;
 
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
@@ -459,30 +457,30 @@ inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline uint8_t  Position::clock50       () const { return _si->clock50; }
+inline uint8_t Position::clock50      () const { return _si->clock50; }
 //
-inline Move     Position::last_move     () const { return _si->last_move; }
+inline Move   Position::last_move     () const { return _si->last_move; }
 //
-inline PieceT   Position::capture_type  () const { return _si->capture_type; }
+inline PieceT Position::capture_type  () const { return _si->capture_type; }
 //
-inline Piece    Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
+inline Piece  Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
 //
-inline Bitboard Position::checkers      () const { return _si->checkers; }
+inline Bitboard Position::checkers    () const { return _si->checkers; }
 //
-inline Key      Position::matl_key      () const { return _si->matl_key; }
+inline Key    Position::matl_key      () const { return _si->matl_key; }
 //
-inline Key      Position::pawn_key      () const { return _si->pawn_key; }
+inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 //
-inline Key      Position::posi_key      () const { return _si->posi_key; }
+inline Key    Position::posi_key      () const { return _si->posi_key; }
 //
-inline Key      Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::Exclusion; }
+inline Key    Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::Exclusion; }
 
-inline Score    Position::psq_score     () const { return _si->psq_score; }
+inline Score  Position::psq_score     () const { return _si->psq_score; }
 
-inline Value    Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle (CRight cr)        const { return _si->castle_rights & cr; }
-inline CRight Position::can_castle (Color   c)        const { return _si->castle_rights & mk_castle_right (c); }
+inline CRight Position::can_castle (CRight cr)   const { return _si->castle_rights & cr; }
+inline CRight Position::can_castle (Color   c)   const { return _si->castle_rights & mk_castle_right (c); }
 
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
@@ -592,7 +590,7 @@ inline bool Position::opposite_bishops () const
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 
 // capture(m) tests move is capture
-inline bool Position::capture               (Move m) const
+inline bool Position::capture       (Move m) const
 {
     MoveT mt = mtype (m);
     return (NORMAL == mt || PROMOTE == mt)

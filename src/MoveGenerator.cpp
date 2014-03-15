@@ -472,7 +472,7 @@ namespace MoveGenerator {
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        while (discovers != U64 (0))
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = _ptype (pos[org]);
@@ -499,7 +499,7 @@ namespace MoveGenerator {
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        while (discovers != U64 (0))
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = _ptype (pos[org]);
@@ -553,7 +553,7 @@ namespace MoveGenerator {
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
         // Find squares attacked by slider checkers, we will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
-        while (sliders)
+        while (sliders != U64 (0))
         {
             check_sq = pop_lsq (sliders);
 

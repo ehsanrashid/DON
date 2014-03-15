@@ -354,7 +354,6 @@ namespace Threads {
         if (states.get ()) // If we don't set a new position, preserve current state
         {
             // Ownership transfer here
-            //SetupStates = move (states);
             SetupStates = states;
 
             ASSERT (!states.get ());
@@ -363,7 +362,7 @@ namespace Threads {
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
-            if (limits.search_moves.empty ()
+            if (   limits.search_moves.empty ()
                 || count (limits.search_moves.begin (), limits.search_moves.end (), m))
             {
                 RootMoves.push_back (RootMove (m));

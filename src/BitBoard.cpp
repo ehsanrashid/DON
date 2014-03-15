@@ -342,7 +342,7 @@ namespace BitBoard {
         }
         sbb += "\n";
 
-        while (bb)
+        while (bb != U64 (0))
         {
             Square s = pop_lsq (bb);
             int8_t r = _rank (s);

@@ -2274,7 +2274,7 @@ namespace TBSyzygy {
                         if (i < NONE) p[i++] = pop_lsq (bb); else
                             break;
                     }
-                    while (bb);
+                    while (bb != U64 (0));
                 }
                 idx = encode_piece (tbep, tbep->norm[bside], p, tbep->factor[bside]);
                 res = decompress_pairs (tbep->precomp[bside], idx);
@@ -2302,7 +2302,7 @@ namespace TBSyzygy {
                         if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
                             break;
                     }
-                    while (bb);
+                    while (bb != U64 (0));
                 }
                 idx = encode_pawn (tbep, tbep->file[f].norm[bside], p, tbep->file[f].factor[bside]);
                 res = decompress_pairs (tbep->file[f].precomp[bside], idx);
@@ -2415,7 +2415,7 @@ namespace TBSyzygy {
                         if (i < NONE) p[i++] = pop_lsq (bb); else
                             break;
                     }
-                    while (bb);
+                    while (bb != U64 (0));
                 }
                 idx = encode_piece ((TBEntry_piece *) entry, entry->norm, p, entry->factor);
                 res = decompress_pairs (entry->precomp, idx);
