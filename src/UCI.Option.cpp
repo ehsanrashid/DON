@@ -9,7 +9,7 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
-#include "DebugLogger.h"
+#include "Debugger.h"
 #include "TB_Syzygy.h"
 
 // Global string mapping of options
@@ -270,9 +270,9 @@ namespace UCI {
             Position::_50_move_dist = 2 * int32_t (opt);
         }
 
-        void on_log_debug       (const Option &opt)
+        void on_io_log       (const Option &opt)
         {
-            log_debug (bool (opt));
+            log_io (bool (opt));
         }
 
         //// TODO::
@@ -538,7 +538,7 @@ namespace UCI {
         // Debug Options
         // -------------
         // Whether or not to write a debug log.
-        Options["Write Debug Log"]              = OptionPtr (new CheckOption (false, on_log_debug));
+        Options["Write IO Log"]                 = OptionPtr (new CheckOption (false, on_io_log));
         // Whether or not to write a search log.
         Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
         // The filename of the search log.

@@ -10,7 +10,7 @@
 #include "Benchmark.h"
 #include "Notation.h"
 #include "Thread.h"
-#include "DebugLogger.h"
+#include "Debugger.h"
 
 
 namespace UCI {
@@ -252,18 +252,18 @@ namespace UCI {
             Limits.ponder = false;
         }
 
-        inline void exe_debug (cmdstream &cstm)
+        inline void exe_io (cmdstream &cstm)
         {
             string token;
             if (cstm >> token)
             {
                 if      (token == "on")
                 {
-                    log_debug (true);
+                    log_io (true);
                 }
                 else if (token == "off")
                 {
-                    log_debug (false);
+                    log_io (false);
                 }
             }
         }
@@ -352,8 +352,8 @@ namespace UCI {
             if (cstm >> token)
             {
                 stringstream ss;
-                ss  << *(Options["Hash"])    << " "
-                    << *(Options["Threads"]) << " "
+                ss  << int32_t (*(Options["Hash"]))    << " "
+                    << int32_t (*(Options["Threads"])) << " "
                     << token << " perft current";
 
                 benchmark (ss, RootPos);
@@ -399,13 +399,13 @@ namespace UCI {
             else if (token == "ponderhit")
             {
                 // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                // opponent has played. In case signals.stop_on_ponderhit stream set we are
+                // opponent has played. In case Signals.stop_ponderhit stream set we are
                 // waiting for 'ponderhit' to stop the search (for instance because we
                 // already ran out of time), otherwise we should continue searching but
                 // switching from pondering to normal search.
-                Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
+                Signals.stop_ponderhit ? exe_stop () : exe_ponderhit ();
             }
-            else if (token == "debug")      exe_debug (cstm);
+            else if (token == "io")         exe_io (cstm);
             else if (token == "print")      exe_print ();
             else if (token == "key")        exe_key ();
             else if (token == "allmoves")   exe_allmoves ();
@@ -427,9 +427,11 @@ namespace UCI {
 
     void stop ()
     {
+        // Send stop command
         exe_stop ();
         // Cannot quit while search stream active
         Threadpool.wait_for_think_finished ();
+        // Close book if open
         Book.close ();
     }
 

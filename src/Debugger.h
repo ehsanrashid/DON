@@ -15,11 +15,11 @@ typedef class LogFile
 {
 
 public:
-    LogFile(const std::string& fn = "Log.txt")
+    LogFile (const std::string& fn = "Log.txt")
         : std::ofstream(fn, std::ios_base::out|std::ios_base::app)
     {}
     
-    ~LogFile()
+    ~LogFile ()
     {
         if (is_open ()) close ();
     }
@@ -27,7 +27,7 @@ public:
 } LogFile;
 
 // Singleton I/O logger class
-typedef class DebugLogger : std::noncopyable
+typedef class IOLogger : std::noncopyable
 {
 
 private:
@@ -39,7 +39,7 @@ private:
 protected:
 
     // Constructor should be protected !!!
-    DebugLogger (std::string log_fn)
+    IOLogger (std::string log_fn)
         :  _inbuf (std::cin .rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
         , _log_fn (log_fn)
@@ -47,16 +47,16 @@ protected:
 
 public:
 
-    ~DebugLogger ()
+    ~IOLogger ()
     {
         stop ();
     }
 
-    static DebugLogger& instance ()
+    static IOLogger& instance ()
     {
         // Guaranteed to be destroyed.
         // Instantiated on first use.
-        static DebugLogger _instance ("DebugLog.txt");
+        static IOLogger _instance ("IOLog.txt");
         return _instance;
     }
 
@@ -84,12 +84,12 @@ public:
         }
     }
 
-} DebugLogger;
+} IOLogger;
 
-inline void log_debug (bool b)
+inline void log_io (bool b)
 {
-    (b) ? DebugLogger::instance ().start ()
-        : DebugLogger::instance ().stop ();
+    (b) ? IOLogger::instance ().start ()
+        : IOLogger::instance ().stop ();
 }
 
 

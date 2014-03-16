@@ -11,7 +11,7 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "TB_Syzygy.h"
-#include "DebugLogger.h"
+#include "Debugger.h"
 #include "Thread.h"
 #include "UCI.h"
 #include "Notation.h"

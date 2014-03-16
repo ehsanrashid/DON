@@ -43,7 +43,7 @@ SIGNBENCH = ./$(EXE) bench
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
 	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o  \
 	Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o       \
-	DebugLogger.o MemoryHandler.o TB_Syzygy.o
+	Debugger.o MemoryHandler.o TB_Syzygy.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

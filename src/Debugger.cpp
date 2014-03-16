@@ -1,4 +1,4 @@
-#include "DebugLogger.h"
+#include "Debugger.h"
 #include "Thread.h"
 
 using namespace std;

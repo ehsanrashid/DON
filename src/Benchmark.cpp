@@ -9,7 +9,7 @@
 #include "Transposition.h"
 #include "Thread.h"
 #include "UCI.h"
-#include "DebugLogger.h"
+#include "Debugger.h"
 
 using namespace std;
 using namespace Searcher;
@@ -89,12 +89,10 @@ void benchmark (istream &is, const Position &pos)
     TT.master_clear ();
 
     LimitsT limits;
-    bool    b_perft = false;
 
     if      (limit_type == "time")  limits.movetime = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
     else if (limit_type == "nodes") limits.nodes    = atoi (limit_val.c_str ());
     else if (limit_type == "mate")  limits.mate     = atoi (limit_val.c_str ());
-    else if (limit_type == "perft") b_perft = true;
     //else if (limit_type == "depth")
     else                            limits.depth     = atoi (limit_val.c_str ());
 
@@ -142,10 +140,10 @@ void benchmark (istream &is, const Position &pos)
             << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << total << "\n";
 
-        if (b_perft)
+        if (limit_type == "perft")
         {
             uint64_t leaf_count = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
-            cerr << "\nPerft " << limits.depth  << " leaf nodes: " << leaf_count << "\n";
+            cerr << "\nPerft " << int32_t (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
             nodes += leaf_count;
         }
         else

@@ -324,7 +324,7 @@
       <Field Name="pawns_table" />
       <Field Name="endgames" />
       <Field Name="active_pos" />
-      <Field Name="active_split_point" />
+      <Field Name="active_splitpoint" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="split_points" />
@@ -426,8 +426,8 @@
       <Field Name="depth" />
       <Field Name="beta" />
       <Field Name="node_type" />
-      <Field Name="move_picker" />
-      <Field Name="parent_split_point" />
+      <Field Name="movepicker" />
+      <Field Name="parent_splitpoint" />
       <Field Name="mutex" />
       <Field Name="alpha" />
       <Field Name="best_value" />

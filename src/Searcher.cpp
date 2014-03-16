@@ -18,7 +18,7 @@
 #include "TB_Syzygy.h"
 #include "Thread.h"
 #include "Notation.h"
-#include "DebugLogger.h"
+#include "Debugger.h"
 
 using namespace std;
 using namespace Time;
@@ -1041,7 +1041,7 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    Signals.first_root_move = (1 == moves_count);
+                    Signals.root_1stmove = (1 == moves_count);
 
                     if (Threadpool.main () == thread)
                     {
@@ -1365,13 +1365,13 @@ namespace Searcher {
                 {
                     if (   (Threadpool.split_depth <= depth)
                         && (Threadpool.available_slave (thread) != NULL)
-                        && (thread->split_point_threads < MAX_SPLIT_POINT_THREADS))
+                        && (thread->splitpoint_threads < MAX_SPLIT_POINT_THREADS))
                     {
                         ASSERT (best_value < beta);
 
-                        //dbg_hit_on (thread->split_point_threads == 4);
+                        //dbg_hit_on (thread->splitpoint_threads == 4);
 
-                        //dbg_mean_of (thread->split_point_threads);
+                        //dbg_mean_of (thread->splitpoint_threads);
                         //dbg_mean_of (Threadpool.split_depth);  // always== 8
                         //dbg_mean_of (depth);
 
@@ -1546,8 +1546,8 @@ namespace Searcher {
                         {
                             alpha = max (best_value - window, -VALUE_INFINITE);
 
-                            Signals.failed_low_at_root = true;
-                            Signals.stop_on_ponderhit  = false;
+                            Signals.root_failedlow = true;
+                            Signals.stop_ponderhit = false;
                         }
                         else if (best_value >= beta)
                         {
@@ -1601,9 +1601,9 @@ namespace Searcher {
                 }
 
                 // Do we have time for the next iteration? Can we stop searching now?
-                if (   Limits.use_time_management ()
+                if (   Limits.use_timemanager ()
                     && !Signals.stop
-                    && !Signals.stop_on_ponderhit)
+                    && !Signals.stop_ponderhit)
                 {
                     // Take in account some extra time if the best move has changed
                     if (   (4 < depth && depth < 50)
@@ -1622,7 +1622,7 @@ namespace Searcher {
                         // keep pondering until GUI sends "ponderhit" or "stop".
                         if (Limits.ponder)
                         {
-                            Signals.stop_on_ponderhit = true;
+                            Signals.stop_ponderhit = true;
                         }
                         else
                         {
@@ -1637,7 +1637,7 @@ namespace Searcher {
     } // namespace
 
     LimitsT             Limits;
-    volatile SignalsT   Signals;
+    SignalsT volatile   Signals;
 
     vector<RootMove>    RootMoves;
     Position            RootPos;
@@ -1915,7 +1915,7 @@ namespace Searcher {
         // We simply wait here until GUI sends one of those commands (that raise Signals.stop).
         if (!Signals.stop && (Limits.ponder || Limits.infinite))
         {
-            Signals.stop_on_ponderhit = true;
+            Signals.stop_ponderhit = true;
             RootPos.thread ()->wait_for (Signals.stop);
         }
 
@@ -1998,7 +1998,7 @@ namespace Threads {
             // all the currently active positions nodes.
             for (uint8_t i = 0; i < Threadpool.size (); ++i)
             {
-                for (uint8_t j = 0; j < Threadpool[i]->split_point_threads; ++j)
+                for (uint8_t j = 0; j < Threadpool[i]->splitpoint_threads; ++j)
                 {
                     SplitPoint &sp = Threadpool[i]->split_points[j];
                     sp.mutex.lock ();
@@ -2018,16 +2018,16 @@ namespace Threads {
 
         point elapsed = now_time - SearchTime;
 
-        bool still_at_first_move =
-               ( Signals.first_root_move)
-            && (!Signals.failed_low_at_root)
+        bool still_at_1stmove =
+               ( Signals.root_1stmove)
+            && (!Signals.root_failedlow)
             && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4); // TODO::
 
         bool no_more_time =
                (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)
-            || (still_at_first_move);
+            || (still_at_1stmove);
 
-        if (   (Limits.use_time_management () && no_more_time)
+        if (   (Limits.use_timemanager () && no_more_time)
             || (Limits.movetime && elapsed >= Limits.movetime)
             || (Limits.nodes && nodes >= Limits.nodes))
         {
@@ -2041,7 +2041,7 @@ namespace Threads {
     {
         // Pointer 'split_point' is not null only if we are called from split(), and not
         // at the thread creation. So it means we are the split point's master.
-        SplitPoint *split_point = (split_point_threads != 0 ? active_split_point : NULL);
+        SplitPoint *split_point = (splitpoint_threads != 0 ? active_splitpoint : NULL);
         ASSERT (!split_point || ((split_point->master_thread == this) && searching));
 
         do
@@ -2086,8 +2086,8 @@ namespace Threads {
                 Threadpool.mutex.lock ();
 
                 ASSERT (searching);
-                ASSERT (active_split_point);
-                SplitPoint *sp = active_split_point;
+                ASSERT (active_splitpoint);
+                SplitPoint *sp = active_splitpoint;
 
                 Threadpool.mutex.unlock ();
 

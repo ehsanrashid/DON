@@ -587,7 +587,7 @@
     <ClCompile Include="src\Benchmark.cpp" />
     <ClCompile Include="src\BitBases.cpp" />
     <ClCompile Include="src\BitBoard.cpp" />
-    <ClCompile Include="src\DebugLogger.cpp" />
+    <ClCompile Include="src\Debugger.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
@@ -619,7 +619,7 @@
     <ClInclude Include="src\BitBoard.h" />
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitScan.h" />
-    <ClInclude Include="src\DebugLogger.h" />
+    <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />

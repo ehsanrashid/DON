@@ -87,7 +87,7 @@ namespace Searcher {
             , ponder   (false)
         {}
         
-        bool use_time_management () const
+        bool use_timemanager () const
         {
             return !(infinite || movetime || depth || nodes || mate);
         }
@@ -103,15 +103,15 @@ namespace Searcher {
     typedef struct SignalsT
     {
         bool  stop
-            , stop_on_ponderhit
-            , first_root_move
-            , failed_low_at_root;
+            , stop_ponderhit
+            , root_1stmove
+            , root_failedlow;
 
         SignalsT ()
-            : stop               (false)
-            , stop_on_ponderhit  (false)
-            , first_root_move    (false)
-            , failed_low_at_root (false)
+            : stop           (false)
+            , stop_ponderhit (false)
+            , root_1stmove   (false)
+            , root_failedlow (false)
         {}
 
     } SignalsT;
@@ -187,7 +187,7 @@ namespace Searcher {
 
 
     extern LimitsT               Limits;
-    extern volatile SignalsT     Signals;
+    extern SignalsT volatile     Signals;
 
     extern std::vector<RootMove> RootMoves;
     extern Position              RootPos;

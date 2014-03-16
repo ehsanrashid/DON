@@ -119,37 +119,41 @@ namespace Threads {
     struct SplitPoint
     {
         // Const data after split point has been setup
-        const Position         *pos;
-        const Searcher::Stack  *ss;
-        Thread                 *master_thread;
-        Depth                   depth;
-        Value                   beta;
-        Searcher::NodeT         node_type;
-        bool                    cut_node;
+        const Searcher::Stack *ss;
+        const Position *pos;
+
+        Thread *master_thread;
+        Depth   depth;
+        Value   beta;
+
+        Searcher::NodeT node_type;
+        bool    cut_node;
 
         // Const pointers to shared data
-        MovePicker             *move_picker;
-        SplitPoint             *parent_split_point;
+        MovePicker        *movepicker;
+        SplitPoint        *parent_splitpoint;
 
         // Shared data
-        Mutex                   mutex;
-        volatile uint64_t       slaves_mask;
-        volatile uint64_t       nodes;
-        volatile uint8_t        moves_count;
-        volatile Value          alpha;
-        volatile Value          best_value;
-        volatile Move           best_move;
-        volatile bool           cut_off;
+        Mutex   mutex;
+
+        uint64_t volatile slaves_mask;
+        uint64_t volatile nodes;
+        uint8_t  volatile moves_count;
+        Value    volatile alpha;
+        Value    volatile best_value;
+        Move     volatile best_move;
+        bool     volatile cut_off;
     };
 
     // ThreadBase struct is the base of the hierarchy from where
     // we derive all the specialized thread classes.
     struct ThreadBase
     {
-        Mutex               mutex;
+        Mutex   mutex;
+        NativeHandle    handle;
+        bool volatile   exit;
+
         ConditionVariable   sleep_condition;
-        NativeHandle        handle;
-        volatile bool       exit;
 
         ThreadBase ()
             : exit (false)
@@ -171,19 +175,21 @@ namespace Threads {
     struct Thread
         : public ThreadBase
     {
-        SplitPoint           split_points[MAX_SPLIT_POINT_THREADS];
-        Material::Table      material_table;
-        Pawns::Table      pawns_table;
-        EndGame::Endgames   endgames;
+        SplitPoint split_points[MAX_SPLIT_POINT_THREADS];
+        
+        Material::Table   material_table;
+        Pawns   ::Table   pawns_table;
+        EndGame::Endgames endgames;
 
-        Position            *active_pos;
+        Position *active_pos;
 
-        uint8_t              idx;
-        uint8_t              max_ply;
+        uint8_t idx
+              , max_ply;
 
-        SplitPoint* volatile active_split_point;
-        volatile uint8_t     split_point_threads;
-        volatile bool        searching;
+        SplitPoint* volatile active_splitpoint;
+
+        uint8_t volatile splitpoint_threads;
+        bool    volatile searching;
 
         Thread ();
 
@@ -195,7 +201,7 @@ namespace Threads {
 
         template <bool FAKE>
         void split (Position &pos, const Searcher::Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, uint8_t moves_count, MovePicker &move_picker, Searcher::NodeT node_type, bool cut_node);
+            Depth depth, uint8_t moves_count, MovePicker &movepicker, Searcher::NodeT node_type, bool cut_node);
 
     };
 
@@ -204,7 +210,7 @@ namespace Threads {
     struct MainThread
         : public Thread
     {
-        volatile bool thinking;
+        bool volatile thinking;
 
         MainThread ()
             : thinking (true)
@@ -237,11 +243,13 @@ namespace Threads {
     struct ThreadPool
         : public std::vector<Thread*>
     {
-        bool                sleep_idle;
-        Depth               split_depth;
-        Mutex               mutex;
-        ConditionVariable   sleep_condition;
-        TimerThread        *timer;
+        bool    sleep_idle;
+        Depth   split_depth;
+        Mutex   mutex;
+
+        ConditionVariable sleep_condition;
+        
+        TimerThread *timer;
 
         // No c'tor and d'tor, threads rely on globals that should
         // be initialized and valid during the whole thread lifetime.

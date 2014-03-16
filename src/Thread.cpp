@@ -54,7 +54,7 @@ namespace Threads {
     }
 
     // wait_for() set the thread to sleep until condition 'b' turns true
-    void ThreadBase::wait_for (volatile const bool &b)
+    void ThreadBase::wait_for (const volatile bool &b)
     {
         mutex.lock ();
         while (!b) sleep_condition.wait (mutex);
@@ -68,8 +68,8 @@ namespace Threads {
     Thread::Thread () //: split_points ()  // Value-initialization bug in MSVC
     {
         searching = false;
-        max_ply = split_point_threads = 0;
-        active_split_point = NULL;
+        max_ply = splitpoint_threads = 0;
+        active_splitpoint = NULL;
         active_pos         = NULL;
         idx = Threadpool.size (); // Starts from 0
     }
@@ -78,7 +78,7 @@ namespace Threads {
     // current active split point, or in some ancestor of the split point.
     bool Thread::cutoff_occurred () const
     {
-        for (SplitPoint *sp = active_split_point; sp != NULL; sp = sp->parent_split_point)
+        for (SplitPoint *sp = active_splitpoint; sp != NULL; sp = sp->parent_splitpoint)
         {
             if (sp->cut_off) return true;
         }
@@ -97,7 +97,7 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        uint8_t size = split_point_threads;
+        uint8_t size = splitpoint_threads;
 
         // No split points means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
@@ -114,19 +114,19 @@ namespace Threads {
     // search() then split() returns.
     template <bool FAKE>
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-        Depth depth, uint8_t moves_count, MovePicker &move_picker, NodeT node_type, bool cut_node)
+        Depth depth, uint8_t moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         ASSERT (pos.ok ());
         ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
         ASSERT (depth >= Threadpool.split_depth);
         ASSERT (searching);
-        ASSERT (split_point_threads < MAX_SPLIT_POINT_THREADS);
+        ASSERT (splitpoint_threads < MAX_SPLIT_POINT_THREADS);
 
         // Pick the next available split point from the split point stack
-        SplitPoint &sp = split_points[split_point_threads];
+        SplitPoint &sp = split_points[splitpoint_threads];
 
         sp.master_thread = this;
-        sp.parent_split_point = active_split_point;
+        sp.parent_splitpoint = active_splitpoint;
         sp.slaves_mask  = (U64 (1) << idx);
         sp.depth        = depth;
         sp.best_value   = best_value;
@@ -135,7 +135,7 @@ namespace Threads {
         sp.beta         = beta;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;
-        sp.move_picker  = &move_picker;
+        sp.movepicker   = &movepicker;
         sp.moves_count  = moves_count;
         sp.pos          = &pos;
         sp.nodes        = 0;
@@ -148,8 +148,8 @@ namespace Threads {
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
 
-        ++split_point_threads;
-        active_split_point = &sp;
+        ++splitpoint_threads;
+        active_splitpoint = &sp;
         active_pos = NULL;
 
         if (!FAKE)
@@ -158,7 +158,7 @@ namespace Threads {
             while ((slave = Threadpool.available_slave (this)) != NULL)
             {
                 sp.slaves_mask |= (U64 (1) << slave->idx);
-                slave->active_split_point = &sp;
+                slave->active_splitpoint = &sp;
                 slave->searching = true; // Slave leaves idle_loop()
                 slave->notify_one (); // Could be sleeping
             }
@@ -179,16 +179,16 @@ namespace Threads {
         ASSERT (!active_pos);
 
         // We have returned from the idle loop, which means that all threads are finished.
-        // Note that setting 'searching' and decreasing split_point_threads is
-        // done under lock protection to avoid a race with Thread::available_to().
+        // Note that setting 'searching' and decreasing splitpoint_threads is
+        // done under lock protection to avoid a race with available_to().
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
 
         searching = true;
 
         active_pos = &pos;
-        active_split_point = sp.parent_split_point;
-        --split_point_threads;
+        active_splitpoint = sp.parent_splitpoint;
+        --splitpoint_threads;
 
         pos.game_nodes (pos.game_nodes () + sp.nodes);
 
@@ -285,8 +285,9 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::read_uci_options ()
     {
-        split_depth     = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-        uint8_t threads = int32_t (*(Options["Threads"]));
+        split_depth = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
+        uint8_t threads;
+        threads     = int32_t (*(Options["Threads"]));
 
         ASSERT (threads > 0);
 
@@ -337,10 +338,10 @@ namespace Threads {
 
         SearchTime = Time::now (); // As early as possible
 
-        Signals.stop                = false;
-        Signals.stop_on_ponderhit   = false;
-        Signals.first_root_move     = false;
-        Signals.failed_low_at_root  = false;
+        Signals.stop           = false;
+        Signals.stop_ponderhit = false;
+        Signals.root_1stmove   = false;
+        Signals.root_failedlow = false;
 
         RootMoves.clear ();
         RootPos     = pos;
