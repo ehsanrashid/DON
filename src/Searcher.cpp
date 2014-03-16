@@ -376,9 +376,9 @@ namespace Searcher {
                 if (tte)
                 {
                     // Never assume anything on values stored in TT
-                    Value eval = tte->eval ();
-                    if (VALUE_NONE == eval) eval = evaluate (pos);
-                    best_value = (ss)->static_eval = eval;
+                    Value eval_ = tte->eval ();
+                    if (VALUE_NONE == eval_) eval_ = evaluate (pos);
+                    best_value = (ss)->static_eval = eval_;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
@@ -436,57 +436,61 @@ namespace Searcher {
             {
                 ASSERT (_ok (move));
 
-                bool gives_check = mtype (move) == NORMAL && !ci.discoverers
-                    ? ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
-                    : pos.gives_check (move, ci);
+                bool gives_check= ((NORMAL == mtype (move)) && !ci.discoverers)
+                                ?  (ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move))
+                                :  (pos.gives_check (move, ci));
 
-                // Futility pruning
-                if (   !PVNode
-                    && !IN_CHECK
-                    && !gives_check
-                    && futility_base > -VALUE_KNOWN_WIN
-                    && move != tt_move
-                    && !pos.advanced_pawn_push (move))
+                if (!PVNode)
                 {
-                    ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
-
-                    Value futility_value = futility_base + PieceValue[EG][_ptype (pos[dst_sq (move)])];
-
-                    if (futility_value < beta)
+                    // Futility pruning
+                    if (   (!IN_CHECK)
+                        && (!gives_check)
+                        && (futility_base > -VALUE_KNOWN_WIN)
+                        && (move != tt_move)
+                        && (!pos.advanced_pawn_push (move))
+                       )
                     {
-                        if (best_value < futility_value)
+                        ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
+
+                        Value futility_value = futility_base + PieceValue[EG][_ptype (pos[dst_sq (move)])];
+
+                        if (futility_value < beta)
                         {
-                            best_value = futility_value;
+                            if (best_value < futility_value)
+                            {
+                                best_value = futility_value;
+                            }
+                            continue;
                         }
+
+                        // Prune moves with negative or equal SEE and also moves with positive
+                        // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
+                        if (futility_base < beta && pos.see (move) <= VALUE_ZERO)
+                        {
+                            if (best_value < futility_base)
+                            {
+                                best_value = futility_base;
+                            }
+                            continue;
+                        }
+                    }
+
+                    // Detect non-capture evasions that are candidate to be pruned
+                    bool evasion_prunable = IN_CHECK
+                                        &&  (best_value > VALUE_MATED_IN_MAX_PLY)
+                                        &&  (!pos.capture (move))
+                                        &&  (!pos.can_castle (pos.active ()));
+
+                    // Don't search moves with negative SEE values
+                    if (   (!IN_CHECK || evasion_prunable)
+                        && (move != tt_move)
+                        && (mtype (move) != PROMOTE)
+                        && (pos.see_sign (move) < VALUE_ZERO)
+                       )
+                    {
                         continue;
                     }
 
-                    // Prune moves with negative or equal SEE and also moves with positive
-                    // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                    if (futility_base < beta && pos.see (move) <= VALUE_ZERO)
-                    {
-                        if (best_value < futility_base)
-                        {
-                            best_value = futility_base;
-                        }
-                        continue;
-                    }
-                }
-
-                // Detect non-capture evasions that are candidate to be pruned
-                bool evasion_prunable = IN_CHECK
-                    && best_value > VALUE_MATED_IN_MAX_PLY
-                    && !pos.capture (move)
-                    && !pos.can_castle (pos.active ());
-
-                // Don't search moves with negative SEE values
-                if (   !PVNode
-                    && (!IN_CHECK || evasion_prunable)
-                    && move != tt_move
-                    && mtype (move) != PROMOTE
-                    && pos.see_sign (move) < VALUE_ZERO)
-                {
-                    continue;
                 }
 
                 // Check for legality just before making the move
@@ -536,9 +540,12 @@ namespace Searcher {
 
             // All legal moves have been searched. A special case: If we're in check
             // and no legal moves were found, it is checkmate.
-            if (IN_CHECK && best_value == -VALUE_INFINITE)
+            if (IN_CHECK)
             {
-                return mated_in ((ss)->ply); // Plies to mate from the root
+                if (best_value == -VALUE_INFINITE)
+                {
+                    return mated_in ((ss)->ply); // Plies to mate from the root
+                }
             }
 
             TT.store (
@@ -591,8 +598,8 @@ namespace Searcher {
 
             Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
 
-            StateInfo  si;
-            CheckInfo  ci (pos);
+            StateInfo si;
+            CheckInfo ci (pos);
 
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
@@ -1056,12 +1063,12 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool gives_check= ((NORMAL == mtype (move)) && !ci.discoverers)
-                                ?   ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move)
-                                :   pos.gives_check (move, ci);
+                                ?  (ci.checking_bb[_ptype (pos[org_sq (move)])] & dst_sq (move))
+                                :  (pos.gives_check (move, ci));
 
-                bool dangerous  = ( (gives_check)
-                                ||  (NORMAL != mtype (move))
-                                ||  (pos.advanced_pawn_push (move)));
+                bool dangerous  = ((gives_check)
+                                || (NORMAL != mtype (move))
+                                || (pos.advanced_pawn_push (move)));
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
