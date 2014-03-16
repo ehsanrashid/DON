@@ -108,6 +108,7 @@ endif
 ifeq ($(ARCH),general-64)
 	arch    = any
 	bits    = 64
+	pages   = yes
 endif
 
 ifeq ($(ARCH),x86-64)
@@ -149,17 +150,20 @@ endif
 ifeq ($(ARCH),osx-ppc-32)
 	arch    = ppc
 	os      = osx
+	pages   = yes
 endif
 
 ifeq ($(ARCH),osx-ppc-64)
 	arch    = ppc64
 	os      = osx
 	bits    = 64
+	pages   = yes
 endif
 
 ifeq ($(ARCH),linux-ppc-64)
 	arch    = ppc64
 	bits    = 64
+	pages   = yes
 endif
 
 ifeq ($(ARCH),osx-x86-64)
@@ -267,7 +271,6 @@ endif
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
-	# CXXFLAGS += -g
 	CXXFLAGS += -g -DTRI_LOGGER
 endif
 
@@ -301,7 +304,6 @@ ifeq ($(optimize),yes)
 
 	ifeq ($(comp),clang)
 		CXXFLAGS += -O3
-	
 		ifeq ($(os),osx)
 			CXXFLAGS += -flto
 			ifeq ($(arch),i386)
@@ -383,6 +385,7 @@ help:
 	@echo "----------------"
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-modern           > x86 64-bit with popcnt support"
+	@echo "x86-64-modern-debug     > x86 64-bit with popcnt support debug mode"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-modern           > x86 32-bit with popcnt support"
