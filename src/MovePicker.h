@@ -93,7 +93,7 @@ private:
 
     } StageT;
 
-    ValMove  m_list[MAX_MOVES]
+    ValMove  moves[MAX_MOVES]
         ,   *cur
         ,   *end
         ,   *quiets_end
@@ -105,7 +105,7 @@ private:
 
     Searcher::Stack    *ss;
 
-    ValMove killer_moves[6];
+    ValMove killers[6];
     Move   *counter_moves;
     Move   *followup_moves;
 

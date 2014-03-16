@@ -14,8 +14,8 @@ using namespace MoveGenerator;
 // move ordering is at the current node.
 
 MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Depth d, Move *cm, Move *fm, Stack *s)
-    : cur (m_list)
-    , end (m_list)
+    : cur (moves)
+    , end (moves)
     , pos (p)
     , history (h)
     , ss (s)
@@ -25,7 +25,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 {
     ASSERT (d > DEPTH_ZERO);
 
-    bad_captures_end = m_list+MAX_MOVES-1;
+    bad_captures_end = moves+MAX_MOVES-1;
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
@@ -34,8 +34,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 }
 
 MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Depth d, Square sq)
-    : cur (m_list)
-    , end (m_list)
+    : cur (moves)
+    , end (moves)
     , pos (p)
     , history (h)
     , ss (NULL)
@@ -77,8 +77,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 }
 
 MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,          PieceT pt)
-    : cur (m_list)
-    , end (m_list)
+    : cur (moves)
+    , end (moves)
     , pos (p)
     , history (h)
     , ss (NULL)
@@ -121,7 +121,7 @@ void MovePicker::value<CAPTURE> ()
     // bad_captures[] array, but instead of doing it now we delay till when
     // the move has been picked up in pick_move(), this way we save
     // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
-    for (ValMove *itr = m_list; itr != end; ++itr)
+    for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
         itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])] - _ptype (pos[org_sq (m)]);
@@ -141,7 +141,7 @@ void MovePicker::value<CAPTURE> ()
 template<>
 void MovePicker::value<QUIET>   ()
 {
-    for (ValMove *itr = m_list; itr != end; ++itr)
+    for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
         itr->value = history[pos[org_sq (m)]][dst_sq (m)];
@@ -154,7 +154,7 @@ void MovePicker::value<EVASION> ()
     // Try good captures ordered by MVV/LVA, then non-captures if destination square
     // is not under attack, ordered by history value, then bad-captures and quiet
     // moves with a negative SEE. This last group is ordered by the SEE value.
-    for (ValMove *itr = m_list; itr != end; ++itr)
+    for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
 
@@ -182,7 +182,7 @@ void MovePicker::value<EVASION> ()
 // when there are no more moves to try for the current stage.
 void MovePicker::generate_next_stage ()
 {
-    cur = m_list;
+    cur = moves;
 
     switch (++stage)
     {
@@ -192,8 +192,8 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S4:
     case CAPTURES_S5:
     case CAPTURES_S6:
-        end = generate<CAPTURE> (m_list, pos);
-        if (m_list < end-1)
+        end = generate<CAPTURE> (moves, pos);
+        if (moves < end-1)
         {
             value<CAPTURE> ();
         }
@@ -201,14 +201,14 @@ void MovePicker::generate_next_stage ()
 
     case KILLERS_S1:
         // Killer moves usually come right after after the hash move and (good) captures
-        cur = end = killer_moves;
+        cur = end = killers;
 
-        killer_moves[0].move =           //killer_moves[0];
-        killer_moves[1].move =           //killer_moves[1];
-        killer_moves[2].move =           //counter_moves[0]
-        killer_moves[3].move =           //counter_moves[1]
-        killer_moves[4].move =           //followup_moves[0]
-        killer_moves[5].move = MOVE_NONE;//followup_moves[1]
+        killers[0].move =           //killer_moves[0];
+        killers[1].move =           //killer_moves[1];
+        killers[2].move =           //counter_moves[0]
+        killers[3].move =           //counter_moves[1]
+        killers[4].move =           //followup_moves[0]
+        killers[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)
@@ -219,7 +219,7 @@ void MovePicker::generate_next_stage ()
             }
         }
         //// If killer moves are same
-        //if (ss->killer_moves[1] && ss->killer_moves[1] == ss->killer_moves[0]) // Due to SMP races
+        //if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
         //{
         //    (--end)->move = MOVE_NONE;
         //}
@@ -261,12 +261,12 @@ void MovePicker::generate_next_stage ()
         return;
 
     case QUIETS_1_S1:
-        end = quiets_end = generate<QUIET> (m_list, pos);
-        if (m_list < end)
+        end = quiets_end = generate<QUIET> (moves, pos);
+        if (moves < end)
         {
             value<QUIET> ();
             end = partition (cur, end, ValMove ());
-            if (m_list < end-1)
+            if (moves < end-1)
             {
                 insertion_sort ();
             }
@@ -284,20 +284,20 @@ void MovePicker::generate_next_stage ()
 
     case BAD_CAPTURES_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
-        cur = m_list+MAX_MOVES-1;
+        cur = moves+MAX_MOVES-1;
         end = bad_captures_end;
         return;
 
     case EVASIONS_S2:
-        end = generate<EVASION> (m_list, pos);
-        if (m_list < end-1)
+        end = generate<EVASION> (moves, pos);
+        if (moves < end-1)
         {
             value<EVASION> ();
         }
         return;
 
     case QUIET_CHECKS_S3:
-        end = generate<QUIET_CHECK> (m_list, pos);
+        end = generate<QUIET_CHECK> (moves, pos);
         return;
 
     case EVASIONS:
@@ -381,12 +381,12 @@ Move MovePicker::next_move<false> ()
             {
                 move = (cur++)->move;
                 if (   move != tt_move
-                    && move != killer_moves[0].move
-                    && move != killer_moves[1].move
-                    && move != killer_moves[2].move
-                    && move != killer_moves[3].move
-                    && move != killer_moves[4].move
-                    && move != killer_moves[5].move)
+                    && move != killers[0].move
+                    && move != killers[1].move
+                    && move != killers[2].move
+                    && move != killers[3].move
+                    && move != killers[4].move
+                    && move != killers[5].move)
                 {
                     return move;
                 }

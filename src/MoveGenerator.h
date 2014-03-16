@@ -58,30 +58,30 @@ namespace MoveGenerator {
 
     private:
 
-        ValMove m_list[MAX_MOVES]
-            ,   *cur
-            ,   *end;
+        ValMove   moves[MAX_MOVES]
+                , *cur
+                , *end;
 
     public:
         explicit MoveList (const Position &pos)
-            : cur (m_list)
-            , end (generate<GT>(m_list, pos))
+            : cur (moves)
+            , end (generate<GT>(moves, pos))
         {
             end->move = MOVE_NONE;
         }
 
         inline void operator++ () { ++cur; }
         inline void operator-- () { --cur; }
-        //inline void begin      () { cur = m_list; }
+        //inline void begin      () { cur = moves; }
         //inline void endin      () { cur = end-1; }
 
         inline Move operator* () const { return cur->move; }
 
-        inline uint16_t size  () const { return end - m_list; }
+        inline uint16_t size  () const { return end - moves; }
 
         bool contains (Move m) const
         {
-            for (const ValMove *itr = m_list; itr != end; ++itr)
+            for (const ValMove *itr = moves; itr != end; ++itr)
             {
                 if (itr->move == m) return true;
             }
