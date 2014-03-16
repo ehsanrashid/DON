@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 
 #include "UCI.h"
 #include "TimeManager.h"
@@ -373,7 +374,7 @@ namespace Searcher {
             }
             else
             {
-                if (tte)
+                if (tte != NULL)
                 {
                     // Never assume anything on values stored in TT
                     Value eval_ = tte->eval ();
@@ -397,7 +398,7 @@ namespace Searcher {
                 // Stand pat. Return immediately if static value is at least beta
                 if (best_value >= beta)
                 {
-                    if (!tte)
+                    if (tte == NULL)
                     {
                         TT.store (
                             pos.posi_key (),
@@ -409,6 +410,7 @@ namespace Searcher {
                             (ss)->static_eval);
                     }
 
+                    ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                     return best_value;
                 }
 
@@ -558,7 +560,6 @@ namespace Searcher {
                 (ss)->static_eval);
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
-
             return best_value;
         }
 
@@ -1703,7 +1704,7 @@ namespace Searcher {
         {
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
-            if (!tte || tte->move() != pv[ply])
+            if (tte == NULL || tte->move() != pv[ply])
             {
                 TT.store (
                     pos.posi_key (),
@@ -1739,18 +1740,15 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        int32_t piece_cnt;
-
-        TBHits = 0;
-        RootInTB = false;
-
-        int32_t con_fact = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
-        //con_fact = con_fact * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
-        DrawValue[ RootColor] = VALUE_DRAW - Value (con_fact);
-        DrawValue[~RootColor] = VALUE_DRAW + Value (con_fact);
+        int32_t contempt = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+        //contempt = contempt * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
+        DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
+        DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
 
         bool write_search_log = bool (*(Options["Write Search Log"]));
         string search_log_fn  = string (*(Options["Search Log File"]));
+
+        int32_t piece_cnt;
 
         if (RootMoves.empty ())
         {
@@ -1764,7 +1762,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (!Limits.infinite && !Limits.mate && bool (*(Options["OwnBook"])))
+        if (!Limits.infinite && !Limits.mate && bool (*(Options["Own Book"])))
         {
             if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
@@ -1781,13 +1779,13 @@ namespace Searcher {
             LogFile log (search_log_fn);
 
             log << "----------->\n" << boolalpha
-                << "fen:       " << RootPos.fen ()                      << "\n"
-                << "infinite:  " << Limits.infinite                     << "\n"
-                << "ponder:    " << Limits.ponder                       << "\n"
-                << "time:      " << Limits.game_clock[RootColor].time   << "\n"
-                << "increment: " << Limits.game_clock[RootColor].inc    << "\n"
-                << "movetime:  " << Limits.movetime                     << "\n"
-                << "movestogo: " << uint32_t (Limits.movestogo)         << "\n"
+                << "fen:       " << RootPos.fen ()                   << "\n"
+                << "infinite:  " << Limits.infinite                  << "\n"
+                << "ponder:    " << Limits.ponder                    << "\n"
+                << "time:      " << Limits.gameclock[RootColor].time << "\n"
+                << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
+                << "movetime:  " << Limits.movetime                  << "\n"
+                << "movestogo: " << uint32_t (Limits.movestogo)      << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;
@@ -1803,6 +1801,9 @@ namespace Searcher {
 
         TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
         TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
+
+        TBHits = 0;
+        RootInTB = false;
 
         if (piece_cnt <= TBCardinality)
         {
@@ -1857,6 +1858,7 @@ namespace Searcher {
         }
 
         Threadpool.sleep_idle = *(Options["Idle Threads Sleep"]);
+
         Threadpool.timer->run = true;
         Threadpool.timer->notify_one ();// Wake up the recurring timer
 

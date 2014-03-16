@@ -5,11 +5,8 @@
 #ifndef SEARCHER_H_INC_
 #define SEARCHER_H_INC_
 
-#include <cstring>
 #include <memory>
-#include <stack>
 #include <vector>
-#include <iomanip>
 
 #include "Type.h"
 #include "Time.h"
@@ -55,11 +52,22 @@ namespace Searcher {
             // unit: milli-seconds
             uint32_t time;   // time left
             uint32_t inc;    // time gain
+
+            //GameClock (uint32_t tm, uint32_t in)
+            //    : time (tm)
+            //    , inc  (in)
+            //{}
+            GameClock ()
+                : time (0)
+                , inc  (0)
+            {}
+
         } GameClock;
 
     public:
 
-        GameClock game_clock[CLR_NO];
+        GameClock gameclock[CLR_NO];
+        std::vector<Move>  searchmoves;   // search these moves only restrict
 
         uint32_t  movetime;  // search <x> time in milli-seconds
         uint8_t   movestogo; // search <x> moves to the next time control
@@ -69,25 +77,15 @@ namespace Searcher {
         bool      infinite;  // search until the "stop" command
         bool      ponder;    // search on ponder move
 
-        std::vector<Move>  search_moves;   // search these moves only restrict
-
-        LimitsT () {}
-        
-        void clear  ()
-        {
-            game_clock[WHITE].time = 0;
-            game_clock[BLACK].time = 0;
-            game_clock[WHITE].inc  = 0;
-            game_clock[BLACK].inc  = 0;
-
-            movetime  = 0;
-            movestogo = 0;
-            depth     = 0;
-            nodes     = 0;
-            mate      = 0;
-            infinite = false; 
-            ponder   = false;
-        }
+        LimitsT ()
+            : movetime  (0)
+            , movestogo (0)
+            , depth     (0)
+            , nodes     (0)
+            , mate      (0)
+            , infinite (false)
+            , ponder   (false)
+        {}
         
         bool use_time_management () const
         {
@@ -109,7 +107,12 @@ namespace Searcher {
             , first_root_move
             , failed_low_at_root;
 
-        SignalsT () { std::memset (this, 0, sizeof (SignalsT)); }
+        SignalsT ()
+            : stop               (false)
+            , stop_on_ponderhit  (false)
+            , first_root_move    (false)
+            , failed_low_at_root (false)
+        {}
 
     } SignalsT;
 

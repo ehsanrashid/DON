@@ -68,37 +68,36 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
     emergency_move_horizon : Be prepared to always play at least this many moves
     emergency_base_time    : Always attempt to keep at least this much time (in ms) at clock
     emergency_move_time    : Plus attempt to keep at least this much time for each remaining emergency move
-    min_thinking_time      : No matter what, use at least this much thinking before doing the move
-    slow_mover             :
+    minimum_thinking_time  : No matter what, use at least this much thinking before doing the move
+    slow_mover             : Increasing the value make the engine play slow.
     */
 
     // Read uci parameters
     uint8_t  emergency_move_horizon = int32_t (*(Options["Emergency Move Horizon"]));
     uint32_t emergency_base_time    = int32_t (*(Options["Emergency Base Time"]));
     uint32_t emergency_move_time    = int32_t (*(Options["Emergency Move Time"]));
-    uint32_t min_thinking_time      = int32_t (*(Options["Minimum Thinking Time"]));
+    uint32_t minimum_thinking_time  = int32_t (*(Options["Minimum Thinking Time"]));
     uint16_t slow_mover             = int32_t (*(Options["Slow Mover"]));
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_factor  = 1.0;
-    _optimum_search_time = _maximum_search_time = max (limits.game_clock[c].time, min_thinking_time);
+    _optimum_search_time = _maximum_search_time = max (limits.gameclock[c].time, minimum_thinking_time);
 
+    uint8_t tot_moves_to_go = (limits.movestogo != 0 ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
-    for (uint8_t hyp_moves_to_go = 1;
-        hyp_moves_to_go <= (limits.movestogo ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
-        ++hyp_moves_to_go)
+    for (uint8_t hyp_moves_to_go = 1; hyp_moves_to_go <= tot_moves_to_go; ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_time = limits.game_clock[c].time
-            + limits.game_clock[c].inc * (hyp_moves_to_go - 1)
+        int32_t hyp_time = limits.gameclock[c].time
+            + limits.gameclock[c].inc * (hyp_moves_to_go - 1)
             - emergency_base_time
             - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
 
         if (hyp_time < 0) hyp_time = 0;
 
-        uint32_t opt_time = min_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
-        uint32_t max_time = min_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
+        uint32_t opt_time = minimum_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
+        uint32_t max_time = minimum_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
 
         if (_optimum_search_time > opt_time) _optimum_search_time = opt_time;
         if (_maximum_search_time > max_time) _maximum_search_time = max_time;
@@ -109,7 +108,7 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
         _optimum_search_time += _optimum_search_time / 4;
     }
 
-    // Make sure that _optimum_search_time is not over absolute _maximum_search_time
+    // Make sure that _optimum_search_time is not over _maximum_search_time
     if (_optimum_search_time > _maximum_search_time)
     {
         _optimum_search_time = _maximum_search_time;

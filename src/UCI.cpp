@@ -16,6 +16,7 @@
 namespace UCI {
 
     using namespace std;
+    using namespace Searcher;
     using namespace MoveGenerator;
     using namespace Threads;
     using namespace Notation;
@@ -26,8 +27,6 @@ namespace UCI {
 
         // Root position
         Position RootPos (0);
-
-        Searcher::LimitsT Limits;
 
         // Keep track of position keys along the setup moves
         // (from start position to the position just before to start searching).
@@ -214,22 +213,23 @@ namespace UCI {
         // Starts the search.
         inline void exe_go (cmdstream &cstm)
         {
-            Limits.clear ();
+            LimitsT limits;
+
             string  token;
             int32_t value;
             while (cstm >> token)
             {
-                if      (token == "wtime")      { cstm >> value; Limits.game_clock[WHITE].time = value >= 0 ? value : -value; }
-                else if (token == "btime")      { cstm >> value; Limits.game_clock[BLACK].time = value >= 0 ? value : -value; }
-                else if (token == "winc")       { cstm >> value; Limits.game_clock[WHITE].inc  = value >= 0 ? value : -value; }
-                else if (token == "binc")       { cstm >> value; Limits.game_clock[BLACK].inc  = value >= 0 ? value : -value; }
-                else if (token == "movetime")   { cstm >> value; Limits.movetime  = value >= 0 ? value : -value; }
-                else if (token == "movestogo")  { cstm >> value; Limits.movestogo = value >= 0 ? value : -value; }
-                else if (token == "depth")      { cstm >> value; Limits.depth = value >= 0 ? value : -value; }
-                else if (token == "nodes")      { cstm >> value; Limits.nodes = value >= 0 ? value : -value; }
-                else if (token == "mate")       { cstm >> value; Limits.mate  = value >= 0 ? value : -value; }
-                else if (token == "infinite")   { Limits.infinite  = true; }
-                else if (token == "ponder")     { Limits.ponder    = true; }
+                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? value : -value; }
+                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? value : -value; }
+                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? value : -value; }
+                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? value : -value; }
+                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? value : -value; }
+                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? value : -value; }
+                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? value : -value; }
+                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? value : -value; }
+                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? value : -value; }
+                else if (token == "infinite")   { limits.infinite  = true; }
+                else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)
                 else if      (token == "searchmoves")
                 {
@@ -239,17 +239,17 @@ namespace UCI {
                         
                         if (MOVE_NONE == m) continue;
                         
-                        Limits.search_moves.push_back (m);
+                        limits.searchmoves.push_back (m);
                     }
                 }
             }
 
-            Threadpool.start_thinking (RootPos, Limits, SetupStates);
+            Threadpool.start_thinking (RootPos, limits, SetupStates);
         }
 
         inline void exe_ponderhit ()
         {
-            Searcher::Limits.ponder = false;
+            Limits.ponder = false;
         }
 
         inline void exe_debug (cmdstream &cstm)
@@ -341,7 +341,7 @@ namespace UCI {
 
         inline void exe_eval ()
         {
-            Searcher::RootColor = RootPos.active (); // Ensure it is set
+            RootColor = RootPos.active (); // Ensure it is set
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
@@ -363,7 +363,7 @@ namespace UCI {
         // Stops the search
         inline void exe_stop ()
         {
-            Searcher::Signals.stop = true;
+            Signals.stop = true;
             Threadpool.main ()->notify_one (); // Could be sleeping
         }
 
@@ -378,7 +378,7 @@ namespace UCI {
         RootPos.setup (FEN_N, Threadpool.main (), bool (*(Options["UCI_Chess960"])));
 
         bool running = args.empty ();
-        string cmd = args;
+        string cmd   = args;
         string token;
         do
         {
@@ -403,7 +403,7 @@ namespace UCI {
                 // waiting for 'ponderhit' to stop the search (for instance because we
                 // already ran out of time), otherwise we should continue searching but
                 // switching from pondering to normal search.
-                Searcher::Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
+                Signals.stop_on_ponderhit ? exe_stop () : exe_ponderhit ();
             }
             else if (token == "debug")      exe_debug (cstm);
             else if (token == "print")      exe_print ();
@@ -430,7 +430,7 @@ namespace UCI {
         exe_stop ();
         // Cannot quit while search stream active
         Threadpool.wait_for_think_finished ();
-        Searcher::Book.close ();
+        Book.close ();
     }
 
 }

@@ -369,7 +369,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // Whether or not the engine should use the Opening Book.
-        Options["OwnBook"]                      = OptionPtr (new CheckOption (false));
+        Options["Own Book"]                      = OptionPtr (new CheckOption (false));
         // The filename of the Opening Book.
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         // Whether or not to always play the best move from the Opening Book.
@@ -532,7 +532,7 @@ namespace UCI {
         Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
         // The minimum amount of time to analyze, in milliseconds.
         Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
-        // Move fast if small value
+        // Move fast if small value, 100 is neutral
         Options["Slow Mover"]                   = OptionPtr (new SpinOption (90, 10, 1000));
 
         // Debug Options

@@ -91,7 +91,6 @@ void benchmark (istream &is, const Position &pos)
     LimitsT limits;
     bool    b_perft = false;
 
-    limits.clear ();
     if      (limit_type == "time")  limits.movetime = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
     else if (limit_type == "nodes") limits.nodes    = atoi (limit_val.c_str ());
     else if (limit_type == "mate")  limits.mate     = atoi (limit_val.c_str ());

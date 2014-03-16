@@ -357,8 +357,8 @@ namespace Threads {
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
-            if (   limits.search_moves.empty ()
-                || count (limits.search_moves.begin (), limits.search_moves.end (), m))
+            if (   limits.searchmoves.empty ()
+                || count (limits.searchmoves.begin (), limits.searchmoves.end (), m))
             {
                 RootMoves.push_back (RootMove (m));
             }
