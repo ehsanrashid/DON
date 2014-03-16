@@ -77,14 +77,14 @@ void benchmark (istream &is, const Position &pos)
     vector<string> fens;
 
     // Assign default values to missing arguments
-    string size_tt    = (is >> token) ? token : "32";
-    string num_threads= (is >> token) ? token : "1";
+    string hash       = (is >> token) ? token : "32";
+    string threads    = (is >> token) ? token : "1";
     string limit_val  = (is >> token) ? token : "13";
     string limit_type = (is >> token) ? token : "depth";
     string fen_fn     = (is >> token) ? token : "default";
 
-    *Options["Hash"]    = size_tt;
-    *Options["Threads"] = num_threads;
+    *Options["Hash"]    = hash;
+    *Options["Threads"] = threads;
 
     TT.master_clear ();
 

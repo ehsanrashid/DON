@@ -186,10 +186,10 @@ namespace Threads {
 
         searching = true;
 
-        --split_point_threads;
-        active_split_point = sp.parent_split_point;
-
         active_pos = &pos;
+        active_split_point = sp.parent_split_point;
+        --split_point_threads;
+
         pos.game_nodes (pos.game_nodes () + sp.nodes);
 
         best_move  = sp.best_move;
@@ -309,7 +309,7 @@ namespace Threads {
         }
 
         //cout
-        //    << "info string Thread(s) " << size () << ".\n"
+        //    << "info string Thread(s) "   << threads     << ".\n"
         //    << "info string Split Depth " << split_depth << ".\n"
         //    << endl;
 

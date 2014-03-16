@@ -1365,8 +1365,10 @@ namespace Searcher {
                         //dbg_hit_on (thread->split_point_threads == 1);
                         //dbg_hit_on (thread->split_point_threads == 2);
                         //dbg_hit_on (thread->split_point_threads == 3);
+                        //dbg_hit_on (thread->split_point_threads == 4);
 
                         //dbg_mean_of (thread->split_point_threads);
+                        //dbg_mean_of (Threadpool.split_depth);  // always== 8
                         //dbg_mean_of (depth);
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
@@ -1969,8 +1971,6 @@ namespace Threads {
     {
         static point last_time = now ();
 
-        uint64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning
-
         point now_time = now ();
         if (now_time - last_time >= M_SEC)
         {
@@ -1983,7 +1983,8 @@ namespace Threads {
             return;
         }
 
-        if (Limits.nodes > 0)
+        uint64_t nodes = 0;
+        if (Limits.nodes)
         {
             Threadpool.mutex.lock ();
 
@@ -1998,10 +1999,10 @@ namespace Threads {
                     SplitPoint &sp = Threadpool[i]->split_points[j];
                     sp.mutex.lock ();
                     nodes += sp.nodes;
-                    uint64_t sm = sp.slaves_mask;
-                    while (sm != U64 (0))
+                    uint64_t slaves_mask = sp.slaves_mask;
+                    while (slaves_mask != U64 (0))
                     {
-                        Position *pos = Threadpool[pop_lsq (sm)]->active_pos;
+                        Position *pos = Threadpool[pop_lsq (slaves_mask)]->active_pos;
                         if (pos) nodes += pos->game_nodes ();
                     }
                     sp.mutex.unlock ();

@@ -227,7 +227,7 @@ enum Value : int32_t
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
     
-    VALUE_NONE      = 32767, // std::numeric_limits<int>::max()
+    VALUE_NONE      = SHRT_MAX,
     VALUE_INFINITE  = int32_t (VALUE_NONE) - 1,
 
     VALUE_MATE      = int32_t (VALUE_INFINITE) - 1,
