@@ -4,7 +4,7 @@
 #include "RKISS.h"
 
 //Zobrist::Zob ZobRnd;
-const Zobrist::Zob &Zob = ZobPG; //ZobRnd;
+const Zobrist::Zob &Zob = ZobPG; // Global Zobrist
 
 namespace Zobrist {
 

@@ -201,25 +201,25 @@ void MovePicker::generate_next_stage ()
 
     case KILLERS_S1:
         // Killer moves usually come right after after the hash move and (good) captures
-        cur = end = killers;
+        cur = end = killer_moves;
 
-        killers[0].move =           //killer[0];
-        killers[1].move =           //killer[1];
-        killers[2].move =           //counter_moves[0]
-        killers[3].move =           //counter_moves[1]
-        killers[4].move =           //followup_moves[0]
-        killers[5].move = MOVE_NONE;//followup_moves[1]
+        killer_moves[0].move =           //killer_moves[0];
+        killer_moves[1].move =           //killer_moves[1];
+        killer_moves[2].move =           //counter_moves[0]
+        killer_moves[3].move =           //counter_moves[1]
+        killer_moves[4].move =           //followup_moves[0]
+        killer_moves[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
         for (int32_t i = 0; i < 2; ++i)
         {
-            if (ss->killers[i])
+            if (ss->killer_moves[i])
             {
-                (end++)->move = ss->killers[i];
+                (end++)->move = ss->killer_moves[i];
             }
         }
         //// If killer moves are same
-        //if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
+        //if (ss->killer_moves[1] && ss->killer_moves[1] == ss->killer_moves[0]) // Due to SMP races
         //{
         //    (--end)->move = MOVE_NONE;
         //}
@@ -240,7 +240,7 @@ void MovePicker::generate_next_stage ()
         //    (--end)->move = MOVE_NONE;
         //}
 
-        // Be sure followup moves are not MOVE_NONE & different from killers and countermoves
+        // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (int32_t i = 0; i < 2; ++i)
         {
             if (followup_moves[i] &&
@@ -381,12 +381,12 @@ Move MovePicker::next_move<false> ()
             {
                 move = (cur++)->move;
                 if (   move != tt_move
-                    && move != killers[0].move
-                    && move != killers[1].move
-                    && move != killers[2].move
-                    && move != killers[3].move
-                    && move != killers[4].move
-                    && move != killers[5].move)
+                    && move != killer_moves[0].move
+                    && move != killer_moves[1].move
+                    && move != killer_moves[2].move
+                    && move != killer_moves[3].move
+                    && move != killer_moves[4].move
+                    && move != killer_moves[5].move)
                 {
                     return move;
                 }

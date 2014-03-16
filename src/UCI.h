@@ -21,11 +21,13 @@ namespace UCI {
         {
 
         public:
+            
             typedef void (*OnChange) (const Option &);
 
             uint8_t index;
 
         protected:
+            
             OnChange _on_change;
 
         public:
@@ -154,10 +156,9 @@ namespace UCI {
                 itr  = options.begin ();
                 itr != options.end (); ++itr)
             {
-                const OptionPtr &option_ptr = itr->second;
-                if (idx == (option_ptr)->index)
+                const OptionType::Option *option = itr->second.get ();
+                if (idx == option->index)
                 {
-                    const OptionType::Option *option = (option_ptr).get ();
                     os << "option name " << itr->first << " " << option << std::endl;
                     break;
                 }

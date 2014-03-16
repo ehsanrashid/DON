@@ -6,7 +6,7 @@
 #include "Searcher.h"
 #include "UCI.h"
 
-Threads::ThreadPool Threadpool; // Global object
+Threads::ThreadPool     Threadpool; // Global ThreadPool
 
 namespace Threads {
 
@@ -35,9 +35,9 @@ namespace Threads {
 
         inline void delete_thread (ThreadBase *th)
         {
-            th->exit = true; // Search must be already finished
+            th->exit = true;            // Search must be already finished
             th->notify_one ();
-            thread_join (th->handle); // Wait for thread termination
+            thread_join (th->handle);   // Wait for thread termination
             delete th;
         }
 
@@ -54,10 +54,13 @@ namespace Threads {
     }
 
     // wait_for() set the thread to sleep until condition 'b' turns true
-    void ThreadBase::wait_for (const volatile bool &b)
+    void ThreadBase::wait_for (const volatile bool &cond)
     {
         mutex.lock ();
-        while (!b) sleep_condition.wait (mutex);
+        while (!cond)
+        {
+            sleep_condition.wait (mutex);
+        }
         mutex.unlock ();
     }
 
@@ -65,12 +68,13 @@ namespace Threads {
 
     // Thread c'tor just inits data but does not launch any thread of execution that
     // instead will be started only upon c'tor returns.
-    Thread::Thread () //: split_points ()  // Value-initialization bug in MSVC
+    Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
     {
-        searching = false;
-        max_ply = splitpoint_threads = 0;
-        active_splitpoint = NULL;
-        active_pos         = NULL;
+        searching   = false;
+        max_ply     = 0;
+        active_pos  = NULL;
+        splitpoint_threads = 0;
+        active_splitpoint  = NULL;
         idx = Threadpool.size (); // Starts from 0
     }
 
@@ -78,7 +82,9 @@ namespace Threads {
     // current active split point, or in some ancestor of the split point.
     bool Thread::cutoff_occurred () const
     {
-        for (SplitPoint *sp = active_splitpoint; sp != NULL; sp = sp->parent_splitpoint)
+        for (SplitPoint *sp = active_splitpoint;
+             sp != NULL;
+             sp = sp->parent_splitpoint)
         {
             if (sp->cut_off) return true;
         }
@@ -101,29 +107,27 @@ namespace Threads {
 
         // No split points means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
-        return !size || (split_points[size - 1].slaves_mask & (U64 (1) << master->idx));
+        return !size || (splitpoints[size - 1].slaves_mask & (U64 (1) << master->idx));
     }
 
-    // split() does the actual work of distributing the work at a node between
-    // several available threads. If it does not succeed in splitting the node
-    // (because no idle threads are available), the function immediately returns.
-    // If splitting is possible, a SplitPoint object is initialized with all the
-    // data that must be copied to the helper threads and then helper threads are
-    // told that they have been assigned work. This will cause them to instantly
-    // leave their idle loops and call search(). When all threads have returned from
-    // search() then split() returns.
+    // split<>() does the actual work of distributing the work at a node between several available threads.
+    // Almost always allocate a slave, only in the rare case of a race (< 2%) this is not true.
+    // SplitPoint object is initialized with all the data that must be copied to the helper threads
+    // and then helper threads are told that they have been assigned work. This causes them to instantly
+    // leave their idle loops and call search<>().
+    // When all threads have returned from search() then split() returns.
     template <bool FAKE>
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, uint8_t moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         ASSERT (pos.ok ());
-        ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
-        ASSERT (depth >= Threadpool.split_depth);
         ASSERT (searching);
+        ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
+        ASSERT (Threadpool.split_depth <= depth);
         ASSERT (splitpoint_threads < MAX_SPLIT_POINT_THREADS);
 
         // Pick the next available split point from the split point stack
-        SplitPoint &sp = split_points[splitpoint_threads];
+        SplitPoint &sp = splitpoints[splitpoint_threads];
 
         sp.master_thread = this;
         sp.parent_splitpoint = active_splitpoint;
@@ -159,8 +163,8 @@ namespace Threads {
             {
                 sp.slaves_mask |= (U64 (1) << slave->idx);
                 slave->active_splitpoint = &sp;
-                slave->searching = true; // Slave leaves idle_loop()
-                slave->notify_one (); // Could be sleeping
+                slave->searching = true;        // Leaves idle_loop()
+                slave->notify_one ();           // Notified could be sleeping
             }
         }
 
@@ -322,9 +326,10 @@ namespace Threads {
     {
         for (const_iterator itr = begin (); itr != end (); ++itr)
         {
-            if ((*itr)->available_to (master))
+            Thread *slave = *itr;
+            if (slave->available_to (master))
             {
-                return *itr;
+                return slave;
             }
         }
         return NULL;
@@ -334,16 +339,10 @@ namespace Threads {
     // so to start a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
     {
-        wait_for_think_finished ();
-
         SearchTime = Time::now (); // As early as possible
 
-        Signals.stop           = false;
-        Signals.stop_ponderhit = false;
-        Signals.root_1stmove   = false;
-        Signals.root_failedlow = false;
+        wait_for_think_finished ();
 
-        RootMoves.clear ();
         RootPos     = pos;
         RootColor   = pos.active ();
         Limits      = limits;
@@ -354,16 +353,23 @@ namespace Threads {
 
             ASSERT (!states.get ());
         }
-
+        
+        RootMoves.clear ();
+        bool all_rootmoves = limits.searchmoves.empty ();
         for (MoveList<LEGAL> itr (pos); *itr; ++itr)
         {
             Move m = *itr;
-            if (   limits.searchmoves.empty ()
+            if (   all_rootmoves
                 || count (limits.searchmoves.begin (), limits.searchmoves.end (), m))
             {
                 RootMoves.push_back (RootMove (m));
             }
         }
+        
+        Signals.stop           = false;
+        Signals.stop_ponderhit = false;
+        Signals.root_1stmove   = false;
+        Signals.root_failedlow = false;
 
         main ()->thinking = true;
         main ()->notify_one (); // Starts main thread
@@ -374,7 +380,10 @@ namespace Threads {
     {
         MainThread *main_th = main ();
         main_th->mutex.lock ();
-        while (main_th->thinking) sleep_condition.wait (main_th->mutex);
+        while (main_th->thinking)
+        {
+            sleep_condition.wait (main_th->mutex);
+        }
         main_th->mutex.unlock ();
     }
 

@@ -82,7 +82,7 @@ namespace Notation {
         while (b != U64 (0))
         {
             Square amb_org = pop_lsq (b);
-            Move move = mk_move (amb_org, dst);
+            Move move = mk_move<NORMAL> (amb_org, dst);
             if (!pos.legal (move, pinneds))
             {
                 amb -= amb_org;
@@ -165,7 +165,7 @@ namespace Notation {
         Square org = org_sq (m);
         Square dst = dst_sq (m);
         MoveT mt   = mtype (m);
-        if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
+        if (!c960 && (CASTLE == mt)) dst = (((dst > org) ? F_G : F_C) | _rank (org));
         string can = to_string (org) + to_string (dst);
         if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
         return can;

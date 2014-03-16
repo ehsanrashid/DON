@@ -43,12 +43,12 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #   define lock_grab(x)          EnterCriticalSection (&(x))
 #   define lock_release(x)       LeaveCriticalSection (&(x))
 #   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_init(x)          { x = CreateEvent (0, FALSE, FALSE, 0); }
+#   define cond_init(x)          x = CreateEvent (0, FALSE, FALSE, 0);
 #   define cond_destroy(x)       CloseHandle (x)
 #   define cond_signal(x)        SetEvent (x)
 #   define cond_wait(x,y)        { lock_release (y); WaitForSingleObject (x, INFINITE); lock_grab (y); }
 #   define cond_timedwait(x,y,z) { lock_release (y); WaitForSingleObject (x, z); lock_grab (y); }
-#   define thread_create(x,f,t)  (x = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ()))
+#   define thread_create(x,f,t)  x = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
 #   define thread_join(x)        { WaitForSingleObject (x, INFINITE); CloseHandle (x); }
 
 #else    // Linux - Unix
@@ -65,8 +65,8 @@ typedef void* (*FnStart) (void*);
 #   define lock_grab(x)     pthread_mutex_lock (&(x))
 #   define lock_release(x)  pthread_mutex_unlock (&(x))
 #   define lock_destroy(x)  pthread_mutex_destroy (&(x))
-#   define cond_destroy(x)  pthread_cond_destroy (&(x))
 #   define cond_init(x)     pthread_cond_init (&(x), NULL)
+#   define cond_destroy(x)  pthread_cond_destroy (&(x))
 #   define cond_signal(x)   pthread_cond_signal (&(x))
 #   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
 #   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
@@ -165,7 +165,7 @@ namespace Threads {
 
         void notify_one ();
 
-        void wait_for (volatile const bool &b);
+        void wait_for (volatile const bool &cond);
     };
 
     // Thread struct keeps together all the thread related stuff like locks, state
@@ -175,7 +175,7 @@ namespace Threads {
     struct Thread
         : public ThreadBase
     {
-        SplitPoint split_points[MAX_SPLIT_POINT_THREADS];
+        SplitPoint splitpoints[MAX_SPLIT_POINT_THREADS];
         
         Material::Table   material_table;
         Pawns   ::Table   pawns_table;
@@ -205,8 +205,8 @@ namespace Threads {
 
     };
 
-    // MainThread and TimerThread are derived classes used to characterize the two
-    // special threads: the main one and the recurring timer.
+    // MainThread is derived from ThreadBase
+    // used for special purpose: the main thread.
     struct MainThread
         : public Thread
     {
@@ -220,6 +220,8 @@ namespace Threads {
 
     };
 
+    // TimerThread is derived from ThreadBase
+    // used for special purpose: the recurring timer.
     struct TimerThread
         : public ThreadBase
     {
@@ -377,9 +379,7 @@ inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
 }
 
 
-extern Threads::ThreadPool Threadpool;
-
-
+extern Threads::ThreadPool  Threadpool;
 
 
 #endif // _THREAD_H_INC_

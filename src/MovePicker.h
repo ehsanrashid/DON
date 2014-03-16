@@ -105,7 +105,7 @@ private:
 
     Searcher::Stack    *ss;
 
-    ValMove killers[6];
+    ValMove killer_moves[6];
     Move   *counter_moves;
     Move   *followup_moves;
 

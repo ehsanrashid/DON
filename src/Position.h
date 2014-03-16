@@ -21,10 +21,12 @@ namespace Threads {
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
+
 #ifndef NDEBUG
 // 88 is the max FEN length - r1n1k1r1/1B1b1q1n/1p1p1p1p/p1p1p1p1/1P1P1P1P/P1P1P1P1/1b1B1Q1N/R1N1K1R1 w KQkq - 12 1000
 const uint8_t MAX_FEN     = 88;
 #endif
+
 // N-FEN (NATURAL-FEN)
 // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 // X-FEN (CHESS960-FEN) (Fischer Random Chess)
@@ -38,7 +40,6 @@ extern const std::string FEN_X;
 extern bool _ok (const        char *fen, bool c960 = false, bool full = true);
 #endif
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
-
 
 // StateInfo stores information to restore Position object to its previous state when retracting a move.
 // Whenever a move is made on the board (do_move), a StateInfo object must be passed as a parameter.
@@ -95,6 +96,7 @@ public:
 
 } StateInfo;
 
+typedef std::stack<StateInfo>   StateInfoStack;
 
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
@@ -196,6 +198,7 @@ public:
     static void initialize ();
 
     Position () { clear (); }
+
 #ifndef NDEBUG
     Position (const char        *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
@@ -207,7 +210,8 @@ public:
         if (!setup (f, th, c960, full)) clear ();
     }
     Position (const Position &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
-    explicit Position (int32_t dummy) { ++dummy; }
+    
+    explicit Position (int32_t) {}
 
     Position& operator= (const Position &pos);
 
@@ -535,7 +539,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (_piece_list[c][KING][0]) & _color_bb[~c];
+    return attackers_to (_piece_list[c][KING][0], _types_bb[NONE]) & _color_bb[~c];
 }
 
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
@@ -709,6 +713,7 @@ inline void Position::do_castling (Square org_king, Square &dst_king, Square &or
     place_piece (DO ? dst_rook : org_rook, _active, ROOK);
 }
 
+// ----------------------------------------------
 
 inline CheckInfo::CheckInfo (const Position &pos)
 {
@@ -726,7 +731,5 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
     checking_bb[KING] = U64 (0);
 }
-
-typedef std::stack<StateInfo>   StateInfoStack;
 
 #endif // _POSITION_H_INC_

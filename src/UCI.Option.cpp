@@ -12,8 +12,7 @@
 #include "Debugger.h"
 #include "TB_Syzygy.h"
 
-// Global string mapping of options
-UCI::OptionMap Options;
+UCI::OptionMap  Options; // Global string mapping of Options
 
 namespace UCI {
 
@@ -199,7 +198,7 @@ namespace UCI {
 
     }
 
-    // option-events
+    // Option Events
     namespace {
 
         using namespace OptionType;
@@ -294,7 +293,7 @@ namespace UCI {
         // This number should be smaller than the amount of physical memory for your system.
         // Default 128, Min 4, Max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
         //
-        // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144 MB).
+        // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
         // For infinite analysis or long time control matches you should use the largest hash that fits in the physical memory of your system.
         // For example, on a system with 4 GB of memory you can use up to 2048 MB hash size.
@@ -369,7 +368,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // Whether or not the engine should use the Opening Book.
-        Options["Own Book"]                      = OptionPtr (new CheckOption (false));
+        Options["Own Book"]                     = OptionPtr (new CheckOption (false));
         // The filename of the Opening Book.
         Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
         // Whether or not to always play the best move from the Opening Book.
@@ -520,7 +519,7 @@ namespace UCI {
         // Default 0, Min 0, Max 99.
         //
         // If set, this option will usually speed-up a mate search.
-        // If you know that a position is "mate in X", you can use X or a value slightly larger than X in the Mate Search option.
+        // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
         Options["Mate Search"]                  = OptionPtr (new SpinOption ( 0,  0, 99));
         // How well you want engine to play.

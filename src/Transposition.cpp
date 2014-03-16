@@ -3,8 +3,7 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-// Global Transposition Table
-TranspositionTable TT;
+TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 

@@ -599,34 +599,17 @@ inline Square dst_sq    (Move m) { return Square ((m >> 0) & int8_t (SQ_H8)); }
 inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
 inline MoveT mtype      (Move m) { return MoveT (PROMOTE & m); }
 
-inline void org_sq      (Move &m, Square org)
-{
-    m &= 0xF03F;
-    m |= (org << 6);
-}
-inline void dst_sq      (Move &m, Square dst)
-{
-    m &= 0xFFC0;
-    m |= (dst << 0);
-}
-inline void prom_type   (Move &m, PieceT pt)
-{
-    m &= 0x0FFF;
-    m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12);
-}
-inline void mtype       (Move &m, MoveT mt)
-{
-    m &= ~PROMOTE;
-    m |= mt;
-}
-
-inline Move operator~ (Move m)
-{
-    Move mm = m;
-    org_sq (mm, ~org_sq (m));
-    dst_sq (mm, ~dst_sq (m));
-    return mm;
-}
+//inline void org_sq      (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
+//inline void dst_sq      (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
+inline void prom_type   (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12); }
+//inline void mtype       (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
+//inline Move operator~ (Move m)
+//{
+//    Move mm = m;
+//    org_sq (mm, ~org_sq (m));
+//    dst_sq (mm, ~dst_sq (m));
+//    return mm;
+//}
 
 template<MoveT M>
 extern Move mk_move (Square org, Square dst, PieceT pt);
@@ -649,15 +632,9 @@ template Move mk_move<NORMAL> (Square org, Square dst);
 template Move mk_move<CASTLE> (Square org, Square dst);
 template Move mk_move<ENPASSANT> (Square org, Square dst);
 // --------------------------------
-template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst)
-{
-    return mk_move<PROMOTE> (org, dst, QUEN);
-}
-inline Move mk_move (Square org, Square dst)
-{
-    return mk_move<NORMAL> (org, dst);
-}
+//template<>
+//inline Move mk_move<PROMOTE> (Square org, Square dst) { return mk_move<PROMOTE> (org, dst, QUEN); }
+//inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
 inline bool _ok (Move m)
 {

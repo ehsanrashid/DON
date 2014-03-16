@@ -38,12 +38,11 @@ namespace Searcher {
     namespace {
 
         // Set to true to force running with one thread. Used for debugging
-        const bool FakeSplit            = false;
+        const bool FakeSplit        = false;
 
-        //const uint8_t MAX_NULL_REDUCTION = 3;
-        const uint8_t MAX_QUIETS        = 64;
+        const uint8_t MAX_QUIETS    = 64;
 
-        const point   InfoDuration      = 3000; // 3 sec
+        const point   InfoDuration  = 3000; // 3 sec
 
         // Futility lookup tables (initialized at startup) and their access functions
         uint8_t FutilityMoveCounts[2][32];  // [improving][depth]
@@ -92,14 +91,14 @@ namespace Searcher {
         Depth       TBProbeDepth;
         Value       TBScore;
 
-        // update_stats() updates killers, history, countermoves and followupmoves stats
+        // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
         inline void update_stats (Position &pos, Stack *ss, Move move, uint8_t depth, Move *quiet_moves, uint8_t quiets_count)
         {
-            if ((ss)->killers[0] != move)
+            if ((ss)->killer_moves[0] != move)
             {
-                (ss)->killers[1] = (ss)->killers[0];
-                (ss)->killers[0] = move;
+                (ss)->killer_moves[1] = (ss)->killer_moves[0];
+                (ss)->killer_moves[0] = move;
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
@@ -631,8 +630,8 @@ namespace Searcher {
 
             (ss+1)->skip_null_move = false;
             (ss+1)->reduction  = DEPTH_ZERO;
-            (ss+2)->killers[0] = MOVE_NONE;
-            (ss+2)->killers[1] = MOVE_NONE;
+            (ss+2)->killer_moves[0] = MOVE_NONE;
+            (ss+2)->killer_moves[1] = MOVE_NONE;
 
             // Used to send sel_depth info to GUI
             if (PVNode)
@@ -696,7 +695,7 @@ namespace Searcher {
 
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
 
-                    // If tt_move is quiet, update killers, history, counter move and followup move on TT hit
+                    // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
                     if (   (tt_value >= beta)
                         && (tt_move != MOVE_NONE)
                         && (!pos.capture_or_promotion (tt_move))
@@ -707,6 +706,7 @@ namespace Searcher {
 
                     return tt_value;
                 }
+
                 /*
                 // Step 4-TB. Tablebase probe
                 if (   (depth >= TBProbeDepth)
@@ -1208,8 +1208,8 @@ namespace Searcher {
                     && (depth >= 3 * ONE_MOVE)
                     && (!capture_or_promotion)
                     && (move != tt_move)
-                    && (move != (ss)->killers[0])
-                    && (move != (ss)->killers[1]))
+                    && (move != (ss)->killer_moves[0])
+                    && (move != (ss)->killer_moves[1]))
                 {
                     (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
 
@@ -1416,7 +1416,7 @@ namespace Searcher {
                 // Quiet best move:
                 if (best_value >= beta && best_move != MOVE_NONE)
                 {
-                    // Update killers, history, counter moves and followup moves
+                    // Update history, killer, counter & followup moves
                     if (!in_check && !pos.capture_or_promotion (best_move))
                     {
                         update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
@@ -1862,10 +1862,10 @@ namespace Searcher {
         Threadpool.timer->run = true;
         Threadpool.timer->notify_one ();// Wake up the recurring timer
 
-        iter_deep_loop (RootPos);   // Let's start searching !
+        iter_deep_loop (RootPos);       // Let's start searching !
 
-        Threadpool.timer->run = false; // Stop the timer
-        Threadpool.sleep_idle = true;  // Send idle threads to sleep
+        Threadpool.timer->run = false;  // Stop the timer
+        Threadpool.sleep_idle = true;   // Send idle threads to sleep
 
         if (RootInTB)
         {
@@ -1881,7 +1881,7 @@ namespace Searcher {
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                 << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed   << "\n"
-                << "Hash-Full:   " << TT.permill_full ()                        << "\n"
+                << "Hash-full:   " << TT.permill_full ()                        << "\n"
                 << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (RootMoves[0].pv[0] != MOVE_NONE)
             {
@@ -2000,7 +2000,7 @@ namespace Threads {
             {
                 for (uint8_t j = 0; j < Threadpool[i]->splitpoint_threads; ++j)
                 {
-                    SplitPoint &sp = Threadpool[i]->split_points[j];
+                    SplitPoint &sp = Threadpool[i]->splitpoints[j];
                     sp.mutex.lock ();
                     nodes += sp.nodes;
                     uint64_t slaves_mask = sp.slaves_mask;
@@ -2036,7 +2036,7 @@ namespace Threads {
 
     }
 
-    // Thread::idle_loop () is where the thread is parked when it has no work to do
+    // idle_loop() is where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
         // Pointer 'split_point' is not null only if we are called from split(), and not

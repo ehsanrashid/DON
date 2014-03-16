@@ -451,27 +451,27 @@ namespace Tester {
 
             ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
 
-            m =  mk_move (SQ_E2, SQ_E4);
+            m =  mk_move<NORMAL> (SQ_E2, SQ_E4);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x823C9B50FD114196) == pos.posi_key ());
 
-            m =  mk_move (SQ_D7, SQ_D5);
+            m =  mk_move<NORMAL> (SQ_D7, SQ_D5);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x0756B94461C50FB0) == pos.posi_key ());
 
-            m = mk_move (SQ_E4, SQ_E5);
+            m = mk_move<NORMAL> (SQ_E4, SQ_E5);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x662FAFB965DB29D4) == pos.posi_key ());
 
-            m = mk_move (SQ_F7, SQ_F5);
+            m = mk_move<NORMAL> (SQ_F7, SQ_F5);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x22A48B5A8E47FF78) == pos.posi_key ());
 
-            m = mk_move (SQ_E1, SQ_E2);
+            m = mk_move<NORMAL> (SQ_E1, SQ_E2);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x652A607CA3F242C1) == pos.posi_key ());
 
-            m = mk_move (SQ_E8, SQ_F7);
+            m = mk_move<NORMAL> (SQ_E8, SQ_F7);
             pos.do_move (m, *si++);
             ASSERT (U64 (0x00FDD303C946BDD9) == pos.posi_key ());
 
@@ -508,29 +508,29 @@ namespace Tester {
             {
                 si = states;
 
-                m = mk_move (SQ_F2, SQ_F4);
+                m = mk_move<NORMAL> (SQ_F2, SQ_F4);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_A5, SQ_B3);
+                m = mk_move<NORMAL> (SQ_A5, SQ_B3);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_A1, SQ_A3);
+                m = mk_move<NORMAL> (SQ_A1, SQ_A3);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_B3, SQ_A5);
+                m = mk_move<NORMAL> (SQ_B3, SQ_A5);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_G3, SQ_F5);
+                m = mk_move<NORMAL> (SQ_G3, SQ_F5);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_G8, SQ_H8);
+                m = mk_move<NORMAL> (SQ_G8, SQ_H8);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_D3, SQ_B1);
+                m = mk_move<NORMAL> (SQ_D3, SQ_B1);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_D7, SQ_A4);
+                m = mk_move<NORMAL> (SQ_D7, SQ_A4);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_A3, SQ_A4);
+                m = mk_move<NORMAL> (SQ_A3, SQ_A4);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_A5, SQ_C4);
+                m = mk_move<NORMAL> (SQ_A5, SQ_C4);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_E3, SQ_C5);
+                m = mk_move<NORMAL> (SQ_E3, SQ_C5);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_E8, SQ_C7);
+                m = mk_move<NORMAL> (SQ_E8, SQ_C7);
                 pos.do_move (m, *si++);
 
                 //cout << pos;
@@ -538,9 +538,9 @@ namespace Tester {
                 pos.undo_move ();
                 pos.undo_move ();
 
-                m = mk_move (SQ_E2, SQ_C2);
+                m = mk_move<NORMAL> (SQ_E2, SQ_C2);
                 pos.do_move (m, *si++);
-                m = mk_move (SQ_E8, SQ_C7);
+                m = mk_move<NORMAL> (SQ_E8, SQ_C7);
                 pos.do_move (m, *si++);
 
                 pos.undo_move ();

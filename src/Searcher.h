@@ -138,11 +138,11 @@ namespace Searcher {
         uint64_t nodes;
         std::vector<Move> pv;
 
-        RootMove (Move m)
+        RootMove (Move m = MOVE_NONE)
+            : nodes (U64 (0))
         {
             value[0] = -VALUE_INFINITE;
             value[1] = -VALUE_INFINITE;
-            nodes = U64 (0);
             pv.push_back (m);
             pv.push_back (MOVE_NONE);
         }
@@ -175,7 +175,7 @@ namespace Searcher {
             ,   tt_move
             ,   excluded_move;
 
-        Move    killers[2];
+        Move    killer_moves[2];
         
         uint8_t ply;
 
