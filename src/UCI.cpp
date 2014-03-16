@@ -223,11 +223,11 @@ namespace UCI {
                 else if (token == "btime")      { cstm >> value; Limits.game_clock[BLACK].time = value >= 0 ? value : -value; }
                 else if (token == "winc")       { cstm >> value; Limits.game_clock[WHITE].inc  = value >= 0 ? value : -value; }
                 else if (token == "binc")       { cstm >> value; Limits.game_clock[BLACK].inc  = value >= 0 ? value : -value; }
-                else if (token == "movetime")   { cstm >> value; Limits.move_time   = value >= 0 ? value : -value; }
-                else if (token == "movestogo")  { cstm >> value; Limits.moves_to_go = value >= 0 ? value : -value; }
-                else if (token == "depth")      { cstm >> value; Limits.depth   = value >= 0 ? value : -value; }
-                else if (token == "nodes")      { cstm >> value; Limits.nodes   = value >= 0 ? value : -value; }
-                else if (token == "mate")       { cstm >> value; Limits.mate_in = value >= 0 ? value : -value; }
+                else if (token == "movetime")   { cstm >> value; Limits.movetime  = value >= 0 ? value : -value; }
+                else if (token == "movestogo")  { cstm >> value; Limits.movestogo = value >= 0 ? value : -value; }
+                else if (token == "depth")      { cstm >> value; Limits.depth = value >= 0 ? value : -value; }
+                else if (token == "nodes")      { cstm >> value; Limits.nodes = value >= 0 ? value : -value; }
+                else if (token == "mate")       { cstm >> value; Limits.mate  = value >= 0 ? value : -value; }
                 else if (token == "infinite")   { Limits.infinite  = true; }
                 else if (token == "ponder")     { Limits.ponder    = true; }
                 // parse and validate search moves (if any)

@@ -699,7 +699,7 @@ namespace Searcher {
 
                     return tt_value;
                 }
-
+                /*
                 // Step 4-TB. Tablebase probe
                 if (   (depth >= TBProbeDepth)
                     && (pos.clock50 () == 0)
@@ -737,7 +737,7 @@ namespace Searcher {
                         return value;
                     }
                 }
-
+                */
             }
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -1361,10 +1361,6 @@ namespace Searcher {
                     {
                         ASSERT (best_value < beta);
 
-                        //dbg_hit_on (thread->split_point_threads == 0);
-                        //dbg_hit_on (thread->split_point_threads == 1);
-                        //dbg_hit_on (thread->split_point_threads == 2);
-                        //dbg_hit_on (thread->split_point_threads == 3);
                         //dbg_hit_on (thread->split_point_threads == 4);
 
                         //dbg_mean_of (thread->split_point_threads);
@@ -1591,9 +1587,9 @@ namespace Searcher {
                 }
 
                 // Have found a "mate in x"?
-                if (   Limits.mate_in
+                if (   Limits.mate
                     && (best_value >= VALUE_MATES_IN_MAX_PLY)
-                    && (VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate_in))
+                    && (VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate))
                 {
                     Signals.stop = true;
                 }
@@ -1763,7 +1759,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (bool (*(Options["OwnBook"])) && !Limits.infinite && !Limits.mate_in)
+        if (!Limits.infinite && !Limits.mate && bool (*(Options["OwnBook"])))
         {
             if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
@@ -1785,7 +1781,8 @@ namespace Searcher {
                 << "ponder:    " << Limits.ponder                       << "\n"
                 << "time:      " << Limits.game_clock[RootColor].time   << "\n"
                 << "increment: " << Limits.game_clock[RootColor].inc    << "\n"
-                << "movestogo: " << uint32_t (Limits.moves_to_go)       << "\n"
+                << "movetime:  " << Limits.movetime                     << "\n"
+                << "movestogo: " << uint32_t (Limits.movestogo)         << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;
@@ -2024,7 +2021,7 @@ namespace Threads {
             || (still_at_first_move);
 
         if (   (Limits.use_time_management () && no_more_time)
-            || (Limits.move_time && elapsed >= Limits.move_time)
+            || (Limits.movetime && elapsed >= Limits.movetime)
             || (Limits.nodes && nodes >= Limits.nodes))
         {
             Signals.stop = true;

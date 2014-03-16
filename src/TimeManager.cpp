@@ -86,7 +86,7 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
     for (uint8_t hyp_moves_to_go = 1;
-        hyp_moves_to_go <= (limits.moves_to_go ? min (limits.moves_to_go, MoveHorizon) : MoveHorizon);
+        hyp_moves_to_go <= (limits.movestogo ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
         ++hyp_moves_to_go)
     {
         // Calculate thinking time for hypothetic "moves to go"-value

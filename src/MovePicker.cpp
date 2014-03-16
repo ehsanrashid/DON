@@ -257,6 +257,7 @@ void MovePicker::generate_next_stage ()
         //{
         //    (--end)->move = MOVE_NONE;
         //}
+
         return;
 
     case QUIETS_1_S1:

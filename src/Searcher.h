@@ -55,34 +55,43 @@ namespace Searcher {
             // unit: milli-seconds
             uint32_t time;   // time left
             uint32_t inc;    // time gain
-
-            GameClock ()
-                : time (0)
-                , inc (0)
-            {}
-
         } GameClock;
 
     public:
+
         GameClock game_clock[CLR_NO];
 
-        uint32_t  move_time;      // search <x> time in milli-seconds
-        uint8_t   moves_to_go;    // search <x> moves to the next time control
-        uint8_t   depth;          // search <x> depth (plies) only
-        uint32_t  nodes;          // search <x> nodes only
-        uint8_t   mate_in;        // search mate in <x> moves
-        bool      infinite;       // search until the "stop" command
-        bool      ponder;         // search on ponder move
+        uint32_t  movetime;  // search <x> time in milli-seconds
+        uint8_t   movestogo; // search <x> moves to the next time control
+        uint8_t   depth;     // search <x> depth (plies) only
+        uint32_t  nodes;     // search <x> nodes only
+        uint8_t   mate;      // search mate in <x> moves
+        bool      infinite;  // search until the "stop" command
+        bool      ponder;    // search on ponder move
 
         std::vector<Move>  search_moves;   // search these moves only restrict
 
-        LimitsT     () { clear (); }
+        LimitsT () {}
         
-        void clear  () { std::memset (this, 0, sizeof (LimitsT)); }
+        void clear  ()
+        {
+            game_clock[WHITE].time = 0;
+            game_clock[BLACK].time = 0;
+            game_clock[WHITE].inc  = 0;
+            game_clock[BLACK].inc  = 0;
+
+            movetime  = 0;
+            movestogo = 0;
+            depth     = 0;
+            nodes     = 0;
+            mate      = 0;
+            infinite = false; 
+            ponder   = false;
+        }
         
         bool use_time_management () const
         {
-            return !(infinite | mate_in | move_time | depth | nodes);
+            return !(infinite || movetime || depth || nodes || mate);
         }
 
     } LimitsT;

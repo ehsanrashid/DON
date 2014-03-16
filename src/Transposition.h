@@ -224,7 +224,7 @@ public:
     inline uint16_t permill_full () const
     {
         uint32_t full_count = 0;
-
+        return full_count;      // TODO::
         TTEntry *tte = _hash_table;
         uint16_t total_count = std::min (10000, int32_t (entries ()));
         for (uint16_t i = 0; i < total_count; ++i, ++tte)

@@ -228,13 +228,14 @@ enum Value : int32_t
     VALUE_DRAW      = 0,
     
     VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = int32_t (VALUE_NONE) - 1,
+    VALUE_INFINITE  = +int16_t (VALUE_NONE) - 1,
+    VALUE_INFINITE_ = -int16_t (VALUE_INFINITE),
 
-    VALUE_MATE      = int32_t (VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = int32_t (VALUE_MATE) / 3,
+    VALUE_MATE      = +int16_t (VALUE_INFINITE) - 1,
+    VALUE_KNOWN_WIN = +int16_t (VALUE_MATE) / 3,
 
-    VALUE_MATES_IN_MAX_PLY =  int32_t (VALUE_MATE) - int32_t (MAX_PLY),
-    VALUE_MATED_IN_MAX_PLY = -int32_t (VALUE_MATE) + int32_t (MAX_PLY),
+    VALUE_MATES_IN_MAX_PLY = +int16_t (VALUE_MATE) - int16_t (MAX_PLY),
+    VALUE_MATED_IN_MAX_PLY = -int16_t (VALUE_MATE) + int16_t (MAX_PLY),
 
     VALUE_MG_PAWN   =  198,  VALUE_EG_PAWN   =  258,
     VALUE_MG_KNIGHT =  817,  VALUE_EG_KNIGHT =  846,
