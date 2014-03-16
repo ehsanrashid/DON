@@ -1381,52 +1381,50 @@ namespace Searcher {
                 }
             }
 
-            if (SPNode)
+            if (!SPNode)
             {
-                return best_value;
-            }
-
-            // Step 20. Check for mate and stalemate
-            // All legal moves have been searched and if there are no legal moves, it
-            // must be mate or stalemate. Note that we can have a false positive in
-            // case of Signals.stop or thread.cutoff_occurred() are set, but this is
-            // harmless because return value is discarded anyhow in the parent nodes.
-            // If we are in a singular extension search then return a fail low score.
-            // A split node has at least one move, the one tried before to be split.
-            if (0 == moves_count)
-            {
-                return excluded_move ? alpha
-                    : in_check ? mated_in ((ss)->ply)
-                    : DrawValue[pos.active ()];
-            }
-
-            // If we have pruned all the moves without searching return a fail-low score
-            if (best_value == -VALUE_INFINITE)
-            {
-                best_value = alpha;
-            }
-
-            TT.store (
-                posi_key,
-                best_move,
-                depth,
-                best_value >= beta ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
-                pos.game_nodes (),
-                value_to_tt (best_value, (ss)->ply),
-                (ss)->static_eval);
-
-            // Quiet best move:
-            if (best_value >= beta && best_move != MOVE_NONE)
-            {
-                // Update killers, history, counter moves and followup moves
-                if (!in_check && !pos.capture_or_promotion (best_move))
+                // Step 20. Check for mate and stalemate
+                // All legal moves have been searched and if there are no legal moves, it
+                // must be mate or stalemate. Note that we can have a false positive in
+                // case of Signals.stop or thread.cutoff_occurred() are set, but this is
+                // harmless because return value is discarded anyhow in the parent nodes.
+                // If we are in a singular extension search then return a fail low score.
+                // A split node has at least one move, the one tried before to be split.
+                if (0 == moves_count)
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+                    return excluded_move ? alpha
+                        : in_check ? mated_in ((ss)->ply)
+                        : DrawValue[pos.active ()];
                 }
+
+                // If we have pruned all the moves without searching return a fail-low score
+                if (best_value == -VALUE_INFINITE)
+                {
+                    best_value = alpha;
+                }
+
+                TT.store (
+                    posi_key,
+                    best_move,
+                    depth,
+                    best_value >= beta ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
+                    pos.game_nodes (),
+                    value_to_tt (best_value, (ss)->ply),
+                    (ss)->static_eval);
+
+                // Quiet best move:
+                if (best_value >= beta && best_move != MOVE_NONE)
+                {
+                    // Update killers, history, counter moves and followup moves
+                    if (!in_check && !pos.capture_or_promotion (best_move))
+                    {
+                        update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+                    }
+                }
+            
             }
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
-
             return best_value;
         }
 
