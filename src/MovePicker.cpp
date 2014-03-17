@@ -466,5 +466,5 @@ template<>
 // safe so must be lock protected by the caller.
 Move MovePicker::next_move<true> ()
 {
-    return ss->split_point->movepicker->next_move<false> ();
+    return ss->splitpoint->movepicker->next_move<false> ();
 }

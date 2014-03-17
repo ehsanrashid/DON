@@ -7,7 +7,7 @@
 
 #include <string>
 
-extern std::string encode_base64 (const std::string &decoded_string);
-extern std::string decode_base64 (const std::string &encoded_string);
+extern std::string encode_base64 (const std::string &decoded);
+extern std::string decode_base64 (const std::string &encoded);
 
 #endif

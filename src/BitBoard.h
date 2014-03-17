@@ -272,10 +272,10 @@ namespace BitBoard {
     inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (8); }
     template<>
     inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (8); }
-    template<>
-    inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (1); }
-    template<>
-    inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (1); }
+    //template<>
+    //inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (1); }
+    //template<>
+    //inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (1); }
     template<>
     inline Bitboard shift_del<DEL_NE> (Bitboard bb) { return (bb & FH_bb_) << (9); } //(bb << 9) & FA_bb_;
     template<>

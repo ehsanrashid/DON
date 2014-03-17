@@ -579,7 +579,7 @@ namespace Searcher {
             ASSERT (PVNode || (alpha == beta-1));
             ASSERT (depth > DEPTH_ZERO);
 
-            SplitPoint *split_point;
+            SplitPoint *splitpoint;
             Key   posi_key;
 
             const TTEntry *tte;
@@ -607,16 +607,16 @@ namespace Searcher {
 
             if (SPNode)
             {
-                split_point = (ss)->split_point;
-                best_move   = split_point->best_move;
-                best_value  = split_point->best_value;
+                splitpoint = (ss)->splitpoint;
+                best_move  = splitpoint->best_move;
+                best_value = splitpoint->best_value;
 
                 tte      = NULL;
                 tt_move  = excluded_move = MOVE_NONE;
                 tt_value = VALUE_NONE;
 
-                ASSERT (split_point->best_value > -VALUE_INFINITE);
-                ASSERT (split_point->moves_count > 0);
+                ASSERT (splitpoint->best_value > -VALUE_INFINITE);
+                ASSERT (splitpoint->moves_count > 0);
 
                 goto moves_loop;
             }
@@ -1031,8 +1031,8 @@ namespace Searcher {
                     // Shared counter cannot be decremented later if move turns out to be illegal
                     if (!pos.legal (move, ci.pinneds)) continue;
 
-                    moves_count = ++split_point->moves_count;
-                    split_point->mutex.unlock ();
+                    moves_count = ++splitpoint->moves_count;
+                    splitpoint->mutex.unlock ();
                 }
                 else
                 {
@@ -1125,7 +1125,7 @@ namespace Searcher {
                         {
                             if (SPNode)
                             {
-                                split_point->mutex.lock ();
+                                splitpoint->mutex.lock ();
                             }
                             continue;
                         }
@@ -1150,10 +1150,10 @@ namespace Searcher {
 
                                 if (SPNode)
                                 {
-                                    split_point->mutex.lock ();
-                                    if (split_point->best_value < best_value)
+                                    splitpoint->mutex.lock ();
+                                    if (splitpoint->best_value < best_value)
                                     {
-                                        split_point->best_value = best_value;
+                                        splitpoint->best_value = best_value;
                                     }
                                 }
                                 continue;
@@ -1166,7 +1166,7 @@ namespace Searcher {
                         {
                             if (SPNode)
                             {
-                                split_point->mutex.lock ();
+                                splitpoint->mutex.lock ();
                             }
                             continue;
                         }
@@ -1231,7 +1231,7 @@ namespace Searcher {
 
                     if (SPNode)
                     {
-                        alpha = split_point->alpha;
+                        alpha = splitpoint->alpha;
                     }
 
                     value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
@@ -1256,7 +1256,7 @@ namespace Searcher {
                 {
                     if (SPNode)
                     {
-                        alpha = split_point->alpha;
+                        alpha = splitpoint->alpha;
                     }
 
                     value =
@@ -1292,9 +1292,9 @@ namespace Searcher {
                 // Step 18. Check for new best move
                 if (SPNode)
                 {
-                    split_point->mutex.lock ();
-                    best_value = split_point->best_value;
-                    alpha      = split_point->alpha;
+                    splitpoint->mutex.lock ();
+                    best_value = splitpoint->best_value;
+                    alpha      = splitpoint->alpha;
                 }
 
                 // Finished searching the move. If Signals.stop is true, the search
@@ -1336,15 +1336,15 @@ namespace Searcher {
 
                 if (value > best_value)
                 {
-                    best_value = (SPNode) ? split_point->best_value = value : value;
+                    best_value = (SPNode) ? splitpoint->best_value = value : value;
 
                     if (value > alpha)
                     {
-                        best_move = (SPNode) ? split_point->best_move = move : move;
+                        best_move = (SPNode) ? splitpoint->best_move = move : move;
 
                         if (PVNode && value < beta) // Update alpha! Always alpha < beta
                         {
-                            alpha = (SPNode) ? split_point->alpha = value : value;
+                            alpha = (SPNode) ? splitpoint->alpha = value : value;
                         }
                         else
                         {
@@ -1352,7 +1352,7 @@ namespace Searcher {
 
                             if (SPNode)
                             {
-                                split_point->cut_off = true;
+                                splitpoint->cut_off = true;
                             }
                             break;
                         }
@@ -1377,7 +1377,10 @@ namespace Searcher {
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 
-                        if (best_value >= beta) break;
+                        if (best_value >= beta)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -1422,7 +1425,6 @@ namespace Searcher {
                         update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                     }
                 }
-            
             }
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1430,8 +1432,10 @@ namespace Searcher {
         }
 
         // iter_deep_loop() is the main iterative deepening loop. It calls search() repeatedly
-        // with increasing depth until the allocated thinking time has been consumed,
-        // user stops the search, or the maximum search depth is reached.
+        // with increasing depth until:
+        // - the allocated thinking time has been consumed,
+        // - the user stops the search,
+        // - the maximum search depth is reached.
         // Time management; with iterative deepining enabled you can specify how long
         // you want the computer to think rather than how deep you want it to think. 
         inline void iter_deep_loop (Position &pos)
@@ -1626,7 +1630,7 @@ namespace Searcher {
                         }
                         else
                         {
-                            Signals.stop              = true;
+                            Signals.stop           = true;
                         }
                     }
                 }
@@ -1764,7 +1768,10 @@ namespace Searcher {
 
         if (!Limits.infinite && !Limits.mate && bool (*(Options["Own Book"])))
         {
-            if (!Book.is_open ()) Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
+            if (!Book.is_open ())
+            {
+                Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
+            }
             Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
             if (   book_move != MOVE_NONE
                 && count (RootMoves.begin (), RootMoves.end (), book_move))
@@ -2039,10 +2046,10 @@ namespace Threads {
     // idle_loop() is where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
-        // Pointer 'split_point' is not null only if we are called from split(), and not
+        // Pointer 'splitpoint' is not null only if we are called from split(), and not
         // at the thread creation. So it means we are the split point's master.
-        SplitPoint *split_point = (splitpoint_threads != 0 ? active_splitpoint : NULL);
-        ASSERT (!split_point || ((split_point->master_thread == this) && searching));
+        SplitPoint *splitpoint = (splitpoint_threads != 0 ? active_splitpoint : NULL);
+        ASSERT (!splitpoint || ((splitpoint->master_thread == this) && searching));
 
         do
         {
@@ -2052,7 +2059,7 @@ namespace Threads {
             {
                 if (exit)
                 {
-                    ASSERT (split_point == NULL);
+                    ASSERT (splitpoint == NULL);
                     return;
                 }
 
@@ -2060,7 +2067,7 @@ namespace Threads {
                 mutex.lock ();
 
                 // If we are master and all slaves have finished then exit idle_loop
-                if (split_point && !split_point->slaves_mask)
+                if (splitpoint && !splitpoint->slaves_mask)
                 {
                     mutex.unlock ();
                     break;
@@ -2097,7 +2104,7 @@ namespace Threads {
                 Position pos (*(sp)->pos, this);
 
                 memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
-                (ss)->split_point = sp;
+                (ss)->splitpoint = sp;
 
                 (sp)->mutex.lock ();
 
@@ -2139,11 +2146,11 @@ namespace Threads {
 
             // If this thread is the master of a split point and all slaves have finished
             // their work at this split point, return from the idle loop.
-            if (split_point && !split_point->slaves_mask)
+            if (splitpoint && !splitpoint->slaves_mask)
             {
-                split_point->mutex.lock ();
-                bool finished = !split_point->slaves_mask; // Retest under lock protection
-                split_point->mutex.unlock ();
+                splitpoint->mutex.lock ();
+                bool finished = !splitpoint->slaves_mask; // Retest under lock protection
+                splitpoint->mutex.unlock ();
                 if (finished) return;
             }
         }

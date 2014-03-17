@@ -102,10 +102,10 @@ namespace Searcher {
     //  - Falied low at root.
     typedef struct SignalsT
     {
-        bool  stop
-            , stop_ponderhit
-            , root_1stmove
-            , root_failedlow;
+        bool  stop              // Stop any way
+            , stop_ponderhit    // Stop on Ponder hit
+            , root_1stmove      // First RootMove
+            , root_failedlow;   // Failed low at Root
 
         SignalsT ()
             : stop           (false)
@@ -169,7 +169,7 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     typedef struct Stack
     {
-        SplitPoint *split_point;
+        SplitPoint *splitpoint;
 
         Move    current_move
             ,   tt_move

@@ -1,5 +1,5 @@
 /*
-base64.cpp and base64.h
+Base64.h & Base64.cpp
 
 Copyright (C) 2004-2008 René Nyffenegger
 
@@ -36,7 +36,6 @@ namespace {
         "abcdefghijklmnopqrstuvwxyz"
         "0123456789+/";
 
-
     inline bool is_base64 (unsigned char c)
     {
         return (c != '=') && (isalnum (c) || (c == '+') || (c == '/'));
@@ -44,13 +43,12 @@ namespace {
 
 }
 
-string encode_base64 (const string &decoded_string)
+string encode_base64 (const string &decoded)
 {
-    unsigned char const* encoded_bytes = reinterpret_cast<const unsigned char*>(decoded_string.c_str ());
-    unsigned int encoded_len = decoded_string.length ();
+    unsigned char const* encoded_bytes = reinterpret_cast<const unsigned char*>(decoded.c_str ());
+    unsigned int encoded_len = decoded.length ();
 
     int i = 0;
-
     unsigned char char_array_3[3];
     unsigned char char_array_4[4];
 
@@ -100,13 +98,12 @@ string encode_base64 (const string &decoded_string)
     return encoded;
 }
 
-string decode_base64 (const string &encoded_string)
+string decode_base64 (const string &encoded)
 {
-    unsigned char const* decoded_bytes = reinterpret_cast<const unsigned char*>(encoded_string.c_str ());
-    int decoded_len = encoded_string.length ();
+    unsigned char const* decoded_bytes = reinterpret_cast<const unsigned char*>(encoded.c_str ());
+    int decoded_len = encoded.length ();
 
     int i = 0;
-
     unsigned char char_array_4[4];
     unsigned char char_array_3[3];
 
@@ -115,6 +112,7 @@ string decode_base64 (const string &encoded_string)
     while (decoded_len-- && is_base64 (*decoded_bytes))
     {
         char_array_4[i++] = *(decoded_bytes++);
+
         if (i ==4)
         {
             for (i = 0; i < 4; ++i)
