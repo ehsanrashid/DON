@@ -156,7 +156,7 @@ void benchmark (istream &is, const Position &pos)
 
     cerr<< "\n---------------------------\n";
 
-    dbg_print (); // Just before to exit
+    Debugger::dbg_print (); // Just before to exit
 
     elapsed = now () - elapsed;
     // Ensure non-zero to avoid a 'divide by zero'

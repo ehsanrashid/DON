@@ -613,7 +613,6 @@
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\atomicstream.h" />
     <ClInclude Include="src\Benchmark.h" />
     <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />

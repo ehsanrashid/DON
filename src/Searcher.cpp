@@ -1369,11 +1369,11 @@ namespace Searcher {
                     {
                         ASSERT (best_value < beta);
 
-                        //dbg_hit_on (thread->splitpoint_threads == 4);
+                        //Debugger::dbg_hit_on (thread->splitpoint_threads == 4);
 
-                        //dbg_mean_of (thread->splitpoint_threads);
-                        //dbg_mean_of (Threadpool.split_depth);  // always== 8
-                        //dbg_mean_of (depth);
+                        //Debugger::dbg_mean_of (thread->splitpoint_threads);
+                        //Debugger::dbg_mean_of (Threadpool.split_depth);  // always== 8
+                        //Debugger::dbg_mean_of (depth);
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 
@@ -1986,7 +1986,7 @@ namespace Threads {
         if (now_time - last_time >= M_SEC)
         {
             last_time = now_time;
-            dbg_print ();
+            Debugger::dbg_print ();
         }
 
         if (Limits.ponder)

@@ -46,14 +46,14 @@ private:
 
 public:
 
-    uint32_t     key () const { return uint32_t (_key);   }
-    Move        move () const { return Move     (_move);  }
-    Depth      depth () const { return Depth    (_depth); }
-    Bound      bound () const { return Bound    (_bound); }
-    uint8_t      gen () const { return uint8_t  (_gen);   }
-    uint16_t   nodes () const { return uint16_t (_nodes); }
-    Value      value () const { return Value    (_value); }
-    Value       eval () const { return Value    (_eval);  }
+    uint32_t key   () const { return uint32_t (_key);   }
+    Move     move  () const { return Move     (_move);  }
+    Depth    depth () const { return Depth    (_depth); }
+    Bound    bound () const { return Bound    (_bound); }
+    uint8_t  gen   () const { return uint8_t  (_gen);   }
+    uint16_t nodes () const { return uint16_t (_nodes); }
+    Value    value () const { return Value    (_value); }
+    Value    eval  () const { return Value    (_eval);  }
 
     void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
     {
@@ -85,12 +85,10 @@ typedef class TranspositionTable
 private:
 
 #ifdef LPAGES
-
     void    *_mem;
-
 #endif
 
-    TTEntry  *_hash_table;
+    TTEntry *_hash_table;
     uint64_t _hash_mask;
     uint8_t  _generation;
 
@@ -99,7 +97,7 @@ private:
     // free_aligned_memory() free the allocated memory
     void free_aligned_memory ()
     {
-        if (_hash_table)
+        if (_hash_table != NULL)
         {
 
 #   ifdef LPAGES
@@ -177,7 +175,7 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (clear_hash && _hash_table)
+        if (clear_hash && _hash_table != NULL)
         {
             std::memset (_hash_table, 0, entries () * TENTRY_SIZE);
             _generation = 0;

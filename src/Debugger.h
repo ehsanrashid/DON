@@ -92,9 +92,12 @@ inline void log_io (bool b)
         : IOLogger::instance ().stop ();
 }
 
+namespace Debugger {
 
-extern void dbg_hit_on (bool h, bool c = true);
-extern void dbg_mean_of (uint64_t v);
-extern void dbg_print ();
+    extern void dbg_hit_on (bool h, bool c = true);
+    extern void dbg_mean_of (uint64_t v);
+    extern void dbg_print ();
+
+}
 
 #endif // _DEBUG_LOGGER_H_INC_

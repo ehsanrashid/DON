@@ -121,7 +121,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="TranspositionTable">
-    <Position X="7.75" Y="20.5" Width="3" />
+    <Position X="6.75" Y="17.75" Width="3" />
     <AssociationLine Name="_hash_table" Type="TTEntry">
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="0.856" Y="-0.017" />
@@ -373,7 +373,7 @@
     </ShowAsCollectionAssociation>
   </Class>
   <Class Name="EndGame::Endgames">
-    <Position X="17.5" Y="19" Width="3.75" />
+    <Position X="19.25" Y="17.25" Width="3.75" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
@@ -395,7 +395,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
-    <Position X="8.25" Y="13.75" Width="1.5" />
+    <Position X="8.25" Y="12.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
@@ -483,22 +483,6 @@
         <Position X="1.462" Y="-6.64" Height="0.16" Width="0.907" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="capture_type" Type="PieceT">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.345" Y="-1.562" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="checkers" Type="Bitboard" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="21" Y="8.75" />
-        <Point X="21" Y="2.814" />
-        <Point X="25.062" Y="2.814" />
-        <Point X="25.062" Y="2.502" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="3.597" Y="6.069" Height="0.16" Width="0.781" />
-      </MemberNameLabel>
-    </AssociationLine>
     <AssociationLine Name="last_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="19.25" Y="9.037" />
@@ -515,6 +499,22 @@
         <Position X="-6.775" Y="-0.607" />
       </MemberNameLabel>
     </AssociationLine>
+    <AssociationLine Name="capture_type" Type="PieceT">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.345" Y="-1.562" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="checkers" Type="Bitboard" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="21" Y="8.75" />
+        <Point X="21" Y="2.814" />
+        <Point X="25.062" Y="2.814" />
+        <Point X="25.062" Y="2.502" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="3.597" Y="6.069" Height="0.16" Width="0.781" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AgAAAQAEAAAEAAgAAQAAAAAhAAAAAAAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
@@ -525,10 +525,10 @@
       <Field Name="pawn_key" />
       <Field Name="castle_rights" />
       <Field Name="posi_key" />
+      <Field Name="last_move" />
       <Field Name="capture_type" />
       <Field Name="checkers" />
       <Field Name="p_si" />
-      <Field Name="last_move" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="non_pawn_matl" />
@@ -585,7 +585,7 @@
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="HashTable&lt;Entry, SIZE&gt;">
-    <Position X="8" Y="15.25" Width="2" />
+    <Position X="8" Y="14.25" Width="2" />
     <AssociationLine Name="_table" Type="std::vector&lt;_Ty, _Alloc&gt;">
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="-0.23" Y="0.614" />
@@ -600,7 +600,7 @@
     </ShowAsAssociation>
   </Struct>
   <Struct Name="TTEntry">
-    <Position X="12.75" Y="20.75" Width="2.5" />
+    <Position X="11.75" Y="18" Width="2.5" />
     <TypeIdentifier>
       <HashCode>ABAoABAAAACAAACAEACMQAAAAAAAACAAAAICYAAAIAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
@@ -614,41 +614,19 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Threads::Thread">
-    <Position X="15.75" Y="14.75" Width="3" />
+    <Position X="15.75" Y="14.25" Width="3" />
     <AssociationLine Name="splitpoints" Type="Threads::SplitPoint" FixedFromPoint="true">
       <Path>
-        <Point X="18.125" Y="14.75" />
+        <Point X="18.125" Y="14.25" />
         <Point X="18.125" Y="12.604" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-1.612" Y="1.83" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="material_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="16.188" Y="17.326" />
-        <Point X="16.188" Y="18.627" />
-        <Point X="11.375" Y="18.627" />
-        <Point X="11.375" Y="18.252" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-5.178" Y="-0.755" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="pawns_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="17.25" Y="17.326" />
-        <Point X="17.25" Y="18.627" />
-        <Point X="7.5" Y="18.627" />
-        <Point X="7.5" Y="18.252" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-10.095" Y="-0.738" />
+        <Position X="-1.622" Y="1.309" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="endgames" Type="EndGame::Endgames">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.351" Y="1.326" />
+        <Position X="1.326" Y="-0.351" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="active_pos" Type="Position">
@@ -658,23 +636,39 @@
     </AssociationLine>
     <AssociationLine Name="active_splitpoint" Type="Threads::SplitPoint" FixedFromPoint="true">
       <Path>
-        <Point X="17" Y="14.75" />
+        <Point X="17" Y="14.25" />
         <Point X="17" Y="12.604" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.671" Y="1.578" />
+        <Position X="-0.675" Y="1.075" />
       </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="material_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="16.438" Y="16.826" />
+        <Point X="16.438" Y="17.201" />
+        <Point X="10.75" Y="17.201" />
+        <Point X="10.75" Y="16.752" />
+      </Path>
+    </AssociationLine>
+    <AssociationLine Name="pawns_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="16.938" Y="16.826" />
+        <Point X="16.938" Y="17.201" />
+        <Point X="7.062" Y="17.201" />
+        <Point X="7.062" Y="16.752" />
+      </Path>
     </AssociationLine>
     <TypeIdentifier>
       <HashCode>AEgAgCIAAQAAAAAAAEAEAAAAQBAAIABAAAAAAAAQIgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="material_table" />
-      <Field Name="pawns_table" />
       <Field Name="endgames" />
       <Field Name="active_pos" />
       <Field Name="active_splitpoint" />
+      <Field Name="material_table" />
+      <Field Name="pawns_table" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="splitpoints" />
@@ -688,7 +682,7 @@
         <Point X="11.125" Y="8.5" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="3.526" Y="-0.127" />
+        <Position X="-0.1" Y="3.535" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="value" Type="Value" FixedFromPoint="true" FixedToPoint="true">
@@ -807,10 +801,10 @@
     <AssociationLine Name="master_thread" Type="Threads::Thread" FixedFromPoint="true">
       <Path>
         <Point X="15.938" Y="12.604" />
-        <Point X="15.938" Y="14.75" />
+        <Point X="15.938" Y="14.25" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.533" Y="1.863" />
+        <Position X="-0.585" Y="1.311" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="depth" Type="Depth" FixedFromPoint="true">
@@ -932,8 +926,8 @@
       <Field Name="_lock" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="MakeCastling&lt;C, CS&gt;" Collapsed="true">
-    <Position X="2.5" Y="1.5" Width="1.5" />
+  <Struct Name="MakeCastling&lt;C, CS&gt;">
+    <Position X="2" Y="1.5" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -1042,14 +1036,14 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Material::Table" Collapsed="true">
-    <Position X="10" Y="17.75" Width="2.5" />
+    <Position X="9.25" Y="16.25" Width="2.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Pawns::Table" Collapsed="true">
-    <Position X="6" Y="17.75" Width="2.5" />
+    <Position X="6.25" Y="16.25" Width="2.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>

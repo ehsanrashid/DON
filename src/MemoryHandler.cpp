@@ -190,7 +190,7 @@ namespace MemoryHandler {
                         MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);                        // Protection of Allocation
 
-            if (mem_ref)
+            if (mem_ref != NULL)
             {
                 UsePages = true;
                 std::cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << std::endl;
@@ -204,7 +204,7 @@ namespace MemoryHandler {
                         MEM_COMMIT|MEM_RESERVE, // Type of Allocation
                         PAGE_READWRITE);        // Protection of Allocation
                 
-                if (mem_ref)
+                if (mem_ref != NULL)
                 {
                     UsePages = true;
                     std::cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << std::endl;
@@ -238,7 +238,7 @@ namespace MemoryHandler {
         }
 
         MEMALIGN (mem_ref, align, mem_size);
-        if (mem_ref)
+        if (mem_ref != NULL)
         {
             memset (mem_ref, 0, mem_size);
             std::cout << "info string Hash " << (mem_size >> 20) << " MB..." << std::endl;
@@ -247,7 +247,7 @@ namespace MemoryHandler {
 
     void free_memory    (void *mem)
     {
-        if (!mem) return;
+        if (mem == NULL) return;
 
         if (UsePages)
         {
