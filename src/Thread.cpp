@@ -124,7 +124,7 @@ namespace Threads {
         ASSERT (searching);
         ASSERT (-VALUE_INFINITE < best_value && best_value <= alpha && alpha < beta && beta <= VALUE_INFINITE);
         ASSERT (Threadpool.split_depth <= depth);
-        ASSERT (splitpoint_threads < MAX_SPLIT_POINT_THREADS);
+        ASSERT (splitpoint_threads < MAX_SPLITPOINT_THREADS);
 
         // Pick the next available split point from the split point stack
         SplitPoint &sp = splitpoints[splitpoint_threads];
@@ -168,7 +168,7 @@ namespace Threads {
             }
         }
 
-        // Everything is set up. The master thread enters the idle loop, from which
+        // Everything is set up. The master thread enters the idle-loop, from which
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
         // their work at this split point.
@@ -177,8 +177,8 @@ namespace Threads {
 
         Thread::idle_loop (); // Force a call to base class idle_loop()
 
-        // In helpful master concept a master can help only a sub-tree of its split
-        // point, and because here is all finished is not possible master is booked.
+        // In helpful master concept a master can help only a sub-tree of its splitpoint,
+        // and because here is all finished is not possible master is booked.
         ASSERT (!searching);
         ASSERT (!active_pos);
 

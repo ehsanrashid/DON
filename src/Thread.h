@@ -77,9 +77,9 @@ typedef void* (*FnStart) (void*);
 
 namespace Threads {
 
-    const uint8_t MAX_THREADS             = 64; // Because SplitPoint::slaves_mask is a uint64_t
-    const uint8_t MAX_SPLIT_POINT_THREADS = 8;  // Maximum threads per split point
-    const uint8_t MAX_SPLIT_DEPTH         = 15; // Maximum split depth
+    const uint8_t MAX_THREADS            = 64; // Because SplitPoint::slaves_mask is a uint64_t
+    const uint8_t MAX_SPLITPOINT_THREADS = 8;  // Maximum threads per splitpoint
+    const uint8_t MAX_SPLIT_DEPTH        = 15; // Maximum split depth
 
     extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
 
@@ -130,8 +130,8 @@ namespace Threads {
         bool    cut_node;
 
         // Const pointers to shared data
-        MovePicker        *movepicker;
-        SplitPoint        *parent_splitpoint;
+        MovePicker  *movepicker;
+        SplitPoint  *parent_splitpoint;
 
         // Shared data
         Mutex   mutex;
@@ -168,14 +168,33 @@ namespace Threads {
         void wait_for (volatile const bool &cond);
     };
 
+    // TimerThread is derived from ThreadBase
+    // used for special purpose: the recurring timer.
+    struct TimerThread
+        : public ThreadBase
+    {
+        // This is the minimum interval in msec between two check_time() calls
+        static const int32_t Resolution = 5;
+
+        bool run;
+
+        TimerThread ()
+            : run (false)
+        {}
+
+        virtual void idle_loop ();
+
+    };
+
+    // Thread is derived from ThreadBase
     // Thread struct keeps together all the thread related stuff like locks, state
-    // and especially split points. We also use per-thread pawn and material hash
-    // tables so that once we get a pointer to an entry its life time is unlimited
+    // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
+    // so that once get a pointer to a thread entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
     struct Thread
         : public ThreadBase
     {
-        SplitPoint splitpoints[MAX_SPLIT_POINT_THREADS];
+        SplitPoint splitpoints[MAX_SPLITPOINT_THREADS];
         
         Material::Table   material_table;
         Pawns   ::Table   pawns_table;
@@ -205,7 +224,7 @@ namespace Threads {
 
     };
 
-    // MainThread is derived from ThreadBase
+    // MainThread is derived from Thread
     // used for special purpose: the main thread.
     struct MainThread
         : public Thread
@@ -215,24 +234,6 @@ namespace Threads {
         MainThread ()
             : thinking (true)
         {} // Avoid a race with start_thinking ()
-
-        virtual void idle_loop ();
-
-    };
-
-    // TimerThread is derived from ThreadBase
-    // used for special purpose: the recurring timer.
-    struct TimerThread
-        : public ThreadBase
-    {
-        // This is the minimum interval in msec between two check_time() calls
-        static const int32_t Resolution = 5;
-
-        bool run;
-
-        TimerThread ()
-            : run (false)
-        {}
 
         virtual void idle_loop ();
 

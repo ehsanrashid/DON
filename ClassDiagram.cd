@@ -397,7 +397,7 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="8.25" Y="12.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>
@@ -624,25 +624,6 @@
         <Position X="-1.622" Y="1.309" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="endgames" Type="EndGame::Endgames">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="1.326" Y="-0.351" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="active_pos" Type="Position">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="5.768" Y="-0.032" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="active_splitpoint" Type="Threads::SplitPoint" FixedFromPoint="true">
-      <Path>
-        <Point X="17" Y="14.25" />
-        <Point X="17" Y="12.604" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.675" Y="1.075" />
-      </MemberNameLabel>
-    </AssociationLine>
     <AssociationLine Name="material_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="16.438" Y="16.826" />
@@ -659,16 +640,35 @@
         <Point X="7.062" Y="16.752" />
       </Path>
     </AssociationLine>
+    <AssociationLine Name="endgames" Type="EndGame::Endgames">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="1.041" Y="1.899" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="active_pos" Type="Position">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="5.768" Y="-0.032" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="active_splitpoint" Type="Threads::SplitPoint" FixedFromPoint="true">
+      <Path>
+        <Point X="17" Y="14.25" />
+        <Point X="17" Y="12.604" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.675" Y="1.075" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AEgAgCIAAQAAAAAAAEAEAAAAQBAAIABAAAAAAAAQIgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
+      <Field Name="material_table" />
+      <Field Name="pawns_table" />
       <Field Name="endgames" />
       <Field Name="active_pos" />
       <Field Name="active_splitpoint" />
-      <Field Name="material_table" />
-      <Field Name="pawns_table" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="splitpoints" />

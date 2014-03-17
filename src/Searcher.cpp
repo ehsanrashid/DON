@@ -1365,7 +1365,7 @@ namespace Searcher {
                 {
                     if (   (Threadpool.split_depth <= depth)
                         && (Threadpool.available_slave (thread) != NULL)
-                        && (thread->splitpoint_threads < MAX_SPLIT_POINT_THREADS))
+                        && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS))
                     {
                         ASSERT (best_value < beta);
 
@@ -1865,10 +1865,9 @@ namespace Searcher {
         }
 
         Threadpool.sleep_idle = *(Options["Idle Threads Sleep"]);
-
         Threadpool.timer->run = true;
-        Threadpool.timer->notify_one ();// Wake up the recurring timer
 
+        Threadpool.timer->notify_one ();// Wake up the recurring timer
         iter_deep_loop (RootPos);       // Let's start searching !
 
         Threadpool.timer->run = false;  // Stop the timer
@@ -2067,7 +2066,7 @@ namespace Threads {
                 mutex.lock ();
 
                 // If we are master and all slaves have finished then exit idle_loop
-                if (splitpoint && !splitpoint->slaves_mask)
+                if (splitpoint && splitpoint->slaves_mask == U64(0))
                 {
                     mutex.unlock ();
                     break;
