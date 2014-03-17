@@ -145,7 +145,7 @@ namespace Zobrist {
                 }
                 else if (isalpha (ch))
                 {
-                    size_t idx = CharPiece.find (ch);
+                    size_t idx = PieceChar.find (ch);
                     if (idx != string::npos)
                     {
                         Piece p = Piece (idx);
@@ -261,7 +261,7 @@ namespace Zobrist {
             {
                 s += Delta (ch - '0'); // Advance the given number of files
             }
-            else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
+            else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
                 fen_key ^= _.piecesq[_color (p)][_ptype (p)][s];

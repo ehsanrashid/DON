@@ -20,8 +20,8 @@ using namespace MoveGenerator;
 using namespace Threads;
 using namespace Notation;
 
-const string CharPiece ("PNBRQK  pnbrqk");
-const string CharColor ("wb-");
+const string PieceChar ("PNBRQK  pnbrqk");
+const string ColorChar ("wb-");
 
 const Value PieceValue[PHASE_NO][TOTL] =
 {
@@ -1681,7 +1681,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
             }
             else if (_ok (p))
             {
-                set_next (CharPiece[p]);
+                set_next (PieceChar[p]);
                 ++f;
             }
             else
@@ -1693,7 +1693,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
     }
 
     set_next (' ');
-    set_next (CharColor[_active]);
+    set_next (ColorChar[_active]);
     set_next (' ');
 
     if (can_castle (CR_A))
@@ -1774,13 +1774,13 @@ string Position::fen (bool                 c960, bool full) const
                 ++s;
             }
             if (empty_count) os << empty_count;
-            if (F_H >= f)  os << CharPiece[_board[s]];
+            if (F_H >= f)  os << PieceChar[_board[s]];
         }
 
         if (R_1 < r) os << '/';
     }
 
-    os << " " << CharColor[_active] << " ";
+    os << " " << ColorChar[_active] << " ";
 
     if (can_castle (CR_A))
     {
@@ -1851,7 +1851,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         int8_t r = _rank (s);
         int8_t f = _file (s);
-        board[3 + row_len * (7.5 - r) + 4 * f] = CharPiece[_board[s]];
+        board[3 + row_len * (7.5 - r) + 4 * f] = PieceChar[_board[s]];
     }
 
     ostringstream ss;
@@ -1954,7 +1954,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
             }
             else if (isalpha (ch))
             {
-                size_t idx = CharPiece.find (ch);
+                size_t idx = PieceChar.find (ch);
                 if (idx != string::npos)
                 {
                     Piece p = Piece (idx);
@@ -1985,7 +1985,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     SKIP_WHITESPACE ();
     // Active color
     get_next ();
-    pos._active = Color (CharColor.find (ch));
+    pos._active = Color (ColorChar.find (ch));
 
     SKIP_WHITESPACE ();
     // Castling rights availability
@@ -2130,7 +2130,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             s += Delta (ch - '0'); // Advance the given number of files
         }
-        else if (isalpha (ch) && (idx = CharPiece.find (ch)) != string::npos)
+        else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
             pos.place_piece (s, _color (p), _ptype (p));
@@ -2148,7 +2148,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // 2. Active color
     is >> ch;
-    pos._active = Color (CharColor.find (ch));
+    pos._active = Color (ColorChar.find (ch));
 
     // 3. Castling rights availability
     // Compatible with 3 standards:

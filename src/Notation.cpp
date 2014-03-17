@@ -167,7 +167,7 @@ namespace Notation {
         MoveT mt   = mtype (m);
         if (!c960 && (CASTLE == mt)) dst = (((dst > org) ? F_G : F_C) | _rank (org));
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += CharPiece[(BLACK | prom_type (m))]; // lower case
+        if (PROMOTE == mt) can += PieceChar[(BLACK | prom_type (m))]; // lower case
         return can;
     }
 
@@ -228,7 +228,7 @@ namespace Notation {
         //    // NOTE: no break
         //default:
         //    // piece notation
-        //    san = CharPiece[pt];
+        //    san = PieceChar[pt];
         //
         //    break;
         //}
@@ -276,7 +276,7 @@ namespace Notation {
             }
             else
             {
-                san = CharPiece[pt];
+                san = PieceChar[pt];
                 // Disambiguation if we have more then one piece of type 'pt'
                 // that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
@@ -291,7 +291,7 @@ namespace Notation {
 
             if (capture) san += 'x';
             san += to_string (dst);
-            if (PROMOTE == mt && PAWN == pt) san += string ("=") + CharPiece[prom_type (m)];
+            if (PROMOTE == mt && PAWN == pt) san += string ("=") + PieceChar[prom_type (m)];
         }
         }
 

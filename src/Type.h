@@ -19,7 +19,7 @@ typedef uint64_t   Key;
 typedef uint64_t   Bitboard;
 
 const uint8_t MAX_PLY      = 120;          // Maximum Depth 120
-const uint8_t MAX_PLY_6    = MAX_PLY + 6;
+const uint8_t MAX_PLY_6    = MAX_PLY + 6;  // Maximum Stack size
 
 #ifdef _MSC_VER
 //#   pragma warning (push)
@@ -116,8 +116,8 @@ typedef enum Delta : int8_t
 // Castle Side
 typedef enum CSide : int8_t
 {
-    CS_K ,    // SHORT CASTLE
-    CS_Q ,    // LONG  CASTLE
+    CS_K ,    // (KING)-SHORT CASTLE
+    CS_Q ,    // (QUEEN)-LONG CASTLE
     CS_NO
 
 } CSide;
@@ -444,8 +444,8 @@ inline Depth  operator/ (Depth  d, int32_t i) { return Depth (uint8_t (d) / i); 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-extern const std::string CharPiece;
-extern const std::string CharColor;
+extern const std::string PieceChar;
+extern const std::string ColorChar;
 
 extern const Value PieceValue[PHASE_NO][TOTL];
 
@@ -456,7 +456,7 @@ inline Color operator~(Color c) { return Color (c ^ BLACK); }
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
 //{
-//    os << CharColor[c];
+//    os << ColorChar[c];
 //    return os;
 //}
 
@@ -589,7 +589,7 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
 //{
-//    os << CharPiece[p];
+//    os << PieceChar[p];
 //    return os;
 //}
 
