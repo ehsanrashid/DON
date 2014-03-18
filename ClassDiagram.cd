@@ -4,7 +4,7 @@
     <Position X="25.75" Y="4.75" Width="3.25" />
     <AssociationLine Name="_board" Type="Piece">
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="0.241" Y="-0.028" Height="0.16" Width="1.633" />
+        <Position X="0.597" Y="-0.028" Height="0.16" Width="1.633" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="_color_bb" Type="Bitboard" FixedFromPoint="true" FixedToPoint="true">
@@ -14,7 +14,7 @@
         <Point X="25.25" Y="2.25" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.656" Y="-2.275" />
+        <Position X="0.646" Y="-2.233" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="_types_bb" Type="Bitboard" FixedFromPoint="true" FixedToPoint="true">
@@ -23,8 +23,18 @@
         <Point X="26.078" Y="2.25" />
         <Point X="25.25" Y="2.25" />
       </Path>
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="0.154" Y="-2.455" Height="0.16" Width="2.014" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="_piece_list" Type="Square" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="25.75" Y="5.125" />
+        <Point X="24" Y="5.125" />
+        <Point X="24" Y="3.752" />
+      </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.362" Y="-2.476" />
+        <Position X="-1.624" Y="1.28" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="_sb" Type="StateInfo" FixedFromPoint="true">
@@ -84,16 +94,6 @@
         <Position X="4.917" Y="-0.051" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="_piece_list" Type="Square" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="25.75" Y="5.125" />
-        <Point X="24" Y="5.125" />
-        <Point X="24" Y="3.752" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-1.624" Y="1.28" />
-      </MemberNameLabel>
-    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AkoAAwIHAYQACAmwVYepIAEjAbEKXoRwDBkwJCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
@@ -108,14 +108,21 @@
       <Field Name="_board" />
       <Field Name="_color_bb" />
       <Field Name="_types_bb" />
+      <Field Name="_piece_list" />
       <Field Name="_castle_mask" />
       <Field Name="_castle_rook" />
       <Field Name="_castle_path" />
-      <Field Name="_piece_list" />
     </ShowAsCollectionAssociation>
   </Class>
-  <Class Name="std::basic_null_buffer&lt;charT, Traits&gt;" Collapsed="true">
-    <Position X="37.25" Y="2.5" Width="2.5" />
+  <Class Name="std::basic_null_buffer&lt;charT, Traits&gt;">
+    <Position X="42.5" Y="5" Width="2.5" />
+    <NestedTypes>
+      <Typedef Name="std::basic_null_buffer&lt;charT, Traits&gt;::int_type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>src\nullstream.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
     <InheritanceLine Type="std::noncopyable">
       <InheritanceModifierLabel ManuallyPlaced="true">
         <Position X="-0.211" Y="0.052" />
@@ -127,7 +134,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::basic_null_stream&lt;charT, Traits&gt;" Collapsed="true">
-    <Position X="37.25" Y="5.5" Width="2.5" />
+    <Position X="42.5" Y="8" Width="2.5" />
     <InheritanceLine Type="std::basic_null_buffer&lt;charT, Traits&gt;">
       <InheritanceModifierLabel ManuallyPlaced="true">
         <Position X="-0.211" Y="0.111" />
@@ -139,7 +146,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::noncopyable" Collapsed="true">
-    <Position X="36.75" Y="0.75" Width="1.5" />
+    <Position X="36.75" Y="3.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAgQAAAAAA=</HashCode>
       <FileName>src\noncopyable.h</FileName>
@@ -161,10 +168,10 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
-    <Position X="42.75" Y="2.5" Width="2.25" />
+    <Position X="38.75" Y="5" Width="2.25" />
     <InheritanceLine Type="std::noncopyable">
       <InheritanceModifierLabel ManuallyPlaced="true">
-        <Position X="0.068" Y="-0.211" />
+        <Position X="-0.172" Y="0.081" />
       </InheritanceModifierLabel>
     </InheritanceLine>
     <TypeIdentifier>
@@ -173,14 +180,14 @@
     </TypeIdentifier>
   </Class>
   <Class Name="RKISS">
-    <Position X="34.5" Y="3.75" Width="2" />
+    <Position X="36" Y="8" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAIAAAAAAACAAAAEAAAAAAAAAACAAACAApAEAAAA=</HashCode>
       <FileName>src\RKISS.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PolyglotBook">
-    <Position X="30.25" Y="2.5" Width="3.25" />
+    <Position X="30.25" Y="5" Width="3.25" />
     <NestedTypes>
       <Struct Name="PolyglotBook::PEntry" Collapsed="true">
         <TypeIdentifier>
@@ -195,7 +202,7 @@
     </InheritanceLine>
     <AssociationLine Name="_rkiss" Type="RKISS">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.278" Y="-0.018" />
+        <Position X="1.488" Y="-0.03" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -288,11 +295,11 @@
         <Point X="11.042" Y="5.188" Type="JumpEnd" />
         <Point X="10.583" Y="5.188" Type="JumpStart" />
         <Point X="10.417" Y="5.188" Type="JumpEnd" />
-        <Point X="5.875" Y="5.188" />
-        <Point X="5.875" Y="6.25" />
+        <Point X="5.182" Y="5.188" />
+        <Point X="5.182" Y="6.25" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="-7.801" Y="1.014" Height="0.16" Width="0.756" />
+        <Position X="-8.242" Y="1.014" Height="0.16" Width="0.756" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="ss" Type="Searcher::Stack" FixedFromPoint="true" FixedToPoint="true">
@@ -302,13 +309,11 @@
         <Point X="11.042" Y="6.062" Type="JumpEnd" />
         <Point X="9.458" Y="6.062" Type="JumpStart" />
         <Point X="9.292" Y="6.062" Type="JumpEnd" />
-        <Point X="7.25" Y="6.062" />
-        <Point X="7.25" Y="7.002" />
-        <Point X="5.938" Y="7.002" />
-        <Point X="5.938" Y="8.5" />
+        <Point X="6.188" Y="6.062" />
+        <Point X="6.188" Y="8.5" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-7.709" Y="2.387" />
+        <Position X="-7.661" Y="2.387" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="killers" Type="ValMove" FixedFromPoint="true" FixedToPoint="true">
@@ -321,16 +326,6 @@
         <Position X="-3.008" Y="0.329" Height="0.16" Width="1.562" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="recapture_sq" Type="Square">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="9.768" Y="-0.037" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="capture_threshold" Type="Value">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.564" Y="0.476" />
-      </MemberNameLabel>
-    </AssociationLine>
     <AssociationLine Name="counter_moves" Type="Move" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="13.75" Y="5.562" />
@@ -340,13 +335,13 @@
         <Point X="9.375" Y="7.5" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="-4.303" Y="1.835" Height="0.16" Width="1.108" />
+        <Position X="-4.297" Y="1.847" Height="0.16" Width="1.108" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="followup_moves" Type="Move" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="13.75" Y="5.813" />
-        <Point X="11.208" Y="5.812" Type="JumpStart" />
+        <Point X="11.208" Y="5.813" Type="JumpStart" />
         <Point X="11.042" Y="5.813" Type="JumpEnd" />
         <Point X="9.375" Y="5.813" />
         <Point X="9.375" Y="7.5" />
@@ -372,6 +367,16 @@
         <Position X="-1.847" Y="0.875" />
       </MemberNameLabel>
     </AssociationLine>
+    <AssociationLine Name="recapture_sq" Type="Square">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="5.799" Y="-0.058" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="capture_threshold" Type="Value">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.564" Y="0.476" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AgABAAkGAgAggAAAgAAAQIQAQgAACCIQAAAgIAAAEgA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
@@ -384,12 +389,12 @@
       <Field Name="pos" />
       <Field Name="history" />
       <Field Name="ss" />
-      <Field Name="recapture_sq" />
-      <Field Name="capture_threshold" />
       <Field Name="counter_moves" />
       <Field Name="followup_moves" />
       <Field Name="tt_move" />
       <Field Name="depth" />
+      <Field Name="recapture_sq" />
+      <Field Name="capture_threshold" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="moves" />
@@ -426,29 +431,104 @@
     </TypeIdentifier>
   </Class>
   <Class Name="LogFile">
-    <Position X="44.75" Y="0.5" Width="1.5" />
+    <Position X="33" Y="2.25" Width="1.5" />
+    <InheritanceLine Type="std::ofstream">
+      <InheritanceModifierLabel ManuallyPlaced="true">
+        <Position X="-0.262" Y="0.101" />
+      </InheritanceModifierLabel>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAQAAAA=</HashCode>
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="IOLogger" Collapsed="true">
-    <Position X="35" Y="2.5" Width="1.5" />
-    <InheritanceLine Type="std::noncopyable">
+  <Class Name="IOLogger">
+    <Position X="34.25" Y="5.25" Width="2.25" />
+    <InheritanceLine Type="std::noncopyable" FixedToPoint="true">
+      <Path>
+        <Point X="37.5" Y="3.752" />
+        <Point X="37.5" Y="4.625" />
+        <Point X="36.271" Y="4.625" Type="JumpStart" />
+        <Point X="36.104" Y="4.625" Type="JumpEnd" />
+        <Point X="35.312" Y="4.625" />
+        <Point X="35.312" Y="5.25" />
+      </Path>
       <InheritanceModifierLabel ManuallyPlaced="true">
         <Position X="-0.211" Y="0.06" />
       </InheritanceModifierLabel>
     </InheritanceLine>
+    <AssociationLine Name="_inbuf" Type="std::tie_buf" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="36.5" Y="6.353" />
+        <Point X="38.192" Y="6.353" />
+        <Point X="38.192" Y="7" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.587" Y="0.745" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="_outbuf" Type="std::tie_buf" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="36.5" Y="6.691" />
+        <Point X="38.192" Y="6.691" />
+        <Point X="38.192" Y="7" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.529" Y="0.383" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="_fstm" Type="std::ofstream" FixedToPoint="true">
+      <Path>
+        <Point X="36.188" Y="5.25" />
+        <Point X="36.188" Y="1.252" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.216" Y="3.678" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAIAIAAAAAgAAAAAABAAYBgAAAAAAAAAAAQAAA=</HashCode>
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_inbuf" />
+      <Field Name="_outbuf" />
+      <Field Name="_fstm" />
+    </ShowAsAssociation>
   </Class>
   <Class Name="std::stack&lt;_Ty, _Container&gt;" Collapsed="true">
     <Position X="2" Y="12.25" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAIAAAIgCAAAAAICAAQAoAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\stack</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::width_prec" Collapsed="true">
+    <Position X="44.25" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAAAAAAAAAAAAAEAAAAAAAABAAAAAAAAAAAAgAAAA=</HashCode>
+      <FileName>src\manipulator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::manip_infra&lt;T, C&gt;" Collapsed="true">
+    <Position X="42.25" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAgAAAAAAIAAAAAAAAAAAAAABAA=</HashCode>
+      <FileName>src\manipulator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Tree&lt;T&gt;" Collapsed="true">
+    <Position X="46.5" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AMQAAAAABACQAAUEBAAgAQACAAEAAAAAAAEQQACAAAA=</HashCode>
+      <FileName>src\Tree.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Forest&lt;T&gt;" Collapsed="true">
+    <Position X="48.5" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEQAIQAAACAAAAAEBAAIAAACAAEAAAAAAAEAACAAAAA=</HashCode>
+      <FileName>src\Forest.h</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="StateInfo">
@@ -461,17 +541,17 @@
         <Point X="15" Y="9.312" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="2.04" Y="-0.039" Height="0.16" Width="2.166" />
+        <Position X="2.004" Y="-0.039" Height="0.16" Width="2.166" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="psq_score" Type="Score" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="19.465" Y="8.75" />
         <Point X="19.465" Y="8.381" />
-        <Point X="18.5" Y="8.381" />
+        <Point X="18.25" Y="8.381" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.1" Y="-0.055" />
+        <Position X="0.148" Y="-0.067" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="matl_key" Type="Key" FixedFromPoint="true" FixedToPoint="true">
@@ -482,6 +562,16 @@
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="0.524" Y="-6.345" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="pawn_key" Type="Key" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="20.719" Y="8.75" />
+        <Point X="20.719" Y="2.25" />
+        <Point X="21.25" Y="2.25" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.151" Y="-6.188" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="castle_rights" Type="CRight" FixedFromPoint="true" FixedToPoint="true">
@@ -504,6 +594,26 @@
         <Position X="0.733" Y="-6.479" Height="0.16" Width="0.907" />
       </MemberNameLabel>
     </AssociationLine>
+    <AssociationLine Name="last_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="19.25" Y="9.062" />
+        <Point X="16.521" Y="9.062" Type="JumpStart" />
+        <Point X="16.355" Y="9.062" Type="JumpEnd" />
+        <Point X="15.25" Y="9.062" />
+        <Point X="15.25" Y="7" />
+        <Point X="14.458" Y="7" Type="JumpStart" />
+        <Point X="14.292" Y="7" Type="JumpEnd" />
+        <Point X="13.271" Y="7" Type="JumpStart" />
+        <Point X="13.105" Y="7" Type="JumpEnd" />
+        <Point X="11.865" Y="7" Type="JumpStart" />
+        <Point X="11.698" Y="7" Type="JumpEnd" />
+        <Point X="9.375" Y="7" />
+        <Point X="9.375" Y="7.5" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-9.797" Y="-1.632" />
+      </MemberNameLabel>
+    </AssociationLine>
     <AssociationLine Name="capture_type" Type="PieceT">
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="0.345" Y="-1.562" />
@@ -520,36 +630,6 @@
         <Position X="2.291" Y="6.049" Height="0.16" Width="0.781" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="last_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="19.25" Y="9.062" />
-        <Point X="16.521" Y="9.062" Type="JumpStart" />
-        <Point X="16.355" Y="9.062" Type="JumpEnd" />
-        <Point X="15.25" Y="9.062" />
-        <Point X="15.25" Y="6.969" />
-        <Point X="14.458" Y="6.969" Type="JumpStart" />
-        <Point X="14.292" Y="6.969" Type="JumpEnd" />
-        <Point X="13.271" Y="6.969" Type="JumpStart" />
-        <Point X="13.104" Y="6.969" Type="JumpEnd" />
-        <Point X="11.865" Y="6.969" Type="JumpStart" />
-        <Point X="11.698" Y="6.969" Type="JumpEnd" />
-        <Point X="9.375" Y="6.969" />
-        <Point X="9.375" Y="7.5" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-9.797" Y="-1.632" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="pawn_key" Type="Key" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="20.719" Y="8.75" />
-        <Point X="20.719" Y="2.25" />
-        <Point X="21.25" Y="2.25" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.151" Y="-6.188" />
-      </MemberNameLabel>
-    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AgAAAQAEAAAEAAgAAQAAAAAhAAAAAAAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
@@ -557,13 +637,13 @@
     <ShowAsAssociation>
       <Field Name="psq_score" />
       <Field Name="matl_key" />
+      <Field Name="pawn_key" />
       <Field Name="castle_rights" />
       <Field Name="posi_key" />
+      <Field Name="last_move" />
       <Field Name="capture_type" />
       <Field Name="checkers" />
       <Field Name="p_si" />
-      <Field Name="last_move" />
-      <Field Name="pawn_key" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="non_pawn_matl" />
@@ -603,7 +683,7 @@
     </AssociationLine>
     <AssociationLine Name="king_sq" Type="Square">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.459" Y="-0.211" />
+        <Position X="3.921" Y="1.155" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -629,7 +709,7 @@
         <Point X="8.375" Y="14.122" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-4.69" Y="5.32" />
+        <Position X="-4.5" Y="5.329" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -703,7 +783,7 @@
     </AssociationLine>
     <AssociationLine Name="endgames" Type="EndGame::Endgames">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.502" Y="-0.073" />
+        <Position X="0.43" Y="-0.073" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="active_pos" Type="Position" FixedFromPoint="true">
@@ -712,7 +792,7 @@
         <Point X="25.75" Y="17.625" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="4.875" Y="-0.038" Height="0.16" Width="0.97" />
+        <Position X="4.703" Y="-0.038" Height="0.16" Width="0.97" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="active_splitpoint" Type="Threads::SplitPoint" FixedFromPoint="true">
@@ -788,6 +868,46 @@
         <Position X="7.85" Y="2.083" Height="0.16" Width="0.913" />
       </MemberNameLabel>
     </AssociationLine>
+    <AssociationLine Name="current_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="7.312" Y="8.5" />
+        <Point X="7.312" Y="7.812" />
+        <Point X="8" Y="7.812" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="0.235" Y="-0.683" Height="0.16" Width="1.084" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="tt_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="7" Y="8.5" />
+        <Point X="7" Y="7.812" />
+        <Point X="8" Y="7.812" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="0.714" Y="-0.534" Height="0.16" Width="0.831" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="excluded_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.625" Y="8.5" />
+        <Point X="6.625" Y="7.812" />
+        <Point X="8" Y="7.812" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="0.846" Y="-0.375" Height="0.16" Width="1.173" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="killer_moves" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="6.438" Y="8.5" />
+        <Point X="6.438" Y="7.625" />
+        <Point X="8" Y="7.625" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="1.027" Y="-0.262" />
+      </MemberNameLabel>
+    </AssociationLine>
     <AssociationLine Name="reduction" Type="Depth" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="7.5" Y="9.062" />
@@ -806,53 +926,13 @@
         <Point X="8.667" Y="9.562" Type="JumpStart" />
         <Point X="8.833" Y="9.562" Type="JumpEnd" />
         <Point X="11.229" Y="9.562" Type="JumpStart" />
-        <Point X="11.396" Y="9.562" Type="JumpEnd" />
-        <Point X="11.604" Y="9.562" Type="JumpStart" />
-        <Point X="11.771" Y="9.562" Type="JumpEnd" />
+        <Point X="11.395" Y="9.562" Type="JumpEnd" />
+        <Point X="11.573" Y="9.562" Type="JumpStart" />
+        <Point X="11.74" Y="9.562" Type="JumpEnd" />
         <Point X="13" Y="9.562" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
         <Position X="4.354" Y="-0.069" Height="0.16" Width="1.012" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="current_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="7.25" Y="8.5" />
-        <Point X="7.25" Y="7.812" />
-        <Point X="8" Y="7.812" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="0.235" Y="-0.683" Height="0.16" Width="1.084" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="excluded_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="6.594" Y="8.5" />
-        <Point X="6.594" Y="7.812" />
-        <Point X="8" Y="7.812" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="0.846" Y="-0.375" Height="0.16" Width="1.173" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="killer_moves" Type="Move" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="6.312" Y="8.5" />
-        <Point X="6.312" Y="7.625" />
-        <Point X="8" Y="7.625" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="1.027" Y="-0.262" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <AssociationLine Name="tt_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="6.922" Y="8.5" />
-        <Point X="6.922" Y="7.812" />
-        <Point X="8" Y="7.812" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="0.798" Y="-0.534" Height="0.16" Width="0.831" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -861,11 +941,11 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="splitpoint" />
+      <Field Name="current_move" />
+      <Field Name="tt_move" />
+      <Field Name="excluded_move" />
       <Field Name="reduction" />
       <Field Name="static_eval" />
-      <Field Name="current_move" />
-      <Field Name="excluded_move" />
-      <Field Name="tt_move" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="killer_moves" />
@@ -898,6 +978,11 @@
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="0.072" Y="4.233" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="depth" Type="Depth">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-3.739" Y="2.748" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="beta" Type="Value" FixedFromPoint="true" FixedToPoint="true">
@@ -952,7 +1037,7 @@
         <Point X="15" Y="10.188" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.528" Y="-1.102" />
+        <Position X="0.549" Y="-1.114" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="best_value" Type="Value" FixedFromPoint="true" FixedToPoint="true">
@@ -977,11 +1062,6 @@
         <Position X="-6.651" Y="3.368" Height="0.16" Width="0.859" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="depth" Type="Depth">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-3.739" Y="2.748" />
-      </MemberNameLabel>
-    </AssociationLine>
     <TypeIdentifier>
       <HashCode>QACCAAAAAEAQAAAAAAAABIAEEAAAAAAQAAAQKAAAYQA=</HashCode>
       <FileName>src\Thread.h</FileName>
@@ -990,6 +1070,7 @@
       <Field Name="ss" />
       <Field Name="pos" />
       <Field Name="master_thread" />
+      <Field Name="depth" />
       <Field Name="beta" />
       <Field Name="node_type" />
       <Field Name="movepicker" />
@@ -998,7 +1079,6 @@
       <Field Name="alpha" />
       <Field Name="best_value" />
       <Field Name="best_move" />
-      <Field Name="depth" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Threads::Mutex">
@@ -1144,17 +1224,17 @@
     </AssociationLine>
     <AssociationLine Name="mutex" Type="Threads::Mutex" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
       <Path>
-        <Point X="6.25" Y="15.25" />
-        <Point X="6.25" Y="12.625" />
+        <Point X="6.062" Y="15.25" />
+        <Point X="6.062" Y="12.625" />
         <Point X="12.25" Y="12.625" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="5.814" Y="-2.237" />
+        <Position X="5.977" Y="-2.219" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="sleep_condition" Type="Threads::Condition">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.526" Y="-0.028" />
+        <Position X="0.719" Y="-0.028" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="timer" Type="Threads::TimerThread" FixedFromPoint="true" FixedToPoint="true">
@@ -1180,25 +1260,53 @@
       <Field Name="timer" />
     </ShowAsAssociation>
   </Struct>
+  <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
+    <Position X="40.25" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::binary_nullfunctor&lt;T&gt;" Collapsed="true">
+    <Position X="38.5" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::char_less_nocase_comparer" Collapsed="true">
+    <Position X="40.25" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::string_less_nocase_comparer" Collapsed="true">
+    <Position X="38.5" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">
-    <Position X="35" Y="7.5" Width="3" />
+    <Position X="41.75" Y="9.5" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::null_wstream" Collapsed="true">
-    <Position X="38.75" Y="7.5" Width="3.25" />
+    <Position X="44" Y="9.5" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
     <AliasOfLine Type="std::basic_null_stream&lt;charT, Traits&gt;" FixedToPoint="true">
       <Path>
-        <Point X="38.5" Y="6.242" />
-        <Point X="38.5" Y="7.125" />
-        <Point X="40.375" Y="7.125" />
-        <Point X="40.375" Y="7.5" />
+        <Point X="43.75" Y="8.742" />
+        <Point X="43.75" Y="9.125" />
+        <Point X="45" Y="9.125" />
+        <Point X="45" Y="9.5" />
       </Path>
     </AliasOfLine>
   </Typedef>
@@ -1225,24 +1333,24 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_buf" Collapsed="true">
-    <Position X="40.25" Y="5.25" Width="3.5" />
+    <Position X="37.75" Y="7" Width="2.25" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_wbuf" Collapsed="true">
-    <Position X="44.25" Y="5.25" Width="4" />
+    <Position X="40.25" Y="7" Width="2.25" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
     <AliasOfLine Type="std::basic_tie_buf&lt;Elem, Traits&gt;" FixedToPoint="true">
       <Path>
-        <Point X="43.875" Y="3.242" />
-        <Point X="43.875" Y="4.875" />
-        <Point X="46.312" Y="4.875" />
-        <Point X="46.312" Y="5.25" />
+        <Point X="39.875" Y="5.742" />
+        <Point X="39.875" Y="6.625" />
+        <Point X="41.41" Y="6.625" />
+        <Point X="41.41" Y="7" />
       </Path>
     </AliasOfLine>
   </Typedef>
@@ -1254,14 +1362,14 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="GainsStats" Collapsed="true">
-    <Position X="0.5" Y="6.25" Width="2.5" />
+    <Position X="1.25" Y="6.25" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="HistoryStats" Collapsed="true">
-    <Position X="4.25" Y="6.25" Width="2.75" />
+    <Position X="4" Y="6.25" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
@@ -1270,17 +1378,23 @@
       <Path>
         <Point X="3.75" Y="5.405" />
         <Point X="3.75" Y="5.875" />
-        <Point X="5.625" Y="5.875" />
-        <Point X="5.625" Y="6.25" />
+        <Point X="5" Y="5.875" />
+        <Point X="5" Y="6.25" />
       </Path>
     </AliasOfLine>
   </Typedef>
   <Typedef Name="MovesStats" Collapsed="true">
-    <Position X="2" Y="7" Width="3.5" />
+    <Position X="2.25" Y="7" Width="2.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
+    <AliasOfLine Type="Stats&lt;GAIN, T&gt;" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="3.75" Y="5.405" />
+        <Point X="3.75" Y="7" />
+      </Path>
+    </AliasOfLine>
   </Typedef>
   <Typedef Name="Material::Table" Collapsed="true">
     <Position X="13.25" Y="21.75" Width="2.5" />
@@ -1351,6 +1465,13 @@
       <FileName>c:\program files (x86)\windows kits\8.0\include\um\minwinbase.h</FileName>
     </TypeIdentifier>
   </Typedef>
+  <Typedef Name="std::ofstream" Collapsed="true">
+    <Position X="35.25" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\iosfwd</FileName>
+    </TypeIdentifier>
+  </Typedef>
   <Enum Name="Color">
     <Position X="22.75" Y="10.75" Width="1.5" />
     <TypeIdentifier>
@@ -1380,7 +1501,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Piece">
-    <Position X="31" Y="7.5" Width="1.5" />
+    <Position X="31.5" Y="10.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAIAAgAQMAAAgAwRTAAAAIAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -1401,7 +1522,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Score">
-    <Position X="17" Y="8" Width="1.5" />
+    <Position X="16.75" Y="8" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>

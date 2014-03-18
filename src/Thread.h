@@ -5,6 +5,7 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
+#include <bitset>
 #include <vector>
 
 #include "Position.h"
@@ -77,9 +78,9 @@ typedef void* (*FnStart) (void*);
 
 namespace Threads {
 
-    const uint8_t MAX_THREADS            = 64; // Because SplitPoint::slaves_mask is a uint64_t
-    const uint8_t MAX_SPLITPOINT_THREADS = 8;  // Maximum threads per splitpoint
-    const uint8_t MAX_SPLIT_DEPTH        = 15; // Maximum split depth
+    const uint8_t MAX_THREADS            = 128; // Maximum threads
+    const uint8_t MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
+    const uint8_t MAX_SPLIT_DEPTH        =  15; // Maximum split depth
 
     extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
 
@@ -136,13 +137,14 @@ namespace Threads {
         // Shared data
         Mutex   mutex;
 
-        uint64_t volatile slaves_mask;
-        uint64_t volatile nodes;
-        uint8_t  volatile moves_count;
-        Value    volatile alpha;
-        Value    volatile best_value;
-        Move     volatile best_move;
-        bool     volatile cut_off;
+        std::bitset<MAX_THREADS> slaves_mask;
+
+        volatile uint64_t nodes;
+        volatile uint8_t  moves_count;
+        volatile Value    alpha;
+        volatile Value    best_value;
+        volatile Move     best_move;
+        volatile bool     cut_off;
     };
 
     // ThreadBase struct is the base of the hierarchy from where
@@ -151,7 +153,7 @@ namespace Threads {
     {
         Mutex   mutex;
         NativeHandle    handle;
-        bool volatile   exit;
+        volatile bool   exit;
 
         Condition   sleep_condition;
 
@@ -165,7 +167,7 @@ namespace Threads {
 
         void notify_one ();
 
-        void wait_for (volatile const bool &cond);
+        void wait_for (const volatile bool &condition);
     };
 
     // TimerThread is derived from ThreadBase
@@ -207,8 +209,8 @@ namespace Threads {
 
         SplitPoint* volatile active_splitpoint;
 
-        uint8_t volatile splitpoint_threads;
-        bool    volatile searching;
+        volatile uint8_t splitpoint_threads;
+        volatile bool    searching;
 
         Thread ();
 
@@ -229,7 +231,7 @@ namespace Threads {
     struct MainThread
         : public Thread
     {
-        bool volatile thinking;
+        volatile bool thinking;
 
         MainThread ()
             : thinking (true)

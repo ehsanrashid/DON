@@ -2004,17 +2004,21 @@ namespace Threads {
             // all the currently active positions nodes.
             for (uint8_t i = 0; i < Threadpool.size (); ++i)
             {
-                for (uint8_t j = 0; j < Threadpool[i]->splitpoint_threads; ++j)
+                for (uint8_t t = 0; t < Threadpool[i]->splitpoint_threads; ++t)
                 {
-                    SplitPoint &sp = Threadpool[i]->splitpoints[j];
+                    SplitPoint &sp = Threadpool[i]->splitpoints[t];
                     sp.mutex.lock ();
+
                     nodes += sp.nodes;
-                    uint64_t slaves_mask = sp.slaves_mask;
-                    while (slaves_mask != U64 (0))
+                    for (size_t idx = 0; idx < Threadpool.size (); ++idx)
                     {
-                        Position *pos = Threadpool[pop_lsq (slaves_mask)]->active_pos;
-                        if (pos) nodes += pos->game_nodes ();
+                        if (sp.slaves_mask.test (idx))
+                        {
+                            Position *pos = Threadpool[idx]->active_pos;
+                            if (pos != NULL) nodes += pos->game_nodes ();
+                        }
                     }
+
                     sp.mutex.unlock ();
                 }
             }
@@ -2066,7 +2070,7 @@ namespace Threads {
                 mutex.lock ();
 
                 // If we are master and all slaves have finished then exit idle_loop
-                if (splitpoint && splitpoint->slaves_mask == U64(0))
+                if (splitpoint && splitpoint->slaves_mask.none ())
                 {
                     mutex.unlock ();
                     break;
@@ -2123,14 +2127,14 @@ namespace Threads {
 
                 searching  = false;
                 active_pos = NULL;
-                (sp)->slaves_mask &= ~(U64 (1) << idx);
+                (sp)->slaves_mask.reset (idx);
                 (sp)->nodes += pos.game_nodes ();
 
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case we are the last slave of the splitpoint.
                 if (   Threadpool.sleep_idle
                     && this != (sp)->master_thread
-                    && !(sp)->slaves_mask)
+                    && (sp)->slaves_mask.none ())
                 {
                     ASSERT (!sp->master_thread->searching);
                     (sp)->master_thread->notify_one ();
@@ -2145,10 +2149,10 @@ namespace Threads {
 
             // If this thread is the master of a splitpoint and all slaves have finished
             // their work at this splitpoint, return from the idle loop.
-            if (splitpoint && !splitpoint->slaves_mask)
+            if (splitpoint && splitpoint->slaves_mask.none ())
             {
                 splitpoint->mutex.lock ();
-                bool finished = !splitpoint->slaves_mask; // Retest under lock protection
+                bool finished = splitpoint->slaves_mask.none (); // Retest under lock protection
                 splitpoint->mutex.unlock ();
                 if (finished) return;
             }

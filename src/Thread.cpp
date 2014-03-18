@@ -54,10 +54,10 @@ namespace Threads {
     }
 
     // wait_for() set the thread to sleep until condition 'b' turns true
-    void ThreadBase::wait_for (const volatile bool &cond)
+    void ThreadBase::wait_for (const volatile bool &condition)
     {
         mutex.lock ();
-        while (!cond)
+        while (!condition)
         {
             sleep_condition.wait (mutex);
         }
@@ -107,7 +107,7 @@ namespace Threads {
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
-        return !size || (splitpoints[size - 1].slaves_mask & (U64 (1) << master->idx));
+        return (size == 0) || splitpoints[size - 1].slaves_mask.test (master->idx);
     }
 
     // split<>() does the actual work of distributing the work at a node between several available threads.
@@ -131,7 +131,7 @@ namespace Threads {
 
         sp.master_thread = this;
         sp.parent_splitpoint = active_splitpoint;
-        sp.slaves_mask  = (U64 (1) << idx);
+        sp.slaves_mask  = 0, sp.slaves_mask.set (idx);
         sp.depth        = depth;
         sp.best_value   = best_value;
         sp.best_move    = best_move;
@@ -161,7 +161,7 @@ namespace Threads {
             Thread *slave;
             while ((slave = Threadpool.available_slave (this)) != NULL)
             {
-                sp.slaves_mask |= (U64 (1) << slave->idx);
+                sp.slaves_mask.set (slave->idx);
                 slave->active_splitpoint = &sp;
                 slave->searching = true;        // Leaves idle_loop()
                 slave->notify_one ();           // Notified could be sleeping
