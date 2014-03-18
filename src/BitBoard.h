@@ -147,7 +147,7 @@ namespace BitBoard {
         }
     };
 
-    CACHE_ALIGN(64) extern       Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];

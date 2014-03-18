@@ -2479,19 +2479,18 @@ namespace TBSyzygy {
         }
 
         // Add underpromotion captures to list of captures.
-        ValMove* add_underprom_caps (Position &pos, ValMove *m_list, ValMove *end)
+        ValMove* generate_underprom_cap (ValMove *moves, Position &pos, ValMove *end)
         {
             ValMove *cur, *extra = end;
-
-            for (cur = m_list; cur < end; ++cur)
+            for (cur = moves; cur < end; ++cur)
             {
                 Move move = cur->move;
                 if (   mtype (move) == PROMOTE
                     && !pos.empty (dst_sq (move)))
                 {
-                    (*extra++).move = Move (move - (1 << 12));
-                    (*extra++).move = Move (move - (2 << 12));
-                    (*extra++).move = Move (move - (3 << 12));
+                    (*extra++).move = Move (move - (NIHT << 12));
+                    (*extra++).move = Move (move - (BSHP << 12));
+                    (*extra++).move = Move (move - (ROOK << 12));
                 }
             }
 
@@ -2500,27 +2499,27 @@ namespace TBSyzygy {
 
         int32_t probe_ab (Position &pos, int32_t alpha, int32_t beta, int32_t *success)
         {
-            int32_t v;
-            ValMove m_list[MAX_MOVES];
-            ValMove *cur, *end;
-            StateInfo si;
+            ValMove moves[MAX_MOVES];
+            ValMove *end;
 
             // Generate (at least) all legal non-ep captures including (under)promotions.
             // It is OK to generate more, as long as they are filtered out below.
             if (pos.checkers ())
             {
-                end = generate<EVASION> (m_list, pos);
+                end = generate<EVASION> (moves, pos);
             }
             else
             {
-                end = generate<CAPTURE> (m_list, pos);
+                end = generate<CAPTURE> (moves, pos);
                 // Since underpromotion captures are not included, we need to add them.
-                end = add_underprom_caps (pos, m_list, end);
+                end = generate_underprom_cap (moves, pos, end);
             }
 
+            StateInfo si;
             CheckInfo ci (pos);
-
-            for (cur = m_list; cur < end; ++cur)
+            int32_t v;
+            ValMove *cur;
+            for (cur = moves; cur < end; ++cur)
             {
                 Move move = cur->move;
                 if (!pos.capture (move) || mtype (move) == ENPASSANT
@@ -2576,7 +2575,7 @@ namespace TBSyzygy {
                 return wdl == 2 ? 1 : 101;
             }
 
-            ValMove m_list[MAX_MOVES];
+            ValMove moves[MAX_MOVES];
             ValMove *cur, *end = NULL;
             StateInfo si;
             CheckInfo ci (pos);
@@ -2586,10 +2585,10 @@ namespace TBSyzygy {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
                 end = pos.checkers ()
-                    ? generate<EVASION> (m_list, pos)
-                    : generate<RELAX> (m_list, pos);
+                    ? generate<EVASION> (moves, pos)
+                    : generate<RELAX> (moves, pos);
 
-                for (cur = m_list; cur < end; ++cur)
+                for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
                     if (_ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
@@ -2619,7 +2618,7 @@ namespace TBSyzygy {
             if (wdl > 0)
             {
                 int32_t best = 0xFFFF;
-                for (cur = m_list; cur < end; ++cur)
+                for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
                     if (pos.capture (move) || _ptype (pos.moved_piece (move)) == PAWN
@@ -2640,10 +2639,10 @@ namespace TBSyzygy {
             {
                 int32_t best = -1;
                 end = pos.checkers ()
-                    ? generate<EVASION> (m_list, pos)
-                    : generate<RELAX> (m_list, pos);
+                    ? generate<EVASION> (moves, pos)
+                    : generate<RELAX  > (moves, pos);
 
-                for (cur = m_list; cur < end; ++cur)
+                for (cur = moves; cur < end; ++cur)
                 {
                     int32_t v;
                     Move move = cur->move;
@@ -2719,15 +2718,15 @@ namespace TBSyzygy {
         // Now handle en passant.
         int32_t v1 = -3;
         // Generate (at least) all legal en passant captures.
-        ValMove m_list[MAX_MOVES];
+        ValMove moves[MAX_MOVES];
         ValMove *end = pos.checkers ()
-            ? generate<EVASION> (m_list, pos)
-            : generate<CAPTURE> (m_list, pos);
+            ? generate<EVASION> (moves, pos)
+            : generate<CAPTURE> (moves, pos);
 
         CheckInfo ci (pos);
 
         ValMove *cur;
-        for (cur = m_list; cur < end; ++cur)
+        for (cur = moves; cur < end; ++cur)
         {
             Move move = cur->move;
             if (   mtype (move) != ENPASSANT
@@ -2752,7 +2751,7 @@ namespace TBSyzygy {
             else if (v == 0)
             {
                 // Check whether there is at least one legal non-ep move.
-                for (cur = m_list; cur < end; ++cur)
+                for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
                     if (mtype (move) == ENPASSANT) continue;
@@ -2815,15 +2814,15 @@ namespace TBSyzygy {
         // Now handle en passant.
         int32_t v1 = -3;
 
-        ValMove m_list[MAX_MOVES];
+        ValMove moves[MAX_MOVES];
         ValMove *end = pos.checkers ()
-            ? generate<EVASION> (m_list, pos)
-            : generate<CAPTURE> (m_list, pos);
+            ? generate<EVASION> (moves, pos)
+            : generate<CAPTURE> (moves, pos);
 
         CheckInfo ci (pos);
 
         ValMove *cur;
-        for (cur = m_list; cur < end; ++cur)
+        for (cur = moves; cur < end; ++cur)
         {
             Move move = cur->move;
             if (mtype (move) != ENPASSANT
@@ -2876,7 +2875,7 @@ namespace TBSyzygy {
             }
             else
             {
-                for (cur = m_list; cur < end; ++cur)
+                for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
                     if (mtype (move) == ENPASSANT) continue;
@@ -2927,8 +2926,8 @@ namespace TBSyzygy {
             bool mate = false;
             if (pos.checkers () && dtz > 0)
             {
-                ValMove m_list[MAX_MOVES];
-                if (generate<LEGAL> (m_list, pos) == m_list)
+                ValMove moves[MAX_MOVES];
+                if (generate<LEGAL> (moves, pos) == moves)
                 {
                     mate = true;
                 }

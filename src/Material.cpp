@@ -68,7 +68,7 @@ namespace Material {
         template<Color C> 
         inline bool is_KBPsKs(const Position &pos)
         {
-            return pos.non_pawn_material (C ) == VALUE_MG_BISHOP
+            return pos.non_pawn_material (C ) == VALUE_MG_BSHP
                 && pos.count<BSHP> (C ) == 1
                 && pos.count<PAWN> (C ) >= 1;
         }
@@ -78,7 +78,7 @@ namespace Material {
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
-            return pos.non_pawn_material (C ) == VALUE_MG_QUEEN
+            return pos.non_pawn_material (C ) == VALUE_MG_QUEN
                 //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
                 && pos.count<QUEN> (C ) == 1
                 && pos.count<PAWN> (C ) == 0
@@ -230,40 +230,40 @@ namespace Material {
         // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
         // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
-        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BISHOP)
+        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
         {
             if      (pos.count<PAWN> (WHITE) == 0)
             {
-                e->_factor[WHITE] = uint8_t (npm[WHITE] <= VALUE_MG_BISHOP ?
+                e->_factor[WHITE] = uint8_t (npm[WHITE] <= VALUE_MG_BSHP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
-                    1 : npm[BLACK] <= VALUE_MG_BISHOP ? 
+                    1 : npm[BLACK] <= VALUE_MG_BSHP ? 
                     4 : 12);
             }
             else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = uint8_t ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BISHOP) ?
+                e->_factor[WHITE] = uint8_t ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
                     4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
             }
         }
 
-        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BISHOP)
+        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
         {
             if      (pos.count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = uint8_t (npm[BLACK] <= VALUE_MG_BISHOP ?
+                e->_factor[BLACK] = uint8_t (npm[BLACK] <= VALUE_MG_BSHP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
-                    1 : npm[WHITE] <= VALUE_MG_BISHOP ? 
+                    1 : npm[WHITE] <= VALUE_MG_BSHP ? 
                     4 : 12);
             }
             else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = uint8_t ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BISHOP) ?
+                e->_factor[BLACK] = uint8_t ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
                     4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
             }
         }
 
         // Compute the space weight
-        if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_KNIGHT)
+        if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
         {
             int32_t minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
             e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);

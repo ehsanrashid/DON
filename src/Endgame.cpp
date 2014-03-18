@@ -209,7 +209,7 @@ namespace EndGame {
     // defending king towards a corner square of the right color.
     Value Endgame<KBNK>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_KNIGHT + VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_NIHT + VALUE_MG_BSHP, 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO, 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
@@ -234,7 +234,7 @@ namespace EndGame {
     template<>
     Value Endgame<KNNK> ::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_KNIGHT, 0));
+        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_NIHT, 0));
 
         Square wk_sq = pos.king_sq (_weak_side);
 
@@ -294,7 +294,7 @@ namespace EndGame {
     Value Endgame<KRKB>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
@@ -322,7 +322,7 @@ namespace EndGame {
     Value Endgame<KRKN>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT, 0));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_NIHT, 0));
 
         Square wk_sq = pos.king_sq (_weak_side);
         Square wn_sq = pos.list<NIHT> (_weak_side)[0];
@@ -345,7 +345,7 @@ namespace EndGame {
     // use the distance between the kings.
     Value Endgame<KQKP>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO    , 1));
 
         Square sk_sq = pos.king_sq (_stong_side);
@@ -358,7 +358,7 @@ namespace EndGame {
             || SquareDist[wk_sq][wp_sq] != 1
             || !((FA_bb | FC_bb | FF_bb | FH_bb) & wp_sq))
         {
-            value += VALUE_EG_QUEEN - VALUE_EG_PAWN;
+            value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -371,13 +371,13 @@ namespace EndGame {
     // the defending side in the search, this is usually sufficient to win KQ vs KR.
     Value Endgame<KQKR>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_ROOK , 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
 
-        Value value = VALUE_EG_QUEEN - VALUE_EG_ROOK
+        Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
             + PushToEdges[wk_sq] + PushClose[SquareDist[sk_sq][wk_sq]];
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -391,8 +391,8 @@ namespace EndGame {
     // Because exact rule is not possible better to retire and allow the search to workout the endgame.
     Value Endgame<KBBKN>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_BISHOP, 0));
-        ASSERT (verify_material (pos,  _weak_side,     VALUE_MG_KNIGHT, 0));
+        ASSERT (verify_material (pos, _stong_side, 2 * VALUE_MG_BSHP, 0));
+        ASSERT (verify_material (pos,  _weak_side,     VALUE_MG_NIHT, 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
@@ -411,7 +411,7 @@ namespace EndGame {
                 wn_sq = ~wn_sq;
             }
 
-            value = VALUE_MG_BISHOP + PushToCorners[wk_sq]
+            value = VALUE_MG_BSHP + PushToCorners[wk_sq]
                 +   PushClose[SquareDist[sk_sq][wk_sq]]
                 +   PushAway[SquareDist[wk_sq][wn_sq]];
         }
@@ -551,7 +551,7 @@ namespace EndGame {
     ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         // Test for a rook pawn
         if (pos.pieces<PAWN> () & (FA_bb | FH_bb))
@@ -694,7 +694,7 @@ namespace EndGame {
     // and the defending king prevents the pawn from advancing the position is drawn.
     ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_NIHT, 1));
         ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
 
         // Assume _stong_side is white and the pawn is on files A-D
@@ -716,8 +716,8 @@ namespace EndGame {
     // it's almost always a draw.
     ScaleFactor Endgame<KBPKB>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BSHP, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         Square sp_sq = pos.list<PAWN> (_stong_side)[0];
         Square sb_sq = pos.list<BSHP> (_stong_side)[0];
@@ -768,8 +768,8 @@ namespace EndGame {
     // KBPP vs KB. It detects a few basic draws with opposite-colored bishops.
     ScaleFactor Endgame<KBPPKB>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 2));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BSHP, 2));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         Square sb_sq = pos.list<BSHP> (_stong_side)[0];
         Square wb_sq = pos.list<BSHP> (_weak_side)[0];
@@ -848,8 +848,8 @@ namespace EndGame {
     // the stronger side's bishop, it's a draw.
     ScaleFactor Endgame<KBPKN>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BISHOP, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_KNIGHT, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_BSHP, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_NIHT, 0));
 
         Square sp_sq = pos.list<PAWN> (_stong_side)[0];
         Square sb_sq = pos.list<BSHP> (_stong_side)[0];
@@ -870,8 +870,8 @@ namespace EndGame {
     // Otherwise the position is a draw.
     ScaleFactor Endgame<KNPKB>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_KNIGHT, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BISHOP, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_NIHT, 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         Square sp_sq = pos.list<PAWN> (_stong_side)[0];
         Square sb_sq = pos.list<BSHP> (_weak_side)[0];
@@ -898,7 +898,7 @@ namespace EndGame {
     // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
     ScaleFactor Endgame<KBPsKs>::operator() (const Position &pos) const
     {
-        ASSERT (pos.non_pawn_material (_stong_side) == VALUE_MG_BISHOP);
+        ASSERT (pos.non_pawn_material (_stong_side) == VALUE_MG_BSHP);
         ASSERT (pos.count<BSHP> (_stong_side) == 1);
         ASSERT (pos.count<PAWN> (_stong_side) >= 1);
         // No assertions about the material of _weak_side, because we want draws to
@@ -1003,7 +1003,7 @@ namespace EndGame {
     // It tests for fortress draws with a rook on the 3rd rank defended by a pawn.
     ScaleFactor Endgame<KQKRPs>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEEN, 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
         ASSERT (pos.count<ROOK> (_weak_side) == 1);
         ASSERT (pos.count<PAWN> (_weak_side) >= 1);
 

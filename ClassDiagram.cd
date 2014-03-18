@@ -32,7 +32,7 @@
         <Point X="21.25" Y="9.69" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="3.893" Y="-0.01" />
+        <Position X="3.893" Y="-0.037" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="_si" Type="StateInfo" FixedFromPoint="true">
@@ -66,7 +66,7 @@
     </AssociationLine>
     <AssociationLine Name="_thread" Type="Threads::Thread">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="6.08" Y="-0.011" />
+        <Position X="6.096" Y="-0.054" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -139,7 +139,7 @@
     <Position X="42.75" Y="2.5" Width="2.25" />
     <InheritanceLine Type="std::noncopyable">
       <InheritanceModifierLabel ManuallyPlaced="true">
-        <Position X="-0.211" Y="0.068" />
+        <Position X="0.068" Y="-0.211" />
       </InheritanceModifierLabel>
     </InheritanceLine>
     <TypeIdentifier>
@@ -236,7 +236,7 @@
         <Point X="11.5" Y="4.668" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.89" Y="-0.067" />
+        <Position X="0.874" Y="-0.055" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="pos" Type="Position">
@@ -284,8 +284,8 @@
         <Point X="10.625" Y="3.375" />
         <Point X="10.625" Y="3.75" />
       </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-3.055" Y="0.313" />
+      <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
+        <Position X="-3.008" Y="0.329" Height="0.16" Width="1.562" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="counter_moves" Type="Move" FixedFromPoint="true" FixedToPoint="true">
@@ -931,6 +931,27 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAA=</HashCode>
       <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MoveGenerator::`anonymous-namespace'::Generator&lt;GT, C, PT&gt;">
+    <Position X="10.25" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MoveGenerator::`anonymous-namespace'::Generator&lt;GT, C, KING&gt;">
+    <Position X="12.5" Y="0.5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAIAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MoveGenerator::`anonymous-namespace'::Generator&lt;GT, C, PAWN&gt;">
+    <Position X="16" Y="0.5" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAAAAAAAAAAAAABAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.cpp</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">

@@ -79,7 +79,7 @@ namespace Threads {
     }
 
     // cutoff_occurred() checks whether a beta cutoff has occurred in the
-    // current active split point, or in some ancestor of the split point.
+    // current active splitpoint, or in some ancestor of the splitpoint.
     bool Thread::cutoff_occurred () const
     {
         for (SplitPoint *sp = active_splitpoint;
@@ -92,10 +92,10 @@ namespace Threads {
     }
 
     // available_to() checks whether the thread is available to help the thread 'master'
-    // at a split point. An obvious requirement is that thread must be idle.
+    // at a splitpoint. An obvious requirement is that thread must be idle.
     // With more than two threads, this is not sufficient: If the thread is the
-    // master of some split point, it is only available as a slave to the slaves
-    // which are busy searching the split point at the top of slaves split point
+    // master of some splitpoint, it is only available as a slave to the slaves
+    // which are busy searching the splitpoint at the top of slaves splitpoint
     // stack (the "helpful master concept" in YBWC terminology).
     bool Thread::available_to (const Thread *master) const
     {
@@ -105,7 +105,7 @@ namespace Threads {
         // testing next condition and so leading to an out of bound access.
         uint8_t size = splitpoint_threads;
 
-        // No split points means that the thread is available as a slave for any
+        // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
         return !size || (splitpoints[size - 1].slaves_mask & (U64 (1) << master->idx));
     }
@@ -126,7 +126,7 @@ namespace Threads {
         ASSERT (Threadpool.split_depth <= depth);
         ASSERT (splitpoint_threads < MAX_SPLITPOINT_THREADS);
 
-        // Pick the next available split point from the split point stack
+        // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_threads];
 
         sp.master_thread = this;
@@ -171,7 +171,7 @@ namespace Threads {
         // Everything is set up. The master thread enters the idle-loop, from which
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
-        // their work at this split point.
+        // their work at this splitpoint.
         sp.mutex.unlock ();
         Threadpool.mutex.unlock ();
 
@@ -209,11 +209,11 @@ namespace Threads {
 
     // ------------------------------------
 
-    // idle_loop() is where the timer thread waits msec milliseconds
+    // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
     // and then calls check_time(). If msec is 0 thread sleeps until is woken up.
     void TimerThread::idle_loop ()
     {
-        while (!exit)
+        do
         {
             mutex.lock ();
 
@@ -223,11 +223,12 @@ namespace Threads {
 
             if (run) check_time ();
         }
+        while (!exit);
     }
 
     // ------------------------------------
 
-    // idle_loop() is where the main thread is parked waiting to be started
+    // MainThread::idle_loop() is where the main thread is parked waiting to be started
     // when there is a new search. Main thread will launch all the slave threads.
     void MainThread::idle_loop ()
     {
@@ -255,7 +256,7 @@ namespace Threads {
 
             searching = false;
         }
-        while (true);
+        while (!exit);
     }
 
     // ------------------------------------

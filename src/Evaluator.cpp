@@ -384,8 +384,8 @@ namespace Evaluator {
             {
                 // Ignoring any pawns, do both sides only have a single bishop and no
                 // other pieces?
-                if (pos.non_pawn_material (WHITE) == VALUE_MG_BISHOP
-                    && pos.non_pawn_material (BLACK) == VALUE_MG_BISHOP)
+                if (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
+                    && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
@@ -442,7 +442,7 @@ namespace Evaluator {
             ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks (C);
 
             // Init king safety tables only if we are going to use them
-            if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEEN + VALUE_MG_PAWN)
+            if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
                 ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
                 attacks &= ei.attacked_by[C][PAWN];
@@ -967,7 +967,7 @@ namespace Evaluator {
                 // value if the other side has a rook or queen.
                 if (file_bb (s) & (FA_bb | FH_bb))
                 {
-                    if (pos.non_pawn_material (C_) <= VALUE_MG_KNIGHT)
+                    if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
                     {
                         eg_bonus += eg_bonus / 4;
                     }

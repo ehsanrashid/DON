@@ -13,7 +13,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const uint32_t MAX_INDEX = 2*24*64*64; // stm * wp_sq * wk_sq * bk_sq = 196608
+        const uint32_t MAX_INDEX = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
 
         // Each uint32_t stores results of 32 positions, one per bit
         uint32_t KPKBitbase[MAX_INDEX / 32];
@@ -103,7 +103,7 @@ namespace BitBases {
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
                     if (  !(PieceAttacks[KING][_bk_sq] & ~(PieceAttacks[KING][_wk_sq] | PawnAttacks[WHITE][_p_sq]))
-                        || (PieceAttacks[KING][_bk_sq] & _p_sq & ~PieceAttacks[KING][_wk_sq]))
+                        || (PieceAttacks[KING][_bk_sq] &  ~PieceAttacks[KING][_wk_sq] & _p_sq))
                     {
                         result = DRAW;
                     }
@@ -141,11 +141,11 @@ namespace BitBases {
             {
                 Square s = _p_sq + DEL_N;
 
-                r |= db[index(BLACK, _bk_sq, _wk_sq, s)]; // Single push
+                r |= db[index(BLACK, _bk_sq, _wk_sq, s)];               // Single push
 
                 if (_rank (_p_sq) == R_2 && s != _wk_sq && s != _bk_sq)
                 {
-                    r |= db[index(BLACK, _bk_sq, _wk_sq, s + DEL_N)]; // Double push
+                    r |= db[index(BLACK, _bk_sq, _wk_sq, s + DEL_N)];   // Double push
                 }
             }
 

@@ -118,7 +118,7 @@ namespace Threads {
 
     struct SplitPoint
     {
-        // Const data after split point has been setup
+        // Const data after splitpoint has been setup
         const Searcher::Stack *ss;
         const Position *pos;
 
@@ -241,7 +241,7 @@ namespace Threads {
 
     // ThreadPool struct handles all the threads related stuff like initializing,
     // starting, parking and, the most important, launching a slave thread
-    // at a split point.
+    // at a splitpoint.
     // All the access to shared thread data is done through this class.
     struct ThreadPool
         : public std::vector<Thread*>

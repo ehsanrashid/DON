@@ -48,7 +48,7 @@ namespace MoveGenerator {
     } GenT;
 
     template<GenT GT>
-    extern ValMove* generate (ValMove *m_list, const Position &pos);
+    extern ValMove* generate (ValMove *moves, const Position &pos);
 
     // The MoveList struct is a simple wrapper around generate(). It sometimes comes
     // in handy to use this class instead of the low level generate() function.
@@ -58,7 +58,7 @@ namespace MoveGenerator {
 
     private:
 
-        ValMove   moves[MAX_MOVES]
+        ValMove  moves[MAX_MOVES]
                 , *cur
                 , *end;
 
@@ -90,14 +90,14 @@ namespace MoveGenerator {
 
         //template<class charT, class Traits, GenT GT>
         //inline friend std::basic_ostream<charT, Traits>&
-        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &mov_lst)
+        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist)
         //{
-        //    ValMove *cur = mov_lst.cur;
-        //    for ( ; *mov_lst; ++mov_lst)
+        //    ValMove *cur = movelist.cur;
+        //    for ( ; *movelist; ++movelist)
         //    {
-        //        os << *mov_lst << std::endl;
+        //        os << *movelist << std::endl;
         //    }
-        //    mov_lst.cur = cur;
+        //    movelist.cur = cur;
         //    return os;
         //}
 

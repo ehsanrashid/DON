@@ -25,8 +25,8 @@ const string ColorChar ("wb-");
 
 const Value PieceValue[PHASE_NO][TOTL] =
 {
-    { VALUE_MG_PAWN, VALUE_MG_KNIGHT, VALUE_MG_BISHOP, VALUE_MG_ROOK, VALUE_MG_QUEEN, VALUE_ZERO, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_KNIGHT, VALUE_EG_BISHOP, VALUE_EG_ROOK, VALUE_EG_QUEEN, VALUE_ZERO, VALUE_ZERO }
+    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
 
@@ -248,7 +248,7 @@ bool Position::draw () const
     // Draw by Material?
     if (   (_types_bb[PAWN] == U64 (0))
         && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK]
-        <= VALUE_MG_BISHOP))
+        <= VALUE_MG_BSHP))
     {
         return true;
     }

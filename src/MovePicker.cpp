@@ -461,8 +461,8 @@ Move MovePicker::next_move<false> ()
 }
 
 template<>
-// Version of next_move() to use at split point nodes where the move is grabbed
-// from the split point's shared MovePicker object. This function is not thread
+// Version of next_move() to use at splitpoint nodes where the move is grabbed
+// from the splitpoint's shared MovePicker object. This function is not thread
 // safe so must be lock protected by the caller.
 Move MovePicker::next_move<true> ()
 {

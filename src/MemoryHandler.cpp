@@ -37,6 +37,8 @@
 
 namespace MemoryHandler {
 
+    using namespace std;
+
     namespace {
 
         bool UsePages = false;
@@ -52,11 +54,11 @@ namespace MemoryHandler {
             LPSTR lpvMessageBuffer = NULL;
 
             FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL, dwError,
-                          MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          lpvMessageBuffer, 0, NULL);
+                             FORMAT_MESSAGE_FROM_SYSTEM |
+                             FORMAT_MESSAGE_IGNORE_INSERTS,
+                             NULL, dwError,
+                             MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                             lpvMessageBuffer, 0, NULL);
 
             //... now display this string
             _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
@@ -184,30 +186,30 @@ namespace MemoryHandler {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             /* Vlad0 */
-            mem_ref = VirtualAlloc (
-                        NULL,                                   // System selects address
-                        mem_size,                               // Size of allocation
-                        MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
-                        PAGE_READWRITE);                        // Protection of Allocation
+            mem_ref = VirtualAlloc
+                (NULL,                      // System selects address
+                 mem_size,                  // Size of allocation
+                 MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
+                 PAGE_READWRITE);           // Protection of Allocation
 
             if (mem_ref != NULL)
             {
                 UsePages = true;
-                std::cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << endl;
                 return;
             }
             else
             {
-                mem_ref = VirtualAlloc (
-                        NULL,                   // System selects address
-                        mem_size,               // Size of allocation
-                        MEM_COMMIT|MEM_RESERVE, // Type of Allocation
-                        PAGE_READWRITE);        // Protection of Allocation
+                mem_ref = VirtualAlloc
+                    (NULL,                  // System selects address
+                     mem_size,              // Size of allocation
+                     MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                     PAGE_READWRITE);       // Protection of Allocation
                 
                 if (mem_ref != NULL)
                 {
                     UsePages = true;
-                    std::cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                    cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << endl;
                     return;
                 }
             }
@@ -225,7 +227,7 @@ namespace MemoryHandler {
                     //exit(2);
                 }
                 UsePages = true;
-                std::cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << std::endl;
+                cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << endl;
                 return;
             }
             else
@@ -241,7 +243,7 @@ namespace MemoryHandler {
         if (mem_ref != NULL)
         {
             memset (mem_ref, 0, mem_size);
-            std::cout << "info string Hash " << (mem_size >> 20) << " MB..." << std::endl;
+            cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
         }
     }
 

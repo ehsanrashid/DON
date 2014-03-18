@@ -564,11 +564,11 @@ namespace Searcher {
 
         template <NodeT NT>
         // search<> () is the main search function for both PV and non-PV nodes and for
-        // normal and SplitPoint nodes. When called just after a split point the search
+        // normal and SplitPoint nodes. When called just after a splitpoint the search
         // is simpler because we have already probed the hash table, done a null move
         // search, and searched the first move before splitting, we don't have to repeat
         // all this work again. We also don't need to store anything to the hash table
-        // here: This is taken care of after we return from the split point.
+        // here: This is taken care of after we return from the splitpoint.
         inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = (NT == Root             || NT == SplitPointRoot);
@@ -2000,7 +2000,7 @@ namespace Threads {
 
             nodes = RootPos.game_nodes ();
 
-            // Loop across all split points and sum accumulated SplitPoint nodes plus
+            // Loop across all splitpoints and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
             for (uint8_t i = 0; i < Threadpool.size (); ++i)
             {
@@ -2042,11 +2042,11 @@ namespace Threads {
 
     }
 
-    // idle_loop() is where the thread is parked when it has no work to do
+    // Thread::idle_loop() is where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
         // Pointer 'splitpoint' is not null only if we are called from split(), and not
-        // at the thread creation. So it means we are the split point's master.
+        // at the thread creation. So it means we are the splitpoint's master.
         SplitPoint *splitpoint = (splitpoint_threads != 0 ? active_splitpoint : NULL);
         ASSERT (!splitpoint || ((splitpoint->master_thread == this) && searching));
 
@@ -2127,7 +2127,7 @@ namespace Threads {
                 (sp)->nodes += pos.game_nodes ();
 
                 // Wake up master thread so to allow it to return from the idle loop
-                // in case we are the last slave of the split point.
+                // in case we are the last slave of the splitpoint.
                 if (   Threadpool.sleep_idle
                     && this != (sp)->master_thread
                     && !(sp)->slaves_mask)
@@ -2143,8 +2143,8 @@ namespace Threads {
                 (sp)->mutex.unlock ();
             }
 
-            // If this thread is the master of a split point and all slaves have finished
-            // their work at this split point, return from the idle loop.
+            // If this thread is the master of a splitpoint and all slaves have finished
+            // their work at this splitpoint, return from the idle loop.
             if (splitpoint && !splitpoint->slaves_mask)
             {
                 splitpoint->mutex.lock ();
@@ -2153,6 +2153,6 @@ namespace Threads {
                 if (finished) return;
             }
         }
-        while (true);
+        while (!exit);
     }
 }
