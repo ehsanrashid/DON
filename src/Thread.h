@@ -248,7 +248,7 @@ namespace Threads {
     struct ThreadPool
         : public std::vector<Thread*>
     {
-        bool    sleep_idle;
+        bool    idle_sleep;
         Depth   split_depth;
         Mutex   mutex;
 

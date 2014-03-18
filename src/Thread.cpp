@@ -262,12 +262,12 @@ namespace Threads {
     // ------------------------------------
 
     // initialize() is called at startup to create and launch requested threads, that will
-    // go immediately to sleep due to 'sleep_idle' set to true.
+    // go immediately to sleep due to 'idle_sleep' set to true.
     // We cannot use a c'tor becuase Threadpool is a static object and we need a fully initialized
     // engine at this point due to allocation of Endgames in Thread c'tor.
     void ThreadPool::initialize ()
     {
-        sleep_idle = true;
+        idle_sleep = true;
         timer = new_thread<TimerThread> ();
         push_back (new_thread<MainThread> ());
         configure ();

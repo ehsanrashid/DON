@@ -282,7 +282,7 @@
       <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -328,7 +328,7 @@
       <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -447,7 +447,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
       <LargeAddressAware>false</LargeAddressAware>
       <StackReserveSize>2097152</StackReserveSize>
       <StackCommitSize>32768</StackCommitSize>
@@ -486,7 +486,7 @@
       <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -656,10 +656,16 @@
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="AssemblyDependencies.dgml" />
+    <None Include="AssemblyDependencies.dgml">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="ClassDiagram.cd" />
-    <None Include="CodeMap.dgml" />
-    <None Include="IncludeFileDependencies.dgml" />
+    <None Include="CodeMap.dgml">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="IncludeFileDependencies.dgml">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />
     <None Include="src\make-clean.bat" />

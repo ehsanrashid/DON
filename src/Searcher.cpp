@@ -1864,14 +1864,14 @@ namespace Searcher {
             Threadpool[t]->max_ply = 0;
         }
 
-        Threadpool.sleep_idle = *(Options["Idle Threads Sleep"]);
+        Threadpool.idle_sleep = *(Options["Idle Threads Sleep"]);
         Threadpool.timer->run = true;
 
         Threadpool.timer->notify_one ();// Wake up the recurring timer
         iter_deep_loop (RootPos);       // Let's start searching !
 
         Threadpool.timer->run = false;  // Stop the timer
-        Threadpool.sleep_idle = true;   // Send idle threads to sleep
+        Threadpool.idle_sleep = true;   // Send idle threads to sleep
 
         if (RootInTB)
         {
@@ -2057,7 +2057,7 @@ namespace Threads {
         {
             // If we are not searching, wait for a condition to be signaled instead of
             // wasting CPU time polling for work.
-            while ((!searching && Threadpool.sleep_idle) || exit)
+            while ((!searching && Threadpool.idle_sleep) || exit)
             {
                 if (exit)
                 {
@@ -2133,7 +2133,7 @@ namespace Threads {
 
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case we are the last slave of the splitpoint.
-                if (   Threadpool.sleep_idle
+                if (   Threadpool.idle_sleep
                     && this != (sp)->master_thread
                     && (sp)->slaves_mask.none ())
                 {
