@@ -164,7 +164,7 @@ namespace Threads {
                 sp.slaves_mask.set (slave->idx);
                 slave->active_splitpoint = &sp;
                 slave->searching = true;        // Leaves idle_loop()
-                slave->notify_one ();           // Notified could be sleeping
+                slave->notify_one ();           // Notifies could be sleeping
             }
         }
 

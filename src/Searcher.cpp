@@ -160,11 +160,11 @@ namespace Searcher {
 
             uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
             uint8_t sel_depth = 0;
-            for (uint8_t i = 0; i < Threadpool.size (); ++i)
+            for (uint8_t t = 0; t < Threadpool.size (); ++t)
             {
-                if (sel_depth < Threadpool[i]->max_ply)
+                if (sel_depth < Threadpool[t]->max_ply)
                 {
-                    sel_depth = Threadpool[i]->max_ply;
+                    sel_depth = Threadpool[t]->max_ply;
                 }
             }
 
@@ -1859,9 +1859,9 @@ namespace Searcher {
         }
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (uint8_t i = 0; i < Threadpool.size (); ++i)
+        for (uint8_t t = 0; t < Threadpool.size (); ++t)
         {
-            Threadpool[i]->max_ply = 0;
+            Threadpool[t]->max_ply = 0;
         }
 
         Threadpool.sleep_idle = *(Options["Idle Threads Sleep"]);
@@ -1999,22 +1999,21 @@ namespace Threads {
             Threadpool.mutex.lock ();
 
             nodes = RootPos.game_nodes ();
-
             // Loop across all splitpoints and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
-            for (uint8_t i = 0; i < Threadpool.size (); ++i)
+            for (uint8_t t = 0; t < Threadpool.size (); ++t)
             {
-                for (uint8_t t = 0; t < Threadpool[i]->splitpoint_threads; ++t)
+                for (uint8_t s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
                 {
-                    SplitPoint &sp = Threadpool[i]->splitpoints[t];
+                    SplitPoint &sp = Threadpool[t]->splitpoints[s];
                     sp.mutex.lock ();
 
                     nodes += sp.nodes;
-                    for (size_t idx = 0; idx < Threadpool.size (); ++idx)
+                    for (uint8_t idx = 0; idx < Threadpool.size (); ++idx)
                     {
                         if (sp.slaves_mask.test (idx))
                         {
-                            Position *pos = Threadpool[idx]->active_pos;
+                            const Position *pos = Threadpool[idx]->active_pos;
                             if (pos != NULL) nodes += pos->game_nodes ();
                         }
                     }
@@ -2039,7 +2038,7 @@ namespace Threads {
 
         if (   (Limits.use_timemanager () && no_more_time)
             || (Limits.movetime && elapsed >= Limits.movetime)
-            || (Limits.nodes && nodes >= Limits.nodes))
+            || (Limits.nodes    && nodes   >= Limits.nodes))
         {
             Signals.stop = true;
         }
@@ -2049,10 +2048,10 @@ namespace Threads {
     // Thread::idle_loop() is where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
-        // Pointer 'splitpoint' is not null only if we are called from split(), and not
+        // Pointer 'splitpoint' is not null only if we are called from split<>(), and not
         // at the thread creation. So it means we are the splitpoint's master.
-        SplitPoint *splitpoint = (splitpoint_threads != 0 ? active_splitpoint : NULL);
-        ASSERT (!splitpoint || ((splitpoint->master_thread == this) && searching));
+        SplitPoint *splitpoint = ((splitpoint_threads != 0) ? active_splitpoint : NULL);
+        ASSERT (splitpoint == NULL || ((splitpoint->master_thread == this) && searching));
 
         do
         {
@@ -2070,7 +2069,7 @@ namespace Threads {
                 mutex.lock ();
 
                 // If we are master and all slaves have finished then exit idle_loop
-                if (splitpoint && splitpoint->slaves_mask.none ())
+                if (splitpoint != NULL && splitpoint->slaves_mask.none ())
                 {
                     mutex.unlock ();
                     break;
@@ -2096,7 +2095,8 @@ namespace Threads {
                 Threadpool.mutex.lock ();
 
                 ASSERT (searching);
-                ASSERT (active_splitpoint);
+                ASSERT (active_splitpoint != NULL);
+                
                 SplitPoint *sp = active_splitpoint;
 
                 Threadpool.mutex.unlock ();
@@ -2109,6 +2109,7 @@ namespace Threads {
                 memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
                 (ss)->splitpoint = sp;
 
+                // Lock splitpoint
                 (sp)->mutex.lock ();
 
                 ASSERT (active_pos == NULL);
@@ -2140,7 +2141,7 @@ namespace Threads {
                     (sp)->master_thread->notify_one ();
                 }
 
-                // After releasing the lock we cannot access anymore any SplitPoint
+                // After releasing the lock we cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
                 // our feet by the sp master. Also accessing other Thread objects is
                 // unsafe because if we are exiting there is a chance are already freed.
@@ -2149,7 +2150,7 @@ namespace Threads {
 
             // If this thread is the master of a splitpoint and all slaves have finished
             // their work at this splitpoint, return from the idle loop.
-            if (splitpoint && splitpoint->slaves_mask.none ())
+            if (splitpoint != NULL && splitpoint->slaves_mask.none ())
             {
                 splitpoint->mutex.lock ();
                 bool finished = splitpoint->slaves_mask.none (); // Retest under lock protection
