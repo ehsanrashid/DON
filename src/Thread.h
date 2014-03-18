@@ -101,17 +101,17 @@ namespace Threads {
     struct ConditionVariable
     {
     private:
-        WaitCondition cond;
+        WaitCondition condition;
 
     public:
-        ConditionVariable () { cond_init (cond); }
-        ~ConditionVariable () { cond_destroy (cond); }
+        ConditionVariable () { cond_init (condition); }
+        ~ConditionVariable () { cond_destroy (condition); }
 
-        void wait (Mutex &m) { cond_wait (cond, m._lock); }
+        void wait (Mutex &m) { cond_wait (condition, m._lock); }
 
-        void wait_for (Mutex &m, int32_t ms) { timed_wait (cond, m._lock, ms); }
+        void wait_for (Mutex &m, int32_t ms) { timed_wait (condition, m._lock, ms); }
 
-        void notify_one () { cond_signal (cond); }
+        void notify_one () { cond_signal (condition); }
     };
 
     struct Thread;
@@ -254,14 +254,14 @@ namespace Threads {
         
         TimerThread *timer;
 
+        MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
+
         // No c'tor and d'tor, threads rely on globals that should
         // be initialized and valid during the whole thread lifetime.
         void   initialize ();
         void deinitialize ();
 
-        MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
-
-        void read_uci_options ();
+        void configure ();
 
         Thread* available_slave (const Thread *master) const;
 

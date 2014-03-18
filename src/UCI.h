@@ -174,7 +174,6 @@ namespace UCI {
     extern void stop ();
 }
 
-// Global string mapping of options
-extern UCI::OptionMap Options;
+extern UCI::OptionMap Options;  // Global string mapping of Options
 
 #endif // _UCI_H_INC_

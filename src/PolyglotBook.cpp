@@ -14,7 +14,7 @@ using namespace std;
 using namespace MoveGenerator;
 using namespace Notation;
 
-#define STM_POS(x)  ((SIZE_PGHEADER) + (x)*(SIZE_PGENTRY))
+#define STM_POS(x)  ((PGHEADER_SIZE) + (x)*(PGENTRY_SIZE))
 
 
 inline bool operator== (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEntry &pe2)
@@ -63,22 +63,22 @@ inline bool operator<= (const PolyglotBook::PEntry &pe1, const PolyglotBook::PEn
 
 PolyglotBook::PEntry::operator string () const
 {
-    ostringstream spe;
+    ostringstream os;
 
     Move m = Move (move);
     // Set new type for promotion piece
-    PieceT pt = PieceT ((m >> 12) & 0x7);
-    if (pt) prom_type (m, pt);
+    PieceT pt = PieceT ((m >> 12) & TOTL);
+    if (pt != PAWN) prom_type (m, pt);
 
-    spe << setfill ('0')
-        << " key: " << setw (16) << hex << uppercase << key
-        << setfill ('.')
-        << " move: " << setw (5) << left << move_to_can (m)
+    os  << setfill ('0')
+        << " key: "    << setw (16) << hex << uppercase << key
+        << setfill (' ')
+        << " move: "   << setw (5) << left << move_to_can (m)
         << setfill ('0')
         << " weight: " << setw (4) << right << dec << weight
-        << " learn: " << setw (2) << learn;
+        << " learn: "  << setw (2) << learn;
 
-    return spe.str ();
+    return os.str ();
 }
 
 
@@ -118,7 +118,7 @@ PolyglotBook& PolyglotBook::operator<< (PEntry &pe)
     return *this;
 }
 
-PolyglotBook::PolyglotBook()
+PolyglotBook::PolyglotBook ()
     : fstream ()
     , _fn_book ("")
     , _mode (ios_base::openmode (0))
@@ -126,7 +126,7 @@ PolyglotBook::PolyglotBook()
 {}
 
 #ifndef NDEBUG
-PolyglotBook::PolyglotBook (const        char *fn_book, ios_base::openmode mode)
+PolyglotBook::PolyglotBook (const   char *fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode|ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
@@ -150,7 +150,7 @@ PolyglotBook::~PolyglotBook ()
 // Read -> ios_base::in
 // Write-> ios_base::out
 #ifndef NDEBUG
-bool PolyglotBook::open (const        char *fn_book, ios_base::openmode mode)
+bool PolyglotBook::open (const   char *fn_book, ios_base::openmode mode)
 {
     close ();
     fstream::open (fn_book, mode|ios_base::binary);
@@ -177,7 +177,7 @@ uint64_t PolyglotBook::find_index (const Key key)
     if (!fstream::is_open ()) return ERROR_INDEX;
 
     uint64_t beg = uint64_t (0);
-    uint64_t end = uint64_t ((size () - SIZE_PGHEADER) / SIZE_PGENTRY - 1);
+    uint64_t end = uint64_t ((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
 
     PEntry pe;
 
@@ -218,7 +218,7 @@ uint64_t PolyglotBook::find_index (const Position &pos)
 }
 
 #ifndef NDEBUG
-uint64_t PolyglotBook::find_index (const        char *fen, bool c960)
+uint64_t PolyglotBook::find_index (const   char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
@@ -250,7 +250,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     uint32_t sum_weight = 0;
 
     //vector<PEntry> pe_list;
-    //while ((*this >> pe), (pe.key == key) && good ())
+    //while ((*this >> pe), (pe.key == key))
     //{
     //    pe_list.push_back (pe);
     //    max_weight = max (max_weight, pe.weight);
@@ -294,9 +294,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    }
     //}
 
-    while ((*this >> pe), (pe.key == key) && good ())
+    while ((*this >> pe), (pe.key == key))
     {
-        if (0 == pe.move) continue;
+        if (MOVE_NONE == pe.move) continue;
 
         max_weight = max (max_weight, pe.weight);
         sum_weight += pe.weight;
@@ -386,7 +386,7 @@ string PolyglotBook::read_entries (const Position &pos)
     vector<PEntry> pe_list;
 
     uint32_t sum_weight = 0;
-    while ((*this >> pe), (pe.key == key) && good ())
+    while ((*this >> pe), (pe.key == key))
     {
         pe_list.push_back (pe);
         sum_weight += pe.weight;

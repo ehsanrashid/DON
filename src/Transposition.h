@@ -289,7 +289,6 @@ public:
 #   pragma warning (pop)
 #endif
 
-// Global Transposition Table
-extern TranspositionTable TT;
+extern TranspositionTable TT; // Global Transposition Table
 
 #endif // _TRANSPOSITION_H_INC_

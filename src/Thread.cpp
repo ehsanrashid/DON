@@ -270,7 +270,7 @@ namespace Threads {
         sleep_idle = true;
         timer = new_thread<TimerThread> ();
         push_back (new_thread<MainThread> ());
-        read_uci_options ();
+        configure ();
     }
 
     // exit() cleanly terminates the threads before the program exits
@@ -284,11 +284,11 @@ namespace Threads {
         }
     }
 
-    // read_uci_options() updates internal threads parameters from the corresponding
+    // configure() updates internal threads parameters from the corresponding
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::read_uci_options ()
+    void ThreadPool::configure ()
     {
         split_depth = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
         uint8_t threads;

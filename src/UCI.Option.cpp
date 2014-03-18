@@ -251,7 +251,7 @@ namespace UCI {
         
         void on_change_threads  (const Option &)
         {
-            Threadpool.read_uci_options ();
+            Threadpool.configure ();
         }
 
         void on_change_eval     (const Option &)

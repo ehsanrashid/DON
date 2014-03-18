@@ -61,8 +61,8 @@ public:
 
     } PEntry;
 
-    static const uint8_t SIZE_PGENTRY   = sizeof (PEntry);
-    static const uint8_t SIZE_PGHEADER  = 0*SIZE_PGENTRY;
+    static const uint8_t PGENTRY_SIZE   = sizeof (PEntry);
+    static const uint8_t PGHEADER_SIZE  = 0*PGENTRY_SIZE;
 
     static const uint64_t  ERROR_INDEX  = uint64_t (-1);
 
@@ -92,7 +92,8 @@ public:
 
 public:
 
-    PolyglotBook();
+    PolyglotBook ();
+
     // mode = std::ios_base::in|std::ios_base::out
 #ifndef NDEBUG
     PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
@@ -145,7 +146,6 @@ public:
 
 
 } PolyglotBook;
-
 
 #ifdef _MSC_VER
 #   pragma warning (pop)
