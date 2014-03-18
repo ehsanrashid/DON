@@ -69,14 +69,13 @@ namespace Threads {
     // Thread c'tor just inits data but does not launch any thread of execution that
     // instead will be started only upon c'tor returns.
     Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
-    {
-        searching   = false;
-        max_ply     = 0;
-        active_pos  = NULL;
-        splitpoint_threads = 0;
-        active_splitpoint  = NULL;
-        idx = Threadpool.size (); // Starts from 0
-    }
+        : searching (false)
+        , max_ply (0)
+        , active_pos (NULL)
+        , splitpoint_threads (0)
+        , active_splitpoint (NULL)
+        , idx (Threadpool.size ())  // Starts from 0
+    {}
 
     // cutoff_occurred() checks whether a beta cutoff has occurred in the
     // current active splitpoint, or in some ancestor of the splitpoint.
@@ -205,7 +204,7 @@ namespace Threads {
 
     // Explicit template instantiations
     template void Thread::split<false> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
-    template void Thread::split< true> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
+    template void Thread::split<true > (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
 
     // ------------------------------------
 
