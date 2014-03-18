@@ -569,7 +569,7 @@ template<Color C, CSide CS>
 struct MakeCastling
 {
     static const CRight
-    right = (C == WHITE)
+    Right = (C == WHITE)
       ? CS == CS_Q ? CR_W_Q : CR_W_K
       : CS == CS_Q ? CR_B_Q : CR_B_K;
 };

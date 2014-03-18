@@ -32,7 +32,7 @@
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION    Lock;
+typedef CRITICAL_SECTION   Lock;
 typedef HANDLE              WaitCondition;
 typedef HANDLE              NativeHandle;
 
@@ -86,7 +86,7 @@ namespace Threads {
     struct Mutex
     {
     private:
-        friend struct ConditionVariable;
+        friend struct Condition;
         Lock _lock;
 
     public:
@@ -98,14 +98,14 @@ namespace Threads {
         void unlock () { lock_release (_lock); }
     };
 
-    struct ConditionVariable
+    struct Condition
     {
     private:
         WaitCondition condition;
 
     public:
-        ConditionVariable () { cond_init (condition); }
-        ~ConditionVariable () { cond_destroy (condition); }
+        Condition () { cond_init (condition); }
+        ~Condition () { cond_destroy (condition); }
 
         void wait (Mutex &m) { cond_wait (condition, m._lock); }
 
@@ -153,7 +153,7 @@ namespace Threads {
         NativeHandle    handle;
         bool volatile   exit;
 
-        ConditionVariable   sleep_condition;
+        Condition   sleep_condition;
 
         ThreadBase ()
             : exit (false)
@@ -250,7 +250,7 @@ namespace Threads {
         Depth   split_depth;
         Mutex   mutex;
 
-        ConditionVariable sleep_condition;
+        Condition sleep_condition;
         
         TimerThread *timer;
 
@@ -358,21 +358,21 @@ inline uint32_t cpu_count ()
 
 }
 
-typedef enum SyncCout { IO_LOCK, IO_UNLOCK } SyncCout;
+typedef enum SyncT { IO_LOCK, IO_UNLOCK } SyncT;
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream& os, const SyncCout &sc)
+inline std::ostream& operator<< (std::ostream& os, const SyncT &sync)
 {
     static Threads::Mutex m;
 
-    if      (sc == IO_LOCK)
+    if      (sync == IO_LOCK)
     {
         m.lock ();
     }
-    else if (sc == IO_UNLOCK)
+    else if (sync == IO_UNLOCK)
     {
         m.unlock ();
     }

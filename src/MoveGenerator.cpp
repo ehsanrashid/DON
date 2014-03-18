@@ -170,18 +170,18 @@ namespace MoveGenerator {
                             ci = &cc;
                         }
 
-                        if (!pos.castle_impeded (MakeCastling<C,  CS_K>::right) && pos.can_castle (MakeCastling<C,  CS_K>::right))
+                        if (!pos.castle_impeded (MakeCastling<C,  CS_K>::Right) && pos.can_castle (MakeCastling<C,  CS_K>::Right))
                         {
                             pos.chess960 () ?
-                                generate_castling<MakeCastling<C,  CS_K>::right,  true> (moves, pos, ci) :
-                                generate_castling<MakeCastling<C,  CS_K>::right, false> (moves, pos, ci);
+                                generate_castling<MakeCastling<C,  CS_K>::Right,  true> (moves, pos, ci) :
+                                generate_castling<MakeCastling<C,  CS_K>::Right, false> (moves, pos, ci);
                         }
 
-                        if (!pos.castle_impeded (MakeCastling<C,  CS_Q>::right) && pos.can_castle (MakeCastling<C,  CS_Q>::right))
+                        if (!pos.castle_impeded (MakeCastling<C,  CS_Q>::Right) && pos.can_castle (MakeCastling<C,  CS_Q>::Right))
                         {
                             pos.chess960 () ?
-                                generate_castling<MakeCastling<C,  CS_Q>::right,  true> (moves, pos, ci) :
-                                generate_castling<MakeCastling<C,  CS_Q>::right, false> (moves, pos, ci);
+                                generate_castling<MakeCastling<C,  CS_Q>::Right,  true> (moves, pos, ci) :
+                                generate_castling<MakeCastling<C,  CS_Q>::Right, false> (moves, pos, ci);
                         }
                     }
                 }
