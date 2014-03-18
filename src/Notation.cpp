@@ -94,7 +94,7 @@ namespace Notation {
         //if (!(amb & rank_bb (org))) return AMB_FILE;
         //return AMB_SQR;
 
-        if (amb)
+        if (amb != U64 (0))
         {
             if (!(amb & file_bb (org))) return AMB_RANK;
             if (!(amb & rank_bb (org))) return AMB_FILE;

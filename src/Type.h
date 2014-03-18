@@ -18,7 +18,7 @@
 typedef uint64_t   Key;
 typedef uint64_t   Bitboard;
 
-const uint8_t MAX_PLY      = 120;          // Maximum Depth 120
+const uint8_t MAX_PLY      = 120;          // Maximum Depth
 const uint8_t MAX_PLY_6    = MAX_PLY + 6;  // Maximum Stack size
 
 #ifdef _MSC_VER
@@ -566,7 +566,7 @@ inline CRight operator~  (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr <
 //}
 
 template<Color C, CSide CS>
-struct MakeCastling
+struct Castling
 {
     static const CRight
     Right = (C == WHITE)

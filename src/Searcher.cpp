@@ -2106,7 +2106,7 @@ namespace Threads {
 
                 Position pos (*(sp)->pos, this);
 
-                memcpy (ss-2, sp->ss-2, 5 * sizeof (Stack));
+                memcpy (ss-2, (sp)->ss-2, 5 * sizeof (Stack));
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint
@@ -2137,7 +2137,7 @@ namespace Threads {
                     && this != (sp)->master_thread
                     && (sp)->slaves_mask.none ())
                 {
-                    ASSERT (!sp->master_thread->searching);
+                    ASSERT (!(sp)->master_thread->searching);
                     (sp)->master_thread->notify_one ();
                 }
 

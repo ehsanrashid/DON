@@ -1702,13 +1702,13 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) set_next (to_char (_file (_castle_rook[MakeCastling<WHITE, CS_K>::Right]), false));
-                if (can_castle (CR_W_Q)) set_next (to_char (_file (_castle_rook[MakeCastling<WHITE, CS_Q>::Right]), false));
+                if (can_castle (CR_W_K)) set_next (to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false));
+                if (can_castle (CR_W_Q)) set_next (to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false));
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) set_next (to_char (_file (_castle_rook[MakeCastling<BLACK, CS_K>::Right]), true));
-                if (can_castle (CR_B_Q)) set_next (to_char (_file (_castle_rook[MakeCastling<BLACK, CS_Q>::Right]), true));
+                if (can_castle (CR_B_K)) set_next (to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true));
+                if (can_castle (CR_B_Q)) set_next (to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true));
             }
         }
         else
@@ -1788,13 +1788,13 @@ string Position::fen (bool                 c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) os << to_char (_file (_castle_rook[MakeCastling<WHITE, CS_K>::Right]), false);
-                if (can_castle (CR_W_Q)) os << to_char (_file (_castle_rook[MakeCastling<WHITE, CS_Q>::Right]), false);
+                if (can_castle (CR_W_K)) os << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
+                if (can_castle (CR_W_Q)) os << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) os << to_char (_file (_castle_rook[MakeCastling<BLACK, CS_K>::Right]), true);
-                if (can_castle (CR_B_Q)) os << to_char (_file (_castle_rook[MakeCastling<BLACK, CS_Q>::Right]), true);
+                if (can_castle (CR_B_K)) os << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
+                if (can_castle (CR_B_Q)) os << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
             }
         }
         else

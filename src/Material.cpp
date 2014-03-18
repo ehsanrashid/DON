@@ -174,7 +174,7 @@ namespace Material {
             return e;
         }
 
-        // Generic scaling functions that refer to more then one material distribution.
+        // Generic scaling functions that refer to more than one material distribution.
         // Should be probed after the specialized ones.
         // Note that these ones don't return after setting the function.
 

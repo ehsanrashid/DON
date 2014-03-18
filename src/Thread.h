@@ -252,7 +252,7 @@ namespace Threads {
         Depth   split_depth;
         Mutex   mutex;
 
-        Condition sleep_condition;
+        Condition   sleep_condition;
         
         TimerThread *timer;
 

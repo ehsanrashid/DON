@@ -237,8 +237,8 @@
     </AssociationLine>
     <AssociationLine Name="cur" Type="ValMove" FixedFromPoint="true">
       <Path>
-        <Point X="13.75" Y="3.938" />
-        <Point X="11.5" Y="3.938" />
+        <Point X="13.75" Y="4" />
+        <Point X="11.5" Y="4" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="1.713" Y="-0.073" />
@@ -246,8 +246,8 @@
     </AssociationLine>
     <AssociationLine Name="end" Type="ValMove" FixedFromPoint="true">
       <Path>
-        <Point X="13.75" Y="4.125" />
-        <Point X="11.5" Y="4.125" />
+        <Point X="13.75" Y="4.188" />
+        <Point X="11.5" Y="4.188" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="1.713" Y="-0.067" />
@@ -299,7 +299,7 @@
         <Point X="5.182" Y="6.25" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
-        <Position X="-8.242" Y="1.014" Height="0.16" Width="0.756" />
+        <Position X="-8.377" Y="1.014" Height="0.16" Width="0.756" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="ss" Type="Searcher::Stack" FixedFromPoint="true" FixedToPoint="true">
@@ -426,7 +426,7 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="6.75" Y="13.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>
@@ -457,6 +457,15 @@
         <Position X="-0.211" Y="0.06" />
       </InheritanceModifierLabel>
     </InheritanceLine>
+    <AssociationLine Name="_fstm" Type="std::ofstream" FixedToPoint="true">
+      <Path>
+        <Point X="36.188" Y="5.25" />
+        <Point X="36.188" Y="1.252" />
+      </Path>
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.216" Y="3.678" />
+      </MemberNameLabel>
+    </AssociationLine>
     <AssociationLine Name="_inbuf" Type="std::tie_buf" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="36.5" Y="6.353" />
@@ -477,23 +486,14 @@
         <Position X="0.529" Y="0.383" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="_fstm" Type="std::ofstream" FixedToPoint="true">
-      <Path>
-        <Point X="36.188" Y="5.25" />
-        <Point X="36.188" Y="1.252" />
-      </Path>
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.216" Y="3.678" />
-      </MemberNameLabel>
-    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAAAAAIAIAAAAAgAAAAAABAAYBgAAAAAAAAAAAQAAA=</HashCode>
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
+      <Field Name="_fstm" />
       <Field Name="_inbuf" />
       <Field Name="_outbuf" />
-      <Field Name="_fstm" />
     </ShowAsAssociation>
   </Class>
   <Class Name="std::stack&lt;_Ty, _Container&gt;" Collapsed="true">
@@ -1101,13 +1101,6 @@
       <Field Name="_lock" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="MakeCastling&lt;C, CS&gt;">
-    <Position X="2" Y="1.5" Width="2" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
-    </TypeIdentifier>
-  </Struct>
   <Struct Name="MoveGenerator::`anonymous-namespace'::Generator&lt;GT, C, PT&gt;">
     <Position X="10.25" Y="0.5" Width="2" />
     <TypeIdentifier>
@@ -1250,7 +1243,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAQAAAAAAAAACCEAAAEAAAICQAAAAAAAAAAIIAAAIAQ=</HashCode>
+      <HashCode>AAQAAAAAAAAACCAAAAEAAAICQAAQAAAAAAAIIAAAIAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -1286,6 +1279,13 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Castling&lt;C, CS&gt;">
+    <Position X="2" Y="1.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">
@@ -1362,7 +1362,7 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="GainsStats" Collapsed="true">
-    <Position X="1.25" Y="6.25" Width="2" />
+    <Position X="1.75" Y="6.25" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
@@ -1384,7 +1384,7 @@
     </AliasOfLine>
   </Typedef>
   <Typedef Name="MovesStats" Collapsed="true">
-    <Position X="2.25" Y="7" Width="2.75" />
+    <Position X="2.75" Y="7" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>

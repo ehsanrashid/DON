@@ -132,19 +132,19 @@ namespace Threads {
         sp.master_thread = this;
         sp.parent_splitpoint = active_splitpoint;
         sp.slaves_mask  = 0, sp.slaves_mask.set (idx);
-        sp.depth        = depth;
-        sp.best_value   = best_value;
-        sp.best_move    = best_move;
+        sp.ss           = ss;
+        sp.pos          = &pos;
         sp.alpha        = alpha;
         sp.beta         = beta;
+        sp.best_value   = best_value;
+        sp.best_move    = best_move;
+        sp.depth        = depth;
+        sp.moves_count  = moves_count;
+        sp.movepicker   = &movepicker;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;
-        sp.movepicker   = &movepicker;
-        sp.moves_count  = moves_count;
-        sp.pos          = &pos;
         sp.nodes        = 0;
         sp.cut_off      = false;
-        sp.ss           = ss;
 
         // Try to allocate available threads and ask them to start searching setting
         // 'searching' flag. This must be done under lock protection to avoid concurrent
@@ -217,11 +217,16 @@ namespace Threads {
         {
             mutex.lock ();
 
-            if (!exit) sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
-
+            if (!exit)
+            {
+                sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
+            }
             mutex.unlock ();
 
-            if (run) check_time ();
+            if (run)
+            {
+                check_time ();
+            }
         }
         while (!exit);
     }
@@ -314,10 +319,9 @@ namespace Threads {
             pop_back ();
         }
 
-        //cout
-        //    << "info string Thread(s) "   << threads     << ".\n"
-        //    << "info string Split Depth " << split_depth << ".\n"
-        //    << endl;
+        sync_cout
+            << "info string Thread(s) "   << uint32_t (threads) << ".\n"
+            << "info string Split Depth " << split_depth << sync_endl;
 
     }
 
@@ -347,12 +351,12 @@ namespace Threads {
         RootPos     = pos;
         RootColor   = pos.active ();
         Limits      = limits;
-        if (states.get ()) // If we don't set a new position, preserve current state
+        if (states.get () != NULL) // If we don't set a new position, preserve current state
         {
             // Ownership transfer here
             SetupStates = states;
 
-            ASSERT (!states.get ());
+            ASSERT (states.get () == NULL);
         }
         
         RootMoves.clear ();
