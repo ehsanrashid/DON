@@ -96,9 +96,12 @@ void benchmark (istream &is, const Position &pos)
     //else if (limit_type == "depth")
     else                            limits.depth     = atoi (limit_val.c_str ());
 
+    StateInfoStackPtr states;
+
     if      (fen_fn == "default")
     {
         fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
+        states = StateInfoStackPtr(new StateInfoStack());
     }
     else if (fen_fn == "current")
     {
@@ -124,12 +127,12 @@ void benchmark (istream &is, const Position &pos)
         }
 
         iffen.close ();
+        states = StateInfoStackPtr(new StateInfoStack());
     }
-
-    StateInfoStackPtr states;
+    
+    bool chess960  = bool (*(Options["UCI_Chess960"]));
     uint64_t nodes = 0;
     point elapsed  = now ();
-    bool chess960  = bool (*(Options["UCI_Chess960"]));
 
     uint32_t total = fens.size ();
     for (uint32_t i = 0; i < total; ++i)

@@ -234,8 +234,8 @@ Position& Position::operator= (const Position &pos)
 {
     memcpy (this, &pos, sizeof (Position));
 
-    _sb         = *_si;
-    _si         = &_sb;
+    _sb = *_si;
+    _si = &_sb;
     _game_nodes = 0;
 
     return *this;
@@ -256,7 +256,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _50_move_dist <  _si->clock50
         || (_50_move_dist == _si->clock50
-          && (!_si->checkers || MoveList<LEGAL> (*this).size ())))
+          && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)))
     {
         return true;
     }
@@ -279,7 +279,7 @@ bool Position::draw () const
     //// Draw by Stalemate?
     //if (!in_check)
     //{
-    //    if (!generate<LEGAL> (*this).size ()) return true;
+    //    if (MoveList<LEGAL> (*this).size () == 0) return true;
     //}
 
     return false;
@@ -290,7 +290,7 @@ bool Position::draw () const
 bool Position::repeated () const
 {
     StateInfo *si = _si;
-    while (true)
+    while (si != NULL)
     {
         int32_t i = 4, e = min (si->clock50, si->null_ply);
         if (e < i) return false;
@@ -307,7 +307,7 @@ bool Position::repeated () const
         while (i <= e);
         si = si->p_si;
     }
-
+    return false;
 }
 
 
@@ -600,7 +600,7 @@ Value Position::see      (Move m) const
     // If the opponent has no attackers we are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
-    if (stm_attackers)
+    if (stm_attackers != U64(0))
     {
         // The destination square is defended, which makes things rather more
         // difficult to compute. We proceed by building up a "swap list" containing
@@ -635,7 +635,7 @@ Value Position::see      (Move m) const
 
             ++depth;
         }
-        while (stm_attackers);
+        while (stm_attackers != U64(0));
 
         // Having built the swap list, we negamax through it to find the best
         // achievable score from the point of view of the side to move.
@@ -1059,7 +1059,7 @@ bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
     Position pos = *this;
     StateInfo si;
     pos.do_move (m, si);
-    return !MoveList<LEGAL> (pos).size ();
+    return MoveList<LEGAL> (pos).size () == 0;
 }
 
 // clear() clear the position
@@ -2051,19 +2051,21 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     get_next ();
     if ('-' != ch)
     {
-        uint8_t ep_f = tolower (ch);
-        if (!isalpha (ep_f)) return false;
-        if ('a' > ep_f || ep_f > 'h') return false;
+        uint8_t col = tolower (ch);
+        if (!isalpha (col)) return false;
+        if ('a' > col || col > 'h') return false;
 
-        uint8_t ep_r = get_next ();
+        uint8_t row = get_next ();
 
-        if (!isdigit (ep_r)) return false;
-        if ((WHITE == pos._active && '6' != ep_r) || (BLACK == pos._active && '3' != ep_r)) return false;
-
-        Square ep_sq  = to_square (ep_f, ep_r);
-        if (pos.can_en_passant (ep_sq))
+        if (!isdigit (row)) return false;
+        if (!( (WHITE == pos._active && '6' != row)
+            || (BLACK == pos._active && '3' != row)))
         {
-            pos._si->en_passant_sq = ep_sq;
+            Square ep_sq  = to_square (col, row);
+            if (pos.can_en_passant (ep_sq))
+            {
+                pos._si->en_passant_sq = ep_sq;
+            }
         }
     }
     // 50-move clock and game-move count
@@ -2072,19 +2074,14 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     if (full && ch)
     {
         int32_t n = 0;
-        --fen;
-
-        int32_t read = sscanf (fen, " %d %d%n", &clk50, &g_move, &n);
-
+        int32_t read = sscanf (--fen, " %d %d%n", &clk50, &g_move, &n);
         if (read != 2) return false;
         fen += n;
-
         // Rule 50 draw case
         if (100 < clk50) return false;
         if (0 >= g_move) g_move = 1;
-
-        get_next ();
-        if (ch) return false; // NOTE: extra characters
+        //get_next ();
+        //if (ch) return false; // NOTE: extra characters
     }
 
 #undef get_next
@@ -2193,7 +2190,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
                 rook = rel_sq (c, SQ_A1);
                 while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != _ptype (pos[rook]))) ++rook;
                 break;
-            default: continue;
+            default:
+                continue;
             }
 
             //if (ROOK != _ptype (pos[rook])) return false;
@@ -2206,8 +2204,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     if (   ((is >> col) && (col >= 'a' && col <= 'h'))
         && ((is >> row) && (row == '3' || row == '6')))
     {
-        if (   !(WHITE == pos._active && '6' != row)
-            && !(BLACK == pos._active && '3' != row))
+        if (!( (WHITE == pos._active && '6' != row)
+            || (BLACK == pos._active && '3' != row)))
         {
             Square ep_sq = to_square (col, row);
             if (pos.can_en_passant (ep_sq))

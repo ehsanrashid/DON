@@ -8,8 +8,8 @@ namespace Debugger {
     namespace {
 
         uint64_t
-            Hits [2] = { U64 (0), U64 (0), },
-            Means[2] = { U64 (0), U64 (0), };
+            Hits [2] = { U64 (0), U64 (0) },
+            Means[2] = { U64 (0), U64 (0) };
     }
 
     void dbg_hit_on (bool h, bool c)
@@ -37,7 +37,7 @@ namespace Debugger {
             sync_cout
                 << "Total: "  << setw (4) << (Means[0])
                 << ", Mean: " << setw (4) << setprecision (2) << fixed
-                << (double) Means[1] / Means[0]
+                << ((double) Means[1] / Means[0])
                 << sync_endl;
         }
     }

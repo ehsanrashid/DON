@@ -1708,7 +1708,7 @@ namespace Searcher {
         {
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
-            if (tte == NULL || tte->move() != pv[ply])
+            if (tte == NULL || tte->move () != pv[ply])
             {
                 TT.store (
                     pos.posi_key (),
@@ -2042,7 +2042,6 @@ namespace Threads {
         {
             Signals.stop = true;
         }
-
     }
 
     // Thread::idle_loop() is where the thread is parked when it has no work to do
@@ -2051,7 +2050,7 @@ namespace Threads {
         // Pointer 'splitpoint' is not null only if we are called from split<>(), and not
         // at the thread creation. So it means we are the splitpoint's master.
         SplitPoint *splitpoint = ((splitpoint_threads != 0) ? active_splitpoint : NULL);
-        ASSERT (splitpoint == NULL || ((splitpoint->master_thread == this) && searching));
+        ASSERT ((splitpoint == NULL) || ((splitpoint->master_thread == this) && searching));
 
         do
         {

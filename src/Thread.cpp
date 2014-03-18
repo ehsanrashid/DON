@@ -353,9 +353,7 @@ namespace Threads {
         Limits      = limits;
         if (states.get () != NULL) // If we don't set a new position, preserve current state
         {
-            // Ownership transfer here
-            SetupStates = states;
-
+            SetupStates = states;   // Ownership transfer here
             ASSERT (states.get () == NULL);
         }
         
@@ -377,7 +375,7 @@ namespace Threads {
         Signals.root_failedlow = false;
 
         main ()->thinking = true;
-        main ()->notify_one (); // Starts main thread
+        main ()->notify_one ();     // Starts main thread
     }
 
     // wait_for_think_finished() waits for main thread to go to sleep then returns
