@@ -2050,7 +2050,7 @@ namespace Threads {
         // Pointer 'splitpoint' is not null only if we are called from split<>(), and not
         // at the thread creation. So it means we are the splitpoint's master.
         SplitPoint *splitpoint = ((splitpoint_threads != 0) ? active_splitpoint : NULL);
-        ASSERT ((splitpoint == NULL) || ((splitpoint->master_thread == this) && searching));
+        ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
 
         do
         {
@@ -2133,11 +2133,11 @@ namespace Threads {
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case we are the last slave of the splitpoint.
                 if (   Threadpool.idle_sleep
-                    && this != (sp)->master_thread
+                    && this != (sp)->master
                     && (sp)->slaves_mask.none ())
                 {
-                    ASSERT (!(sp)->master_thread->searching);
-                    (sp)->master_thread->notify_one ();
+                    ASSERT (!(sp)->master->searching);
+                    (sp)->master->notify_one ();
                 }
 
                 // After releasing the lock we cannot access anymore any splitpoint

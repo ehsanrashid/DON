@@ -78,6 +78,8 @@ typedef void* (*FnStart) (void*);
 
 namespace Threads {
 
+    using namespace Searcher;
+
     const uint8_t MAX_THREADS            = 128; // Maximum threads
     const uint8_t MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
     const uint8_t MAX_SPLIT_DEPTH        =  15; // Maximum split depth
@@ -120,14 +122,14 @@ namespace Threads {
     struct SplitPoint
     {
         // Const data after splitpoint has been setup
-        const Searcher::Stack *ss;
+        const Stack    *ss;
         const Position *pos;
 
-        Thread *master_thread;
-        Depth   depth;
+        Thread  *master;
+        
         Value   beta;
-
-        Searcher::NodeT node_type;
+        Depth   depth;
+        NodeT   node_type;
         bool    cut_node;
 
         // Const pointers to shared data
@@ -221,8 +223,8 @@ namespace Threads {
         bool available_to (const Thread *master) const;
 
         template <bool FAKE>
-        void split (Position &pos, const Searcher::Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, uint8_t moves_count, MovePicker &movepicker, Searcher::NodeT node_type, bool cut_node);
+        void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
+            Depth depth, uint8_t moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 
@@ -267,7 +269,7 @@ namespace Threads {
 
         Thread* available_slave (const Thread *master) const;
 
-        void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateInfoStackPtr &states);
+        void start_thinking (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
 
         void wait_for_think_finished ();
     };

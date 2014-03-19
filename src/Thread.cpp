@@ -69,12 +69,12 @@ namespace Threads {
     // Thread c'tor just inits data but does not launch any thread of execution that
     // instead will be started only upon c'tor returns.
     Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
-        : searching (false)
-        , max_ply (0)
-        , active_pos (NULL)
-        , splitpoint_threads (0)
-        , active_splitpoint (NULL)
+        : active_pos (NULL)
         , idx (Threadpool.size ())  // Starts from 0
+        , max_ply (0)
+        , active_splitpoint (NULL)
+        , splitpoint_threads (0)
+        , searching (false)
     {}
 
     // cutoff_occurred() checks whether a beta cutoff has occurred in the
@@ -128,7 +128,7 @@ namespace Threads {
         // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_threads];
 
-        sp.master_thread = this;
+        sp.master       = this;
         sp.parent_splitpoint = active_splitpoint;
         sp.slaves_mask  = 0, sp.slaves_mask.set (idx);
         sp.ss           = ss;
@@ -174,7 +174,7 @@ namespace Threads {
         sp.mutex.unlock ();
         Threadpool.mutex.unlock ();
 
-        Thread::idle_loop (); // Force a call to base class idle_loop()
+        Thread::idle_loop (); // Force a call to base class Thread::idle_loop()
 
         // In helpful master concept a master can help only a sub-tree of its splitpoint,
         // and because here is all finished is not possible master is booked.
@@ -215,7 +215,6 @@ namespace Threads {
         do
         {
             mutex.lock ();
-
             if (!exit)
             {
                 sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
@@ -239,25 +238,19 @@ namespace Threads {
         do
         {
             mutex.lock ();
-
             thinking = false;
-
             while (!thinking && !exit)
             {
                 Threadpool.sleep_condition.notify_one (); // Wake up UI thread if needed
                 sleep_condition.wait (mutex);
             }
-
             mutex.unlock ();
 
             if (exit) return;
 
             searching = true;
-
             Searcher::think ();
-
             ASSERT (searching);
-
             searching = false;
         }
         while (!exit);

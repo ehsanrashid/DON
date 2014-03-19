@@ -970,7 +970,7 @@
         <Position X="6.85" Y="-0.04" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="master_thread" Type="Threads::Thread" FixedFromPoint="true" FixedToPoint="true">
+    <AssociationLine Name="master" Type="Threads::Thread" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="18.25" Y="12.688" />
         <Point X="19.531" Y="12.688" />
@@ -1069,7 +1069,7 @@
     <ShowAsAssociation>
       <Field Name="ss" />
       <Field Name="pos" />
-      <Field Name="master_thread" />
+      <Field Name="master" />
       <Field Name="depth" />
       <Field Name="beta" />
       <Field Name="node_type" />
