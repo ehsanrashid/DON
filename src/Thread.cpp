@@ -312,7 +312,7 @@ namespace Threads {
         }
 
         sync_cout
-            << "info string Thread(s) "   << uint32_t (threads) << ".\n"
+            << "info string Thread(s) "   << uint16_t (threads) << ".\n"
             << "info string Split Depth " << split_depth << sync_endl;
 
     }

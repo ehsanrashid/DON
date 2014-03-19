@@ -1369,7 +1369,7 @@ namespace Searcher {
                     {
                         ASSERT (best_value < beta);
 
-                        //Debugger::dbg_hit_on (thread->splitpoint_threads == 4);
+                        //Debugger::dbg_hits_on (thread->splitpoint_threads == 4);
 
                         //Debugger::dbg_mean_of (thread->splitpoint_threads);
                         //Debugger::dbg_mean_of (Threadpool.split_depth);  // always== 8

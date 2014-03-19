@@ -1072,13 +1072,14 @@ void Position::clear ()
         _board[s] = EMPTY;
         _index[s] = -1;
     }
-
-    for (PieceT pt = PAWN; pt <= KING; ++pt)
+    for (Color c = WHITE; c <= BLACK; ++c)
     {
-        for (int32_t i = 0; i < 16; ++i)
+        for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            _piece_list[WHITE][pt][i] = SQ_NO;
-            _piece_list[BLACK][pt][i] = SQ_NO;
+            for (int32_t i = 0; i < 16; ++i)
+            {
+                _piece_list[c][pt][i] = SQ_NO;
+            }
         }
     }
 
@@ -1854,32 +1855,32 @@ Position::operator string () const
         board[3 + row_len * (7.5 - r) + 4 * f] = PieceChar[_board[s]];
     }
 
-    ostringstream ss;
+    ostringstream os;
 
-    ss  << board << "\n";
+    os  << board << "\n";
 
-    ss  << "\nFen: " << fen ()
+    os  << "\nFen: " << fen ()
         << "\nKey: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key;
 
-    ss  << "\nCheckers: ";
+    os  << "\nCheckers: ";
     Bitboard chkrs = checkers ();
     if (chkrs)
     {
-        while (chkrs) ss << to_string (pop_lsq (chkrs)) << " ";
+        while (chkrs) os << to_string (pop_lsq (chkrs)) << " ";
     }
     else
     {
-        ss  << "<none>";
+        os  << "<none>";
     }
 
     MoveList<LEGAL> itr (*this);
-    ss  << "\nLegal moves (" << dec << itr.size () << "): ";
+    os  << "\nLegal moves (" << dec << itr.size () << "): ";
     for ( ; *itr; ++itr)
     {
-        ss << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
+        os << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
     }
 
-    return ss.str ();
+    return os.str ();
 }
 
 // A FEN string defines a particular position using only the ASCII character set.
@@ -1925,11 +1926,11 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
     pos.clear ();
 
-    uint8_t ch;
+    char ch;
 
 #undef get_next
 
-#define get_next()         ch = uint8_t (*fen++)
+#define get_next()         ch = *fen++
 
     // Piece placement on Board
     for (Rank r = R_8; r >= R_1; --r)
@@ -2051,11 +2052,11 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     get_next ();
     if ('-' != ch)
     {
-        uint8_t col = tolower (ch);
+        char col = tolower (ch);
         if (!isalpha (col)) return false;
         if ('a' > col || col > 'h') return false;
 
-        uint8_t row = get_next ();
+        char row = get_next ();
 
         if (!isdigit (row)) return false;
         if (!( (WHITE == pos._active && '6' != row)
@@ -2114,7 +2115,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     pos.clear ();
 
     istringstream is (fen);
-    uint8_t ch;
+    char ch;
 
     is >> noskipws;
 
@@ -2200,7 +2201,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
-    uint8_t col, row;
+    char col, row;
     if (   ((is >> col) && (col >= 'a' && col <= 'h'))
         && ((is >> row) && (row == '3' || row == '6')))
     {

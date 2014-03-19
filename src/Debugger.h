@@ -16,7 +16,7 @@ typedef class LogFile
 
 public:
     LogFile (const std::string& fn = "Log.txt")
-        : std::ofstream(fn, std::ios_base::out|std::ios_base::app)
+        : std::ofstream (fn, std::ios_base::out|std::ios_base::app)
     {}
     
     ~LogFile ()
@@ -94,7 +94,7 @@ inline void log_io (bool b)
 
 namespace Debugger {
 
-    extern void dbg_hit_on (bool h, bool c = true);
+    extern void dbg_hits_on (bool h, bool c = true);
     extern void dbg_mean_of (uint64_t v);
     extern void dbg_print ();
 

@@ -8,17 +8,17 @@ namespace Debugger {
     namespace {
 
         uint64_t
-            Hits [2] = { U64 (0), U64 (0) },
-            Means[2] = { U64 (0), U64 (0) };
+            Hits[2] = { U64 (0), U64 (0) },
+            Mean[2] = { U64 (0), U64 (0) };
     }
 
-    void dbg_hit_on (bool h, bool c)
+    void dbg_hits_on (bool h, bool c)
     {
         if (c) { ++Hits[0]; if (h) ++Hits[1]; }
     }
     void dbg_mean_of (uint64_t v)
     {
-        ++Means[0]; Means[1] += v;
+        ++Mean[0]; Mean[1] += v;
     }
 
     void dbg_print ()
@@ -32,12 +32,13 @@ namespace Debugger {
                 << (100 * (double) Hits[1] / Hits[0])
                 << sync_endl;
         }
-        if (Means[0])
+
+        if (Mean[0])
         {
             sync_cout
-                << "Total: "  << setw (4) << (Means[0])
+                << "Total: "  << setw (4) << (Mean[0])
                 << ", Mean: " << setw (4) << setprecision (2) << fixed
-                << ((double) Means[1] / Means[0])
+                << ((double) Mean[1] / Mean[0])
                 << sync_endl;
         }
     }
