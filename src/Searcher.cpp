@@ -75,7 +75,7 @@ namespace Searcher {
         
         double  BestMoveChanges;
 
-        u08 MultiPV
+        u08     MultiPV
             ,   IndexPV;
 
         GainsStats  Gains;
@@ -85,11 +85,11 @@ namespace Searcher {
             ,       FollowupMoves;
 
         i32     TBCardinality;
-        u16    TBHits;
-        bool        RootInTB;
-        bool        TB50MoveRule;
-        Depth       TBProbeDepth;
-        Value       TBScore;
+        u16     TBHits;
+        bool    RootInTB;
+        bool    TB50MoveRule;
+        Depth   TBProbeDepth;
+        Value   TBScore;
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -232,7 +232,7 @@ namespace Searcher {
                 }
             }
 
-            bool enabled ()                   const { return (level < MAX_SKILL_LEVEL); }
+            bool enabled () const { return (level < MAX_SKILL_LEVEL); }
             bool time_to_pick (u08 depth) const { return (depth == (1 + level)); }
 
             // When playing with strength handicap choose best move among the MultiPV set
@@ -241,7 +241,7 @@ namespace Searcher {
             {
                 static RKISS rk;
                 // PRNG sequence should be not deterministic
-                for (i32 i = now () % 50; i > 0; --i) rk.rand64 ();
+                for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
 
                 move = MOVE_NONE;
 
@@ -628,8 +628,8 @@ namespace Searcher {
             best_move  = (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = MOVE_NONE;
             (ss)->ply  = (ss-1)->ply + 1;
 
-            (ss+1)->skip_null_move = false;
-            (ss+1)->reduction  = DEPTH_ZERO;
+            (ss+1)->skip_null_move  = false;
+            (ss+1)->reduction       = DEPTH_ZERO;
             (ss+2)->killer_moves[0] = MOVE_NONE;
             (ss+2)->killer_moves[1] = MOVE_NONE;
 
