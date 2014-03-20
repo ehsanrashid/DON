@@ -5,7 +5,7 @@
 #ifndef _RKISS_H_INC_
 #define _RKISS_H_INC_
 
-#include "Type.h"
+#include "Platform.h"
 #include "Time.h"
 
 // RKISS is our pseudo random number generator (PRNG) used to compute hash keys.
@@ -29,41 +29,41 @@ typedef class RKISS
 
 private:
 
-    uint64_t A, B, C, D;
+    u64 A, B, C, D;
 
-    void initialize (uint32_t seed);
+    void initialize (u32 seed);
 
 public:
 
     RKISS ()
     {
         // Make random number generation less deterministic by using random seed
-        uint32_t seed = Time::now () % 10000;
+        u32 seed = Time::now () % 10000;
 
         initialize (seed);
     }
 
-    RKISS (uint32_t seed)
+    RKISS (u32 seed)
     {
         initialize (seed);
     }
 
-    //static uint64_t rand64 (uint64_t &A, uint64_t &B, uint64_t &C, uint64_t &D);
+    //static u64 rand64 (u64 &A, u64 &B, u64 &C, u64 &D);
 
-    uint64_t rand64 ();
+    u64 rand64 ();
 
     template<class T>
     T rand ();
 
     template<class T>
-    T magic_rand (uint16_t s);
+    T magic_rand (u16 s);
 
 } RKISS;
 
 #include "BitBoard.h"
 
 // initialize given seed and scramble a few rounds
-inline void RKISS::initialize (uint32_t seed)
+inline void RKISS::initialize (u32 seed)
 {
     A = U64 (0xF1EA5EED);
     B =
@@ -72,17 +72,17 @@ inline void RKISS::initialize (uint32_t seed)
 
     // PRNG sequence should be not deterministic
     // Scramble a few rounds
-    uint16_t round = (seed % 1000);
-    for (uint16_t i = 0; i < round; ++i)
+    u16 round = (seed % 1000);
+    for (u16 i = 0; i < round; ++i)
     {
         rand64 ();
     }
 }
 
 //// Return 64 bit unsigned integer in between [0, 2^64 - 1]
-//inline uint64_t RKISS::rand64 (uint64_t &A, uint64_t &B, uint64_t &C, uint64_t &D)
+//inline u64 RKISS::rand64 (u64 &A, u64 &B, u64 &C, u64 &D)
 //{
-//    uint64_t E;
+//    u64 E;
 //    E = A - BitBoard::rotate_L (B, 7);
 //    A = B ^ BitBoard::rotate_L (C, 13);
 //    B = C + BitBoard::rotate_L (D, 37);
@@ -90,10 +90,10 @@ inline void RKISS::initialize (uint32_t seed)
 //    return D = E + A;
 //}
 
-inline uint64_t RKISS::rand64 ()
+inline u64 RKISS::rand64 ()
 {
     //return rand64 (A, B, C, D);
-    uint64_t E;
+    u64 E;
     E = A - BitBoard::rotate_L (B,  7);
     A = B ^ BitBoard::rotate_L (C, 13);
     B = C + BitBoard::rotate_L (D, 37);
@@ -111,7 +111,7 @@ template<class T>
 // Special generator used to fast initialize magic numbers.
 // Here the trick is to rotate the randoms of a given quantity 's'
 // known to be optimal to quickly find a good magic candidate.
-inline T RKISS::magic_rand (uint16_t s)
+inline T RKISS::magic_rand (u16 s)
 {
     return BitBoard::rotate_L (BitBoard::rotate_L (rand<T> (), (s >> 0) & 0x3F) & rand<T> ()
         ,                                                      (s >> 6) & 0x3F) & rand<T> ();

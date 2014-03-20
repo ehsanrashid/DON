@@ -11,12 +11,12 @@ Game::Game ()
     , _result (NO_RES)
 {}
 
-Game::Game (int8_t dummy)
+Game::Game (i08 dummy)
 {}
 
 Game::Game (const char   *text)
 {
-    Game game (int8_t (0));
+    Game game (i08 (0));
     if (parse (game, text))
     {
         *this = game;
@@ -28,7 +28,7 @@ Game::Game (const char   *text)
 }
 Game::Game (const string &text)
 {
-    Game game (int8_t (0));
+    Game game (i08 (0));
     if (parse (game, text))
     {
         *this = game;
@@ -178,13 +178,13 @@ bool Game::parse (Game &game, const char   *text)
 
     //char name[40];
     //char value[80];
-    //int32_t n;
+    //i32 n;
 
     //// Tag section
     //do
     //{
     //    // " [ %s \"%[^\"]\" ] %n" or " [ %[^ ] \"%[^\"]\" ] %n"
-    //    int8_t read = _snscanf_s (c, 256, " [ %s \"%[^\"]\" ] %n", name, 40, value, 80, &n);
+    //    i08 read = _snscanf_s (c, 256, " [ %s \"%[^\"]\" ] %n", name, 40, value, 80, &n);
     //    if (read != 2) break;
     //    c += n;
 

@@ -127,7 +127,7 @@ namespace UCI {
             return *this;
         }
 
-        SpinOption::SpinOption (int32_t value, int32_t minimum, int32_t maximum, const OnChange on_change)
+        SpinOption::SpinOption (i32 value, i32 minimum, i32 maximum, const OnChange on_change)
             : Option (on_change)
         {
             _default = _value = value;
@@ -143,12 +143,12 @@ namespace UCI {
                 << " max "      << _maximum;
             return os.str ();
         }
-        SpinOption::operator int32_t () const { return _value; }
+        SpinOption::operator i32 () const { return _value; }
         
         //Option& SpinOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
-        //    int32_t val = atoi (value);
+        //    i32 val = atoi (value);
         //    //val = min (max (val, _minimum), _maximum);
         //    if (val < _minimum) val = _minimum;
         //    if (val > _maximum) val = _maximum;
@@ -162,7 +162,7 @@ namespace UCI {
         Option& SpinOption::operator= (string &value)
         {
             if (value.empty ()) return *this;
-            int32_t val = atoi (value.c_str ()); //stoi (value);
+            i32 val = atoi (value.c_str ()); //stoi (value);
             //val = min (max (val, _minimum), _maximum);
             if (val < _minimum) val = _minimum;
             if (val > _maximum) val = _maximum;
@@ -217,7 +217,7 @@ namespace UCI {
 
         void on_resize_hash     (const Option &opt)
         {
-            TT.resize (int32_t (opt), false);
+            TT.resize (i32 (opt), false);
         }
 
         void on_save_hash       (const Option &)
@@ -266,7 +266,7 @@ namespace UCI {
 
         void on_50_move_dist (const Option &opt)
         {
-            Position::_50_move_dist = 2 * int32_t (opt);
+            Position::_50_move_dist = 2 * i32 (opt);
         }
 
         void on_io_log       (const Option &opt)

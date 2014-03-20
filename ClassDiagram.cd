@@ -1316,7 +1316,7 @@
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
-    <AliasOfLine Type="uint64_t" FixedToPoint="true">
+    <AliasOfLine Type="u64" FixedToPoint="true">
       <Path>
         <Point X="23.375" Y="1.002" />
         <Point X="23.375" Y="1.625" />
@@ -1354,7 +1354,7 @@
       </Path>
     </AliasOfLine>
   </Typedef>
-  <Typedef Name="uint64_t" Collapsed="true">
+  <Typedef Name="u64" Collapsed="true">
     <Position X="22.25" Y="0.5" Width="2.25" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

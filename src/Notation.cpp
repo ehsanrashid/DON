@@ -29,11 +29,11 @@ namespace Notation {
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    os <<  "#" << int32_t (VALUE_MATE - v + 1) / 2;
+                    os <<  "#" << i32 (VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
-                    os << "-#" << int32_t (VALUE_MATE + v + 0) / 2;
+                    os << "-#" << i32 (VALUE_MATE + v + 0) / 2;
                 }
             }
 
@@ -41,14 +41,14 @@ namespace Notation {
         }
 
         // time to string
-        const string pretty_time (uint64_t msecs)
+        const string pretty_time (u64 msecs)
         {
-            const uint32_t MSecMinute = M_SEC * 60;
-            const uint32_t MSecHour   = MSecMinute * 60;
+            const u32 MSecMinute = M_SEC * 60;
+            const u32 MSecHour   = MSecMinute * 60;
 
-            uint64_t hours   =   msecs / MSecHour;
-            uint64_t minutes =  (msecs % MSecHour) / MSecMinute;
-            uint64_t seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
+            u32 hours   =   msecs / MSecHour;
+            u32 minutes =  (msecs % MSecHour) / MSecMinute;
+            u32 seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
             ostringstream os;
 
@@ -111,9 +111,9 @@ namespace Notation {
         if (5 == scan.length ())
         {
             // promotion piece in lowercase
-            if (isupper (uint8_t (scan[4])))
+            if (isupper (u08 (scan[4])))
             {
-                scan[4] = uint8_t (tolower (scan[4]));
+                scan[4] = u08 (tolower (scan[4]));
             }
         }
 
@@ -256,7 +256,7 @@ namespace Notation {
         //    StateInfo sinfo;
         //    Position p = pos;
         //    p.do_move (m, sinfo);
-        //    uint8_t legalmove = MoveList<LEGAL> (p).size ();
+        //    u08 legalmove = MoveList<LEGAL> (p).size ();
         //    san += (legalmove ? '+' : '#');
         //}
 
@@ -335,11 +335,11 @@ namespace Notation {
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            os << "cp " << 100 * int32_t (v) / int32_t (VALUE_MG_PAWN);
+            os << "cp " << 100 * i32 (v) / i32 (VALUE_MG_PAWN);
         }
         else
         {
-            os << "mate " << int32_t (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+            os << "mate " << i32 (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
         }
 
         os << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
@@ -350,14 +350,14 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file. It uses the two helpers below to pretty
     // format the time and score respectively.
-    const string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move *pv)
+    const string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move *pv)
     {
-        const uint64_t K = 1000;
-        const uint64_t M = 1000000;
+        const u64 K = 1000;
+        const u64 M = 1000000;
 
         ostringstream os;
 
-        os  << setw (3) << uint32_t (depth)
+        os  << setw (3) << u32 (depth)
             << setw (8) << pretty_value (value)
             << setw (8) << pretty_time (msecs);
 
@@ -377,7 +377,7 @@ namespace Notation {
         StateInfoStack states;
 
         string  padding = string (os.str ().length (), ' ');
-        uint16_t length = padding.length ();
+        u16 length = padding.length ();
 
         const Move *m = pv;
         while (*m != MOVE_NONE)

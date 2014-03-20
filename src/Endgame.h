@@ -51,8 +51,8 @@ namespace EndGame {
 
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<int32_t>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
-    template<int32_t> struct eg_fun;
+    // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
+    template<i32> struct eg_fun;
     template<> struct eg_fun<0> { typedef Value type; };
     template<> struct eg_fun<1> { typedef ScaleFactor type; };
 

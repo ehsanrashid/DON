@@ -6,30 +6,30 @@ namespace BitBoard {
 
         // max moves for rook from any corner square
         //                2 ^ 12 = 4096 = 0x1000
-        const uint16_t MAX_MOVES =   U32 (0x1000);
+        const u16 MAX_MOVES =   U32 (0x1000);
 
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const uint32_t MAX_B_MOVES = U32 (0x1480);
+        const u32 MAX_B_MOVES = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const uint32_t MAX_R_MOVES = U32 (0x19000);
+        const u32 MAX_R_MOVES = U32 (0x19000);
 
         //  64 = 0x040
-        const uint16_t B_PATTERN = 0x040;
+        const u16 B_PATTERN = 0x040;
         // 256 = 0x100
-        const uint16_t R_PATTERN = 0x100;
+        const u16 R_PATTERN = 0x100;
 
 
         Bitboard BTable_bb[MAX_B_MOVES];
         Bitboard RTable_bb[MAX_R_MOVES];
 
-        const uint8_t BBits[SQ_NO] =
+        const u08 BBits[SQ_NO] =
         {
             6, 5, 5, 5, 5, 5, 5, 6,
             5, 5, 5, 5, 5, 5, 5, 5,
@@ -40,7 +40,7 @@ namespace BitBoard {
             5, 5, 5, 5, 5, 5, 5, 5,
             6, 5, 5, 5, 5, 5, 5, 6,
         };
-        const uint8_t RBits[SQ_NO] =
+        const u08 RBits[SQ_NO] =
         {
             12, 11, 11, 11, 11, 11, 11, 12,
             11, 10, 10, 10, 10, 10, 10, 11,
@@ -52,33 +52,33 @@ namespace BitBoard {
             12, 11, 11, 11, 11, 11, 11, 12,
         };
 
-        uint32_t BRows[SQ_NO][6][B_PATTERN];
-        uint32_t RRows[SQ_NO][8][R_PATTERN];
+        u32 BRows[SQ_NO][6][B_PATTERN];
+        u32 RRows[SQ_NO][8][R_PATTERN];
 
-        typedef uint32_t (*Index) (Square s, Bitboard occ);
+        typedef u32 (*Index) (Square s, Bitboard occ);
 
         template<PieceT PT>
         // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
         // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-        uint32_t magic_index (Square s, Bitboard occ);
+        u32 magic_index (Square s, Bitboard occ);
 
         template<>
-        inline uint32_t magic_index<BSHP> (Square s, Bitboard occ)
+        inline u32 magic_index<BSHP> (Square s, Bitboard occ)
         {
             const Bitboard edges = board_edges (s);
             // remaining blocking pieces in the (x)-rays
             const Bitboard mocc = (occ & PieceAttacks[BSHP][s] & ~edges) >> 1;
-            const uint8_t*   r = (uint8_t*) (&mocc);
+            const u08*   r = (u08*) (&mocc);
 
             // Since every square has its set of row values the six row lookups
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the bishop attack table.
 
-            //const uint32_t *B_row = BRows[s][0]; // &BRows[s][0][0];
-            const uint32_t (*B_brd)[B_PATTERN] = BRows[s];
+            //const u32 *B_row = BRows[s][0]; // &BRows[s][0][0];
+            const u32 (*B_brd)[B_PATTERN] = BRows[s];
 
-            const uint32_t index
+            const u32 index
                 //= (B_row + 0*B_PATTERN)[(mocc >>  8) & 0x3F]  // row 2
                 //| (B_row + 1*B_PATTERN)[(mocc >> 16) & 0x3F]  // row 3
                 //| (B_row + 2*B_PATTERN)[(mocc >> 24) & 0x3F]  // row 4
@@ -104,21 +104,21 @@ namespace BitBoard {
         }
 
         template<>
-        inline uint32_t magic_index<ROOK> (Square s, Bitboard occ)
+        inline u32 magic_index<ROOK> (Square s, Bitboard occ)
         {
             const Bitboard edges = board_edges (s);
             // remaining blocking pieces in the (+)-rays
             const Bitboard mocc = (occ & PieceAttacks[ROOK][s] & ~edges);
-            const uint8_t*   r = (uint8_t*) (&mocc);
+            const u08*  r = (u08*) (&mocc);
 
             // Since every square has its set of row values the eight row lookups
             // simply map any blockers to specific bits that when ored together
             // gives an offset in the rook attack table.
 
-            //const uint32_t *R_row = RRows[s][0]; // &RRows[s][0][0];
-            const uint32_t (*R_brd)[R_PATTERN] = RRows[s];
+            //const u32 *R_row = RRows[s][0]; // &RRows[s][0][0];
+            const u32 (*R_brd)[R_PATTERN] = RRows[s];
 
-            const uint32_t index
+            const u32 index
                 //= (R_row + 0*R_PATTERN)[(mocc >>  0) & 0xFF]  // row 1
                 //| (R_row + 1*R_PATTERN)[(mocc >>  8) & 0xFF]  // row 2
                 //| (R_row + 2*R_PATTERN)[(mocc >> 16) & 0xFF]  // row 3
@@ -180,8 +180,8 @@ namespace BitBoard {
 
         void initialize_BTable ()
         {
-            uint32_t index_base = 0;
-            for (uint8_t b = 9; b >= 5; --b)
+            u32 index_base = 0;
+            for (u08 b = 9; b >= 5; --b)
             {
                 for (Square s = SQ_A1; s <= SQ_H8; ++s)
                 {
@@ -193,19 +193,19 @@ namespace BitBoard {
 
                     const Bitboard mask = moves & ~edges;
 
-                    uint8_t shift_base = 0;
-                    for (uint8_t row = 0; row < 6; ++row)
+                    u08 shift_base = 0;
+                    for (u08 row = 0; row < 6; ++row)
                     {
-                        const uint16_t maskB = (mask >> (((row + 1) << 3) + 1)) & 0x3F;
+                        const u16 maskB = (mask >> (((row + 1) << 3) + 1)) & 0x3F;
 
-                        for (uint16_t pattern = 0; pattern < B_PATTERN; ++pattern)
+                        for (u16 pattern = 0; pattern < B_PATTERN; ++pattern)
                         {
-                            uint32_t index = 0;
-                            uint8_t  shift = shift_base;
+                            u32 index = 0;
+                            u08  shift = shift_base;
 
-                            for (uint8_t i = 0; i < 6; ++i)
+                            for (u08 i = 0; i < 6; ++i)
                             {
-                                uint16_t m = (1 << i);
+                                u16 m = (1 << i);
 
                                 if (maskB & m)
                                 {
@@ -226,11 +226,11 @@ namespace BitBoard {
                         }
                     }
 
-                    //uint32_t size = (1 << b);
-                    //for (uint32_t index = 0; index < size; ++index)
+                    //u32 size = (1 << b);
+                    //for (u32 index = 0; index < size; ++index)
                     //{
                     //    Bitboard occ = 0;
-                    //    uint32_t i = index;
+                    //    u32 i = index;
                     //    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
                     //    {
                     //        if (mask & sq)
@@ -245,7 +245,7 @@ namespace BitBoard {
                     //    BTable_bb[index_base + index] = moves;
                     //}
 
-                    uint32_t index = 0;
+                    u32 index = 0;
                     Bitboard occ = U64 (0);
                     do
                     {
@@ -262,8 +262,8 @@ namespace BitBoard {
 
         void initialize_RTable ()
         {
-            uint32_t index_base = 0;
-            for (uint8_t b = 12; b >= 10; --b)
+            u32 index_base = 0;
+            for (u08 b = 12; b >= 10; --b)
             {
                 for (Square s = SQ_A1; s <= SQ_H8; ++s)
                 {
@@ -275,19 +275,19 @@ namespace BitBoard {
 
                     const Bitboard mask = moves & ~edges;
 
-                    uint8_t shift_base = 0;
-                    for (uint8_t row = 0; row < 8; ++row)
+                    u08 shift_base = 0;
+                    for (u08 row = 0; row < 8; ++row)
                     {
-                        const uint16_t maskR = (mask >> (row << 3)) & 0xFF;
+                        const u16 maskR = (mask >> (row << 3)) & 0xFF;
 
-                        for (uint16_t pattern = 0; pattern < R_PATTERN; ++pattern)
+                        for (u16 pattern = 0; pattern < R_PATTERN; ++pattern)
                         {
-                            uint32_t index = 0;
-                            uint8_t  shift = shift_base;
+                            u32 index = 0;
+                            u08  shift = shift_base;
 
-                            for (uint8_t i = 0; i < 8; ++i)
+                            for (u08 i = 0; i < 8; ++i)
                             {
-                                uint16_t m = (1 << i);
+                                u16 m = (1 << i);
 
                                 if (maskR & m)
                                 {
@@ -308,12 +308,12 @@ namespace BitBoard {
                         }
                     }
 
-                    //uint32_t size = (1 << b);
-                    //for (uint32_t index = 0; index < size; ++index)
+                    //u32 size = (1 << b);
+                    //for (u32 index = 0; index < size; ++index)
                     //{
                     //    Bitboard occ = U64 (0);
                     //
-                    //    uint32_t i = index;
+                    //    u32 i = index;
                     //    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
                     //    {
                     //        if (mask & sq)
@@ -328,7 +328,7 @@ namespace BitBoard {
                     //    RTable_bb[index_base + index] = moves;
                     //}
 
-                    uint32_t index = 0;
+                    u32 index = 0;
                     Bitboard occ = U64 (0);
                     do
                     {

@@ -2,7 +2,7 @@
 
 namespace {
 
-    const uint16_t MAX_ECO = 500;
+    const u16 MAX_ECO = 500;
 
     const ECO _ECO[MAX_ECO] =
     {
@@ -518,7 +518,7 @@ namespace {
 
 void get_eco ()
 {
-    for (uint16_t i = 0; i < MAX_ECO; ++i)
+    for (u16 i = 0; i < MAX_ECO; ++i)
     {
         ;
 

@@ -7,8 +7,7 @@ namespace Debugger {
 
     namespace {
 
-        uint64_t
-            Hits[2] = { U64 (0), U64 (0) },
+        u64 Hits[2] = { U64 (0), U64 (0) },
             Mean[2] = { U64 (0), U64 (0) };
     }
 
@@ -16,7 +15,7 @@ namespace Debugger {
     {
         if (c) { ++Hits[0]; if (h) ++Hits[1]; }
     }
-    void dbg_mean_of (uint64_t v)
+    void dbg_mean_of (u64 v)
     {
         ++Mean[0]; Mean[1] += v;
     }

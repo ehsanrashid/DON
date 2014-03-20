@@ -14,7 +14,7 @@ class Position;
 namespace Notation {
 
     // Type of the Ambiguity
-    typedef enum AmbiguityT : uint8_t
+    typedef enum AmbiguityT : u08
     {
         AMB_NONE = 0,
         AMB_RANK = 1,
@@ -37,7 +37,7 @@ namespace Notation {
 
     extern const std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
-    extern const std::string pretty_pv (Position &pos, uint8_t depth, Value value, uint64_t msecs, const Move *pv);
+    extern const std::string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move *pv);
     
 }
 

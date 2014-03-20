@@ -132,9 +132,9 @@ namespace TrivialLogger {
         // Function calculates length of C string
         // It can be used with wide characters
         template < typename Char_type >
-        uint32_t const str_len (const Char_type s[])
+        u32 const str_len (const Char_type s[])
         {
-            uint32_t length = 0;
+            u32 length = 0;
             while (*s)
             {
                 ++s;
@@ -148,9 +148,9 @@ namespace TrivialLogger {
         // Additionally coping is stared from the point which
         // points lhs.
         template < typename Char_type >
-        uint32_t const str_cat (Char_type *&lhs, const Char_type *rhs)
+        u32 const str_cat (Char_type *&lhs, const Char_type *rhs)
         {
-            uint32_t length = 0;
+            u32 length = 0;
             while (*rhs)
             {
                 *lhs = *rhs;
@@ -168,9 +168,9 @@ namespace TrivialLogger {
         // so there can be a problem when lhs points on the end of lhs
         // C string.
         template < typename Char_type >
-        uint32_t const str_cpy (Char_type *&lhs, const Char_type *rhs)
+        u32 const str_cpy (Char_type *&lhs, const Char_type *rhs)
         {
-            uint32_t length = 0;
+            u32 length = 0;
             while (*rhs)
             {
                 *lhs = *rhs;
@@ -188,14 +188,14 @@ namespace TrivialLogger {
         // The space sign in file name is converted to the underscore.
         // Lengths of C strings has to be proper.
         template<typename Char_type>
-        const uint32_t
+        const u32
             create_filename (
             Char_type filename[],
             const Char_type log_fn[],
             const Char_type log_ext[],
             const Char_type def_fn[])
         {
-            uint32_t length = 0; 
+            u32 length = 0; 
 
             if (str_len (log_fn) > 1)
             {
@@ -203,7 +203,7 @@ namespace TrivialLogger {
                 {
                     // check if characters have grapnical
                     // reprasentation
-                    if (0 != isgraph (uint8_t (*log_fn)))
+                    if (0 != isgraph (u08 (*log_fn)))
                     {
                         *filename = *log_fn;
                         ++filename;
@@ -256,7 +256,7 @@ namespace TrivialLogger {
     // container for final file name
     char_type Filename[(MAX (sizeof (Log_fn), sizeof(Def_fn)) + sizeof (Log_ext)) / sizeof(char_type)];
     // create file name
-    uint32_t const Length = implementation::create_filename (Filename, implementation::get_log_fn(), implementation::get_log_ext(), implementation::get_def_fn());
+    u32 const Length = implementation::create_filename (Filename, implementation::get_log_fn(), implementation::get_log_ext(), implementation::get_def_fn());
 
 #       undef STR
 #       undef XSTR

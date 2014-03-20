@@ -35,39 +35,39 @@ typedef struct TTEntry
 
 private:
 
-    uint32_t _key;
-    uint16_t _move;
-    int16_t  _depth;
-    uint8_t  _bound;
-    uint8_t  _gen;
-    uint16_t _nodes;
-    int16_t  _value;
-    int16_t  _eval;
+    u32 _key;
+    u16 _move;
+    i16  _depth;
+    u08  _bound;
+    u08  _gen;
+    u16 _nodes;
+    i16  _value;
+    i16  _eval;
 
 public:
 
-    uint32_t key   () const { return uint32_t (_key);   }
+    u32 key   () const { return u32 (_key);   }
     Move     move  () const { return Move     (_move);  }
     Depth    depth () const { return Depth    (_depth); }
     Bound    bound () const { return Bound    (_bound); }
-    uint8_t  gen   () const { return uint8_t  (_gen);   }
-    uint16_t nodes () const { return uint16_t (_nodes); }
+    u08  gen   () const { return u08  (_gen);   }
+    u16 nodes () const { return u16 (_nodes); }
     Value    value () const { return Value    (_value); }
     Value    eval  () const { return Value    (_eval);  }
 
-    void save (uint32_t k, Move m, Depth d, Bound b, uint16_t n, Value v, Value e, uint8_t g)
+    void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
     {
-        _key   = uint32_t (k);
-        _move  = uint16_t (m);
-        _depth = uint16_t (d);
-        _bound =  uint8_t (b);
-        _nodes = uint16_t (n);
-        _value = uint16_t (v);
-        _eval  = uint16_t (e);
-        _gen   =  uint8_t (g);
+        _key   = u32 (k);
+        _move  = u16 (m);
+        _depth = u16 (d);
+        _bound =  u08 (b);
+        _nodes = u16 (n);
+        _value = u16 (v);
+        _eval  = u16 (e);
+        _gen   =  u08 (g);
     }
 
-    void gen (uint8_t g)
+    void gen (u08 g)
     {
         _gen = g;
     }
@@ -89,10 +89,10 @@ private:
 #endif
 
     TTEntry *_hash_table;
-    uint64_t _hash_mask;
-    uint8_t  _generation;
+    u64 _hash_mask;
+    u08  _generation;
 
-    void alloc_aligned_memory (uint64_t mem_size, uint8_t alignment);
+    void alloc_aligned_memory (u64 mem_size, u08 alignment);
 
     // free_aligned_memory() free the allocated memory
     void free_aligned_memory ()
@@ -117,21 +117,21 @@ private:
 public:
 
     // Total size for Transposition entry in byte
-    static const uint8_t  TENTRY_SIZE;
+    static const u08  TENTRY_SIZE;
     // Number of entries in a cluster
-    static const uint8_t  CLUSTER_ENTRY;
+    static const u08  CLUSTER_ENTRY;
 
     // Max power of hash for cluster
-    static const uint32_t MAX_HASH_BIT;
+    static const u32 MAX_HASH_BIT;
 
     // Default size for Transposition table in mega-byte
-    static const uint32_t DEF_TT_SIZE;
+    static const u32 DEF_TT_SIZE;
     // Minimum size for Transposition table in mega-byte
-    static const uint32_t MIN_TT_SIZE;
+    static const u32 MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> 64 Bit
     // 032768 MB = 032 GB   -> 32 Bit
-    static const uint32_t MAX_TT_SIZE;
+    static const u32 MAX_TT_SIZE;
 
     bool clear_hash;
 
@@ -144,7 +144,7 @@ public:
         //resize (DEF_TT_SIZE, true);
     }
 
-    TranspositionTable (uint32_t mem_size_mb)
+    TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
         , _generation (0)
@@ -158,13 +158,13 @@ public:
         free_aligned_memory ();
     }
 
-    inline uint64_t entries () const
+    inline u64 entries () const
     {
         return (_hash_mask + CLUSTER_ENTRY);
     }
 
     // Returns size in MB
-    inline uint32_t size () const
+    inline u32 size () const
     {
         return ((entries () * TENTRY_SIZE) >> 20);
     }
@@ -219,13 +219,13 @@ public:
     // It is used to display the "info hashfull ..." information in UCI.
     // "the hash is <x> permill full", the engine should send this info regularly.
     // hash, are using <x>%. of the state of full.
-    inline uint16_t permill_full () const
+    inline u16 permill_full () const
     {
-        uint32_t full_count = 0;
+        u32 full_count = 0;
         return full_count;      // TODO::
         TTEntry *tte = _hash_table;
-        uint16_t total_count = std::min (10000, int32_t (entries ()));
-        for (uint16_t i = 0; i < total_count; ++i, ++tte)
+        u16 total_count = std::min (10000, i32 (entries ()));
+        for (u16 i = 0; i < total_count; ++i, ++tte)
         {
             if (tte->gen () == _generation)
             {
@@ -236,15 +236,15 @@ public:
         return (full_count * 1000) / total_count;
     }
 
-    uint32_t resize (uint32_t mem_size_mb, bool force = false);
+    u32 resize (u32 mem_size_mb, bool force = false);
 
-    inline uint32_t resize ()
+    inline u32 resize ()
     {
         return resize (size (), true);
     }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, uint16_t nodes, Value value, Value eval);
+    void store (Key key, Move move, Depth depth, Bound bound, u16 nodes, Value value, Value eval);
 
     // retrieve() looks up the entry in the transposition table.
     const TTEntry* retrieve (Key key) const;
@@ -253,8 +253,8 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
     {
-            uint32_t mem_size_mb = tt.size ();
-            uint8_t dummy = 0;
+            u32 mem_size_mb = tt.size ();
+            u08 dummy = 0;
             os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
             os.write ((const char *) &TranspositionTable::TENTRY_SIZE, sizeof (dummy));
             os.write ((const char *) &TranspositionTable::CLUSTER_ENTRY, sizeof (dummy));
@@ -269,9 +269,9 @@ public:
     friend std::basic_istream<charT, Traits>&
         operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
     {
-            uint32_t mem_size_mb;
+            u32 mem_size_mb;
             is.read ((char *) &mem_size_mb, sizeof (mem_size_mb));
-            uint8_t dummy;
+            u08 dummy;
             is.read ((char *) &dummy, sizeof (dummy));
             is.read ((char *) &dummy, sizeof (dummy));
             is.read ((char *) &dummy, sizeof (dummy));

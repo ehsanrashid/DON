@@ -11,19 +11,19 @@ using namespace Searcher;
 
 namespace {
 
-    const uint8_t MoveHorizon   = 50;    // Plan time management at most this many moves ahead
-    const double  MaxRatio      = 07.00; // When in trouble, we can step over reserved time with this ratio
-    const double  StealRatio    = 00.33; // However we must not steal time from remaining moves over this ratio
+    const u08    MoveHorizon = 50;    // Plan time management at most this many moves ahead
+    const double MaxRatio    = 07.00; // When in trouble, we can step over reserved time with this ratio
+    const double StealRatio  = 00.33; // However we must not steal time from remaining moves over this ratio
 
-    const double Scale          = 09.30;
-    const double Shift          = 59.80;
-    const double SkewFactor     = 00.172;
+    const double Scale       = 09.30;
+    const double Shift       = 59.80;
+    const double SkewFactor  = 00.172;
 
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    inline double move_importance (uint16_t ply)
+    inline double move_importance (u16 ply)
     {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
@@ -32,7 +32,7 @@ namespace {
 
     // remaining_time() calculate the time remaining
     template<TimeT TT>
-    inline uint32_t remaining_time (uint32_t time, uint8_t moves_to_go, uint16_t game_ply, uint16_t slow_mover)
+    inline u32 remaining_time (u32 time, u08 moves_to_go, u16 game_ply, u16 slow_mover)
     {
         const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
@@ -40,7 +40,7 @@ namespace {
         double  this_moves_importance = (move_importance (game_ply) * slow_mover) / 100;
         double other_moves_importance = 0.0;
 
-        for (uint8_t i = 1; i < moves_to_go; ++i)
+        for (u08 i = 1; i < moves_to_go; ++i)
         {
             other_moves_importance += move_importance (game_ply + 2 * i);
         }
@@ -48,12 +48,12 @@ namespace {
         double time_ratio1 = (TMaxRatio * this_moves_importance) / (TMaxRatio * this_moves_importance + other_moves_importance);
         double time_ratio2 = (this_moves_importance + TStealRatio * other_moves_importance) / (this_moves_importance + other_moves_importance);
 
-        return uint32_t (floor (time * min (time_ratio1, time_ratio2)));
+        return u32 (floor (time * min (time_ratio1, time_ratio2)));
     }
 
 }
 
-void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
+void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
 {
     /*
     We support four different kind of time controls:
@@ -73,31 +73,31 @@ void TimeManager::initialize (const LimitsT &limits, uint16_t game_ply, Color c)
     */
 
     // Read uci parameters
-    uint8_t  emergency_move_horizon = int32_t (*(Options["Emergency Move Horizon"]));
-    uint32_t emergency_base_time    = int32_t (*(Options["Emergency Base Time"]));
-    uint32_t emergency_move_time    = int32_t (*(Options["Emergency Move Time"]));
-    uint32_t minimum_thinking_time  = int32_t (*(Options["Minimum Thinking Time"]));
-    uint16_t slow_mover             = int32_t (*(Options["Slow Mover"]));
+    u08 emergency_move_horizon = i32 (*(Options["Emergency Move Horizon"]));
+    u32 emergency_base_time    = i32 (*(Options["Emergency Base Time"]));
+    u32 emergency_move_time    = i32 (*(Options["Emergency Move Time"]));
+    u32 minimum_thinking_time  = i32 (*(Options["Minimum Thinking Time"]));
+    u16 slow_mover             = i32 (*(Options["Slow Mover"]));
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_factor  = 1.0;
     _optimum_search_time = _maximum_search_time = max (limits.gameclock[c].time, minimum_thinking_time);
 
-    uint8_t tot_moves_to_go = (limits.movestogo != 0 ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
+    u08 tot_movestogo = (limits.movestogo != 0 ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
     // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
-    // minimum of calculated search time values. Usually the greatest hyp_moves_to_go gives the minimum values.
-    for (uint8_t hyp_moves_to_go = 1; hyp_moves_to_go <= tot_moves_to_go; ++hyp_moves_to_go)
+    // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
+    for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        int32_t hyp_time = limits.gameclock[c].time
-            + limits.gameclock[c].inc * (hyp_moves_to_go - 1)
+        i32 hyp_time = limits.gameclock[c].time
+            + limits.gameclock[c].inc * (hyp_movestogo - 1)
             - emergency_base_time
-            - emergency_move_time * min (hyp_moves_to_go, emergency_move_horizon);
+            - emergency_move_time * min (hyp_movestogo, emergency_move_horizon);
 
         if (hyp_time < 0) hyp_time = 0;
 
-        uint32_t opt_time = minimum_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
-        uint32_t max_time = minimum_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_moves_to_go, game_ply, slow_mover);
+        u32 opt_time = minimum_thinking_time + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply, slow_mover);
+        u32 max_time = minimum_thinking_time + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply, slow_mover);
 
         if (_optimum_search_time > opt_time) _optimum_search_time = opt_time;
         if (_maximum_search_time > max_time) _maximum_search_time = max_time;

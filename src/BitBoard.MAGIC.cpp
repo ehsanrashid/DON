@@ -8,19 +8,19 @@ namespace BitBoard {
 
         // max moves for rook from any corner square
         // 2 ^ 12 = 4096 = 0x1000
-        const uint16_t MAX_MOVES =   U32 (0x1000);
+        const u16 MAX_MOVES =   U32 (0x1000);
 
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const uint32_t MAX_B_MOVES = U32 (0x1480);
+        const u32 MAX_B_MOVES = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const uint32_t MAX_R_MOVES = U32 (0x19000);
+        const u32 MAX_R_MOVES = U32 (0x19000);
 
 
         Bitboard BTable_bb[MAX_B_MOVES];
@@ -35,46 +35,46 @@ namespace BitBoard {
         Bitboard  BMagic_bb[SQ_NO];
         Bitboard  RMagic_bb[SQ_NO];
 
-        uint8_t      BShift[SQ_NO];
-        uint8_t      RShift[SQ_NO];
+        u08      BShift[SQ_NO];
+        u08      RShift[SQ_NO];
 
-        typedef uint16_t (*Index) (Square s, Bitboard occ);
+        typedef u16 (*Index) (Square s, Bitboard occ);
 
         template<PieceT PT>
         // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
         // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
         // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-        uint16_t magic_index (Square s, Bitboard occ);
+        u16 magic_index (Square s, Bitboard occ);
 
         template<>
-        inline uint16_t magic_index<BSHP> (Square s, Bitboard occ)
+        inline u16 magic_index<BSHP> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
-            return uint16_t (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
+            return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #else
-            uint32_t lo = (uint32_t (occ >>  0) & uint32_t (BMask_bb[s] >>  0)) * uint32_t (BMagic_bb[s] >>  0);
-            uint32_t hi = (uint32_t (occ >> 32) & uint32_t (BMask_bb[s] >> 32)) * uint32_t (BMagic_bb[s] >> 32);
+            u32 lo = (u32 (occ >>  0) & u32 (BMask_bb[s] >>  0)) * u32 (BMagic_bb[s] >>  0);
+            u32 hi = (u32 (occ >> 32) & u32 (BMask_bb[s] >> 32)) * u32 (BMagic_bb[s] >> 32);
             return ((lo ^ hi) >> BShift[s]);
 #endif
 
         }
 
         template<>
-        inline uint16_t magic_index<ROOK> (Square s, Bitboard occ)
+        inline u16 magic_index<ROOK> (Square s, Bitboard occ)
         {
 
 #ifdef _64BIT
-            return uint16_t (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
+            return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
 #else
-            uint32_t lo = (uint32_t (occ >>  0) & uint32_t (RMask_bb[s] >>  0)) * uint32_t (RMagic_bb[s] >>  0);
-            uint32_t hi = (uint32_t (occ >> 32) & uint32_t (RMask_bb[s] >> 32)) * uint32_t (RMagic_bb[s] >> 32);
+            u32 lo = (u32 (occ >>  0) & u32 (RMask_bb[s] >>  0)) * u32 (RMagic_bb[s] >>  0);
+            u32 hi = (u32 (occ >> 32) & u32 (RMask_bb[s] >> 32)) * u32 (RMagic_bb[s] >> 32);
             return ((lo ^ hi) >> RShift[s]);
 #endif
 
         }
 
-        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index);
+        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Index m_index);
 
     }
 
@@ -101,10 +101,10 @@ namespace BitBoard {
 
     namespace {
 
-        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const Index m_index)
+        void initialize_table (Bitboard table_bb[], Bitboard* attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Index m_index)
         {
 
-            uint16_t MagicBoosters[R_NO] =
+            u16 MagicBoosters[R_NO] =
 #ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #else
@@ -141,7 +141,7 @@ namespace BitBoard {
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                uint32_t size   = 0;
+                u32 size   = 0;
                 Bitboard occ    = U64 (0);
                 do
                 {
@@ -159,15 +159,15 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-                uint16_t booster = MagicBoosters[_rank (s)];
+                u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until we find the one that passes the verification test.
-                uint32_t i;
+                u32 i;
 
                 do
                 {
-                    uint16_t index;
+                    u16 index;
                     do
                     {
                         magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);

@@ -170,11 +170,11 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern uint8_t       BShift[SQ_NO];
-    CACHE_ALIGN(64) extern uint8_t       RShift[SQ_NO];
+    CACHE_ALIGN(64) extern u08       BShift[SQ_NO];
+    CACHE_ALIGN(64) extern u08       RShift[SQ_NO];
 
-    extern uint8_t FileRankDist[F_NO][R_NO];
-    extern uint8_t   SquareDist[SQ_NO][SQ_NO];
+    extern u08 FileRankDist[F_NO][R_NO];
+    extern u08   SquareDist[SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
@@ -209,11 +209,11 @@ namespace BitBoard {
     inline Bitboard& operator+= (Bitboard &bb, Rank   r) { return bb |= Rank_bb[r]; }
     inline Bitboard& operator-= (Bitboard &bb, Rank   r) { return bb &=~Rank_bb[r]; }
 
-    //inline uint8_t file_dist (File f1, File f2)     { return FileRankDist[f1][f2]; }
-    inline uint8_t file_dist (Square s1, Square s2) { return FileRankDist[_file (s1)][_file (s2)]; }
+    //inline u08 file_dist (File f1, File f2)     { return FileRankDist[f1][f2]; }
+    inline u08 file_dist (Square s1, Square s2) { return FileRankDist[_file (s1)][_file (s2)]; }
 
-    //inline uint8_t rank_dist (Rank r1, Rank r2)     { return FileRankDist[r1][r2]; }
-    inline uint8_t rank_dist (Square s1, Square s2) { return FileRankDist[_rank (s1)][_rank (s2)]; }
+    //inline u08 rank_dist (Rank r1, Rank r2)     { return FileRankDist[r1][r2]; }
+    inline u08 rank_dist (Square s1, Square s2) { return FileRankDist[_rank (s1)][_rank (s2)]; }
 
     // ----------------------------------------------------
 
@@ -233,10 +233,10 @@ namespace BitBoard {
     //inline Bitboard front_sqs_bb (Color c, Square s) { return FrontSqs_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
-    //inline Bitboard distance_rings   (Square s, uint8_t d) { return DistanceRings[s][d]; }
+    //inline Bitboard distance_rings   (Square s, u08 d) { return DistanceRings[s][d]; }
 
     // Edges of the board
-    inline Bitboard board_edges    (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
+    inline Bitboard board_edges (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
     inline Bitboard squares_of_color (Square s) { return (DARK_bb & s) ? DARK_bb : LIHT_bb; }
@@ -260,7 +260,7 @@ namespace BitBoard {
     //inline Bitboard between_sq (Square s1, Square s2) { return Between_bb[s1][s2]; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned    (Square s1, Square s2, Square s3) { return LineRay_bb[s1][s2] & s3; }
+    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return LineRay_bb[s1][s2] & s3; }
 
     inline bool more_than_one (Bitboard bb) { return bool ((bb) & (bb - 1)); }
 
@@ -286,14 +286,14 @@ namespace BitBoard {
     inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (9); } //(bb >> 9) & FH_bb_;
 
     // Rotate RIGHT (toward LSB)
-    inline Bitboard rotate_R (Bitboard bb, int8_t k) { return (bb >> k) | (bb << (int8_t (SQ_NO) - k)); }
+    inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08 (SQ_NO) - k)); }
     // Rotate LEFT (toward MSB)
-    inline Bitboard rotate_L (Bitboard bb, int8_t k) { return (bb << k) | (bb >> (int8_t (SQ_NO) - k)); }
+    inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08 (SQ_NO) - k)); }
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64 (0))
     {
         Bitboard slid_attacks = U64 (0);
-        uint8_t i = 0;
+        u08 i = 0;
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
         {
@@ -329,31 +329,31 @@ namespace BitBoard {
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE uint16_t magic_index   (Square s, Bitboard occ);
+    extern INLINE u16 magic_index   (Square s, Bitboard occ);
 
     template<>
-    INLINE uint16_t magic_index   <BSHP> (Square s, Bitboard occ)
+    INLINE u16 magic_index   <BSHP> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT
-        return uint16_t (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
+        return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #else
-        uint32_t lo = (uint32_t (occ >>  0) & uint32_t (BMask_bb[s] >>  0)) * uint32_t (BMagic_bb[s] >>  0);
-        uint32_t hi = (uint32_t (occ >> 32) & uint32_t (BMask_bb[s] >> 32)) * uint32_t (BMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >>  0) & u32 (BMask_bb[s] >>  0)) * u32 (BMagic_bb[s] >>  0);
+        u32 hi = (u32 (occ >> 32) & u32 (BMask_bb[s] >> 32)) * u32 (BMagic_bb[s] >> 32);
         return ((lo ^ hi) >> BShift[s]);
 #endif
 
     }
 
     template<>
-    INLINE uint16_t magic_index   <ROOK> (Square s, Bitboard occ)
+    INLINE u16 magic_index   <ROOK> (Square s, Bitboard occ)
     {
 
 #ifdef _64BIT
-        return uint16_t (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
+        return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
 #else
-        uint32_t lo = (uint32_t (occ >>  0) & uint32_t (RMask_bb[s] >>  0)) * uint32_t (RMagic_bb[s] >>  0);
-        uint32_t hi = (uint32_t (occ >> 32) & uint32_t (RMask_bb[s] >> 32)) * uint32_t (RMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >>  0) & u32 (RMask_bb[s] >>  0)) * u32 (RMagic_bb[s] >>  0);
+        u32 hi = (u32 (occ >> 32) & u32 (RMask_bb[s] >> 32)) * u32 (RMagic_bb[s] >> 32);
         return ((lo ^ hi) >> RShift[s]);
 #endif
 

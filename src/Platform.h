@@ -33,14 +33,23 @@
 
 // MSVC does not support <inttypes.h>
 //#   include <stdint.h>
-typedef   signed __int8          int8_t;
-typedef unsigned __int8         uint8_t;
-typedef   signed __int16         int16_t;
-typedef unsigned __int16        uint16_t;
-typedef   signed __int32         int32_t;
-typedef unsigned __int32        uint32_t;
-typedef   signed __int64         int64_t;
-typedef unsigned __int64        uint64_t;
+//typedef         int8_t     i08;
+//typedef        uint8_t     u08;
+//typedef         int16_t    i16;
+//typedef        uint16_t    u16;
+//typedef         int32_t    i32;
+//typedef        uint32_t    u32;
+//typedef         int64_t    i64;
+//typedef        uint64_t    u64;
+
+typedef   signed __int8     i08;
+typedef unsigned __int8     u08;
+typedef   signed __int16    i16;
+typedef unsigned __int16    u16;
+typedef   signed __int32    i32;
+typedef unsigned __int32    u32;
+typedef   signed __int64    i64;
+typedef unsigned __int64    u64;
 
 #   define  S32(X) (X##i32)
 #   define  U32(X) (X##ui32)
@@ -50,6 +59,15 @@ typedef unsigned __int64        uint64_t;
 #else
 
 #   include <inttypes.h>
+
+typedef         int8_t     i08;
+typedef        uint8_t     u08;
+typedef         int16_t    i16;
+typedef        uint16_t    u16;
+typedef         int32_t    i32;
+typedef        uint32_t    u32;
+typedef         int64_t    i64;
+typedef        uint64_t    u64;
 
 #   define S32(X) (X##L)
 #   define U32(X) (X##UL)

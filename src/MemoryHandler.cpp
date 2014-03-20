@@ -170,13 +170,13 @@ namespace MemoryHandler {
 
 #   else    // Linux - Unix
 
-        int32_t Num;
+        i32 Num;
 
 #   endif
 
     }
 
-    void create_memory  (void *&mem_ref, uint64_t mem_size, uint8_t align)
+    void create_memory  (void *&mem_ref, u64 mem_size, u08 align)
     {
         UsePages = false;
 

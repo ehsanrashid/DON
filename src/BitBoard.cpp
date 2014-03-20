@@ -41,20 +41,20 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) uint8_t      BShift[SQ_NO];
-    CACHE_ALIGN(64) uint8_t      RShift[SQ_NO];
+    CACHE_ALIGN(64) u08      BShift[SQ_NO];
+    CACHE_ALIGN(64) u08      RShift[SQ_NO];
 
     // FILE & RANK distance
-    uint8_t FileRankDist[F_NO][R_NO];
-    uint8_t   SquareDist[SQ_NO][SQ_NO];
+    u08 FileRankDist[F_NO][R_NO];
+    u08   SquareDist[SQ_NO][SQ_NO];
 
     namespace {
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
-//        const uint64_t DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
-//        const uint32_t DeBruijn_32 = 0x783A9B23;
+//        const u64 DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
+//        const u32 DeBruijn_32 = 0x783A9B23;
 //
-//        CACHE_ALIGN (8) int8_t MSB_Table[_UI8_MAX + 1];
+//        CACHE_ALIGN (8) i08 MSB_Table[_UI8_MAX + 1];
 //        CACHE_ALIGN (8) Square BSF_Table[SQ_NO];
 //
 //        INLINE unsigned bsf_index (Bitboard bb)
@@ -66,35 +66,35 @@ namespace BitBoard {
 //#       ifdef _64BIT
 //                (bb * DeBruijn_64) >> 58;
 //#       else
-//                ((uint32_t (bb) ^ uint32_t (bb >> 32)) * DeBruijn_32) >> 26;
+//                ((u32 (bb) ^ u32 (bb >> 32)) * DeBruijn_32) >> 26;
 //#       endif
 //        }
 
         // max moves for rook from any corner square (LINEAR)
         // 2 ^ 12 = 4096 = 0x1000
-        const uint16_t MAX_LMOVES =   U32 (0x1000);
+        const u16 MAX_LMOVES =   U32 (0x1000);
 
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const uint32_t MAX_BMOVES = U32 (0x1480);
+        const u32 MAX_BMOVES = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const uint32_t MAX_RMOVES = U32 (0x19000);
+        const u32 MAX_RMOVES = U32 (0x19000);
 
         CACHE_ALIGN(64) Bitboard BTable_bb[MAX_BMOVES];
         CACHE_ALIGN(64) Bitboard RTable_bb[MAX_RMOVES];
 
-        typedef uint16_t (*FnIndex) (Square s, Bitboard occ);
+        typedef u16 (*FnIndex) (Square s, Bitboard occ);
 
-        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], uint8_t shift[], const Delta deltas[], const FnIndex m_index)
+        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const FnIndex m_index)
         {
 
-            const uint16_t MagicBoosters[R_NO] =
+            const u16 MagicBoosters[R_NO] =
 #       ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #       else
@@ -131,7 +131,7 @@ namespace BitBoard {
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                uint32_t size   = 0;
+                u32 size   = 0;
                 Bitboard occ    = U64 (0);
                 do
                 {
@@ -149,15 +149,15 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-                uint16_t booster = MagicBoosters[_rank (s)];
+                u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until we find the one that passes the verification test.
-                uint32_t i;
+                u32 i;
 
                 do
                 {
-                    uint16_t index;
+                    u16 index;
                     do
                     {
                         magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
@@ -214,7 +214,7 @@ namespace BitBoard {
         {
             for (Rank r = R_1; r <= R_8; ++r)
             {
-                FileRankDist[f][r] = abs (int8_t (f) - int8_t (r));
+                FileRankDist[f][r] = abs (i08 (f) - i08 (r));
             }
         }
 
@@ -229,8 +229,8 @@ namespace BitBoard {
                     File f2 = _file (s2);
                     Rank r2 = _rank (s2);
 
-                    uint8_t dFile = FileRankDist[f1][f2];
-                    uint8_t dRank = FileRankDist[r1][r2];
+                    u08 dFile = FileRankDist[f1][f2];
+                    u08 dRank = FileRankDist[r1][r2];
 
                     SquareDist[s1][s2]  = max (dFile , dRank);
                     //TaxicabDist[s1][s2] =     (dFile + dRank);
@@ -252,7 +252,7 @@ namespace BitBoard {
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            uint8_t k;
+            u08 k;
             Delta del;
 
             for (Color c = WHITE; c <= BLACK; ++c)
@@ -328,7 +328,7 @@ namespace BitBoard {
         string sbb;
 
         const string row   = "|. . . . . . . .|\n";
-        const uint16_t row_len = row.length () + 1;
+        const u16 row_len = row.length () + 1;
         sbb = " /---------------\\\n";
         for (Rank r = R_8; r >= R_1; --r)
         {
@@ -344,8 +344,8 @@ namespace BitBoard {
         while (bb != U64 (0))
         {
             Square s = pop_lsq (bb);
-            int8_t r = _rank (s);
-            int8_t f = _file (s);
+            i08 r = _rank (s);
+            i08 f = _file (s);
             sbb[2 + row_len * (8 - r) + 2 * f] = p;
         }
 

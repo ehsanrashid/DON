@@ -35,7 +35,7 @@ namespace BitBoard {
             U64 (0x0000000000000000),
             U64 (0x0000000000000000),
         };
-        const uint8_t shift_diag18[D_NO] =
+        const u08 shift_diag18[D_NO] =
         {
             64,
             64,
@@ -72,7 +72,7 @@ namespace BitBoard {
             U64 (0x0000000000000000),
             U64 (0x0000000000000000),
         };
-        const uint8_t shift_diag81[D_NO] =
+        const u08 shift_diag81[D_NO] =
         { 
             64,
             64,
@@ -95,14 +95,14 @@ namespace BitBoard {
 
         // occ6 = (occ8 >> 1) & 63
         // att  = _attacks_line[file_on_rank_occ8][occ6];
-        uint8_t _attacks_line[F_NO][SQ_NO];
+        u08 _attacks_line[F_NO][SQ_NO];
 
         Bitboard attacks_rank (Square s, Bitboard occ);
         Bitboard attacks_file (Square s, Bitboard occ);
         Bitboard attacks_diag18 (Square s, Bitboard occ);
         Bitboard attacks_diag81 (Square s, Bitboard occ);
 
-        uint8_t  attacks_line (uint8_t s, uint8_t occ6);
+        u08  attacks_line (u08 s, u08 occ6);
 
         void initialize_table ();
 
@@ -141,10 +141,10 @@ namespace BitBoard {
         Bitboard attacks_rank (Square s, Bitboard occ)
         {
             File f = _file (s);
-            uint8_t rx8 = (s & 0x38);
+            u08 rx8 = (s & 0x38);
             Bitboard bocc = occ & (rank_bb (s) ^ Square_bb[s]);
             Bitboard MAGIC = U64 (0x0202020202020202); // 02 for each rank
-            uint8_t occ6 = (bocc * MAGIC) >> 0x3A;
+            u08 occ6 = (bocc * MAGIC) >> 0x3A;
 
             Bitboard moves = _attacks_line[f][occ6];
             moves = (moves << rx8); // & RankExMask(s);
@@ -157,11 +157,11 @@ namespace BitBoard {
             Rank r = _rank (s);
 
             Bitboard bocc = occ & (rank_bb (s) ^ Square_bb[s]);
-            //uint8_t occ6 = ((bocc >> f) * MagicFileA) >> 0x3A;
-            uint8_t occ6 = (bocc * magic_file_bb[f]) >> 0x3A;
+            //u08 occ6 = ((bocc >> f) * MagicFileA) >> 0x3A;
+            u08 occ6 = (bocc * magic_file_bb[f]) >> 0x3A;
 
             Bitboard moves = _attacks_line[r][occ6];
-            moves = rotate_90A (moves) >> (int8_t (F_NO) - (1 + int8_t (f)));
+            moves = rotate_90A (moves) >> (i08 (F_NO) - (1 + i08 (f)));
             return moves;
         }
 
@@ -171,7 +171,7 @@ namespace BitBoard {
             Diag d = _diag18 (s);
 
             Bitboard bocc = occ & (diag18_bb (s) ^ Square_bb[s]);
-            uint8_t occ6 = uint8_t ((bocc * magic_diag18_bb[d]) >> shift_diag18[d]);
+            u08 occ6 = u08 ((bocc * magic_diag18_bb[d]) >> shift_diag18[d]);
 
             Bitboard moves = _attacks_line[f][occ6];
             moves = (moves * MAGIC) & (diag18_bb (s) ^ Square_bb[s]);
@@ -184,7 +184,7 @@ namespace BitBoard {
             Diag d = _diag81 (s);
 
             Bitboard bocc = occ & (diag81_bb (s) ^ Square_bb[s]);
-            uint8_t occ6 = uint8_t ((bocc * magic_diag81_bb[d]) >> shift_diag81[d]);
+            u08 occ6 = u08 ((bocc * magic_diag81_bb[d]) >> shift_diag81[d]);
 
             Bitboard moves = _attacks_line[f][occ6];
             moves = (moves * MAGIC) & (diag81_bb (s) ^ Square_bb[s]);
@@ -194,21 +194,21 @@ namespace BitBoard {
         // s    = 00 - 07 (sliding piece subset of occ8)
         // occ6 = 00 - 63 (inner 6-bit of occ8 Line)
         // occ6 = (occ8 >> 1) & 63
-        uint8_t attacks_line (uint8_t s, uint8_t occ6)
+        u08 attacks_line (u08 s, u08 occ6)
         {
-            uint8_t moves;
+            u08 moves;
             occ6 <<= 1;	// shift to middle [x------x]
 
-            uint8_t mask = (1 << s);
+            u08 mask = (1 << s);
 
 #pragma region "LowerOcc & UpperOcc"
 
-            //uint8_t upperMask = -(mask << 1); // ((mask ^ -mask));
-            //uint8_t lowerMask =  (mask  - 1); // ((mask ^ (mask - 1)) & ~mask);
-            //uint8_t upperOcc = (occ6 & upperMask);
-            //uint8_t lowerOcc = (occ6 & lowerMask);
-            //uint8_t LS1B = (upperOcc & -upperOcc);   // LS1B of upper (east blocker)
-            //uint8_t MS1B;                            // MS1B of lower (west blocker)
+            //u08 upperMask = -(mask << 1); // ((mask ^ -mask));
+            //u08 lowerMask =  (mask  - 1); // ((mask ^ (mask - 1)) & ~mask);
+            //u08 upperOcc = (occ6 & upperMask);
+            //u08 lowerOcc = (occ6 & lowerMask);
+            //u08 LS1B = (upperOcc & -upperOcc);   // LS1B of upper (east blocker)
+            //u08 MS1B;                            // MS1B of lower (west blocker)
             //if (lowerOcc)
             //{
             //    lowerOcc |= (lowerOcc >> 1);
@@ -227,11 +227,11 @@ namespace BitBoard {
 #pragma region "Subtraction and reverse Subtraction of rooks from bocc [moves =  (o - 2s) ^ reverse(o' - 2s')]"
             // (o-2r) ^ (o'-2r')'
 
-            uint8_t occ6_ = reverse (occ6);
-            uint8_t mask_ = reverse (mask);
+            u08 occ6_ = reverse (occ6);
+            u08 mask_ = reverse (mask);
 
-            uint8_t upperMoves = (occ6 - (mask << 1));
-            uint8_t lowerMoves = reverse (uint8_t (occ6_ - (mask_ << 1)));
+            u08 upperMoves = (occ6 - (mask << 1));
+            u08 lowerMoves = reverse (u08 (occ6_ - (mask_ << 1)));
 
             moves = (lowerMoves ^ upperMoves);
 
@@ -244,7 +244,7 @@ namespace BitBoard {
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                for (uint8_t occ6 = 0; occ6 < SQ_NO; ++occ6)
+                for (u08 occ6 = 0; occ6 < SQ_NO; ++occ6)
                 {
                     _attacks_line[f][occ6] = attacks_line (f, occ6);
                 }

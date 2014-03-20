@@ -13,10 +13,10 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const uint32_t MAX_INDEX = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
+        const u32 MAX_INDEX = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
 
-        // Each uint32_t stores results of 32 positions, one per bit
-        uint32_t KPKBitbase[MAX_INDEX / 32];
+        // Each u32 stores results of 32 positions, one per bit
+        u32 KPKBitbase[MAX_INDEX / 32];
 
         // A KPK bitbase index is an integer in [0, MAX_INDEX] range
         //
@@ -27,9 +27,9 @@ namespace BitBases {
         // bit    12: side to move (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
-        inline uint32_t index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
+        inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
         {
-            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((int32_t (R_7) - int32_t (_rank (wp_sq))) << 15);
+            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32 (R_7) - i32 (_rank (wp_sq))) << 15);
         }
 
         typedef enum Result
@@ -61,7 +61,7 @@ namespace BitBases {
 
         public:
 
-            KPKPosition (uint32_t idx);
+            KPKPosition (u32 idx);
 
             operator Result () const { return result; }
 
@@ -72,12 +72,12 @@ namespace BitBases {
 
         };
 
-        inline KPKPosition::KPKPosition (uint32_t idx)
+        inline KPKPosition::KPKPosition (u32 idx)
         {
             _wk_sq  = Square((idx >>  0) & 0x3F);
             _bk_sq  = Square((idx >>  6) & 0x3F);
             _active = Color ((idx >> 12) & 0x01);
-            _p_sq   = File  ((idx >> 13) & 0x03) | Rank (int8_t (R_7) - (idx >> 15));
+            _p_sq   = File  ((idx >> 13) & 0x03) | Rank (i08 (R_7) - (idx >> 15));
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
@@ -161,7 +161,7 @@ namespace BitBases {
         vector<KPKPosition> db;
         db.reserve (MAX_INDEX);
 
-        uint32_t idx;
+        u32 idx;
         // Initialize db with known win / draw positions
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
@@ -195,7 +195,7 @@ namespace BitBases {
     {
         ASSERT (_file (wp_sq) <= F_D);
 
-        uint32_t idx = index (c, bk_sq, wk_sq, wp_sq);
+        u32 idx = index (c, bk_sq, wk_sq, wp_sq);
         return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));
     }
 

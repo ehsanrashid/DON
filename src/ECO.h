@@ -9,13 +9,13 @@
 
 typedef struct ECO
 {
-    Key         posi_key;
-    Key         pawn_key;
-    int8_t      length;
+    Key posi_key;
+    Key pawn_key;
+    i08 length;
     std::string code;
     std::string name;
     std::string moves;
-    //std::vector<Move>    moves;
+    //std::vector<Move> moves;
 
 } ECO;
 

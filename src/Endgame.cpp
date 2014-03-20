@@ -18,7 +18,7 @@ namespace EndGame {
 
         // Table used to drive the king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
-        const int32_t PushToEdges[SQ_NO] =
+        const i32 PushToEdges[SQ_NO] =
         {
             100, 90,  80,  70,  70,  80,  90, 100,
             90,  70,  60,  50,  50,  60,  70,  90,
@@ -32,7 +32,7 @@ namespace EndGame {
 
         // Table used to drive the king towards a corner square of the
         // right color in KBN vs K endgames.
-        const int32_t PushToCorners[SQ_NO] =
+        const i32 PushToCorners[SQ_NO] =
         {
             200, 190, 180, 170, 160, 150, 140, 130,
             190, 180, 170, 160, 150, 140, 130, 140,
@@ -45,11 +45,11 @@ namespace EndGame {
         };
 
         // Tables used to drive a piece towards or away from another piece
-        const int32_t PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
-        const int32_t PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
+        const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
+        const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
 #ifndef NDEBUG
-        inline bool verify_material (const Position &pos, Color c, Value npm, int32_t num_pawns)
+        inline bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
             return (pos.non_pawn_material(c) == npm) && (pos.count<PAWN> (c) == num_pawns);
         }
@@ -402,8 +402,8 @@ namespace EndGame {
 
         if (pos.bishops_pair (_stong_side))
         {
-            uint8_t diag18_dist = min (SquareDist[wk_sq][SQ_A1], SquareDist[wk_sq][SQ_H8]);
-            uint8_t diag81_dist = min (SquareDist[wk_sq][SQ_A8], SquareDist[wk_sq][SQ_H1]);
+            u08 diag18_dist = min (SquareDist[wk_sq][SQ_A1], SquareDist[wk_sq][SQ_H8]);
+            u08 diag81_dist = min (SquareDist[wk_sq][SQ_A8], SquareDist[wk_sq][SQ_H1]);
             if (diag81_dist < diag18_dist)
             {
                 sk_sq = ~sk_sq;
@@ -454,7 +454,7 @@ namespace EndGame {
         File f = _file (sp_sq);
         Rank r = _rank (sp_sq);
         Square queening_sq = f | R_8;
-        int32_t tempo = (pos.active () == _stong_side);
+        i32 tempo = (pos.active () == _stong_side);
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.
@@ -568,7 +568,7 @@ namespace EndGame {
             // if the defending king is near the corner but not trapped there.
             if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
             {
-                uint8_t d = SquareDist[sp_sq + 3 * push][wk_sq];
+                u08 d = SquareDist[sp_sq + 3 * push][wk_sq];
 
                 if (d <= 2 && !(d == 0 && wk_sq == pos.king_sq(_stong_side) + 2 * push))
                 {
@@ -934,7 +934,7 @@ namespace EndGame {
                         && rel_rank (_weak_side, sp_sq) == R_6
                         && opposite_colors (wp_sq, sb_sq))
                     {
-                        int32_t tempo = (pos.active () == _stong_side);
+                        i32 tempo = (pos.active () == _stong_side);
                         if (SquareDist[queening_sq][wk_sq] <
                             SquareDist[wp_sq][sk_sq] + 4 - tempo)
                         {
@@ -976,8 +976,8 @@ namespace EndGame {
                 && (pos.pieces<PAWN> (_stong_side) & (wp_sq + pawn_push (_weak_side)))
                 && (opposite_colors (sb_sq, wp_sq) || pos.count<PAWN> (_stong_side) == 1))
             {
-                int32_t sk_dist = SquareDist[sk_sq][wp_sq];
-                int32_t wk_dist = SquareDist[wk_sq][wp_sq];
+                i32 sk_dist = SquareDist[sk_sq][wp_sq];
+                i32 wk_dist = SquareDist[wk_sq][wp_sq];
 
                 // It's a draw if the weak king is on its back two ranks, within 2
                 // squares of the blocking pawn and the strong king is not

@@ -102,7 +102,7 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        uint8_t size = splitpoint_threads;
+        u08 size = splitpoint_threads;
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
@@ -117,7 +117,7 @@ namespace Threads {
     // When all threads have returned from search() then split() returns.
     template <bool FAKE>
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-        Depth depth, uint8_t moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
+        Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         ASSERT (pos.ok ());
         ASSERT (searching);
@@ -203,8 +203,8 @@ namespace Threads {
     }
 
     // Explicit template instantiations
-    template void Thread::split<false> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
-    template void Thread::split<true > (Position&, const Stack*, Value, Value, Value&, Move&, Depth, uint8_t, MovePicker&, NodeT, bool);
+    template void Thread::split<false> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, u08, MovePicker&, NodeT, bool);
+    template void Thread::split<true > (Position&, const Stack*, Value, Value, Value&, Move&, Depth, u08, MovePicker&, NodeT, bool);
 
     // ------------------------------------
 
@@ -287,9 +287,9 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure ()
     {
-        split_depth = int32_t (*(Options["Split Depth"])) * ONE_MOVE;
-        uint8_t threads;
-        threads     = int32_t (*(Options["Threads"]));
+        split_depth = i32 (*(Options["Split Depth"])) * ONE_MOVE;
+        u08 threads;
+        threads     = i32 (*(Options["Threads"]));
 
         ASSERT (threads > 0);
 
@@ -312,7 +312,7 @@ namespace Threads {
         }
 
         sync_cout
-            << "info string Thread(s) "   << uint16_t (threads) << ".\n"
+            << "info string Thread(s) "   << u16 (threads) << ".\n"
             << "info string Split Depth " << split_depth << sync_endl;
 
     }

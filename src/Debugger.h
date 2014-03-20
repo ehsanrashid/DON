@@ -6,6 +6,7 @@
 #define _DEBUG_LOGGER_H_INC_
 
 #include <iostream>
+
 #include "noncopyable.h"
 #include "tiebuffer.h"
 #include "Time.h"
@@ -95,7 +96,7 @@ inline void log_io (bool b)
 namespace Debugger {
 
     extern void dbg_hits_on (bool h, bool c = true);
-    extern void dbg_mean_of (uint64_t v);
+    extern void dbg_mean_of (u64 v);
     extern void dbg_print ();
 
 }

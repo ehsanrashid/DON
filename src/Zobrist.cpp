@@ -16,7 +16,7 @@ namespace Zobrist {
 
     void Zob::initialize (RKISS rk)
     {
-        for (uint16_t i = 0; i < ZOB_SIZE; ++i)
+        for (u16 i = 0; i < ZOB_SIZE; ++i)
         {
             zobrist[i] = rk.rand64 ();
         }
@@ -31,7 +31,7 @@ namespace Zobrist {
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (uint8_t pc = 0; pc < pos.count (c, pt); ++pc)
+                for (u08 pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= _.piecesq[c][pt][pc];
                 }
@@ -121,8 +121,8 @@ namespace Zobrist {
 #undef skip_whitespace
 #undef get_next
 
-#define skip_whitespace()  while (isspace (uint8_t (*fen))) ++fen
-#define get_next()         ch = uint8_t (*fen++)
+#define skip_whitespace()  while (isspace (u08 (*fen))) ++fen
+#define get_next()         ch = u08 (*fen++)
 
         unsigned char ch;
         for (Rank r = R_8; r >= R_1; --r)
@@ -138,7 +138,7 @@ namespace Zobrist {
                     // empty square(s)
                     if ('1' > ch || ch > '8') return U64 (0);
 
-                    uint8_t empty = (ch - '0');
+                    u08 empty = (ch - '0');
                     f += empty;
 
                     if (f > F_NO) return U64 (0);
@@ -249,7 +249,7 @@ namespace Zobrist {
         File king[CLR_NO] = {F_NO};
 
         istringstream is (fen);
-        uint8_t ch;
+        u08 ch;
 
         is >> noskipws;
 
@@ -282,7 +282,7 @@ namespace Zobrist {
             while ((is >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
-                uint8_t sym = tolower (ch);
+                u08 sym = tolower (ch);
                 if ('a' <= sym && sym <= 'h')
                 {
                     fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
@@ -307,7 +307,7 @@ namespace Zobrist {
             }
         }
 
-        uint8_t col, row;
+        u08 col, row;
         if (   ((is >> col) && (col >= 'a' && col <= 'h'))
             && ((is >> row) && (row == '3' || row == '6')))
         {

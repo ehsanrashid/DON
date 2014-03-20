@@ -8,6 +8,8 @@
 #include <streambuf>
 #include <fstream>
 #include <cstring>
+
+#include "Platform.h"
 #include "noncopyable.h"
 
 namespace std {
@@ -45,7 +47,7 @@ namespace std {
             bool error = false;
             if ('\n' == last_ch)
             {
-                uint32_t length = uint32_t (strlen (prefix));
+                u32 length = u32 (strlen (prefix));
                 if (_filestm->rdbuf ()->sputn (prefix, length) != length)
                 {
                     error = true;

@@ -24,7 +24,7 @@ typedef enum BitCountT
 
 template<BitCountT>
 // pop_count () counts the number of set bits in a Bitboard
-INLINE uint8_t pop_count (Bitboard bb);
+INLINE u08 pop_count (Bitboard bb);
 
 // Determine at compile time the best pop_count<> specialization 
 // according if platform is 32 or 64 bit,
@@ -45,7 +45,7 @@ const BitCountT MAX15 = CNT_HW_POPCNT;
 // _mm_popcnt_u64() & _mm_popcnt_u32()
 
 template<>
-INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
 #       ifdef _64BIT
     {
@@ -63,7 +63,7 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
 template<>
-INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
 #      ifdef _64BIT
     {
@@ -83,7 +83,7 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //#   include <intrin.h> // MSVC popcnt and  __popcnt()
 //
 //template<>
-//INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+//INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //{
 //    return (__m64_popcnt (bb));
 //}
@@ -91,7 +91,7 @@ INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
 #else
 
 template<>
-INLINE uint8_t pop_count<CNT_HW_POPCNT> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
     __asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
@@ -121,10 +121,10 @@ namespace {
 
 template<>
 // Pop count of the Bitboard (64-bit)
-INLINE uint8_t pop_count<CNT_64_FULL> (Bitboard bb)
+INLINE u08 pop_count<CNT_64_FULL> (Bitboard bb)
 {
-    //Bitboard w0 = (bb & MX_64) + ((bb + bb) & MX_64);
-    //Bitboard w1 = (bb >> 1 & MX_64) + (bb >> 2 & MX_64);
+    //u64 w0 = (bb & MX_64) + ((bb + bb) & MX_64);
+    //u64 w1 = (bb >> 1 & MX_64) + (bb >> 2 & MX_64);
     //w0 = w0 + (w0 >> 4) & M4_64;
     //w1 = w1 + (w1 >> 4) & M4_64;
     //return ((w0 + w1) * H8_64) >> 0x39;     // 57;
@@ -137,7 +137,7 @@ INLINE uint8_t pop_count<CNT_64_FULL> (Bitboard bb)
 
 template<>
 // Pop count max 15 of the Bitboard (64-bit)
-INLINE uint8_t pop_count<CNT_64_MAX15> (Bitboard bb)
+INLINE u08 pop_count<CNT_64_MAX15> (Bitboard bb)
 {
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
@@ -151,21 +151,21 @@ const BitCountT MAX15 = CNT_32_MAX15;
 
 namespace {
 
-    const uint32_t M1_32 = U32 (0x55555555);
-    const uint32_t M2_32 = U32 (0x33333333);
-    const uint32_t M4_32 = U32 (0x0F0F0F0F);
-    const uint32_t H4_32 = U32 (0x11111111);
-    const uint32_t H8_32 = U32 (0x01010101);
+    const u32 M1_32 = U32 (0x55555555);
+    const u32 M2_32 = U32 (0x33333333);
+    const u32 M4_32 = U32 (0x0F0F0F0F);
+    const u32 H4_32 = U32 (0x11111111);
+    const u32 H8_32 = U32 (0x01010101);
 
 }
 
 template<>
 // Pop count of the Bitboard (32-bit)
-INLINE uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
+INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
 {
-    //uint32_t *p = (uint32_t*) (&bb);
-    //uint32_t *w0 = p+0;
-    //uint32_t *w1 = p+1;
+    //u32 *p = (u32*) (&bb);
+    //u32 *w0 = p+0;
+    //u32 *w1 = p+1;
     //*w0 -= (*w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     //*w1 -= (*w1 >> 1) & M1_32;
     //*w0 = ((*w0 >> 2) & M2_32) + (*w0 & M2_32);// 0-4 in 4 bits
@@ -174,8 +174,8 @@ INLINE uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
     //*w1 = ((*w1 >> 4) + *w1) & M4_32;
     //return ((*w0 + *w1) * H8_32) >> 0x18;      // 24;
 
-    uint32_t w0 = uint32_t (bb);
-    uint32_t w1 = uint32_t (bb >> 32);
+    u32 w0 = u32 (bb);
+    u32 w1 = u32 (bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
     w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits
@@ -187,19 +187,19 @@ INLINE uint8_t pop_count<CNT_32_FULL> (Bitboard bb)
 
 template<>
 // Pop count max 15 of the Bitboard (32-bit)
-INLINE uint8_t pop_count<CNT_32_MAX15> (Bitboard bb)
+INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 {
-    //uint32_t *p = (uint32_t*) (&bb);
-    //uint32_t *w0 = p+0;
-    //uint32_t *w1 = p+1;
+    //u32 *p = (u32*) (&bb);
+    //u32 *w0 = p+0;
+    //u32 *w1 = p+1;
     //*w0 -= (*w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     //*w1 -= (*w1 >> 1) & M1_32;
     //*w0 = ((*w0 >> 2) & M2_32) + (*w0 & M2_32);// 0-4 in 4 bits
     //*w1 = ((*w1 >> 2) & M2_32) + (*w1 & M2_32);
     //return ((*w0 + *w1) * H4_32) >> 0x1C;      // 28;
 
-    uint32_t w0 = uint32_t (bb);
-    uint32_t w1 = uint32_t (bb >> 32);
+    u32 w0 = u32 (bb);
+    u32 w1 = u32 (bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
     w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits

@@ -86,9 +86,9 @@ template<class T>
 PolyglotBook& PolyglotBook::operator>> (T &t)
 {
     t = T ();
-    for (uint8_t i = 0; i < sizeof (T) && good (); ++i)
+    for (u08 i = 0; i < sizeof (T) && good (); ++i)
     {
-        uint8_t byte = uint8_t (get ());
+        u08 byte = u08 (get ());
         t = T ((t << 8) + byte);
     }
     return *this;
@@ -103,10 +103,10 @@ PolyglotBook& PolyglotBook::operator>> (PEntry &pe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    const uint8_t SIZE = sizeof (T);
-    for (uint8_t i = 0; i < SIZE && good (); ++i)
+    const u08 SIZE = sizeof (T);
+    for (u08 i = 0; i < SIZE && good (); ++i)
     {
-        uint8_t byte = uint8_t (t >> (8*(SIZE - 1 - i)));
+        u08 byte = u08 (t >> (8*(SIZE - 1 - i)));
         put (byte);
     }
     return *this;
@@ -172,12 +172,12 @@ bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 
 void PolyglotBook::close () { if (fstream::is_open ()) fstream::close (); }
 
-uint64_t PolyglotBook::find_index (const Key key)
+u64 PolyglotBook::find_index (const Key key)
 {
     if (!fstream::is_open ()) return ERROR_INDEX;
 
-    uint64_t beg = uint64_t (0);
-    uint64_t end = uint64_t ((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
+    u64 beg = u64 (0);
+    u64 end = u64 ((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
 
     PEntry pe;
 
@@ -192,7 +192,7 @@ uint64_t PolyglotBook::find_index (const Key key)
     {
         while (beg < end && good ())
         {
-            uint64_t mid = (beg + end) / 2;
+            u64 mid = (beg + end) / 2;
             ASSERT (mid >= beg && mid < end);
 
             seekg (STM_POS (mid));
@@ -212,18 +212,18 @@ uint64_t PolyglotBook::find_index (const Key key)
     ASSERT (beg == end);
     return (key == pe.key) ? beg : ERROR_INDEX;
 }
-uint64_t PolyglotBook::find_index (const Position &pos)
+u64 PolyglotBook::find_index (const Position &pos)
 {
     return find_index (ZobPG.compute_posi_key (pos));
 }
 
 #ifndef NDEBUG
-uint64_t PolyglotBook::find_index (const   char *fen, bool c960)
+u64 PolyglotBook::find_index (const   char *fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
 #endif
-uint64_t PolyglotBook::find_index (const string &fen, bool c960)
+u64 PolyglotBook::find_index (const string &fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));
 }
@@ -237,7 +237,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     Key key = ZobPG.compute_posi_key (pos);
 
-    uint64_t index = find_index (key);
+    u64 index = find_index (key);
     if (ERROR_INDEX == index) return MOVE_NONE;
 
     seekg (STM_POS (index));
@@ -246,8 +246,8 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     PEntry pe;
 
-    uint16_t max_weight = 0;
-    uint32_t sum_weight = 0;
+    u16 max_weight = 0;
+    u32 sum_weight = 0;
 
     //vector<PEntry> pe_list;
     //while ((*this >> pe), (pe.key == key))
@@ -279,7 +279,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
-    //    uint32_t rand = (_rkiss.rand<uint32_t> () % sum_weight);
+    //    u32 rand = (_rkiss.rand<u32> () % sum_weight);
     //    vector<PEntry>::const_iterator itr = pe_list.begin ();
     //    while (itr != pe_list.end ())
     //    {
@@ -307,7 +307,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         // Note that first entry is always chosen.
 
 
-        //uint32_t rand = _rkiss.rand<uint32_t> ();
+        //u32 rand = _rkiss.rand<u32> ();
         //if ((sum_weight && rand % sum_weight < pe.weight) ||
         //    (pick_best && (pe.weight == max_weight)))
         //{
@@ -320,7 +320,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         }
         else if (sum_weight)
         {
-            uint16_t rand = _rkiss.rand<uint16_t> () % sum_weight;
+            u16 rand = _rkiss.rand<u16> () % sum_weight;
             if (pe.weight > rand) move = Move (pe.move);
         }
         else if (MOVE_NONE == move) // if not pick best and sum of weight = 0
@@ -370,7 +370,7 @@ string PolyglotBook::read_entries (const Position &pos)
 
     Key key = ZobPG.compute_posi_key (pos);
 
-    uint64_t index = find_index (key);
+    u64 index = find_index (key);
     if (ERROR_INDEX == index)
     {
         cerr << "ERROR: no such key... "
@@ -385,7 +385,7 @@ string PolyglotBook::read_entries (const Position &pos)
 
     vector<PEntry> pe_list;
 
-    uint32_t sum_weight = 0;
+    u32 sum_weight = 0;
     while ((*this >> pe), (pe.key == key))
     {
         pe_list.push_back (pe);
@@ -408,7 +408,7 @@ void PolyglotBook::insert_entry (const PolyglotBook::PEntry &pe)
 {
     if (!fstream::is_open () || !(_mode & ios_base::out)) return;
 
-    uint64_t index = find_index (pe.key);
+    u64 index = find_index (pe.key);
     if (ERROR_INDEX == index)
     {
 

@@ -55,7 +55,7 @@ public:
         }
         else
         {
-            if (abs (int32_t (_table[p][s] + v)) < VALUE_KNOWN_WIN)
+            if (abs (i32 (_table[p][s] + v)) < VALUE_KNOWN_WIN)
             {
                 _table[p][s] += v;
             }
@@ -81,7 +81,7 @@ class MovePicker
 
 private:
 
-    typedef enum StageT : uint8_t
+    typedef enum StageT : u08
     {
         MAIN_STAGE, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS  , EVASIONS_S2,
@@ -116,7 +116,7 @@ private:
 
     Value   capture_threshold;
 
-    uint8_t stage;
+    u08     stage;
 
     MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 

@@ -15,7 +15,7 @@ namespace Engine {
 
     extern void run (const std::string &args);
 
-    extern void exit (int32_t code);
+    extern void exit (i32 code);
 
 }
 

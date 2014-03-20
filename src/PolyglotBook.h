@@ -37,10 +37,10 @@ public:
     //  - Learn     4 bytes
     typedef struct PEntry
     {
-        uint64_t key;
-        uint16_t move;
-        uint16_t weight;
-        uint32_t learn;
+        u64 key;
+        u16 move;
+        u16 weight;
+        u32 learn;
 
         PEntry ()
             : key (U64 (0))
@@ -61,17 +61,17 @@ public:
 
     } PEntry;
 
-    static const uint8_t PGENTRY_SIZE   = sizeof (PEntry);
-    static const uint8_t PGHEADER_SIZE  = 0*PGENTRY_SIZE;
+    static const u08 PGENTRY_SIZE   = sizeof (PEntry);
+    static const u08 PGHEADER_SIZE  = 0*PGENTRY_SIZE;
 
-    static const uint64_t  ERROR_INDEX  = uint64_t (-1);
+    static const u64  ERROR_INDEX  = u64 (-1);
 
 private:
 
     std::string _fn_book;
     std::ios_base::openmode _mode;
 
-    uint64_t    _size_book;
+    u64    _size_book;
 
     RKISS       _rkiss;
 
@@ -83,12 +83,12 @@ private:
 public:
     // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
-    uint64_t find_index (const Key key);
-    uint64_t find_index (const Position &pos);
+    u64 find_index (const Key key);
+    u64 find_index (const Position &pos);
 #ifndef NDEBUG
-    uint64_t find_index (const        char *fen, bool c960 = false);
+    u64 find_index (const        char *fen, bool c960 = false);
 #endif
-    uint64_t find_index (const std::string &fen, bool c960 = false);
+    u64 find_index (const std::string &fen, bool c960 = false);
 
 public:
 
@@ -96,24 +96,24 @@ public:
 
     // mode = std::ios_base::in|std::ios_base::out
 #ifndef NDEBUG
-    PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
+    PolyglotBook (const         char *fn_book, std::ios_base::openmode mode);
 #endif
     PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
 #ifndef NDEBUG
-    bool open (const        char *fn_book, std::ios_base::openmode mode);
+    bool open (const         char *fn_book, std::ios_base::openmode mode);
 #endif
     bool open (const std::string &fn_book, std::ios_base::openmode mode);
     void close ();
 
     std::string filename () const { return _fn_book; }
 
-    uint64_t size ()
+    u64 size ()
     {
         if (0 >= _size_book)
         {
-            uint64_t pos_cur = tellg ();
+            u64 pos_cur = tellg ();
             seekg (0L, std::ios_base::end);
             _size_book = tellg ();
             seekg (pos_cur, std::ios_base::beg);

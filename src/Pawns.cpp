@@ -174,7 +174,7 @@ namespace Pawns {
             if (pos.count<PAWN> (C) > 1)
             {
                 Bitboard b = e->_semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpan * int32_t (scan_msq (b) - scan_lsq (b));
+                pawn_score += PawnsFileSpan * i32 (scan_msq (b) - scan_lsq (b));
             }
 
             return pawn_score;
@@ -185,13 +185,13 @@ namespace Pawns {
     // Initializes some tables by formula instead of hard-coding their values
     void initialize ()
     {
-        const int16_t FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
         for (Rank r = R_1; r < R_8; ++r)
         {
             for (File f = F_A; f <= F_H; ++f)
             {
-                int16_t bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
+                i16 bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
                 Connected[f][r] = mk_score (bonus, bonus);
             }
         }
@@ -250,7 +250,7 @@ namespace Pawns {
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                int8_t danger = (w_rk != R_1)
+                i08 danger = (w_rk != R_1)
                     ? ((b_rk == w_rk + 1) ? 2 : 1)
                     : 0;
                 

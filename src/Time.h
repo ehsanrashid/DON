@@ -22,7 +22,7 @@
 
 #   include <sys/timeb.h>
 
-INLINE uint64_t system_time_msec ()
+INLINE u64 system_time_msec ()
 {
     _timeb timebuf;
     _ftime (&timebuf);
@@ -34,7 +34,7 @@ INLINE uint64_t system_time_msec ()
 
 #   include <sys/time.h>
 
-INLINE uint64_t system_time_msec ()
+INLINE u64 system_time_msec ()
 {
     timeval timebuf;
     gettimeofday (&timebuf, NULL);
@@ -45,13 +45,13 @@ INLINE uint64_t system_time_msec ()
 
 namespace Time {
 
-    //typedef enum point : uint64_t
+    //typedef enum point : u64
     //{
     //    M_SEC = 1000,
     //} point;
-    //INLINE point  operator-  (const point &p1, const point &p2) { return point (uint64_t (p1) - uint64_t (p2)); }
+    //INLINE point  operator-  (const point &p1, const point &p2) { return point (u64 (p1) - u64 (p2)); }
 
-    typedef int64_t     point;
+    typedef i64     point;
     const point M_SEC = 1000;
 
     INLINE point now () { return point (system_time_msec ()); }

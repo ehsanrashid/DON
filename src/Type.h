@@ -15,11 +15,11 @@
 
 #define UNLIKELY(x) (x) // For code annotation purposes
 
-typedef uint64_t   Key;
-typedef uint64_t   Bitboard;
+typedef u64 Key;
+typedef u64 Bitboard;
 
-const uint8_t MAX_PLY      = 120;          // Maximum Depth
-const uint8_t MAX_PLY_6    = MAX_PLY + 6;  // Maximum Stack size
+const u08   MAX_PLY     = 120;          // Maximum Depth
+const u08   MAX_PLY_6   = MAX_PLY + 6;  // Maximum Stack size
 
 #ifdef _MSC_VER
 //#   pragma warning (push)
@@ -27,21 +27,21 @@ const uint8_t MAX_PLY_6    = MAX_PLY + 6;  // Maximum Stack size
 #endif
 
 // File of Square
-typedef enum File : int8_t
+typedef enum File : i08
 {
     F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO
 
 } File;
 
 // Rank of Square
-typedef enum Rank : int8_t
+typedef enum Rank : i08
 {
     R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO
 
 } Rank;
 
 // Diagonal of Square
-typedef enum Diag : int8_t
+typedef enum Diag : i08
 {
     D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
     D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO
@@ -49,12 +49,12 @@ typedef enum Diag : int8_t
 } Diag;
 
 // Color of Square and Side
-typedef enum Color : int8_t { WHITE, BLACK, CLR_NO } Color;
+typedef enum Color : i08 { WHITE, BLACK, CLR_NO } Color;
 
 // Square needs 6-bits (0-5) to be stored
 // bit 0-2: File
 // bit 3-5: Rank
-typedef enum Square : int8_t
+typedef enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -79,42 +79,42 @@ typedef enum Square : int8_t
 } Square;
 
 // Delta of Square
-typedef enum Delta : int8_t
+typedef enum Delta : i08
 {
 
     DEL_O =  0,
 
     DEL_N =  8,
     DEL_E =  1,
-    DEL_S = -int8_t (DEL_N),
-    DEL_W = -int8_t (DEL_E),
+    DEL_S = -i08 (DEL_N),
+    DEL_W = -i08 (DEL_E),
 
-    DEL_NN = int8_t (DEL_N) + int8_t (DEL_N),
-    DEL_EE = int8_t (DEL_E) + int8_t (DEL_E),
-    DEL_SS = int8_t (DEL_S) + int8_t (DEL_S),
-    DEL_WW = int8_t (DEL_W) + int8_t (DEL_W),
+    DEL_NN = i08 (DEL_N) + i08 (DEL_N),
+    DEL_EE = i08 (DEL_E) + i08 (DEL_E),
+    DEL_SS = i08 (DEL_S) + i08 (DEL_S),
+    DEL_WW = i08 (DEL_W) + i08 (DEL_W),
 
-    DEL_NE = int8_t (DEL_N) + int8_t (DEL_E),
-    DEL_SE = int8_t (DEL_S) + int8_t (DEL_E),
-    DEL_SW = int8_t (DEL_S) + int8_t (DEL_W),
-    DEL_NW = int8_t (DEL_N) + int8_t (DEL_W),
+    DEL_NE = i08 (DEL_N) + i08 (DEL_E),
+    DEL_SE = i08 (DEL_S) + i08 (DEL_E),
+    DEL_SW = i08 (DEL_S) + i08 (DEL_W),
+    DEL_NW = i08 (DEL_N) + i08 (DEL_W),
 
-    DEL_NNE = int8_t (DEL_NN) + int8_t (DEL_E),
-    DEL_NNW = int8_t (DEL_NN) + int8_t (DEL_W),
+    DEL_NNE = i08 (DEL_NN) + i08 (DEL_E),
+    DEL_NNW = i08 (DEL_NN) + i08 (DEL_W),
 
-    DEL_EEN = int8_t (DEL_EE) + int8_t (DEL_N),
-    DEL_EES = int8_t (DEL_EE) + int8_t (DEL_S),
+    DEL_EEN = i08 (DEL_EE) + i08 (DEL_N),
+    DEL_EES = i08 (DEL_EE) + i08 (DEL_S),
 
-    DEL_SSE = int8_t (DEL_SS) + int8_t (DEL_E),
-    DEL_SSW = int8_t (DEL_SS) + int8_t (DEL_W),
+    DEL_SSE = i08 (DEL_SS) + i08 (DEL_E),
+    DEL_SSW = i08 (DEL_SS) + i08 (DEL_W),
 
-    DEL_WWN = int8_t (DEL_WW) + int8_t (DEL_N),
-    DEL_WWS = int8_t (DEL_WW) + int8_t (DEL_S)
+    DEL_WWN = i08 (DEL_WW) + i08 (DEL_N),
+    DEL_WWS = i08 (DEL_WW) + i08 (DEL_S)
 
 } Delta;
 
 // Castle Side
-typedef enum CSide : int8_t
+typedef enum CSide : i08
 {
     CS_K ,    // (KING)-SHORT CASTLE
     CS_Q ,    // (QUEEN)-LONG CASTLE
@@ -124,7 +124,7 @@ typedef enum CSide : int8_t
 
 // Castle Right
 // Defined as in PolyGlot book hash key
-typedef enum CRight : uint8_t
+typedef enum CRight : u08
 {
     CR_NO ,                 // 0000
     CR_W_K,                 // 0001
@@ -132,15 +132,15 @@ typedef enum CRight : uint8_t
     CR_B_K = CR_W_K << 2,   // 0100
     CR_B_Q = CR_W_K << 3,   // 1000
 
-    CR_W = uint8_t (CR_W_K) | uint8_t (CR_W_Q), // 0011
-    CR_B = uint8_t (CR_B_K) | uint8_t (CR_B_Q), // 1100
-    CR_A = uint8_t (CR_W)   | uint8_t (CR_B),   // 1111
+    CR_W = u08 (CR_W_K) | u08 (CR_W_Q), // 0011
+    CR_B = u08 (CR_B_K) | u08 (CR_B_Q), // 1100
+    CR_A = u08 (CR_W)   | u08 (CR_B),   // 1111
     CR_ALL = 16
 
 } CRight;
 
 // Types of Piece
-typedef enum PieceT : int8_t
+typedef enum PieceT : i08
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
@@ -169,7 +169,7 @@ typedef enum PieceT : int8_t
 // PAWN  & KING  < 3
 // MINOR & MAJOR > 2
 // ONLY MAJOR    > 5
-typedef enum Piece : uint8_t
+typedef enum Piece : u08
 {
     W_PAWN = 0, //  0000
     W_NIHT    , //  0001
@@ -195,7 +195,7 @@ typedef enum Piece : uint8_t
 } Piece;
 
 // Types of Move
-typedef enum MoveT : uint16_t
+typedef enum MoveT : u16
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
@@ -215,27 +215,27 @@ typedef enum MoveT : uint16_t
 // Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
-typedef enum Move : uint16_t
+typedef enum Move : u16
 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41
 
 } Move;
 
-enum Value : int32_t
+enum Value : i32
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
     
     VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = +int16_t (VALUE_NONE) - 1,
-    VALUE_INFINITE_ = -int16_t (VALUE_INFINITE),
+    VALUE_INFINITE  = +i16 (VALUE_NONE) - 1,
+    VALUE_INFINITE_ = -i16 (VALUE_INFINITE),
 
-    VALUE_MATE      = +int16_t (VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = +int16_t (VALUE_MATE) / 3,
+    VALUE_MATE      = +i16 (VALUE_INFINITE) - 1,
+    VALUE_KNOWN_WIN = +i16 (VALUE_MATE) / 3,
 
-    VALUE_MATES_IN_MAX_PLY = +int16_t (VALUE_MATE) - int16_t (MAX_PLY),
-    VALUE_MATED_IN_MAX_PLY = -int16_t (VALUE_MATE) + int16_t (MAX_PLY),
+    VALUE_MATES_IN_MAX_PLY = +i16 (VALUE_MATE) - i16 (MAX_PLY),
+    VALUE_MATED_IN_MAX_PLY = -i16 (VALUE_MATE) + i16 (MAX_PLY),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -249,23 +249,23 @@ enum Value : int32_t
 // first LSB 16 bits are used to store endgame value, while upper bits are used
 // for midgame value. Compiler is free to choose the enum type as long as can
 // keep its data, so ensure Score to be an integer type.
-typedef enum Score : int32_t { SCORE_ZERO      = 0 } Score;
+typedef enum Score : i32 { SCORE_ZERO      = 0 } Score;
 
-typedef enum Depth : int16_t
+typedef enum Depth : i16
 {
     //ONE_PLY             =    1,
-    ONE_MOVE            =    2,//2 * int16_t (ONE_PLY),
+    ONE_MOVE            =    2,//2 * i16 (ONE_PLY),
 
-    DEPTH_ZERO          =    0 * int16_t (ONE_MOVE),
-    DEPTH_QS_CHECKS     =    0 * int16_t (ONE_MOVE),
-    DEPTH_QS_NO_CHECKS  =   -1 * int16_t (ONE_MOVE),
-    DEPTH_QS_RECAPTURES =   -5 * int16_t (ONE_MOVE),
+    DEPTH_ZERO          =    0 * i16 (ONE_MOVE),
+    DEPTH_QS_CHECKS     =    0 * i16 (ONE_MOVE),
+    DEPTH_QS_NO_CHECKS  =   -1 * i16 (ONE_MOVE),
+    DEPTH_QS_RECAPTURES =   -5 * i16 (ONE_MOVE),
 
-    DEPTH_NONE          = -128 * int16_t (ONE_MOVE)
+    DEPTH_NONE          = -128 * i16 (ONE_MOVE)
 
 } Depth;
 
-typedef enum Bound : uint8_t
+typedef enum Bound : u08
 {
     // NONE BOUND           - NO_NODE
     BND_NONE    = 0,
@@ -299,7 +299,7 @@ typedef enum Bound : uint8_t
 
 } Bound;
 
-typedef enum Phase : int16_t
+typedef enum Phase : i16
 {
     PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
@@ -310,7 +310,7 @@ typedef enum Phase : int16_t
 
 } Phase;
 
-typedef enum ScaleFactor : uint8_t
+typedef enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
 
@@ -325,7 +325,7 @@ typedef enum ScaleFactor : uint8_t
 //#   pragma warning (pop)
 #endif
 
-inline Score mk_score (int32_t mg, int32_t eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
@@ -337,56 +337,56 @@ inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x100
 // compliant it seems to work for Intel and MSVC.
 #if defined(_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
 
-inline Value eg_value (Score s) { return Value (int16_t (s & 0xFFFF)); }
+inline Value eg_value (Score s) { return Value (i16 (s & 0xFFFF)); }
 
 #else
 
-inline Value eg_value (Score s) { return Value (int32_t (uint32_t (s) & 0x7FFFU) - int32_t (uint32_t (s) & 0x8000U)); }
+inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u32 (s) & 0x8000U)); }
 
 #endif
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-#define ARTHMAT_OPERATORS(T)                                                                \
-    inline T  operator+  (T  d1, T d2) { return T (int32_t (d1) + int32_t (d2)); }          \
-    inline T  operator-  (T  d1, T d2) { return T (int32_t (d1) - int32_t (d2)); }          \
-    inline T  operator*  (T  d, int32_t i) { return T (int32_t (d) * i); }                  \
-    inline T  operator+  (T  d, int32_t i) { return T (int32_t (d) + i); }                  \
-    inline T  operator-  (T  d, int32_t i) { return T (int32_t (d) - i); }                  \
-    inline T  operator+  (T  d)        { return T (+int32_t (d)); }                         \
-    inline T  operator-  (T  d)        { return T (-int32_t (d)); }                         \
-    inline T& operator+= (T &d1, T d2) { d1 = T (int32_t (d1) + int32_t (d2)); return d1; } \
-    inline T& operator-= (T &d1, T d2) { d1 = T (int32_t (d1) - int32_t (d2)); return d1; } \
-    inline T& operator+= (T &d, int32_t i) { d = T (int32_t (d) + i); return d; }           \
-    inline T& operator-= (T &d, int32_t i) { d = T (int32_t (d) - i); return d; }           \
-    inline T  operator*  (int32_t i, T  d) { return T (i * int32_t (d)); }                  \
-    inline T& operator*= (T &d, int32_t i) { d = T (int32_t (d) * i); return d; }
+#define ARTHMAT_OPERATORS(T)                                                        \
+    inline T  operator+  (T  d1, T d2) { return T (i32 (d1) + i32 (d2)); }          \
+    inline T  operator-  (T  d1, T d2) { return T (i32 (d1) - i32 (d2)); }          \
+    inline T  operator*  (T  d, i32 i) { return T (i32 (d) * i); }                  \
+    inline T  operator+  (T  d, i32 i) { return T (i32 (d) + i); }                  \
+    inline T  operator-  (T  d, i32 i) { return T (i32 (d) - i); }                  \
+    inline T  operator+  (T  d)        { return T (+i32 (d)); }                     \
+    inline T  operator-  (T  d)        { return T (-i32 (d)); }                     \
+    inline T& operator+= (T &d1, T d2) { d1 = T (i32 (d1) + i32 (d2)); return d1; } \
+    inline T& operator-= (T &d1, T d2) { d1 = T (i32 (d1) - i32 (d2)); return d1; } \
+    inline T& operator+= (T &d, i32 i) { d = T (i32 (d) + i); return d; }           \
+    inline T& operator-= (T &d, i32 i) { d = T (i32 (d) - i); return d; }           \
+    inline T  operator*  (i32 i, T  d) { return T (i * i32 (d)); }                  \
+    inline T& operator*= (T &d, i32 i) { d = T (i32 (d) * i); return d; }
 
-//inline T  operator+  (int32_t i, T d) { return T (i + int32_t (d)); }                  
-//inline T  operator-  (int32_t i, T d) { return T (i - int32_t (d)); }                  
-//inline T  operator/  (T  d, int32_t i) { return T (int32_t (d) / i); }                 
-//inline T& operator/= (T &d, int32_t i) { d = T (int32_t (d) / i); return d; }
+//inline T  operator+  (i32 i, T d) { return T (i + i32 (d)); }                  
+//inline T  operator-  (i32 i, T d) { return T (i - i32 (d)); }                  
+//inline T  operator/  (T  d, i32 i) { return T (i32 (d) / i); }                 
+//inline T& operator/= (T &d, i32 i) { d = T (i32 (d) / i); return d; }
 
-#define INC_DEC_OPERATORS(T)                                                                \
-    inline T  operator++ (T &d, int32_t) { T o = d; d = T (int32_t (d) + 1); return o; }    \
-    inline T  operator-- (T &d, int32_t) { T o = d; d = T (int32_t (d) - 1); return o; }    \
-    inline T& operator++ (T &d         ) { d = T (int32_t (d) + 1); return d; }             \
-    inline T& operator-- (T &d         ) { d = T (int32_t (d) - 1); return d; }
+#define INC_DEC_OPERATORS(T)                                                        \
+    inline T  operator++ (T &d, i32) { T o = d; d = T (i32 (d) + 1); return o; }    \
+    inline T  operator-- (T &d, i32) { T o = d; d = T (i32 (d) - 1); return o; }    \
+    inline T& operator++ (T &d         ) { d = T (i32 (d) + 1); return d; }         \
+    inline T& operator-- (T &d         ) { d = T (i32 (d) - 1); return d; }
 
 
 INC_DEC_OPERATORS (File)
-inline File  operator+  (File  f, int32_t i) { return File (int32_t (f) + i); }
-inline File  operator-  (File  f, int32_t i) { return File (int32_t (f) - i); }
-inline File& operator+= (File &f, int32_t i) { f = File (int32_t (f) + i); return f; }
-inline File& operator-= (File &f, int32_t i) { f = File (int32_t (f) - i); return f; }
+inline File  operator+  (File  f, i32 i) { return File (i32 (f) + i); }
+inline File  operator-  (File  f, i32 i) { return File (i32 (f) - i); }
+inline File& operator+= (File &f, i32 i) { f = File (i32 (f) + i); return f; }
+inline File& operator-= (File &f, i32 i) { f = File (i32 (f) - i); return f; }
 
 
 INC_DEC_OPERATORS (Rank)
-inline Rank  operator+  (Rank  r, int32_t i) { return Rank (int32_t (r) + i); }
-inline Rank  operator-  (Rank  r, int32_t i) { return Rank (int32_t (r) - i); }
-inline Rank& operator+= (Rank &r, int32_t i) { r = Rank (int32_t (r) + i); return r; }
-inline Rank& operator-= (Rank &r, int32_t i) { r = Rank (int32_t (r) - i); return r; }
+inline Rank  operator+  (Rank  r, i32 i) { return Rank (i32 (r) + i); }
+inline Rank  operator-  (Rank  r, i32 i) { return Rank (i32 (r) - i); }
+inline Rank& operator+= (Rank &r, i32 i) { r = Rank (i32 (r) + i); return r; }
+inline Rank& operator-= (Rank &r, i32 i) { r = Rank (i32 (r) - i); return r; }
 
 //INC_DEC_OPERATORS (Diag);
 
@@ -394,52 +394,52 @@ INC_DEC_OPERATORS (Color)
 
 // Square operator
 INC_DEC_OPERATORS (Square)
-inline Square  operator+  (Square  s, Delta d) { return Square (int32_t (s) + int32_t (d)); }
-inline Square  operator-  (Square  s, Delta d) { return Square (int32_t (s) - int32_t (d)); }
-inline Square& operator+= (Square &s, Delta d) { s = Square (int32_t (s) + int32_t (d)); return s; }
-inline Square& operator-= (Square &s, Delta d) { s = Square (int32_t (s) - int32_t (d)); return s; }
-inline Delta   operator-  (Square s1, Square s2) { return Delta (int32_t (s1) - int32_t (s2)); }
+inline Square  operator+  (Square  s, Delta d) { return Square (i32 (s) + i32 (d)); }
+inline Square  operator-  (Square  s, Delta d) { return Square (i32 (s) - i32 (d)); }
+inline Square& operator+= (Square &s, Delta d) { s = Square (i32 (s) + i32 (d)); return s; }
+inline Square& operator-= (Square &s, Delta d) { s = Square (i32 (s) - i32 (d)); return s; }
+inline Delta   operator-  (Square s1, Square s2) { return Delta (i32 (s1) - i32 (s2)); }
 
 ARTHMAT_OPERATORS (Delta)
-inline Delta  operator/  (Delta  d, int32_t i) { return Delta (int32_t (d) / i); }
-inline Delta& operator/= (Delta &d, int32_t i) { d = Delta (int32_t (d) / i); return d; }
+inline Delta  operator/  (Delta  d, i32 i) { return Delta (i32 (d) / i); }
+inline Delta& operator/= (Delta &d, i32 i) { d = Delta (i32 (d) / i); return d; }
 
 INC_DEC_OPERATORS (CSide)
 
 // CRight operator
-inline CRight  operator|  (CRight  cr, int32_t i) { return CRight (int32_t (cr) | i); }
-inline CRight  operator&  (CRight  cr, int32_t i) { return CRight (int32_t (cr) & i); }
-inline CRight  operator^  (CRight  cr, int32_t i) { return CRight (int32_t (cr) ^ i); }
-inline CRight& operator|= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) | i); return cr; }
-inline CRight& operator&= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) & i); return cr; }
-inline CRight& operator^= (CRight &cr, int32_t i) { cr = CRight (int32_t (cr) ^ i); return cr; }
+inline CRight  operator|  (CRight  cr, i32 i) { return CRight (i32 (cr) | i); }
+inline CRight  operator&  (CRight  cr, i32 i) { return CRight (i32 (cr) & i); }
+inline CRight  operator^  (CRight  cr, i32 i) { return CRight (i32 (cr) ^ i); }
+inline CRight& operator|= (CRight &cr, i32 i) { cr = CRight (i32 (cr) | i); return cr; }
+inline CRight& operator&= (CRight &cr, i32 i) { cr = CRight (i32 (cr) & i); return cr; }
+inline CRight& operator^= (CRight &cr, i32 i) { cr = CRight (i32 (cr) ^ i); return cr; }
 
 INC_DEC_OPERATORS (PieceT)
 
 // Move operator
-inline Move& operator|= (Move &m, int32_t i) { m = Move (int32_t (m) | i); return m; }
-inline Move& operator&= (Move &m, int32_t i) { m = Move (int32_t (m) & i); return m; }
+inline Move& operator|= (Move &m, i32 i) { m = Move (i32 (m) | i); return m; }
+inline Move& operator&= (Move &m, i32 i) { m = Move (i32 (m) & i); return m; }
 
 ARTHMAT_OPERATORS (Value)
 INC_DEC_OPERATORS (Value)
 // Additional operators to add integers to a Value
-inline Value  operator+  (int32_t i, Value v) { return Value (i + int32_t (v)); }
-inline Value  operator-  (int32_t i, Value v) { return Value (i - int32_t (v)); }
-inline Value  operator/  (Value  v, int32_t i) { return Value (int32_t (v) / i); }
-inline Value& operator/= (Value &v, int32_t i) { v = Value (int32_t (v) / i); return v; }
+inline Value  operator+  (i32 i, Value v) { return Value (i + i32 (v)); }
+inline Value  operator-  (i32 i, Value v) { return Value (i - i32 (v)); }
+inline Value  operator/  (Value  v, i32 i) { return Value (i32 (v) / i); }
+inline Value& operator/= (Value &v, i32 i) { v = Value (i32 (v) / i); return v; }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. We don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
-inline Score operator/ (Score s, int32_t i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 
 //ARTHMAT_OPERATORS (ScaleFactor)
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
-inline Depth  operator/ (Depth  d, int32_t i) { return Depth (uint8_t (d) / i); }
+inline Depth  operator/ (Depth  d, i32 i) { return Depth (u08 (d) / i); }
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
@@ -451,7 +451,7 @@ extern const Value PieceValue[PHASE_NO][TOTL];
 
 
 inline bool       _ok (Color c) { return (WHITE == c) || (BLACK == c); }
-inline Color operator~(Color c) { return Color (c ^ BLACK); }
+inline Color operator~(Color c) { return Color (c^BLACK); }
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
@@ -460,10 +460,10 @@ inline Color operator~(Color c) { return Color (c ^ BLACK); }
 //    return os;
 //}
 
-inline bool      _ok (File f) { return !(f & ~int8_t (F_H)); }
-inline File operator~(File f) { return File (f ^ int8_t (F_H)); }
+inline bool      _ok (File f) { return !(f & ~i08 (F_H)); }
+inline File operator~(File f) { return File (f ^ i08 (F_H)); }
 inline File to_file  (char f) { return File (f - 'a'); }
-inline char to_char  (File f, bool lower = true) { return char (int8_t (f) - int8_t (F_A)) + (lower ? 'a' : 'A'); }
+inline char to_char  (File f, bool lower = true) { return char (i08 (f) - i08 (F_A)) + (lower ? 'a' : 'A'); }
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, File f)
@@ -473,10 +473,10 @@ inline char to_char  (File f, bool lower = true) { return char (int8_t (f) - int
 //}
 
 
-inline bool      _ok (Rank r) { return !(r & ~int8_t (R_8)); }
-inline Rank operator~(Rank r) { return Rank (r ^ int8_t (R_8)); }
+inline bool      _ok (Rank r) { return !(r & ~i08 (R_8)); }
+inline Rank operator~(Rank r) { return Rank (r ^ i08 (R_8)); }
 inline Rank to_rank  (char r) { return Rank (r - '1'); }
-inline char to_char  (Rank r) { return char (int8_t (r) - int8_t (R_1)) + '1'; }
+inline char to_char  (Rank r) { return char (i08 (r) - i08 (R_1)) + '1'; }
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
 //    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
@@ -486,27 +486,27 @@ inline char to_char  (Rank r) { return char (int8_t (r) - int8_t (R_1)) + '1'; }
 //}
 
 
-inline Square operator| (File f, Rank r) { return Square (( r << 3) | int8_t (f)); }
-inline Square operator| (Rank r, File f) { return Square ((~r << 3) | int8_t (f)); }
+inline Square operator| (File f, Rank r) { return Square (( r << 3) | i08 (f)); }
+inline Square operator| (Rank r, File f) { return Square ((~r << 3) | i08 (f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
-inline bool _ok     (Square s) { return !(s & ~int8_t (SQ_H8)); }
-inline File _file   (Square s) { return File (s & int8_t (SQ_H1)); }
+inline bool _ok     (Square s) { return !(s & ~i08 (SQ_H8)); }
+inline File _file   (Square s) { return File (s & i08 (SQ_H1)); }
 inline Rank _rank   (Square s) { return Rank (s >> 3); }
-inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & int8_t (SQ_H1)) + int8_t (SQ_H1)); } // R - F + 7
-inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & int8_t (SQ_H1))); }         // R + F
+inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & i08 (SQ_H1)) + i08 (SQ_H1)); } // R - F + 7
+inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & i08 (SQ_H1))); }         // R + F
 inline Color _color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
 // FLIP   => SQ_A1 -> SQ_A8
-inline Square operator~(Square s) { return Square (s ^ int8_t (SQ_A8)); }
+inline Square operator~(Square s) { return Square (s ^ i08 (SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
-inline Square operator!(Square s) { return Square (s ^ int8_t (SQ_H1)); }
+inline Square operator!(Square s) { return Square (s ^ i08 (SQ_H1)); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * int8_t (SQ_H1))); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * i08 (SQ_H1))); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
 inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * SQ_A8)); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
-    int8_t s = int8_t (s1) ^ int8_t (s2);
+    i08 s = i08 (s1) ^ i08 (s2);
     return ((s >> 3) ^ s) & BLACK;
 }
 
@@ -594,8 +594,8 @@ inline Piece operator~(Piece p) { return Piece (p ^ (BLACK << 3)); }
 //}
 
 
-inline Square org_sq    (Move m) { return Square ((m >> 6) & int8_t (SQ_H8)); }
-inline Square dst_sq    (Move m) { return Square ((m >> 0) & int8_t (SQ_H8)); }
+inline Square org_sq    (Move m) { return Square ((m >> 6) & i08 (SQ_H8)); }
+inline Square dst_sq    (Move m) { return Square ((m >> 0) & i08 (SQ_H8)); }
 inline PieceT prom_type (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
 inline MoveT mtype      (Move m) { return MoveT (PROMOTE & m); }
 
@@ -647,8 +647,8 @@ inline bool _ok (Move m)
     //Square dst = dst_sq (m);
     //if (org == dst) return false;
     //
-    //uint8_t del_f = BitBoard::file_dist (org, dst);
-    //uint8_t del_r = BitBoard::rank_dist (org, dst);
+    //u08 del_f = BitBoard::file_dist (org, dst);
+    //u08 del_r = BitBoard::rank_dist (org, dst);
     //if (  (del_f == del_r)
     //    || (0 == del_f) || (0 == del_r)
     //    || (5 == del_f*del_f + del_r*del_r))
@@ -661,8 +661,8 @@ inline bool _ok (Move m)
 }
 
 
-inline Value mates_in (int32_t ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
+inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
+inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
@@ -673,7 +673,7 @@ inline Value mated_in (int32_t ply) { return (-VALUE_MATE + ply); }
 //}
 
 
-template<class Entry, int32_t SIZE>
+template<class Entry, u32 SIZE>
 struct HashTable
 {
 
@@ -686,7 +686,7 @@ public:
         : _table (SIZE, Entry ())
     {}
 
-    inline Entry* operator[] (Key k) { return &_table[uint32_t (k) & (SIZE - 1)]; }
+    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (SIZE - 1)]; }
 
 };
 

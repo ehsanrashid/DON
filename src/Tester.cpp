@@ -79,7 +79,7 @@ namespace Tester {
             Bitboard m = Square_bb[s];
 
             Bitboard attacks;
-            uint8_t count;
+            u08 count;
 
             // --- KING
             attacks = PieceAttacks[KING][s];
@@ -504,7 +504,7 @@ namespace Tester {
             fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
             pos.setup (fen);
 
-            for (uint8_t i = 0; i < 50; ++i)
+            for (u08 i = 0; i < 50; ++i)
             {
                 si = states;
 

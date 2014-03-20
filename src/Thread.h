@@ -80,11 +80,11 @@ namespace Threads {
 
     using namespace Searcher;
 
-    const uint8_t MAX_THREADS            = 128; // Maximum threads
-    const uint8_t MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
-    const uint8_t MAX_SPLIT_DEPTH        =  15; // Maximum split depth
+    const u08   MAX_THREADS            = 128; // Maximum threads
+    const u08   MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
+    const u08   MAX_SPLIT_DEPTH        =  15; // Maximum split depth
 
-    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec);
+    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
 
     struct Mutex
     {
@@ -112,7 +112,7 @@ namespace Threads {
 
         void wait (Mutex &m) { cond_wait (condition, m._lock); }
 
-        void wait_for (Mutex &m, int32_t ms) { timed_wait (condition, m._lock, ms); }
+        void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
 
         void notify_one () { cond_signal (condition); }
     };
@@ -141,8 +141,8 @@ namespace Threads {
 
         std::bitset<MAX_THREADS> slaves_mask;
 
-        volatile uint64_t nodes;
-        volatile uint8_t  moves_count;
+        volatile u64 nodes;
+        volatile u08  moves_count;
         volatile Value    alpha;
         volatile Value    best_value;
         volatile Move     best_move;
@@ -178,7 +178,7 @@ namespace Threads {
         : public ThreadBase
     {
         // This is the minimum interval in msec between two check_time() calls
-        static const int32_t Resolution = 5;
+        static const i32 Resolution = 5;
 
         bool run;
 
@@ -206,12 +206,12 @@ namespace Threads {
 
         Position *active_pos;
 
-        uint8_t idx
+        u08 idx
               , max_ply;
 
         SplitPoint* volatile active_splitpoint;
 
-        volatile uint8_t splitpoint_threads;
+        volatile u08 splitpoint_threads;
         volatile bool    searching;
 
         Thread ();
@@ -224,7 +224,7 @@ namespace Threads {
 
         template <bool FAKE>
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, uint8_t moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 
@@ -276,18 +276,18 @@ namespace Threads {
 
     // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
     // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, int32_t msec)
+    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
     {
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        int32_t tm = msec;
+        i32 tm = msec;
 
 #else    // Linux - Unix
 
         timespec ts
             ,   *tm = &ts;
-        uint64_t ms = Time::now() + msec;
+        u64 ms = Time::now() + msec;
 
         ts.tv_sec = ms / Time::M_SEC;
         ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
@@ -304,7 +304,7 @@ namespace Threads {
 //#   include <thread>
 //#endif
 
-inline uint32_t cpu_count ()
+inline u32 cpu_count ()
 {
 
 //#if __cplusplus > 199711L
@@ -321,10 +321,10 @@ inline uint32_t cpu_count ()
 
 #   elif MACOS
 
-    uint32_t count;
-    uint32_t len = sizeof (count);
+    u32 count;
+    u32 len = sizeof (count);
 
-    int32_t nm[2];
+    i32 nm[2];
     nm[0] = CTL_HW;
     nm[1] = HW_AVAILCPU;
     sysctl (nm, 2, &count, &len, NULL, 0);

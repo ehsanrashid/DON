@@ -19,9 +19,9 @@ namespace Material {
 
         // Polynomial material balance parameters
         //                                            P      N      B      R      Q     BP
-        const int32_t LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
+        const i32 LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
 
-        const int32_t QuadraticCoefficientsSameColor[NONE][NONE] =
+        const i32 QuadraticCoefficientsSameColor[NONE][NONE] =
         {
             // P    N    B    R    Q    BP
             {   2,   0,   0,   0,   0,  39, }, // P
@@ -32,7 +32,7 @@ namespace Material {
             {   0,   0,   0,   0,   0,   0, }, // BP
         };
 
-        const int32_t QuadraticCoefficientsOppositeColor[NONE][NONE] =
+        const i32 QuadraticCoefficientsOppositeColor[NONE][NONE] =
         {
             //       THEIR PIECES
             // P    N    B    R    Q    BP
@@ -90,21 +90,21 @@ namespace Material {
         // imbalance<> () calculates imbalance comparing
         // piece count of each piece type for both colors.
         // KING == BISHOP_PAIR
-        inline Value imbalance (const int32_t count[CLR_NO][NONE])
+        inline Value imbalance (const i32 count[CLR_NO][NONE])
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
-            int32_t value = VALUE_ZERO;
+            i32 value = VALUE_ZERO;
 
             // "The Evaluation of Material Imbalances in Chess"
 
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
             {
-                int32_t pc = count[C][pt1];
+                i32 pc = count[C][pt1];
                 if (!pc) continue;
 
-                int32_t v = LinearCoefficients[pt1];
+                i32 v = LinearCoefficients[pt1];
 
                 for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
                 {
@@ -234,14 +234,14 @@ namespace Material {
         {
             if      (pos.count<PAWN> (WHITE) == 0)
             {
-                e->_factor[WHITE] = uint8_t (npm[WHITE] <= VALUE_MG_BSHP ?
+                e->_factor[WHITE] = u08 (npm[WHITE] <= VALUE_MG_BSHP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
                     1 : npm[BLACK] <= VALUE_MG_BSHP ? 
                     4 : 12);
             }
             else if (pos.count<PAWN> (WHITE) == 1)
             {
-                e->_factor[WHITE] = uint8_t ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
+                e->_factor[WHITE] = u08 ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
                     4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
             }
         }
@@ -250,14 +250,14 @@ namespace Material {
         {
             if      (pos.count<PAWN> (BLACK) == 0)
             {
-                e->_factor[BLACK] = uint8_t (npm[BLACK] <= VALUE_MG_BSHP ?
+                e->_factor[BLACK] = u08 (npm[BLACK] <= VALUE_MG_BSHP ?
                     SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
                     1 : npm[WHITE] <= VALUE_MG_BSHP ? 
                     4 : 12);
             }
             else if (pos.count<PAWN> (BLACK) == 1)
             {
-                e->_factor[BLACK] = uint8_t ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
+                e->_factor[BLACK] = u08 ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
                     4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
             }
         }
@@ -265,14 +265,14 @@ namespace Material {
         // Compute the space weight
         if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
         {
-            int32_t minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
+            i32 minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
             e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
         }
 
         // Evaluate the material imbalance.
         // We use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const int32_t count[CLR_NO][NONE] =
+        const i32 count[CLR_NO][NONE] =
         {
             {
                 pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
@@ -284,7 +284,7 @@ namespace Material {
             },
         };
 
-        e->_value = int16_t ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
+        e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
         return e;
     }
 

@@ -536,7 +536,7 @@ namespace MoveGenerator {
         //Bitboard mocc    = pos.pieces () - king_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
-        //for (uint8_t k = 0; PieceDeltas[KING][k]; ++k)
+        //for (u08 k = 0; PieceDeltas[KING][k]; ++k)
         //{
         //    Square sq = king_sq + PieceDeltas[KING][k];
         //    if (_ok (sq))

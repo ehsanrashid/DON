@@ -24,7 +24,7 @@ namespace Threads {
 
 #ifndef NDEBUG
 // 88 is the max FEN length - r1n1k1r1/1B1b1q1n/1p1p1p1p/p1p1p1p1/1P1P1P1P/P1P1P1P1/1b1B1Q1N/R1N1K1R1 w KQkq - 12 1000
-const uint8_t MAX_FEN     = 88;
+const u08 MAX_FEN     = 88;
 #endif
 
 // N-FEN (NATURAL-FEN)
@@ -71,8 +71,8 @@ public:
     Square  en_passant_sq;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint8_t clock50;
-    uint8_t null_ply;
+    u08 clock50;
+    u08 null_ply;
     // -------------------------------------
     Key     posi_key;       // Hash key of position.
     Move    last_move;      // Move played on the previous position.
@@ -136,8 +136,8 @@ private:
     Bitboard _types_bb[TOTL];
 
     Square   _piece_list [CLR_NO][NONE][16];
-    uint8_t  _piece_count[CLR_NO][NONE];
-    int8_t   _index   [SQ_NO];
+    u08  _piece_count[CLR_NO][NONE];
+    i08   _index   [SQ_NO];
 
     StateInfo  _sb; // Object for base status information
     StateInfo *_si; // Pointer for current status information
@@ -151,10 +151,10 @@ private:
     // "b" - BLACK
     Color    _active;
     // Ply of the game, incremented after every move.
-    uint16_t _game_ply;
+    u16 _game_ply;
     bool     _chess960;
 
-    uint64_t _game_nodes;
+    u64 _game_nodes;
 
     Threads::Thread *_thread;
 
@@ -173,7 +173,7 @@ private:
 
 public:
 
-    static uint8_t _50_move_dist;
+    static u08 _50_move_dist;
 
     static void initialize ();
 
@@ -191,7 +191,7 @@ public:
     }
     Position (const Position &pos , Threads::Thread *th = NULL) { *this = pos; _thread = th; }
     
-    explicit Position (int32_t) {}
+    explicit Position (i32) {}
 
     Position& operator= (const Position &pos);
 
@@ -205,28 +205,28 @@ public:
 
     Square king_sq (Color c)            const;
 
-    Bitboard pieces (Color c)           const;
-    Bitboard pieces (PieceT pt)         const;
+    Bitboard pieces (Color c)   const;
+    Bitboard pieces (PieceT pt) const;
     template<PieceT PT>
-    Bitboard pieces ()                  const;
-    Bitboard pieces (Color c, PieceT pt)const;
+    Bitboard pieces ()          const;
+    Bitboard pieces (Color c, PieceT pt) const;
     template<PieceT PT>
-    Bitboard pieces (Color c)           const;
+    Bitboard pieces (Color c)   const;
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
-    Bitboard pieces () const;
+    Bitboard pieces ()          const;
     //Bitboard empties () const;
 
-    int32_t count (Color c, PieceT pt) const;
+    i32 count (Color c, PieceT pt)  const;
     template<PieceT PT>
-    int32_t count (Color c)       const;
-    int32_t count (Color c)       const;
+    i32 count (Color c) const;
+    i32 count (Color c) const;
     template<PieceT PT>
-    int32_t count ()              const;
-    int32_t count ()              const;
+    i32 count ()        const;
+    i32 count ()        const;
 
     template<PieceT PT>
-    const Square* list (Color c)  const;
+    const Square* list (Color c)    const;
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -234,7 +234,7 @@ public:
     Square en_passant_sq () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    uint8_t clock50 ()      const;
+    u08 clock50 ()          const;
     Move  last_move ()      const;  // Last move played
     PieceT capture_type ()  const;  // Last ptype captured
     Piece capture_piece ()  const;  // Last piece captured
@@ -255,19 +255,19 @@ public:
     Square castle_rook  (CRight cr) const;
     bool castle_impeded (CRight cr) const;
 
-    Color    active    ()   const;
-    uint16_t game_ply  ()   const;
-    uint16_t game_move ()   const;
-    bool     chess960  ()   const;
-    bool     draw      ()   const;
-    bool     repeated  ()   const;
+    Color   active    () const;
+    u16     game_ply  () const;
+    u16     game_move () const;
+    bool    chess960  () const;
+    bool    draw      () const;
+    bool    repeated  () const;
 
-    uint64_t game_nodes ()          const;
-    void     game_nodes (uint64_t nodes);
+    u64 game_nodes ()    const;
+    void game_nodes (u64 nodes);
 
     Threads::Thread* thread ()      const;
 
-    bool ok (int8_t *step = NULL) const;
+    bool ok (i08 *step = NULL) const;
 
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
@@ -377,10 +377,10 @@ inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
 //inline Bitboard Position::empties ()                  const { return ~_types_bb[NONE]; }
-inline int32_t Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
+inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 template<PieceT PT>
-inline int32_t Position::count (Color c) const { return _piece_count[c][PT]; }
-inline int32_t Position::count (Color c) const
+inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
+inline i32 Position::count (Color c) const
 {
     return  _piece_count[c][PAWN]
     +       _piece_count[c][NIHT]
@@ -390,11 +390,11 @@ inline int32_t Position::count (Color c) const
     +       _piece_count[c][KING];
 }
 template<PieceT PT>
-inline int32_t Position::count ()        const
+inline i32 Position::count ()        const
 {
     return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
 }
-inline int32_t Position::count ()        const
+inline i32 Position::count ()        const
 {
     return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
     +       _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
@@ -411,7 +411,7 @@ inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline uint8_t Position::clock50      () const { return _si->clock50; }
+inline u08 Position::clock50      () const { return _si->clock50; }
 inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
 inline Piece  Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
@@ -427,17 +427,17 @@ inline CRight Position::can_castle   (Color   c) const { return _si->castle_righ
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
-inline Color    Position::active    () const { return _active; }
+inline Color Position::active  () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-inline uint16_t Position::game_ply  () const { return _game_ply; }
+inline u16 Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline uint16_t Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
-inline bool     Position::chess960  () const { return _chess960; }
+inline u16 Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline bool Position::chess960 () const { return _chess960; }
 // Nodes visited
-inline uint64_t Position::game_nodes() const { return _game_nodes; }
-inline void     Position::game_nodes(uint64_t nodes){ _game_nodes = nodes; }
+inline u64 Position::game_nodes() const { return _game_nodes; }
+inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 inline Threads::Thread*  Position::thread    () const { return _thread; }
 //template<PieceT PT>
 //// Attacks of the PTYPE from the square
@@ -496,10 +496,10 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    uint8_t bishop_count = _piece_count[c][BSHP];
+    u08 bishop_count = _piece_count[c][BSHP];
     if (bishop_count > 1)
     {
-        for (uint8_t pc = 0; pc < bishop_count-1; ++pc)
+        for (u08 pc = 0; pc < bishop_count-1; ++pc)
         {
             if (opposite_colors (_piece_list[c][BSHP][pc], _piece_list[c][BSHP][pc+1])) return true;
         }

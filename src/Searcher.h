@@ -28,11 +28,11 @@ namespace Searcher {
 
     using namespace Threads;
 
-    const uint8_t MAX_SKILL_LEVEL = 20;
+    const u08 MAX_SKILL_LEVEL = 20;
 
-    //const uint16_t FAIL_LOW_MARGIN = 50;        // => 20
-    //const uint16_t FUTILITY_CUT_LIMIT_PCT = 60; // => 60
-    //const uint16_t MAX_THREAT = 90;
+    //const u16 FAIL_LOW_MARGIN = 50;        // => 20
+    //const u16 FUTILITY_CUT_LIMIT_PCT = 60; // => 60
+    //const u16 MAX_THREAT = 90;
 
 
     // Limits stores information sent by GUI about available time to search the current move.
@@ -50,10 +50,10 @@ namespace Searcher {
         typedef struct GameClock
         {
             // unit: milli-seconds
-            uint32_t time;   // time left
-            uint32_t inc;    // time gain
+            u32 time;   // time left
+            u32 inc;    // time gain
 
-            //GameClock (uint32_t tm, uint32_t in)
+            //GameClock (u32 tm, u32 in)
             //    : time (tm)
             //    , inc  (in)
             //{}
@@ -69,13 +69,13 @@ namespace Searcher {
         GameClock gameclock[CLR_NO];
         std::vector<Move>  searchmoves;   // search these moves only restrict
 
-        uint32_t  movetime;  // search <x> time in milli-seconds
-        uint8_t   movestogo; // search <x> moves to the next time control
-        uint8_t   depth;     // search <x> depth (plies) only
-        uint32_t  nodes;     // search <x> nodes only
-        uint8_t   mate;      // search mate in <x> moves
-        bool      infinite;  // search until the "stop" command
-        bool      ponder;    // search on ponder move
+        u32 movetime;   // search <x> time in milli-seconds
+        u08 movestogo;  // search <x> moves to the next time control
+        u08 depth;      // search <x> depth (plies) only
+        u32 nodes;      // search <x> nodes only
+        u08 mate;       // search mate in <x> moves
+        bool infinite;  // search until the "stop" command
+        bool ponder;    // search on ponder move
 
         LimitsT ()
             : movetime  (0)
@@ -135,7 +135,7 @@ namespace Searcher {
     typedef struct RootMove
     {
         Value value[2];
-        uint64_t nodes;
+        u64 nodes;
         std::vector<Move> pv;
 
         RootMove (Move m = MOVE_NONE)
@@ -177,7 +177,7 @@ namespace Searcher {
 
         Move    killer_moves[2];
         
-        uint8_t ply;
+        u08     ply;
 
         Depth   reduction;
         Value   static_eval;
@@ -199,7 +199,7 @@ namespace Searcher {
     extern PolyglotBook          Book;
     extern bool                  ForceNullMove;
 
-    extern uint64_t perft (Position &pos, const Depth &depth);
+    extern u64 perft (Position &pos, const Depth &depth);
 
     extern void think ();
 

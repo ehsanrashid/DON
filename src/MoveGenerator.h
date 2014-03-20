@@ -9,7 +9,7 @@
 
 class Position;
 
-const uint8_t MAX_MOVES = 255;
+const u08   MAX_MOVES   = 255;
 
 typedef struct ValMove
 {
@@ -32,7 +32,7 @@ typedef struct ValMove
 namespace MoveGenerator {
 
     // Types of Generator
-    typedef enum GenT : uint8_t
+    typedef enum GenT : u08
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -77,7 +77,7 @@ namespace MoveGenerator {
 
         inline Move operator* () const { return cur->move; }
 
-        inline uint16_t size  () const { return end - moves; }
+        inline u16 size  () const { return end - moves; }
 
         bool contains (Move m) const
         {

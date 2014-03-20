@@ -14,22 +14,22 @@ typedef class TimeManager
 
 private:
 
-    uint32_t _optimum_search_time;
-    uint32_t _maximum_search_time;
-    double   _unstable_pv_factor;
+    u32    _optimum_search_time;
+    u32    _maximum_search_time;
+    double _unstable_pv_factor;
 
 public:
 
-    inline uint32_t available_time () const { return _optimum_search_time * _unstable_pv_factor * 0.71; }
+    inline u32 available_time () const { return _optimum_search_time * _unstable_pv_factor * 0.71; }
     
-    inline uint32_t maximum_time   () const { return _maximum_search_time; }
+    inline u32 maximum_time   () const { return _maximum_search_time; }
 
     inline void pv_instability (double best_move_changes)
     {
         _unstable_pv_factor = 1 + best_move_changes;
     }
 
-    void initialize (const Searcher::LimitsT &limits, uint16_t game_ply, Color c);
+    void initialize (const Searcher::LimitsT &limits, u16 game_ply, Color c);
     
 } TimeManager;
 

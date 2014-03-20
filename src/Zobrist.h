@@ -16,7 +16,7 @@ namespace Zobrist {
     // 2*6*64 + 2*2 + 8 + 1
     //    768 +   4 + 8 + 1
     //                  781
-    const uint16_t ZOB_SIZE = 781;
+    const u16 ZOB_SIZE = 781;
 
     const Key MATL_KEY_PG = U64 (0xB76D8438E5D28230);
     const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);

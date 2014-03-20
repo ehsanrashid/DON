@@ -5,20 +5,20 @@
 #ifndef _LEAK_DETECTOR_H_INC_
 #define _LEAK_DETECTOR_H_INC_
 
-#include "Type.h"
+#include "Platform.h"
 
 namespace LeakDetector {
 
-    extern void* xmalloc (size_t size, const char filename[], uint32_t line_no);
-    extern void* xcalloc (size_t count, size_t size, const char filename[], uint32_t line_no);
+    extern void* xmalloc (u64 size, const char filename[], u32 line_no);
+    extern void* xcalloc (u64 count, u64 size, const char filename[], u32 line_no);
     extern void  xfree (void *mem_ref);
 
     extern void report_memleakage ();
 
 }
 
-#define LEN_FILENAME        256
-#define FILE_OUTPUT         "LeakInfo.txt"
+#define FN_SIZE             256
+#define INFO_FN             "LeakInfo.txt"
 #define malloc(size)        LeakDetector::xmalloc (size, __FILE__, __LINE__)
 #define calloc(count, size) LeakDetector::xcalloc (count, size, __FILE__, __LINE__)
 #define free(mem_ref)       LeakDetector::xfree (mem_ref)

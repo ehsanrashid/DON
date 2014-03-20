@@ -24,7 +24,7 @@ namespace UCI {
             
             typedef void (*OnChange) (const Option &);
 
-            uint8_t index;
+            u08 index;
 
         protected:
             
@@ -38,7 +38,7 @@ namespace UCI {
             virtual std::string operator() ()  const   = 0;
 
             virtual operator bool ()        const { return bool (); }
-            virtual operator int32_t ()     const { return int32_t (); }
+            virtual operator i32 ()     const { return i32 (); }
             virtual operator std::string () const { return std::string (); }
 
             //virtual Option& operator= (char        *value) = 0;
@@ -93,15 +93,15 @@ namespace UCI {
         typedef class   SpinOption : public Option
         {
         public:
-            int32_t _default
+            i32 _default
                 ,   _minimum
                 ,   _maximum
                 ,   _value;
 
-            SpinOption (int32_t val, int32_t minimum, int32_t maximum, const OnChange on_change = NULL);
+            SpinOption (i32 val, i32 minimum, i32 maximum, const OnChange on_change = NULL);
 
             std::string operator() ()  const;
-            operator int32_t () const;
+            operator i32 () const;
 
             //Option& operator= (char        *value);
             Option& operator= (std::string &value);
@@ -150,7 +150,7 @@ namespace UCI {
     inline std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
-        for (uint8_t idx = 0; idx < options.size (); ++idx)
+        for (u08 idx = 0; idx < options.size (); ++idx)
         {
             for (OptionMap::const_iterator
                 itr  = options.begin ();

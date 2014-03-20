@@ -40,30 +40,30 @@ namespace Searcher {
         // Set to true to force running with one thread. Used for debugging
         const bool FakeSplit        = false;
 
-        const uint8_t MAX_QUIETS    = 64;
+        const u08 MAX_QUIETS    = 64;
 
         const point   InfoDuration  = 3000; // 3 sec
 
         // Futility lookup tables (initialized at startup) and their access functions
-        uint8_t FutilityMoveCounts[2][32];  // [improving][depth]
+        u08 FutilityMoveCounts[2][32];  // [improving][depth]
 
         // Reduction lookup tables (initialized at startup) and their access function
-        uint8_t Reductions[2][2][64][64]; // [pv][improving][depth][move_num]
+        u08 Reductions[2][2][64][64]; // [pv][improving][depth][move_num]
 
-        inline Value futility_margin (uint8_t depth)
+        inline Value futility_margin (u08 depth)
         {
             return Value (100 * depth);
         }
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, uint8_t depth, uint8_t move_num)
+        inline Depth reduction (bool imp, u08 depth, u08 move_num)
         {
-            depth = depth / int8_t (ONE_MOVE);
+            depth = depth / i08 (ONE_MOVE);
             return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
         // Dynamic razoring margin based on depth
-        inline Value razor_margin (uint8_t depth)
+        inline Value razor_margin (u08 depth)
         {
             return Value (512 + 16 * depth);
         }
@@ -75,7 +75,7 @@ namespace Searcher {
         
         double  BestMoveChanges;
 
-        uint8_t MultiPV
+        u08 MultiPV
             ,   IndexPV;
 
         GainsStats  Gains;
@@ -84,8 +84,8 @@ namespace Searcher {
         MovesStats  CounterMoves
             ,       FollowupMoves;
 
-        int32_t     TBCardinality;
-        uint16_t    TBHits;
+        i32     TBCardinality;
+        u16    TBHits;
         bool        RootInTB;
         bool        TB50MoveRule;
         Depth       TBProbeDepth;
@@ -93,7 +93,7 @@ namespace Searcher {
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
-        inline void update_stats (Position &pos, Stack *ss, Move move, uint8_t depth, Move *quiet_moves, uint8_t quiets_count)
+        inline void update_stats (Position &pos, Stack *ss, Move move, u08 depth, Move *quiet_moves, u08 quiets_count)
         {
             if ((ss)->killer_moves[0] != move)
             {
@@ -104,7 +104,7 @@ namespace Searcher {
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
             Value bonus = Value (1 * depth * depth);
             History.update (pos[org_sq (move)], dst_sq (move), bonus);
-            for (uint8_t i = 0; i < quiets_count; ++i)
+            for (u08 i = 0; i < quiets_count; ++i)
             {
                 Move m = quiet_moves[i];
                 if (m == move) continue;
@@ -129,7 +129,7 @@ namespace Searcher {
         // value_to_tt () adjusts a mate score from "plies to mate from the root" to
         // "plies to mate from the current position". Non-mate scores are unchanged.
         // The function is called before storing a value to the transposition table.
-        inline Value value_to_tt (Value v, int32_t ply)
+        inline Value value_to_tt (Value v, i32 ply)
         {
             ASSERT (v != VALUE_NONE);
             return
@@ -140,7 +140,7 @@ namespace Searcher {
         // It adjusts a mate score from the transposition table
         // (where refers to the plies to mate/be mated from current position)
         // to "plies to mate/be mated from the root".
-        inline Value value_fr_tt (Value v, int32_t ply)
+        inline Value value_fr_tt (Value v, i32 ply)
         {
             return
                 v == VALUE_NONE             ? VALUE_NONE :
@@ -151,16 +151,16 @@ namespace Searcher {
         // info_pv () formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        inline string info_pv (const Position &pos, uint8_t depth, Value alpha, Value beta, point elapsed)
+        inline string info_pv (const Position &pos, u08 depth, Value alpha, Value beta, point elapsed)
         {
             ASSERT (elapsed >= 0);
             if (elapsed == 0) elapsed = 1;
 
             ostringstream os;
 
-            uint8_t rm_size = min<int32_t> (*(Options["MultiPV"]), RootMoves.size ());
-            uint8_t sel_depth = 0;
-            for (uint8_t t = 0; t < Threadpool.size (); ++t)
+            u08 rm_size = min<i32> (*(Options["MultiPV"]), RootMoves.size ());
+            u08 sel_depth = 0;
+            for (u08 t = 0; t < Threadpool.size (); ++t)
             {
                 if (sel_depth < Threadpool[t]->max_ply)
                 {
@@ -168,13 +168,13 @@ namespace Searcher {
                 }
             }
 
-            for (uint8_t i = 0; i < rm_size; ++i)
+            for (u08 i = 0; i < rm_size; ++i)
             {
                 bool updated = (i <= IndexPV);
 
                 if (1 == depth && !updated) continue;
 
-                uint8_t d = updated ? depth : depth - 1;
+                u08 d = updated ? depth : depth - 1;
                 Value   v = updated ? RootMoves[i].value[0] : RootMoves[i].value[1];
 
                 bool tb = RootInTB;
@@ -194,9 +194,9 @@ namespace Searcher {
                 if (os.rdbuf ()->in_avail ()) os << "\n";
 
                 os  << "info"
-                    << " multipv "  << uint32_t (i + 1)
-                    << " depth "    << uint32_t (d)
-                    << " seldepth " << uint32_t (sel_depth)
+                    << " multipv "  << u32 (i + 1)
+                    << " depth "    << u32 (d)
+                    << " seldepth " << u32 (sel_depth)
                     << " score "    << ((!tb && i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
                     << " time "     << elapsed
                     << " nodes "    << pos.game_nodes ()
@@ -205,7 +205,7 @@ namespace Searcher {
                     << " tbhits "   << TBHits
                     //<< " cpuload "  << // the cpu usage of the engine is x permill.
                     << " pv";
-                for (uint8_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
+                for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
                     os << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
                 }
@@ -216,10 +216,10 @@ namespace Searcher {
 
         typedef struct Skill
         {
-            uint8_t level;
+            u08 level;
             Move    move;
 
-            Skill (uint8_t lvl)
+            Skill (u08 lvl)
                 : level (lvl)
                 , move (MOVE_NONE)
             {}
@@ -233,7 +233,7 @@ namespace Searcher {
             }
 
             bool enabled ()                   const { return (level < MAX_SKILL_LEVEL); }
-            bool time_to_pick (uint8_t depth) const { return (depth == (1 + level)); }
+            bool time_to_pick (u08 depth) const { return (depth == (1 + level)); }
 
             // When playing with strength handicap choose best move among the MultiPV set
             // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -241,7 +241,7 @@ namespace Searcher {
             {
                 static RKISS rk;
                 // PRNG sequence should be not deterministic
-                for (int32_t i = now () % 50; i > 0; --i) rk.rand64 ();
+                for (i32 i = now () % 50; i > 0; --i) rk.rand64 ();
 
                 move = MOVE_NONE;
 
@@ -253,7 +253,7 @@ namespace Searcher {
                 // Choose best move. For each move score we add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then we choose the move with the resulting highest score.
-                for (uint8_t i = 0; i < MultiPV; ++i)
+                for (u08 i = 0; i < MultiPV; ++i)
                 {
                     Value v = RootMoves[i].value[0];
 
@@ -264,8 +264,8 @@ namespace Searcher {
                     }
 
                     // This is our magic formula
-                    v += (weakness * int32_t (RootMoves[0].value[0] - v)
-                        + variance * int32_t (rk.rand<uint32_t> () % weakness)) / 128;
+                    v += (weakness * i32 (RootMoves[0].value[0] - v)
+                        + variance * i32 (rk.rand<u32> () % weakness)) / 128;
 
                     if (max_v < v)
                     {
@@ -280,11 +280,11 @@ namespace Searcher {
 
         // _perft() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.
-        inline uint64_t _perft (Position &pos, const Depth &depth)
+        inline u64 _perft (Position &pos, const Depth &depth)
         {
             const bool leaf = (depth == 2*ONE_MOVE);
 
-            uint64_t leaf_count = U64 (0);
+            u64 leaf_count = U64 (0);
 
             StateInfo si;
             CheckInfo ci (pos);
@@ -593,7 +593,7 @@ namespace Searcher {
                 , tt_value
                 , eval;
 
-            uint8_t moves_count
+            u08 moves_count
                 ,   quiets_count;
 
             Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
@@ -713,7 +713,7 @@ namespace Searcher {
                     && (pos.clock50 () == 0)
                     && (pos.count () <= TBCardinality))
                 {
-                    int32_t found, v = TBSyzygy::probe_wdl (pos, &found);
+                    i32 found, v = TBSyzygy::probe_wdl (pos, &found);
 
                     if (found)
                     {
@@ -722,14 +722,14 @@ namespace Searcher {
                         Value value;
                         if (TB50MoveRule)
                         {
-                            value = v < -1 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
-                                :   v >  1 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
+                            value = v < -1 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
+                                :   v >  1 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
                                 :   VALUE_DRAW + 2 * v;
                         }
                         else
                         {
-                            value = v < 0 ? VALUE_MATED_IN_MAX_PLY + int32_t ((ss)->ply)
-                                :   v > 0 ? VALUE_MATES_IN_MAX_PLY - int32_t ((ss)->ply)
+                            value = v < 0 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
+                                :   v > 0 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
                                 :   VALUE_DRAW;
                         }
 
@@ -853,7 +853,7 @@ namespace Searcher {
                     // Null move dynamic (variable) reduction based on depth and value
                     Depth R = 3 * ONE_MOVE
                         +     depth / 4
-                        +     (int32_t (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
+                        +     (i32 (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
 
                     // Do null move
                     pos.do_null_move (si);
@@ -1007,7 +1007,7 @@ namespace Searcher {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << uint32_t (depth) / ONE_MOVE
+                            << " depth " << u32 (depth) / ONE_MOVE
                             << " time "  << elapsed
                             << sync_endl;
                     }
@@ -1050,9 +1050,9 @@ namespace Searcher {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << uint32_t (depth) / ONE_MOVE
+                                //<< " depth "          << u32 (depth) / ONE_MOVE
                                 << " time "           << elapsed
-                                << " currmovenumber " << setw (2) << uint32_t (moves_count + IndexPV)
+                                << " currmovenumber " << setw (2) << u32 (moves_count + IndexPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << sync_endl;
                         }
@@ -1091,7 +1091,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - int32_t (depth);
+                    Value rbeta = tt_value - i32 (depth);
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1460,10 +1460,10 @@ namespace Searcher {
                 , beta       = +VALUE_INFINITE
                 , window     =  VALUE_ZERO;
 
-            int32_t depth    =  DEPTH_ZERO;
+            i32 depth    =  DEPTH_ZERO;
 
-            MultiPV     = int32_t (*(Options["MultiPV"]));
-            uint8_t lvl = int32_t (*(Options["Skill Level"]));
+            MultiPV     = i32 (*(Options["MultiPV"]));
+            u08 lvl = i32 (*(Options["Skill Level"]));
             Skill skill (lvl);
 
             // Do we have to play with skill handicap? In this case enable MultiPV search
@@ -1489,7 +1489,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and all
                 // the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (uint8_t i = 0; i < RootMoves.size (); ++i)
+                for (u08 i = 0; i < RootMoves.size (); ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
@@ -1526,7 +1526,7 @@ namespace Searcher {
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (uint8_t i = 0; i <= IndexPV; ++i)
+                        for (u08 i = 0; i <= IndexPV; ++i)
                         {
                             RootMoves[i].insert_pv_into_tt (pos);
                         }
@@ -1599,7 +1599,7 @@ namespace Searcher {
                 // Have found a "mate in x"?
                 if (   Limits.mate
                     && (best_value >= VALUE_MATES_IN_MAX_PLY)
-                    && (VALUE_MATE - best_value <= int16_t (ONE_MOVE) * Limits.mate))
+                    && (VALUE_MATE - best_value <= i16 (ONE_MOVE) * Limits.mate))
                 {
                     Signals.stop = true;
                 }
@@ -1660,7 +1660,7 @@ namespace Searcher {
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        int8_t ply = 0;
+        i08 ply = 0;
         Move m = pv[ply];
         pv.clear ();
         StateInfo states[MAX_PLY_6]
@@ -1699,7 +1699,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        int8_t ply = 0;
+        i08 ply = 0;
         StateInfo states[MAX_PLY_6]
         ,        *si = states;
 
@@ -1735,7 +1735,7 @@ namespace Searcher {
 
     }
 
-    uint64_t perft (Position &pos, const Depth &depth)
+    u64 perft (Position &pos, const Depth &depth)
     {
         return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
     }
@@ -1744,7 +1744,7 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        int32_t contempt = int32_t (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+        i32 contempt = i32 (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
         //contempt = contempt * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
         DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
         DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
@@ -1752,7 +1752,7 @@ namespace Searcher {
         bool write_search_log = bool (*(Options["Write Search Log"]));
         string search_log_fn  = string (*(Options["Search Log File"]));
 
-        int32_t piece_cnt;
+        i32 piece_cnt;
 
         if (RootMoves.empty ())
         {
@@ -1792,7 +1792,7 @@ namespace Searcher {
                 << "time:      " << Limits.gameclock[RootColor].time << "\n"
                 << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "movetime:  " << Limits.movetime                  << "\n"
-                << "movestogo: " << uint32_t (Limits.movestogo)      << "\n"
+                << "movestogo: " << u32 (Limits.movestogo)           << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;
@@ -1800,14 +1800,14 @@ namespace Searcher {
 
         piece_cnt = RootPos.count ();
         
-        TBCardinality = int32_t (*(Options["Syzygy Probe Limit"]));
+        TBCardinality = i32 (*(Options["Syzygy Probe Limit"]));
         if (TBCardinality > TBSyzygy::TB_Largest)
         {
             TBCardinality = TBSyzygy::TB_Largest;
         }
 
         TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
-        TBProbeDepth = int32_t (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
+        TBProbeDepth = i32 (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
 
         TBHits = 0;
         RootInTB = false;
@@ -1859,7 +1859,7 @@ namespace Searcher {
         }
 
         // Reset the threads, still sleeping: will wake up at split time
-        for (uint8_t t = 0; t < Threadpool.size (); ++t)
+        for (u08 t = 0; t < Threadpool.size (); ++t)
         {
             Threadpool[t]->max_ply = 0;
         }
@@ -1939,14 +1939,14 @@ namespace Searcher {
     void initialize ()
     {
         // Init reductions array
-        for (uint8_t hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
+        for (u08 hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
         {
-            for (uint8_t mc = 1; mc < 64; ++mc) // move-count
+            for (u08 mc = 1; mc < 64; ++mc) // move-count
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? floor (    pv_red * int32_t (ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? floor (non_pv_red * int32_t (ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? floor (    pv_red * i32 (ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? floor (non_pv_red * i32 (ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
@@ -1963,7 +1963,7 @@ namespace Searcher {
         }
 
         // Init futility move count array
-        for (uint8_t d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
+        for (u08 d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
             FutilityMoveCounts[0][d] = 2.40 + 0.222 * pow (d + 0.00, 1.80);
             FutilityMoveCounts[1][d] = 3.00 + 0.300 * pow (d + 0.98, 1.80);
@@ -1993,7 +1993,7 @@ namespace Threads {
             return;
         }
 
-        uint64_t nodes = 0;
+        u64 nodes = 0;
         if (Limits.nodes)
         {
             Threadpool.mutex.lock ();
@@ -2001,15 +2001,15 @@ namespace Threads {
             nodes = RootPos.game_nodes ();
             // Loop across all splitpoints and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
-            for (uint8_t t = 0; t < Threadpool.size (); ++t)
+            for (u08 t = 0; t < Threadpool.size (); ++t)
             {
-                for (uint8_t s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
+                for (u08 s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
                 {
                     SplitPoint &sp = Threadpool[t]->splitpoints[s];
                     sp.mutex.lock ();
 
                     nodes += sp.nodes;
-                    for (uint8_t idx = 0; idx < Threadpool.size (); ++idx)
+                    for (u08 idx = 0; idx < Threadpool.size (); ++idx)
                     {
                         if (sp.slaves_mask.test (idx))
                         {

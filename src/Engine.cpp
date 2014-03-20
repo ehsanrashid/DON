@@ -111,7 +111,7 @@ namespace Engine {
         Evaluator::initialize ();
         Threadpool.initialize ();
         
-        TT.resize (int32_t (*(Options["Hash"])), true);
+        TT.resize (i32 (*(Options["Hash"])), true);
         Searcher::ForceNullMove = bool (*(Options["Force Null Move"]));
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
@@ -129,7 +129,7 @@ namespace Engine {
     }
 
     // Exit from engine with exit code. (in case of some crash)
-    void exit (int32_t code)
+    void exit (i32 code)
     {
         UCI::stop ();
         

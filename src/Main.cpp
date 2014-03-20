@@ -5,10 +5,10 @@ using namespace std;
 
 namespace {
 
-    string strarg (int32_t argc, const char* const argv[])
+    string strarg (i32 argc, const char* const argv[])
     {
         string args;
-        for (int32_t i = 1; i < argc; ++i)
+        for (i32 i = 1; i < argc; ++i)
         {
             args += string (" ", !args.empty ()) + argv[i];
         }
@@ -17,7 +17,7 @@ namespace {
 
 }
 
-int32_t main (int32_t argc, const char* const argv[])
+i32 main (i32 argc, const char* const argv[])
 {
     string args = strarg (argc, argv);
     Engine::run (args);

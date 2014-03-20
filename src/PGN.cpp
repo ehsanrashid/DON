@@ -1,6 +1,7 @@
 #include "PGN.h"
 
 #include <iostream>
+
 #include "xcstring.h"
 #include "xstring.h"
 #include "Game.h"
@@ -87,7 +88,7 @@ void PGN::_build_indexes ()
             char buf[MAX_SIZE + 1];
             buf[MAX_SIZE] = '\0';
 
-            uint64_t pos = 0;
+            u64 pos = 0;
             PGN_State pgn_state = PGN_NEW;
 
             // Clear the char stack
@@ -125,12 +126,12 @@ void PGN::_build_indexes ()
 
 #define SKIP_WHITESPACE() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
 
-#define CHECK_INCOMPLETE() do { if (!c) {    \
-    cerr << "ERROR: incomplete game";        \
-    pgn_state = PGN_ERR; goto done;          \
+#define CHECK_INCOMPLETE() do { if (!c) { \
+    cerr << "ERROR: incomplete game";      \
+    pgn_state = PGN_ERR; goto done;       \
 } } while (false)
 
-void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
+void PGN::_scan_index (const char *buf, u64 &pos, PGN_State &pgn_state)
 {
     ASSERT (buf);
     size_t length = strlen (buf);
@@ -140,7 +141,7 @@ void PGN::_scan_index (const char buf[], uint64_t &pos, PGN_State &pgn_state)
 
     while (offset < length)
     {
-        uint8_t c;
+        u08 c;
 
         SKIP_WHITESPACE ();
 
@@ -370,7 +371,7 @@ done:
 #undef SKIP_WHITESPACE
 #undef CHECK_INCOMPLETE
 
-void PGN::_add_index (uint64_t pos)
+void PGN::_add_index (u64 pos)
 {
     //size_t g_count = game_count ();
     //if (0 < g_count)
@@ -382,14 +383,14 @@ void PGN::_add_index (uint64_t pos)
 }
 
 // Read the text index (1...n)
-string PGN::read_text (size_t index)
+string PGN::read_text (u64 index)
 {
     if (1 <= index && index <= game_count ())
     {
         if (is_open () && good ())
         {
-            uint64_t pos_beg = (1 == index) ? 0 : _indexes_game[index - 2];
-            uint64_t pos_end = _indexes_game[index - 1];
+            u64 pos_beg = (1 == index) ? 0 : _indexes_game[index - 2];
+            u64 pos_end = _indexes_game[index - 1];
 
             size_t size = size_t (pos_end - pos_beg);
             //char *buf = new char[(size + 1)];
@@ -419,7 +420,7 @@ string PGN::read_text (size_t index)
     return "";
 }
 // Read the text index_beg (1...n), index_end (1...n)
-string PGN::read_text (size_t index_beg, size_t index_end)
+string PGN::read_text (u64 index_beg, u64 index_end)
 {
     size_t g_count = game_count ();
 
@@ -428,8 +429,8 @@ string PGN::read_text (size_t index_beg, size_t index_end)
     {
         if (is_open () && good ())
         {
-            uint64_t pos_beg = (1 == index_beg) ? 0 : _indexes_game[index_beg - 2];
-            uint64_t pos_end = _indexes_game[index_end - 1];
+            u64 pos_beg = (1 == index_beg) ? 0 : _indexes_game[index_beg - 2];
+            u64 pos_end = _indexes_game[index_end - 1];
 
             size_t size = size_t (pos_end - pos_beg);
             //char *buf = new char[(size + 1)];
@@ -460,7 +461,7 @@ string PGN::read_text (size_t index_beg, size_t index_end)
     return "";
 }
 // Write the text and return index of the text
-size_t PGN::write_text (const string &text)
+u64 PGN::write_text (const string &text)
 {
     if (is_open () && good ())
     {
@@ -469,12 +470,12 @@ size_t PGN::write_text (const string &text)
     return 0;
 }
 // Read the game from index (1...n)
-Game   PGN::read_game (size_t index)
+Game   PGN::read_game (u64 index)
 {
     return Game (read_text (index));
 }
 // Write the game and return index of the game
-size_t PGN::write_game (const Game &game)
+u64 PGN::write_game (const Game &game)
 {
     // TODO::
     string pgn = game.pgn ();

@@ -57,7 +57,7 @@ namespace {
 
     // do_move() copy current state info up to 'posi_key' excluded to the new one.
     // calculate the quad words (64bits) needed to be copied.
-    const uint8_t STATE_COPY_SIZE = offsetof (StateInfo, posi_key);
+    const u08 STATE_COPY_SIZE = offsetof (StateInfo, posi_key);
 
     CACHE_ALIGN(64) Score PSQ[CLR_NO][NONE][SQ_NO];
 
@@ -135,7 +135,7 @@ namespace {
     // min_attacker() is an helper function used by see() to locate the least
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
-    template<int8_t PT>
+    template<i08 PT>
     INLINE PieceT min_attacker (const Bitboard *bb, const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
@@ -208,11 +208,11 @@ namespace {
 
 } // namespace
 
-uint8_t Position::_50_move_dist;
+u08 Position::_50_move_dist;
 
 void Position::initialize ()
 {
-    _50_move_dist = 2 * int32_t (*(Options["50 Move Distance"]));  
+    _50_move_dist = 2 * i32 (*(Options["50 Move Distance"]));  
 
     for (PieceT pt = PAWN; pt <= KING; ++pt)
     {
@@ -263,7 +263,7 @@ bool Position::draw () const
 
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
-    uint8_t ply = min (_si->null_ply, _si->clock50);
+    u08 ply = min (_si->null_ply, _si->clock50);
     while (ply >= 2)
     {
         //psi = psi->p_si; if (psi == NULL) break; 
@@ -292,7 +292,7 @@ bool Position::repeated () const
     StateInfo *si = _si;
     while (si != NULL)
     {
-        int32_t i = 4, e = min (si->clock50, si->null_ply);
+        i32 i = 4, e = min (si->clock50, si->null_ply);
         if (e < i) return false;
         StateInfo *psi = si->p_si->p_si;
         do
@@ -312,7 +312,7 @@ bool Position::repeated () const
 
 
 // Position consistency test, for debugging
-bool Position::ok (int8_t *step) const
+bool Position::ok (i08 *step) const
 {
     // What features of the position should be verified?
     const bool test_all = true;
@@ -440,7 +440,7 @@ bool Position::ok (int8_t *step) const
             if (_piece_count[c][BSHP] > 1)
             {
                 Bitboard bishops = colors & _types_bb[BSHP];
-                uint8_t bishop_count[CLR_NO] =
+                u08 bishop_count[CLR_NO] =
                 {
                     pop_count<FULL> (LIHT_bb & bishops),
                     pop_count<FULL> (DARK_bb & bishops),
@@ -469,7 +469,7 @@ bool Position::ok (int8_t *step) const
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
             {
-                for (int32_t i = 0; i < _piece_count[c][pt]; ++i)
+                for (i32 i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (   !_ok (_piece_list[c][pt][i])
                         || _board[_piece_list[c][pt][i]] != (c | pt)
@@ -573,7 +573,7 @@ Value Position::see      (Move m) const
     // Gain list
     Value swap_list[32];
 
-    int8_t depth = 1;
+    i08 depth = 1;
     swap_list[0] = PieceValue[MG][_ptype (_board[dst])];
 
     Bitboard occupied = _types_bb[NONE] - org;
@@ -1076,7 +1076,7 @@ void Position::clear ()
     {
         for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (int32_t i = 0; i < 16; ++i)
+            for (i32 i = 0; i < 16; ++i)
             {
                 _piece_list[c][pt][i] = SQ_NO;
             }
@@ -1221,7 +1221,7 @@ Value Position::compute_non_pawn_material (Color c) const
     Value value = VALUE_ZERO;
     for (PieceT pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += PieceValue[MG][pt] * int32_t (_piece_count[c][pt]);
+        value += PieceValue[MG][pt] * i32 (_piece_count[c][pt]);
     }
     return value;
 }
@@ -1268,7 +1268,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
         if (PAWN == pt)
         {
-            uint8_t f_del = file_dist (cap, org);
+            u08 f_del = file_dist (cap, org);
             ASSERT (0 == f_del || 1 == f_del);
             if (1 == f_del) ct = _ptype (_board[cap]);
         }
@@ -1411,7 +1411,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     }
 
     // Update castle rights if needed
-    uint8_t cr = _si->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
+    u08 cr = _si->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
     if (cr)
     {
         Bitboard b = cr;
@@ -1466,8 +1466,8 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
-        uint8_t iorg = org;
-        uint8_t idst = dst;
+        u08 iorg = org;
+        u08 idst = dst;
         if (16 == (idst ^ iorg))
         {
             Square ep_sq = Square ((idst + iorg) / 2);
@@ -1672,7 +1672,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
 
             if (EMPTY == p)
             {
-                uint32_t empty_count = 0;
+                u32 empty_count = 0;
                 for ( ; f <= F_H && empty (s); ++f, ++s)
                 {
                     ++empty_count;
@@ -1745,7 +1745,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
     if (full)
     {
         set_next (' ');
-        int32_t write = sprintf (ch, "%u %u", _si->clock50, game_move ());
+        i32 write = sprintf (ch, "%u %u", _si->clock50, game_move ());
             //_snprintf (ch, MAX_FEN - (ch - fn) - 1, "%u %u", _si->clock50, game_move ());
             //_snprintf_s (ch, MAX_FEN - (ch - fn) - 1, 8, "%u %u", _si->clock50, game_move ());
 
@@ -1767,7 +1767,7 @@ string Position::fen (bool                 c960, bool full) const
         for (File f = F_A; f <= F_H; ++f)
         {
             Square s = f | r;
-            int16_t empty_count = 0;
+            i16 empty_count = 0;
             while (F_H >= f && empty (s))
             {
                 ++empty_count;
@@ -1820,7 +1820,7 @@ string Position::fen (bool                 c960, bool full) const
     os << (SQ_NO == _si->en_passant_sq ?
         " - " : " " + to_string (_si->en_passant_sq) + " ");
 
-    if (full) os << int16_t (_si->clock50) << " " << game_move ();
+    if (full) os << i16 (_si->clock50) << " " << game_move ();
 
     return os.str ();
 }
@@ -1832,7 +1832,7 @@ Position::operator string () const
     const string edge = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
-    const uint16_t row_len = row_1.length () + 1;
+    const u16 row_len = row_1.length () + 1;
 
     string board = edge;
 
@@ -1850,8 +1850,8 @@ Position::operator string () const
     while (occ != U64 (0))
     {
         Square s = pop_lsq (occ);
-        int8_t r = _rank (s);
-        int8_t f = _file (s);
+        i08 r = _rank (s);
+        i08 f = _file (s);
         board[3 + row_len * (7.5 - r) + 4 * f] = PieceChar[_board[s]];
     }
 
@@ -1918,7 +1918,7 @@ Position::operator string () const
 
 #ifndef NDEBUG
 #undef SKIP_WHITESPACE
-#define SKIP_WHITESPACE()  while (isspace (uint8_t (*fen))) ++fen
+#define SKIP_WHITESPACE()  while (isspace (u08 (*fen))) ++fen
 
 bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
 {
@@ -1947,7 +1947,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
                 // empty square(s)
                 if ('1' > ch || ch > '8') return false;
 
-                int8_t empty_count = (ch - '0');
+                i08 empty_count = (ch - '0');
                 f += empty_count;
 
                 if (f > F_NO) return false;
@@ -2070,12 +2070,12 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
         }
     }
     // 50-move clock and game-move count
-    int32_t clk50 = 0, g_move = 1;
+    i32 clk50 = 0, g_move = 1;
     get_next ();
     if (full && ch)
     {
-        int32_t n = 0;
-        int32_t read = sscanf (--fen, " %d %d%n", &clk50, &g_move, &n);
+        i32 n = 0;
+        i32 read = sscanf (--fen, " %d %d%n", &clk50, &g_move, &n);
         if (read != 2) return false;
         fen += n;
         // Rule 50 draw case
@@ -2090,7 +2090,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     pos._si->clock50 = (SQ_NO != pos._si->en_passant_sq) ? 0 : clk50;
-    pos._game_ply = max<int16_t> (2 * (g_move - 1), 0) + (BLACK == pos._active);
+    pos._game_ply = max<i16> (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->matl_key = Zob.compute_matl_key (pos);
     pos._si->pawn_key = Zob.compute_pawn_key (pos);
@@ -2217,7 +2217,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 5-6. 50-move clock and game-move count
-    int32_t clk50 = 0, g_move = 1;
+    i32 clk50 = 0, g_move = 1;
     if (full)
     {
         is >> skipws >> clk50 >> g_move;

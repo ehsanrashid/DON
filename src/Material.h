@@ -29,9 +29,8 @@ namespace Material {
     public:
 
         Key     _key;
-        int16_t _value;
-
-        uint8_t _factor[CLR_NO];
+        i16     _value;
+        u08     _factor[CLR_NO];
         Score   _space_weight;
         Phase   _game_phase;
 

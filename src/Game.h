@@ -10,7 +10,7 @@
 #include "functor.h"
 #include "Position.h"
 
-typedef enum Result : uint8_t
+typedef enum Result : u08
 {
     NO_RES  = 0,
     WIN_W   = 1,
@@ -28,9 +28,9 @@ private:
 
 public:
 
-    int8_t index;
+    i08 index;
 
-    Tag (std::string val, int8_t idx)
+    Tag (std::string val, i08 idx)
         : value (val)
         , index (idx)
     {}
@@ -74,9 +74,9 @@ private:
 public:
 
     Game ();
-    explicit Game (int8_t dummy);
+    explicit Game (i08 dummy);
 
-    Game (const          char *text);
+    Game (const        char *text);
     Game (const std::string &text);
 
     //Game (const Game &game);
@@ -103,7 +103,7 @@ public:
     std::string pgn () const;
     operator std::string () const;
 
-    static bool parse (Game &game, const          char *text);
+    static bool parse (Game &game, const        char *text);
     static bool parse (Game &game, const std::string &text);
 
     template<class charT, class Traits>

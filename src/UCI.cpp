@@ -216,7 +216,7 @@ namespace UCI {
             LimitsT limits;
 
             string  token;
-            int32_t value;
+            i32     value;
             while (cstm >> token)
             {
                 if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? value : -value; }
@@ -352,8 +352,8 @@ namespace UCI {
             if (cstm >> token)
             {
                 stringstream ss;
-                ss  << int32_t (*(Options["Hash"]))    << " "
-                    << int32_t (*(Options["Threads"])) << " "
+                ss  << i32 (*(Options["Hash"]))    << " "
+                    << i32 (*(Options["Threads"])) << " "
                     << token << " perft current";
 
                 benchmark (ss, RootPos);

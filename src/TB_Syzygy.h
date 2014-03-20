@@ -11,10 +11,10 @@ class Position;
 
 namespace TBSyzygy {
 
-    extern int32_t TB_Largest;
+    extern i32 TB_Largest;
     
-    extern int32_t probe_wdl   (Position &pos, int32_t *success);
-    extern int32_t probe_dtz   (Position &pos, int32_t *success);
+    extern i32 probe_wdl   (Position &pos, i32 *success);
+    extern i32 probe_dtz   (Position &pos, i32 *success);
     
     extern bool root_probe     (Position &pos, Value &TBScore);
     extern bool root_probe_wdl (Position &pos, Value &TBScore);

@@ -18,7 +18,7 @@ using namespace Threads;
 
 namespace {
 
-    const uint8_t FEN_TOTAL = 30;
+    const u08   FEN_TOTAL   = 30;
 
     const char* DefaultFens[FEN_TOTAL] =
     {
@@ -109,16 +109,16 @@ void benchmark (istream &is, const Position &pos)
     }
     else
     {
-        ifstream iffen (fen_fn);
+        ifstream ifs (fen_fn);
 
-        if (!iffen.is_open ())
+        if (!ifs.is_open ())
         {
             cerr << "ERROR: Unable to open file ... \'" << fen_fn << "\'" << endl;
             return;
         }
 
         string fen;
-        while (getline (iffen, fen))
+        while (getline (ifs, fen))
         {
             if (!fen.empty ())
             {
@@ -126,16 +126,16 @@ void benchmark (istream &is, const Position &pos)
             }
         }
 
-        iffen.close ();
+        ifs.close ();
         states = StateInfoStackPtr(new StateInfoStack());
     }
     
     bool chess960  = bool (*(Options["UCI_Chess960"]));
-    uint64_t nodes = 0;
+    u64 nodes = 0;
     point elapsed  = now ();
 
-    uint32_t total = fens.size ();
-    for (uint32_t i = 0; i < total; ++i)
+    u16 total = fens.size ();
+    for (u16 i = 0; i < total; ++i)
     {
         Position root_pos (fens[i], Threadpool.main (), chess960);
 
@@ -145,8 +145,8 @@ void benchmark (istream &is, const Position &pos)
 
         if (limit_type == "perft")
         {
-            uint64_t leaf_count = perft (root_pos, int32_t (limits.depth) * ONE_MOVE);
-            cerr << "\nPerft " << int32_t (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
+            u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
+            cerr << "\nPerft " << u16 (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
             nodes += leaf_count;
         }
         else

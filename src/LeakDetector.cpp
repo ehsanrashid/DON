@@ -26,10 +26,10 @@ namespace LeakDetector {
             // Memory Allocation Info
             struct MEM_INFO
             {
-                void     *address;
-                size_t    size;
-                char      filename[LEN_FILENAME];
-                uint32_t  line_no;
+                void    *address;
+                size_t  size;
+                char    filename[FN_SIZE];
+                u32     line_no;
 
             } mem_info;
 
@@ -42,7 +42,7 @@ namespace LeakDetector {
         LEAK_INFO *pCurr = NULL;
 
         // Makes and appends the allocated memory info to the list
-        void append_mem_info (void *mem_ref, size_t size, const char filename[], uint32_t line_no)
+        void append_mem_info (void *mem_ref, size_t size, const char filename[], u32 line_no)
         {
             // append the above info to the list
             LEAK_INFO *p_new = (LEAK_INFO *) malloc (sizeof (LEAK_INFO));
@@ -50,7 +50,7 @@ namespace LeakDetector {
             {
                 p_new->mem_info.address   = mem_ref;
                 p_new->mem_info.size      = size;
-                strncpy_s (p_new->mem_info.filename, LEN_FILENAME, filename, LEN_FILENAME);
+                strncpy_s (p_new->mem_info.filename, FN_SIZE, filename, FN_SIZE);
                 p_new->mem_info.line_no   = line_no;
                 p_new->next = NULL;
 
@@ -110,7 +110,7 @@ namespace LeakDetector {
     }
 
     // Replacement of malloc
-    void* xmalloc (size_t mem_size, const char filename[], uint32_t line_no)
+    void* xmalloc (u64 mem_size, const char filename[], u32 line_no)
     {
         void *mem_ref = malloc (mem_size);
         if (mem_ref)
@@ -120,7 +120,7 @@ namespace LeakDetector {
         return mem_ref;
     }
     // Replacement of calloc
-    void* xcalloc (size_t count, size_t mem_size, const char filename[], uint32_t line_no)
+    void* xcalloc (u64 count, u64 mem_size, const char filename[], u32 line_no)
     {
         void *mem_ref = calloc (count, mem_size);
         if (mem_ref)
@@ -139,8 +139,8 @@ namespace LeakDetector {
     // Writes all info of the unallocated memory into a output file
     void report_memleakage ()
     {
-        FILE *fp_write = fopen (FILE_OUTPUT, "wb");
-        //errno_t err = fopen_s (&fp_write, FILE_OUTPUT, "wb");
+        FILE *fp_write = fopen (INFO_FN, "wb");
+        //errno_t err = fopen_s (&fp_write, INFO_FN, "wb");
 
         if (fp_write)
         {
@@ -149,7 +149,7 @@ namespace LeakDetector {
             LEAK_INFO *leak_info;
             leak_info = pHead;
 
-            int32_t x;
+            i32 x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");
             //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "Memory Leak Summary");
             fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);

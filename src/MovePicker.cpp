@@ -211,7 +211,7 @@ void MovePicker::generate_next_stage ()
         killers[5].move = MOVE_NONE;//followup_moves[1]
 
         // Be sure killer moves are not MOVE_NONE
-        for (int32_t i = 0; i < 2; ++i)
+        for (i08 i = 0; i < 2; ++i)
         {
             if (ss->killer_moves[i])
             {
@@ -225,7 +225,7 @@ void MovePicker::generate_next_stage ()
         //}
 
         // Be sure counter moves are not MOVE_NONE & different from killer moves
-        for (int32_t i = 0; i < 2; ++i)
+        for (i08 i = 0; i < 2; ++i)
         {
             if (counter_moves[i] &&
                 counter_moves[i] != cur[0].move &&
@@ -241,7 +241,7 @@ void MovePicker::generate_next_stage ()
         //}
 
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
-        for (int32_t i = 0; i < 2; ++i)
+        for (i08 i = 0; i < 2; ++i)
         {
             if (followup_moves[i] &&
                 followup_moves[i] != cur[0].move &&
