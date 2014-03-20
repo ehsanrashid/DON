@@ -171,7 +171,7 @@
     <Position X="38.75" Y="5" Width="2.25" />
     <InheritanceLine Type="std::noncopyable">
       <InheritanceModifierLabel ManuallyPlaced="true">
-        <Position X="-0.172" Y="0.081" />
+        <Position X="-0.244" Y="0.081" />
       </InheritanceModifierLabel>
     </InheritanceLine>
     <TypeIdentifier>
@@ -285,7 +285,7 @@
         <Point X="25.75" Y="5.312" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="8.719" Y="-0.072" />
+        <Position X="8.719" Y="-0.045" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="history" Type="HistoryStats" FixedFromPoint="true" FixedToPoint="true">
@@ -402,7 +402,7 @@
     </ShowAsCollectionAssociation>
   </Class>
   <Class Name="EndGame::Endgames">
-    <Position X="21.25" Y="18" Width="3.75" />
+    <Position X="21.25" Y="18" Width="2.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
@@ -426,7 +426,7 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="6.75" Y="13.5" Width="2" />
     <TypeIdentifier>
-      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>
@@ -469,21 +469,21 @@
     <AssociationLine Name="_inbuf" Type="std::tie_buf" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="36.5" Y="6.353" />
-        <Point X="38.192" Y="6.353" />
-        <Point X="38.192" Y="7" />
+        <Point X="38.143" Y="6.353" />
+        <Point X="38.143" Y="7" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.587" Y="0.745" />
+        <Position X="0.578" Y="0.636" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="_outbuf" Type="std::tie_buf" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="36.5" Y="6.691" />
-        <Point X="38.192" Y="6.691" />
-        <Point X="38.192" Y="7" />
+        <Point X="38.143" Y="6.691" />
+        <Point X="38.143" Y="7" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.529" Y="0.383" />
+        <Position X="0.574" Y="0.301" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -561,7 +561,7 @@
         <Point X="21.25" Y="2.25" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.524" Y="-6.345" />
+        <Position X="0.524" Y="-6.327" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="pawn_key" Type="Key" FixedFromPoint="true" FixedToPoint="true">
@@ -678,12 +678,12 @@
         <Point X="24.812" Y="2" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-2.585" Y="0.383" />
+        <Position X="-2.612" Y="0.383" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="king_sq" Type="Square">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="3.921" Y="1.155" />
+        <Position X="3.849" Y="1.171" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -744,7 +744,7 @@
         <Point X="17.875" Y="17" />
       </Path>
       <InheritanceModifierLabel ManuallyPlaced="true">
-        <Position X="-0.097" Y="0.068" />
+        <Position X="-0.142" Y="0.059" />
       </InheritanceModifierLabel>
     </InheritanceLine>
     <AssociationLine Name="splitpoints" Type="Threads::SplitPoint" FixedFromPoint="true" FixedToPoint="true">
@@ -980,11 +980,6 @@
         <Position X="0.072" Y="4.233" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="depth" Type="Depth">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-3.739" Y="2.748" />
-      </MemberNameLabel>
-    </AssociationLine>
     <AssociationLine Name="beta" Type="Value" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="16.25" Y="11.5" />
@@ -993,6 +988,11 @@
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="0.869" Y="-0.924" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="depth" Type="Depth">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-3.739" Y="2.748" />
       </MemberNameLabel>
     </AssociationLine>
     <AssociationLine Name="node_type" Type="Searcher::NodeT">
@@ -1063,15 +1063,15 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QACCAAAAAEAQAAAAAAAABIAEEAAAAAAQAAAQKAAAYQA=</HashCode>
+      <HashCode>QACCAAAAAMAQAAAAAAAABIAEEAAAAAAQAAAQIAAAYQA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="ss" />
       <Field Name="pos" />
       <Field Name="master" />
-      <Field Name="depth" />
       <Field Name="beta" />
+      <Field Name="depth" />
       <Field Name="node_type" />
       <Field Name="movepicker" />
       <Field Name="parent_splitpoint" />
@@ -1151,7 +1151,7 @@
         <Point X="13.75" Y="17.75" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-1.569" Y="2.305" />
+        <Position X="-1.56" Y="2.214" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -1183,7 +1183,7 @@
         <Point X="18.5" Y="20.5" />
       </Path>
       <InheritanceModifierLabel ManuallyPlaced="true">
-        <Position X="-0.281" Y="0.085" />
+        <Position X="-0.227" Y="0.085" />
       </InheritanceModifierLabel>
     </InheritanceLine>
     <TypeIdentifier>
@@ -1333,14 +1333,14 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_buf" Collapsed="true">
-    <Position X="37.75" Y="7" Width="2.25" />
+    <Position X="37.75" Y="7" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="std::tie_wbuf" Collapsed="true">
-    <Position X="40.25" Y="7" Width="2.25" />
+    <Position X="40" Y="7" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
@@ -1349,8 +1349,8 @@
       <Path>
         <Point X="39.875" Y="5.742" />
         <Point X="39.875" Y="6.625" />
-        <Point X="41.41" Y="6.625" />
-        <Point X="41.41" Y="7" />
+        <Point X="41.031" Y="6.625" />
+        <Point X="41.031" Y="7" />
       </Path>
     </AliasOfLine>
   </Typedef>

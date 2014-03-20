@@ -37,34 +37,34 @@ private:
 
     u32 _key;
     u16 _move;
-    i16  _depth;
-    u08  _bound;
-    u08  _gen;
+    i16 _depth;
+    u08 _bound;
+    u08 _gen;
     u16 _nodes;
-    i16  _value;
-    i16  _eval;
+    i16 _value;
+    i16 _eval;
 
 public:
 
-    u32 key   () const { return u32 (_key);   }
-    Move     move  () const { return Move     (_move);  }
-    Depth    depth () const { return Depth    (_depth); }
-    Bound    bound () const { return Bound    (_bound); }
-    u08  gen   () const { return u08  (_gen);   }
-    u16 nodes () const { return u16 (_nodes); }
-    Value    value () const { return Value    (_value); }
-    Value    eval  () const { return Value    (_eval);  }
+    u32     key   () const { return u32   (_key);   }
+    Move    move  () const { return Move  (_move);  }
+    Depth   depth () const { return Depth (_depth); }
+    Bound   bound () const { return Bound (_bound); }
+    u08     gen   () const { return u08   (_gen);   }
+    u16     nodes () const { return u16   (_nodes); }
+    Value   value () const { return Value (_value); }
+    Value   eval  () const { return Value (_eval);  }
 
     void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
     {
         _key   = u32 (k);
         _move  = u16 (m);
         _depth = u16 (d);
-        _bound =  u08 (b);
+        _bound = u08 (b);
         _nodes = u16 (n);
         _value = u16 (v);
         _eval  = u16 (e);
-        _gen   =  u08 (g);
+        _gen   = u08 (g);
     }
 
     void gen (u08 g)
@@ -89,8 +89,8 @@ private:
 #endif
 
     TTEntry *_hash_table;
-    u64 _hash_mask;
-    u08  _generation;
+    u64     _hash_mask;
+    u08     _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
 
