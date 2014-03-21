@@ -2,8 +2,8 @@
 #   pragma once
 #endif
 
-#ifndef _DEBUG_LOGGER_H_INC_
-#define _DEBUG_LOGGER_H_INC_
+#ifndef _DEBUGGER_H_INC_
+#define _DEBUGGER_H_INC_
 
 #include <iostream>
 
@@ -101,4 +101,4 @@ namespace Debugger {
 
 }
 
-#endif // _DEBUG_LOGGER_H_INC_
+#endif // _DEBUGGER_H_INC_
