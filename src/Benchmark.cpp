@@ -88,20 +88,22 @@ void benchmark (istream &is, const Position &pos)
 
     TT.master_clear ();
 
-    LimitsT limits;
+    i32     value = abs (atoi (limit_val.c_str ()));
+    //value = value >= 0 ? value : -value;
 
-    if      (limit_type == "time")  limits.movetime = atoi (limit_val.c_str ()) * M_SEC; // movetime is in ms
-    else if (limit_type == "nodes") limits.nodes    = atoi (limit_val.c_str ());
-    else if (limit_type == "mate")  limits.mate     = atoi (limit_val.c_str ());
+    LimitsT limits;
+    if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
+    else if (limit_type == "nodes") limits.nodes    = value;
+    else if (limit_type == "mate")  limits.mate     = value;
     //else if (limit_type == "depth")
-    else                            limits.depth     = atoi (limit_val.c_str ());
+    else                            limits.depth    = value;
 
     StateInfoStackPtr states;
 
     if      (fen_fn == "default")
     {
         fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
-        states = StateInfoStackPtr(new StateInfoStack());
+        states = StateInfoStackPtr (new StateInfoStack ());
     }
     else if (fen_fn == "current")
     {
@@ -127,11 +129,11 @@ void benchmark (istream &is, const Position &pos)
         }
 
         ifs.close ();
-        states = StateInfoStackPtr(new StateInfoStack());
+        states = StateInfoStackPtr (new StateInfoStack ());
     }
     
     bool chess960  = bool (*(Options["UCI_Chess960"]));
-    u64 nodes = 0;
+    u64 nodes      = 0;
     point elapsed  = now ();
 
     u16 total = fens.size ();

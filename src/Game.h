@@ -61,10 +61,10 @@ public:
 
 private:
 
-    TagMap              _map_tag;
+    TagMap              _tag_map;
 
-    std::vector<Move>   _lst_move;
-    StateInfoStack      _stk_state;
+    std::vector<Move>   _move_list;
+    StateInfoStack      _state_stk;
 
     Position   _last_pos;
     Result     _result;

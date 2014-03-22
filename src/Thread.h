@@ -107,7 +107,7 @@ namespace Threads {
         WaitCondition condition;
 
     public:
-        Condition () { cond_init (condition); }
+        Condition ()  { cond_init    (condition); }
         ~Condition () { cond_destroy (condition); }
 
         void wait (Mutex &m) { cond_wait (condition, m._lock); }
@@ -125,39 +125,35 @@ namespace Threads {
         const Stack    *ss;
         const Position *pos;
 
-        Thread  *master;
-        
+        Thread *master;
         Value   beta;
         Depth   depth;
         NodeT   node_type;
         bool    cut_node;
+        Mutex   mutex;
 
         // Const pointers to shared data
         MovePicker  *movepicker;
         SplitPoint  *parent_splitpoint;
 
         // Shared data
-        Mutex   mutex;
-
         std::bitset<MAX_THREADS> slaves_mask;
-
-        volatile u64 nodes;
-        volatile u08  moves_count;
-        volatile Value    alpha;
-        volatile Value    best_value;
-        volatile Move     best_move;
-        volatile bool     cut_off;
+        volatile u08   moves_count;
+        volatile Value alpha;
+        volatile Value best_value;
+        volatile Move  best_move;
+        volatile u64   nodes;
+        volatile bool  cut_off;
     };
 
     // ThreadBase struct is the base of the hierarchy from where
     // we derive all the specialized thread classes.
     struct ThreadBase
     {
-        Mutex   mutex;
-        NativeHandle    handle;
-        volatile bool   exit;
-
-        Condition   sleep_condition;
+        Mutex         mutex;
+        NativeHandle  handle;
+        Condition     sleep_condition;
+        volatile bool exit;
 
         ThreadBase ()
             : exit (false)
@@ -205,14 +201,12 @@ namespace Threads {
         EndGame::Endgames endgames;
 
         Position *active_pos;
-
-        u08 idx
-              , max_ply;
+        u08   idx
+            , max_ply;
 
         SplitPoint* volatile active_splitpoint;
-
-        volatile u08 splitpoint_threads;
-        volatile bool    searching;
+        volatile u08  splitpoint_threads;
+        volatile bool searching;
 
         Thread ();
 
@@ -368,7 +362,7 @@ typedef enum SyncT { IO_LOCK, IO_UNLOCK } SyncT;
 #define sync_endl std::endl << IO_UNLOCK
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream& os, const SyncT &sync)
+inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {
     static Threads::Mutex m;
 

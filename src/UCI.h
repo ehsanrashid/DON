@@ -150,7 +150,7 @@ namespace UCI {
     inline std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
     {
-        for (u08 idx = 0; idx < options.size (); ++idx)
+        for (u08 idx = 0; idx <= options.size (); ++idx)
         {
             for (OptionMap::const_iterator
                 itr  = options.begin ();

@@ -55,11 +55,11 @@ void Game::add_tag (const Tag &tag)
 }
 void Game::add_tag (const string &name, const string &value)
 {
-    //_map_tag[name] = value;
-    //p = _map_tag.find (); if (p != _map_tag.end ())
+    //_tag_map[name] = value;
+    //p = _tag_map.find (); if (p != _tag_map.end ())
 
     //    //this line produce error for insert
-    //    pair<map<string, string>::iterator, bool> test = _map_tag.insert (make_pair (name, value));
+    //    pair<map<string, string>::iterator, bool> test = _tag_map.insert (make_pair (name, value));
     //if (test.second)
     //{
     //    pair<string, string> tag = *(test.first);
@@ -79,10 +79,10 @@ bool Game::append_move (Move m)
     if (_last_pos.legal (m))
     {
         StateInfo si;
-        _stk_state.push (si);
-        //_lst_move.emplace_back (m);
+        _state_stk.push (si);
+        //_move_list.emplace_back (m);
 
-        _last_pos.do_move (m, _stk_state.top ());
+        _last_pos.do_move (m, _state_stk.top ());
 
         return true;
     }
@@ -98,8 +98,8 @@ bool Game::append_move (const string &smove)
 bool Game::remove_move ()
 {
     _last_pos.undo_move ();
-    //Move m = _stk_state.top ().move_last;
-    _stk_state.pop ();
+    //Move m = _state_stk.top ().move_last;
+    _state_stk.pop ();
     return true;
 }
 
@@ -110,24 +110,24 @@ bool Game::setup (const string &fen, bool c960, bool full)
 
 void Game::clear ()
 {
-    _map_tag.clear ();
-    _lst_move.clear ();
+    _tag_map.clear ();
+    _move_list.clear ();
     _last_pos.clear ();
     _result = NO_RES;
 }
 void Game::reset ()
 {
-    size_t size = _lst_move.size ();
-    while (!_lst_move.empty ())
+    size_t size = _move_list.size ();
+    while (!_move_list.empty ())
     {
         if (!remove_move ())
         {
-            //cout << "ERROR: Undo move " << _lst_move.back ();
+            //cout << "ERROR: Undo move " << _move_list.back ();
             break;
         }
     }
 
-    if (size != _lst_move.size ())
+    if (size != _move_list.size ())
     {
         _result = NO_RES;
     }
@@ -156,10 +156,10 @@ Game::operator string ()  const
 
 void Game::print_tags (ostream &ostream) const
 {
-    for (size_t idx = 0; idx < _map_tag.size (); ++idx)
+    for (size_t idx = 0; idx < _tag_map.size (); ++idx)
     {
-        Game::TagMap::const_iterator itr = _map_tag.cbegin ();
-        while (itr != _map_tag.cend ())
+        Game::TagMap::const_iterator itr = _tag_map.cbegin ();
+        while (itr != _tag_map.cend ())
         {
             const Tag &tag = itr->second;
             if (idx == tag.index)

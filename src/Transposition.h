@@ -89,8 +89,8 @@ private:
 #endif
 
     TTEntry *_hash_table;
-    u64     _hash_mask;
-    u08     _generation;
+    u64      _hash_mask;
+    u08      _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
 
