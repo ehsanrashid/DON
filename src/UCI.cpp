@@ -414,7 +414,7 @@ namespace UCI {
             else if (token == "perft")      exe_perft (cstm);
             else if (token == "bench")      benchmark (cstm, RootPos);
             else if (token == "stop"
-                ||   token == "quit")      exe_stop ();
+                ||   token == "quit")       exe_stop ();
             else
             {
                 sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
