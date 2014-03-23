@@ -69,11 +69,11 @@ namespace Searcher {
         GameClock gameclock[CLR_NO];
         std::vector<Move>  searchmoves;   // search these moves only restrict
 
-        u32 movetime;   // search <x> time in milli-seconds
-        u08 movestogo;  // search <x> moves to the next time control
-        u08 depth;      // search <x> depth (plies) only
-        u32 nodes;      // search <x> nodes only
-        u08 mate;       // search mate in <x> moves
+        u32  movetime;  // search <x> time in milli-seconds
+        u08  movestogo; // search <x> moves to the next time control
+        u08  depth;     // search <x> depth (plies) only
+        u32  nodes;     // search <x> nodes only
+        u08  mate;      // search mate in <x> moves
         bool infinite;  // search until the "stop" command
         bool ponder;    // search on ponder move
 
@@ -83,8 +83,8 @@ namespace Searcher {
             , depth     (0)
             , nodes     (0)
             , mate      (0)
-            , infinite (false)
-            , ponder   (false)
+            , infinite  (false)
+            , ponder    (false)
         {}
         
         bool use_timemanager () const
@@ -128,14 +128,14 @@ namespace Searcher {
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
-    //  - Value Array[] { new , old }.
+    //  - Value[] { new , old }.
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     typedef struct RootMove
     {
         Value value[2];
-        u64 nodes;
+        u64   nodes;
         std::vector<Move> pv;
 
         RootMove (Move m = MOVE_NONE)

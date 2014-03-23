@@ -210,17 +210,17 @@ namespace UCI {
         }
 #   endif
 
-        void on_clear_hash      (const Option &)
+        void on_clear_hash  (const Option &)
         {
             TT.master_clear ();
         }
 
-        void on_resize_hash     (const Option &opt)
+        void on_resize_hash (const Option &opt)
         {
             TT.resize (i32 (opt), false);
         }
 
-        void on_save_hash       (const Option &)
+        void on_save_hash   (const Option &)
         {
             string hash_fn = string (*(Options["Hash File"]));
             ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
@@ -229,7 +229,7 @@ namespace UCI {
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
         }
 
-        void on_load_hash       (const Option &)
+        void on_load_hash   (const Option &)
         {
             string hash_fn = string (*(Options["Hash File"]));
             ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
@@ -238,28 +238,28 @@ namespace UCI {
             sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
         }
 
-        void on_change_book     (const Option &)
+        void on_change_book (const Option &)
         {
             Searcher::Book.close ();
         }
 
-        void on_change_tb_syzygy(const Option &opt)
+        void on_change_tb_syzygy (const Option &opt)
         {
             string syzygy_path = string (opt);
             TBSyzygy::initialize (syzygy_path);
         }
         
-        void on_change_threads  (const Option &)
+        void on_config_threadpool(const Option &)
         {
             Threadpool.configure ();
         }
 
-        void on_change_eval     (const Option &)
+        void on_change_evaluation(const Option &)
         {
             Evaluator::initialize ();
         }
 
-        void on_force_null_move (const Option &opt)
+        void on_force_null_move  (const Option &opt)
         {
             Searcher::ForceNullMove = bool (opt);
         }
@@ -269,13 +269,13 @@ namespace UCI {
             Position::_50_move_dist = 2 * i32 (opt);
         }
 
-        void on_io_log       (const Option &opt)
+        void on_io_log (const Option &opt)
         {
             log_io (bool (opt));
         }
 
         //// TODO::
-        //void on_query           (const Option &opt)
+        //void on_query (const Option &opt)
         //{
         //    
         //    (void) opt;
@@ -393,7 +393,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_change_threads));
+        Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_config_threadpool));
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -401,7 +401,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_change_threads));
+        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool));
 
         // If this is set to true, threads are suspended when there is no work to do.
         // This saves CPU power consumption, but waking a thread takes a small bit of time.
@@ -498,20 +498,20 @@ namespace UCI {
         //// If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it's White or Black to move.
         //Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
 
-        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
-        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
 
-        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
-        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
 
-        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
-        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
         
         // Degree of agressiveness.
-        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
         // Degree of cowardice.
-        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
-        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_eval));
+        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
 
 
         // TODO::

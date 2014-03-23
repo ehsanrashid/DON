@@ -167,7 +167,7 @@ namespace Notation {
         MoveT mt   = mtype (m);
         if (!c960 && (CASTLE == mt)) dst = (((dst > org) ? F_G : F_C) | _rank (org));
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += PieceChar[(BLACK | prom_type (m))]; // lower case
+        if (PROMOTE == mt) can += PieceChar[(BLACK | promote (m))]; // lower case
         return can;
     }
 
@@ -200,7 +200,7 @@ namespace Notation {
         //
         //    if (PROMOTE == mtype (m))
         //    {
-        //        switch (prom_type (m))
+        //        switch (promote (m))
         //        {
         //        case QUEN: san += "Q"; break;
         //        case ROOK: san += "R"; break;
@@ -291,7 +291,7 @@ namespace Notation {
 
             if (capture) san += 'x';
             san += to_string (dst);
-            if (PROMOTE == mt && PAWN == pt) san += string ("=") + PieceChar[prom_type (m)];
+            if (PROMOTE == mt && PAWN == pt) san += string ("=") + PieceChar[promote (m)];
         }
         }
 

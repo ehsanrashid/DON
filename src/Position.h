@@ -24,7 +24,7 @@ namespace Threads {
 
 #ifndef NDEBUG
 // 88 is the max FEN length - r1n1k1r1/1B1b1q1n/1p1p1p1p/p1p1p1p1/1P1P1P1P/P1P1P1P1/1b1B1Q1N/R1N1K1R1 w KQkq - 12 1000
-const u08 MAX_FEN     = 88;
+const u08 FEN_LEN     = 88;
 #endif
 
 // N-FEN (NATURAL-FEN)

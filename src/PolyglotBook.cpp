@@ -68,7 +68,7 @@ PolyglotBook::PEntry::operator string () const
     Move m = Move (move);
     // Set new type for promotion piece
     PieceT pt = PieceT ((m >> 12) & TOTL);
-    if (pt != PAWN) prom_type (m, pt);
+    if (pt != PAWN) promote (m, pt);
 
     os  << setfill ('0')
         << " key: "    << setw (16) << hex << uppercase << key
@@ -348,7 +348,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     // Polyglot use 3 bits while we use 2 bits
     PieceT pt = PieceT ((move >> 12) & 0x7);
     // Set new type for promotion piece
-    if (pt) prom_type (move, pt);
+    if (pt) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
     for (MoveList<LEGAL> itr (pos); *itr; ++itr)

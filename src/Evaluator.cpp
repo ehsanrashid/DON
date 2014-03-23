@@ -1063,8 +1063,8 @@ namespace Evaluator {
         inline Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
         {
             // Scale option value from 100 to 256 - [25, 64]
-            u16 mg = i32 (*(Options[mg_opt])) * 64 / 25;
-            u16 eg = i32 (*(Options[eg_opt])) * 64 / 25;
+            i32 mg = i32 (*(Options[mg_opt])) * 64 / 25;
+            i32 eg = i32 (*(Options[eg_opt])) * 64 / 25;
             return apply_weight (mk_score (mg, eg), internal_weight);
         }
 
@@ -1130,12 +1130,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]       = weight_option ("Mobility (Midgame)", "Mobility (Endgame)", WeightsInternal[Mobility]);
-        Weights[PawnStructure]  = weight_option ("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-        Weights[PassedPawns]    = weight_option ("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
-        Weights[Space]          = weight_option ("Space", "Space", WeightsInternal[Space]);
-        Weights[Cowardice]      = weight_option ("Cowardice", "Cowardice", WeightsInternal[Cowardice]);
-        Weights[Aggressive]     = weight_option ("Aggressive", "Aggressive", WeightsInternal[Aggressive]);
+        Weights[Mobility]       = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility]);
+        Weights[PawnStructure]  = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
+        Weights[PassedPawns]    = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns]);
+        Weights[Space]          = weight_option ("Space"                    , "Space"                   , WeightsInternal[Space]);
+        Weights[Cowardice]      = weight_option ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice]);
+        Weights[Aggressive]     = weight_option ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive]);
 
         const i32 MaxSlope  = 30;
         const i32 PeakScore = 1280; // 0x500

@@ -719,7 +719,7 @@ bool Position::pseudo_legal (Move m) const
     if      (NORMAL    == mt)
     {
         // Is not a promotion, so promotion piece must be empty
-        if (PAWN != (prom_type (m) - NIHT))
+        if (PAWN != (promote (m) - NIHT))
         {
             return false;
         }
@@ -1033,7 +1033,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     else if (PROMOTE   == mt)
     {
         // Promotion with check ?
-        return (attacks_bb (Piece (prom_type (m)), dst, occ - org + dst) & ci.king_sq);
+        return (attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq);
     }
     else if (ENPASSANT == mt)
     {
@@ -1264,7 +1264,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     // Pick capture piece and check validation
     if      (NORMAL    == mt)
     {
-        ASSERT (PAWN == (prom_type (m) - NIHT));
+        ASSERT (PAWN == (promote (m) - NIHT));
 
         if (PAWN == pt)
         {
@@ -1391,7 +1391,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     }
     else if (PROMOTE == mt)
     {
-        PieceT ppt = prom_type (m);
+        PieceT ppt = promote (m);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
         place_piece (dst, _active, ppt);
@@ -1541,9 +1541,9 @@ void Position::undo_move ()
     }
     else if (PROMOTE   == mt)
     {
-        ASSERT (prom_type (m) == _ptype (_board[dst]));
+        ASSERT (promote (m) == _ptype (_board[dst]));
         ASSERT (R_8 == rel_rank (_active, dst));
-        ASSERT (NIHT <= prom_type (m) && prom_type (m) <= QUEN);
+        ASSERT (NIHT <= promote (m) && promote (m) <= QUEN);
         // Replace the promoted piece with the PAWN
         remove_piece (dst);
         place_piece (org, _active, PAWN);
@@ -1656,7 +1656,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
     ASSERT (ok ());
 
     char *ch = const_cast<char *> (fn);
-    memset (ch, '\0', MAX_FEN);
+    memset (ch, '\0', FEN_LEN);
 
 #undef set_next
 
@@ -1746,8 +1746,8 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
     {
         set_next (' ');
         i32 write = sprintf (ch, "%u %u", _si->clock50, game_move ());
-            //_snprintf (ch, MAX_FEN - (ch - fn) - 1, "%u %u", _si->clock50, game_move ());
-            //_snprintf_s (ch, MAX_FEN - (ch - fn) - 1, 8, "%u %u", _si->clock50, game_move ());
+            //_snprintf (ch, FEN_LEN - (ch - fn) - 1, "%u %u", _si->clock50, game_move ());
+            //_snprintf_s (ch, FEN_LEN - (ch - fn) - 1, 8, "%u %u", _si->clock50, game_move ());
 
         ch += write;
     }

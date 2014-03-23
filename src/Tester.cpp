@@ -181,7 +181,7 @@ namespace Tester {
         void test_fen ()
         {
             const char *fen;
-            char buf[MAX_FEN];
+            char buf[FEN_LEN];
             Position pos (0);
             Square s;
 

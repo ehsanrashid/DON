@@ -40,7 +40,7 @@ namespace Searcher {
         // Set to true to force running with one thread. Used for debugging
         const bool FakeSplit        = false;
 
-        const u08 MAX_QUIETS    = 64;
+        const u08  MAX_QUIETS       = 64;
 
         const point   InfoDuration  = 3000; // 3 sec
 
@@ -216,8 +216,8 @@ namespace Searcher {
 
         typedef struct Skill
         {
-            u08 level;
-            Move    move;
+            u08  level;
+            Move move;
 
             Skill (u08 lvl)
                 : level (lvl)
