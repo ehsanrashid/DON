@@ -393,11 +393,9 @@ namespace BitBoard {
         return 
            (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
         :  (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
-        :  (QUEN == pt) ? attacks_bb<BSHP> (s, occ)
-        |                 attacks_bb<ROOK> (s, occ)
+        :  (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
         :  (PAWN == pt) ? PawnAttacks[_color (p)][s]
-        :  (NIHT == pt
-        ||  KING == pt) ? PieceAttacks[pt][s]
+        :  (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
         :  U64 (0);
     }
 

@@ -19,25 +19,25 @@ namespace Notation {
         // value to string
         const string pretty_value (Value v)
         {
-            ostringstream os;
+            ostringstream oss;
 
             if (abs (v) < VALUE_MATES_IN_MAX_PLY)
             {
-                os << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+                oss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
             }
             else
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    os <<  "#" << i32 (VALUE_MATE - v + 1) / 2;
+                    oss <<  "#" << i32 (VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
-                    os << "-#" << i32 (VALUE_MATE + v + 0) / 2;
+                    oss << "-#" << i32 (VALUE_MATE + v + 0) / 2;
                 }
             }
 
-            return os.str ();
+            return oss.str ();
         }
 
         // time to string
@@ -50,14 +50,14 @@ namespace Notation {
             u32 minutes =  (msecs % MSecHour) / MSecMinute;
             u32 seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
-            ostringstream os;
+            ostringstream oss;
 
-            if (hours) os << hours << ':';
-            os  << setfill ('0')
+            if (hours) oss << hours << ':';
+            oss << setfill ('0')
                 << setw (2) << minutes << ':'
                 << setw (2) << seconds;
 
-            return os.str ();
+            return oss.str ();
         }
 
     }
@@ -331,20 +331,20 @@ namespace Notation {
     //            If the engine is getting mated use negative values for y.
     const string score_uci (Value v, Value alpha, Value beta)
     {
-        ostringstream os;
+        ostringstream oss;
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            os << "cp " << 100 * i32 (v) / i32 (VALUE_MG_PAWN);
+            oss << "cp " << 100 * i32 (v) / i32 (VALUE_MG_PAWN);
         }
         else
         {
-            os << "mate " << i32 (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+            oss << "mate " << i32 (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
         }
 
-        os << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+        oss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
-        return os.str ();
+        return oss.str ();
     }
 
     // pretty_pv() returns formated human-readable search information, typically to be
@@ -355,28 +355,28 @@ namespace Notation {
         const u64 K = 1000;
         const u64 M = 1000000;
 
-        ostringstream os;
+        ostringstream oss;
 
-        os  << setw (3) << u32 (depth)
+        oss << setw (3) << u32 (depth)
             << setw (8) << pretty_value (value)
             << setw (8) << pretty_time (msecs);
 
         if      (pos.game_nodes () < M)
         {
-            os << setw (8) << pos.game_nodes () / 1 << "  ";
+            oss << setw (8) << pos.game_nodes () / 1 << "  ";
         }
         else if (pos.game_nodes () < K * M)
         {
-            os << setw (7) << pos.game_nodes () / K << "K  ";
+            oss << setw (7) << pos.game_nodes () / K << "K  ";
         }
         else
         {
-            os << setw (7) << pos.game_nodes () / M << "M  ";
+            oss << setw (7) << pos.game_nodes () / M << "M  ";
         }
 
         StateInfoStack states;
 
-        string  padding = string (os.str ().length (), ' ');
+        string  padding = string (oss.str ().length (), ' ');
         u16 length = padding.length ();
 
         const Move *m = pv;
@@ -385,10 +385,10 @@ namespace Notation {
             string san = move_to_san (*m, pos);
             if (length + san.length () > 80)
             {
-                os << "\n" + padding;
+                oss << "\n" + padding;
                 length = padding.length ();
             }
-            os << san << " ";
+            oss << san << " ";
             length += san.length () + 1;
             states.push (StateInfo ());
             pos.do_move (*m, states.top ());
@@ -401,7 +401,7 @@ namespace Notation {
             --m;
         }
 
-        return os.str ();
+        return oss.str ();
     }
 
 }

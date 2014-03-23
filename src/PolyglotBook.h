@@ -30,19 +30,19 @@ typedef class PolyglotBook
 
 public:
 
-    // Polyglot entry needs 16 bytes to be stored.
+    // Polyglot Book entry needs 16 bytes to be stored.
     //  - Key       8 bytes
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    typedef struct PEntry
+    typedef struct PBEntry
     {
         u64 key;
         u16 move;
         u16 weight;
         u32 learn;
 
-        PEntry ()
+        PBEntry ()
             : key (U64 (0))
             , move (MOVE_NONE)
             , weight (0)
@@ -53,15 +53,15 @@ public:
 
         template<class charT, class Traits>
         friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const PEntry &pe)
+            operator<< (std::basic_ostream<charT, Traits> &os, const PBEntry &pbe)
         {
-            os << std::string (pe);
+            os << std::string (pbe);
             return os;
         }
 
-    } PEntry;
+    } PBEntry;
 
-    static const u08 PGENTRY_SIZE   = sizeof (PEntry);
+    static const u08 PGENTRY_SIZE   = sizeof (PBEntry);
     static const u08 PGHEADER_SIZE  = 0*PGENTRY_SIZE;
 
     static const u64  ERROR_INDEX  = u64 (-1);
@@ -132,7 +132,7 @@ public:
 
     std::string read_entries (const Position &pos);
 
-    void insert_entry (const PolyglotBook::PEntry &pe);
+    void insert_entry (const PolyglotBook::PBEntry &pbe);
 
 
     void write ();

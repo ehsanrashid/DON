@@ -111,7 +111,7 @@ namespace EndGame {
     public:
 
         Endgames ();
-        ~Endgames ();
+       ~Endgames ();
 
         template<class T>
         inline T probe (Key key, T &eg)

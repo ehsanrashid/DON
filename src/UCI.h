@@ -38,7 +38,7 @@ namespace UCI {
             virtual std::string operator() ()  const   = 0;
 
             virtual operator bool ()        const { return bool (); }
-            virtual operator i32 ()     const { return i32 (); }
+            virtual operator i32 ()         const { return i32 (); }
             virtual operator std::string () const { return std::string (); }
 
             //virtual Option& operator= (char        *value) = 0;

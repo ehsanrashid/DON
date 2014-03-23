@@ -58,7 +58,7 @@ namespace Time {
 
     inline std::string to_string (const point &p)
     {
-        std::ostringstream ost;
+        std::ostringstream oss;
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -71,15 +71,15 @@ namespace Time {
 
         if (!*str_time)
         {
-            ost << "ERROR: Invalid time '" << time << "'";
-            return ost.str ();
+            oss << "ERROR: Invalid time '" << time << "'";
+            return oss.str ();
         }
 
         str_time[10] = '\0';
         str_time[19] = '\0';
         str_time[24] = '\0';
 
-        ost << std::setfill ('0')
+        oss << std::setfill ('0')
             << &str_time[00] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
@@ -91,7 +91,7 @@ namespace Time {
 
 #   endif
 
-        return ost.str ();
+        return oss.str ();
     }
 }
 

@@ -36,54 +36,53 @@ namespace Engine {
 
     string info (bool uci)
     {
-        ostringstream os;
+        ostringstream oss;
 
-        if (uci) os << "id name ";
-        os << Name << " ";
+        if (uci) oss << "id name ";
+        oss << Name << " ";
 
 #if defined (VERSION)
-        os << VERSION << setfill ('0');
+        oss << VERSION << setfill ('0');
 #else
         if (Version.empty ())
         {
             // From compiler, format is "Sep 2 2013"
-            istringstream is (__DATE__);
+            istringstream iss (__DATE__);
 
             string month
                 ,  day
                 ,  year;
 
-            is
-                >> month
+            iss >> month
                 >> day
                 >> year;
 
-            os  << setfill ('0')
+            oss << setfill ('0')
                 << setw (2) << (day) //<< '-'
                 << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
                 << setw (2) << (year.substr (2));
         }
         else
         {
-            os << Version << setfill ('0');
+            oss << Version << setfill ('0');
         }
 #endif
 
 #ifdef _64BIT
-        os << " x64";
+        oss << " x64";
 #else
-        os << " w32";
+        oss << " w32";
 #endif
 
 #ifdef POPCNT
-        os << "-modern";
+        oss << "-modern";
 #endif
 
-        os  << "\n" 
+        oss << "\n" 
             << ((uci) ? "id author " : "(c) 2014 ")
             << Author << "\n";
 
-        return os.str ();
+        return oss.str ();
     }
 
     void run (const std::string &args)

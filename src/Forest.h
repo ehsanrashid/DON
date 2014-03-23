@@ -21,7 +21,7 @@ protected:
 public:
 
     Forest ();
-    ~Forest ();
+   ~Forest ();
 
     typename Tree<T>::List trees () const;
     void trees (const typename Tree<T>::List &trees);

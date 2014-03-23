@@ -40,11 +40,11 @@ typedef HANDLE              NativeHandle;
 // On Windows 95 and 98 parameter lpThreadId my not be null
 inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 
-#   define lock_init(x)          InitializeCriticalSection (&(x))
+#   define lock_create(x)        InitializeCriticalSection (&(x))
 #   define lock_grab(x)          EnterCriticalSection (&(x))
 #   define lock_release(x)       LeaveCriticalSection (&(x))
 #   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_init(x)          x = CreateEvent (0, FALSE, FALSE, 0);
+#   define cond_create(x)        x = CreateEvent (0, FALSE, FALSE, 0);
 #   define cond_destroy(x)       CloseHandle (x)
 #   define cond_signal(x)        SetEvent (x)
 #   define cond_wait(x,y)        { lock_release (y); WaitForSingleObject (x, INFINITE); lock_grab (y); }
@@ -62,11 +62,11 @@ typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
 typedef void* (*FnStart) (void*);
 
-#   define lock_init(x)     pthread_mutex_init (&(x), NULL)
+#   define lock_create(x)   pthread_mutex_init (&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock (&(x))
 #   define lock_release(x)  pthread_mutex_unlock (&(x))
 #   define lock_destroy(x)  pthread_mutex_destroy (&(x))
-#   define cond_init(x)     pthread_cond_init (&(x), NULL)
+#   define cond_create(x)   pthread_cond_init (&(x), NULL)
 #   define cond_destroy(x)  pthread_cond_destroy (&(x))
 #   define cond_signal(x)   pthread_cond_signal (&(x))
 #   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
@@ -86,41 +86,43 @@ namespace Threads {
 
     extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
 
-    struct Mutex
+    typedef struct Mutex
     {
     private:
-        friend struct Condition;
         Lock _lock;
+        
+        friend struct Condition;
 
     public:
-        Mutex () { lock_init (_lock); }
-        ~Mutex () { lock_destroy (_lock); }
+        Mutex () { lock_create (_lock); }
+       ~Mutex () { lock_destroy (_lock); }
 
-        void lock () { lock_grab (_lock); }
-
+        void   lock () { lock_grab (_lock); }
         void unlock () { lock_release (_lock); }
-    };
+    } Mutex;
 
-    struct Condition
+    typedef struct Condition
     {
     private:
         WaitCondition condition;
 
     public:
-        Condition ()  { cond_init    (condition); }
-        ~Condition () { cond_destroy (condition); }
+        Condition () { cond_create  (condition); }
+       ~Condition () { cond_destroy (condition); }
 
         void wait (Mutex &m) { cond_wait (condition, m._lock); }
 
         void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
 
         void notify_one () { cond_signal (condition); }
-    };
+    } Condition;
 
     struct Thread;
 
-    struct SplitPoint
+    typedef struct SplitPoint
     {
+
+    public:
         // Const data after splitpoint has been setup
         const Stack    *ss;
         const Position *pos;
@@ -144,12 +146,14 @@ namespace Threads {
         volatile Move  best_move;
         volatile u64   nodes;
         volatile bool  cut_off;
-    };
+    } SplitPoint;
 
     // ThreadBase struct is the base of the hierarchy from where
     // we derive all the specialized thread classes.
-    struct ThreadBase
+    typedef struct ThreadBase
     {
+
+    public:
         Mutex         mutex;
         NativeHandle  handle;
         Condition     sleep_condition;
@@ -166,13 +170,15 @@ namespace Threads {
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
-    };
+    } ThreadBase;
 
     // TimerThread is derived from ThreadBase
     // used for special purpose: the recurring timer.
-    struct TimerThread
+    typedef struct TimerThread
         : public ThreadBase
     {
+
+    public:
         // This is the minimum interval in msec between two check_time() calls
         static const i32 Resolution = 5;
 
@@ -184,16 +190,18 @@ namespace Threads {
 
         virtual void idle_loop ();
 
-    };
+    } TimerThread;
 
     // Thread is derived from ThreadBase
     // Thread struct keeps together all the thread related stuff like locks, state
     // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
     // so that once get a pointer to a thread entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
-    struct Thread
+    typedef struct Thread
         : public ThreadBase
     {
+
+    public:
         SplitPoint splitpoints[MAX_SPLITPOINT_THREADS];
         
         Material::Table   material_table;
@@ -220,11 +228,11 @@ namespace Threads {
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
             Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
-    };
+    } Thread;
 
     // MainThread is derived from Thread
     // used for special purpose: the main thread.
-    struct MainThread
+    typedef struct MainThread
         : public Thread
     {
         volatile bool thinking;
@@ -235,13 +243,13 @@ namespace Threads {
 
         virtual void idle_loop ();
 
-    };
+    } MainThread;
 
     // ThreadPool struct handles all the threads related stuff like initializing,
     // starting, parking and, the most important, launching a slave thread
     // at a splitpoint.
     // All the access to shared thread data is done through this class.
-    struct ThreadPool
+    typedef struct ThreadPool
         : public std::vector<Thread*>
     {
         bool    idle_sleep;
@@ -266,7 +274,8 @@ namespace Threads {
         void start_thinking (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
 
         void wait_for_think_finished ();
-    };
+
+    } ThreadPool;
 
     // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
     // conversion from milliseconds to struct timespec, as used by pthreads.

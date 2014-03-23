@@ -44,13 +44,15 @@ private:
     i16 _value;
     i16 _eval;
 
+    friend class TranspositionTable;
+
 public:
 
     u32     key   () const { return u32   (_key);   }
     Move    move  () const { return Move  (_move);  }
     Depth   depth () const { return Depth (_depth); }
     Bound   bound () const { return Bound (_bound); }
-    u08     gen   () const { return u08   (_gen);   }
+    //u08     gen   () const { return u08   (_gen);   }
     u16     nodes () const { return u16   (_nodes); }
     Value   value () const { return Value (_value); }
     Value   eval  () const { return Value (_eval);  }
@@ -65,11 +67,6 @@ public:
         _value = u16 (v);
         _eval  = u16 (e);
         _gen   = u08 (g);
-    }
-
-    void gen (u08 g)
-    {
-        _gen = g;
     }
 
 } TTEntry;
@@ -177,7 +174,7 @@ public:
     {
         if (clear_hash && _hash_table != NULL)
         {
-            std::memset (_hash_table, 0, entries () * TENTRY_SIZE);
+            memset (_hash_table, 0, entries () * TENTRY_SIZE);
             _generation = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }
@@ -195,20 +192,9 @@ public:
     // transposition table entries from previous searches from entries from the current search.
     inline void new_gen () { ++_generation; }
 
-    // refresh() updates the 'Generation' of the entry to avoid aging.
-    // Normally called after a TranspositionTable hit.
-    inline void refresh (const TTEntry &tte) const
-    {
-        const_cast<TTEntry&> (tte).gen (_generation);
-    }
-    inline void refresh (const TTEntry *tte) const
-    {
-        const_cast<TTEntry*> (tte)->gen (_generation);
-    }
-
-    // get_cluster() returns a pointer to the first entry of a cluster given a position.
+    // cluster_entry() returns a pointer to the first entry of a cluster given a position.
     // The upper order bits of the key are used to get the index of the cluster.
-    inline TTEntry* get_cluster (const Key key) const
+    inline TTEntry* cluster_entry (const Key key) const
     {
         return _hash_table + (key & _hash_mask);
     }
@@ -227,7 +213,7 @@ public:
         u16 total_count = std::min (10000, i32 (entries ()));
         for (u16 i = 0; i < total_count; ++i, ++tte)
         {
-            if (tte->gen () == _generation)
+            if (tte->_gen == _generation)
             {
                 ++full_count;
             }
@@ -261,7 +247,7 @@ public:
             os.write ((const char *) &dummy, sizeof (dummy));
             os.write ((const char *) &tt._generation, sizeof (tt._generation));
             os.write ((const char *) &tt._hash_mask, sizeof (tt._hash_mask));
-            os.write ((const char *) tt._hash_table, mem_size_mb << 20);
+            os.write ((const char *)  tt._hash_table, mem_size_mb << 20);
             return os;
     }
 
@@ -279,7 +265,7 @@ public:
             is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
             tt.resize (mem_size_mb);
             tt._generation = dummy;
-            is.read ((char *) tt._hash_table, mem_size_mb << 20);
+            is.read ((char *)  tt._hash_table, mem_size_mb << 20);
             return is;
     }
 

@@ -156,7 +156,7 @@ namespace Searcher {
             ASSERT (elapsed >= 0);
             if (elapsed == 0) elapsed = 1;
 
-            ostringstream os;
+            ostringstream oss;
 
             u08 rm_size = min<i32> (*(Options["MultiPV"]), RootMoves.size ());
             u08 sel_depth = 0;
@@ -191,12 +191,12 @@ namespace Searcher {
                 }
 
                 // Not at first line
-                if (os.rdbuf ()->in_avail ()) os << "\n";
+                if (oss.rdbuf ()->in_avail () != 0) oss << "\n";
 
-                os  << "info"
-                    << " multipv "  << u32 (i + 1)
-                    << " depth "    << u32 (d)
-                    << " seldepth " << u32 (sel_depth)
+                oss << "info"
+                    << " multipv "  << u16 (i + 1)
+                    << " depth "    << u16 (d)
+                    << " seldepth " << u16 (sel_depth)
                     << " score "    << ((!tb && i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
                     << " time "     << elapsed
                     << " nodes "    << pos.game_nodes ()
@@ -207,11 +207,11 @@ namespace Searcher {
                     << " pv";
                 for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
-                    os << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
+                    oss << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
                 }
             }
 
-            return os.str ();
+            return oss.str ();
         }
 
         typedef struct Skill
@@ -224,7 +224,7 @@ namespace Searcher {
                 , move (MOVE_NONE)
             {}
 
-            ~Skill ()
+           ~Skill ()
             {
                 if (enabled ()) // Swap best PV line with the sub-optimal one
                 {
@@ -691,8 +691,6 @@ namespace Searcher {
                     : tt_value >= beta ? (tte->bound () &  BND_LOWER)
                     :                    (tte->bound () &  BND_UPPER)))
                 {
-                    TT.refresh (tte);
-
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                     // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
@@ -1052,7 +1050,7 @@ namespace Searcher {
                                 << "info"
                                 //<< " depth "          << u32 (depth) / ONE_MOVE
                                 << " time "           << elapsed
-                                << " currmovenumber " << setw (2) << u32 (moves_count + IndexPV)
+                                << " currmovenumber " << setw (2) << u16 (moves_count + IndexPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << sync_endl;
                         }
@@ -1792,7 +1790,7 @@ namespace Searcher {
                 << "time:      " << Limits.gameclock[RootColor].time << "\n"
                 << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "movetime:  " << Limits.movetime                  << "\n"
-                << "movestogo: " << u32 (Limits.movestogo)           << "\n"
+                << "movestogo: " << u16 (Limits.movestogo)           << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;

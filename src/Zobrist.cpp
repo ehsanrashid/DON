@@ -248,14 +248,14 @@ namespace Zobrist {
         Key fen_key = U64 (0);
         File king[CLR_NO] = {F_NO};
 
-        istringstream is (fen);
+        istringstream iss (fen);
         u08 ch;
 
-        is >> noskipws;
+        iss >> noskipws;
 
         size_t idx;
         Square s = SQ_A8;
-        while ((is >> ch) && !isspace (ch))
+        while ((iss >> ch) && !isspace (ch))
         {
             if (isdigit (ch))
             {
@@ -273,13 +273,13 @@ namespace Zobrist {
             }
         }
 
-        is >> ch;
+        iss >> ch;
         if ('w' == ch) fen_key ^= _.mover_side;
 
-        is >> ch;
+        iss >> ch;
         if (c960)
         {
-            while ((is >> ch) && !isspace (ch))
+            while ((iss >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
                 u08 sym = tolower (ch);
@@ -295,7 +295,7 @@ namespace Zobrist {
         }
         else
         {
-            while ((is >> ch) && !isspace (ch))
+            while ((iss >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
                 switch (toupper (ch))
@@ -308,8 +308,8 @@ namespace Zobrist {
         }
 
         u08 col, row;
-        if (   ((is >> col) && (col >= 'a' && col <= 'h'))
-            && ((is >> row) && (row == '3' || row == '6')))
+        if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
+            && ((iss >> row) && (row == '3' || row == '6')))
         {
             fen_key ^= _.en_passant[to_file (col)];
         }

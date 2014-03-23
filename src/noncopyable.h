@@ -12,7 +12,7 @@ namespace std {
     
     protected:
         noncopyable () {}
-        ~noncopyable () {}
+       ~noncopyable () {}
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable

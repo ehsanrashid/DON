@@ -165,6 +165,36 @@ namespace {
         return KING; // No need to update bitboards, it is the last cycle
     }
 
+    // pick_least_valuable_attacker() is a helper function used by see()
+    // to locate the least valuable attacker for the side to move,
+    // remove the attacker we just found from the bitboards and
+    // scan for new X-ray attacks behind it.
+    template<PieceT PT>
+    INLINE PieceT pick_least_valuable_attacker (const Position &pos, Square dst, Color c, Bitboard &occupied)
+    {
+        Bitboard attacks = (BSHP == PT || ROOK == PT) ? attacks_bb<PT> (dst, occupied)
+                        :  (QUEN == PT) ? attacks_bb<BSHP> (dst, occupied) | attacks_bb<ROOK> (dst, occupied)
+                        :  (PAWN == PT) ? PawnAttacks[~c][dst]
+                        :  (NIHT == PT || KING == PT) ? PieceAttacks[PT][dst];
+
+        attacks &= pos.pieces<PT>(c) & occupied;
+
+        if (attacks == U64(0))
+        {
+            return pick_least_valuable_attacker<PT+1>(pos, dst, c, occupied);
+        }
+
+        occupied ^= attacks & ~(attacks - 1);
+
+        return PieceT (PT);
+    }
+
+    template<>
+    INLINE PieceT pick_least_valuable_attacker<NONE>(const Position&, Square, Color, Bitboard&)
+    {
+        return NONE;
+    }
+
     // prefetch() preloads the given address in L1/L2 cache.
     // This is a non-blocking function that doesn't stall
     // the CPU waiting for data to be loaded from memory,
@@ -564,6 +594,8 @@ bool Position::ok (i08 *step) const
 // It tries to estimate the material gain or loss resulting from a move.
 Value Position::see      (Move m) const
 {
+    ASSERT (_ok (m));
+
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
@@ -572,22 +604,21 @@ Value Position::see      (Move m) const
 
     // Gain list
     Value swap_list[32];
-
-    i08 depth = 1;
+    i08   depth = 1;
     swap_list[0] = PieceValue[MG][_ptype (_board[dst])];
 
     Bitboard occupied = _types_bb[NONE] - org;
 
     MoveT mt = mtype (m);
 
-    if      (CASTLE    == mt)
+    if (CASTLE    == mt)
     {
         // Castle moves are implemented as king capturing the rook so cannot be
         // handled correctly. Simply return 0 that is always the correct value
         // unless in the rare case the rook ends up under attack.
         return VALUE_ZERO;
     }
-    else if (ENPASSANT == mt)
+    if (ENPASSANT == mt)
     {
         occupied -= (dst - pawn_push (stm)); // Remove the captured pawn
         swap_list[0] = PieceValue[MG][PAWN];
@@ -650,9 +681,86 @@ Value Position::see      (Move m) const
 
     return swap_list[0];
 }
+/*
+Value Position::see      (Move m) const
+{
+    ASSERT (_ok (m));
+
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+
+    // side to move
+    Color stm = _color (_board[org]);
+
+    // Gain list
+    Value swap_list[32];
+    i08   depth = 1;
+    swap_list[0] = PieceValue[MG][_board[dst]];
+
+    Bitboard occupied = _types_bb[NONE] - org;
+    
+    PieceT capturing = _ptype (_board[org]);
+
+    MoveT mt = mtype (m);
+    if (CASTLE    == mt)
+    {
+        // Castling moves are implemented as king capturing the rook so cannot be
+        // handled correctly. Simply return 0 that is always the correct value
+        // unless in the rare case the rook ends up under attack.
+        return VALUE_ZERO;
+    }
+    if (ENPASSANT == mt)
+    {
+        occupied ^= dst - pawn_push (stm); // Remove the captured pawn
+        swap_list[0] = PieceValue[MG][PAWN];
+    }
+
+    do
+    {
+        ASSERT (depth < 32);
+
+        PieceT captured = capturing;
+        stm = ~stm;
+
+        // Locate and remove the next least valuable attacker
+        capturing = pick_least_valuable_attacker<PAWN> (*this, dst, stm, occupied);
+
+        if (capturing == NONE)
+        {
+            break; // Finished
+        }
+
+        // Add the new entry to the swap list
+        swap_list[depth] = -swap_list[depth - 1] + PieceValue[MG][captured];
+        ++depth;
+
+        // Stop after a king capture
+        if (captured == KING)
+        {
+            swap_list[depth - 1] += 10 * VALUE_MG_QUEN;
+            break;
+        }
+    }
+    while (true);
+
+    // Having built the swap list, we negamax through it to find the best
+    // achievable score from the point of view of the side to move.
+    while (--depth > 0)
+    {
+        if (swap_list[depth - 1] > -swap_list[depth])
+        {
+            swap_list[depth - 1] = -swap_list[depth];
+        }
+    }
+
+    return swap_list[0];
+}
+*/
 
 Value Position::see_sign (Move m) const
 {
+    ASSERT (_ok (m));
+
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
@@ -1486,7 +1594,7 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     }
 
     // Prefetch TT access as soon as we know the new hash key
-    prefetch((char*) TT.get_cluster (posi_k));
+    prefetch((char*) TT.cluster_entry (posi_k));
 
     // Update the key with the final value
     _si->posi_key       = posi_k;
@@ -1596,7 +1704,7 @@ void Position::do_null_move (StateInfo &n_si)
     _active = ~_active;
     _si->posi_key ^= Zob._.mover_side;
 
-    prefetch ((char *) TT.get_cluster (_si->posi_key));
+    prefetch ((char *) TT.cluster_entry (_si->posi_key));
 
     _si->clock50++;
     _si->null_ply = 0;
@@ -1760,7 +1868,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
 #endif
 string Position::fen (bool                 c960, bool full) const
 {
-    ostringstream os;
+    ostringstream oss;
 
     for (Rank r = R_8; r >= R_1; --r)
     {
@@ -1774,14 +1882,14 @@ string Position::fen (bool                 c960, bool full) const
                 ++f;
                 ++s;
             }
-            if (empty_count) os << empty_count;
-            if (F_H >= f)  os << PieceChar[_board[s]];
+            if (empty_count) oss << empty_count;
+            if (F_H >= f)  oss << PieceChar[_board[s]];
         }
 
-        if (R_1 < r) os << '/';
+        if (R_1 < r) oss << '/';
     }
 
-    os << " " << ColorChar[_active] << " ";
+    oss << " " << ColorChar[_active] << " ";
 
     if (can_castle (CR_A))
     {
@@ -1789,40 +1897,40 @@ string Position::fen (bool                 c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) os << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
-                if (can_castle (CR_W_Q)) os << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
+                if (can_castle (CR_W_K)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
+                if (can_castle (CR_W_Q)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) os << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
-                if (can_castle (CR_B_Q)) os << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
+                if (can_castle (CR_B_K)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
+                if (can_castle (CR_B_Q)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
             }
         }
         else
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) os << 'K';
-                if (can_castle (CR_W_Q)) os << 'Q';
+                if (can_castle (CR_W_K)) oss << 'K';
+                if (can_castle (CR_W_Q)) oss << 'Q';
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) os << 'k';
-                if (can_castle (CR_B_Q)) os << 'q';
+                if (can_castle (CR_B_K)) oss << 'k';
+                if (can_castle (CR_B_Q)) oss << 'q';
             }
         }
     }
     else
     {
-        os << '-';
+        oss << '-';
     }
 
-    os << (SQ_NO == _si->en_passant_sq ?
+    oss << (SQ_NO == _si->en_passant_sq ?
         " - " : " " + to_string (_si->en_passant_sq) + " ");
 
-    if (full) os << i16 (_si->clock50) << " " << game_move ();
+    if (full) oss << i16 (_si->clock50) << " " << game_move ();
 
-    return os.str ();
+    return oss.str ();
 }
 
 // string() returns an ASCII representation of the position to be
@@ -1855,32 +1963,33 @@ Position::operator string () const
         board[3 + row_len * (7.5 - r) + 4 * f] = PieceChar[_board[s]];
     }
 
-    ostringstream os;
+    ostringstream oss;
 
-    os  << board << "\n";
+    oss << board << "\n\n";
 
-    os  << "\nFen: " << fen ()
-        << "\nKey: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key;
+    oss << "Fen: " << fen () << "\n"
+        << "Key: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key << "\n";
 
-    os  << "\nCheckers: ";
+    oss << "Checkers: ";
     Bitboard chkrs = checkers ();
     if (chkrs)
     {
-        while (chkrs) os << to_string (pop_lsq (chkrs)) << " ";
+        while (chkrs) oss << to_string (pop_lsq (chkrs)) << " ";
     }
     else
     {
-        os  << "<none>";
+        oss << "<none>";
     }
-
+    oss << "\n";
+    
     MoveList<LEGAL> itr (*this);
-    os  << "\nLegal moves (" << dec << itr.size () << "): ";
+    oss << "Legal moves (" << dec << itr.size () << "): ";
     for ( ; *itr; ++itr)
     {
-        os << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
+        oss << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
     }
 
-    return os.str ();
+    return oss.str ();
 }
 
 // A FEN string defines a particular position using only the ASCII character set.
@@ -2114,15 +2223,15 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     pos.clear ();
 
-    istringstream is (fen);
+    istringstream iss (fen);
     char ch;
 
-    is >> noskipws;
+    iss >> noskipws;
 
     // 1. Piece placement on Board
     size_t idx;
     Square s = SQ_A8;
-    while ((is >> ch) && !isspace (ch))
+    while ((iss >> ch) && !isspace (ch))
     {
         if (isdigit (ch))
         {
@@ -2145,7 +2254,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 2. Active color
-    is >> ch;
+    iss >> ch;
     pos._active = Color (ColorChar.find (ch));
 
     // 3. Castling rights availability
@@ -2154,11 +2263,11 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    is >> ch;
+    iss >> ch;
     if (c960)
     {
 
-        while ((is >> ch) && !isspace (ch))
+        while ((iss >> ch) && !isspace (ch))
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
@@ -2177,7 +2286,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
     else
     {
-        while ((is >> ch) && !isspace (ch))
+        while ((iss >> ch) && !isspace (ch))
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
@@ -2202,8 +2311,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // 4. En-passant square. Ignore if no pawn capture is possible
     char col, row;
-    if (   ((is >> col) && (col >= 'a' && col <= 'h'))
-        && ((is >> row) && (row == '3' || row == '6')))
+    if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
+        && ((iss >> row) && (row == '3' || row == '6')))
     {
         if (!( (WHITE == pos._active && '6' != row)
             || (BLACK == pos._active && '3' != row)))
@@ -2220,7 +2329,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     i32 clk50 = 0, g_move = 1;
     if (full)
     {
-        is >> skipws >> clk50 >> g_move;
+        iss >> skipws >> clk50 >> g_move;
         // Rule 50 draw case
         if (100 < clk50) return false;
         if (0 >= g_move) g_move = 1;

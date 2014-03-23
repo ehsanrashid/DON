@@ -3,6 +3,7 @@
 #include "MemoryHandler.h"
 
 #include "UCI.h"
+#include "Engine.h"
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -224,7 +225,7 @@ namespace MemoryHandler {
                 {
                     //perror ("shmat: Shared memory attach failure");
                     //shmctl (shmid1, IPC_RMID, NULL);
-                    //exit(2);
+                    Engine::exit (EXIT_FAILURE);
                 }
                 UsePages = true;
                 cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << endl;
@@ -233,18 +234,20 @@ namespace MemoryHandler {
             else
             {
                 //perror ("shmget: Shared memory get failure");
-                //exit(1);
+                Engine::exit (EXIT_FAILURE);
             }
 #   endif
 
         }
 
         MEMALIGN (mem_ref, align, mem_size);
-        if (mem_ref != NULL)
+        if (mem_ref == NULL)
         {
-            memset (mem_ref, 0, mem_size);
-            cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
+            cerr << "ERROR: Failed to allocate " << (mem_size >> 20) << " MB Hash..." << endl;
+            Engine::exit (EXIT_FAILURE);
         }
+        memset (mem_ref, 0, mem_size);
+        cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
     }
 
     void free_memory    (void *mem)

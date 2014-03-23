@@ -193,6 +193,8 @@ public:
     
     explicit Position (i32) {}
 
+   ~Position() { _thread = NULL; }
+
     Position& operator= (const Position &pos);
 
     Piece    operator[] (Square s)      const;

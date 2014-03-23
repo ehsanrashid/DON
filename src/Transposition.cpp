@@ -34,13 +34,6 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
     u08 offset = max<i08> (alignment-1, sizeof (void *));
 
     MemoryHandler::create_memory (_mem, mem_size, alignment);
-    if (_mem == NULL)
-    {
-        cerr << "ERROR: Failed to allocate " << (mem_size >> 20) << " MB Hash..." << endl;
-        Engine::exit (EXIT_FAILURE);
-    }
-
-    //memset (_mem, 0, mem_size);
 
     void **ptr = (void **) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
     _hash_table = (TTEntry *) (ptr);
@@ -70,7 +63,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
         Engine::exit (EXIT_FAILURE);
     }
 
-    std::cout << "info string Hash size " << (mem_size >> 20) << " MB..." << std::endl;
+    std::cout << "info string Hash " << (mem_size >> 20) << " MB..." << std::endl;
 
     void **ptr =
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
@@ -133,18 +126,18 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 {
     u32 key32 = key >> 32; // 32 upper-bit of key inside cluster
 
-    TTEntry *tte = get_cluster (key);
+    TTEntry *tte = cluster_entry (key);
     // By default replace first entry
     TTEntry *rte = tte;
 
     for (u08 i = 0; i < CLUSTER_ENTRY; ++i, ++tte)
     {
-        if (!tte->key () || tte->key () == key32) // Empty or Old then overwrite
+        if (!tte->_key || tte->_key == key32) // Empty or Old then overwrite
         {
             // Preserve any existing TT move
             if (MOVE_NONE == move)
             {
-                move = tte->move ();
+                move = Move (tte->_move);
             }
 
             rte = tte;
@@ -155,9 +148,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         if (0 == i) continue;
 
         // Implement replacement strategy when a collision occurs
-        i08 gc = ((rte->gen () == _generation) ? +2 : 0);
-        gc       += ((tte->gen () == _generation)
-                  || (tte->bound () == BND_EXACT) ? -2 : 0);
+
+        i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
 
         if (gc < 0) continue;
         if (gc > 0)
@@ -166,9 +158,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
             continue;
         }
         // gc == 0
-        i08 dc = ((tte->depth () < rte->depth ()) ? +1
-                   : (tte->depth () > rte->depth ()) ? -1 : 0);
-                   
+        i08 dc = (tte->_depth < rte->_depth) - (tte->_depth > rte->_depth);
+
         if (dc < 0) continue;
         if (dc > 0)
         {
@@ -176,7 +167,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
             continue;
         }
         // dc == 0
-        i08 nc = ((tte->nodes () < rte->nodes ()) ? +1 : 0);
+        i08 nc = (tte->_nodes < rte->_nodes);
         if (nc > 0)
         {
             rte = tte;
@@ -193,10 +184,14 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u32 key32 = key >> 32;
 
-    const TTEntry *tte = get_cluster (key);
+    TTEntry *tte = cluster_entry (key);
     for (u08 i = 0; i < CLUSTER_ENTRY; ++i, ++tte)
     {
-        if (tte->key () == key32) return tte;
+        if (tte->_key == key32)
+        {
+            tte->_gen = _generation;
+            return tte;
+        }
     }
     return NULL;
 }
