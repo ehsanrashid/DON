@@ -136,7 +136,7 @@ namespace {
     // valuable attacker for the side to move, remove the attacker we just found
     // from the bitboards and scan for new X-ray attacks behind it.
     template<i08 PT>
-    INLINE PieceT min_attacker (const Bitboard *bb, const Square &dst, const Bitboard &stm_attackers, Bitboard &occupied, Bitboard &attackers)
+    INLINE PieceT min_attacker (const Bitboard *bb, Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers)
     {
         Bitboard b = stm_attackers & bb[PT];
         if (b)
@@ -159,7 +159,7 @@ namespace {
         return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
     }
     template<>
-    INLINE PieceT min_attacker<KING> (const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&)
+    INLINE PieceT min_attacker<KING> (const Bitboard*, Square, Bitboard, Bitboard&, Bitboard&)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
