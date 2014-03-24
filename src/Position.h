@@ -413,7 +413,7 @@ inline CRight   Position::castle_rights () const { return _si->castle_rights; }
 inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline u08 Position::clock50      () const { return _si->clock50; }
+inline u08    Position::clock50       () const { return _si->clock50; }
 inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
 inline Piece  Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
@@ -429,18 +429,18 @@ inline CRight Position::can_castle   (Color   c) const { return _si->castle_righ
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
-inline Color Position::active  () const { return _active; }
+inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-inline u16 Position::game_ply  () const { return _game_ply; }
+inline u16  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline u16 Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
-inline bool Position::chess960 () const { return _chess960; }
+inline u16  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline bool Position::chess960  () const { return _chess960; }
 // Nodes visited
-inline u64 Position::game_nodes() const { return _game_nodes; }
+inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
-inline Threads::Thread*  Position::thread    () const { return _thread; }
+inline Threads::Thread* Position::thread () const { return _thread; }
 //template<PieceT PT>
 //// Attacks of the PTYPE from the square
 //inline Bitboard Position::attacks_from (Square s) const
