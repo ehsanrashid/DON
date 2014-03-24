@@ -61,23 +61,24 @@ typedef struct StateInfo
 {
 public:
 
-    Value   non_pawn_matl[CLR_NO];
-    Score   psq_score;
-    Key     matl_key;       // Hash key of materials.
-    Key     pawn_key;       // Hash key of pawns.
-    CRight  castle_rights;  // Castling-rights information for both side.
+    Value  non_pawn_matl[CLR_NO];
+    Score  psq_score;
+    Key    matl_key;       // Hash key of materials.
+    Key    pawn_key;       // Hash key of pawns.
+    CRight castle_rights;  // Castling-rights information for both side.
     // "In passing" - Target square in algebraic notation.
     // If there's no en-passant target square is "-".
-    Square  en_passant_sq;
+    Square   en_passant_sq;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
     u08 clock50;
     u08 null_ply;
     // -------------------------------------
-    Key     posi_key;       // Hash key of position.
-    Move    last_move;      // Move played on the previous position.
-    PieceT  capture_type;   // Piece type captured.
-    Bitboard checkers;      // Checkers bitboard.
+    Key    posi_key;       // Hash key of position.
+    Move   last_move;      // Move played on the previous position.
+    PieceT capture_type;   // Piece type captured.
+    
+    Bitboard checkers;     // Checkers bitboard.
 
     StateInfo *p_si;
 
@@ -136,8 +137,8 @@ private:
     Bitboard _types_bb[TOTL];
 
     Square   _piece_list [CLR_NO][NONE][16];
-    u08  _piece_count[CLR_NO][NONE];
-    i08   _index   [SQ_NO];
+    u08      _piece_count[CLR_NO][NONE];
+    i08      _index   [SQ_NO];
 
     StateInfo  _sb; // Object for base status information
     StateInfo *_si; // Pointer for current status information
@@ -151,10 +152,10 @@ private:
     // "b" - BLACK
     Color    _active;
     // Ply of the game, incremented after every move.
-    u16 _game_ply;
+    u16      _game_ply;
     bool     _chess960;
 
-    u64 _game_nodes;
+    u64      _game_nodes;
 
     Threads::Thread *_thread;
 
@@ -163,13 +164,15 @@ private:
     void set_castle (Color c, Square org_rook);
 
     bool can_en_passant (Square ep_sq) const;
-    //bool can_en_passant (File   ep_f ) const;
+    bool can_en_passant (File   ep_f ) const { return can_en_passant (ep_f | rel_rank (_active, R_6)); }
 
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
     template<bool DO>
     void do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook);
 
+    //template<PieceT PT>
+    //PieceT least_valuable_attacker (Color c, Square dst, Bitboard &occupied) const;
 
 public:
 
@@ -202,16 +205,16 @@ public:
     Bitboard operator[] (PieceT pt)     const;
     const Square* operator[] (Piece p)  const;
 
-    bool empty     (Square s)           const;
-    //Piece piece_on (Square s)           const;
+    bool empty     (Square s)   const;
+    //Piece piece_on (Square s)   const;
 
-    Square king_sq (Color c)            const;
+    Square king_sq (Color c)    const;
 
     Bitboard pieces (Color c)   const;
     Bitboard pieces (PieceT pt) const;
     template<PieceT PT>
     Bitboard pieces ()          const;
-    Bitboard pieces (Color c, PieceT pt) const;
+    Bitboard pieces (Color c, PieceT pt)   const;
     template<PieceT PT>
     Bitboard pieces (Color c)   const;
     Bitboard pieces (PieceT p1, PieceT p2) const;
@@ -219,13 +222,13 @@ public:
     Bitboard pieces ()          const;
     //Bitboard empties () const;
 
-    i32 count (Color c, PieceT pt)  const;
+    i32      count  (Color c, PieceT pt)   const;
     template<PieceT PT>
-    i32 count (Color c) const;
-    i32 count (Color c) const;
+    i32      count  (Color c)   const;
+    i32      count  (Color c)   const;
     template<PieceT PT>
-    i32 count ()        const;
-    i32 count ()        const;
+    i32      count  ()          const;
+    i32      count  ()          const;
 
     template<PieceT PT>
     const Square* list (Color c)    const;
@@ -236,20 +239,20 @@ public:
     Square en_passant_sq () const;
     // Number of halfmoves clock since the last pawn advance or any capture.
     // used to determine if a draw can be claimed under the 50-move rule.
-    u08 clock50 ()          const;
-    Move  last_move ()      const;  // Last move played
-    PieceT capture_type ()  const;  // Last ptype captured
-    Piece capture_piece ()  const;  // Last piece captured
-    Bitboard checkers ()    const;
+    u08    clock50       () const;
+    Move   last_move     () const;  // Last move played
+    PieceT capture_type  () const;  // Last ptype captured
+    Piece  capture_piece () const;  // Last piece captured
+    Bitboard checkers    () const;
     Key matl_key ()         const;
     Key pawn_key ()         const;
     Key posi_key ()         const;
     Key posi_key_exclusion () const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
-    //Value pawn_material (Color c) const;
+    //Value     pawn_material (Color c) const;
 
-    Score psq_score () const;
+    Score psq_score ()      const;
 
     CRight can_castle   (CRight cr) const;
     CRight can_castle   (Color   c) const;
@@ -264,10 +267,10 @@ public:
     bool    draw      () const;
     bool    repeated  () const;
 
-    u64 game_nodes ()    const;
+    u64  game_nodes ()   const;
     void game_nodes (u64 nodes);
 
-    Threads::Thread* thread ()      const;
+    Threads::Thread* thread () const;
 
     bool ok (i08 *step = NULL) const;
 
@@ -286,17 +289,17 @@ public:
     Bitboard pinneds     (Color c)   const;
     Bitboard discoverers (Color c)   const;
 
-    bool pseudo_legal (Move m)                   const;
+    bool pseudo_legal (Move m)       const;
     bool legal        (Move m, Bitboard pinned)  const;
-    bool legal        (Move m)                   const;
-    bool capture      (Move m)                   const;
-    bool capture_or_promotion (Move m)           const;
+    bool legal        (Move m)       const;
+    bool capture      (Move m)       const;
+    bool capture_or_promotion (Move m)    const;
     bool gives_check     (Move m, const CheckInfo &ci) const;
     bool gives_checkmate (Move m, const CheckInfo &ci) const;
 
-    Piece moved_piece(Move m) const;
+    Piece moved_piece (Move m)  const;
 
-    bool advanced_pawn_push (Move m)             const;
+    bool advanced_pawn_push (Move m)      const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;

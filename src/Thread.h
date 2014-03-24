@@ -115,6 +115,7 @@ namespace Threads {
         void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
 
         void notify_one () { cond_signal (condition); }
+
     } Condition;
 
     class Thread;

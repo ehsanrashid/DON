@@ -112,23 +112,21 @@ private:
     }
 
 public:
-
-    // Total size for Transposition entry in byte
-    static const u08  TENTRY_SIZE;
     // Number of entries in a cluster
     static const u08  MAX_CLUSTER_ENTRY;
 
-    // Max power of hash for cluster
-    static const u32 MAX_HASH_BIT;
+    // Total size for Transposition entry in byte
+    static const u08  TTENTRY_SIZE;
 
-    // Default size for Transposition table in mega-byte
-    static const u32 DEF_TT_SIZE;
+    // Maximum bit of hash for cluster
+    static const u32  MAX_HASH_BIT;
+
     // Minimum size for Transposition table in mega-byte
-    static const u32 MIN_TT_SIZE;
+    static const u32  MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> 64 Bit
     // 032768 MB = 032 GB   -> 32 Bit
-    static const u32 MAX_TT_SIZE;
+    static const u32  MAX_TT_SIZE;
 
     bool clear_hash;
 
@@ -137,9 +135,7 @@ public:
         , _hash_mask (0)
         , _generation (0)
         , clear_hash (false)
-    {
-        //resize (DEF_TT_SIZE, true);
-    }
+    {}
 
     TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
@@ -150,7 +146,7 @@ public:
         resize (mem_size_mb, true);
     }
 
-    ~TranspositionTable ()
+   ~TranspositionTable ()
     {
         free_aligned_memory ();
     }
@@ -163,7 +159,7 @@ public:
     // Returns size in MB
     inline u32 size () const
     {
-        return ((entries () * TENTRY_SIZE) >> 20);
+        return ((entries () * TTENTRY_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -174,7 +170,7 @@ public:
     {
         if (clear_hash && _hash_table != NULL)
         {
-            memset (_hash_table, 0, entries () * TENTRY_SIZE);
+            memset (_hash_table, 0, entries () * TTENTRY_SIZE);
             _generation = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }
@@ -224,10 +220,7 @@ public:
 
     u32 resize (u32 mem_size_mb, bool force = false);
 
-    inline u32 resize ()
-    {
-        return resize (size (), true);
-    }
+    inline u32 resize () { return resize (size (), true); }
 
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, u16 nodes, Value value, Value eval);
@@ -242,7 +235,7 @@ public:
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
             os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
-            os.write ((const char *) &TranspositionTable::TENTRY_SIZE, sizeof (dummy));
+            os.write ((const char *) &TranspositionTable::TTENTRY_SIZE, sizeof (dummy));
             os.write ((const char *) &TranspositionTable::MAX_CLUSTER_ENTRY, sizeof (dummy));
             os.write ((const char *) &dummy, sizeof (dummy));
             os.write ((const char *) &tt._generation, sizeof (tt._generation));

@@ -304,11 +304,7 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         = OptionPtr (new SpinOption (
-                                                                            TranspositionTable::DEF_TT_SIZE,
-                                                                            TranspositionTable::MIN_TT_SIZE,
-                                                                            TranspositionTable::MAX_TT_SIZE,
-                                                                            on_resize_hash));
+        Options["Hash"]                         = OptionPtr (new SpinOption (128, TranspositionTable::MIN_TT_SIZE, TranspositionTable::MAX_TT_SIZE, on_resize_hash));
 #ifdef LPAGES
         Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
 #endif
@@ -348,7 +344,7 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    = OptionPtr (new StringOption ("hash.dat"));
+        Options["Hash File"]                    = OptionPtr (new StringOption ("Hash.dat"));
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -373,7 +369,7 @@ namespace UCI {
         // Whether or not the engine should use the Opening Book.
         Options["Own Book"]                     = OptionPtr (new CheckOption (false));
         // The filename of the Opening Book.
-        Options["Book File"]                    = OptionPtr (new StringOption ("book.bin", on_change_book));
+        Options["Book File"]                    = OptionPtr (new StringOption ("Book.bin", on_change_book));
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               = OptionPtr (new CheckOption (true));
@@ -427,7 +423,7 @@ namespace UCI {
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      = OptionPtr (new SpinOption (1, 1, 50));
+        Options["MultiPV"]                      = OptionPtr (new SpinOption ( 1, 1, 50));
 
         // TODO::
         //// Limit the multi-PV analysis to moves within a range of the best move.
@@ -485,7 +481,7 @@ namespace UCI {
         //
         // By setting 50 Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["50 Move Distance"]             = OptionPtr (new SpinOption (50,  5, 50, on_50_move_dist));
+        Options["50 Move Distance"]             = OptionPtr (new SpinOption (50, 5, 50, on_50_move_dist));
 
 
         // TODO::
@@ -524,18 +520,18 @@ namespace UCI {
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  = OptionPtr (new SpinOption ( 0,  0, 99));
+        Options["Mate Search"]                  = OptionPtr (new SpinOption (  0, 0, 99));
         // How well you want engine to play.
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  = OptionPtr (new SpinOption (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL));
 
-        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption (40,  0, 50));
-        Options["Emergency Base Time"]          = OptionPtr (new SpinOption (60,  0, 30000));
-        Options["Emergency Move Time"]          = OptionPtr (new SpinOption (30,  0, 5000));
+        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption ( 40, 0, 50));
+        Options["Emergency Base Time"]          = OptionPtr (new SpinOption ( 60, 0, 30000));
+        Options["Emergency Move Time"]          = OptionPtr (new SpinOption ( 30, 0, 5000));
         // The minimum amount of time to analyze, in milliseconds.
-        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption (20,  0, 5000));
+        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption ( 20, 0, 5000));
         // Move fast if small value, 100 is neutral
-        Options["Slow Mover"]                   = OptionPtr (new SpinOption (90, 10, 1000));
+        Options["Slow Mover"]                   = OptionPtr (new SpinOption ( 80, 10, 1000));
 
         // Debug Options
         // -------------

@@ -15,16 +15,11 @@
 
 #define UNLIKELY(x) (x) // For code annotation purposes
 
-typedef u64 Key;
-typedef u64 Bitboard;
+typedef u64     Key;
+typedef u64     Bitboard;
 
 const u08   MAX_PLY     = 120;          // Maximum Depth
 const u08   MAX_PLY_6   = MAX_PLY + 6;  // Maximum Stack size
-
-#ifdef _MSC_VER
-//#   pragma warning (push)
-//#   pragma warning (disable: 4341)
-#endif
 
 // File of Square
 typedef enum File : i08
@@ -222,7 +217,7 @@ typedef enum Move : u16
 
 } Move;
 
-enum Value : i32
+typedef enum Value : i32
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
@@ -243,7 +238,7 @@ enum Value : i32
     VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1278,
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558
 
-};
+} Value;
 
 // Score enum keeps a midgame and an endgame value in a single integer (enum),
 // first LSB 16 bits are used to store endgame value, while upper bits are used
@@ -321,10 +316,6 @@ typedef enum ScaleFactor : u08
 
 } ScaleFactor;
 
-#ifdef _MSC_VER
-//#   pragma warning (pop)
-#endif
-
 inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
@@ -387,8 +378,6 @@ inline Rank  operator+  (Rank  r, i32 i) { return Rank (i32 (r) + i); }
 inline Rank  operator-  (Rank  r, i32 i) { return Rank (i32 (r) - i); }
 inline Rank& operator+= (Rank &r, i32 i) { r = Rank (i32 (r) + i); return r; }
 inline Rank& operator-= (Rank &r, i32 i) { r = Rank (i32 (r) - i); return r; }
-
-//INC_DEC_OPERATORS (Diag);
 
 INC_DEC_OPERATORS (Color)
 
@@ -575,8 +564,8 @@ struct Castling
 
 inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 
-inline Piece  operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
-//inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
+inline Piece  operator| (Color c, PieceT pt) { return Piece ((c << 3) | pt); }
+//inline Piece mk_piece  (Color c, PieceT pt) { return (c|pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceT ptype (Piece p) { return PieceT (p & TOTL); }

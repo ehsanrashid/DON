@@ -7,21 +7,19 @@ TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 
-const u08  TranspositionTable::TENTRY_SIZE       = sizeof (TTEntry);  // 16
-
 const u08  TranspositionTable::MAX_CLUSTER_ENTRY = 4;
 
+const u08  TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
+
 #ifdef _64BIT
-const u32 TranspositionTable::MAX_HASH_BIT     = 32; // 36
+const u32 TranspositionTable::MAX_HASH_BIT  = 32; // 36
 #else
-const u32 TranspositionTable::MAX_HASH_BIT     = 32;
+const u32 TranspositionTable::MAX_HASH_BIT  = 32;
 #endif
 
-const u32 TranspositionTable::DEF_TT_SIZE      = 128;
+const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 
-const u32 TranspositionTable::MIN_TT_SIZE      = 4;
-
-const u32 TranspositionTable::MAX_TT_SIZE      = (U64 (1) << (MAX_HASH_BIT - 20 - 1)) * TENTRY_SIZE;
+const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT - 20 - 1)) * TTENTRY_SIZE;
 
 void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 {
@@ -92,7 +90,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
 
-    mem_size  = entry_count * TENTRY_SIZE;
+    mem_size  = entry_count * TTENTRY_SIZE;
     
     if (force || entry_count != entries ())
     {
