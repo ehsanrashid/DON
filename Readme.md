@@ -9,7 +9,7 @@ of your choice for information about how to use DON with it.
 ### Features
 
 DON uses a bitboard representation, and is an alpha-beta searcher.
-DON supports up to 64 CPUs. The engine defaults to one search thread,
+DON supports up to 128 CPUs. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the 'Threads'
 UCI parameter, to make sure it equals the # of CPU cores on your computer.
 
@@ -34,10 +34,9 @@ This distribution of DON consists of the following files:
 
 ### Opening books
 
-This version of DON has support for PolyGlot opening books. For
-information about how to create such books, consult the PolyGlot
-documentation. The book file can be selected by setting the *Book File*
-UCI parameter.
+This version of DON has support for PolyGlot opening books.
+For information about how to create such books, consult the PolyGlot documentation.
+The book file can be selected by setting the *Book File* UCI parameter.
 
 
 ### Compiling it yourself
@@ -45,14 +44,14 @@ UCI parameter.
 On Unix-like systems, it should be possible to compile DON
 directly from the source code with the included Makefile.
 
-DON has support for 32 or 64-bit CPUs, the hardware POPCNT
-instruction, big-endian machines such as Power PC, and other platforms.
+DON has support for 32 or 64-bit CPUs, the hardware POPCNT instruction,
+big-endian machines such as Power PC, and other platforms.
 
 In general it is recommended to run `make help` to see a list of make
 targets with corresponding descriptions. When not using the Makefile to
 compile (for instance with Microsoft MSVC) you need to manually
-set/unset some switches in the compiler command line; see file *types.h*
-for a quick reference.
+set/unset some switches in the compiler command line;
+see file *Platform.h* for a quick reference.
 
 
 ### Terms of use
