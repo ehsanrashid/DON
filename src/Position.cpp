@@ -164,35 +164,6 @@ namespace {
         return KING; // No need to update bitboards, it is the last cycle
     }
 
-    // least_valuable_attacker() is a helper function used by see()
-    // to locate the least valuable attacker for the side to move,
-    // remove the attacker we just found from the bitboards and
-    // scan for new X-ray attacks behind it.
-    template<PieceT PT>
-    INLINE PieceT least_valuable_attacker (const Position &pos, Color c, Square dst, Bitboard &occupied)
-    {
-        Bitboard attacks = (BSHP == PT) ? attacks_bb<BSHP> (dst, occupied)
-                         : (ROOK == PT) ? attacks_bb<ROOK> (dst, occupied)
-                         : (QUEN == PT) ? attacks_bb<BSHP> (dst, occupied) | attacks_bb<ROOK> (dst, occupied)
-                         : (PAWN == PT) ? PawnAttacks[~c][dst]
-                         : (NIHT == PT || KING == PT) ? PieceAttacks[PT][dst]
-                         : U64 (0);
-
-        attacks &= pos.pieces<PT> (c) & occupied;
-        if (attacks != U64(0))
-        {
-            occupied ^= (attacks & ~(attacks - 1));
-            return PT;
-        }
-
-        return least_valuable_attacker<PieceT(PT+1)>(pos, c, dst, occupied);
-    }
-    template<>
-    INLINE PieceT least_valuable_attacker<NONE>(const Position&, Color, Square, Bitboard&)
-    {
-        return NONE;
-    }
-
     // prefetch() preloads the given address in L1/L2 cache.
     // This is a non-blocking function that doesn't stall
     // the CPU waiting for data to be loaded from memory,
@@ -590,7 +561,7 @@ bool Position::ok (i08 *step) const
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
 
-/*
+
 Value Position::see (Move m) const
 {
     ASSERT (_ok (m));
@@ -680,81 +651,6 @@ Value Position::see (Move m) const
 
     return swap_list[0];
 }
-*/
-Value Position::see (Move m) const
-{
-    ASSERT (_ok (m));
-
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
-
-    // side to move
-    Color stm = _color (_board[org]);
-
-    // Gain list
-    Value swap_list[32];
-    i08   depth = 1;
-    swap_list[0] = PieceValue[MG][_board[dst]];
-
-    Bitboard occupied = _types_bb[NONE] - org;
-    
-    PieceT capturing = _ptype (_board[org]);
-
-    MoveT mt = mtype (m);
-    if (CASTLE    == mt)
-    {
-        // Castling moves are implemented as king capturing the rook so cannot be
-        // handled correctly. Simply return 0 that is always the correct value
-        // unless in the rare case the rook ends up under attack.
-        return VALUE_ZERO;
-    }
-    if (ENPASSANT == mt)
-    {
-        occupied ^= dst - pawn_push (stm); // Remove the captured pawn
-        swap_list[0] = PieceValue[MG][PAWN];
-    }
-
-    do
-    {
-        ASSERT (depth < 32);
-
-        PieceT captured = capturing;
-        stm = ~stm;
-
-        // Locate and remove the next least valuable attacker
-        capturing = least_valuable_attacker<PAWN> (*this, stm, dst, occupied);
-
-        if (capturing == NONE)
-        {
-            break; // Finished
-        }
-
-        // Add the new entry to the swap list
-        swap_list[depth] = -swap_list[depth - 1] + PieceValue[MG][captured];
-        ++depth;
-
-        // Stop after a king capture
-        if (captured == KING)
-        {
-            swap_list[depth - 1] += 10 * VALUE_MG_QUEN;
-            break;
-        }
-    }
-    while (true);
-
-    // Having built the swap list, we negamax through it to find the best
-    // achievable score from the point of view of the side to move.
-    while (--depth > 0)
-    {
-        if (swap_list[depth - 1] > -swap_list[depth])
-        {
-            swap_list[depth - 1] = -swap_list[depth];
-        }
-    }
-
-    return swap_list[0];
-}
-
 
 Value Position::see_sign (Move m) const
 {

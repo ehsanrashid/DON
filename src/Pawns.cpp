@@ -34,7 +34,10 @@ namespace Pawns {
             {S( 20, 28), S( 29, 31), S( 33, 31), S( 33, 31),
             S( 33, 31), S( 33, 31), S( 29, 31), S( 20, 28), } };
 
-        // Candidate passed pawn bonus by [rank] (initialized by formula)
+        // Connected pawn bonus by [file] and [rank] (initialized by formula)
+        /**/  Score ConnectedBonus[F_NO][R_NO];
+
+        // Candidate passed pawn bonus by [rank]
         const Score CandidatePassedBonus[R_NO] = {
             S(  0,  0), S(  6, 13), S(  6, 13), S( 14, 29),
             S( 34, 68), S( 83,166), S(  0,  0), S(  0,  0), };
@@ -43,6 +46,7 @@ namespace Pawns {
         const Score PawnsFileSpanBonus      = S(  0, 15);
         // Unsupported pawn penalty
         const Score UnsupportedPawnPenalty  = S( 20, 10);
+
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] = {
@@ -59,10 +63,6 @@ namespace Pawns {
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(263);
-
-
-        // Connected pawn bonus by [file] and [rank] (initialized by formula)
-        Score ConnectedBonus[F_NO][R_NO];
 
     #undef S
     #undef V
