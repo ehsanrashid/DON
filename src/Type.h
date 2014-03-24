@@ -494,7 +494,7 @@ inline File _file   (Square s) { return File (s & i08 (SQ_H1)); }
 inline Rank _rank   (Square s) { return Rank (s >> 3); }
 inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & i08 (SQ_H1)) + i08 (SQ_H1)); } // R - F + 7
 inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & i08 (SQ_H1))); }               // R + F
-inline Color _color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
+inline Color color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
 // FLIP   => SQ_A1 -> SQ_A8
 inline Square operator~ (Square s) { return Square (s ^ i08 (SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
@@ -578,9 +578,9 @@ inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 inline Piece  operator| (Color c, PieceT pt) { return Piece (c << 3 | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return c | pt; }
 
-inline bool   _ok    (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceT _ptype (Piece p) { return PieceT (p & TOTL); }
-inline Color  _color (Piece p) { return Color (p >> 3); }
+inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline PieceT ptype (Piece p) { return PieceT (p & TOTL); }
+inline Color  color (Piece p) { return Color (p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece (p ^ (BLACK << 3)); }
 
 //template<class charT, class Traits>

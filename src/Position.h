@@ -364,7 +364,7 @@ public:
 INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; }
 inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[_color (p)][_ptype (p)]; }
+inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 //inline Piece    Position::piece_on(Square s) const { return          _board[s]; }
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
@@ -542,7 +542,7 @@ inline bool Position::capture_or_promotion  (Move m) const
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == _ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
+    return (PAWN == ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
 }
 inline Piece Position:: moved_piece (Move m) const { return _board[org_sq (m)]; }
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
@@ -561,7 +561,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    place_piece (s, _color (p), _ptype (p));
+    place_piece (s, color (p), ptype (p));
 }
 inline void  Position::remove_piece (Square s)
 {
@@ -573,8 +573,8 @@ inline void  Position::remove_piece (Square s)
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
     Piece  p  = _board[s];
-    Color  c  = _color (p);
-    PieceT pt = _ptype (p);
+    Color  c  = color (p);
+    PieceT pt = ptype (p);
     _board[s] = EMPTY;
 
     Bitboard bb      = ~BitBoard::Square_bb[s];
@@ -600,8 +600,8 @@ inline void  Position::  move_piece (Square s1, Square s2)
     ASSERT ( empty (s2));
 
     Piece  p  = _board[s1];
-    Color  c  = _color (p);
-    PieceT pt = _ptype (p);
+    Color  c  = color (p);
+    PieceT pt = ptype (p);
 
     _board[s1] = EMPTY;
     _board[s2] = p;

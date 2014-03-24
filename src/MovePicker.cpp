@@ -124,7 +124,7 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])] - _ptype (pos[org_sq (m)]);
+        itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - ptype (pos[org_sq (m)]);
 
         MoveT mt = mtype (m);
         if      (PROMOTE == mt)
@@ -167,8 +167,8 @@ void MovePicker::value<EVASION> ()
         {
             if (pos.capture (m))
             {
-                itr->value = PieceValue[MG][_ptype (pos[dst_sq (m)])]
-                - _ptype (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
+                - ptype (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
             }
             else
             {

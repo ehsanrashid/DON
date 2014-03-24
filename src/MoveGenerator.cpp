@@ -100,7 +100,7 @@ namespace MoveGenerator {
 
                 Square org_king = pos.king_sq (C);
                 Square org_rook = pos.castle_rook (CR);
-                if (ROOK != _ptype (pos[org_rook])) return;
+                if (ROOK != ptype (pos[org_rook])) return;
 
                 Square dst_king = rel_sq (C, KingSide ? SQ_WK_K : SQ_WK_Q);
 
@@ -475,7 +475,7 @@ namespace MoveGenerator {
         while (discovers != U64 (0))
         {
             Square org = pop_lsq (discovers);
-            PieceT pt  = _ptype (pos[org]);
+            PieceT pt  = ptype (pos[org]);
             Bitboard attacks = attacks_bb (Piece (pt), org, occ) & empties;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
@@ -502,7 +502,7 @@ namespace MoveGenerator {
         while (discovers != U64 (0))
         {
             Square org = pop_lsq (discovers);
-            PieceT pt  = _ptype (pos[org]);
+            PieceT pt  = ptype (pos[org]);
             Bitboard attacks = attacks_bb (Piece (pt), org, occ) & targets;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
@@ -557,7 +557,7 @@ namespace MoveGenerator {
         {
             check_sq = pop_lsq (sliders);
 
-            ASSERT (_color (pos[check_sq]) == ~active);
+            ASSERT (color (pos[check_sq]) == ~active);
             slid_attacks |= LineRay_bb[check_sq][king_sq] - check_sq;
         }
 

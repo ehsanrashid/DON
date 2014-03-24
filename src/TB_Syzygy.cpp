@@ -2591,7 +2591,7 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
-                    if (_ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
+                    if (ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
                         || !pos.legal (move, ci.pinneds))
                     {
                         continue;
@@ -2621,7 +2621,7 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
-                    if (pos.capture (move) || _ptype (pos.moved_piece (move)) == PAWN
+                    if (pos.capture (move) || ptype (pos.moved_piece (move)) == PAWN
                         || !pos.legal (move, ci.pinneds))
                     {
                         continue;

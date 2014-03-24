@@ -844,10 +844,10 @@ namespace Evaluator {
             {
                 Bitboard attacked_enemies;
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
-                if (attacked_enemies) score += ThreatBonus[0][_ptype (pos[scan_lsq (attacked_enemies)])];
+                if (attacked_enemies) score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
 
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
-                if (attacked_enemies) score += ThreatBonus[1][_ptype (pos[scan_lsq (attacked_enemies)])];
+                if (attacked_enemies) score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
             }
 
             if (TRACE)
