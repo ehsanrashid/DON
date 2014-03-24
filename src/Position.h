@@ -16,7 +16,7 @@
 class Position;
 
 namespace Threads {
-    struct Thread;
+    class Thread;
 }
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.

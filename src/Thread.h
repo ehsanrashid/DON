@@ -117,7 +117,7 @@ namespace Threads {
         void notify_one () { cond_signal (condition); }
     } Condition;
 
-    struct Thread;
+    class Thread;
 
     typedef struct SplitPoint
     {
@@ -150,7 +150,7 @@ namespace Threads {
 
     // ThreadBase struct is the base of the hierarchy from where
     // we derive all the specialized thread classes.
-    typedef struct ThreadBase
+    typedef class ThreadBase
     {
 
     public:
@@ -174,7 +174,7 @@ namespace Threads {
 
     // TimerThread is derived from ThreadBase
     // used for special purpose: the recurring timer.
-    typedef struct TimerThread
+    typedef class TimerThread
         : public ThreadBase
     {
 
@@ -197,7 +197,7 @@ namespace Threads {
     // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
     // so that once get a pointer to a thread entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
-    typedef struct Thread
+    typedef class Thread
         : public ThreadBase
     {
 
@@ -232,9 +232,11 @@ namespace Threads {
 
     // MainThread is derived from Thread
     // used for special purpose: the main thread.
-    typedef struct MainThread
+    typedef class MainThread
         : public Thread
     {
+
+    public:
         volatile bool thinking;
 
         MainThread ()
@@ -249,15 +251,16 @@ namespace Threads {
     // starting, parking and, the most important, launching a slave thread
     // at a splitpoint.
     // All the access to shared thread data is done through this class.
-    typedef struct ThreadPool
+    typedef class ThreadPool
         : public std::vector<Thread*>
     {
+
+    public:
         bool    idle_sleep;
         Depth   split_depth;
         Mutex   mutex;
 
         Condition   sleep_condition;
-        
         TimerThread *timer;
 
         MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
