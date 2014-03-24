@@ -72,7 +72,7 @@ public:
 } TTEntry;
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of CLUSTER_ENTRY number of entry.
+// and each cluster consists of MAX_CLUSTER_ENTRY number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -116,7 +116,7 @@ public:
     // Total size for Transposition entry in byte
     static const u08  TENTRY_SIZE;
     // Number of entries in a cluster
-    static const u08  CLUSTER_ENTRY;
+    static const u08  MAX_CLUSTER_ENTRY;
 
     // Max power of hash for cluster
     static const u32 MAX_HASH_BIT;
@@ -157,7 +157,7 @@ public:
 
     inline u64 entries () const
     {
-        return (_hash_mask + CLUSTER_ENTRY);
+        return (_hash_mask + MAX_CLUSTER_ENTRY);
     }
 
     // Returns size in MB
@@ -243,7 +243,7 @@ public:
             u08 dummy = 0;
             os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
             os.write ((const char *) &TranspositionTable::TENTRY_SIZE, sizeof (dummy));
-            os.write ((const char *) &TranspositionTable::CLUSTER_ENTRY, sizeof (dummy));
+            os.write ((const char *) &TranspositionTable::MAX_CLUSTER_ENTRY, sizeof (dummy));
             os.write ((const char *) &dummy, sizeof (dummy));
             os.write ((const char *) &tt._generation, sizeof (tt._generation));
             os.write ((const char *) &tt._hash_mask, sizeof (tt._hash_mask));

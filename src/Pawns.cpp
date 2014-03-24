@@ -16,32 +16,33 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Doubled pawn penalty by file
-        const Score Doubled[F_NO] = {
+        const Score DoubledPenalty[F_NO] = {
             S( 13, 43), S( 20, 48), S( 23, 48), S( 23, 48),
             S( 23, 48), S( 23, 48), S( 20, 48), S( 13, 43), };
 
         // Isolated pawn penalty by opposed flag and file
-        const Score Isolated[CLR_NO][F_NO] = {
+        const Score IsolatedPenalty[CLR_NO][F_NO] = {
             {S( 37, 45), S( 54, 52), S( 60, 52), S( 60, 52),
             S( 60, 52), S( 60, 52), S( 54, 52), S( 37, 45), },
             {S( 25, 30), S( 36, 35), S( 40, 35), S( 40, 35),
             S( 40, 35), S( 40, 35), S( 36, 35), S( 25, 30), } };
 
         // Backward pawn penalty by opposed flag and file
-        const Score Backward[CLR_NO][F_NO] = {
+        const Score BackwardPenalty[CLR_NO][F_NO] = {
             {S( 30, 42), S( 43, 46), S( 49, 46), S( 49, 46),
             S( 49, 46), S( 49, 46), S( 43, 46), S( 30, 42), },
             {S( 20, 28), S( 29, 31), S( 33, 31), S( 33, 31),
             S( 33, 31), S( 33, 31), S( 29, 31), S( 20, 28), } };
 
-
         // Candidate passed pawn bonus by [rank] (initialized by formula)
-        const Score CandidatePassed[R_NO] = {
+        const Score CandidatePassedBonus[R_NO] = {
             S(  0,  0), S(  6, 13), S(  6, 13), S( 14, 29),
             S( 34, 68), S( 83,166), S(  0,  0), S(  0,  0), };
 
         // Bonus for file distance of the two outermost pawns
-        const Score PawnsFileSpan = S(  0, 15);
+        const Score PawnsFileSpanBonus      = S(  0, 15);
+        // Unsupported pawn penalty
+        const Score UnsupportedPawnPenalty  = S( 20, 10);
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] = {
@@ -59,8 +60,9 @@ namespace Pawns {
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(263);
 
+
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
-        Score Connected[F_NO][R_NO];
+        Score ConnectedBonus[F_NO][R_NO];
 
     #undef S
     #undef V
@@ -101,15 +103,20 @@ namespace Pawns {
                 // This file cannot be semi-open
                 e->_semiopen_files[C] &= ~(1 << f);
 
-                // Our rank plus previous one, for connected pawn detection
-                Bitboard rr_bb = rank_bb (s) | rank_bb (s - PUSH);
+                // Previous rank
+                Bitboard pr_bb = rank_bb (s - PUSH);
 
-                // Flag the pawn as passed, isolated, doubled or connected (but not the backward one).
-                bool connected=   pawns[0] & AdjFile_bb[f] & rr_bb;
-                bool isolated = !(pawns[0] & AdjFile_bb[f]);
-                bool doubled  =   pawns[0] & FrontSqs_bb[C][s];
-                bool opposed  =   pawns[1] & FrontSqs_bb[C][s];
-                bool passed   = !(pawns[1] & PasserPawnSpan[C][s]);
+                // Our rank plus previous one, for connected pawn detection
+                Bitboard rr_bb = rank_bb (s) | pr_bb;
+
+                // Flag the pawn as passed, isolated, doubled,
+                // unsupported or connected (but not the backward one).
+                bool connected  =  (pawns[0] & AdjFile_bb[f] & rr_bb);
+                bool unsupported= !(pawns[0] & AdjFile_bb[f] & pr_bb);
+                bool isolated   = !(pawns[0] & AdjFile_bb[f]);
+                bool doubled    =   pawns[0] & FrontSqs_bb[C][s];
+                bool opposed    =   pawns[1] & FrontSqs_bb[C][s];
+                bool passed     = !(pawns[1] & PasserPawnSpan[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -153,17 +160,19 @@ namespace Pawns {
                 if (passed && !doubled) e->_passed_pawns[C] += s;
 
                 // Score this pawn
-                if (isolated)   pawn_score -= Isolated[opposed][f];
+                if (isolated)   pawn_score -= IsolatedPenalty[opposed][f];
 
-                if (doubled)    pawn_score -= Doubled[f];
+                if (unsupported && !isolated) pawn_score -= UnsupportedPawnPenalty;
+
+                if (doubled)    pawn_score -= DoubledPenalty[f];
             
-                if (backward)   pawn_score -= Backward[opposed][f];
+                if (backward)   pawn_score -= BackwardPenalty[opposed][f];
 
-                if (connected)  pawn_score += Connected[f][r];
+                if (connected)  pawn_score += ConnectedBonus[f][r];
 
                 if (candidate_passed)
                 {
-                    pawn_score += CandidatePassed[r];
+                    pawn_score += CandidatePassedBonus[r];
 
                     if (!doubled) e->_candidate_pawns[C] += s;
                 }
@@ -174,7 +183,7 @@ namespace Pawns {
             if (pos.count<PAWN> (C) > 1)
             {
                 Bitboard b = e->_semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpan * i32 (scan_msq (b) - scan_lsq (b));
+                pawn_score += PawnsFileSpanBonus * i32 (scan_msq (b) - scan_lsq (b));
             }
 
             return pawn_score;
@@ -192,7 +201,7 @@ namespace Pawns {
             for (File f = F_A; f <= F_H; ++f)
             {
                 i16 bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
-                Connected[f][r] = mk_score (bonus, bonus);
+                ConnectedBonus[f][r] = mk_score (bonus, bonus);
             }
         }
     }

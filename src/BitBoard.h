@@ -311,11 +311,11 @@ namespace BitBoard {
     // --------------------------------
     template<PieceT PT>
     // Attacks of the PieceT
-    extern INLINE Bitboard attacks_bb (Square s);
+    extern Bitboard attacks_bb (Square s);
 
     template<PieceT PT>
     // Attacks of the PieceT with occupancy
-    extern INLINE Bitboard attacks_bb (Square s, Bitboard occ);
+    extern Bitboard attacks_bb (Square s, Bitboard occ);
 
     template<>
     // KNIGHT attacks
@@ -390,13 +390,12 @@ namespace BitBoard {
         //}
 
         PieceT pt = _ptype (p);
-        return 
-           (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
-        :  (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
-        :  (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
-        :  (PAWN == pt) ? PawnAttacks[_color (p)][s]
-        :  (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
-        :  U64 (0);
+        return (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
+             : (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
+             : (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
+             : (PAWN == pt) ? PawnAttacks[_color (p)][s]
+             : (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
+             : U64 (0);
     }
 
     extern void initialize ();

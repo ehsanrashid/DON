@@ -158,39 +158,37 @@ namespace {
 
         return min_attacker<PT+1> (bb, dst, stm_attackers, occupied, attackers);
     }
-
     template<>
     INLINE PieceT min_attacker<KING> (const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&)
     {
         return KING; // No need to update bitboards, it is the last cycle
     }
 
-    // pick_least_valuable_attacker() is a helper function used by see()
+    // least_valuable_attacker() is a helper function used by see()
     // to locate the least valuable attacker for the side to move,
     // remove the attacker we just found from the bitboards and
     // scan for new X-ray attacks behind it.
     template<PieceT PT>
-    INLINE PieceT pick_least_valuable_attacker (const Position &pos, Square dst, Color c, Bitboard &occupied)
+    INLINE PieceT least_valuable_attacker (const Position &pos, Color c, Square dst, Bitboard &occupied)
     {
-        Bitboard attacks = (BSHP == PT || ROOK == PT) ? attacks_bb<PT> (dst, occupied)
-                        :  (QUEN == PT) ? attacks_bb<BSHP> (dst, occupied) | attacks_bb<ROOK> (dst, occupied)
-                        :  (PAWN == PT) ? PawnAttacks[~c][dst]
-                        :  (NIHT == PT || KING == PT) ? PieceAttacks[PT][dst];
+        Bitboard attacks = (BSHP == PT) ? attacks_bb<BSHP> (dst, occupied)
+                         : (ROOK == PT) ? attacks_bb<ROOK> (dst, occupied)
+                         : (QUEN == PT) ? attacks_bb<BSHP> (dst, occupied) | attacks_bb<ROOK> (dst, occupied)
+                         : (PAWN == PT) ? PawnAttacks[~c][dst]
+                         : (NIHT == PT || KING == PT) ? PieceAttacks[PT][dst]
+                         : U64 (0);
 
-        attacks &= pos.pieces<PT>(c) & occupied;
-
-        if (attacks == U64(0))
+        attacks &= pos.pieces<PT> (c) & occupied;
+        if (attacks != U64(0))
         {
-            return pick_least_valuable_attacker<PT+1>(pos, dst, c, occupied);
+            occupied ^= (attacks & ~(attacks - 1));
+            return PT;
         }
 
-        occupied ^= attacks & ~(attacks - 1);
-
-        return PieceT (PT);
+        return least_valuable_attacker<PieceT(PT+1)>(pos, c, dst, occupied);
     }
-
     template<>
-    INLINE PieceT pick_least_valuable_attacker<NONE>(const Position&, Square, Color, Bitboard&)
+    INLINE PieceT least_valuable_attacker<NONE>(const Position&, Color, Square, Bitboard&)
     {
         return NONE;
     }
@@ -339,7 +337,6 @@ bool Position::repeated () const
     }
     return false;
 }
-
 
 // Position consistency test, for debugging
 bool Position::ok (i08 *step) const
@@ -592,7 +589,9 @@ bool Position::ok (i08 *step) const
 
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
-Value Position::see      (Move m) const
+
+/*
+Value Position::see (Move m) const
 {
     ASSERT (_ok (m));
 
@@ -681,8 +680,8 @@ Value Position::see      (Move m) const
 
     return swap_list[0];
 }
-/*
-Value Position::see      (Move m) const
+*/
+Value Position::see (Move m) const
 {
     ASSERT (_ok (m));
 
@@ -723,7 +722,7 @@ Value Position::see      (Move m) const
         stm = ~stm;
 
         // Locate and remove the next least valuable attacker
-        capturing = pick_least_valuable_attacker<PAWN> (*this, dst, stm, occupied);
+        capturing = least_valuable_attacker<PAWN> (*this, stm, dst, occupied);
 
         if (capturing == NONE)
         {
@@ -755,7 +754,7 @@ Value Position::see      (Move m) const
 
     return swap_list[0];
 }
-*/
+
 
 Value Position::see_sign (Move m) const
 {
@@ -794,7 +793,6 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
 
     return chk_blockers;
 }
-
 
 // pseudo_legal() tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
@@ -1167,7 +1165,7 @@ bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
     Position pos = *this;
     StateInfo si;
     pos.do_move (m, si);
-    return MoveList<LEGAL> (pos).size () == 0;
+    return (MoveList<LEGAL> (pos).size () == 0);
 }
 
 // clear() clear the position
