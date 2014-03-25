@@ -106,12 +106,12 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 
 // store() writes a new entry in the transposition table.
 // It contains folowing valuable information.
-//  - key
-//  - move.
-//  - score.
-//  - depth.
-//  - bound.
-//  - nodes.
+//  - Key
+//  - Move.
+//  - Score.
+//  - Depth.
+//  - Bound.
+//  - Nodes.
 // The lower order bits of position key are used to decide on which cluster the position will be placed.
 // The upper order bits of position key are used to store in entry.
 // When a new entry is written and there are no empty entries available in cluster,

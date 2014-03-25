@@ -39,7 +39,6 @@ namespace BitBases {
             DRAW    = 2,
             WIN     = 4,
             LOSE    = 8
-
         };
 
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
