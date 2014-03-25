@@ -362,6 +362,7 @@ bool Position::ok (i08 *step) const
         {
             return false;
         }
+
         for (Color c = WHITE; c <= BLACK; ++c)
         {
             for (PieceT pt = PAWN; pt <= KING; ++pt)
@@ -402,9 +403,9 @@ bool Position::ok (i08 *step) const
 
         // The union of separate piece type must be equal to occupied squares
         if ( ((_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-             |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE])
+              |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE])
           || ((_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-             ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]))
+              ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]))
         {
             return false;
         }
@@ -469,7 +470,7 @@ bool Position::ok (i08 *step) const
             {
                 for (i32 i = 0; i < _piece_count[c][pt]; ++i)
                 {
-                    if (   !_ok (_piece_list[c][pt][i])
+                    if (   !_ok  (_piece_list[c][pt][i])
                         || _board[_piece_list[c][pt][i]] != (c | pt)
                         || _index[_piece_list[c][pt][i]] != i)
                     {
@@ -730,9 +731,9 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!( KING == pt
-            && R_1 == r_org
-            && R_1 == r_dst
+        if (!( (KING == pt)
+            && (R_1 == r_org)
+            && (R_1 == r_dst)
             && (_active | ROOK) == _board[dst]
             && (_si->castle_rights & mk_castle_right (_active))
             && (!_si->checkers)
@@ -765,9 +766,9 @@ bool Position::pseudo_legal (Move m) const
     }
     else if (mt == PROMOTE)
     {
-        if (!( PAWN == pt
-            && R_7 == r_org
-            && R_8 == r_dst
+        if (!( (PAWN == pt)
+            && (R_7 == r_org)
+            && (R_8 == r_dst)
              ))
         {
             return false;
@@ -776,11 +777,11 @@ bool Position::pseudo_legal (Move m) const
     }
     else if (mt == ENPASSANT)
     {
-        if (!( PAWN == pt
-            && _si->en_passant_sq == dst
-            && R_5 == r_org
-            && R_6 == r_dst
-            && EMPTY == _board[dst]
+        if (!( (PAWN == pt)
+            && (_si->en_passant_sq == dst)
+            && (R_5 == r_org)
+            && (R_6 == r_dst)
+            && (EMPTY == _board[dst])
              ))
         {
             return false;
@@ -809,8 +810,8 @@ bool Position::pseudo_legal (Move m) const
     {
         // We have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
-        if (R_1 == r_org || R_8 == r_org) return false;
-        if (R_1 == r_dst || R_2 == r_dst) return false;
+        if ((R_1 == r_org) || (R_8 == r_org)) return false;
+        if ((R_1 == r_dst) || (R_2 == r_dst)) return false;
         if (mt == NORMAL)
         {
             if (R_7 == r_org || R_8 == r_dst) return false;
@@ -828,8 +829,8 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!( EMPTY == _board[dst]
-                && 0 == FileRankDist[_file (dst)][_file (org)]))
+            if (!( (EMPTY == _board[dst])
+                && (0 == FileRankDist[_file (dst)][_file (org)])))
             {
                 return false;
             }
@@ -841,9 +842,9 @@ bool Position::pseudo_legal (Move m) const
             // The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
             // File distance b/w cap and org must be one, avoids a7h5
-            if (!( NONE != ct
-                && pasive == color (_board[cap])
-                && 1 == FileRankDist[_file (cap)][_file (org)]))
+            if (!( (NONE != ct)
+                && (pasive == color (_board[cap]))
+                && (1 == FileRankDist[_file (cap)][_file (org)])))
             {
                 return false;
             }
@@ -853,11 +854,11 @@ bool Position::pseudo_legal (Move m) const
             // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
-            if (!( R_2 == r_org
-                && R_4 == r_dst
-                && EMPTY == _board[dst]
-                && EMPTY == _board[dst - pawn_push (_active)]
-                && 0 == FileRankDist[_file (dst)][_file (org)]))
+            if (!( (R_2 == r_org)
+                && (R_4 == r_dst)
+                && (EMPTY == _board[dst])
+                && (EMPTY == _board[dst - pawn_push (_active)])
+                && (0 == FileRankDist[_file (dst)][_file (org)])))
             {
                 return false;
             }
@@ -1177,7 +1178,7 @@ bool Position::can_en_passant (Square ep_sq) const
     }
 
     // Check en-passant is legal for the position
-    Square ksq = _piece_list[_active][KING][0];
+    Square   ksq = _piece_list[_active][KING][0];
     Bitboard occ = _types_bb[NONE];
     for (vector<Move>::const_iterator itr = ep_mlist.begin (); itr != ep_mlist.end (); ++itr)
     {
@@ -1487,9 +1488,9 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
     prefetch((char*) TT.cluster_entry (posi_k));
 
     // Update the key with the final value
-    _si->posi_key       = posi_k;
-    _si->capture_type   = ct;
-    _si->last_move      = m;
+    _si->posi_key     = posi_k;
+    _si->capture_type = ct;
+    _si->last_move    = m;
     ++_si->null_ply;
     ++_game_ply;
     ++_game_nodes;
@@ -1658,7 +1659,7 @@ bool   Position::fen (const char *fn, bool c960, bool full) const
 
 #undef set_next
 
-#define set_next(x)      *ch++ = x
+#define set_next(x) *ch++ = x
 
     for (Rank r = R_8; r >= R_1; --r)
     {
@@ -1827,10 +1828,10 @@ string Position::fen (bool                 c960, bool full) const
 // printed to the standard output
 Position::operator string () const
 {
-    const string edge = " +---+---+---+---+---+---+---+---+\n";
+    const string edge  = " +---+---+---+---+---+---+---+---+\n";
     const string row_1 = "| . |   | . |   | . |   | . |   |\n" + edge;
     const string row_2 = "|   | . |   | . |   | . |   | . |\n" + edge;
-    const u16 row_len = row_1.length () + 1;
+    const u16 row_len  = row_1.length () + 1;
 
     string board = edge;
 
@@ -1929,7 +1930,7 @@ bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c96
 
 #undef get_next
 
-#define get_next()         ch = *fen++
+#define get_next()  ch = *fen++
 
     // Piece placement on Board
     for (Rank r = R_8; r >= R_1; --r)
