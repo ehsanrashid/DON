@@ -29,7 +29,6 @@
 //  Eval Value   2
 // ----------------
 //  total        16 byte
-
 struct TTEntry
 {
 
@@ -267,6 +266,7 @@ public:
 #ifdef _MSC_VER
 #   pragma warning (pop)
 #endif
+
 
 extern TranspositionTable TT; // Global Transposition Table
 
