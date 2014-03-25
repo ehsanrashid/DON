@@ -81,7 +81,7 @@ typedef std::stack<StateInfo>   StateInfoStack;
 
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
-//  - Checking squares.
+//  - Checking squares from which the enemy king can be checked
 //  - Pinned pieces.
 //  - Check discoverer pieces.
 //  - Enemy king square.
@@ -89,9 +89,9 @@ struct CheckInfo
 {
 public:
     Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked
-    Bitboard pinneds;       // Pinned pieces
-    Bitboard discoverers;   // Check discoverer pieces
-    Square   king_sq;       // Enemy king square
+    Bitboard pinneds;           // Pinned pieces
+    Bitboard discoverers;       // Check discoverer pieces
+    Square   king_sq;           // Enemy king square
 
     CheckInfo () {}
     explicit CheckInfo (const Position &pos);
@@ -507,20 +507,16 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     MoveT mt = mtype (m);
-    return (mt == NORMAL || mt == PROMOTE)
-        ?  !empty (dst_sq (m))
-        :  (mt == ENPASSANT)
-        ?  _ok (_si->en_passant_sq)
+    return (mt == NORMAL || mt == PROMOTE) ? (EMPTY != _board[dst_sq (m)])
+        :  (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
         :  false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     MoveT mt = mtype (m);
-    return (mt == NORMAL)
-        ?  !empty (dst_sq (m))
-        :  (mt == ENPASSANT)
-        ?  _ok (_si->en_passant_sq)
+    return (mt == NORMAL) ? (EMPTY != _board[dst_sq (m)])
+        :  (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
         :  (mt != CASTLE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
