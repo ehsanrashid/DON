@@ -22,7 +22,7 @@ namespace Evaluator {
 
         // Struct EvalInfo contains various information computed and collected
         // by the evaluation functions.
-        typedef struct EvalInfo
+        struct EvalInfo
         {
             // Pointers to material and pawn hash table entries
             Material::Entry *mi;
@@ -60,7 +60,7 @@ namespace Evaluator {
 
             Bitboard pinned_pieces[CLR_NO];
 
-        } EvalInfo;
+        };
 
         namespace Tracing {
 

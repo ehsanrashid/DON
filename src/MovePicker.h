@@ -64,9 +64,8 @@ public:
 
 };
 
-typedef Stats< true, Value> GainsStats;
-typedef Stats<false, Value> HistoryStats;
-
+typedef Stats< true,                Value  > GainsStats;
+typedef Stats<false,                Value  > HistoryStats;
 typedef Stats<false, std::pair<Move, Move> > MovesStats;
 
 
@@ -81,7 +80,7 @@ class MovePicker
 
 private:
 
-    typedef enum StageT : u08
+    enum StageT : u08
     {
         MAIN_STAGE, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
         EVASIONS  , EVASIONS_S2,
@@ -91,7 +90,7 @@ private:
         RECAPTURE , CAPTURES_S6,
         STOP
 
-    } StageT;
+    };
 
     ValMove  moves[MAX_MOVES]
         ,   *cur

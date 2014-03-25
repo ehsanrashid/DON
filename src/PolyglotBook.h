@@ -23,7 +23,7 @@ class Position;
 // with the highest byte first (regardless of size).
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
-typedef class PolyglotBook
+class PolyglotBook
     : private std::fstream
     , public std::noncopyable
 {
@@ -35,7 +35,7 @@ public:
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    typedef struct PBEntry
+    struct PBEntry
     {
         u64 key;
         u16 move;
@@ -59,7 +59,7 @@ public:
             return os;
         }
 
-    } PBEntry;
+    };
 
     static const u08 PGENTRY_SIZE   = sizeof (PBEntry);
     static const u08 PGHEADER_SIZE  = 0*PGENTRY_SIZE;
@@ -96,13 +96,13 @@ public:
 
     // mode = std::ios_base::in|std::ios_base::out
 #ifndef NDEBUG
-    PolyglotBook (const         char *fn_book, std::ios_base::openmode mode);
+    PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
 #endif
     PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
 #ifndef NDEBUG
-    bool open (const         char *fn_book, std::ios_base::openmode mode);
+    bool open (const        char *fn_book, std::ios_base::openmode mode);
 #endif
     bool open (const std::string &fn_book, std::ios_base::openmode mode);
     void close ();
@@ -134,18 +134,14 @@ public:
 
     void insert_entry (const PolyglotBook::PBEntry &pbe);
 
-
     void write ();
 
     //void import_pgn (const std::string &fn_pgn);
-
     //void merge_book (const std::string &fn_book);
-
     //void dump ();
     //void info ();
 
-
-} PolyglotBook;
+};
 
 #ifdef _MSC_VER
 #   pragma warning (pop)

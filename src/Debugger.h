@@ -11,7 +11,7 @@
 #include "tiebuffer.h"
 #include "Time.h"
 
-typedef class LogFile
+class LogFile
     : public std::ofstream
 {
 
@@ -25,10 +25,10 @@ public:
         if (is_open ()) close ();
     }
 
-} LogFile;
+};
 
 // Singleton I/O logger class
-typedef class IOLogger : std::noncopyable
+class IOLogger : std::noncopyable
 {
 
 private:
@@ -85,7 +85,7 @@ public:
         }
     }
 
-} IOLogger;
+};
 
 inline void log_io (bool b)
 {

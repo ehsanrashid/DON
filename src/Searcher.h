@@ -42,12 +42,12 @@ namespace Searcher {
     //  - Search move list
     //  - Infinite analysis mode.
     //  - Ponder while is opponent's side to move.
-    typedef struct LimitsT
+    struct LimitsT
     {
 
     private:
         // GameClock stores the available time and time-gain per move
-        typedef struct GameClock
+        struct GameClock
         {
             // unit: milli-seconds
             u32 time;   // time left
@@ -62,7 +62,7 @@ namespace Searcher {
                 , inc  (0)
             {}
 
-        } GameClock;
+        };
 
     public:
 
@@ -92,7 +92,7 @@ namespace Searcher {
             return !(infinite || movetime || depth || nodes || mate);
         }
 
-    } LimitsT;
+    };
 
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
@@ -100,7 +100,7 @@ namespace Searcher {
     //  - Stop on ponderhit.
     //  - On first root move.
     //  - Falied low at root.
-    typedef struct SignalsT
+    struct SignalsT
     {
         bool  stop              // Stop any way
             , stop_ponderhit    // Stop on Ponder hit
@@ -114,7 +114,7 @@ namespace Searcher {
             , root_failedlow (false)
         {}
 
-    } SignalsT;
+    };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
     // all the children have to be investigated. The best move found at a PV node leads
@@ -124,7 +124,7 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
-    typedef enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV } NodeT;
+    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -132,7 +132,7 @@ namespace Searcher {
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
-    typedef struct RootMove
+    struct RootMove
     {
         Value value[2];
         u64   nodes;
@@ -162,12 +162,12 @@ namespace Searcher {
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
 
-    } RootMove;
+    };
 
     // The Stack struct keeps track of the information we need to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
-    typedef struct Stack
+    struct Stack
     {
         SplitPoint *splitpoint;
 
@@ -183,7 +183,7 @@ namespace Searcher {
         Value   static_eval;
         bool    skip_null_move;
 
-    } Stack;
+    };
 
 
     extern LimitsT               Limits;

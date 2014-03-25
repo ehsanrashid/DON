@@ -214,7 +214,7 @@ namespace Searcher {
             return oss.str ();
         }
 
-        typedef struct Skill
+        struct Skill
         {
             u08  level;
             Move move;
@@ -276,7 +276,7 @@ namespace Searcher {
                 return move;
             }
 
-        } Skill;
+        };
 
         // _perft() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.

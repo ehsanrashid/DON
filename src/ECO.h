@@ -7,7 +7,7 @@
 
 #include "Zobrist.h"
 
-typedef struct ECO
+struct ECO
 {
     Key posi_key;
     Key pawn_key;
@@ -17,7 +17,7 @@ typedef struct ECO
     std::string moves;
     //std::vector<Move> moves;
 
-} ECO;
+};
 
 
 extern void get_eco ();

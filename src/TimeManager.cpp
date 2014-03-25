@@ -28,7 +28,7 @@ namespace {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
 
-    typedef enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME } TimeT;
+    enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
     // remaining_time() calculate the time remaining
     template<TimeT TT>

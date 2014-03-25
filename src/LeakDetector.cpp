@@ -21,7 +21,7 @@ namespace LeakDetector {
     namespace {
 
         // Node of Memory Leak Info
-        typedef struct LEAK_INFO
+        struct LEAK_INFO
         {
             // Memory Allocation Info
             struct MEM_INFO
@@ -35,7 +35,7 @@ namespace LeakDetector {
 
             LEAK_INFO *next;
 
-        } LEAK_INFO;
+        };
 
 
         LEAK_INFO *pHead = NULL;

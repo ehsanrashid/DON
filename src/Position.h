@@ -57,7 +57,7 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 //  - Bitboard of all checking pieces.
 //  - Pointer to previous StateInfo. 
 //  - Hash keys for all previous positions in the game for detecting repetition draws.
-typedef struct StateInfo
+struct StateInfo
 {
 public:
 
@@ -82,7 +82,7 @@ public:
 
     StateInfo *p_si;
 
-} StateInfo;
+};
 
 typedef std::stack<StateInfo>   StateInfoStack;
 
@@ -92,7 +92,7 @@ typedef std::stack<StateInfo>   StateInfoStack;
 //  - pinned pieces.
 //  - check discoverer pieces.
 //  - enemy king square.
-typedef struct CheckInfo
+struct CheckInfo
 {
 public:
     
@@ -105,7 +105,7 @@ public:
 
     explicit CheckInfo (const Position &pos);
 
-} CheckInfo;
+};
 
 // The position data structure. A position consists of the following data:
 //
@@ -126,7 +126,7 @@ public:
 //    used to implement the Chess960 castling rules.
 //  - Nodes visited during search.
 //  - Chess 960 info
-typedef class Position
+class Position
 {
 
 private:
@@ -360,7 +360,7 @@ public:
     //    return is;
     //}
 
-} Position;
+};
 
 // -------------------------------
 

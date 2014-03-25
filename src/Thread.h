@@ -86,7 +86,7 @@ namespace Threads {
 
     extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
 
-    typedef struct Mutex
+    struct Mutex
     {
     private:
         Lock _lock;
@@ -99,9 +99,9 @@ namespace Threads {
 
         void   lock () { lock_grab (_lock); }
         void unlock () { lock_release (_lock); }
-    } Mutex;
+    };
 
-    typedef struct Condition
+    struct Condition
     {
     private:
         WaitCondition condition;
@@ -116,11 +116,12 @@ namespace Threads {
 
         void notify_one () { cond_signal (condition); }
 
-    } Condition;
+    };
 
     class Thread;
 
-    typedef struct SplitPoint
+    // SplitPoint struct
+    struct SplitPoint
     {
 
     public:
@@ -147,11 +148,11 @@ namespace Threads {
         volatile Move  best_move;
         volatile u64   nodes;
         volatile bool  cut_off;
-    } SplitPoint;
+    };
 
-    // ThreadBase struct is the base of the hierarchy from where
+    // ThreadBase class is the base of the hierarchy from where
     // we derive all the specialized thread classes.
-    typedef class ThreadBase
+    class ThreadBase
     {
 
     public:
@@ -171,11 +172,11 @@ namespace Threads {
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
-    } ThreadBase;
+    };
 
-    // TimerThread is derived from ThreadBase
-    // used for special purpose: the recurring timer.
-    typedef class TimerThread
+    // TimerThread is derived from ThreadBase class
+    // It's used for special purpose: the recurring timer.
+    class TimerThread
         : public ThreadBase
     {
 
@@ -191,14 +192,14 @@ namespace Threads {
 
         virtual void idle_loop ();
 
-    } TimerThread;
+    };
 
-    // Thread is derived from ThreadBase
-    // Thread struct keeps together all the thread related stuff like locks, state
+    // Thread is derived from ThreadBase class
+    // Thread class keeps together all the thread related stuff like locks, state
     // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
     // so that once get a pointer to a thread entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
-    typedef class Thread
+    class Thread
         : public ThreadBase
     {
 
@@ -229,11 +230,11 @@ namespace Threads {
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
             Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
-    } Thread;
+    };
 
     // MainThread is derived from Thread
-    // used for special purpose: the main thread.
-    typedef class MainThread
+    // It's used for special purpose: the main thread.
+    class MainThread
         : public Thread
     {
 
@@ -246,13 +247,13 @@ namespace Threads {
 
         virtual void idle_loop ();
 
-    } MainThread;
+    };
 
-    // ThreadPool struct handles all the threads related stuff like initializing,
+    // ThreadPool class handles all the threads related stuff like initializing,
     // starting, parking and, the most important, launching a slave thread
     // at a splitpoint.
     // All the access to shared thread data is done through this class.
-    typedef class ThreadPool
+    class ThreadPool
         : public std::vector<Thread*>
     {
 
@@ -279,7 +280,7 @@ namespace Threads {
 
         void wait_for_think_finished ();
 
-    } ThreadPool;
+    };
 
     // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
     // conversion from milliseconds to struct timespec, as used by pthreads.
@@ -369,7 +370,7 @@ inline u32 cpu_count ()
 
 }
 
-typedef enum SyncT { IO_LOCK, IO_UNLOCK } SyncT;
+enum SyncT { IO_LOCK, IO_UNLOCK };
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
@@ -390,8 +391,6 @@ inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
     return os;
 }
 
-
 extern Threads::ThreadPool  Threadpool;
-
 
 #endif // _THREAD_H_INC_

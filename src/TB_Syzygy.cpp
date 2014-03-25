@@ -119,27 +119,27 @@ namespace TBSyzygy {
 
         typedef struct PairsData
         {
-            char      *indextable;
+            char *indextable;
             u16  *sizetable;
-            u08   *data;
+            u08  *data;
             u16  *offset;
-            u08   *symlen;
-            u08   *sympat;
-            i32   blocksize;
-            i32   idxbits;
-            i32   min_len;
-            base_t    base[1]; // C++ complains about base[]...
+            u08  *symlen;
+            u08  *sympat;
+            i32  blocksize;
+            i32  idxbits;
+            i32  min_len;
+            base_t base[1]; // C++ complains about base[]...
         } PairsData;
 
         struct TBEntry
         {
-            char      *data;
+            char *data;
             u64  key;
             u64  mapping;
-            u08   ready;
-            u08   num;
-            u08   symmetric;
-            u08   has_pawns;
+            u08  ready;
+            u08  num;
+            u08  symmetric;
+            u08  has_pawns;
 
         }
 #if !defined(_MSC_VER)
@@ -151,66 +151,66 @@ namespace TBSyzygy {
 
         typedef struct TBEntry_piece
         {
-            char      *data;
+            char *data;
             u64  key;
             u64  mapping;
-            u08   ready;
-            u08   num;
-            u08   symmetric;
-            u08   has_pawns;
-            u08   enc_type;
+            u08  ready;
+            u08  num;
+            u08  symmetric;
+            u08  has_pawns;
+            u08  enc_type;
             PairsData *precomp[CLR_NO];
-            i32   factor[CLR_NO][NONE];
-            u08   pieces[CLR_NO][NONE];
-            u08   norm  [CLR_NO][NONE];
+            i32  factor[CLR_NO][NONE];
+            u08  pieces[CLR_NO][NONE];
+            u08  norm  [CLR_NO][NONE];
 
         } TBEntry_piece;
 
         typedef struct TBEntry_pawn
         {
-            char      *data;
+            char *data;
             u64  key;
             u64  mapping;
-            u08   ready;
-            u08   num;
-            u08   symmetric;
-            u08   has_pawns;
-            u08   pawns[CLR_NO];
+            u08  ready;
+            u08  num;
+            u08  symmetric;
+            u08  has_pawns;
+            u08  pawns[CLR_NO];
 
             struct
             {
                 PairsData *precomp[2];
-                i32   factor[CLR_NO][NONE];
-                u08   pieces[CLR_NO][NONE];
-                u08   norm  [CLR_NO][NONE];
+                i32  factor[CLR_NO][NONE];
+                u08  pieces[CLR_NO][NONE];
+                u08  norm  [CLR_NO][NONE];
 
             } file[4];
         } TBEntry_pawn;
 
         typedef struct DTZEntry_piece
         {
-            char      *data;
+            char *data;
             u64  key;
             u64  mapping;
-            u08   ready;
-            u08   num;
-            u08   symmetric;
-            bool      has_pawns;
-            u08   enc_type;
+            u08  ready;
+            u08  num;
+            u08  symmetric;
+            bool has_pawns;
+            u08  enc_type;
             PairsData *precomp;
-            i32   factor[NONE];
-            u08   pieces[NONE];
-            u08   norm  [NONE];
-            u08   flags; // accurate, mapped, side
+            i32  factor[NONE];
+            u08  pieces[NONE];
+            u08  norm  [NONE];
+            u08  flags; // accurate, mapped, side
             u16  map_idx[4];
-            u08   *map;
+            u08  *map;
         } DTZEntry_piece;
 
         typedef struct DTZEntry_pawn
         {
-            char     *data;
-            u64 key;
-            u64 mapping;
+            char *data;
+            u64  key;
+            u64  mapping;
             u08  ready;
             u08  num;
             u08  symmetric;
@@ -220,27 +220,27 @@ namespace TBSyzygy {
             struct
             {
                 PairsData *precomp;
-                i32   factor[NONE];
-                u08   pieces[NONE];
-                u08   norm  [NONE];
+                i32  factor[NONE];
+                u08  pieces[NONE];
+                u08  norm  [NONE];
 
             } file[4];
 
-            u08   flags[4];
+            u08  flags[4];
             u16  map_idx[4][4];
-            u08   *map;
+            u08  *map;
         } DTZEntry_pawn;
 
         typedef struct TBHashEntry
         {
             u64  key;
-            TBEntry  *ptr;
+            TBEntry *ptr;
         } TBHashEntry;
 
         typedef struct DTZTableEntry
         {
-            u64 key1;
-            u64 key2;
+            u64  key1;
+            u64  key2;
             TBEntry *entry;
         } DTZTableEntry;
 
@@ -1961,7 +1961,7 @@ namespace TBSyzygy {
             bitcnt = 0; // number of bits in next
             for (;;)
             {
-                i32 l = m;
+                i32 l = min_len;
                 while (code < base[l]) ++l;
                 sym = offset[l] + ((code - base[l]) >> (32 - l));
                 if (litidx < (i32) symlen[sym] + 1) break;

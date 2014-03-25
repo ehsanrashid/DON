@@ -32,7 +32,7 @@ namespace BitBases {
             return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32 (R_7) - i32 (_rank (wp_sq))) << 15);
         }
 
-        typedef enum Result
+        enum Result
         {
             INVALID = 0,
             UNKNOWN = 1,
@@ -40,7 +40,7 @@ namespace BitBases {
             WIN     = 4,
             LOSE    = 8
 
-        } Result;
+        };
 
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
 

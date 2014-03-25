@@ -45,10 +45,10 @@ INLINE u64 system_time_msec ()
 
 namespace Time {
 
-    //typedef enum point : u64
+    //enum point : u64
     //{
     //    M_SEC = 1000,
-    //} point;
+    //};
     //INLINE point  operator-  (const point &p1, const point &p2) { return point (u64 (p1) - u64 (p2)); }
 
     typedef i64     point;

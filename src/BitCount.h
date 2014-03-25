@@ -11,7 +11,7 @@
 #   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 #endif
 
-typedef enum BitCountT
+enum BitCountT
 {
     CNT_64_FULL,
     CNT_64_MAX15,
@@ -19,7 +19,7 @@ typedef enum BitCountT
     CNT_32_MAX15,
     CNT_HW_POPCNT
 
-} BitCountT;
+};
 
 
 template<BitCountT>

@@ -18,15 +18,15 @@ namespace Zobrist {
     //                  781
     const u16 ZOB_SIZE = 781;
 
-    const Key MATL_KEY_PG = U64 (0xB76D8438E5D28230);
-    const Key PAWN_KEY_PG = U64 (0x37FC40DA841E1692);
-    const Key POSI_KEY_PG = U64 (0x463B96181691FC9C);
+    //const Key PG_MATL_KEY = U64 (0xB76D8438E5D28230);
+    //const Key PG_PAWN_KEY = U64 (0x37FC40DA841E1692);
+    //const Key PG_POSI_KEY = U64 (0x463B96181691FC9C);
 
     extern RKISS Rkiss;
     extern Key   Exclusion;
 
     // Zobrist Random numbers
-    typedef union Zob
+    union Zob
     {
     public:
         Key zobrist[ZOB_SIZE];
@@ -59,7 +59,7 @@ namespace Zobrist {
 #endif
         Key compute_fen_key (const std::string &fen, bool c960 = false) const;
 
-    } Zob;
+    };
 
     extern void initialize ();
 

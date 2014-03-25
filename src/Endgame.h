@@ -15,7 +15,7 @@ class Position;
 namespace EndGame {
 
     // Endgame Type lists all supported endgames
-    typedef enum EndgameT
+    enum EndgameT
     {
         // Evaluation functions
         KXK,   // Generic "mate lone king" eval
@@ -47,14 +47,14 @@ namespace EndGame {
         KBPKN,   // KBP vs KN
         KNPKB    // KNP vs KB
 
-    } EndgameT;
+    };
 
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
     // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
     template<i32> struct eg_fun;
-    template<> struct eg_fun<0> { typedef Value type; };
-    template<> struct eg_fun<1> { typedef ScaleFactor type; };
+    template<> struct eg_fun<0> { typedef Value         type; };
+    template<> struct eg_fun<1> { typedef ScaleFactor   type; };
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
@@ -93,7 +93,7 @@ namespace EndGame {
     // Endgames class stores in two std::map the pointers to endgame evaluation
     // and scaling base objects. Then we use polymorphism to invoke the actual
     // endgame function calling its operator() that is virtual.
-    typedef class Endgames
+    class Endgames
     {
 
         typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
@@ -119,7 +119,7 @@ namespace EndGame {
             return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
         }
 
-    } Endgames;
+    };
 
 }
 

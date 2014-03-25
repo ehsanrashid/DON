@@ -17,7 +17,7 @@ namespace UCI {
     namespace OptionType {
 
         // Option class implements an option as defined by UCI protocol
-        typedef class       Option
+        class       Option
         {
 
         public:
@@ -44,9 +44,9 @@ namespace UCI {
             //virtual Option& operator= (char        *value) = 0;
             virtual Option& operator= (std::string &value) = 0;
 
-        }       Option;
+        };
 
-        typedef class ButtonOption : public Option
+        class ButtonOption : public Option
         {
         public:
             ButtonOption (const OnChange on_change = NULL);
@@ -56,9 +56,9 @@ namespace UCI {
             //Option& operator= (char        *value);
             Option& operator= (std::string &value);
 
-        } ButtonOption;
+        };
 
-        typedef class  CheckOption : public Option
+        class  CheckOption : public Option
         {
         public:
             bool  _default
@@ -72,9 +72,9 @@ namespace UCI {
             //Option& operator= (char        *value);
             Option& operator= (std::string &value);
 
-        }  CheckOption;
+        };
 
-        typedef class StringOption : public Option
+        class StringOption : public Option
         {
         public:
             std::string _default
@@ -88,9 +88,9 @@ namespace UCI {
             //Option& operator= (char        *value);
             Option& operator= (std::string &value);
 
-        } StringOption;
+        };
 
-        typedef class   SpinOption : public Option
+        class   SpinOption : public Option
         {
         public:
             i32 _default
@@ -106,9 +106,9 @@ namespace UCI {
             //Option& operator= (char        *value);
             Option& operator= (std::string &value);
 
-        }   SpinOption;
+        };
 
-        //typedef class  ComboOption : public Option
+        //class  ComboOption : public Option
         //{
         //public:
         //    ComboOption (const OnChange on_change = NULL);
@@ -118,7 +118,7 @@ namespace UCI {
         //    //Option& operator= (char        *value);
         //    Option& operator= (std::string &value);
         //
-        //}  ComboOption;
+        //};
 
 
         template<class charT, class Traits>

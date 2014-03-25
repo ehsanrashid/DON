@@ -30,7 +30,7 @@
 // ----------------
 //  total        16 byte
 
-typedef struct TTEntry
+struct TTEntry
 {
 
 private:
@@ -69,14 +69,14 @@ public:
         _gen   = u08 (g);
     }
 
-} TTEntry;
+};
 
 // A Transposition Table consists of a 2^power number of clusters
 // and each cluster consists of MAX_CLUSTER_ENTRY number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
-typedef class TranspositionTable
+class TranspositionTable
 {
 
 private:
@@ -262,7 +262,7 @@ public:
             return is;
     }
 
-} TranspositionTable;
+};
 
 #ifdef _MSC_VER
 #   pragma warning (pop)

@@ -16,7 +16,7 @@ namespace Pawns {
     // bitboard of passed pawns. We may want to add further information in the future.
     // A lookup to the pawn hash table (performed by calling the probe function)
     // returns a pointer to an Entry object.
-    typedef struct Entry
+    struct Entry
     {
         Key     _pawn_key;
         Score   _pawn_score;
@@ -63,7 +63,7 @@ namespace Pawns {
         template<Color C>
         Value shelter_storm (const Position &pos, Square k_sq);
 
-    } Entry;
+    };
 
 
     typedef HashTable<Entry, 16384> Table;

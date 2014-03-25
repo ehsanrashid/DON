@@ -19,14 +19,14 @@ class Game;
 #pragma warning (disable: 4250)
 
 // PGN file with *.pgn extension
-typedef class PGN
+class PGN
     : private std::fstream
     , public std::noncopyable
 {
 
 private:
 
-    typedef enum PGN_State : i08
+    enum PGN_State : i08
     {
 
         PGN_NEW = 0,
@@ -44,7 +44,7 @@ private:
         
         PGN_ERR = 32,
 
-    } PGN_State;
+    };
 
     std::string _fn_pgn;
     std::ios_base::openmode _mode;
@@ -96,7 +96,7 @@ public:
     Game   read_game (u64 index);
     u64 write_game (const Game &game);
 
-} PGN;
+};
 
 #pragma warning (pop)
 

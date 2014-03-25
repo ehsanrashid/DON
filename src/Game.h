@@ -10,16 +10,16 @@
 #include "functor.h"
 #include "Position.h"
 
-typedef enum Result : u08
+enum Result : u08
 {
     NO_RES  = 0,
     WIN_W   = 1,
     WIN_B   = 2,
     DRAW    = 3,
 
-} Result;
+};
 
-typedef struct Tag
+struct Tag
 {
 private:
 
@@ -50,10 +50,10 @@ public:
         return os;
     }
 
-} Tag;
+};
 
 
-typedef class Game
+class Game
 {
 public:
 
@@ -123,6 +123,6 @@ public:
     }
 
 
-} Game;
+};
 
 #endif // _GAME_H_INC_

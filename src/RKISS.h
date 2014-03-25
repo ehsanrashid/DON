@@ -24,7 +24,7 @@
 // - Thread safe
 // - Small noncryptographic PRNG approach is suited for Zobrist Hashing.
 // http://chessprogramming.wikispaces.com/Bob+Jenkins
-typedef class RKISS
+class RKISS
 {
 
 private:
@@ -58,7 +58,7 @@ public:
     template<class T>
     T magic_rand (u16 s);
 
-} RKISS;
+};
 
 #include "BitBoard.h"
 

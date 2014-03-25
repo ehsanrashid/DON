@@ -48,12 +48,12 @@ namespace TrivialLogger {
     }
 
     // main trivial logger class
-    typedef class TriLogger
+    class TriLogger
     {
 
     private:
 
-        static std::unique_ptr<implementation::TriLoggerImpl> _p_tl_impl;
+        static ::std::unique_ptr<implementation::TriLoggerImpl> _p_tl_impl;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable
@@ -75,9 +75,9 @@ namespace TrivialLogger {
         static void activate (bool const active);
 
         // return reference to pointer to output stream
-        static std::ostream*& ostream_ptr ();
+        static ::std::ostream*& ostream_ptr ();
 
-    } TriLogger;
+    };
 
     // important funtion which helps solves
     // "static initialisation fiasco" problem
@@ -89,7 +89,7 @@ namespace TrivialLogger {
 
     namespace implementation
     {
-        extern std::unique_ptr<TriLogger> p_trilog;
+        extern ::std::unique_ptr<TriLogger> p_trilog;
     }
 }
 

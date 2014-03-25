@@ -22,34 +22,24 @@ const u08   MAX_PLY     = 120;          // Maximum Depth
 const u08   MAX_PLY_6   = MAX_PLY + 6;  // Maximum Stack size
 
 // File of Square
-typedef enum File : i08
-{
-    F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO
-
-} File;
-
+enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
 // Rank of Square
-typedef enum Rank : i08
-{
-    R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO
-
-} Rank;
-
+enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
 // Diagonal of Square
-typedef enum Diag : i08
+enum Diag : i08
 {
     D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
     D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO
 
-} Diag;
+};
 
 // Color of Square and Side
-typedef enum Color : i08 { WHITE, BLACK, CLR_NO } Color;
+enum Color : i08 { WHITE, BLACK, CLR_NO };
 
 // Square needs 6-bits (0-5) to be stored
 // bit 0-2: File
 // bit 3-5: Rank
-typedef enum Square : i08
+enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -71,12 +61,11 @@ typedef enum Square : i08
     SQ_BR_Q  = SQ_D8,
     SQ_BR_K  = SQ_F8
 
-} Square;
+};
 
 // Delta of Square
-typedef enum Delta : i08
+enum Delta : i08
 {
-
     DEL_O =  0,
 
     DEL_N =  8,
@@ -106,20 +95,20 @@ typedef enum Delta : i08
     DEL_WWN = i08 (DEL_WW) + i08 (DEL_N),
     DEL_WWS = i08 (DEL_WW) + i08 (DEL_S)
 
-} Delta;
+};
 
 // Castle Side
-typedef enum CSide : i08
+enum CSide : i08
 {
     CS_K ,    // (KING)-SHORT CASTLE
     CS_Q ,    // (QUEEN)-LONG CASTLE
     CS_NO
 
-} CSide;
+};
 
 // Castle Right
 // Defined as in PolyGlot book hash key
-typedef enum CRight : u08
+enum CRight : u08
 {
     CR_NO ,                 // 0000
     CR_W_K,                 // 0001
@@ -132,10 +121,10 @@ typedef enum CRight : u08
     CR_A = u08 (CR_W)   | u08 (CR_B),   // 1111
     CR_ALL = 16
 
-} CRight;
+};
 
 // Types of Piece
-typedef enum PieceT : i08
+enum PieceT : i08
 {
     PAWN  , // 000 - PAWN
     NIHT  , // 001 - KNIGHT
@@ -146,7 +135,7 @@ typedef enum PieceT : i08
     NONE  , // 110 - NONE
     TOTL    // 111 - TOTL
 
-} PieceT;
+};
 
 // Piece needs 4 bits to be stored
 // bit 0-2: TYPE of piece
@@ -164,7 +153,7 @@ typedef enum PieceT : i08
 // PAWN  & KING  < 3
 // MINOR & MAJOR > 2
 // ONLY MAJOR    > 5
-typedef enum Piece : u08
+enum Piece : u08
 {
     W_PAWN = 0, //  0000
     W_NIHT    , //  0001
@@ -187,17 +176,17 @@ typedef enum Piece : u08
 
     //W_PIECE = 0x00, //  0...
     //B_PIECE = 0x08, //  1...
-} Piece;
+};
 
 // Types of Move
-typedef enum MoveT : u16
+enum MoveT : u16
 {
     NORMAL    = 0 << 14, //0x0000, // 0000
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
     PROMOTE   = 3 << 14  //0xC000, // 11xx
 
-} MoveT;
+};
 
 // Move stored in 16-bits
 //
@@ -210,14 +199,14 @@ typedef enum MoveT : u16
 // Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
-typedef enum Move : u16
+enum Move : u16
 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41
 
-} Move;
+};
 
-typedef enum Value : i32
+enum Value : i32
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
@@ -238,15 +227,15 @@ typedef enum Value : i32
     VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1278,
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558
 
-} Value;
+};
 
 // Score enum keeps a midgame and an endgame value in a single integer (enum),
 // first LSB 16 bits are used to store endgame value, while upper bits are used
 // for midgame value. Compiler is free to choose the enum type as long as can
 // keep its data, so ensure Score to be an integer type.
-typedef enum Score : i32 { SCORE_ZERO      = 0 } Score;
+enum Score : i32 { SCORE_ZERO = 0 };
 
-typedef enum Depth : i16
+enum Depth : i16
 {
     //ONE_PLY             =    1,
     ONE_MOVE            =    2,//2 * i16 (ONE_PLY),
@@ -258,9 +247,9 @@ typedef enum Depth : i16
 
     DEPTH_NONE          = -128 * i16 (ONE_MOVE)
 
-} Depth;
+};
 
-typedef enum Bound : u08
+enum Bound : u08
 {
     // NONE BOUND           - NO_NODE
     BND_NONE    = 0,
@@ -292,9 +281,9 @@ typedef enum Bound : u08
     // which was confirmed by the search in finding and collecting a principal variation.
     BND_EXACT   = BND_LOWER | BND_UPPER
 
-} Bound;
+};
 
-typedef enum Phase : i16
+enum Phase : i16
 {
     PHASE_ENDGAME =   0,
     PHASE_MIDGAME = 128,
@@ -303,9 +292,9 @@ typedef enum Phase : i16
     EG       = 1,
     PHASE_NO = 2
 
-} Phase;
+};
 
-typedef enum ScaleFactor : u08
+enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
 
@@ -314,7 +303,7 @@ typedef enum ScaleFactor : u08
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255
 
-} ScaleFactor;
+};
 
 inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 

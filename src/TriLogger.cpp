@@ -25,7 +25,7 @@ namespace TrivialLogger {
 
     namespace implementation {
 
-        typedef class TriLoggerImpl
+        class TriLoggerImpl
         {
 
         public:
@@ -38,7 +38,7 @@ namespace TrivialLogger {
             // pointer to the output stream of the logger
             static ostream *_outstream;
 
-        } TriLoggerImpl;
+        };
 
         // activate logger by default
         bool TriLoggerImpl::_is_active = true;

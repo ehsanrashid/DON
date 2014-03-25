@@ -9,7 +9,7 @@
 
 // TimeManager class computes the optimal time to think depending on the
 // maximum available time, the move game number and other parameters.
-typedef class TimeManager
+class TimeManager
 {
 
 private:
@@ -31,6 +31,6 @@ public:
 
     void initialize (const Searcher::LimitsT &limits, u16 game_ply, Color c);
     
-} TimeManager;
+};
 
 #endif // _TIME_MANAGER_H_INC_

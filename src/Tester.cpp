@@ -405,18 +405,18 @@ namespace Tester {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             Position::parse (pos, fen);
 
-            ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
-            ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));
-            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
-            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen));
+            ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0x37FC40DA841E1692) == ZobPG.compute_pawn_key (pos));
+            ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_posi_key (pos));
+            ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_fen_key (fen));
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
             Position::parse (pos, fen, NULL, true);
 
-            ASSERT (Zobrist::MATL_KEY_PG == ZobPG.compute_matl_key (pos));
-            ASSERT (Zobrist::PAWN_KEY_PG == ZobPG.compute_pawn_key (pos));
-            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_posi_key (pos));
-            ASSERT (Zobrist::POSI_KEY_PG == ZobPG.compute_fen_key (fen, true));
+            ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
+            ASSERT (U64 (0x37FC40DA841E1692) == ZobPG.compute_pawn_key (pos));
+            ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_posi_key (pos));
+            ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_fen_key (fen, true));
 
             fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
             Position::parse (pos, fen);

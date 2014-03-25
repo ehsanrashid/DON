@@ -11,7 +11,7 @@ class Position;
 
 const u08   MAX_MOVES   = 255;
 
-typedef struct ValMove
+struct ValMove
 {
     Move    move;
     Value   value;
@@ -27,12 +27,12 @@ typedef struct ValMove
     inline friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
     inline friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
 
-} ValMove;
+};
 
 namespace MoveGenerator {
 
     // Types of Generator
-    typedef enum GenT : u08
+    enum GenT : u08
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -45,7 +45,7 @@ namespace MoveGenerator {
         // ------------------------
         LEGAL        // Legal moves
 
-    } GenT;
+    };
 
     template<GenT GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);

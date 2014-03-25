@@ -14,14 +14,14 @@ class Position;
 namespace Notation {
 
     // Type of the Ambiguity
-    typedef enum AmbiguityT : u08
+    enum AmbiguityT : u08
     {
         AMB_NONE = 0,
         AMB_RANK = 1,
         AMB_FILE = 2,
         AMB_SQR  = 3,
 
-    } AmbiguityT;
+    };
 
     extern AmbiguityT ambiguity (Move m, const Position &pos);
 
