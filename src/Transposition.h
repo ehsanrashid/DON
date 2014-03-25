@@ -47,14 +47,14 @@ private:
 
 public:
 
-    u32     key   () const { return u32   (_key);   }
-    Move    move  () const { return Move  (_move);  }
-    Depth   depth () const { return Depth (_depth); }
-    Bound   bound () const { return Bound (_bound); }
-    //u08     gen   () const { return u08   (_gen);   }
-    u16     nodes () const { return u16   (_nodes); }
-    Value   value () const { return Value (_value); }
-    Value   eval  () const { return Value (_eval);  }
+    u32   key   () const { return u32   (_key);   }
+    Move  move  () const { return Move  (_move);  }
+    Depth depth () const { return Depth (_depth); }
+    Bound bound () const { return Bound (_bound); }
+    //u08   gen   () const { return u08   (_gen);   }
+    u16   nodes () const { return u16   (_nodes); }
+    Value value () const { return Value (_value); }
+    Value eval  () const { return Value (_eval);  }
 
     void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
     {
@@ -71,7 +71,7 @@ public:
 };
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of MAX_CLUSTER_ENTRY number of entry.
+// and each cluster consists of TOT_CLUSTER_ENTRY number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -112,20 +112,20 @@ private:
 
 public:
     // Number of entries in a cluster
-    static const u08  MAX_CLUSTER_ENTRY;
+    static const u08 TOT_CLUSTER_ENTRY;
 
     // Total size for Transposition entry in byte
-    static const u08  TTENTRY_SIZE;
+    static const u08 TTENTRY_SIZE;
 
     // Maximum bit of hash for cluster
-    static const u32  MAX_HASH_BIT;
+    static const u32 MAX_HASH_BIT;
 
     // Minimum size for Transposition table in mega-byte
-    static const u32  MIN_TT_SIZE;
+    static const u32 MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
     // 524288 MB = 512 GB   -> 64 Bit
     // 032768 MB = 032 GB   -> 32 Bit
-    static const u32  MAX_TT_SIZE;
+    static const u32 MAX_TT_SIZE;
 
     bool clear_hash;
 
@@ -152,7 +152,7 @@ public:
 
     inline u64 entries () const
     {
-        return (_hash_mask + MAX_CLUSTER_ENTRY);
+        return (_hash_mask + TOT_CLUSTER_ENTRY);
     }
 
     // Returns size in MB
@@ -233,13 +233,13 @@ public:
     {
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
-            os.write ((const char *) &mem_size_mb, sizeof (mem_size_mb));
-            os.write ((const char *) &TranspositionTable::TTENTRY_SIZE, sizeof (dummy));
-            os.write ((const char *) &TranspositionTable::MAX_CLUSTER_ENTRY, sizeof (dummy));
-            os.write ((const char *) &dummy, sizeof (dummy));
-            os.write ((const char *) &tt._generation, sizeof (tt._generation));
-            os.write ((const char *) &tt._hash_mask, sizeof (tt._hash_mask));
-            os.write ((const char *)  tt._hash_table, mem_size_mb << 20);
+            os.write ((const charT *) &mem_size_mb, sizeof (mem_size_mb));
+            os.write ((const charT *) &TranspositionTable::TTENTRY_SIZE, sizeof (dummy));
+            os.write ((const charT *) &TranspositionTable::TOT_CLUSTER_ENTRY, sizeof (dummy));
+            os.write ((const charT *) &dummy, sizeof (dummy));
+            os.write ((const charT *) &tt._generation, sizeof (tt._generation));
+            os.write ((const charT *) &tt._hash_mask, sizeof (tt._hash_mask));
+            os.write ((const charT *)  tt._hash_table, mem_size_mb << 20);
             return os;
     }
 
@@ -248,16 +248,16 @@ public:
         operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
     {
             u32 mem_size_mb;
-            is.read ((char *) &mem_size_mb, sizeof (mem_size_mb));
+            is.read ((charT *) &mem_size_mb, sizeof (mem_size_mb));
             u08 dummy;
-            is.read ((char *) &dummy, sizeof (dummy));
-            is.read ((char *) &dummy, sizeof (dummy));
-            is.read ((char *) &dummy, sizeof (dummy));
-            is.read ((char *) &dummy, sizeof (dummy));
-            is.read ((char *) &tt._hash_mask, sizeof (tt._hash_mask));
+            is.read ((charT *) &dummy, sizeof (dummy));
+            is.read ((charT *) &dummy, sizeof (dummy));
+            is.read ((charT *) &dummy, sizeof (dummy));
+            is.read ((charT *) &dummy, sizeof (dummy));
+            is.read ((charT *) &tt._hash_mask, sizeof (tt._hash_mask));
             tt.resize (mem_size_mb);
             tt._generation = dummy;
-            is.read ((char *)  tt._hash_table, mem_size_mb << 20);
+            is.read ((charT *)  tt._hash_table, mem_size_mb << 20);
             return is;
     }
 
