@@ -144,8 +144,7 @@ namespace LeakDetector {
 
         if (fp_write)
         {
-#           define BUF_SIZE 1024
-            char info_buf[BUF_SIZE];
+            char info_buf[1024];
             LEAK_INFO *leak_info;
             leak_info = pHead;
 
