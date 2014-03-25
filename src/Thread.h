@@ -60,7 +60,7 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
-typedef void* (*FnStart) (void*);
+typedef void* (*StartRoutine) (void*);
 
 #   define lock_create(x)   pthread_mutex_init (&(x), NULL)
 #   define lock_grab(x)     pthread_mutex_lock (&(x))
@@ -71,7 +71,7 @@ typedef void* (*FnStart) (void*);
 #   define cond_signal(x)   pthread_cond_signal (&(x))
 #   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
 #   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
-#   define thread_create(x,f,t)     pthread_create (&(x), NULL, FnStart (f), t)
+#   define thread_create(x,f,t)     pthread_create (&(x), NULL, StartRoutine (f), t)
 #   define thread_join(x)   pthread_join (x, NULL)
 
 #endif
