@@ -147,20 +147,16 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         // Implement replacement strategy when a collision occurs
 
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
-
-        if (gc < 0) continue;
-        if (gc > 0)
+        if (gc != 0)
         {
-            rte = tte;
+            if (gc > 0) rte = tte;
             continue;
         }
         // gc == 0
         i08 dc = (tte->_depth < rte->_depth) - (tte->_depth > rte->_depth);
-
-        if (dc < 0) continue;
-        if (dc > 0)
+        if (dc != 0)
         {
-            rte = tte;
+            if (dc > 0) rte = tte;
             continue;
         }
         // dc == 0
