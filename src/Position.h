@@ -81,10 +81,10 @@ typedef std::stack<StateInfo>   StateInfoStack;
 
 // CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
-//  - checking squares.
-//  - pinned pieces.
-//  - check discoverer pieces.
-//  - enemy king square.
+//  - Checking squares.
+//  - Pinned pieces.
+//  - Check discoverer pieces.
+//  - Enemy king square.
 struct CheckInfo
 {
 public:
@@ -429,17 +429,15 @@ inline Threads::Thread* Position::thread () const { return _thread; }
 //// Attacks of the PTYPE from the square
 //inline Bitboard Position::attacks_from (Square s) const
 //{
-//    return (BSHP == PT
-//        ||  ROOK == PT) ? BitBoard::attacks_bb<PT>   (s, _types_bb[NONE])
-//        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
-//        |                 BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
+//    return (BSHP == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
+//        :  (ROOK == PT) ? BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
+//        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE]) | BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
 //        :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
-//        :  (NIHT == PT
-//        ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
+//        :  (NIHT == PT ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
 //        :  U64 (0);
 //}
-// Attackers to the square on given occ
 
+// Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return (BitBoard::PawnAttacks[WHITE][s]    & _types_bb[PAWN]&_color_bb[BLACK])
