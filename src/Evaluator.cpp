@@ -199,12 +199,12 @@ namespace Evaluator {
         const Score ThreatBonus[2][NONE] =
         {
             { S (7, 39), S (24, 49), S (24, 49), S (41, 100), S (41, 100), S (0, 0), }, // Minor
-            { S (15, 39), S (15, 45), S (15, 45), S (15, 45), S (24, 49), S (0, 0), }, // Major
+            { S (15, 39), S (15, 45), S (15, 45), S (15, 45), S (24,  49), S (0, 0), }, // Major
         };
 
-        // ThreatenedByPawnPenalty[PieceT] contains a penalty according to which piece
+        // PawnThreatenPenalty[PieceT] contains a penalty according to which piece
         // type is attacked by an enemy pawn.
-        const Score ThreatenedByPawnPenalty[NONE] =
+        const Score PawnThreatenPenalty[NONE] =
         {
             S (0, 0), S (56, 70), S (56, 70), S (76, 99), S (86, 118), S (0, 0)
         };
@@ -229,14 +229,14 @@ namespace Evaluator {
         const Score BishopPawnsPenalty      = S (8, 12);
         const Score KnightPawnsPenalty      = S (8, 4);
         const Score MinorBehindPawnBonus    = S (16, 0);
-        const Score UndefendedMinorPenalty  = S (25, 10);
-        const Score TrappedRookPenalty      = S (90, 0);
-        const Score UnstoppablePawnBonus    = S (0, 20);
+        const Score MinorUndefendedPenalty  = S (25, 10);
+        const Score RookTrappedPenalty      = S (90, 0);
+        const Score PawnUnstoppableBonus    = S (0, 20);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
         // happen in Chess960 games.
-        const Score TrappedBishopA1H1       = S (50, 50);
+        const Score BishopTrappedA1H1Penalty= S (50, 50);
 
 #undef S
 #undef V
@@ -546,7 +546,7 @@ namespace Evaluator {
                 // of threat evaluation must be done later when we have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
                 {
-                    score -= ThreatenedByPawnPenalty[PT];
+                    score -= PawnThreatenPenalty[PT];
                 }
 
                 if (BSHP == PT || NIHT == PT)
@@ -576,9 +576,9 @@ namespace Evaluator {
                                 if (pos[s + d] == P)
                                 {
                                     score -=
-                                        !pos.empty (s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
-                                        : (pos[s + d + d] == P)            ? TrappedBishopA1H1 * 2
-                                        :                                    TrappedBishopA1H1;
+                                        !pos.empty (s + d + pawn_push (C)) ? BishopTrappedA1H1Penalty * 4
+                                        : (pos[s + d + d] == P)            ? BishopTrappedA1H1Penalty * 2
+                                        :                                    BishopTrappedA1H1Penalty;
                                 }
                             }
                         }
@@ -660,7 +660,7 @@ namespace Evaluator {
                                     && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
                                     && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                                 {
-                                    score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                                    score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                                 }
                             }
                         }
@@ -835,7 +835,7 @@ namespace Evaluator {
 
             // Undefended minors get penalized even if not under attack
             Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][NONE];
-            if (undefended_minors) score += UndefendedMinorPenalty;
+            if (undefended_minors) score += MinorUndefendedPenalty;
 
             // Enemy pieces not defended by a pawn and under our attack
             Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][NONE];
@@ -1003,7 +1003,7 @@ namespace Evaluator {
             Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
 
             return (!unstoppable_pawns || pos.non_pawn_material (~c)) ? SCORE_ZERO
-                : UnstoppablePawnBonus * i32 (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
+                : PawnUnstoppableBonus * i32 (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
         }
 
         template<Color C>
