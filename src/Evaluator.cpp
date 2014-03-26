@@ -551,7 +551,6 @@ namespace Evaluator {
 
                 if (BSHP == PT || NIHT == PT)
                 {
-
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
@@ -588,6 +587,23 @@ namespace Evaluator {
 
                 if (ROOK == PT || QUEN == PT)
                 {
+                    if (R_5 <= rel_rank (C, s))
+                    {
+                        // Major piece on 7th rank and enemy king trapped on 8th
+                        if (R_7 == rel_rank (C, s)
+                            && R_8 == rel_rank (C, ek_sq))
+                        {
+                            score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
+                        }
+
+                        // Major piece attacking enemy pawns on the same rank/file
+                        Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
+                        if (pawns)
+                        {
+                            score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * i32 (pop_count<MAX15> (pawns));
+                        }
+                    }
+
                     // Special extra evaluation for rooks
                     if (ROOK == PT)
                     {
@@ -627,23 +643,6 @@ namespace Evaluator {
                             && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                         {
                             score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
-                        }
-                    }
-
-                    if (R_5 <= rel_rank (C, s))
-                    {
-                        // Major piece on 7th rank and enemy king trapped on 8th
-                        if (R_7 == rel_rank (C, s)
-                            && R_8 == rel_rank (C, ek_sq))
-                        {
-                            score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
-                        }
-
-                        // Major piece attacking enemy pawns on the same rank/file
-                        Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (pawns)
-                        {
-                            score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * i32 (pop_count<MAX15> (pawns));
                         }
                     }
                 }

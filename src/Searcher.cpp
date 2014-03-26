@@ -900,7 +900,7 @@ namespace Searcher {
                 // we can (almost) safely prune the previous move.
                 if (   (depth >= 5 * ONE_MOVE)
                     && (!(ss)->skip_null_move)
-                    //&& (eval >= alpha + 50) // TODO::
+                    && (eval >= alpha + 50) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                    )
                 {
