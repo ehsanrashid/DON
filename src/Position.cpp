@@ -35,7 +35,6 @@ const Value PieceValue[PHASE_NO][TOTL] =
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
-
 #ifndef NDEBUG
 bool _ok (const   char *fen, bool c960, bool full)
 {
@@ -52,7 +51,6 @@ bool _ok (const string &fen, bool c960, bool full)
     return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
 }
 
-
 namespace {
 
     // do_move() copy current state info up to 'posi_key' excluded to the new one.
@@ -62,7 +60,6 @@ namespace {
     CACHE_ALIGN(64) Score PSQ[CLR_NO][NONE][SQ_NO];
 
 #define S(mg, eg) mk_score (mg, eg)
-
     // PSQT[PieceType][Square] contains Piece-Square scores. For each piece type on
     // a given square a (midgame, endgame) score pair is assigned. PSQT is defined
     // for white side, for black side the tables are symmetric.
@@ -129,40 +126,7 @@ namespace {
         S( 98, 27), S(132, 81), S( 73,108), S( 25,116), S( 25,116), S( 73,108), S(132, 81), S( 98, 27),
         },
     };
-
 #undef S
-
-    // min_attacker() is an helper function used by see() to locate the least
-    // valuable attacker for the side to move, remove the attacker we just found
-    // from the bitboards and scan for new X-ray attacks behind it.
-    template<PieceT PT>
-    INLINE PieceT min_attacker (const Bitboard *bb, Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers)
-    {
-        Bitboard b = stm_attackers & bb[PT];
-        if (b)
-        {
-            occupied -= (b & ~(b - 1));
-
-            if (PAWN == PT || BSHP == PT || QUEN == PT)
-            {
-                attackers |= attacks_bb<BSHP> (dst, occupied) & (bb[BSHP] | bb[QUEN]);
-            }
-            if (ROOK == PT || QUEN == PT)
-            {
-                attackers |= attacks_bb<ROOK> (dst, occupied) & (bb[ROOK] | bb[QUEN]);
-            }
-            attackers &= occupied; // After X-ray that may add already processed pieces
-
-            return PT;
-        }
-
-        return min_attacker<PieceT(PT+1)> (bb, dst, stm_attackers, occupied, attackers);
-    }
-    template<>
-    INLINE PieceT min_attacker<KING> (const Bitboard*, Square, Bitboard, Bitboard&, Bitboard&)
-    {
-        return KING; // No need to update bitboards, it is the last cycle
-    }
 
     // prefetch() preloads the given address in L1/L2 cache.
     // This is a non-blocking function that doesn't stall
@@ -559,6 +523,38 @@ bool Position::ok (i08 *step) const
     return true;
 }
 
+// least_valuable_attacker() is an helper function used by see() to locate the least
+// valuable attacker for the side to move, remove the attacker we just found
+// from the bitboards and scan for new X-ray attacks behind it.
+template<PieceT PT>
+PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
+{
+    Bitboard b = stm_attackers & _types_bb[PT];
+    if (b)
+    {
+        occupied ^= (b & ~(b - 1));
+
+        if (PAWN == PT || BSHP == PT || QUEN == PT)
+        {
+            attackers |= attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]);
+        }
+        if (ROOK == PT || QUEN == PT)
+        {
+            attackers |= attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]);
+        }
+        attackers &= occupied; // After X-ray that may add already processed pieces
+
+        return PT;
+    }
+
+    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, occupied, attackers);
+}
+template<>
+PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
+{
+    return KING; // No need to update bitboards, it is the last cycle
+}
+
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
 Value Position::see (Move m) const
@@ -609,20 +605,18 @@ Value Position::see (Move m) const
         // destination square, where the sides alternately capture, and always
         // capture with the least valuable piece. After each capture, we look for
         // new X-ray attacks from behind the capturing piece.
-        PieceT ct = ptype (_board[org]);
-
         do
         {
             ASSERT (depth < 32);
 
             // Add the new entry to the swap list
-            swap_list[depth] = PieceValue[MG][ct] - swap_list[depth - 1];
+            swap_list[depth] = PieceValue[MG][ptype (_board[org])] - swap_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            ct  = min_attacker<PAWN> (_types_bb, dst, stm_attackers, occupied, attackers);
+            PieceT captured = least_valuable_attacker<PAWN> (dst, stm_attackers, occupied, attackers);
 
             // Stop before processing a king capture
-            if (KING == ct)
+            if (KING == captured)
             {
                 if (stm_attackers == attackers)
                 {

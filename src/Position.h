@@ -161,6 +161,9 @@ private:
     template<bool DO>
     void do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook);
 
+    template<PieceT PT>
+    PieceT least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const;
+
 public:
 
     static u08 _50_move_dist;
