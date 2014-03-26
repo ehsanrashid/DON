@@ -1859,7 +1859,11 @@ Position::operator string () const
     Bitboard chkrs = checkers ();
     if (chkrs)
     {
-        while (chkrs) oss << to_string (pop_lsq (chkrs)) << " ";
+        while (chkrs)
+        {
+            Square chk = pop_lsq (chkrs);
+            oss << PieceChar[ptype (_board[chk])] << to_string (chk) << " ";
+        }
     }
     else
     {
