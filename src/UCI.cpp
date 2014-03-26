@@ -294,7 +294,10 @@ namespace UCI {
                 cout << "\nEvasion moves: ";
                 for (MoveList<EVASION> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (*itr, RootPos) << " ";
+                    if (RootPos.legal (*itr))
+                    {
+                        cout << move_to_san (*itr, RootPos) << " ";
+                    }
                 }
             }
             else
@@ -302,27 +305,38 @@ namespace UCI {
                 cout << "\nQuiet moves: ";
                 for (MoveList<QUIET> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (*itr, RootPos) << " ";
+                    if (RootPos.legal (*itr))
+                    {
+                        cout << move_to_san (*itr, RootPos) << " ";
+                    }
                 }
 
                 cout << "\nCheck moves: ";
                 for (MoveList<CHECK> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (*itr, RootPos) << " ";
+                    if (RootPos.legal (*itr))
+                    {
+                        cout << move_to_san (*itr, RootPos) << " ";
+                    }
                 }
 
                 cout << "\nQuiet Check moves: ";
                 for (MoveList<QUIET_CHECK> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (*itr, RootPos) << " ";
+                    if (RootPos.legal (*itr))
+                    {
+                        cout << move_to_san (*itr, RootPos) << " ";
+                    }
                 }
 
                 cout << "\nCapture moves: ";
                 for (MoveList<CAPTURE> itr (RootPos); *itr; ++itr)
                 {
-                    cout << move_to_san (*itr, RootPos) << " ";
+                    if (RootPos.legal (*itr))
+                    {
+                        cout << move_to_san (*itr, RootPos) << " ";
+                    }
                 }
-
             }
 
             cout << "\nLegal moves: ";

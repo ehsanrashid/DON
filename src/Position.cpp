@@ -2151,7 +2151,6 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     iss >> ch;
     if (c960)
     {
-
         while ((iss >> ch) && !isspace (ch))
         {
             Square rook;
