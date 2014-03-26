@@ -95,8 +95,8 @@ namespace Evaluator {
                 {
                 case PST: case IMBALANCE: case PAWN: case TOTAL:
                     ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
-                        << setw (6)  << value_to_cp (mg_value (score[WHITE])) << " "
-                        << setw (6)  << value_to_cp (eg_value (score[WHITE])) << " \n";
+                        << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                        << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                     break;
 
                 default:
