@@ -26,7 +26,7 @@ namespace Evaluator {
         {
             // Pointers to material and pawn hash table entries
             Material::Entry *mi;
-            Pawns::Entry *pi;
+            Pawns   ::Entry *pi;
 
             // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
             // attacked_by[color][NONE] contains all squares attacked by the given color.
@@ -83,7 +83,7 @@ namespace Evaluator {
                 Terms[BLACK][term] = b_score;
             }
 
-            inline void format_row (stringstream &ss, const char name[], u08 term)
+            inline void format_row (stringstream &ss, const char *name, u08 term)
             {
                 Score score[CLR_NO] =
                 {
@@ -357,7 +357,7 @@ namespace Evaluator {
                 -    evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
 
             // If one side has only a king, score for potential unstoppable pawns
-            if (!pos.non_pawn_material (WHITE)
+            if (   !pos.non_pawn_material (WHITE)
                 || !pos.non_pawn_material (BLACK))
             {
                 score += evaluate_unstoppable_pawns (pos, WHITE, ei)
@@ -378,13 +378,13 @@ namespace Evaluator {
 
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
-            if (ei.mi->game_phase () < PHASE_MIDGAME
+            if (   ei.mi->game_phase () < PHASE_MIDGAME
                 && pos.opposite_bishops ()
                 && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
             {
                 // Ignoring any pawns, do both sides only have a single bishop and no
                 // other pieces?
-                if (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
+                if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
                     && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
@@ -415,7 +415,8 @@ namespace Evaluator {
                     ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei)
                 };
 
-                Tracing::add_term (Tracing::SPACE, apply_weight (scr[WHITE], Weights[Space])
+                Tracing::add_term (Tracing::SPACE
+                    , apply_weight (scr[WHITE], Weights[Space])
                     , apply_weight (scr[BLACK], Weights[Space]));
 
                 Tracing::add_term (Tracing::TOTAL, score);
@@ -473,7 +474,7 @@ namespace Evaluator {
             // no minor piece which can exchange the outpost piece.
             if (bonus && (ei.attacked_by[C][PAWN] & s))
             {
-                if (!(pos.pieces<NIHT> (C_))
+                if (   !(pos.pieces<NIHT> (C_))
                     && !(pos.pieces<BSHP> (C_) & squares_of_color (s)))
                 {
                     bonus += bonus + bonus / 2;
@@ -598,7 +599,7 @@ namespace Evaluator {
                     }
 
                     // Bishop or knight behind a pawn
-                    if (rel_rank (C, s) < R_5
+                    if (   (rel_rank (C, s) < R_5)
                         && (pos.pieces<PAWN> () & (s + pawn_push (C))))
                     {
                         score += MinorBehindPawnBonus;
@@ -1098,8 +1099,7 @@ namespace Evaluator {
 
                 ss  << "---------------------+-------------+-------------+---------------\n";
                 format_row (ss, "Total", TOTAL);
-                ss  << "-------\n"
-                    << "Scaling: " << noshowpos
+                ss  << "Scaling: " << noshowpos
                     << setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
                     << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
                     << setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"

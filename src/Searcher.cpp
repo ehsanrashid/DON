@@ -942,7 +942,7 @@ namespace Searcher {
             }
 
             // Step 10. Internal iterative deepening (skipped when in check)
-            if (   (depth >= ((PVNode ? 5: 8) * ONE_MOVE))
+            if (   (depth >= ((PVNode ? 5 : 8) * ONE_MOVE))
                 && (tt_move == MOVE_NONE)
                 && (PVNode || (ss)->static_eval + Value (256) >= beta)
                )
