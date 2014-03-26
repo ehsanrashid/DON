@@ -1810,8 +1810,7 @@ string Position::fen (bool                 c960, bool full) const
         oss << '-';
     }
 
-    oss << (SQ_NO == _si->en_passant_sq ?
-        " - " : " " + to_string (_si->en_passant_sq) + " ");
+    oss << " " << ((SQ_NO == _si->en_passant_sq) ? "-" : to_string (_si->en_passant_sq)) << " ";
 
     if (full) oss << i16 (_si->clock50) << " " << game_move ();
 

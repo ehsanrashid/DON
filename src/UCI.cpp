@@ -188,7 +188,7 @@ namespace UCI {
                     
                     if (MOVE_NONE == m)
                     {
-                        cerr << "ERROR: Illegal Move" + token << endl;
+                        cerr << "ERROR: Illegal Move '" + token << "'" << endl;
                         break;
                     }
                     

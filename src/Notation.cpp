@@ -160,7 +160,7 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        //if (!_ok (m))       return "(xxxx)";
+        if (!_ok (m))       return "(xxxx)";
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
@@ -177,7 +177,7 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        //ASSERT (pos.legal (m));
+        ASSERT (pos.legal (m));
 
         string san;
 
