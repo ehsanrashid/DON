@@ -630,19 +630,19 @@ namespace Evaluator {
                             //        : RookDoubledSemiopenBonus;
                             //}
                         }
-
-                        if (mob > 3 || ei.pi->semiopen (C, _file (s)))
+                        else
                         {
-                            continue;
-                        }
-
-                        // Penalize rooks which are trapped by a king. Penalize more if the
-                        // king has lost its castling capability.
-                        if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
-                            && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                            && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
-                        {
-                            score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                            if (mob <= 3)
+                            {
+                                // Penalize rooks which are trapped by a king. Penalize more if the
+                                // king has lost its castling capability.
+                                if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                                    && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                                    && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
+                                {
+                                    score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                                }
+                            }
                         }
                     }
                 }
@@ -685,9 +685,9 @@ namespace Evaluator {
             Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
             Score score = evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
-                +         evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
-                +         evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
-                +         evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
+                        + evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
+                        + evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
+                        + evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
             // Sum up all attacked squares
             ei.attacked_by[C][NONE] =
