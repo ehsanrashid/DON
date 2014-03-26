@@ -563,6 +563,26 @@ namespace Evaluator {
                         //}
 
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
+
+                        // An important Chess960 pattern: A cornered bishop blocked by a friendly
+                        // pawn diagonally in front of it is a very serious problem, especially
+                        // when that pawn is also blocked.
+                        if (pos.chess960 ())
+                        {
+                            if (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1))
+                            {
+                                Piece P = (C | PAWN);
+                                Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
+                                if (pos[s + d] == P)
+                                {
+                                    score -=
+                                        !pos.empty (s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
+                                        : (pos[s + d + d] == P)            ? TrappedBishopA1H1 * 2
+                                        :                                    TrappedBishopA1H1;
+                                }
+                            }
+                        }
+
                     }
 
                     // Penalty for knight when there are few enemy pawns
@@ -643,25 +663,6 @@ namespace Evaluator {
                                     score -= (TrappedRookPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                                 }
                             }
-                        }
-                    }
-                }
-
-                // An important Chess960 pattern: A cornered bishop blocked by a friendly
-                // pawn diagonally in front of it is a very serious problem, especially
-                // when that pawn is also blocked.
-                if (pos.chess960 ())
-                {
-                    if (BSHP == PT && (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1)))
-                    {
-                        Piece P = (C | PAWN);
-                        Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
-                        if (pos[s + d] == P)
-                        {
-                            score -=
-                                !pos.empty (s + d + pawn_push (C)) ? TrappedBishopA1H1 * 4
-                                : (pos[s + d + d] == P)            ? TrappedBishopA1H1 * 2
-                                :                                    TrappedBishopA1H1;
                         }
                     }
                 }
