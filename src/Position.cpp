@@ -1853,7 +1853,8 @@ Position::operator string () const
     oss << board << "\n\n";
 
     oss << "Fen: " << fen () << "\n"
-        << "Key: " << hex << uppercase << setfill ('0') << setw (16) << _si->posi_key << "\n";
+        << "Key: " << hex << uppercase << setfill ('0') << setw (16) 
+        << _si->posi_key << dec << "\n";
 
     oss << "Checkers: ";
     Bitboard chkrs = checkers ();
@@ -1872,7 +1873,7 @@ Position::operator string () const
     oss << "\n";
     
     MoveList<LEGAL> itr (*this);
-    oss << "Legal moves (" << dec << itr.size () << "): ";
+    oss << "Legal moves (" << itr.size () << "): ";
     for ( ; *itr; ++itr)
     {
         oss << move_to_san (*itr, *const_cast<Position*> (this)) << " ";
