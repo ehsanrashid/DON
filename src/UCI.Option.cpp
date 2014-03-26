@@ -26,7 +26,6 @@ namespace UCI {
             : index (Options.size ())
             , _on_change (on_change)
         {}
-
         Option::~Option ()
         {
             if (_on_change)
@@ -70,7 +69,6 @@ namespace UCI {
             return oss.str ();
         }
         CheckOption::operator bool () const { return _value; }
-
         //Option& CheckOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
@@ -110,7 +108,6 @@ namespace UCI {
         {
             return _value; //(_value.empty () ? "<empty>" : _value);
         }
-        
         //Option& StringOption::operator= (char *value)
         //{
         //    if (_value != value)
@@ -147,7 +144,6 @@ namespace UCI {
             return oss.str ();
         }
         SpinOption::operator i32 () const { return _value; }
-        
         //Option& SpinOption::operator= (char *value)
         //{
         //    if (empty (value)) return *this;
@@ -506,11 +502,11 @@ namespace UCI {
         Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
         Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
         
-        // Degree of agressiveness.
-        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
         // Degree of cowardice.
         Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
-        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        // Degree of agressiveness.
+        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
 
 
         // TODO::

@@ -95,19 +95,19 @@ namespace Evaluator {
                 {
                 case PST: case IMBALANCE: case PAWN: case TOTAL:
                     ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
-                        << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                        << setw ( 6) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                        << setw ( 6) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                     break;
 
                 default:
                     ss  << setw (20) << name << " | " << noshowpos
-                        << setw (5)  << value_to_cp (mg_value (score[WHITE])) << " "
-                        << setw (5)  << value_to_cp (eg_value (score[WHITE])) << " | "
-                        << setw (5)  << value_to_cp (mg_value (score[BLACK])) << " "
-                        << setw (5)  << value_to_cp (eg_value (score[BLACK])) << " | "
+                        << setw ( 5) << value_to_cp (mg_value (score[WHITE])) << " "
+                        << setw ( 5) << value_to_cp (eg_value (score[WHITE])) << " | "
+                        << setw ( 5) << value_to_cp (mg_value (score[BLACK])) << " "
+                        << setw ( 5) << value_to_cp (eg_value (score[BLACK])) << " | "
                         << showpos
-                        << setw (6)  << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw (6)  << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                        << setw ( 6) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                        << setw ( 6) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                     break;
                 }
             }
@@ -135,7 +135,7 @@ namespace Evaluator {
         const Score WeightsInternal[] =
         {
             //Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive
-            S (289, 344), S (233, 201), S (221, 273), S (46, 0), S (271, 0), S (307, 0)
+            S (+289, +344), S (+233, +201), S (+221, +273), S (+ 46, +  0), S (+271, +  0), S (+307, +  0)
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -144,26 +144,30 @@ namespace Evaluator {
         {
             {},
             // Knights
-            { S (-35, -30), S (-22, -20), S (-9, -10), S (3, 0), S (15, 10),
-            S (27, 20), S (37, 28), S (42, 31), S (44, 33)
+            {
+                S (-35, -30), S (-22, -20), S (- 9, -10), S (+ 3, + 0), S (+15, +10),
+                S (+27, +20), S (+37, +28), S (+42, +31), S (+44, +33)
             },
             // Bishops
-            { S (-22, -27), S (-8, -13), S (6, 1), S (20, 15), S (34, 29),
-            S (48, 43), S (60, 55), S (68, 63), S (74, 68), S (77, 72),
-            S (80, 75), S (82, 77), S (84, 79), S (86, 81)
+            {
+                S (-22, -27), S (- 8, -13), S (+ 6, + 1), S (+20, +15), S (+34, +29),
+                S (+48, +43), S (+60, +55), S (+68, +63), S (+74, +68), S (+77, +72),
+                S (+80, +75), S (+82, +77), S (+84, +79), S (+86, +81)
             },
             // Rooks
-            { S (-17, -33), S (-11, -16), S (-5, 0), S (1, 16), S (7, 32),
-            S (13, 48), S (18, 64), S (22, 80), S (26, 96), S (29, 109),
-            S (31, 115), S (33, 119), S (35, 122), S (36, 123), S (37, 124),
+            {
+                S (-17, -33), S (-11, -16), S (- 5, + 0), S (+ 1, +16), S (+ 7, +32),
+                S (+13, +48), S (+18, +64), S (+22, +80), S (+26, +96), S (+29,+109),
+                S (+31,+115), S (+33,+119), S (+35,+122), S (+36,+123), S (+37,+124),
             },
             // Queens
-            { S (-12, -20), S (-8, -13), S (-5, -7), S (-2, -1), S (1, 5),
-            S (4, 11), S (7, 17), S (10, 23), S (13, 29), S (16, 34),
-            S (18, 38), S (20, 40), S (22, 41), S (23, 41), S (24, 41),
-            S (25, 41), S (25, 41), S (25, 41), S (25, 41), S (25, 41),
-            S (25, 41), S (25, 41), S (25, 41), S (25, 41), S (25, 41),
-            S (25, 41), S (25, 41), S (25, 41)
+            {
+                S (-12, -20), S (- 8, -13), S (- 5, - 7), S (- 2, - 1), S (+ 1, + 5),
+                S (+ 4, +11), S (+ 7, +17), S (+10, +23), S (+13, +29), S (+16, +34),
+                S (+18, +38), S (+20, +40), S (+22, +41), S (+23, +41), S (+24, +41),
+                S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41),
+                S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41),
+                S (+25, +41), S (+25, +41), S (+25, +41)
             },
         };
 
@@ -173,24 +177,26 @@ namespace Evaluator {
         { // A     B     C     D     E     F     G     H
 
             // KNIGHTS
-            { V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (4), V (8), V (8), V (4), V (0), V (0),
-            V (0), V (4), V (17), V (26), V (26), V (17), V (4), V (0),
-            V (0), V (8), V (26), V (35), V (35), V (26), V (8), V (0),
-            V (0), V (4), V (17), V (17), V (17), V (17), V (4), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0)
+            {
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 4), V ( 8), V ( 8), V ( 4), V ( 0), V ( 0),
+                V ( 0), V ( 4), V (17), V (26), V (26), V (17), V ( 4), V ( 0),
+                V ( 0), V ( 8), V (26), V (35), V (35), V (26), V ( 8), V ( 0),
+                V ( 0), V ( 4), V (17), V (17), V (17), V (17), V ( 4), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0)
             },
             // BISHOPS
-            { V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (5), V (5), V (5), V (5), V (0), V (0),
-            V (0), V (5), V (10), V (10), V (10), V (10), V (5), V (0),
-            V (0), V (10), V (21), V (21), V (21), V (21), V (10), V (0),
-            V (0), V (5), V (8), V (8), V (8), V (8), V (5), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0),
-            V (0), V (0), V (0), V (0), V (0), V (0), V (0), V (0)
+            {
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 5), V ( 5), V ( 5), V ( 5), V ( 0), V ( 0),
+                V ( 0), V ( 5), V (10), V (10), V (10), V (10), V ( 5), V ( 0),
+                V ( 0), V (10), V (21), V (21), V (21), V (21), V (10), V ( 0),
+                V ( 0), V ( 5), V ( 8), V ( 8), V ( 8), V ( 8), V ( 5), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
+                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0)
             }
         };
 
@@ -198,45 +204,45 @@ namespace Evaluator {
         // type attacks which one.
         const Score ThreatBonus[2][NONE] =
         {
-            { S (7, 39), S (24, 49), S (24, 49), S (41, 100), S (41, 100), S (0, 0), }, // Minor
-            { S (15, 39), S (15, 45), S (15, 45), S (15, 45), S (24,  49), S (0, 0), }, // Major
+            { S (+ 7, +39), S (+24, +49), S (+24, +49), S (+41,+100), S (+41,+100), S (+ 0, + 0), }, // Minor
+            { S (+15, +39), S (+15, +45), S (+15, +45), S (+15, +45), S (+24, +49), S (+ 0, + 0), }, // Major
         };
 
         // PawnThreatenPenalty[PieceT] contains a penalty according to which piece
         // type is attacked by an enemy pawn.
         const Score PawnThreatenPenalty[NONE] =
         {
-            S (0, 0), S (56, 70), S (56, 70), S (76, 99), S (86, 118), S (0, 0)
+            S (+ 0, + 0), S (+56, +70), S (+56, +70), S (+76, +99), S (+86,+118), S (+ 0, + 0)
         };
 
 
-        const Score TempoBonus              = S (24, 11);
+        const Score TempoBonus              = S (+24, +11);
 
-        const Score PinBonus                = S (18, 6);
+        const Score PinBonus                = S (+18, + 6);
 
-        const Score RookOn7thBonus          = S (11, 20);
-        const Score QueenOn7thBonus         = S (3, 8);
+        const Score RookOn7thBonus          = S (+11, +20);
+        const Score QueenOn7thBonus         = S (+ 3, + 8);
 
-        const Score RookOnPawnBonus         = S (10, 28);
-        const Score QueenOnPawnBonus        = S (4, 20);
+        const Score RookOnPawnBonus         = S (+10, +28);
+        const Score QueenOnPawnBonus        = S (+ 4, +20);
 
-        const Score RookOpenFileBonus       = S (43, 21);
-        const Score RookSemiopenFileBonus   = S (19, 10);
+        const Score RookOpenFileBonus       = S (+43, +21);
+        const Score RookSemiopenFileBonus   = S (+19, +10);
 
-        //const Score RookDoubledOpenBonus    = S( 23, 10);
-        //const Score RookDoubledSemiopenBonus= S( 12,  6);
+        //const Score RookDoubledOpenBonus    = S (+23, +10);
+        //const Score RookDoubledSemiopenBonus= S (+12, + 6);
 
-        const Score BishopPawnsPenalty      = S (8, 12);
-        const Score KnightPawnsPenalty      = S (8, 4);
-        const Score MinorBehindPawnBonus    = S (16, 0);
-        const Score MinorUndefendedPenalty  = S (25, 10);
-        const Score RookTrappedPenalty      = S (90, 0);
-        const Score PawnUnstoppableBonus    = S (0, 20);
+        const Score BishopPawnsPenalty      = S (+ 8, +12);
+        const Score KnightPawnsPenalty      = S (+ 8, + 4);
+        const Score MinorBehindPawnBonus    = S (+16, + 0);
+        const Score MinorUndefendedPenalty  = S (+25, +10);
+        const Score RookTrappedPenalty      = S (+90, + 0);
+        const Score PawnUnstoppableBonus    = S (+ 0, +20);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
         // happen in Chess960 games.
-        const Score BishopTrappedA1H1Penalty= S (50, 50);
+        const Score BishopTrappedA1H1Penalty= S (+50, +50);
 
 #undef S
 #undef V
@@ -260,19 +266,19 @@ namespace Evaluator {
         const i32 KingAttackWeights[NONE] = { 0, 2, 2, 3, 5, 0, };
 
         // Bonuses for enemy's safe checks
-        const i32 KnightCheck       =  3;
-        const i32 BishopCheck       =  2;
-        const i32 RookCheck         =  8;
-        const i32 QueenCheck        = 12;
-        const i32 RookContactCheck  = 16;
-        const i32 QueenContactCheck = 24;
+        const i32 KnightCheck       = + 3;
+        const i32 BishopCheck       = + 2;
+        const i32 RookCheck         = + 8;
+        const i32 QueenCheck        = +12;
+        const i32 RookContactCheck  = +16;
+        const i32 QueenContactCheck = +24;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
         Score KingDanger[CLR_NO][100];
 
         template<bool TRACE>
-        Value do_evaluate (const Position &pos);
+        Value do_evaluate   (const Position &pos);
 
         template<Color C>
         void init_eval_info (const Position &pos, EvalInfo &ei);
@@ -290,12 +296,14 @@ namespace Evaluator {
         Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei);
 
         template<Color C>
-        i32 evaluate_space (const Position &pos, const EvalInfo &ei);
+        i32 evaluate_space  (const Position &pos, const EvalInfo &ei);
 
         Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei);
 
-        Value interpolate (const Score &score, Phase ph, ScaleFactor sf);
-        Score apply_weight (Score score, Score w);
+        Value interpolate   (const Score &score, Phase ph, ScaleFactor scale_factor);
+
+        Score apply_weight  (Score score, Score w);
+        
         Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
 
         // --------------
@@ -303,7 +311,7 @@ namespace Evaluator {
         template<bool TRACE>
         inline Value do_evaluate (const Position &pos)
         {
-            ASSERT (!pos.checkers ());
+            ASSERT (pos.checkers () == U64(0));
 
             // Score is computed from the point of view of white.
             Score score;
@@ -338,7 +346,7 @@ namespace Evaluator {
 
             // Evaluate pieces and mobility
             score += evaluate_pieces<WHITE, TRACE> (pos, ei, mobility)
-                -    evaluate_pieces<BLACK, TRACE> (pos, ei, mobility);
+                  -  evaluate_pieces<BLACK, TRACE> (pos, ei, mobility);
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
@@ -346,22 +354,23 @@ namespace Evaluator {
             // Evaluate kings after all other pieces because we need complete attack
             // information when computing the king safety evaluation.
             score += evaluate_king<WHITE, TRACE> (pos, ei)
-                -    evaluate_king<BLACK, TRACE> (pos, ei);
+                  -  evaluate_king<BLACK, TRACE> (pos, ei);
 
             // Evaluate tactical threats, we need full attack information including king
             score += evaluate_threats<WHITE, TRACE> (pos, ei)
-                -    evaluate_threats<BLACK, TRACE> (pos, ei);
+                  -  evaluate_threats<BLACK, TRACE> (pos, ei);
 
             // Evaluate passed pawns, we need full attack information including king
             score += evaluate_passed_pawns<WHITE, TRACE> (pos, ei)
-                -    evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
+                  -  evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
 
             // If one side has only a king, score for potential unstoppable pawns
-            if (   !pos.non_pawn_material (WHITE)
-                || !pos.non_pawn_material (BLACK))
+            if (   (pos.non_pawn_material (WHITE) == VALUE_ZERO)
+                || (pos.non_pawn_material (BLACK) == VALUE_ZERO)
+               )
             {
                 score += evaluate_unstoppable_pawns (pos, WHITE, ei)
-                    -    evaluate_unstoppable_pawns (pos, BLACK, ei);
+                      -  evaluate_unstoppable_pawns (pos, BLACK, ei);
             }
 
             // Evaluate space for both sides, only in middle-game.
@@ -372,35 +381,37 @@ namespace Evaluator {
             }
 
             // Scale winning side if position is more drawish than it appears
-            ScaleFactor sf = (eg_value (score) > VALUE_DRAW)
+            ScaleFactor scale_factor = (eg_value (score) > VALUE_DRAW)
                 ? ei.mi->scale_factor (pos, WHITE)
                 : ei.mi->scale_factor (pos, BLACK);
 
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
-            if (   ei.mi->game_phase () < PHASE_MIDGAME
-                && pos.opposite_bishops ()
-                && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN))
+            if (   (ei.mi->game_phase () < PHASE_MIDGAME)
+                && (pos.opposite_bishops ())
+                && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
+               )
             {
                 // Ignoring any pawns, do both sides only have a single bishop and no
                 // other pieces?
-                if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
-                    && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
+                if (   (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
+                    && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
+                   )
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
                     bool one_pawn = (pos.count<PAWN> () == 1);
-                    sf = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
+                    scale_factor  = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
                 }
                 else
                 {
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (50 * sf / SCALE_FACTOR_NORMAL);
+                    scale_factor = ScaleFactor (50 * scale_factor / SCALE_FACTOR_NORMAL);
                 }
             }
 
-            Value value = interpolate (score, ei.mi->game_phase (), sf);
+            Value value = interpolate (score, ei.mi->game_phase (), scale_factor);
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
@@ -422,7 +433,7 @@ namespace Evaluator {
                 Tracing::add_term (Tracing::TOTAL, score);
 
                 Tracing::Evalinfo    = ei;
-                Tracing::Scalefactor = sf;
+                Tracing::Scalefactor = scale_factor;
             }
 
             return (WHITE == pos.active ()) ? value : -value;
@@ -445,16 +456,16 @@ namespace Evaluator {
             // Init king safety tables only if we are going to use them
             if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
-                ei.king_ring[C_] = attacks | shift_del<PULL> (attacks);
-                attacks &= ei.attacked_by[C][PAWN];
-                ei.king_attackers_count[C] = attacks ? pop_count<MAX15> (attacks) : 0;
+                ei.king_ring              [C_] = attacks | shift_del<PULL> (attacks);
+                attacks &= ei.attacked_by [C][PAWN];
+                ei.king_attackers_count   [C] = attacks ? pop_count<MAX15> (attacks) : 0;
                 ei.king_zone_attacks_count[C] = 0;
-                ei.king_attackers_weight[C] = 0;
+                ei.king_attackers_weight  [C] = 0;
             }
             else
             {
-                ei.king_ring[C_] = U64 (0);
-                ei.king_attackers_count[C] = 0;
+                ei.king_ring              [C_] = U64 (0);
+                ei.king_attackers_count   [C] = 0;
             }
         }
 
@@ -485,7 +496,7 @@ namespace Evaluator {
                 }
 
                 //// Increase bonus more if the piece blocking enemy pawn
-                //if (pos[s + pawn_push (C)] == make_piece (C_, PAWN))
+                //if (pos[s + pawn_push (C)] == (C_|PAWN))
                 //{
                 //    bonus += bonus / 2;
                 //}
@@ -501,7 +512,7 @@ namespace Evaluator {
         {
             Score score = SCORE_ZERO;
 
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color  C_    = ((WHITE == C) ? BLACK : WHITE);
             const Square fk_sq = pos.king_sq (C);
             const Square ek_sq = pos.king_sq (C_);
 
@@ -527,7 +538,7 @@ namespace Evaluator {
 
                 if (attacks & ei.king_ring[C_])
                 {
-                    ei.king_attackers_count[C]++;
+                    ei.king_attackers_count [C]++;
                     ei.king_attackers_weight[C] += KingAttackWeights[PT];
 
                     Bitboard attacks_king = (attacks & ei.attacked_by[C_][KING]);
@@ -611,8 +622,8 @@ namespace Evaluator {
                     if (R_5 <= rel_rank (C, s))
                     {
                         // Major piece on 7th rank and enemy king trapped on 8th
-                        if (R_7 == rel_rank (C, s)
-                            && R_8 == rel_rank (C, ek_sq))
+                        if (   (R_7 == rel_rank (C, s))
+                            && (R_8 == rel_rank (C, ek_sq)))
                         {
                             score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
                         }
@@ -640,15 +651,15 @@ namespace Evaluator {
                         if (ei.pi->semiopen (C, _file (s)))
                         {
                             score += ei.pi->semiopen (C_, _file (s))
-                                ? RookOpenFileBonus
-                                : RookSemiopenFileBonus;
+                                   ? RookOpenFileBonus
+                                   : RookSemiopenFileBonus;
 
                             //// Give more bonus if the rook is doubled
                             //if (front_sqs_bb (C_, s) & pos.pieces<ROOK> (C))
                             //{
                             //    score += ei.pi->semiopen (C_, _file (s))
-                            //        ? RookDoubledOpenBonus
-                            //        : RookDoubledSemiopenBonus;
+                            //           ? RookDoubledOpenBonus
+                            //           : RookDoubledSemiopenBonus;
                             //}
                         }
                         else
@@ -657,7 +668,7 @@ namespace Evaluator {
                             {
                                 // Penalize rooks which are trapped by a king. Penalize more if the
                                 // king has lost its castling capability.
-                                if (((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                                if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
                                     && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
                                     && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
                                 {
@@ -686,19 +697,20 @@ namespace Evaluator {
             // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
             Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
 
-            Score score = evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
-                        + evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
-                        + evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
-                        + evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
+            Score score = 
+                evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
+              + evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
+              + evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
+              + evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
 
             // Sum up all attacked squares
             ei.attacked_by[C][NONE] =
-                  ei.attacked_by[C][PAWN]
-                | ei.attacked_by[C][NIHT]
-                | ei.attacked_by[C][BSHP]
-                | ei.attacked_by[C][ROOK]
-                | ei.attacked_by[C][QUEN]
-                | ei.attacked_by[C][KING];
+                ei.attacked_by[C][PAWN]
+              | ei.attacked_by[C][NIHT]
+              | ei.attacked_by[C][BSHP]
+              | ei.attacked_by[C][ROOK]
+              | ei.attacked_by[C][QUEN]
+              | ei.attacked_by[C][KING];
 
             if (TRACE)
             {
@@ -725,12 +737,12 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                &   ei.attacked_by[C][KING]
-                & ~(ei.attacked_by[C][PAWN]
-                |   ei.attacked_by[C][NIHT]
-                |   ei.attacked_by[C][BSHP]
-                |   ei.attacked_by[C][ROOK]
-                |   ei.attacked_by[C][QUEN]);
+                  & ei.attacked_by[C][KING]
+                  & ~(ei.attacked_by[C][PAWN]
+                  |   ei.attacked_by[C][NIHT]
+                  |   ei.attacked_by[C][BSHP]
+                  |   ei.attacked_by[C][ROOK]
+                  |   ei.attacked_by[C][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
@@ -738,8 +750,9 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'score' value).
                 i32 attack_units =
-                    min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
-                    + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
+                    + min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
+                    + 3 * (ei.king_zone_attacks_count[C_]
+                    + pop_count<MAX15> (undefended))
                     - mg_value (score) / 32;
 
                 // Analyse enemy's safe queen contact checks. First find undefended
@@ -749,16 +762,17 @@ namespace Evaluator {
                 {
                     // ...then remove squares not supported by another enemy piece
                     undefended_attacked &=
-                        (ei.attacked_by[C_][PAWN]
-                        | ei.attacked_by[C_][NIHT]
-                        | ei.attacked_by[C_][BSHP]
-                        | ei.attacked_by[C_][ROOK]);
+                        ei.attacked_by[C_][PAWN]
+                      | ei.attacked_by[C_][NIHT]
+                      | ei.attacked_by[C_][BSHP]
+                      | ei.attacked_by[C_][ROOK];
 
                     if (undefended_attacked)
                     {
-                        attack_units += QueenContactCheck
-                            *   pop_count<MAX15> (undefended_attacked)
-                            *   (C_ == pos.active () ? 2 : 1);
+                        attack_units += 
+                            QueenContactCheck
+                          * pop_count<MAX15> (undefended_attacked)
+                          * (C_ == pos.active () ? 2 : 1);
                     }
                 }
 
@@ -772,16 +786,17 @@ namespace Evaluator {
                 {
                     // ...and then remove squares not supported by another enemy piece
                     undefended_attacked &=
-                        (ei.attacked_by[C_][PAWN]
-                        | ei.attacked_by[C_][NIHT]
-                        | ei.attacked_by[C_][BSHP]
-                        | ei.attacked_by[C_][QUEN]);
+                        ei.attacked_by[C_][PAWN]
+                      | ei.attacked_by[C_][NIHT]
+                      | ei.attacked_by[C_][BSHP]
+                      | ei.attacked_by[C_][QUEN];
 
                     if (undefended_attacked)
                     {
-                        attack_units += RookContactCheck
-                            *   pop_count<MAX15> (undefended_attacked)
-                            *   (C_ == pos.active () ? 2 : 1);
+                        attack_units +=
+                            RookContactCheck
+                          * pop_count<MAX15> (undefended_attacked)
+                          * (C_ == pos.active () ? 2 : 1);
                     }
                 }
 
@@ -889,7 +904,7 @@ namespace Evaluator {
 
                     // Adjust bonus based on kings proximity
                     eg_bonus += Value (5 * rr * SquareDist[ek_sq][block_sq])
-                        -       Value (2 * rr * SquareDist[fk_sq][block_sq]);
+                             -  Value (2 * rr * SquareDist[fk_sq][block_sq]);
 
                     // If block_sq is not the queening square then consider also a second push
                     if (rel_rank (C, block_sq) != R_8)
@@ -908,7 +923,7 @@ namespace Evaluator {
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
-                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
+                                  && (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
                         {
                             unsafe_squares = queen_squares;
                         }
@@ -919,7 +934,7 @@ namespace Evaluator {
 
                         Bitboard defended_squares;
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
-                            &&       (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
+                                  && (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
                         {
                             defended_squares = queen_squares;
                         }
@@ -1002,8 +1017,8 @@ namespace Evaluator {
         inline Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei)
         {
             Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
-
-            return (!unstoppable_pawns || pos.non_pawn_material (~c)) ? SCORE_ZERO
+            return (unstoppable_pawns == U64(0) || pos.non_pawn_material (~c) != VALUE_ZERO)
+                ? SCORE_ZERO
                 : PawnUnstoppableBonus * i32 (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
         }
 
@@ -1022,10 +1037,10 @@ namespace Evaluator {
             // SpaceMask[]. A square is unsafe if it is attacked by an enemy
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe = SpaceMask[C]
-                &   ~pos.pieces<PAWN> (C)
-                &   ~ei.attacked_by[C_][PAWN]
-                &   (ei.attacked_by[C][NONE]
-                /**/| ~ei.attacked_by[C_][NONE]);
+                          & ~pos.pieces<PAWN> (C)
+                          & ~ei.attacked_by[C_][PAWN]
+                          & (ei.attacked_by[C ][NONE]
+                          | ~ei.attacked_by[C_][NONE]);
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
@@ -1041,13 +1056,13 @@ namespace Evaluator {
 
         // interpolate () interpolates between a middle game and an endgame score,
         // based on game phase. It also scales the return value by a ScaleFactor array.
-        inline Value interpolate (const Score &score, Phase ph, ScaleFactor sf)
+        inline Value interpolate (const Score &score, Phase ph, ScaleFactor scale_factor)
         {
             ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
             ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
 
-            i32 eg  = (eg_value (score) * i32 (sf)) / SCALE_FACTOR_NORMAL;
+            i32 eg  = (eg_value (score) * i32 (scale_factor)) / SCALE_FACTOR_NORMAL;
             return Value ((mg_value (score) * i32 (ph) + eg * i32 (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
         }
 
@@ -1083,23 +1098,22 @@ namespace Evaluator {
                     << "           Eval term |    White    |    Black    |     Total     \n"
                     << "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
                     << "---------------------+-------------+-------------+---------------\n";
-
-                format_row (ss, "Material, PST, Tempo", PST);
-                format_row (ss, "Material imbalance", IMBALANCE);
-                format_row (ss, "Pawns", PAWN);
-                format_row (ss, "Knights", NIHT);
-                format_row (ss, "Bishops", BSHP);
-                format_row (ss, "Rooks", ROOK);
-                format_row (ss, "Queens", QUEN);
-                format_row (ss, "Mobility", MOBILITY);
-                format_row (ss, "King safety", KING);
-                format_row (ss, "Threats", THREAT);
-                format_row (ss, "Passed pawns", PASSED);
-                format_row (ss, "Space", SPACE);
+                format_row (ss, "Material, PST, Tempo"  , PST);
+                format_row (ss, "Material imbalance"    , IMBALANCE);
+                format_row (ss, "Pawns"                 , PAWN);
+                format_row (ss, "Knights"               , NIHT);
+                format_row (ss, "Bishops"               , BSHP);
+                format_row (ss, "Rooks"                 , ROOK);
+                format_row (ss, "Queens"                , QUEN);
+                format_row (ss, "Mobility"              , MOBILITY);
+                format_row (ss, "King safety"           , KING);
+                format_row (ss, "Threats"               , THREAT);
+                format_row (ss, "Passed pawns"          , PASSED);
+                format_row (ss, "Space"                 , SPACE);
 
                 ss  << "---------------------+-------------+-------------+---------------\n";
-                format_row (ss, "Total", TOTAL);
-                ss  << "Scaling: " << noshowpos
+                format_row (ss, "Total"                 , TOTAL);
+                ss  << "\nScaling: " << noshowpos
                     << setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
                     << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
                     << setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
@@ -1130,12 +1144,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]       = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility]);
-        Weights[PawnStructure]  = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-        Weights[PassedPawns]    = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns]);
-        Weights[Space]          = weight_option ("Space"                    , "Space"                   , WeightsInternal[Space]);
-        Weights[Cowardice]      = weight_option ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice]);
-        Weights[Aggressive]     = weight_option ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive]);
+        Weights[Mobility]      = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility     ]);
+        Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
+        Weights[PassedPawns]   = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns  ]);
+        Weights[Space]         = weight_option ("Space"                    , "Space"                   , WeightsInternal[Space        ]);
+        Weights[Cowardice]     = weight_option ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice    ]);
+        Weights[Aggressive]    = weight_option ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive   ]);
 
         const i32 MaxSlope  = 30;
         const i32 PeakScore = 1280; // 0x500
@@ -1145,7 +1159,7 @@ namespace Evaluator {
         {
             mg = min (PeakScore, min (i32 (0.4*i*i), mg + MaxSlope));
 
-            KingDanger[1][i] = apply_weight (mk_score (mg, 0), Weights[Cowardice]);
+            KingDanger[1][i] = apply_weight (mk_score (mg, 0), Weights[Cowardice ]);
             KingDanger[0][i] = apply_weight (mk_score (mg, 0), Weights[Aggressive]);
         }
     }
