@@ -1110,7 +1110,6 @@ namespace Evaluator {
                 format_row (ss, "Threats"               , THREAT);
                 format_row (ss, "Passed pawns"          , PASSED);
                 format_row (ss, "Space"                 , SPACE);
-
                 ss  << "---------------------+-------------+-------------+---------------\n";
                 format_row (ss, "Total"                 , TOTAL);
                 ss  << "\nScaling: " << noshowpos

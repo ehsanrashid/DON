@@ -1345,7 +1345,7 @@ namespace Searcher {
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
-                        if (PVNode && value < beta) // Update alpha! Always alpha < beta
+                        if (PVNode && (value < beta)) // Update alpha! Always alpha < beta
                         {
                             alpha = (SPNode) ? splitpoint->alpha = value : value;
                         }
@@ -1421,7 +1421,7 @@ namespace Searcher {
                     (ss)->static_eval);
 
                 // Quiet best move:
-                if (best_value >= beta && best_move != MOVE_NONE)
+                if ((best_value >= beta) && (best_move != MOVE_NONE))
                 {
                     // Update history, killer, counter & followup moves
                     if (!in_check && !pos.capture_or_promotion (best_move))
@@ -1466,7 +1466,7 @@ namespace Searcher {
 
             i32 depth    =  DEPTH_ZERO;
 
-            MultiPV     = i32 (*(Options["MultiPV"]));
+            MultiPV = i32 (*(Options["MultiPV"]));
             u08 lvl = i32 (*(Options["Skill Level"]));
             Skill skill (lvl);
 
@@ -1499,7 +1499,7 @@ namespace Searcher {
                 }
 
                 // MultiPV loop. We perform a full root search for each PV line
-                for (IndexPV = 0; IndexPV < MultiPV && !Signals.stop; ++IndexPV)
+                for (IndexPV = 0; (IndexPV < MultiPV) && !Signals.stop; ++IndexPV)
                 {
                     // Reset Aspiration window starting size
                     if (depth > 4)
@@ -1542,8 +1542,8 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to research.
-                        if (   (alpha >= best_value || best_value >= beta)
-                            && (elapsed = now () - SearchTime) > InfoDuration
+                        if (   ((alpha >= best_value) || (best_value >= beta))
+                            && ((elapsed = now () - SearchTime) > InfoDuration)
                            )
                         {
                             sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
@@ -1577,7 +1577,7 @@ namespace Searcher {
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
                     
                     elapsed = (now () - SearchTime);
-                    if ((IndexPV + 1) == MultiPV || elapsed > InfoDuration)
+                    if ((IndexPV + 1) == MultiPV || (elapsed > InfoDuration))
                     {
                         sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
                     }
@@ -1991,7 +1991,7 @@ namespace Threads {
         static point last_time = now ();
 
         point now_time = now ();
-        if (now_time - last_time >= M_SEC)
+        if ((now_time - last_time) >= M_SEC)
         {
             last_time = now_time;
             Debugger::dbg_print ();
@@ -2003,7 +2003,7 @@ namespace Threads {
         }
 
         u64 nodes = 0;
-        if (Limits.nodes)
+        if (Limits.nodes != 0)
         {
             Threadpool.mutex.lock ();
 
@@ -2046,8 +2046,9 @@ namespace Threads {
             || (still_at_1stmove);
 
         if (   (Limits.use_timemanager () && no_more_time)
-            || (Limits.movetime && elapsed >= Limits.movetime)
-            || (Limits.nodes    && nodes   >= Limits.nodes))
+            || (Limits.movetime && (elapsed >= Limits.movetime))
+            || (Limits.nodes    && (nodes   >= Limits.nodes))
+           )
         {
             Signals.stop = true;
         }
@@ -2142,7 +2143,7 @@ namespace Threads {
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case we are the last slave of the splitpoint.
                 if (   Threadpool.idle_sleep
-                    && this != (sp)->master
+                    && (this != (sp)->master)
                     && (sp)->slaves_mask.none ())
                 {
                     ASSERT (!(sp)->master->searching);

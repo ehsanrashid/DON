@@ -195,7 +195,7 @@ public:
     Bitboard operator[] (PieceT pt)     const;
     const Square* operator[] (Piece p)  const;
 
-    bool empty     (Square s)   const;
+    bool   empty   (Square s)   const;
 
     Square king_sq (Color c)    const;
 
@@ -219,7 +219,7 @@ public:
     i32      count  ()          const;
 
     template<PieceT PT>
-    const Square* list (Color c)    const;
+    const Square* list (Color c)const;
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -301,7 +301,6 @@ public:
 #ifndef NDEBUG
     bool setup (const        char *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 #endif
-
     bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 
     void flip ();
@@ -318,10 +317,12 @@ public:
     void undo_null_move ();
 
 #ifndef NDEBUG
-    bool        fen (const char *f, bool c960 = false, bool full = true) const;
+    bool        fen (const char *f, bool c960, bool full = true) const;
+    bool        fen (const char *f) const { return fen (f, false);  }
 #endif
-    std::string fen (bool                c960 = false, bool full = true) const;
-
+    std::string fen (bool                c960, bool full = true) const;
+    std::string fen (             ) const { return fen (false);     }
+    
     operator std::string () const;
 
 #ifndef NDEBUG
@@ -502,8 +503,9 @@ inline bool Position::opposite_bishops () const
     //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
     return _piece_count[WHITE][BSHP] != 0
         && _piece_count[BLACK][BSHP] != 0
-        && !(((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
-           ||((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb)));
+        && !( ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
+           || ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb))
+            );
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 // capture(m) tests move is capture
@@ -511,16 +513,16 @@ inline bool Position::capture       (Move m) const
 {
     MoveT mt = mtype (m);
     return (mt == NORMAL || mt == PROMOTE) ? (EMPTY != _board[dst_sq (m)])
-        :  (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
-        :  false;
+         : (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
+         : false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     MoveT mt = mtype (m);
     return (mt == NORMAL) ? (EMPTY != _board[dst_sq (m)])
-        :  (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
-        :  (mt != CASTLE);
+         : (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
+         : (mt != CASTLE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
