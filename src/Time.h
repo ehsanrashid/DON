@@ -52,9 +52,10 @@ namespace Time {
     //INLINE point  operator-  (const point &p1, const point &p2) { return point (u64 (p1) - u64 (p2)); }
 
     typedef i64     point;
+
     const point M_SEC = 1000;
 
-    INLINE point now () { return point (system_time_msec ()); }
+    INLINE point now () { return system_time_msec (); }
 
     inline std::string to_string (const point &p)
     {
@@ -69,7 +70,7 @@ namespace Time {
         //errno_t err = ctime_s (str_time, sizeof (str_time), &time);
         //if (err)
 
-        if (!*str_time)
+        if (!str_time[00])
         {
             oss << "ERROR: Invalid time '" << time << "'";
             return oss.str ();
