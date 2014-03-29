@@ -100,14 +100,14 @@ namespace {
         },
         // Rook
         {
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
-            S(-12, 3), S(-7, 3), S(-2, 3), S(2, 3), S(2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
+            S(-12, 3), S(-7, 3), S(-2, 3), S(+2, 3), S(+2, 3), S(-2, 3), S(-7, 3), S(-12, 3),
         },
         // Queen
         {
@@ -535,10 +535,10 @@ bool Position::ok (i08 *step) const
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
-    Bitboard b = stm_attackers & _types_bb[PT];
-    if (b)
+    Bitboard bb = stm_attackers & _types_bb[PT];
+    if (bb)
     {
-        occupied ^= (b & ~(b - 1));
+        occupied ^= (bb & ~(bb - 1));
 
         if (PAWN == PT || BSHP == PT || QUEN == PT)
         {
@@ -734,7 +734,7 @@ bool Position::pseudo_legal (Move m) const
         if (!( (KING == pt)
             && (R_1 == r_org)
             && (R_1 == r_dst)
-            && (_active | ROOK) == _board[dst]
+            && (_active|ROOK) == _board[dst]
             && (_si->castle_rights & mk_castle_right (_active))
             && (!_si->checkers)
             //&& !castle_impeded (_active)
@@ -788,7 +788,7 @@ bool Position::pseudo_legal (Move m) const
         }
 
         cap += pawn_push (pasive);
-        if ((pasive | PAWN) != _board[cap])
+        if ((pasive|PAWN) != _board[cap])
         {
             return false;
         }
@@ -867,12 +867,12 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         
-        //if (!( (PawnAttacks[_active][org] & _color_bb[pasive] & dst    // Not a capture
+        //if (!( (PawnAttacks[_active][org] & _color_bb[pasive] & dst   // Not a capture
         //        && (NONE != ct)
         //        && (_active != color (_board[cap])))
         //    || (   (org + pawn_push (_active) == dst)                 // Not a single push
         //        && empty (dst))
-        //    || (   (R_2 == r_org)                                   // Not a double push
+        //    || (   (R_2 == r_org)                                     // Not a double push
         //        && (R_4 == r_dst)
         //        && (0 == file_dist (cap, org))
         //        //&& (org + 2*pawn_push (_active) == dst)
@@ -980,14 +980,14 @@ bool Position::legal        (Move m, Bitboard pinned) const
         Square cap = dst + pawn_push (pasive);
 
         ASSERT (dst == _si->en_passant_sq);
-        ASSERT ((_active | PAWN) == _board[org]);
-        ASSERT (( pasive | PAWN) == _board[cap]);
+        ASSERT ((_active|PAWN) == _board[org]);
+        ASSERT (( pasive|PAWN) == _board[cap]);
         ASSERT (empty (dst));
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return !((attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            ||   (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))));
+        return !( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
+               || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))));
     }
 
     ASSERT (false);
@@ -1046,8 +1046,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = occ - org - cap + dst;
         // if any attacker then in check
-        return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])));
+        return ( (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
+              || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))));
     }
 
     ASSERT (false);
@@ -1057,12 +1057,14 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 // gives_checkmate() tests whether a pseudo-legal move gives a checkmate
 bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 {
-    if (!gives_check (m, ci)) return false;
-
-    Position pos = *this;
-    StateInfo si;
-    pos.do_move (m, si);
-    return (MoveList<LEGAL> (pos).size () == 0);
+    if (gives_check (m, ci))
+    {
+        Position pos = *this;
+        StateInfo si;
+        pos.do_move (m, si, &ci);
+        return (MoveList<LEGAL> (pos).size () == 0);
+    }
+    return false;
 }
 
 // clear() clear the position
@@ -1079,7 +1081,7 @@ void Position::clear ()
     {
         for (PieceT pt = PAWN; pt <= KING; ++pt)
         {
-            for (i32 i = 0; i < 16; ++i)
+            for (i08 i = 0; i < 16; ++i)
             {
                 _piece_list[c][pt][i] = SQ_NO;
             }
@@ -1184,14 +1186,13 @@ bool Position::can_en_passant (Square ep_sq) const
     {
         Move m = *itr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
-        
-        if (!((attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-           || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))))
+        if (!( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))))
+           )
         {
             return true;
         }
     }
-
     return false;
 }
 
@@ -1226,20 +1227,20 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 // do_move() do the move with checking info
-void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
+void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 {
     ASSERT (_ok (m));
-    ASSERT (&n_si != _si);
+    ASSERT (&si != _si);
 
     Key posi_k = _si->posi_key;
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&n_si, _si, STATE_COPY_SIZE);
+    memcpy (&si, _si, STATE_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
-    n_si.p_si   = _si;
-    _si         = &n_si;
+    si.p_si = _si;
+    _si     = &si;
 
     Color pasive = ~_active;
 
@@ -1497,16 +1498,16 @@ void Position::do_move (Move m, StateInfo &n_si, const CheckInfo *ci)
 
     ASSERT (ok ());
 }
-void Position::do_move (Move m, StateInfo &n_si)
+void Position::  do_move (Move m, StateInfo &si)
 {
     CheckInfo ci (*this);
-    do_move (m, n_si, gives_check (m, ci) ? &ci : NULL);
+    do_move (m, si, gives_check (m, ci) ? &ci : NULL);
 }
 // do_move() do the move from string (CAN)
-void Position::do_move (string &can, StateInfo &n_si)
+void Position::  do_move (string &can, StateInfo &si)
 {
     Move move = move_from_can (can, *this);
-    if (MOVE_NONE != move) do_move (move, n_si);
+    if (MOVE_NONE != move) do_move (move, si);
 }
 // undo_move() undo the last move
 void Position::undo_move ()
@@ -1574,17 +1575,17 @@ void Position::undo_move ()
 }
 
 // do_null_move() do the null-move
-void Position::do_null_move (StateInfo &n_si)
+void Position::  do_null_move (StateInfo &si)
 {
-    ASSERT (&n_si != _si);
+    ASSERT (&si != _si);
     ASSERT (!_si->checkers);
 
     // Full copy here
-    memcpy (&n_si, _si, sizeof (StateInfo));
+    memcpy (&si, _si, sizeof (StateInfo));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
-    n_si.p_si = _si;
-    _si       = &n_si;
+    si.p_si = _si;
+    _si     = &si;
 
     if (SQ_NO != _si->en_passant_sq)
     {
@@ -1619,29 +1620,29 @@ void Position::undo_null_move ()
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-    string fen_, ch;
+    string fen_, s;
     stringstream ss (fen ());
     // 1. Piece placement
     for (Rank rank = R_8; rank >= R_1; --rank)
     {
-        getline (ss, ch, rank > R_1 ? '/' : ' ');
-        fen_.insert (0, ch + (fen_.empty () ? " " : "/"));
+        getline (ss, s, rank > R_1 ? '/' : ' ');
+        fen_.insert (0, s + (fen_.empty () ? " " : "/"));
     }
     // 2. Active color
-    ss >> ch;
-    fen_ += (ch == "w" ? "B" : "W"); // Will be lowercased later
+    ss >> s;
+    fen_ += (s == "w" ? "B" : "W"); // Will be lowercased later
     fen_ += " ";
     // 3. Castling availability
-    ss >> ch;
-    fen_ += ch + " ";
+    ss >> s;
+    fen_ += s + " ";
     transform (fen_.begin (), fen_.end (), fen_.begin (), toggle_case);
 
     // 4. En-passant square
-    ss >> ch;
-    fen_ += ((ch == "-") ? ch : ch.replace (1, 1, (ch[1] == '3') ? "6" : "3"));
+    ss >> s;
+    fen_ += ((s == "-") ? s : s.replace (1, 1, (s[1] == '3') ? "6" : (s[1] == '6') ? "3" : "-"));
     // 5-6. Half and full moves
-    getline (ss, ch);
-    fen_ += ch;
+    getline (ss, s);
+    fen_ += s;
 
     setup (fen_, _thread, _chess960);
 
