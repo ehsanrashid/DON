@@ -313,7 +313,7 @@ namespace Evaluator {
         template<bool TRACE>
         inline Value do_evaluate (const Position &pos)
         {
-            ASSERT (pos.checkers () == U64(0));
+            ASSERT (pos.checkers () == U64 (0));
 
             // Score is computed from the point of view of white.
             Score score;
@@ -1025,7 +1025,7 @@ namespace Evaluator {
         inline Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei)
         {
             Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
-            return (unstoppable_pawns == U64(0) || pos.non_pawn_material (~c) != VALUE_ZERO)
+            return (unstoppable_pawns == U64 (0) || pos.non_pawn_material (~c) != VALUE_ZERO)
                 ? SCORE_ZERO
                 : PawnUnstoppableBonus * i32 (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
         }

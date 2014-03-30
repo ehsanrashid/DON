@@ -225,7 +225,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _50_move_dist <  _si->clock50
         || (_50_move_dist == _si->clock50
-          && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)))
+          && (_si->checkers == U64 (0) || MoveList<LEGAL> (*this).size () != 0)))
     {
         return true;
     }
@@ -603,7 +603,7 @@ Value Position::see (Move m) const
     // If the opponent has no attackers we are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
-    if (stm_attackers != U64(0))
+    if (stm_attackers != U64 (0))
     {
         // The destination square is defended, which makes things rather more
         // difficult to compute. We proceed by building up a "swap list" containing
@@ -636,7 +636,7 @@ Value Position::see (Move m) const
 
             ++depth;
         }
-        while (stm_attackers != U64(0));
+        while (stm_attackers != U64 (0));
 
         // Having built the swap list, we negamax through it to find the best
         // achievable score from the point of view of the side to move.
@@ -892,11 +892,11 @@ bool Position::pseudo_legal (Move m) const
     // and legal() relies on this. So we have to take care that the
     // same kind of moves are filtered out here.
     Bitboard chkrs = checkers ();
-    if (chkrs)
+    if (chkrs != U64 (0))
     {
         if (KING == pt)
         {
-            // In case of king moves under check we have to remove king so to catch
+            // In case of king moves under check, remove king so to catch
             // as invalid moves like B1A1 when opposite queen is on C1.
             if (attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive])
             {
@@ -909,7 +909,7 @@ bool Position::pseudo_legal (Move m) const
             if (more_than_one (chkrs)) return false;
             if ((PAWN == pt) && (ENPASSANT == mt))
             {
-                // Our move must be a capture of the checking en-passant pawn
+                // Move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
                 if (!((chkrs & cap) || (Between_bb[scan_lsq (chkrs)][_piece_list[_active][KING][0]] & dst)))
                 {
@@ -918,8 +918,8 @@ bool Position::pseudo_legal (Move m) const
             }
             else
             {
-                // Our move must be a blocking evasion or a capture of the checking piece
-                if (!((Between_bb[scan_lsq (chkrs)][_piece_list[_active][KING][0]] | chkrs) & dst))
+                // Move must be a capture or a blocking evasion of the checking piece
+                if (!((chkrs | Between_bb[scan_lsq (chkrs)][_piece_list[_active][KING][0]]) & dst))
                 {
                     return false;
                 }
@@ -1171,7 +1171,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     Bitboard ep_pawns = PawnAttacks[pasive][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
     ASSERT (pop_count<FULL> (ep_pawns) <= 2);
-    if (ep_pawns == U64(0)) return false;
+    if (ep_pawns == U64 (0)) return false;
 
     vector<Move> ep_mlist;
     while (ep_pawns != U64 (0))

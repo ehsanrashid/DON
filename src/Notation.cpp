@@ -77,11 +77,11 @@ namespace Notation {
 
         Bitboard pinneds = pos.pinneds (pos.active ());
 
-        Bitboard amb, b;
-        amb = b = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
-        while (b != U64 (0))
+        Bitboard amb, pcs;
+        amb = pcs = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
+        while (pcs != U64 (0))
         {
-            Square amb_org = pop_lsq (b);
+            Square amb_org = pop_lsq (pcs);
             Move move = mk_move<NORMAL> (amb_org, dst);
             if (!pos.legal (move, pinneds))
             {
