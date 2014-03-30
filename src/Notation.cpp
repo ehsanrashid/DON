@@ -167,7 +167,7 @@ namespace Notation {
         MoveT mt   = mtype (m);
         if (!c960 && (CASTLE == mt)) dst = (((dst > org) ? F_G : F_C) | _rank (org));
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += PieceChar[(BLACK | promote (m))]; // lower case
+        if (PROMOTE == mt) can += PieceChar[(BLACK|promote (m))]; // lower case
         return can;
     }
 
@@ -185,80 +185,6 @@ namespace Notation {
         Square dst = dst_sq (m);
         Piece  p   = pos[org];
         PieceT pt  = ptype (p);
-
-        //switch (pt)
-        //{
-        //case PAWN:
-        //    san = "";
-        //    if (pos.capture (m))
-        //    {
-        //        san += to_char (_file (org));
-        //        san += 'x';
-        //    }
-        //
-        //    san += to_string (dst);
-        //
-        //    if (PROMOTE == mtype (m))
-        //    {
-        //        switch (promote (m))
-        //        {
-        //        case QUEN: san += "Q"; break;
-        //        case ROOK: san += "R"; break;
-        //        case BSHP: san += "B"; break;
-        //        case NIHT: san += "N"; break;
-        //        default: ASSERT (false); // "Wrong Promotion Piece"
-        //        }
-        //    }
-        //    goto move_marker;
-        //
-        //case KING:
-        //    if (CASTLE == mtype (m))
-        //    {
-        //        CSide cs = ((WHITE == pos.active ()) ?
-        //            (dst == SQ_C1) ? CS_Q : (dst == SQ_G1) ? CS_K : CS_NO :
-        //            (dst == SQ_C8) ? CS_Q : (dst == SQ_G8) ? CS_K : CS_NO);
-        //
-        //        switch (cs)
-        //        {
-        //        case CS_Q: san  = "O-";
-        //        case CS_K: san += "O-O"; break;
-        //        }
-        //        goto move_marker;
-        //    }
-        //    // NOTE: no break
-        //default:
-        //    // piece notation
-        //    san = PieceChar[pt];
-        //
-        //    break;
-        //}
-        //
-        //switch (ambiguity (m, pos))
-        //{
-        //case AMB_NONE:                               break;
-        //case AMB_RANK: san += to_char (_file (org)); break;
-        //case AMB_FILE: san += to_char (_rank (org)); break;
-        //case AMB_SQR:  san += to_string (org);       break;
-        //default:       ASSERT (false);               break;
-        //}
-        //
-        //if (pos.capture (m))
-        //{
-        //    san += 'x';
-        //}
-        //
-        //san += to_string (dst);
-        //// promote ????????
-        //move_marker:
-        //// Marker for check & checkmate
-        //if (pos.gives_check (m, CheckInfo (pos)))
-        //{
-        //    StateInfo sinfo;
-        //    Position p = pos;
-        //    p.do_move (m, sinfo);
-        //    u08 legalmove = MoveList<LEGAL> (p).size ();
-        //    san += (legalmove ? '+' : '#');
-        //}
 
         MoveT mt = mtype (m);
         switch (mt)
@@ -296,13 +222,12 @@ namespace Notation {
         }
 
         CheckInfo ci (pos);
-        bool gives_check = pos.gives_check (m, ci);
         // Move marker for check & checkmate
-        if (gives_check)
+        if (pos.gives_check (m, ci))
         {
             StateInfo si;
-            pos.do_move (m, si, gives_check ? &ci : NULL);
-            san += (MoveList<LEGAL> (pos).size () ? "+" : "#");
+            pos.do_move (m, si, &ci);
+            san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
             pos.undo_move ();
         }
 
