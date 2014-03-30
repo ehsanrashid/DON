@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (u08 depth)
         {
-            return Value (100 * depth);
+            return Value (64 * depth); // TODO::
         }
 
         template<bool PVNode>
@@ -174,8 +174,19 @@ namespace Searcher {
 
                 if (1 == depth && !updated) continue;
 
-                u08 d = updated ? depth : depth - 1;
-                Value   v = updated ? RootMoves[i].value[0] : RootMoves[i].value[1];
+                u08   d;
+                Value v;
+                
+                if (updated)
+                {
+                    d = depth;
+                    v = RootMoves[i].value[0];
+                }
+                else
+                {
+                    d = depth - 1;
+                    v = RootMoves[i].value[1];
+                }
 
                 bool tb = RootInTB;
                 if (tb)
@@ -189,9 +200,9 @@ namespace Searcher {
                         v = TBScore;
                     }
                 }
-
+                
                 // Not at first line
-                if (oss.rdbuf ()->in_avail () != 0) oss << "\n";
+                if (oss.rdbuf ()->in_avail ()) oss << "\n";
 
                 oss << "info"
                     << " multipv "  << u16 (i + 1)
@@ -827,7 +838,7 @@ namespace Searcher {
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
                 if (   (!(ss)->skip_null_move)
-                    && (depth < 7 * ONE_MOVE) // TODO::
+                    && (depth < 9 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
@@ -841,13 +852,11 @@ namespace Searcher {
                 }
 
                 // Step 8. Null move search with verification search
-                if (   /*ForceNullMove ||*/
-                    (  (!(ss)->skip_null_move)
+                if (   (!(ss)->skip_null_move)
                     && (depth >= 2 * ONE_MOVE)
                     && (eval >= beta)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
-                    )
                    )
                 {
                     ASSERT (eval >= beta);
@@ -904,7 +913,7 @@ namespace Searcher {
                 // we can (almost) safely prune the previous move.
                 if (   (depth >= 5 * ONE_MOVE)
                     && (!(ss)->skip_null_move)
-                    && (eval >= alpha + 50) // TODO::
+                    //&& (eval >= alpha + 50) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                    )
                 {
@@ -1091,7 +1100,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth);
+                    Value rbeta = tt_value - i32 (i32 (depth)*1.25); // TODO::
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1230,14 +1239,21 @@ namespace Searcher {
                         (ss)->reduction = max (DEPTH_ZERO, (ss)->reduction - ONE_MOVE);
                     }
 
-                    Depth red_depth = max (new_depth - (ss)->reduction, ONE_MOVE);
+                    Depth red_depth = 
+                        //max (new_depth - (ss)->reduction, ONE_MOVE);
+                        new_depth - (ss)->reduction; // TODO::
 
                     if (SPNode)
                     {
                         alpha = splitpoint->alpha;
                     }
 
-                    value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                    value = (red_depth < ONE_MOVE) ?
+                        gives_check
+                        ? -search_quien<NonPV,  true> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
+                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
+                        : -search      <NonPV      > (pos, ss+1, -(alpha+1), -(alpha), red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if (value > alpha && (ss)->reduction >= 4 * ONE_MOVE)
@@ -1668,7 +1684,6 @@ namespace Searcher {
 
     // initialize the PRNG only once
     PolyglotBook        Book;
-    bool                ForceNullMove;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // We consider also failing high nodes and not only EXACT nodes so to

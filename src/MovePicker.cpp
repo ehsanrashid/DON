@@ -60,7 +60,9 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
         // Skip TT move if is not a capture or a promotion, this avoids search_quien
         // tree explosion due to a possible perpetual check or similar rare cases
         // when TT table is full.
-        if (ttm != MOVE_NONE && !pos.capture_or_promotion (ttm))
+        if (   (ttm != MOVE_NONE)
+            && (!pos.capture_or_promotion (ttm))
+           )
         {
             ttm = MOVE_NONE;
         }
@@ -94,7 +96,9 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    if (tt_move != MOVE_NONE && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
+    if (   (tt_move != MOVE_NONE)
+        && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold)
+       )
     {
         tt_move = MOVE_NONE;
     }

@@ -824,7 +824,7 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
-                // Penalty for pinned pieces not defended by a pawn
+                // Penalty for pinned pieces which not defended by a pawn
                 if (ei.pinned_pieces[C] & ~ei.attacked_by[C][PAWN])
                 {
                     attack_units += UnsupportedPinnedPiece;

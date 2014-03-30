@@ -258,11 +258,6 @@ namespace UCI {
             Evaluator::initialize ();
         }
 
-        void on_force_null_move  (const Option &opt)
-        {
-            Searcher::ForceNullMove = bool (opt);
-        }
-
         void on_50_move_dist (const Option &opt)
         {
             Position::_50_move_dist = 2 * i32 (opt);
@@ -464,8 +459,6 @@ namespace UCI {
         // Default 0, Min -50, Max +50.
         Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, +50));
         
-        Options["Force Null Move"]              = OptionPtr (new CheckOption (false, on_force_null_move));
-
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
         //

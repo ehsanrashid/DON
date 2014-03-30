@@ -111,7 +111,6 @@ namespace Engine {
         Threadpool.initialize ();
         
         TT.resize (i32 (*(Options["Hash"])), true);
-        Searcher::ForceNullMove = bool (*(Options["Force Null Move"]));
         string syzygy_path = string (*(Options["Syzygy Path"]));
         TBSyzygy::initialize (syzygy_path);
 

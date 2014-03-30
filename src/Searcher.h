@@ -197,7 +197,6 @@ namespace Searcher {
     extern Time::point           SearchTime;
 
     extern PolyglotBook          Book;
-    extern bool                  ForceNullMove;
 
     extern u64 perft (Position &pos, const Depth &depth);
 

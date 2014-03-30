@@ -175,3 +175,108 @@ void benchmark (istream &is, const Position &pos)
         << endl;
 
 }
+
+void benchtest (std::istream &is, const Position &pos)
+{
+    string token;
+    vector<string> fens;
+
+    // Assign default values to missing arguments
+    string hash       = (is >> token) ? token : "1024";
+    string threads    = (is >> token) ? token : "4";
+    string limit_val  = (is >> token) ? token : "15";
+    string limit_type = (is >> token) ? token : "depth";
+    string fen_fn     = (is >> token) ? token : "default";
+
+    *Options["Hash"]    = hash;
+    *Options["Threads"] = threads;
+
+    TT.master_clear ();
+
+    i32     value = abs (atoi (limit_val.c_str ()));
+    //value = value >= 0 ? value : -value;
+
+    LimitsT limits;
+    if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
+    else if (limit_type == "nodes") limits.nodes    = value;
+    else if (limit_type == "mate")  limits.mate     = value;
+    //else if (limit_type == "depth")
+    else                            limits.depth    = value;
+
+    StateInfoStackPtr states;
+
+    if      (fen_fn == "default")
+    {
+        fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
+        states = StateInfoStackPtr (new StateInfoStack ());
+    }
+    else if (fen_fn == "current")
+    {
+        fens.push_back (pos.fen ());
+    }
+    else
+    {
+        ifstream ifs (fen_fn);
+
+        if (!ifs.is_open ())
+        {
+            cerr << "ERROR: Unable to open file ... \'" << fen_fn << "\'" << endl;
+            return;
+        }
+
+        string fen;
+        while (getline (ifs, fen))
+        {
+            if (!fen.empty ())
+            {
+                fens.push_back (fen);
+            }
+        }
+
+        ifs.close ();
+        states = StateInfoStackPtr (new StateInfoStack ());
+    }
+    
+    bool chess960  = bool (*(Options["UCI_Chess960"]));
+    u64 nodes      = 0;
+    point elapsed  = now ();
+
+    u16 total = fens.size ();
+    for (u16 i = 0; i < total; ++i)
+    {
+        Position root_pos (fens[i], Threadpool.main (), chess960);
+
+        cerr
+            << "\n--------------\n" 
+            << "Position: " << (i + 1) << "/" << total << "\n";
+
+        if (limit_type == "perft")
+        {
+            u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
+            cerr << "\nPerft " << u16 (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
+            nodes += leaf_count;
+        }
+        else
+        {
+            Threadpool.start_thinking (root_pos, limits, states);
+            Threadpool.wait_for_think_finished ();
+            nodes += RootPos.game_nodes ();
+        }
+    }
+
+    cerr<< "\n---------------------------\n";
+
+    Debugger::dbg_print (); // Just before to exit
+
+    elapsed = now () - elapsed;
+    // Ensure non-zero to avoid a 'divide by zero'
+    if (elapsed == 0) elapsed = 1;
+
+    cerr
+        << "\n===========================\n"
+        << "Total time (ms) : " << elapsed << "\n"
+        << "Nodes searched  : " << nodes   << "\n"
+        << "Nodes/second    : " << nodes * 1000 / elapsed
+        << endl;
+
+}
