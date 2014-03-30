@@ -29,7 +29,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     stage = pos.checkers () ? EVASIONS : MAIN_STAGE;
 
-    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
 }
 
@@ -60,7 +60,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
         // Skip TT move if is not a capture or a promotion, this avoids search_quien
         // tree explosion due to a possible perpetual check or similar rare cases
         // when TT table is full.
-        if (ttm && !pos.capture_or_promotion (ttm))
+        if (ttm != MOVE_NONE && !pos.capture_or_promotion (ttm))
         {
             ttm = MOVE_NONE;
         }
@@ -72,7 +72,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
         ttm = MOVE_NONE;
     }
 
-    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
 }
 
@@ -93,8 +93,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     // In ProbCut we generate only captures better than parent's captured piece
     capture_threshold = PieceValue[MG][pt];
 
-    tt_move = (ttm && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    if (tt_move && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
+    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    if (tt_move != MOVE_NONE && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold))
     {
         tt_move = MOVE_NONE;
     }
@@ -124,7 +124,7 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - ptype (pos[org_sq (m)]);
+        itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)]));
 
         MoveT mt = mtype (m);
         if      (PROMOTE == mt)
@@ -168,7 +168,7 @@ void MovePicker::value<EVASION> ()
             if (pos.capture (m))
             {
                 itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
-                - ptype (pos[org_sq (m)]) + VALUE_KNOWN_WIN;
+                - Value (ptype (pos[org_sq (m)])) + VALUE_KNOWN_WIN;
             }
             else
             {
@@ -213,13 +213,13 @@ void MovePicker::generate_next_stage ()
         // Be sure killer moves are not MOVE_NONE
         for (i08 i = 0; i < 2; ++i)
         {
-            if (ss->killer_moves[i])
+            if (ss->killer_moves[i] != MOVE_NONE)
             {
                 (end++)->move = ss->killer_moves[i];
             }
         }
         //// If killer moves are same
-        //if (ss->killers[1] && ss->killers[1] == ss->killers[0]) // Due to SMP races
+        //if (ss->killers[1] != MOVE_NONE && ss->killers[1] == ss->killers[0]) // Due to SMP races
         //{
         //    (--end)->move = MOVE_NONE;
         //}
@@ -227,15 +227,16 @@ void MovePicker::generate_next_stage ()
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (counter_moves[i] &&
-                counter_moves[i] != cur[0].move &&
-                counter_moves[i] != cur[1].move)
+            if (   (counter_moves[i] != MOVE_NONE)
+                && (counter_moves[i] != cur[0].move)
+                && (counter_moves[i] != cur[1].move)
+               )
             {
                 (end++)->move = counter_moves[i];
             }
         }
         //// If counter moves are same
-        //if (counter_moves[1] && counter_moves[1] == counter_moves[0]) // Due to SMP races
+        //if (counter_moves[1] != MOVE_NONE && counter_moves[1] == counter_moves[0]) // Due to SMP races
         //{
         //    (--end)->move = MOVE_NONE;
         //}
@@ -243,17 +244,18 @@ void MovePicker::generate_next_stage ()
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (followup_moves[i] &&
-                followup_moves[i] != cur[0].move &&
-                followup_moves[i] != cur[1].move &&
-                followup_moves[i] != cur[2].move &&
-                followup_moves[i] != cur[3].move)
+            if (   (followup_moves[i] != MOVE_NONE)
+                && (followup_moves[i] != cur[0].move)
+                && (followup_moves[i] != cur[1].move)
+                && (followup_moves[i] != cur[2].move)
+                && (followup_moves[i] != cur[3].move)
+               )
             {
                 (end++)->move = followup_moves[i];
             }
         }
         //// If followup moves are same
-        //if (followup_moves[1] && followup_moves[1] == followup_moves[0]) // Due to SMP races
+        //if (followup_moves[1] != MOVE_NONE && followup_moves[1] == followup_moves[0]) // Due to SMP races
         //{
         //    (--end)->move = MOVE_NONE;
         //}
@@ -364,10 +366,11 @@ Move MovePicker::next_move<false> ()
             do
             {
                 move = (cur++)->move;
-                if (    move != MOVE_NONE
-                    &&  pos.pseudo_legal (move)
-                    &&  move != tt_move
-                    && !pos.capture (move))
+                if (   (move != MOVE_NONE)
+                    && (pos.pseudo_legal (move))
+                    && (move != tt_move)
+                    && (!pos.capture (move))
+                   )
                 {
                     return move;
                 }
@@ -380,13 +383,14 @@ Move MovePicker::next_move<false> ()
             do
             {
                 move = (cur++)->move;
-                if (   move != tt_move
-                    && move != killers[0].move
-                    && move != killers[1].move
-                    && move != killers[2].move
-                    && move != killers[3].move
-                    && move != killers[4].move
-                    && move != killers[5].move)
+                if (   (move != tt_move)
+                    && (move != killers[0].move)
+                    && (move != killers[1].move)
+                    && (move != killers[2].move)
+                    && (move != killers[3].move)
+                    && (move != killers[4].move)
+                    && (move != killers[5].move)
+                   )
                 {
                     return move;
                 }

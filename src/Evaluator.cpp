@@ -94,20 +94,19 @@ namespace Evaluator {
                 switch (term)
                 {
                 case PST: case IMBALANCE: case PAWN: case TOTAL:
-                    ss  << setw (20) << name << " |   ---   --- |   ---   --- | "
-                        << setw ( 6) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw ( 6) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                    ss  << setw (20) << name << " |  ----  ---- |  ----  ---- | " << showpos
+                        << setw ( 5) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                     break;
 
                 default:
-                    ss  << setw (20) << name << " | " << noshowpos
+                    ss  << setw (20) << name << " | " << showpos
                         << setw ( 5) << value_to_cp (mg_value (score[WHITE])) << " "
                         << setw ( 5) << value_to_cp (eg_value (score[WHITE])) << " | "
                         << setw ( 5) << value_to_cp (mg_value (score[BLACK])) << " "
                         << setw ( 5) << value_to_cp (eg_value (score[BLACK])) << " | "
-                        << showpos
-                        << setw ( 6) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw ( 6) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                        << setw ( 5) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
+                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
                     break;
                 }
             }
@@ -1099,13 +1098,14 @@ namespace Evaluator {
                 memset (Terms, 0, sizeof (Terms));
 
                 Value value = do_evaluate<true> (pos);
+                value = (pos.active () == WHITE) ? +value : -value; // White's point of view
 
                 stringstream ss;
 
                 ss  << showpoint << showpos << setprecision (2) << fixed
-                    << "           Eval term |    White    |    Black    |     Total     \n"
-                    << "                     |   MG    EG  |   MG    EG  |   MG     EG   \n"
-                    << "---------------------+-------------+-------------+---------------\n";
+                    << "           Eval term |    White    |    Black    |     Total    \n"
+                    << "                     |   MG    EG  |   MG    EG  |   MG    EG   \n"
+                    << "---------------------+-------------+-------------+--------------\n";
                 format_row (ss, "Material, PST, Tempo"  , PST);
                 format_row (ss, "Material imbalance"    , IMBALANCE);
                 format_row (ss, "Pawns"                 , PAWN);
@@ -1118,12 +1118,13 @@ namespace Evaluator {
                 format_row (ss, "Threats"               , THREAT);
                 format_row (ss, "Passed pawns"          , PASSED);
                 format_row (ss, "Space"                 , SPACE);
-                ss  << "---------------------+-------------+-------------+---------------\n";
+                ss  << "---------------------+-------------+-------------+--------------\n";
                 format_row (ss, "Total"                 , TOTAL);
-                ss  << "\nScaling: " << noshowpos
-                    << setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
-                    << setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
-                    << setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                ss  << "\n"
+                    //<< "Scaling: " << noshowpos
+                    //<< setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
+                    //<< setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
+                    //<< setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
                     << "Total evaluation: " << value_to_cp (value);
 
                 return ss.str ();

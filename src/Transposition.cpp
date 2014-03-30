@@ -129,7 +129,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 
     for (u08 i = 0; i < TOT_CLUSTER_ENTRY; ++i, ++tte)
     {
-        if (!tte->_key || tte->_key == key32) // Empty or Old then overwrite
+        if (tte->_key == 0 || tte->_key == key32) // Empty or Old then overwrite
         {
             // Preserve any existing TT move
             if (move == MOVE_NONE)
@@ -146,6 +146,17 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 
         // Implement replacement strategy when a collision occurs
 
+        /*
+        if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
+            - (rte->_gen == _generation)
+            - (tte->_depth < rte->_depth))
+            < 0
+           )
+        {
+            rte = tte;
+        }
+        */
+        
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
         if (gc != 0)
         {
