@@ -176,7 +176,7 @@ void benchmark (istream &is, const Position &pos)
 
 }
 
-void benchtest (std::istream &is, const Position &pos)
+void benchtest (istream &is, const Position &pos)
 {
     string token;
     vector<string> fens;
