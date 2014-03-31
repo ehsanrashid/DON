@@ -96,7 +96,7 @@ namespace Evaluator {
                 case PST: case IMBALANCE: case PAWN: case TOTAL:
                     ss  << setw (20) << name << " |  ----  ---- |  ----  ---- | " << showpos
                         << setw ( 5) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << "\n";
                     break;
 
                 default:
@@ -106,7 +106,7 @@ namespace Evaluator {
                         << setw ( 5) << value_to_cp (mg_value (score[BLACK])) << " "
                         << setw ( 5) << value_to_cp (eg_value (score[BLACK])) << " | "
                         << setw ( 5) << value_to_cp (mg_value (score[WHITE] - score[BLACK])) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << " \n";
+                        << setw ( 5) << value_to_cp (eg_value (score[WHITE] - score[BLACK])) << "\n";
                     break;
                 }
             }
@@ -272,7 +272,7 @@ namespace Evaluator {
         const i32 RookContactCheck  = +16;
         const i32 QueenContactCheck = +24;
 
-        const i32 UnsupportedPinnedPiece = +2;
+        const i32 UnsupportedPinnedPiece = + 1;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -301,9 +301,9 @@ namespace Evaluator {
 
         Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei);
 
-        Value interpolate   (const Score &score, Phase ph, ScaleFactor scale_factor);
+        Value interpolate   (const Score &score, Phase phase, ScaleFactor scale_factor);
 
-        Score apply_weight  (Score score, Score w);
+        Score apply_weight  (Score score, Score weight);
         
         Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
 
@@ -1063,22 +1063,22 @@ namespace Evaluator {
 
         // interpolate () interpolates between a middle game and an endgame score,
         // based on game phase. It also scales the return value by a ScaleFactor array.
-        inline Value interpolate (const Score &score, Phase ph, ScaleFactor scale_factor)
+        inline Value interpolate (const Score &score, Phase phase, ScaleFactor scale_factor)
         {
             ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-            ASSERT (PHASE_ENDGAME <= ph && ph <= PHASE_MIDGAME);
+            ASSERT (PHASE_ENDGAME <= phase && phase <= PHASE_MIDGAME);
 
             i32 eg  = (eg_value (score) * i32 (scale_factor)) / SCALE_FACTOR_NORMAL;
-            return Value ((mg_value (score) * i32 (ph) + eg * i32 (PHASE_MIDGAME - ph)) / PHASE_MIDGAME);
+            return Value ((mg_value (score) * i32 (phase) + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
         }
 
         // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
-        inline Score apply_weight (Score s, Score w)
+        inline Score apply_weight (Score score, Score weight)
         {
             return mk_score (
-                (i32 (mg_value (s)) * i32 (mg_value (w))) / 0x100,
-                (i32 (eg_value (s)) * i32 (eg_value (w))) / 0x100);
+                (i32 (mg_value (score)) * i32 (mg_value (weight))) / 0x100,
+                (i32 (eg_value (score)) * i32 (eg_value (weight))) / 0x100);
         }
 
         // weight_option () computes the value of an evaluation weight, by combining
@@ -1122,10 +1122,10 @@ namespace Evaluator {
                 format_row (ss, "Total"                 , TOTAL);
                 ss  << "\n"
                     //<< "Scaling: " << noshowpos
-                    //<< setw (6) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
-                    //<< setw (6) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
-                    //<< setw (6) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
-                    << "Total evaluation: " << value_to_cp (value);
+                    //<< setw (5) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
+                    //<< setw (5) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
+                    //<< setw (5) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
+                    << "Total evaluation: " << value_to_cp (value) << " (white side)\n";
 
                 return ss.str ();
             }

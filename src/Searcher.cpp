@@ -456,11 +456,11 @@ namespace Searcher {
                 if (!PVNode)
                 {
                     // Futility pruning
-                    if (   (!IN_CHECK)
-                        && (!gives_check)
+                    if (   !(IN_CHECK)
+                        && !(gives_check)
                         && (futility_base > -VALUE_KNOWN_WIN)
                         && (move != tt_move)
-                        && (!pos.advanced_pawn_push (move))
+                        && !(pos.advanced_pawn_push (move))
                        )
                     {
                         ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
@@ -491,8 +491,8 @@ namespace Searcher {
                     // Detect non-capture evasions that are candidate to be pruned
                     bool evasion_prunable = IN_CHECK
                                          && (best_value > VALUE_MATED_IN_MAX_PLY)
-                                         && (!pos.capture (move))
-                                         && (!pos.can_castle (pos.active ()));
+                                         && !(pos.capture (move))
+                                         && !(pos.can_castle (pos.active ()));
 
                     // Don't search moves with negative SEE values
                     if (   (!IN_CHECK || evasion_prunable)
@@ -711,8 +711,8 @@ namespace Searcher {
                     // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
                     if (   (tt_value >= beta)
                         && (tt_move != MOVE_NONE)
-                        && (!pos.capture_or_promotion (tt_move))
-                        && (!in_check)
+                        && !(pos.capture_or_promotion (tt_move))
+                        && !(in_check)
                        )
                     {
                         update_stats (pos, ss, tt_move, depth, NULL, 0);
@@ -837,7 +837,7 @@ namespace Searcher {
                 // Step 7. Futility pruning: child node
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
-                if (   (!(ss)->skip_null_move)
+                if (   !((ss)->skip_null_move)
                     && (depth < 9 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
@@ -852,7 +852,7 @@ namespace Searcher {
                 }
 
                 // Step 8. Null move search with verification search
-                if (   (!(ss)->skip_null_move)
+                if (   !((ss)->skip_null_move)
                     && (depth >= 2 * ONE_MOVE)
                     && (eval >= beta)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
@@ -912,7 +912,7 @@ namespace Searcher {
                 // and a reduced search returns a value much above beta,
                 // we can (almost) safely prune the previous move.
                 if (   (depth >= 5 * ONE_MOVE)
-                    && (!(ss)->skip_null_move)
+                    && !((ss)->skip_null_move)
                     //&& (eval >= alpha + 50) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                    )
@@ -1122,11 +1122,11 @@ namespace Searcher {
                 if (!PVNode)
                 {
                     // Step 13. Pruning at shallow depth (exclude PV nodes)
-                    if (   !capture_or_promotion
-                        && !in_check
-                        && !dangerous
-                     /* &&  move != tt_move Already implicit in the next condition */
-                        && best_value > VALUE_MATED_IN_MAX_PLY
+                    if (   !(capture_or_promotion)
+                        && !(in_check)
+                        && !(dangerous)
+                     /* && (move != tt_move) Already implicit in the next condition */
+                        && (best_value > VALUE_MATED_IN_MAX_PLY)
                        )
                     {
                         // Move count based pruning
@@ -1198,7 +1198,7 @@ namespace Searcher {
                         }
                     }
 
-                    if (   (!capture_or_promotion)
+                    if (   !(capture_or_promotion)
                         && (quiets_count < MAX_QUIETS))
                     {
                         quiet_moves[quiets_count++] = move;
@@ -1215,9 +1215,9 @@ namespace Searcher {
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   (!is_pv_move)
+                if (   !(is_pv_move)
                     && (depth >= 3 * ONE_MOVE)
-                    && (!capture_or_promotion)
+                    && !(capture_or_promotion)
                     && (move != tt_move)
                     && (move != (ss)->killer_moves[0])
                     && (move != (ss)->killer_moves[1])
@@ -1249,11 +1249,11 @@ namespace Searcher {
                     }
 
                     //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
-                    value = (red_depth < ONE_MOVE) ?
-                        gives_check
-                        ? -search_quien<NonPV,  true> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
-                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
-                        : -search      <NonPV      > (pos, ss+1, -(alpha+1), -(alpha), red_depth, true);
+                    value = (red_depth < ONE_MOVE)
+                        ? (gives_check
+                        ? -search_quien<PV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
+                        : -search_quien<PV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
+                        : -search      <PV       > (pos, ss+1, -(alpha+1), -(alpha), red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if (value > alpha && (ss)->reduction >= 4 * ONE_MOVE)
@@ -2059,8 +2059,8 @@ namespace Threads {
         point elapsed = now_time - SearchTime;
 
         bool still_at_1stmove =
-               ( Signals.root_1stmove)
-            && (!Signals.root_failedlow)
+                (Signals.root_1stmove)
+            && !(Signals.root_failedlow)
             && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3) / 4); // TODO::
 
         bool no_more_time =

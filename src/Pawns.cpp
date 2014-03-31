@@ -238,6 +238,15 @@ namespace Pawns {
         };
 
         File kf = max (F_B, min (F_G, _file (king_sq)));
+
+        // TODO::
+        Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
+        bool dangerous_edge_pawn = 
+               (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
+            && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
+
+        if (dangerous_edge_pawn) safety -= Value (100);
+
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
             Bitboard mid_pawns;
