@@ -318,7 +318,7 @@ namespace Searcher {
             const bool    PVNode = (NT == PV);
 
             ASSERT (NT == PV || NT == NonPV);
-            ASSERT (IN_CHECK == !!pos.checkers ());
+            ASSERT (IN_CHECK == (pos.checkers () != U64 (0)));
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
             ASSERT (depth <= DEPTH_ZERO);
@@ -1241,7 +1241,7 @@ namespace Searcher {
 
                     Depth red_depth = 
                         //max (new_depth - (ss)->reduction, ONE_MOVE);
-                        new_depth - (ss)->reduction; // TODO::
+                        (new_depth - (ss)->reduction); // TODO::
 
                     if (SPNode)
                     {
@@ -1251,9 +1251,9 @@ namespace Searcher {
                     //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
                     value = (red_depth < ONE_MOVE)
                         ? (gives_check
-                        ? -search_quien<PV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                        : -search_quien<PV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        : -search      <PV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
+                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if ((value > alpha) && ((ss)->reduction >= 4 * ONE_MOVE))
