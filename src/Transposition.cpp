@@ -158,19 +158,21 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         */
 
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
-        if (gc == 0)
+        if (gc != 0)
         {
-            i16 dc = (rte->_depth - tte->_depth);
-            if (dc == 0)
-            {
-                i16 nc = (rte->_nodes - tte->_nodes);
-                if (nc > 0) rte = tte;
-                continue;
-            }
+            if (gc > 0) rte = tte;
+            continue;
+        }
+        // gc == 0
+        i16 dc = (rte->_depth - tte->_depth);
+        if (dc != 0)
+        {
             if (dc > 0) rte = tte;
             continue;
         }
-        if (gc > 0) rte = tte;
+        // dc == 0
+        i16 nc = (rte->_nodes - tte->_nodes);
+        if (nc > 0) rte = tte;
         //continue;
     }
 
