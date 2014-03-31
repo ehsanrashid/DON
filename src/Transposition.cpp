@@ -28,7 +28,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
     ASSERT (0 == (mem_size  & (alignment - 1)));
 
 #ifdef LPAGES
-    
+
     u08 offset = max<i08> (alignment-1, sizeof (void *));
 
     MemoryHandler::create_memory (_mem, mem_size, alignment);
@@ -91,13 +91,13 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
 
     mem_size  = entry_count * TTENTRY_SIZE;
-    
+
     if (force || entry_count != entries ())
     {
         free_aligned_memory ();
 
         alloc_aligned_memory (mem_size, CACHE_LINE_SIZE);
-        
+
         _hash_mask = (entry_count - TOT_CLUSTER_ENTRY);
     }
 
@@ -148,33 +148,31 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 
         /*
         if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
-            - (rte->_gen == _generation)
-            - (tte->_depth < rte->_depth))
-            < 0
-           )
+        - (rte->_gen == _generation)
+        - (tte->_depth < rte->_depth))
+        < 0
+        )
         {
-            rte = tte;
+        rte = tte;
         }
         */
-        
+
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
-        if (gc != 0)
+        if (gc == 0)
         {
-            if (gc > 0) rte = tte;
-            continue;
-        }
-        // gc == 0
-        i16 dc = (rte->_depth - tte->_depth);
-        if (dc != 0)
-        {
+            // gc == 0
+            i16 dc = (rte->_depth - tte->_depth);
+            if (dc == 0)
+            {
+                i16 nc = (rte->_nodes - tte->_nodes);
+                if (nc > 0) rte = tte;
+                continue;
+            }
             if (dc > 0) rte = tte;
             continue;
         }
-        // dc == 0
-        i16 nc = (rte->_nodes - tte->_nodes);
-        if (nc > 0) rte = tte;
-        continue;
-
+        if (gc > 0) rte = tte;
+        //continue;
     }
 
     rte->save (key32, move, depth, bound, (nodes >> 10), value, eval, _generation);

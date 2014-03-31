@@ -255,8 +255,9 @@ namespace Pawns {
             Rank b_rk = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
 
             if (   (MID_EDGE_bb & (f | b_rk))
-                && _file (king_sq) == f
-                && rel_rank (C, king_sq) == b_rk - 1)
+                && (_file (king_sq) == f)
+                && (rel_rank (C, king_sq) == b_rk - 1)
+               )
             {
                 safety += Value (200);
             }
@@ -273,7 +274,7 @@ namespace Pawns {
                     : 0;
                 
                 safety -= ShelterWeakness[w_rk]
-                +         StormDanger[danger][b_rk];
+                       +  StormDanger[danger][b_rk];
             }
         }
 
