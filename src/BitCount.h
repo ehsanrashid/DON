@@ -224,7 +224,9 @@ INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 }
 
 #       endif
+
 #   endif
+
 #endif
 
 #endif // _BITCOUNT_H_INC_

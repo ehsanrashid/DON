@@ -1251,18 +1251,18 @@ namespace Searcher {
                     //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
                     value = (red_depth < ONE_MOVE)
                         ? (gives_check
-                        ? -search_quien<PV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
-                        : -search_quien<PV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
-                        : -search      <PV       > (pos, ss+1, -(alpha+1), -(alpha), red_depth, true);
+                        ? -search_quien<PV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                        : -search_quien<PV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
+                        : -search      <PV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
-                    if (value > alpha && (ss)->reduction >= 4 * ONE_MOVE)
+                    if ((value > alpha) && ((ss)->reduction >= 4 * ONE_MOVE))
                     {
                         Depth inter_depth = max (new_depth - 2 * ONE_MOVE, ONE_MOVE);
                         value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = (value > alpha && (ss)->reduction != DEPTH_ZERO);
+                    full_depth_search = ((value > alpha) && ((ss)->reduction != DEPTH_ZERO));
                     (ss)->reduction = DEPTH_ZERO;
                 }
                 else
