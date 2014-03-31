@@ -19,7 +19,7 @@ const u32 TranspositionTable::MAX_HASH_BIT  = 32;
 
 const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 
-const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT - 20 - 1)) * TTENTRY_SIZE;
+const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTENTRY_SIZE;
 
 void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 {
