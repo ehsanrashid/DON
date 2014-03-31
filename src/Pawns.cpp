@@ -214,10 +214,11 @@ namespace Pawns {
         Key pawn_key = pos.pawn_key ();
         Entry *e     = table[pawn_key];
 
-        if (e->_pawn_key == pawn_key) return e;
-
-        e->_pawn_key    = pawn_key;
-        e->_pawn_score  = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
+        if (e->_pawn_key != pawn_key)
+        {
+            e->_pawn_key    = pawn_key;
+            e->_pawn_score  = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
+        }
         return e;
     }
 
