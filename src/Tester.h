@@ -11,6 +11,8 @@ namespace Tester {
 
     extern void main_test ();
 
+    extern void test_str ();
+
 #endif
 
 }

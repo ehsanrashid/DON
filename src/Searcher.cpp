@@ -1100,7 +1100,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth);// + (depth / 4)); // TODO::
+                    Value rbeta = tt_value - i32 (i32 (depth)*1.25); // TODO::
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1248,7 +1248,6 @@ namespace Searcher {
                         alpha = splitpoint->alpha;
                     }
 
-                    //value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
                     value = (red_depth < ONE_MOVE)
                         ? (gives_check
                         ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)

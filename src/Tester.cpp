@@ -12,6 +12,7 @@ namespace Tester {
 
 #ifndef NDEBUG
 
+
     namespace {
 
         using namespace std;
@@ -565,7 +566,6 @@ namespace Tester {
 
             cout << "UCI      ...done !!!" << endl;
         }
-
     }
 
     void main_test ()
@@ -585,7 +585,28 @@ namespace Tester {
         test_move ();
 
         test_uci ();
+
+        //test_str ();
+
     }
+
+#define SIZEOF_ARY(x) (sizeof (x) / sizeof ((x)[0]))
+
+    void test_str ()
+    {
+        string ss[] = { "qwerty rrr", "hello", "world" };
+        vector<string> v (ss, ss + SIZEOF_ARY (ss) );
+        cout << vecjoin (v, ", ") << endl;//"qwerty, hello, world"
+
+        int ii[] = { 111, 222, 333 };
+        vector<int> vi (ii, ii + SIZEOF_ARY (ii));
+        cout << vecjoin (vi, "; ") << endl;//"111; 222; 333"
+
+        strsplit ("qwerty, hello, world", ", ");              //results in [ "qwerty", "hello", "world" ]
+        strsplit (", , wow, , qwerty, hello, world, ", ", "); //results in [ "wow", "qwerty", "hello", "world" ]
+    }
+
+#undef SIZEOF_ARY
 
 #endif
 
