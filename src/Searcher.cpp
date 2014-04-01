@@ -1239,9 +1239,8 @@ namespace Searcher {
                         (ss)->reduction = max (DEPTH_ZERO, (ss)->reduction - ONE_MOVE);
                     }
 
-                    Depth red_depth = 
-                        //max (new_depth - (ss)->reduction, ONE_MOVE);
-                        (new_depth - (ss)->reduction); // TODO::
+                    // TODO::
+                    Depth red_depth = new_depth - (ss)->reduction;
 
                     if (SPNode)
                     {
@@ -1291,7 +1290,7 @@ namespace Searcher {
                     // For PV nodes only, do a full PV search on the first move or after a fail
                     // high (in the latter case search only if value < beta), otherwise let the
                     // parent node fail low with value <= alpha and to try another move.
-                    if (is_pv_move || (value > alpha && (RootNode || value < beta)))
+                    if (is_pv_move || ((value > alpha) && (RootNode || (value < beta))))
                     {
                         value =
                             (new_depth < ONE_MOVE)
