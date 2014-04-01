@@ -458,15 +458,15 @@ namespace Evaluator {
             if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
                 ei.king_ring              [C_] = attacks | shift_del<PULL> (attacks);
-                attacks &= ei.attacked_by [C][PAWN];
-                ei.king_attackers_count   [C] = attacks ? pop_count<MAX15> (attacks) : 0;
-                ei.king_zone_attacks_count[C] = 0;
-                ei.king_attackers_weight  [C] = 0;
+                attacks &= ei.attacked_by [C ][PAWN];
+                ei.king_attackers_count   [C ] = attacks ? pop_count<MAX15> (attacks) : 0;
+                ei.king_zone_attacks_count[C ] = 0;
+                ei.king_attackers_weight  [C ] = 0;
             }
             else
             {
                 ei.king_ring              [C_] = U64 (0);
-                ei.king_attackers_count   [C] = 0;
+                ei.king_attackers_count   [C ] = 0;
             }
         }
 
@@ -489,17 +489,17 @@ namespace Evaluator {
                 if (   !(pos.pieces<NIHT> (C_))
                     && !(pos.pieces<BSHP> (C_) & squares_of_color (s)))
                 {
-                    bonus += bonus + bonus / 2;
+                    bonus += i32 (bonus)*1.5;
                 }
                 else
                 {
-                    bonus += bonus / 2;
+                    bonus += i32 (bonus)*0.5;
                 }
 
                 //// Increase bonus more if the piece blocking enemy pawn
                 //if (pos[s + pawn_push (C)] == (C_|PAWN))
                 //{
-                //    bonus += bonus / 2;
+                //    bonus += i32 (bonus)*0.5;
                 //}
 
             }
@@ -656,7 +656,7 @@ namespace Evaluator {
                                    : RookSemiopenFileBonus;
 
                             //// Give more bonus if the rook is doubled
-                            //if (front_sqs_bb (C_, s) & pos.pieces<ROOK> (C))
+                            //if (FrontSqs_bb[C_][s] & pos.pieces<ROOK> (C))
                             //{
                             //    score += ei.pi->semiopen (C_, _file (s))
                             //           ? RookDoubledOpenBonus
@@ -740,10 +740,10 @@ namespace Evaluator {
                     ei.attacked_by[C_][NONE]
                   & ei.attacked_by[C][KING]
                   & ~(ei.attacked_by[C][PAWN]
-                  |   ei.attacked_by[C][NIHT]
-                  |   ei.attacked_by[C][BSHP]
-                  |   ei.attacked_by[C][ROOK]
-                  |   ei.attacked_by[C][QUEN]);
+                    | ei.attacked_by[C][NIHT]
+                    | ei.attacked_by[C][BSHP]
+                    | ei.attacked_by[C][ROOK]
+                    | ei.attacked_by[C][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
