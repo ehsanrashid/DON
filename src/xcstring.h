@@ -15,19 +15,19 @@
 
 inline bool null (const char *s)
 {
-    return !s;
+    return (s == NULL);
 }
 inline bool empty (const char *s)
 {
     assert (s);
-    if (!s)     return false;
-    return !(*s);
+    if (s == NULL) return true;
+    return (*s == '\0');
 }
 inline bool whitespace (const char *s)
 {
     assert (s);
-    if (!s)     return true;
-    while (*s)
+    if (s == NULL) return true;
+    while (*s != '\0')
     {
         if (!isspace (i32 (*s))) return false;
         ++s;
@@ -38,15 +38,15 @@ inline bool whitespace (const char *s)
 inline char* strlower (char *s)
 {
     assert (s);
-    if (!s)     return NULL;
-    while (*s) *s++ = char (tolower (*s));
+    if (s == NULL) return NULL;
+    while (*s != '\0') { *s = char (tolower (i32 (*s))); ++s; }
     return s;
 }
 inline char* strupper (char *s)
 {
     assert (s);
-    if (!s)     return NULL;
-    while (*s) *s++ = char (toupper (*s));
+    if (s == NULL) return NULL;
+    while (*s != '\0') { *s = char (toupper (i32 (*s))); ++s; }
     return s;
 }
 
