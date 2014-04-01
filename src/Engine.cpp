@@ -111,7 +111,8 @@ namespace Engine {
         Threadpool.initialize ();
         
         TT.resize (i32 (*(Options["Hash"])), true);
-        TBSyzygy::initialize (string (*(Options["Syzygy Path"])));
+        string syzygy_path = string (*(Options["Syzygy Path"]));
+        TBSyzygy::initialize (syzygy_path);
 
         cout << endl;
 
