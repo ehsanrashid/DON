@@ -30,13 +30,13 @@ namespace std {
         return true;
     }
 
-    //inline std::string& to_lower (std::string &s)
+    //inline std::string& strlower (std::string &s)
     //{
     //    //std::transform (s.begin (), s.end (), std::back_inserter (s), ::tolower);
     //    std::transform (s.begin (), s.end (), s.begin (), ::tolower);
     //    return s;
     //}
-    //inline std::string& to_upper (std::string &s)
+    //inline std::string& strupper (std::string &s)
     //{
     //    //std::transform (s.begin (), s.end (), std::back_inserter (s), ::toupper);
     //    std::transform (s.begin (), s.end (), s.begin (), ::toupper);
@@ -73,8 +73,8 @@ namespace std {
     // string case-insensitive equals
     inline bool iequals (const std::string &s1, const std::string &s2)
     {
-        //to_lower (const_cast<string&> (s1)); //to_upper ();
-        //to_lower (const_cast<string&> (s2)); //to_upper ();
+        //strlower (const_cast<string&> (s1)); //strupper ();
+        //strlower (const_cast<string&> (s2)); //strupper ();
         //return (s1 == s2);
 
         //return !stricmp (s1.c_str (), s2.c_str ());

@@ -35,14 +35,14 @@ inline bool whitespace (const char *s)
     return true;
 }
 
-inline char* to_lower (char *s)
+inline char* strlower (char *s)
 {
     assert (s);
     if (!s)     return NULL;
     while (*s) *s++ = char (tolower (*s));
     return s;
 }
-inline char* to_upper (char *s)
+inline char* strupper (char *s)
 {
     assert (s);
     if (!s)     return NULL;

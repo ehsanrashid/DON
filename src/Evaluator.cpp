@@ -272,7 +272,7 @@ namespace Evaluator {
         const i32 RookContactCheck  = +16;
         const i32 QueenContactCheck = +24;
 
-        const i32 UnsupportedPinnedPiece = + 1;
+        //const i32 UnsupportedPinnedPiece = + 1;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -752,8 +752,8 @@ namespace Evaluator {
                 // the pawn shelter (current 'score' value).
                 i32 attack_units =
                     + min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
-                    + 3 * (ei.king_zone_attacks_count[C_]
-                    + pop_count<MAX15> (undefended))
+                    + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
+                    + 2 * (ei.pinned_pieces[C] != 0)
                     - mg_value (score) / 32;
 
                 // Analyse enemy's safe queen contact checks. First find undefended
@@ -824,11 +824,11 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
-                // Penalty for pinned pieces which not defended by a pawn
-                if (ei.pinned_pieces[C] & ~ei.attacked_by[C][PAWN])
-                {
-                    attack_units += UnsupportedPinnedPiece;
-                }
+                //// Penalty for pinned pieces which not defended by a pawn
+                //if (ei.pinned_pieces[C] & ~ei.attacked_by[C][PAWN])
+                //{
+                //    attack_units += UnsupportedPinnedPiece;
+                //}
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
                 if (attack_units <  0) attack_units =  0;
