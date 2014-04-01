@@ -8,8 +8,6 @@
 #include <cstring>
 #include <cstdlib>
 
-#include "Platform.h"
-
 #ifdef _MSC_VER
 #       pragma warning (disable: 4996) // 'argument': This function or variable may be unsafe.
 #endif
@@ -151,28 +149,28 @@ namespace LeakDetector {
             i32 x;
             x = sprintf (info_buf, "%s\n", "Memory Leak Summary");
             //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "Memory Leak Summary");
-            fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+            fwrite (info_buf, strlen (info_buf), 1, fp_write);
             x = sprintf (info_buf, "%s\n", "-----------------------------------");
             //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "-----------------------------------");
-            fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+            fwrite (info_buf, strlen (info_buf), 1, fp_write);
 
             while (leak_info)
             {
                 x = sprintf (info_buf, "Address : %p\n", leak_info->mem_info.address);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Address : %p\n", leak_info->mem_info.address);
-                fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+                fwrite (info_buf, strlen (info_buf), 1, fp_write);
                 x = sprintf (info_buf, "Size    : %u bytes\n", leak_info->mem_info.size);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Size    : %lu bytes\n", leak_info->mem_info.size);
-                fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+                fwrite (info_buf, strlen (info_buf), 1, fp_write);
                 x = sprintf (info_buf, "Filename: %s\n", leak_info->mem_info.filename);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Filename: %s\n", leak_info->mem_info.filename);
-                fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+                fwrite (info_buf, strlen (info_buf), 1, fp_write);
                 x = sprintf (info_buf, "Line #  : %u\n", leak_info->mem_info.line_no);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Line #  : %u\n", leak_info->mem_info.line_no);
-                fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+                fwrite (info_buf, strlen (info_buf), 1, fp_write);
                 x = sprintf (info_buf, "%s\n", "-----------------------------------");
                 //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "-----------------------------------");
-                fwrite (info_buf, strlen (info_buf) + 1, 1, fp_write);
+                fwrite (info_buf, strlen (info_buf), 1, fp_write);
 
                 leak_info = leak_info->next;
             }

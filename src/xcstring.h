@@ -9,39 +9,40 @@
 #include <cassert>
 #include <cctype>
 #include <cstdlib>
+#include "Platform.h"
 
 #pragma warning (disable: 4996) // Function strcpy () may be unsafe use strcpy_s ()
 
-inline bool null (const char s[])
+inline bool null (const char *s)
 {
     return !s;
 }
-inline bool empty (const char s[])
+inline bool empty (const char *s)
 {
     assert (s);
     if (!s)     return false;
     return !(*s);
 }
-inline bool whitespace (const char s[])
+inline bool whitespace (const char *s)
 {
     assert (s);
     if (!s)     return true;
     while (*s)
     {
-        if (!isspace ((unsigned char) (*s))) return false;
+        if (!isspace (i32 (*s))) return false;
         ++s;
     }
     return true;
 }
 
-inline char* to_lower (char s[])
+inline char* to_lower (char *s)
 {
     assert (s);
     if (!s)     return NULL;
     while (*s) *s++ = char (tolower (*s));
     return s;
 }
-inline char* to_upper (char s[])
+inline char* to_upper (char *s)
 {
     assert (s);
     if (!s)     return NULL;
@@ -49,30 +50,30 @@ inline char* to_upper (char s[])
     return s;
 }
 
-inline bool  equals (const char s1[], const char s2[], size_t n)
+inline bool  equals (const char *s1, const char *s2, size_t n)
 {
     assert (s1 && s2);
     return !strncmp (s1, s2, n);
 }
-inline bool  equals (const char s1[], const char s2[])
+inline bool  equals (const char *s1, const char *s2)
 {
     assert (s1 && s2);
     return !strcmp (s1, s2);
 }
 
-inline bool iequals (const char s1[], const char s2[], size_t n)
+inline bool iequals (const char *s1, const char *s2, size_t n)
 {
     assert (s1 && s2);
     return !strnicmp (s1, s2, n);
 }
-inline bool iequals (const char s1[], const char s2[])
+inline bool iequals (const char *s1, const char *s2)
 {
     assert (s1 && s2);
     return !stricmp (s1, s2);
 }
 
 // Insert char 'c' at position 'pos' [0...n] 
-inline void insert_at (char s[], size_t pos, char c)
+inline void insert_at (char *s, size_t pos, char c)
 {
     assert (s);
     if (!s)     return;
@@ -100,7 +101,7 @@ inline void insert_at (char s[], size_t pos, char c)
 
 }
 // Remove char at position 'pos' [0...n-1]
-inline void remove_at (char s[], size_t pos)
+inline void remove_at (char *s, size_t pos)
 {
     assert (s);
     if (!s)     return;
@@ -123,7 +124,7 @@ inline void remove_at (char s[], size_t pos)
     memmove (s + pos, s + pos + 1, length - pos);
 }
 
-inline char* remove (char s[], char c = ' ')
+inline char* remove (char *s, char c = ' ')
 {
     assert (s);
     if (!s) return NULL;
@@ -142,7 +143,7 @@ inline char* remove (char s[], char c = ' ')
 }
 
 // Purge all char 'c'
-inline char* remove_all (char s[], char c = ' ')
+inline char* remove_all (char *s, char c = ' ')
 {
     assert (s);
     if (!s)     return NULL;
@@ -176,7 +177,7 @@ inline char* remove_all (char s[], char c = ' ')
 }
 
 // Remove (first occurence of) sub
-inline char* remove_substr (char s[], const char sub[])
+inline char* remove_substr (char *s, const char sub[])
 {
     const size_t length = strlen (sub);
     char *p = strstr (s, sub);
@@ -190,7 +191,7 @@ inline char* remove_substr (char s[], const char sub[])
 }
 
 // Remove duplicate characters
-inline char* remove_dup (char s[])
+inline char* remove_dup (char *s)
 {
     assert (s);
     if (!s)     return NULL;
@@ -217,7 +218,7 @@ inline char* remove_dup (char s[])
     return s;
 }
 
-inline char* ltrim (char s[], char c = ' ')
+inline char* ltrim (char *s, char c = ' ')
 {
     assert (s);
     if (!s) return NULL;
@@ -237,7 +238,7 @@ inline char* ltrim (char s[], char c = ' ')
     }
     return s;
 }
-inline char* rtrim (char s[], char c = ' ')
+inline char* rtrim (char *s, char c = ' ')
 {
     assert (s);
     if (!s) return NULL;
@@ -253,7 +254,7 @@ inline char* rtrim (char s[], char c = ' ')
     }
     return s;
 }
-inline char*  trim (char s[], char c = ' ')
+inline char*  trim (char *s, char c = ' ')
 {
     assert (s);
     if (!s) return NULL;
@@ -261,7 +262,7 @@ inline char*  trim (char s[], char c = ' ')
     return ltrim (rtrim (s, c), c);
 }
 
-inline const char* find (const char s[], size_t n, char c)
+inline const char* find (const char *s, size_t n, char c)
 {
     assert (s);
     if (!s)     return NULL;
@@ -275,7 +276,7 @@ inline const char* find (const char s[], size_t n, char c)
     return s;
 }
 
-inline char* substr (const char s[], size_t start = 0, size_t size = 1)
+inline char* substr (const char *s, size_t start = 0, size_t size = 1)
 {
     assert (s);
     if (!s)     return NULL;
@@ -283,7 +284,7 @@ inline char* substr (const char s[], size_t start = 0, size_t size = 1)
     size_t length = strlen (s);
     if (start > length) return NULL;
     if (size > (length - start)) return NULL;
-    char *sub = (char*) malloc ((size + 1) * sizeof (*s));
+    char *sub = (char*) malloc ((size + 1) * sizeof (char));
     if (sub)
     {
         strncpy (sub, s + start, size);
@@ -292,7 +293,7 @@ inline char* substr (const char s[], size_t start = 0, size_t size = 1)
     return sub;
 }
 
-inline size_t count_substr (const char s[], const char sub[], bool overlap = true)
+inline size_t count_substr (const char *s, const char sub[], bool overlap = true)
 {
     assert (s);
     if (!s) return 0;
@@ -323,14 +324,14 @@ inline size_t count_substr (const char s[], const char sub[], bool overlap = tru
     return count;
 }
 
-inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, bool trim_entry = false, unsigned int *num_splits = NULL)
+inline char** strsplit (char *s, char delim = ' ', bool keep_empty = false, bool trim_entry = false, u32 *num_splits = NULL)
 {
     assert (s);
     if (!s) return NULL;
 
     size_t length = strlen (s);
     char *p1 = s;
-    unsigned int count = 0;
+    u32 count = 0;
     while (p1 <= s + length)
     {
         char *p0 = p1;
@@ -352,7 +353,7 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
 
     if (!list) return NULL;
 
-    unsigned int idx = 0;
+    u32 idx = 0;
     // --- have to free all list[0...n] and list, not works for keep_empty
 
     //const char delim_s[] = { delim, '\0' };
@@ -425,14 +426,44 @@ inline char** strsplit (char s[], char delim = ' ', bool keep_empty = false, boo
     return list;
 }
 
-inline int   to_int (const char s[])
+inline char* strjoin (char **ss, u32 count, char delim = ' ')
+{
+    size_t length = 0;
+    u32 *sub_length = (u32 *) malloc ((count) * sizeof (u32));
+
+    for (u32 i = 0; i < count; ++i)
+    {
+        sub_length[i] = strlen (ss[i]);
+        length += sub_length[i];
+    }
+
+    char *join = 
+        (char *) malloc ((length+count) * sizeof (char));
+        //(char *) calloc ((length+count), sizeof (char));
+
+    length = 0;
+    for (u32 i = 0; i < count; ++i)
+    {
+        //memcpy (join+length+i, ss[i], sub_length[i]);
+        strcpy (join+length+i, ss[i]);
+        length += sub_length[i];
+        join[length+i] = delim;
+    }
+    
+    free (sub_length);
+    join[length+count-1] = '\0';
+    return join;
+}
+
+
+inline int   to_int (const char *s)
 {
     assert (s);
     if (!s)     return 0;
 
     return atoi (s);
 }
-inline long  to_long (const char s[])
+inline long  to_long (const char *s)
 {
     assert (s);
     if (!s)     return 0L;
@@ -444,7 +475,7 @@ inline long  to_long (const char s[])
     assert (LONG_MIN > l && l < LONG_MAX);
     return l;
 }
-inline char* to_str (int i, char s[], int radix = 10)
+inline char* to_str (int i, char *s, int radix = 10)
 {
     assert (s);
     if (!s)     return NULL;

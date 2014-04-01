@@ -40,8 +40,9 @@ namespace UCI {
             virtual operator bool ()        const { return bool (); }
             virtual operator i32 ()         const { return i32 (); }
             virtual operator std::string () const { return std::string (); }
-
-            //virtual Option& operator= (char        *value) = 0;
+#ifndef NDEBUG
+            virtual Option& operator= (char        *value) = 0;
+#endif
             virtual Option& operator= (std::string &value) = 0;
 
         };
@@ -53,7 +54,9 @@ namespace UCI {
 
             std::string operator() ()  const;
 
-            //Option& operator= (char        *value);
+#ifndef NDEBUG
+            Option& operator= (char        *value);
+#endif
             Option& operator= (std::string &value);
 
         };
@@ -69,7 +72,9 @@ namespace UCI {
             std::string operator() ()  const;
             virtual operator bool () const;
 
-            //Option& operator= (char        *value);
+#ifndef NDEBUG
+            Option& operator= (char        *value);
+#endif
             Option& operator= (std::string &value);
 
         };
@@ -85,7 +90,9 @@ namespace UCI {
             std::string operator() ()  const;
             operator std::string () const;
 
-            //Option& operator= (char        *value);
+#ifndef NDEBUG
+            Option& operator= (char        *value);
+#endif
             Option& operator= (std::string &value);
 
         };
@@ -103,7 +110,9 @@ namespace UCI {
             std::string operator() ()  const;
             operator i32 () const;
 
-            //Option& operator= (char        *value);
+#ifndef NDEBUG
+            Option& operator= (char        *value);
+#endif
             Option& operator= (std::string &value);
 
         };

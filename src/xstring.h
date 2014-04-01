@@ -16,6 +16,8 @@
 //#include <sstream>  // stringstream in trim
 //#include <stack>    // stack<> in reverse
 
+#include "Platform.h"
+
 namespace std {
 
     inline bool whitespace (const std::string &s)
@@ -353,7 +355,7 @@ namespace std {
         return join.str ();
     }
 
-    //inline int to_int (const std::string &s)
+    //inline i32 to_int (const std::string &s)
     //{
     //    //return std::stoi (s, NULL, 10);
     //    return atoi (s.c_str() );

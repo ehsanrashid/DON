@@ -4,7 +4,9 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
-
+#ifndef NDEBUG
+#include "xcstring.h"
+#endif
 #include "Transposition.h"
 #include "Evaluator.h"
 #include "Searcher.h"
@@ -43,15 +45,15 @@ namespace UCI {
             oss << "type button";
             return oss.str ();
         }
-        //Option& ButtonOption::operator= (char *value)
-        //{
-        //    value;
-        //    if (_on_change) _on_change (*this);
-        //    return *this;
-        //}
-        Option& ButtonOption::operator= (string &value)
+#ifndef NDEBUG
+        Option& ButtonOption::operator= (char *)
         {
-            (void) value;
+            if (_on_change) _on_change (*this);
+            return *this;
+        }
+#endif
+        Option& ButtonOption::operator= (string &)
+        {
             if (_on_change) _on_change (*this);
             return *this;
         }
@@ -69,24 +71,26 @@ namespace UCI {
             return oss.str ();
         }
         CheckOption::operator bool () const { return _value; }
-        //Option& CheckOption::operator= (char *value)
-        //{
-        //    if (empty (value)) return *this;
-        //    bool value = equals (value, "true");
-        //    if (_value != value)
-        //    {
-        //        _value = value;
-        //        if (_on_change) _on_change (*this);
-        //    }
-        //    return *this;
-        //}
+#ifndef NDEBUG
+        Option& CheckOption::operator= (char *value)
+        {
+            if (empty (value)) return *this;
+            bool val = equals (value, "true");
+            if (_value != val)
+            {
+                _value = val;
+                if (_on_change) _on_change (*this);
+            }
+            return *this;
+        }
+#endif
         Option& CheckOption::operator= (string &value)
         {
             if (value.empty ()) return *this;
-            bool bol = (value == "true");
-            if (_value != bol)
+            bool val = (value == "true");
+            if (_value != val)
             {
-                _value = bol;
+                _value = val;
                 if (_on_change) _on_change (*this);
             }
             return *this;
@@ -108,15 +112,17 @@ namespace UCI {
         {
             return _value; //(_value.empty () ? "<empty>" : _value);
         }
-        //Option& StringOption::operator= (char *value)
-        //{
-        //    if (_value != value)
-        //    {
-        //        _value = value;
-        //        if (_on_change) _on_change (*this);
-        //    }
-        //    return *this;
-        //}
+#ifndef NDEBUG
+        Option& StringOption::operator= (char *value)
+        {
+            if (_value != value)
+            {
+                _value = value;
+                if (_on_change) _on_change (*this);
+            }
+            return *this;
+        }
+#endif
         Option& StringOption::operator= (string &value)
         {
             if (_value != value)
@@ -144,20 +150,22 @@ namespace UCI {
             return oss.str ();
         }
         SpinOption::operator i32 () const { return _value; }
-        //Option& SpinOption::operator= (char *value)
-        //{
-        //    if (empty (value)) return *this;
-        //    i32 val = atoi (value);
-        //    //val = min (max (val, _minimum), _maximum);
-        //    if (val < _minimum) val = _minimum;
-        //    if (val > _maximum) val = _maximum;
-        //    if (_value != val)
-        //    {
-        //        _value = val;
-        //        if (_on_change) _on_change (*this);
-        //    }
-        //    return *this;
-        //}
+#ifndef NDEBUG
+        Option& SpinOption::operator= (char *value)
+        {
+            if (empty (value)) return *this;
+            i32 val = atoi (value);
+            //val = min (max (val, _minimum), _maximum);
+            if (val < _minimum) val = _minimum;
+            if (val > _maximum) val = _maximum;
+            if (_value != val)
+            {
+                _value = val;
+                if (_on_change) _on_change (*this);
+            }
+            return *this;
+        }
+#endif
         Option& SpinOption::operator= (string &value)
         {
             if (value.empty ()) return *this;
@@ -182,12 +190,14 @@ namespace UCI {
         //    oss << "type combo";
         //    return oss.str ();
         //}
+        //#ifndef NDEBUG
         ////Option& ComboOption::operator= (char *value)
         ////{
         ////    value;
         ////    if (_on_change) _on_change (*this);
         ////    return *this;
         ////}
+        //endif
         //Option& ComboOption::operator= (string &value)
         //{
         //    (void) value;
