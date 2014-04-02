@@ -292,57 +292,63 @@ namespace UCI {
             if (RootPos.checkers ())
             {
                 cout << "\nEvasion moves: ";
-                for (MoveList<EVASION> itr (RootPos); *itr; ++itr)
+                for (MoveList<EVASION> itr (RootPos); *itr != MOVE_NONE; ++itr)
                 {
-                    if (RootPos.legal (*itr))
+                    Move m = *itr;
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*itr, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
             }
             else
             {
                 cout << "\nQuiet moves: ";
-                for (MoveList<QUIET> itr (RootPos); *itr; ++itr)
+                for (MoveList<QUIET> itr (RootPos); *itr != MOVE_NONE; ++itr)
                 {
-                    if (RootPos.legal (*itr))
+                    Move m = *itr;
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*itr, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nCheck moves: ";
-                for (MoveList<CHECK> itr (RootPos); *itr; ++itr)
+                for (MoveList<CHECK> itr (RootPos); *itr != MOVE_NONE; ++itr)
                 {
-                    if (RootPos.legal (*itr))
+                    Move m = *itr;
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*itr, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nQuiet Check moves: ";
-                for (MoveList<QUIET_CHECK> itr (RootPos); *itr; ++itr)
+                for (MoveList<QUIET_CHECK> itr (RootPos); *itr != MOVE_NONE; ++itr)
                 {
-                    if (RootPos.legal (*itr))
+                    Move m = *itr;
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*itr, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nCapture moves: ";
-                for (MoveList<CAPTURE> itr (RootPos); *itr; ++itr)
+                for (MoveList<CAPTURE> itr (RootPos); *itr != MOVE_NONE; ++itr)
                 {
-                    if (RootPos.legal (*itr))
+                    Move m = *itr;
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*itr, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
             }
 
             cout << "\nLegal moves: ";
-            for (MoveList<LEGAL> itr (RootPos); *itr; ++itr)
+            for (MoveList<LEGAL> itr (RootPos); *itr != MOVE_NONE; ++itr)
             {
-                cout << move_to_san (*itr, RootPos) << " ";
+                Move m = *itr;
+                cout << move_to_san (m, RootPos) << " ";
             }
 
             cout << sync_endl;
@@ -374,6 +380,10 @@ namespace UCI {
             }
         }
 
+        inline void exe_bench (cmdstream &cstm)
+        {
+            benchmark (cstm, RootPos);
+        }
         // Stops the search
         inline void exe_stop ()
         {
@@ -426,7 +436,7 @@ namespace UCI {
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
             else if (token == "perft")      exe_perft (cstm);
-            else if (token == "bench")      benchmark (cstm, RootPos);
+            else if (token == "bench")      exe_bench (cstm);
             else if (token == "stop"
                 ||   token == "quit")       exe_stop ();
             else

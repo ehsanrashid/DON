@@ -299,7 +299,7 @@ namespace Searcher {
 
             StateInfo si;
             CheckInfo ci (pos);
-            for (MoveList<LEGAL> itr (pos); *itr; ++itr)
+            for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
             {
                 Move m = *itr;
                 pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);

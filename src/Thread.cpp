@@ -351,7 +351,7 @@ namespace Threads {
         
         RootMoves.clear ();
         bool all_rootmoves = limits.searchmoves.empty ();
-        for (MoveList<LEGAL> itr (pos); *itr; ++itr)
+        for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
         {
             Move m = *itr;
             if (   all_rootmoves

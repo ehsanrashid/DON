@@ -351,7 +351,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     if (pt) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    for (MoveList<LEGAL> itr (pos); *itr; ++itr)
+    for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
     {
         Move m = *itr;
         //if ((m ^ mtype (m)) == move)
