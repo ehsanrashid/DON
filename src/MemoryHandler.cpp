@@ -199,20 +199,18 @@ namespace MemoryHandler {
                 cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << endl;
                 return;
             }
-            else
+
+            mem_ref = VirtualAlloc
+                (NULL,                  // System selects address
+                mem_size,              // Size of allocation
+                MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                PAGE_READWRITE);       // Protection of Allocation
+
+            if (mem_ref != NULL)
             {
-                mem_ref = VirtualAlloc
-                    (NULL,                  // System selects address
-                     mem_size,              // Size of allocation
-                     MEM_COMMIT|MEM_RESERVE,// Type of Allocation
-                     PAGE_READWRITE);       // Protection of Allocation
-                
-                if (mem_ref != NULL)
-                {
-                    UsePages = true;
-                    cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << endl;
-                    return;
-                }
+                UsePages = true;
+                cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << endl;
+                return;
             }
 
 #   else    // Linux - Unix
@@ -221,33 +219,36 @@ namespace MemoryHandler {
             if (Num >= 0)
             {
                 mem_ref = shmat (Num, NULL, 0x0);
-                if (mem_ref == -1)
+                if (mem_ref != -1)
                 {
-                    //perror ("shmat: Shared memory attach failure");
-                    //shmctl (shmid1, IPC_RMID, NULL);
-                    Engine::exit (EXIT_FAILURE);
+                    UsePages = true;
+                    memset (mem_ref, 0, SHMSZ);
+                    cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << endl;
+                    return;
                 }
-                UsePages = true;
-                cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << endl;
-                return;
+                //perror ("shmat: Shared memory attach failure");
+                //shmctl (shmid1, IPC_RMID, NULL);
+                //Engine::exit (EXIT_FAILURE);
             }
             else
             {
                 //perror ("shmget: Shared memory get failure");
-                Engine::exit (EXIT_FAILURE);
+                //Engine::exit (EXIT_FAILURE);
             }
 #   endif
 
         }
 
         MEMALIGN (mem_ref, align, mem_size);
-        if (mem_ref == NULL)
+        if (mem_ref != NULL)
         {
-            cerr << "ERROR: Failed to allocate " << (mem_size >> 20) << " MB Hash..." << endl;
-            Engine::exit (EXIT_FAILURE);
+            memset (mem_ref, 0, mem_size);
+            cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
+            return;
         }
-        memset (mem_ref, 0, mem_size);
-        cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
+
+        cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB..." << endl;
+        Engine::exit (EXIT_FAILURE);
     }
 
     void free_memory    (void *mem)
@@ -259,11 +260,14 @@ namespace MemoryHandler {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
             
-            VirtualFree (mem, 0, MEM_RELEASE);
+            if (VirtualFree (mem, 0, MEM_RELEASE))
+            {
+                ;
+            }
 
 #   else   // Linux - Unix
-            
-            shmdt  (mem);
+
+            if(shmdt  (mem) != 0) { cerr << "Could not close memory segment." << endl; }
             shmctl (Num, IPC_RMID, NULL);
             
 #   endif
