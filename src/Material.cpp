@@ -138,7 +138,7 @@ namespace Material {
         // return the information we found the last time instead of recomputing it.
         if (e->_key == key) return e;
 
-        memset (e, 0, sizeof (Entry));
+        memset (e, 0, sizeof (*e));
         e->_key           = key;
         e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
         e->_game_phase    = game_phase (pos);

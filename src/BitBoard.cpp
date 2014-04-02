@@ -124,10 +124,11 @@ namespace BitBoard {
 
                 shift[s] =
 #       ifdef _64BIT
-                    64 - pop_count<MAX15> (mask);
+                    64
 #       else
-                    32 - pop_count<MAX15> (mask);
+                    32
 #       endif
+                    - pop_count<MAX15> (mask);
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
@@ -165,7 +166,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (attacks_bb[s], 0, size * sizeof (Bitboard));
+                    memset (attacks_bb[s], 0, size * sizeof (*attacks_bb[s]));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.

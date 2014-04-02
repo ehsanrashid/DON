@@ -43,7 +43,7 @@ namespace LeakDetector {
         void append_mem_info (void *mem_ref, size_t size, const char filename[], u32 line_no)
         {
             // append the above info to the list
-            LEAK_INFO *p_new = (LEAK_INFO *) malloc (sizeof (LEAK_INFO));
+            LEAK_INFO *p_new = (LEAK_INFO *) malloc (sizeof (*p_new));
             if (p_new)
             {
                 p_new->mem_info.address   = mem_ref;
@@ -67,16 +67,16 @@ namespace LeakDetector {
         void remove_mem_info (void *mem_ref)
         {
             LEAK_INFO *p_old = NULL;
-            LEAK_INFO *p_itr = pHead;
+            LEAK_INFO *p_cur = pHead;
             // check if allocate memory is in list
-            while (p_itr != NULL)
+            while (p_cur != NULL)
             {
-                if (p_itr->mem_info.address == mem_ref)
+                if (p_cur->mem_info.address == mem_ref)
                 {
                     if (p_old != NULL)
                     {
-                        p_old->next = p_itr->next;
-                        free (p_itr);
+                        p_old->next = p_cur->next;
+                        free (p_cur);
                     }
                     else
                     {
@@ -88,8 +88,8 @@ namespace LeakDetector {
                     return;
                 }
 
-                p_old = p_itr;
-                p_itr = p_itr->next;
+                p_old = p_cur;
+                p_cur = p_cur->next;
             }
         }
 

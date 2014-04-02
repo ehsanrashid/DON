@@ -86,7 +86,7 @@ template<class T>
 PolyglotBook& PolyglotBook::operator>> (T &t)
 {
     t = T ();
-    for (u08 i = 0; i < sizeof (T) && good (); ++i)
+    for (u08 i = 0; i < sizeof (t) && good (); ++i)
     {
         u08 byte = u08 (get ());
         t = T ((t << 8) + byte);
@@ -103,7 +103,7 @@ PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    const u08 SIZE = sizeof (T);
+    const u08 SIZE = sizeof (t);
     for (u08 i = 0; i < SIZE && good (); ++i)
     {
         u08 byte = u08 (t >> (8*(SIZE - 1 - i)));

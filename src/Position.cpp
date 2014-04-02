@@ -201,7 +201,7 @@ void Position::initialize ()
 // so that why detach the state info pointer from the source one.
 Position& Position::operator= (const Position &pos)
 {
-    memcpy (this, &pos, sizeof (Position));
+    memcpy (this, &pos, sizeof (*this));
 
     _sb = *_si;
     _si = &_sb;
@@ -1070,7 +1070,7 @@ bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0, sizeof (Position));
+    memset (this, 0, sizeof (*this));
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1581,7 +1581,7 @@ void Position::  do_null_move (StateInfo &si)
     ASSERT (!_si->checkers);
 
     // Full copy here
-    memcpy (&si, _si, sizeof (StateInfo));
+    memcpy (&si, _si, sizeof (si));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     si.p_si = _si;

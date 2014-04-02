@@ -1461,7 +1461,7 @@ namespace Searcher {
             Stack stack[MAX_PLY_6]
                 , *ss = stack+2; // To allow referencing (ss-2)
 
-            memset (ss-2, 0, 5 * sizeof (Stack));
+            memset (ss-2, 0, 5 * sizeof (*ss));
             (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
             TT.new_gen ();
@@ -2129,7 +2129,7 @@ namespace Threads {
 
                 Position pos (*(sp)->pos, this);
 
-                memcpy (ss-2, (sp)->ss-2, 5 * sizeof (Stack));
+                memcpy (ss-2, (sp)->ss-2, 5 * sizeof (*ss));
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint
