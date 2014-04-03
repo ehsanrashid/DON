@@ -400,6 +400,9 @@ inline Move& operator&= (Move &m, i32 i) { m = Move (i32 (m) & i); return m; }
 
 ARTHMAT_OPERATORS (Value)
 INC_DEC_OPERATORS (Value)
+inline Value  operator*  (Value  v, double d) { return Value (i32 (i32 (v) * d)); }
+inline Value& operator*= (Value &v, double d) { v = Value (i32 (i32 (v) * d)); return v; }
+
 // Additional operators to add integers to a Value
 inline Value  operator+  (i32 i, Value v) { return Value (i + i32 (v)); }
 inline Value  operator-  (i32 i, Value v) { return Value (i - i32 (v)); }

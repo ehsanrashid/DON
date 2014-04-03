@@ -1582,7 +1582,7 @@ namespace Searcher {
                             break;
                         }
 
-                        window += window / 2;
+                        window *= 1.5;
 
                         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                     }
