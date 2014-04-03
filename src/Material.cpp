@@ -109,14 +109,26 @@ namespace Material {
                 for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
                 {
                     v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
-                    +    count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
+                      +  count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
                 }
                 v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
-                +    count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+                  +  count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
 
                 value += pc * v;
             }
             value += count[C][KING] * LinearCoefficients[KING];
+
+            // Queen vs. 3 minors slightly favours the minors
+            if (count[C][QUEN] == 1 && count[C_][QUEN] == 0)
+            {
+                i32 n = count[C_][NIHT] - count[C][NIHT];
+                i32 b = count[C_][BSHP] - count[C][BSHP];
+                if (  (n == 2 && b == 1)
+                   || (n == 1 && b == 2))
+                {
+                    value -= 66 * 16;
+                }
+            }
 
             return Value (value);
         }
