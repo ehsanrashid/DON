@@ -90,7 +90,7 @@ namespace Material {
         // imbalance<> () calculates imbalance comparing
         // piece count of each piece type for both colors.
         // KING == BISHOP_PAIR
-        inline Value imbalance (const i32 count[CLR_NO][NONE])
+        inline Value imbalance (const i32 count[][NONE])
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 

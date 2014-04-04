@@ -285,7 +285,7 @@ namespace Evaluator {
         void init_eval_info (const Position &pos, EvalInfo &ei);
 
         template<Color C, bool TRACE>
-        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[CLR_NO]);
+        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[]);
 
         template<Color C, bool TRACE>
         Score evaluate_king (const Position &pos, const EvalInfo &ei);
@@ -509,7 +509,7 @@ namespace Evaluator {
 
         template<PieceT PT, Color C, bool TRACE>
         // evaluate_pieces<> () assigns bonuses and penalties to the pieces of a given color except PAWN
-        inline Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[CLR_NO], Bitboard mobility_area)
+        inline Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
         {
             Score score = SCORE_ZERO;
 
@@ -691,7 +691,7 @@ namespace Evaluator {
 
         template<Color C, bool TRACE>
         // evaluate_pieces<> () assigns bonuses and penalties to all the pieces of a given color.
-        inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[CLR_NO])
+        inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
