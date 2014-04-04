@@ -1520,8 +1520,8 @@ namespace Searcher {
                     {
                         window = 
                             //Value (16);
-                            Value (depth < 48 ? 12 + depth / 8 : 18);
-                            //Value (depth < 48 ? 18 - depth / 8 : 12);
+                            //Value (depth < 48 ? 12 + depth / 8 : 18);
+                            Value (depth < 36 ? 12 + depth / 6 : 18);
 
                         alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);

@@ -175,11 +175,12 @@ namespace Searcher {
             ,   tt_move
             ,   excluded_move;
 
+        Depth   reduction;
+
         Move    killer_moves[2];
         
         u08     ply;
 
-        Depth   reduction;
         Value   static_eval;
         bool    skip_null_move;
 
