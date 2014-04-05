@@ -405,8 +405,8 @@ inline Value  operator+  (i32 i, Value v) { return Value (i + i32 (v)); }
 inline Value  operator-  (i32 i, Value v) { return Value (i - i32 (v)); }
 inline Value  operator/  (Value  v, i32 i) { return Value (i32 (v) / i); }
 inline Value& operator/= (Value &v, i32 i) { v = Value (i32 (v) / i); return v; }
-inline Value  operator*  (Value  v, double d) { return Value (i32 (i32 (v) * d)); }
-inline Value& operator*= (Value &v, double d) { v = Value (i32 (i32 (v) * d)); return v; }
+inline Value  operator*  (Value  v, double f) { return Value (i32 (i32 (v) * f)); }
+inline Value& operator*= (Value &v, double f) { v = Value (i32 (i32 (v) * f)); return v; }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. We don't want to multiply two scores due to
@@ -419,7 +419,9 @@ inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
-inline Depth  operator/ (Depth  d, i32 i) { return Depth (u08 (d) / i); }
+inline Depth  operator/  (Depth  d, i32 i) { return Depth (u08 (d) / i); }
+inline Depth  operator*  (Depth  d, double f) { return Depth (i32 (i32 (d) * f)); }
+inline Depth& operator*= (Depth &d, double f) { d = Depth (i32 (i32 (d) * f)); return d; }
 
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
