@@ -386,8 +386,8 @@ namespace Evaluator {
 
             // Scale winning side if position is more drawish than it appears
             ScaleFactor scale_factor = (eg_value (score) > VALUE_DRAW)
-                ? ei.mi->scale_factor (pos, WHITE)
-                : ei.mi->scale_factor (pos, BLACK);
+                ? ei.mi->scale_factor<WHITE> (pos)
+                : ei.mi->scale_factor<BLACK> (pos);
 
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
@@ -456,7 +456,7 @@ namespace Evaluator {
 
             Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
 
-            ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks (C);
+            ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
             // Init king safety tables only if we are going to use them
             if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
@@ -579,7 +579,7 @@ namespace Evaluator {
                         //    score += PinBonus;
                         //}
 
-                        score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares (C, s);
+                        score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friendly
                         // pawn diagonally in front of it is a very serious problem, especially
@@ -656,16 +656,16 @@ namespace Evaluator {
                         //}
 
                         // Give a bonus for a rook on a open or semi-open file
-                        if (ei.pi->semiopen (C, _file (s)))
+                        if (ei.pi->semiopen<C> (_file (s)))
                         {
-                            score += ei.pi->semiopen (C_, _file (s))
+                            score += ei.pi->semiopen<C_> (_file (s))
                                    ? RookOpenFileBonus
                                    : RookSemiopenFileBonus;
 
                             //// Give more bonus if the rook is doubled
                             //if (FrontSqs_bb[C_][s] & pos.pieces<ROOK> (C))
                             //{
-                            //    score += ei.pi->semiopen (C_, _file (s))
+                            //    score += ei.pi->semiopen<C_> (_file (s))
                             //           ? RookDoubledOpenBonus
                             //           : RookDoubledSemiopenBonus;
                             //}
@@ -678,7 +678,7 @@ namespace Evaluator {
                                 // king has lost its castling capability.
                                 if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
                                     && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                    && !ei.pi->semiopen_on_side (C, _file (fk_sq), _file (fk_sq) < F_E))
+                                    && !ei.pi->semiopen_on_side<C> (_file (fk_sq), _file (fk_sq) < F_E))
                                 {
                                     score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                                 }
@@ -904,7 +904,7 @@ namespace Evaluator {
 
             Score score = SCORE_ZERO;
 
-            Bitboard passed_pawns = ei.pi->passed_pawns (C);
+            Bitboard passed_pawns = ei.pi->passed_pawns<C> ();
             while (passed_pawns)
             {
                 Square s = pop_lsq (passed_pawns);
@@ -1039,7 +1039,7 @@ namespace Evaluator {
         template<Color C>
         inline Score evaluate_unstoppable_pawns (const Position &pos, const EvalInfo &ei)
         {
-            Bitboard unstoppable_pawns = ei.pi->passed_pawns (C) | ei.pi->candidate_pawns (C);
+            Bitboard unstoppable_pawns = ei.pi->passed_pawns<C> () | ei.pi->candidate_pawns<C> ();
             return (unstoppable_pawns == U64 (0) || pos.non_pawn_material (~C) != VALUE_ZERO)
                 ? SCORE_ZERO
                 : PawnUnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns)));

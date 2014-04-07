@@ -33,21 +33,33 @@ namespace Pawns {
         u08   _semiopen_files [CLR_NO];
         Score _king_safety    [CLR_NO];
 
-        inline Score    pawn_score()             const { return _pawn_score; }
-        inline Bitboard pawn_attacks   (Color c) const { return _pawn_attacks[c]; }
-        inline Bitboard passed_pawns   (Color c) const { return _passed_pawns[c]; }
-        inline Bitboard candidate_pawns(Color c) const { return _candidate_pawns[c]; }
-        inline i32  pawns_on_same_color_squares (Color c, Square s) const
+        inline Score    pawn_score()      const { return _pawn_score; }
+
+        template<Color C>
+        inline Bitboard pawn_attacks   () const { return _pawn_attacks[C]; }
+
+        template<Color C>
+        inline Bitboard passed_pawns   () const { return _passed_pawns[C]; }
+        
+        template<Color C>
+        inline Bitboard candidate_pawns () const { return _candidate_pawns[C]; }
+
+        template<Color C>
+        inline i32  pawns_on_same_color_squares (Square s) const
         {
-            return _pawn_count_sq[c][bool (BitBoard::DARK_bb & BitBoard::Square_bb[s])];
+            return _pawn_count_sq[C][bool (BitBoard::DARK_bb & BitBoard::Square_bb[s])];
         }
-        inline u08  semiopen        (Color c, File f) const
+
+        template<Color C>
+        inline u08  semiopen        (File f) const
         {
-            return _semiopen_files[c] & (1 << f);
+            return _semiopen_files[C] & (1 << f);
         }
-        inline u08  semiopen_on_side(Color c, File f, bool left) const
+
+        template<Color C>
+        inline u08  semiopen_on_side(File f, bool left) const
         {
-            return _semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return _semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
         template<Color C>
