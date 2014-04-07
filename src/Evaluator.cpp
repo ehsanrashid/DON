@@ -222,9 +222,9 @@ namespace Evaluator {
         const Score PinBonus                = S (+18, + 6);
 
         const Score RookOn7thBonus          = S (+11, +20);
-        //const Score QueenOn7thBonus         = S (+ 3, + 8);
-
         const Score RookOnPawnBonus         = S (+10, +28);
+
+        //const Score QueenOn7thBonus         = S (+ 3, + 8);
         //const Score QueenOnPawnBonus        = S (+ 4, +20);
 
         const Score RookOpenFileBonus       = S (+43, +21);
@@ -346,13 +346,12 @@ namespace Evaluator {
             // Initialize attack and king safety bitboards
             init_eval_info<WHITE> (pos, ei);
             init_eval_info<BLACK> (pos, ei);
-
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-
             // Evaluate pieces and mobility
             score += evaluate_pieces<WHITE, TRACE> (pos, ei, mobility)
                   -  evaluate_pieces<BLACK, TRACE> (pos, ei, mobility);
-
+            // initialize evaluation info ends here
+            
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
@@ -513,7 +512,7 @@ namespace Evaluator {
         }
 
         template<PieceT PT, Color C, bool TRACE>
-        // evaluate_pieces<> () assigns bonuses and penalties to the pieces of a given color except PAWN
+        // evaluate_ptype<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
         {
             Score score = SCORE_ZERO;
@@ -698,7 +697,7 @@ namespace Evaluator {
         }
 
         template<Color C, bool TRACE>
-        // evaluate_pieces<> () assigns bonuses and penalties to all the pieces of a given color.
+        // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -732,7 +731,7 @@ namespace Evaluator {
 
         //  --- use evaluation info --->
         template<Color C, bool TRACE>
-        // evaluate_king<> () assigns bonuses and penalties to a king of a given color
+        // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -864,7 +863,7 @@ namespace Evaluator {
         }
 
         template<Color C, bool TRACE>
-        // evaluate_threats<> () assigns bonuses according to the type of attacking piece
+        // evaluate_threats<>() assigns bonuses according to the type of attacking piece
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
@@ -1079,7 +1078,7 @@ namespace Evaluator {
         }
         //  --- use evaluation info <---
 
-        // interpolate () interpolates between a middle game and an endgame score,
+        // interpolate() interpolates between a middle game and an endgame score,
         // based on game phase. It also scales the return value by a ScaleFactor array.
         inline Value interpolate (const Score &score, Phase phase, ScaleFactor scale_factor)
         {
@@ -1091,7 +1090,7 @@ namespace Evaluator {
             return Value ((mg_value (score) * i32 (phase) + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
         }
 
-        // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
+        // apply_weight() weights 'score' by factor 'w' trying to prevent overflow
         inline Score apply_weight (const Score &score, const Weight &weight)
         {
             return mk_score (
@@ -1099,7 +1098,7 @@ namespace Evaluator {
                 eg_value (score) * weight.eg / 0x100);
         }
 
-        // option_weight () computes the value of an evaluation weight, by combining
+        // option_weight() computes the value of an evaluation weight, by combining
         // two UCI-configurable weights (midgame and endgame) with an internal weight.
         inline Weight option_weight (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
         {
