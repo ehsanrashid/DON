@@ -381,11 +381,12 @@ namespace Evaluator {
                       -  evaluate_unstoppable_pawns<BLACK> (pos, ei);
             }
 
+            Score space_weight = ei.mi->space_weight ();
             // Evaluate space for both sides, only in middle-game.
-            if (ei.mi->space_weight ())
+            if (space_weight != 0)
             {
                 i32 scr = evaluate_space<WHITE> (pos, ei) - evaluate_space<BLACK> (pos, ei);
-                score += apply_weight (scr * ei.mi->space_weight (), Weights[Space]);
+                score += apply_weight (scr * space_weight, Weights[Space]);
             }
 
             // Scale winning side if position is more drawish than it appears
