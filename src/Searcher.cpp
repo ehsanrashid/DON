@@ -330,7 +330,8 @@ namespace Searcher {
             if (pos.draw () || ((ss)->ply > MAX_PLY))
             {
                 return ((ss)->ply > MAX_PLY && !IN_CHECK)
-                    ? evaluate (pos) : DrawValue[pos.active ()];
+                    ? evaluate (pos)
+                    : DrawValue[pos.active ()];
             }
 
             StateInfo si;
@@ -660,7 +661,8 @@ namespace Searcher {
                 if (Signals.stop || pos.draw () || ((ss)->ply > MAX_PLY))
                 {
                     return ((ss)->ply > MAX_PLY && !in_check)
-                        ? evaluate (pos) : DrawValue[pos.active ()];
+                        ? evaluate (pos)
+                        : DrawValue[pos.active ()];
                 }
 
                 // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -683,7 +685,9 @@ namespace Searcher {
             // TT value, so we use a different position key in case of an excluded move.
             excluded_move = (ss)->excluded_move;
 
-            posi_key = excluded_move ? pos.posi_key_exclusion () : pos.posi_key ();
+            posi_key = (excluded_move != MOVE_NONE)
+                     ? pos.posi_key_exclusion ()
+                     : pos.posi_key ();
 
             tte      = TT.retrieve (posi_key);
             tt_move  = (ss)->tt_move = RootNode    ? RootMoves[IndexPV].pv[0]
@@ -866,7 +870,7 @@ namespace Searcher {
                     // Null move dynamic (variable) reduction based on depth and value
                     Depth R = 3 * ONE_MOVE
                             + depth / 4
-                            + (i32 (eval - beta) / VALUE_MG_PAWN) * ONE_MOVE;
+                            + (i32 (eval - beta) / VALUE_EG_PAWN) * ONE_MOVE;
 
                     // Do null move
                     pos.do_null_move (si);
@@ -899,7 +903,6 @@ namespace Searcher {
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
                             : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // TODO::
                         (ss)->skip_null_move = false;
-
                         if (veri_value >= beta)
                         {
                             return null_value;
@@ -938,13 +941,9 @@ namespace Searcher {
                         if (!pos.legal (move, ci.pinneds)) continue;
 
                         (ss)->current_move = move;
-
                         pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
-
                         Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
-
                         pos.undo_move ();
-
                         if (value >= rbeta)
                         {
                             return value;
@@ -1415,7 +1414,7 @@ namespace Searcher {
                 // A split node has at least one move, the one tried before to be split.
                 if (0 == moves_count)
                 {
-                    return excluded_move ? alpha
+                    return (excluded_move != MOVE_NONE) ? alpha
                         : in_check ? mated_in ((ss)->ply)
                         : DrawValue[pos.active ()];
                 }
@@ -1909,6 +1908,7 @@ namespace Searcher {
 
             point elapsed = now () - SearchTime;
             if (elapsed == 0) elapsed = 1;
+
             log << "Time:        " << elapsed                                   << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                 << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed   << "\n"
@@ -2062,8 +2062,8 @@ namespace Threads {
             || (still_at_1stmove);
 
         if (   (Limits.use_timemanager () && no_more_time)
-            || (Limits.movetime && (elapsed >= Limits.movetime))
-            || (Limits.nodes    && (nodes   >= Limits.nodes))
+            || (Limits.movetime != 0 && (elapsed >= Limits.movetime))
+            || (Limits.nodes    != 0 && (nodes   >= Limits.nodes))
            )
         {
             Signals.stop = true;

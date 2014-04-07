@@ -119,6 +119,7 @@ namespace Evaluator {
         // Cowardice  -> KingDangerUs
         // Aggressive -> KingDangerThem
         enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
+        
         struct Weight { i32 mg, eg; };
 
         Weight Weights[6];
@@ -301,13 +302,14 @@ namespace Evaluator {
         template<Color C>
         i32 evaluate_space  (const Position &pos, const EvalInfo &ei);
 
-        Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei);
+        template<Color C>
+        Score evaluate_unstoppable_pawns (const Position &pos, const EvalInfo &ei);
 
         Value interpolate   (const Score &score, Phase phase, ScaleFactor scale_factor);
 
         Score apply_weight  (const Score &score, const Weight &weight);
         
-        Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
+        Weight option_weight (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
 
         // --------------
 
@@ -372,8 +374,8 @@ namespace Evaluator {
                 || (pos.non_pawn_material (BLACK) == VALUE_ZERO)
                )
             {
-                score += evaluate_unstoppable_pawns (pos, WHITE, ei)
-                      -  evaluate_unstoppable_pawns (pos, BLACK, ei);
+                score += evaluate_unstoppable_pawns<WHITE> (pos, ei)
+                      -  evaluate_unstoppable_pawns<BLACK> (pos, ei);
             }
 
             // Evaluate space for both sides, only in middle-game.
@@ -442,6 +444,7 @@ namespace Evaluator {
             return (WHITE == pos.active ()) ? value : -value;
         }
 
+        //  --- init evaluation info --->
         template<Color C>
         // init_eval_info() initializes king bitboards for given color adding
         // pawn attacks. To be done at the beginning of the evaluation.
@@ -622,7 +625,6 @@ namespace Evaluator {
 
                 if (ROOK == PT /*|| QUEN == PT*/)
                 {
-
                     Rank r = rel_rank (C, s);
                     if (R_5 <= r)
                     {
@@ -726,7 +728,9 @@ namespace Evaluator {
 
             return score;
         }
+        //  --- init evaluation info <---
 
+        //  --- use evaluation info --->
         template<Color C, bool TRACE>
         // evaluate_king<> () assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
@@ -1033,12 +1037,13 @@ namespace Evaluator {
         // evaluate_unstoppable_pawns() scores the most advanced among the passed and
         // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
         // related to the possibility pawns are unstoppable.
-        inline Score evaluate_unstoppable_pawns (const Position &pos, Color c, const EvalInfo &ei)
+        template<Color C>
+        inline Score evaluate_unstoppable_pawns (const Position &pos, const EvalInfo &ei)
         {
-            Bitboard unstoppable_pawns = ei.pi->passed_pawns (c) | ei.pi->candidate_pawns (c);
-            return (unstoppable_pawns == U64 (0) || pos.non_pawn_material (~c) != VALUE_ZERO)
+            Bitboard unstoppable_pawns = ei.pi->passed_pawns (C) | ei.pi->candidate_pawns (C);
+            return (unstoppable_pawns == U64 (0) || pos.non_pawn_material (~C) != VALUE_ZERO)
                 ? SCORE_ZERO
-                : PawnUnstoppableBonus * i32 (rel_rank (c, scan_frntmost_sq (c, unstoppable_pawns)));
+                : PawnUnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns)));
         }
 
         template<Color C>
@@ -1072,6 +1077,7 @@ namespace Evaluator {
             // Count safe + (behind & safe) with a single pop_count
             return pop_count<FULL> (((WHITE == C) ? safe << 32 : safe >> 32) | (behind & safe));
         }
+        //  --- use evaluation info <---
 
         // interpolate () interpolates between a middle game and an endgame score,
         // based on game phase. It also scales the return value by a ScaleFactor array.
@@ -1093,18 +1099,16 @@ namespace Evaluator {
                 eg_value (score) * weight.eg / 0x100);
         }
 
-        // weight_option () computes the value of an evaluation weight, by combining
+        // option_weight () computes the value of an evaluation weight, by combining
         // two UCI-configurable weights (midgame and endgame) with an internal weight.
-        inline Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
+        inline Weight option_weight (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
         {
-            // Scale option value from 100 to 256 - [25, 64]
-            Weight w =
+            Weight weight =
             {
-                i32 (*(Options[mg_opt])) * mg_value (internal_weight) / 100,
-                i32 (*(Options[eg_opt])) * eg_value (internal_weight) / 100
+                i32 (*(Options[mg_opt])) * mg_value (internal_weight) / 100, // =mg
+                i32 (*(Options[eg_opt])) * eg_value (internal_weight) / 100  // =eg
             };
-            return w;
-
+            return weight;
         }
 
         namespace Tracing {
@@ -1168,12 +1172,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]      = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility     ]);
-        Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-        Weights[PassedPawns]   = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns  ]);
-        Weights[Space]         = weight_option ("Space"                    , "Space"                   , WeightsInternal[Space        ]);
-        Weights[Cowardice]     = weight_option ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice    ]);
-        Weights[Aggressive]    = weight_option ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive   ]);
+        Weights[Mobility]      = option_weight ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility     ]);
+        Weights[PawnStructure] = option_weight ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
+        Weights[PassedPawns]   = option_weight ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns  ]);
+        Weights[Space]         = option_weight ("Space"                    , "Space"                   , WeightsInternal[Space        ]);
+        Weights[Cowardice]     = option_weight ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice    ]);
+        Weights[Aggressive]    = option_weight ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive   ]);
 
         const i32 MaxSlope  = 30;
         const i32 PeakScore = 1280; // 0x500
