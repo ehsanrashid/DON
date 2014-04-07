@@ -401,16 +401,18 @@ namespace Evaluator {
                 && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
                )
             {
-                // Ignoring any pawns, do both sides only have a single bishop and no
-                // other pieces?
+                // Ignoring any pawns, do both sides only have a single bishop
+                // and no other pieces?
                 if (   (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
                     && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                    )
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    bool one_pawn = (pos.count<PAWN> () == 1);
-                    scale_factor  = one_pawn ? ScaleFactor (8) : ScaleFactor (32);
+                    //bool one_pawn = (pos.count<PAWN> () == 1);
+                    scale_factor  = (pos.count<PAWN> () == 1)
+                        ? ScaleFactor (8)
+                        : ScaleFactor (32);
                 }
                 else
                 {
@@ -425,9 +427,9 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
-                Tracing::add_term (Tracing::PST, pos.psq_score ());
+                Tracing::add_term (Tracing::PST      , pos.psq_score ());
                 Tracing::add_term (Tracing::IMBALANCE, ei.mi->material_score ());
-                Tracing::add_term (PAWN, ei.pi->pawn_score ());
+                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
 
                 Score scr[CLR_NO] =
                 {
@@ -439,7 +441,7 @@ namespace Evaluator {
                     , apply_weight (scr[WHITE], Weights[Space])
                     , apply_weight (scr[BLACK], Weights[Space]));
 
-                Tracing::add_term (Tracing::TOTAL, score);
+                Tracing::add_term (Tracing::TOTAL    , score);
 
                 Tracing::Evalinfo    = ei;
                 Tracing::Scalefactor = scale_factor;
@@ -817,8 +819,8 @@ namespace Evaluator {
                 // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
                 
-                Bitboard   rook_check = attacks_bb<ROOK>(king_sq, pos.pieces()) & safe_sq;
-                Bitboard bishop_check = attacks_bb<BSHP>(king_sq, pos.pieces()) & safe_sq;
+                Bitboard   rook_check = attacks_bb<ROOK> (king_sq, pos.pieces ()) & safe_sq;
+                Bitboard bishop_check = attacks_bb<BSHP> (king_sq, pos.pieces ()) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
