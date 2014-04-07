@@ -135,8 +135,12 @@ namespace Evaluator {
         // Values modified by Joona Kiiski
         const Score InternalWeights[] =
         {
-            //Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive
-            S (+289, +344), S (+233, +201), S (+221, +273), S (+ 46, +  0), S (+271, +  0), S (+307, +  0)
+            S (+289, +344), // Mobility
+            S (+233, +201), // PawnStructure
+            S (+221, +273), // PassedPawns
+            S (+ 46, +  0), // Space
+            S (+271, +  0), // Cowardice
+            S (+307, +  0)  // Aggressive
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -172,10 +176,10 @@ namespace Evaluator {
             },
         };
 
-        // OutpostBonus[PieceT][Square] contains bonuses of knights and bishops, indexed
-        // by piece type and square (from white's point of view).
+        // OutpostBonus[PieceT][Square] contains bonuses of knights and bishops,
+        // indexed by piece type and square (from white's point of view).
         const Value OutpostBonus[2][SQ_NO] =
-        { // A     B     C     D     E     F     G     H
+        {       // A       B       C       D       E       F       G       H
 
             // KNIGHTS
             {
@@ -201,16 +205,16 @@ namespace Evaluator {
             }
         };
 
-        // ThreatBonus[attacking][attacked] contains bonuses according to which piece
-        // type attacks which one.
+        // ThreatBonus[attacking][attacked] contains bonuses according to
+        // which piece type attacks which one.
         const Score ThreatBonus[2][NONE] =
         {
             { S (+ 7, +39), S (+24, +49), S (+24, +49), S (+41,+100), S (+41,+100), S (+ 0, + 0), }, // Minor
             { S (+15, +39), S (+15, +45), S (+15, +45), S (+15, +45), S (+24, +49), S (+ 0, + 0), }, // Major
         };
 
-        // PawnThreatenPenalty[PieceT] contains a penalty according to which piece
-        // type is attacked by an enemy pawn.
+        // PawnThreatenPenalty[PieceT] contains a penalty according to
+        // which piece type is attacked by an enemy pawn.
         const Score PawnThreatenPenalty[NONE] =
         {
             S (+ 0, + 0), S (+56, +70), S (+56, +70), S (+76, +99), S (+86,+118), S (+ 0, + 0)
@@ -274,8 +278,8 @@ namespace Evaluator {
         const i32 RookContactCheck  = +16;
         const i32 QueenContactCheck = +24;
 
-        const i32            PinnedPiece = + 2;
-        //const i32 UnsupportedPinnedPiece = + 1;
+        const i32 PiecePinned            = + 2;
+        //const i32 PiecePinnedUnsupported = + 1;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -309,7 +313,7 @@ namespace Evaluator {
 
         Score apply_weight  (const Score &score, const Weight &weight);
         
-        Weight option_weight (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
+        Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
 
         // --------------
 
@@ -833,15 +837,16 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
 
+                Bitboard pinned_pieces = ei.pinned_pieces[C];
                 // Penalty for pinned pieces 
-                if (ei.pinned_pieces[C])
+                if (pinned_pieces != U64 (0))
                 {
-                    attack_units += PinnedPiece;
+                    attack_units += PiecePinned * pop_count<MAX15> (pinned_pieces);
 
                     //// Penalty for pinned pieces which not defended by a pawn
-                    //if (ei.pinned_pieces[C] & ~ei.attacked_by[C][PAWN])
+                    //if (pinned_pieces & ~ei.attacked_by[C][PAWN])
                     //{
-                    //    attack_units += UnsupportedPinnedPiece;
+                    //    attack_units += PiecePinnedUnsupported;
                     //}
                 }
 
@@ -1059,22 +1064,23 @@ namespace Evaluator {
             // Find the safe squares for our pieces inside the area defined by
             // SpaceMask[]. A square is unsafe if it is attacked by an enemy
             // pawn, or if it is undefended and attacked by an enemy piece.
-            Bitboard safe = SpaceMask[C]
-                          & ~pos.pieces<PAWN> (C)
-                          & ~ei.attacked_by[C_][PAWN]
-                          & (ei.attacked_by[C ][NONE]
-                          | ~ei.attacked_by[C_][NONE]);
+            Bitboard safe_space =
+                  SpaceMask[C]
+                & ~pos.pieces<PAWN> (C)
+                & ~ei.attacked_by[C_][PAWN]
+                & (ei.attacked_by[C ][NONE]
+                | ~ei.attacked_by[C_][NONE]);
+
+            // Since SpaceMask[C] is fully on our half of the board
+            ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
             behind |= ((WHITE == C) ? behind >> 0x08 : behind << 0x08);
             behind |= ((WHITE == C) ? behind >> 0x10 : behind << 0x10);
 
-            // Since SpaceMask[C] is fully on our half of the board
-            ASSERT (u32 (safe >> ((WHITE == C) ? 32 : 0)) == 0);
-
-            // Count safe + (behind & safe) with a single pop_count
-            return pop_count<FULL> (((WHITE == C) ? safe << 32 : safe >> 32) | (behind & safe));
+            // Count safe_space + (behind & safe_space) with a single pop_count
+            return pop_count<FULL> (((WHITE == C) ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
         }
         //  --- use evaluation info <---
 
@@ -1098,9 +1104,9 @@ namespace Evaluator {
                 eg_value (score) * weight.eg / 0x100);
         }
 
-        // option_weight() computes the value of an evaluation weight, by combining
+        // weight_option() computes the value of an evaluation weight, by combining
         // two UCI-configurable weights (midgame and endgame) with an internal weight.
-        inline Weight option_weight (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
+        inline Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
         {
             Weight weight =
             {
@@ -1171,12 +1177,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]      = option_weight ("Mobility (Midgame)"       , "Mobility (Endgame)"      , InternalWeights[Mobility     ]);
-        Weights[PawnStructure] = option_weight ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
-        Weights[PassedPawns]   = option_weight ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
-        Weights[Space]         = option_weight ("Space"                    , "Space"                   , InternalWeights[Space        ]);
-        Weights[Cowardice]     = option_weight ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
-        Weights[Aggressive]    = option_weight ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
+        Weights[Mobility]      = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , InternalWeights[Mobility     ]);
+        Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
+        Weights[PassedPawns]   = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
+        Weights[Space]         = weight_option ("Space"                    , "Space"                   , InternalWeights[Space        ]);
+        Weights[Cowardice]     = weight_option ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
+        Weights[Aggressive]    = weight_option ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280; // 0x500
