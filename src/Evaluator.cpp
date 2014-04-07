@@ -766,7 +766,6 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
                     + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
-                    + 2 * (ei.pinned_pieces[C] != 0)
                     - mg_value (score) / 32;
 
                 // Analyse enemy's safe queen contact checks. First find undefended
