@@ -18,7 +18,7 @@ namespace Material {
         const Value EndgameLimit = Value ( 3998);
 
         // Polynomial material balance parameters
-        //                                            P      N      B      R      Q     BP
+        //                                       P      N      B      R      Q     BP
         const i32 LinearCoefficients[NONE] = { -162, -1122,  -183,   249,   -52,  1852, };
 
         const i32 QuadraticCoefficientsSameColor[NONE][NONE] =
@@ -124,7 +124,8 @@ namespace Material {
                 i32 n = count[C_][NIHT] - count[C][NIHT];
                 i32 b = count[C_][BSHP] - count[C][BSHP];
                 if (  (n == 2 && b == 1)
-                   || (n == 1 && b == 2))
+                   || (n == 1 && b == 2)
+                   || (n >= 3))
                 {
                     value -= 66 * 16;
                 }

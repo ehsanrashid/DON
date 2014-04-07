@@ -133,7 +133,7 @@ namespace Evaluator {
         // parameters at 100, which looks prettier.
         //
         // Values modified by Joona Kiiski
-        const Score WeightsInternal[] =
+        const Score InternalWeights[] =
         {
             //Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive
             S (+289, +344), S (+233, +201), S (+221, +273), S (+ 46, +  0), S (+271, +  0), S (+307, +  0)
@@ -1171,14 +1171,14 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]      = option_weight ("Mobility (Midgame)"       , "Mobility (Endgame)"      , WeightsInternal[Mobility     ]);
-        Weights[PawnStructure] = option_weight ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
-        Weights[PassedPawns]   = option_weight ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , WeightsInternal[PassedPawns  ]);
-        Weights[Space]         = option_weight ("Space"                    , "Space"                   , WeightsInternal[Space        ]);
-        Weights[Cowardice]     = option_weight ("Cowardice"                , "Cowardice"               , WeightsInternal[Cowardice    ]);
-        Weights[Aggressive]    = option_weight ("Aggressive"               , "Aggressive"              , WeightsInternal[Aggressive   ]);
+        Weights[Mobility]      = option_weight ("Mobility (Midgame)"       , "Mobility (Endgame)"      , InternalWeights[Mobility     ]);
+        Weights[PawnStructure] = option_weight ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
+        Weights[PassedPawns]   = option_weight ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
+        Weights[Space]         = option_weight ("Space"                    , "Space"                   , InternalWeights[Space        ]);
+        Weights[Cowardice]     = option_weight ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
+        Weights[Aggressive]    = option_weight ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
 
-        const i32 MaxSlope  = 30;
+        const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280; // 0x500
 
         i32 mg = 0;
