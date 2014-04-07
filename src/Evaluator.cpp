@@ -75,7 +75,7 @@ namespace Evaluator {
             EvalInfo    Evalinfo;
             ScaleFactor Scalefactor;
 
-            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
+            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_EG_PAWN); }
 
             inline void add_term (u08 term, Score w_score, Score b_score = SCORE_ZERO)
             {
@@ -119,8 +119,9 @@ namespace Evaluator {
         // Cowardice  -> KingDangerUs
         // Aggressive -> KingDangerThem
         enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
+        struct Weight { i32 mg, eg; };
 
-        Score Weights[6];
+        Weight Weights[6];
 
 #define V         Value
 #define S(mg, eg) mk_score (mg, eg)
@@ -220,10 +221,10 @@ namespace Evaluator {
         const Score PinBonus                = S (+18, + 6);
 
         const Score RookOn7thBonus          = S (+11, +20);
-        const Score QueenOn7thBonus         = S (+ 3, + 8);
+        //const Score QueenOn7thBonus         = S (+ 3, + 8);
 
         const Score RookOnPawnBonus         = S (+10, +28);
-        const Score QueenOnPawnBonus        = S (+ 4, +20);
+        //const Score QueenOnPawnBonus        = S (+ 4, +20);
 
         const Score RookOpenFileBonus       = S (+43, +21);
         const Score RookSemiopenFileBonus   = S (+19, +10);
@@ -304,9 +305,9 @@ namespace Evaluator {
 
         Value interpolate   (const Score &score, Phase phase, ScaleFactor scale_factor);
 
-        Score apply_weight  (Score score, Score weight);
+        Score apply_weight  (const Score &score, const Weight &weight);
         
-        Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
+        Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight);
 
         // --------------
 
@@ -619,28 +620,32 @@ namespace Evaluator {
                     }
                 }
 
-                if (ROOK == PT || QUEN == PT)
+                if (ROOK == PT /*|| QUEN == PT*/)
                 {
-                    if (R_5 <= rel_rank (C, s))
+
+                    Rank r = rel_rank (C, s);
+                    if (R_5 <= r)
                     {
-                        // Major piece on 7th rank and enemy king trapped on 8th
-                        if (   (R_7 == rel_rank (C, s))
+                        // Rook piece on 7th rank and enemy king trapped on 8th
+                        if (   (R_7 == r)
                             && (R_8 == rel_rank (C, ek_sq)))
                         {
-                            score += (ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
+                            score += RookOn7thBonus;
+                                //(ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
                         }
 
-                        // Major piece attacking enemy pawns on the same rank/file
+                        // Rook piece attacking enemy pawns on the same rank/file
                         Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                         if (pawns)
                         {
-                            score += ((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * i32 (pop_count<MAX15> (pawns));
+                            score += RookOnPawnBonus * i32 (pop_count<MAX15> (pawns));
+                                //((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * i32 (pop_count<MAX15> (pawns));
                         }
                     }
 
                     // Special extra evaluation for rooks
-                    if (ROOK == PT)
-                    {
+                    //if (ROOK == PT)
+                    //{
                         //// Give a bonus if we are a rook and can pin a piece or
                         //// can give a discovered check through an x-ray attack.
                         //if (   (PieceAttacks[ROOK][ek_sq] & s)
@@ -678,7 +683,7 @@ namespace Evaluator {
                                 }
                             }
                         }
-                    }
+                    //}
                 }
             }
 
@@ -1081,21 +1086,25 @@ namespace Evaluator {
         }
 
         // apply_weight () weights 'score' by factor 'w' trying to prevent overflow
-        inline Score apply_weight (Score score, Score weight)
+        inline Score apply_weight (const Score &score, const Weight &weight)
         {
             return mk_score (
-                (i32 (mg_value (score)) * i32 (mg_value (weight))) / 0x100,
-                (i32 (eg_value (score)) * i32 (eg_value (weight))) / 0x100);
+                mg_value (score) * weight.mg / 0x100,
+                eg_value (score) * weight.eg / 0x100);
         }
 
         // weight_option () computes the value of an evaluation weight, by combining
         // two UCI-configurable weights (midgame and endgame) with an internal weight.
-        inline Score weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
+        inline Weight weight_option (const string &mg_opt, const string &eg_opt, const Score &internal_weight)
         {
             // Scale option value from 100 to 256 - [25, 64]
-            i32 mg = i32 (*(Options[mg_opt])) * 64 / 25;
-            i32 eg = i32 (*(Options[eg_opt])) * 64 / 25;
-            return apply_weight (mk_score (mg, eg), internal_weight);
+            Weight w =
+            {
+                i32 (*(Options[mg_opt])) * mg_value (internal_weight) / 100,
+                i32 (*(Options[eg_opt])) * eg_value (internal_weight) / 100
+            };
+            return w;
+
         }
 
         namespace Tracing {

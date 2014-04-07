@@ -23,13 +23,13 @@ namespace Notation {
 
             if (abs (v) < VALUE_MATES_IN_MAX_PLY)
             {
-                oss << setprecision (2) << fixed << showpos << double (v) / VALUE_MG_PAWN;
+                oss << setprecision (2) << fixed << showpos << double (v) / VALUE_EG_PAWN;
             }
             else
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    oss <<  "#" << i32 (VALUE_MATE - v + 1) / 2;
+                    oss << "+#" << i32 (VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
@@ -187,20 +187,14 @@ namespace Notation {
         PieceT pt  = ptype (p);
 
         MoveT mt = mtype (m);
-        switch (mt)
-        {
-        case CASTLE:
-            san = (dst > org) ? "O-O" : "O-O-O";
-            break;
 
-        default:
+        if (mt == CASTLE)
         {
-            bool capture = pos.capture (m);
-            if (PAWN == pt)
-            {
-                if (capture) san = to_char (_file (org));
-            }
-            else
+            san = (dst > org) ? "O-O" : "O-O-O";
+        }
+        else
+        {
+            if (PAWN != pt)
             {
                 san = PieceChar[pt];
                 // Disambiguation if we have more then one piece of type 'pt'
@@ -211,14 +205,20 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                //default:       ASSERT (false);               break;
+                default:       ASSERT (false);               break;
                 }
             }
-
-            if (capture) san += 'x';
+            if (pos.capture (m))
+            {
+                if (PAWN == pt) san = to_char (_file (org));
+                san += 'x';
+            }
             san += to_string (dst);
-            if (PROMOTE == mt && PAWN == pt) san += string ("=") + PieceChar[promote (m)];
-        }
+            if (PROMOTE == mt && PAWN == pt)
+            { 
+                san += '=';
+                san += PieceChar[promote (m)];
+            }
         }
 
         CheckInfo ci (pos);
@@ -227,7 +227,7 @@ namespace Notation {
         {
             StateInfo si;
             pos.do_move (m, si, &ci);
-            san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
+            san += ((MoveList<LEGAL> (pos).size () != 0) ? '+' : '#');
             pos.undo_move ();
         }
 
@@ -260,7 +260,7 @@ namespace Notation {
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            oss << "cp " << 100 * i32 (v) / i32 (VALUE_MG_PAWN);
+            oss << "cp " << 100 * i32 (v) / i32 (VALUE_EG_PAWN);
         }
         else
         {
@@ -275,7 +275,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file. It uses the two helpers below to pretty
     // format the time and score respectively.
-    const string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move *pv)
+    const string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move pv[])
     {
         const u64 K = 1000;
         const u64 M = 1000000;
@@ -299,22 +299,19 @@ namespace Notation {
             oss << setw (7) << pos.game_nodes () / M << "M  ";
         }
 
+        string spv = oss.str ();
+        string padding = string (spv.length (), ' ');
+
         StateInfoStack states;
-
-        string  padding = string (oss.str ().length (), ' ');
-        u16 length = padding.length ();
-
         const Move *m = pv;
         while (*m != MOVE_NONE)
         {
-            string san = move_to_san (*m, pos);
-            if (length + san.length () > 80)
+            string san = move_to_san (*m, pos) + ' ';
+            if ((spv.length () + san.length ()) % 80 <= san.length ()) // Exceed 80 cols
             {
-                oss << "\n" + padding;
-                length = padding.length ();
+                spv += "\n" + padding;
             }
-            oss << san << " ";
-            length += san.length () + 1;
+            spv += san;
             states.push (StateInfo ());
             pos.do_move (*m, states.top ());
             ++m;
@@ -326,7 +323,7 @@ namespace Notation {
             --m;
         }
 
-        return oss.str ();
+        return spv;
     }
 
 }

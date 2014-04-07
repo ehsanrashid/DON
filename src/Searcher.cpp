@@ -923,7 +923,7 @@ namespace Searcher {
                         rbeta = VALUE_INFINITE;
                     }
 
-                    Depth rdepth = (depth - 4 * ONE_MOVE);
+                    Depth rdepth = depth - 4 * ONE_MOVE;
 
                     ASSERT (rdepth >= ONE_MOVE);
                     ASSERT ((ss-1)->current_move != MOVE_NONE);
@@ -1519,6 +1519,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
+                        // TODO::
                         window = 
                             //Value (16);
                             //Value (depth < 48 ? 12 + depth / 8 : 18);
@@ -1768,7 +1769,7 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        i32 contempt = i32 (*(Options["Contempt Factor"])) * VALUE_MG_PAWN / 100; // From centipawns
+        i32 contempt = i32 (*(Options["Contempt Factor"])) * VALUE_EG_PAWN / 100; // From centipawns
         //contempt = contempt * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
         DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
         DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
