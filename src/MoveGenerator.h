@@ -60,28 +60,28 @@ namespace MoveGenerator {
 
         ValMove  moves[MAX_MOVES]
                 , *cur
-                , *end;
+                , *last;
 
     public:
         explicit MoveList (const Position &pos)
             : cur (moves)
-            , end (generate<GT>(moves, pos))
+            , last (generate<GT>(moves, pos))
         {
-            end->move = MOVE_NONE;
+            last->move = MOVE_NONE;
         }
 
         inline void operator++ () { ++cur; }
         inline void operator-- () { --cur; }
         //inline void begin      () { cur = moves; }
-        //inline void endin      () { cur = end-1; }
+        //inline void end        () { cur = last-1; }
 
         inline Move operator* () const { return cur->move; }
 
-        inline u16 size  () const { return end - moves; }
+        inline u16 size  () const { return last - moves; }
 
         bool contains (Move m) const
         {
-            for (const ValMove *itr = moves; itr != end; ++itr)
+            for (const ValMove *itr = moves; itr != last; ++itr)
             {
                 if (itr->move == m) return true;
             }
