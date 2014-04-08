@@ -270,7 +270,7 @@ namespace Threads {
         configure ();
     }
 
-    // exit() cleanly terminates the threads before the program exits
+    // deinitialize() cleanly terminates the threads before the program exits
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data

@@ -165,7 +165,8 @@ namespace Threads {
             : exit (false)
         {}
 
-        virtual ~ThreadBase () {}
+        virtual ~ThreadBase ()
+        {}
 
         virtual void idle_loop () = 0;
 
