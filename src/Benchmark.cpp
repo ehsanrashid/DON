@@ -216,7 +216,7 @@ void benchtest (istream &is, const Position &pos)
     }
     else
     {
-        ifstream ifs (fen_fn);
+        ifstream ifs (fen_fn.c_str ());
 
         if (!ifs.is_open ())
         {
