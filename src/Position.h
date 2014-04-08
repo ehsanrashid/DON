@@ -22,18 +22,10 @@ namespace Threads {
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
 
-#ifndef NDEBUG
-// 88 is the max FEN length - r1n1k1r1/1B1b1q1n/1p1p1p1p/p1p1p1p1/1P1P1P1P/P1P1P1P1/1b1B1Q1N/R1N1K1R1 w KQkq - 12 1000
-const u08 FEN_LEN     = 88;
-#endif
-
 extern const std::string FEN_N;
 extern const std::string FEN_X;
 
 // Check the validity of FEN string
-#ifndef NDEBUG
-extern bool _ok (const        char *fen, bool c960 = false, bool full = true);
-#endif
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
 // StateInfo stores information to restore Position object to its previous state when retracting a move.
@@ -172,12 +164,6 @@ public:
 
     Position () { clear (); }
 
-#ifndef NDEBUG
-    Position (const char        *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
-    {
-        if (!setup (f, th, c960, full)) clear ();
-    }
-#endif
     Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
@@ -298,9 +284,6 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-#ifndef NDEBUG
-    bool setup (const        char *f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
-#endif
     bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 
     void flip ();
@@ -316,18 +299,11 @@ public:
     void   do_null_move (StateInfo &si);
     void undo_null_move ();
 
-#ifndef NDEBUG
-    bool        fen (const char *f, bool c960, bool full = true) const;
-    bool        fen (const char *f) const { return fen (f, false);  }
-#endif
-    std::string fen (bool                c960, bool full = true) const;
-    std::string fen (             ) const { return fen (false);     }
+    std::string fen (bool c960, bool full = true) const;
+    std::string fen () const { return fen (false); }
     
     operator std::string () const;
 
-#ifndef NDEBUG
-    static bool parse (Position &pos, const        char *fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
-#endif
     static bool parse (Position &pos, const std::string &fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
 
     template<class charT, class Traits>

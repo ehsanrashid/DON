@@ -85,9 +85,6 @@ public:
     // Returns the index of the 1st book entry with the same key as the input.
     u64 find_index (const Key key);
     u64 find_index (const Position &pos);
-#ifndef NDEBUG
-    u64 find_index (const        char *fen, bool c960 = false);
-#endif
     u64 find_index (const std::string &fen, bool c960 = false);
 
 public:
@@ -95,15 +92,9 @@ public:
     PolyglotBook ();
 
     // mode = std::ios_base::in|std::ios_base::out
-#ifndef NDEBUG
-    PolyglotBook (const        char *fn_book, std::ios_base::openmode mode);
-#endif
     PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
-#ifndef NDEBUG
-    bool open (const        char *fn_book, std::ios_base::openmode mode);
-#endif
     bool open (const std::string &fn_book, std::ios_base::openmode mode);
     void close ();
 

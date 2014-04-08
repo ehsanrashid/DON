@@ -125,14 +125,6 @@ PolyglotBook::PolyglotBook ()
     , _size_book (0)
 {}
 
-#ifndef NDEBUG
-PolyglotBook::PolyglotBook (const   char *fn_book, ios_base::openmode mode)
-    : fstream (fn_book, mode|ios_base::binary)
-    , _fn_book (fn_book)
-    , _mode (mode)
-    , _size_book (0)
-{}
-#endif
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
     : fstream (fn_book, mode|ios_base::binary)
     , _fn_book (fn_book)
@@ -149,17 +141,6 @@ PolyglotBook::~PolyglotBook ()
 // mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
-#ifndef NDEBUG
-bool PolyglotBook::open (const   char *fn_book, ios_base::openmode mode)
-{
-    close ();
-    fstream::open (fn_book, mode|ios_base::binary);
-    clear (); // Reset any error flag to allow retry open()
-    _fn_book = fn_book;
-    _mode    = mode;
-    return fstream::is_open ();
-}
-#endif
 bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 {
     close ();
@@ -217,12 +198,6 @@ u64 PolyglotBook::find_index (const Position &pos)
     return find_index (ZobPG.compute_posi_key (pos));
 }
 
-#ifndef NDEBUG
-u64 PolyglotBook::find_index (const   char *fen, bool c960)
-{
-    return find_index (ZobPG.compute_fen_key (fen, c960));
-}
-#endif
 u64 PolyglotBook::find_index (const string &fen, bool c960)
 {
     return find_index (ZobPG.compute_fen_key (fen, c960));

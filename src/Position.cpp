@@ -35,15 +35,6 @@ const Value PieceValue[PHASE_NO][TOTL] =
 const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
 
-#ifndef NDEBUG
-bool _ok (const   char *fen, bool c960, bool full)
-{
-    if (!fen)   return false;
-    Position pos (0);
-    return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
-}
-#endif
-
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
@@ -1098,20 +1089,6 @@ void Position::clear ()
     _si = &_sb;
 }
 // setup() sets the fen on the position
-#ifndef NDEBUG
-bool Position::setup (const   char *f, Thread *th, bool c960, bool full)
-{
-    //Position pos (0);
-    //if (parse (pos, f, th, c960, full) && pos.ok ())
-    //{
-    //    *this = pos;
-    //    return true;
-    //}
-    //return false;
-
-    return parse (*const_cast<Position*> (this), f, th, c960, full);
-}
-#endif
 bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 {
     //Position pos (0);
@@ -1328,10 +1305,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];
 
         // Update prefetch access to material_table
-#ifndef NDEBUG
-        if (_thread)
-#endif
-            prefetch ((char *) _thread->material_table[_si->matl_key]);
+        prefetch ((char *) _thread->material_table[_si->matl_key]);
 
         // Update Hash key of position
         posi_k ^= Zob._.piecesq[pasive][ct][cap];
@@ -1479,10 +1453,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
 
         // Update prefetch access to pawns_table
-#ifndef NDEBUG
-        if (_thread)
-#endif
-            prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
+        prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
     }
 
     // Prefetch TT access as soon as we know the new hash key
@@ -1649,115 +1620,6 @@ void Position::flip ()
     ASSERT (ok ());
 }
 
-#ifndef NDEBUG
-bool   Position::fen (const char *fn, bool c960, bool full) const
-{
-    ASSERT (fn);
-    ASSERT (ok ());
-
-    char *ch = const_cast<char *> (fn);
-    memset (ch, '\0', FEN_LEN);
-
-#undef set_next
-
-#define set_next(x) *ch++ = x
-
-    for (Rank r = R_8; r >= R_1; --r)
-    {
-        File f = F_A;
-        while (f <= F_H)
-        {
-            Square s = f | r;
-            Piece p  = _board[s];
-
-            if (EMPTY == p)
-            {
-                u32 empty_count = 0;
-                for ( ; f <= F_H && empty (s); ++f, ++s)
-                {
-                    ++empty_count;
-                }
-                if (1 > empty_count || empty_count > 8) return false;
-                set_next ('0' + empty_count);
-            }
-            else if (_ok (p))
-            {
-                set_next (PieceChar[p]);
-                ++f;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        if (R_1 < r) set_next ('/');
-    }
-
-    set_next (' ');
-    set_next (ColorChar[_active]);
-    set_next (' ');
-
-    if (can_castle (CR_A))
-    {
-        if (_chess960 || c960)
-        {
-            if (can_castle (WHITE))
-            {
-                if (can_castle (CR_W_K)) set_next (to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false));
-                if (can_castle (CR_W_Q)) set_next (to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false));
-            }
-            if (can_castle (BLACK))
-            {
-                if (can_castle (CR_B_K)) set_next (to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true));
-                if (can_castle (CR_B_Q)) set_next (to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true));
-            }
-        }
-        else
-        {
-            if (can_castle (WHITE))
-            {
-                if (can_castle (CR_W_K)) set_next ('K');
-                if (can_castle (CR_W_Q)) set_next ('Q');
-            }
-            if (can_castle (BLACK))
-            {
-                if (can_castle (CR_B_K)) set_next ('k');
-                if (can_castle (CR_B_Q)) set_next ('q');
-            }
-        }
-    }
-    else
-    {
-        set_next ('-');
-    }
-    set_next (' ');
-    Square ep_sq = _si->en_passant_sq;
-    if (SQ_NO != ep_sq)
-    {
-        if (R_6 != rel_rank (_active, ep_sq)) return false;
-        set_next (to_char (_file (ep_sq)));
-        set_next (to_char (_rank (ep_sq)));
-    }
-    else
-    {
-        set_next ('-');
-    }
-    if (full)
-    {
-        set_next (' ');
-        i32 write = sprintf (ch, "%u %u", _si->clock50, game_move ());
-            //_snprintf (ch, FEN_LEN - (ch - fn) - 1, "%u %u", _si->clock50, game_move ());
-            //_snprintf_s (ch, FEN_LEN - (ch - fn) - 1, 8, "%u %u", _si->clock50, game_move ());
-
-        ch += write;
-    }
-    set_next ('\0');
-
-#undef set_next
-
-    return true;
-}
-#endif
 string Position::fen (bool                 c960, bool full) const
 {
     ostringstream oss;
@@ -1920,199 +1782,6 @@ Position::operator string () const
 //
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-
-#ifndef NDEBUG
-#undef SKIP_WHITESPACE
-#define SKIP_WHITESPACE()  while (isspace (u08 (*fen))) ++fen
-
-bool Position::parse (Position &pos, const   char *fen, Thread *thread, bool c960, bool full)
-{
-    if (!fen)   return false;
-
-    pos.clear ();
-
-    char ch;
-
-#undef get_next
-
-#define get_next()  ch = *fen++
-
-    // Piece placement on Board
-    for (Rank r = R_8; r >= R_1; --r)
-    {
-        File f = F_A;
-        while (f <= F_H)
-        {
-            Square s = (f | r);
-            get_next ();
-            if (!ch) return false;
-
-            if      (isdigit (ch))
-            {
-                // empty square(s)
-                if ('1' > ch || ch > '8') return false;
-
-                i08 empty_count = (ch - '0');
-                f += empty_count;
-
-                if (f > F_NO) return false;
-                //while (empty_count-- > 0) place_piece (s++, EMPTY);
-            }
-            else if (isalpha (ch))
-            {
-                size_t idx = PieceChar.find (ch);
-                if (idx != string::npos)
-                {
-                    Piece p = Piece (idx);
-                    if (EMPTY == p) return false;
-                    pos.place_piece (s, p);   // put the piece on board
-                }
-                ++f;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        if (R_1 < r)
-        {
-            get_next ();
-            if ('/' != ch) return false;
-        }
-        else
-        {
-            for (Color c = WHITE; c <= BLACK; ++c)
-            {
-                if (1 != pos.count<KING> (c)) return false;
-            }
-        }
-    }
-
-    SKIP_WHITESPACE ();
-    // Active color
-    get_next ();
-    pos._active = Color (ColorChar.find (ch));
-
-    SKIP_WHITESPACE ();
-    // Castling rights availability
-    // Compatible with 3 standards:
-    // 1-Normal FEN standard,
-    // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
-    // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
-    // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    get_next ();
-    if ('-' != ch)
-    {
-        if (c960)
-        {
-            do
-            {
-                Square rook;
-                Color c = isupper (ch) ? WHITE : BLACK;
-                char sym = tolower (ch);
-                if ('a' <= sym && sym <= 'h')
-                {
-                    rook = (to_file (sym) | rel_rank (c, R_1));
-                    if (ROOK != ptype (pos[rook])) return false;
-                    pos.set_castle (c, rook);
-                }
-                else
-                {
-                    return false;
-                }
-
-                get_next ();
-            }
-            while (ch && !isspace (ch));
-        }
-        else
-        {
-            do
-            {
-                Square rook;
-                Color c = isupper (ch) ? WHITE : BLACK;
-                switch (toupper (ch))
-                {
-                case 'K':
-                    rook = rel_sq (c, SQ_H1);
-                    while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[rook]))) --rook;
-                    break;
-                case 'Q':
-                    rook = rel_sq (c, SQ_A1);
-                    while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[rook]))) ++rook;
-                    break;
-                default: return false;
-                }
-                if (ROOK != ptype (pos[rook])) return false;
-                pos.set_castle (c, rook);
-
-                get_next ();
-            }
-            while (ch && !isspace (ch));
-        }
-    }
-
-    SKIP_WHITESPACE ();
-    // En-passant square
-    get_next ();
-    if ('-' != ch)
-    {
-        char col = tolower (ch);
-        if (!isalpha (col)) return false;
-        if ('a' > col || col > 'h') return false;
-
-        char row = get_next ();
-
-        if (!isdigit (row)) return false;
-        if (!( (WHITE == pos._active && '6' != row)
-            || (BLACK == pos._active && '3' != row)))
-        {
-            Square ep_sq  = to_square (col, row);
-            if (pos.can_en_passant (ep_sq))
-            {
-                pos._si->en_passant_sq = ep_sq;
-            }
-        }
-    }
-    // 50-move clock and game-move count
-    i32 clk50 = 0, g_move = 1;
-    get_next ();
-    if (full && ch)
-    {
-        i32 n = 0;
-        i32 read = sscanf (--fen, " %d %d%n", &clk50, &g_move, &n);
-        if (read != 2) return false;
-        fen += n;
-        // Rule 50 draw case
-        if (100 < clk50) return false;
-        if (0 >= g_move) g_move = 1;
-        //get_next ();
-        //if (ch) return false; // NOTE: extra characters
-    }
-
-#undef get_next
-
-    // Convert from game_move starting from 1 to game_ply starting from 0,
-    // handle also common incorrect FEN with game_move = 0.
-    pos._si->clock50 = (SQ_NO != pos._si->en_passant_sq) ? 0 : clk50;
-    pos._game_ply = max<i16> (2 * (g_move - 1), 0) + (BLACK == pos._active);
-
-    pos._si->matl_key = Zob.compute_matl_key (pos);
-    pos._si->pawn_key = Zob.compute_pawn_key (pos);
-    pos._si->posi_key = Zob.compute_posi_key (pos);
-    pos._si->psq_score = pos.compute_psq_score ();
-    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
-    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
-    pos._si->checkers = pos.checkers (pos._active);
-    pos._chess960     = c960;
-    pos._game_nodes   = 0;
-    pos._thread       = thread;
-
-    return true;
-}
-#undef SKIP_WHITESPACE
-#endif
-
 bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
     if (fen.empty ()) return false;

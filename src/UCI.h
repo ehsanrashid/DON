@@ -40,9 +40,6 @@ namespace UCI {
             virtual operator bool ()        const { return bool (); }
             virtual operator i32 ()         const { return i32 (); }
             virtual operator std::string () const { return std::string (); }
-#ifndef NDEBUG
-            virtual Option& operator= (char        *value) = 0;
-#endif
             virtual Option& operator= (std::string &value) = 0;
 
         };
@@ -54,9 +51,6 @@ namespace UCI {
 
             std::string operator() ()  const;
 
-#ifndef NDEBUG
-            Option& operator= (char        *value);
-#endif
             Option& operator= (std::string &value);
 
         };
@@ -72,9 +66,6 @@ namespace UCI {
             std::string operator() ()  const;
             virtual operator bool () const;
 
-#ifndef NDEBUG
-            Option& operator= (char        *value);
-#endif
             Option& operator= (std::string &value);
 
         };
@@ -90,9 +81,6 @@ namespace UCI {
             std::string operator() ()  const;
             operator std::string () const;
 
-#ifndef NDEBUG
-            Option& operator= (char        *value);
-#endif
             Option& operator= (std::string &value);
 
         };
@@ -110,25 +98,9 @@ namespace UCI {
             std::string operator() ()  const;
             operator i32 () const;
 
-#ifndef NDEBUG
-            Option& operator= (char        *value);
-#endif
             Option& operator= (std::string &value);
 
         };
-
-        //class  ComboOption : public Option
-        //{
-        //public:
-        //    ComboOption (const OnChange on_change = NULL);
-        //
-        //    std::string operator() ()  const;
-        //
-        //    //Option& operator= (char        *value);
-        //    Option& operator= (std::string &value);
-        //
-        //};
-
 
         template<class charT, class Traits>
         inline std::basic_ostream<charT, Traits>&
