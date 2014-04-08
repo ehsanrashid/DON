@@ -278,16 +278,16 @@ namespace EndGame {
                && (SquareDist[wk_sq][wp_sq] == 1)
                && (_rank (sk_sq) >= R_4)
                && (SquareDist[sk_sq][wp_sq] > 2 + (_stong_side == pos.active ()))
-                )
+               )
         {
             value = Value (80 - SquareDist[sk_sq][wp_sq] * 8);
         }
         else
         {
-            value =  Value (200)
-                - Value (8 * SquareDist[sk_sq][wp_sq + DEL_S])
-                + Value (8 * SquareDist[wk_sq][wp_sq + DEL_S])
-                + Value (8 * SquareDist[wp_sq][queening_sq]);
+            value = Value (200)
+                  - Value (8 * SquareDist[sk_sq][wp_sq + DEL_S])
+                  + Value (8 * SquareDist[wk_sq][wp_sq + DEL_S])
+                  + Value (8 * SquareDist[wp_sq][queening_sq]);
         }
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -305,8 +305,8 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_weak_side);
         Square wb_sq = pos.list<BSHP> (_weak_side)[0];
 
-        // when the weaker side ended up in the same corner as bishop.
-        Value value = Value (PushToEdges[wk_sq] / 4);
+        // When the weaker side ended up in the same corner as bishop.
+        Value value  = Value (PushToEdges[wk_sq] / 4);
 
         // To draw, the weaker side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
@@ -332,7 +332,7 @@ namespace EndGame {
 
         Square wk_sq = pos.king_sq (_weak_side);
         Square wn_sq = pos.list<NIHT> (_weak_side)[0];
-        Value value = Value (PushToEdges[wk_sq] + PushAway[SquareDist[wk_sq][wn_sq]]);
+        Value value  = Value (PushToEdges[wk_sq] + PushAway[SquareDist[wk_sq][wn_sq]]);
 
         // If weaker king is near the knight, it's a draw.
         if (   (_weak_side == pos.active ())
@@ -385,7 +385,7 @@ namespace EndGame {
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
 
-        Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
+        Value value  = VALUE_EG_QUEN - VALUE_EG_ROOK
             + PushToEdges[wk_sq] + PushClose[SquareDist[sk_sq][wk_sq]];
 
         return (_stong_side == pos.active ()) ? value : -value;
@@ -420,8 +420,8 @@ namespace EndGame {
             }
 
             value = VALUE_MG_BSHP + PushToCorners[wk_sq]
-                +   PushClose[SquareDist[sk_sq][wk_sq]]
-                +   PushAway[SquareDist[wk_sq][wn_sq]];
+                  + PushClose[SquareDist[sk_sq][wk_sq]]
+                  + PushAway[SquareDist[wk_sq][wn_sq]];
         }
         else
         {
@@ -576,8 +576,8 @@ namespace EndGame {
             Square wk_sq = pos.king_sq(_weak_side);
             Square wb_sq = pos.list<BSHP> (_weak_side)[0];
             Square sp_sq = pos.list<PAWN> (_stong_side)[0];
-            Rank r = rel_rank (_stong_side, sp_sq);
-            Delta push = pawn_push (_stong_side);
+            Rank   r     = rel_rank (_stong_side, sp_sq);
+            Delta  push  = pawn_push (_stong_side);
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the 
             // same color square as the bishop then there is a chance of a fortress.
@@ -623,7 +623,7 @@ namespace EndGame {
 
         Square sp_sq1 = pos.list<PAWN> (_stong_side)[0];
         Square sp_sq2 = pos.list<PAWN> (_stong_side)[1];
-        Square wk_sq = pos.king_sq (_weak_side);
+        Square wk_sq  = pos.king_sq (_weak_side);
 
         // Does the stronger side have a passed pawn?
         if (pos.passed_pawn (_stong_side, sp_sq1) || pos.passed_pawn (_stong_side, sp_sq2))
@@ -660,9 +660,9 @@ namespace EndGame {
         ASSERT (pos.count<PAWN> (_stong_side) >= 2);
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
-        Square wk_sq = pos.king_sq (_weak_side);
+        Square    wk_sq = pos.king_sq (_weak_side);
         Bitboard spawns = pos.pieces<PAWN> (_stong_side);
-        Square sp_sq = scan_frntmost_sq (_stong_side, spawns);
+        Square    sp_sq = scan_frntmost_sq (_stong_side, spawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
@@ -933,8 +933,8 @@ namespace EndGame {
         // be detected even when the weaker side has some materials or pawns.
 
         Bitboard spawns = pos.pieces<PAWN> (_stong_side);
-        Square sp_sq = scan_frntmost_sq (_stong_side, spawns);
-        File wp_f = _file (sp_sq);
+        Square    sp_sq = scan_frntmost_sq (_stong_side, spawns);
+        File       wp_f = _file (sp_sq);
 
         // All pawns are on a single rook file ?
         if ((wp_f == F_A || wp_f == F_H) && !(spawns & ~File_bb[wp_f]))

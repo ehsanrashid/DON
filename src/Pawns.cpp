@@ -104,9 +104,8 @@ namespace Pawns {
             e->_king_sq       [C] = SQ_NO;
             e->_semiopen_files[C] = 0xFF;
             e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            e->_pawn_count_sq [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
             e->_pawn_count_sq [C][WHITE] = pop_count<MAX15> (pawns[0] & LIHT_bb);
-                //pos.count<PAWN> (C) - e->_pawn_count_sq[C][BLACK];
+            e->_pawn_count_sq [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
             
             Score pawn_score = SCORE_ZERO;
 
@@ -149,10 +148,6 @@ namespace Pawns {
                 {
                     backward = false;
                 }
-                //else if (opposed && (pawns[1] & (s + pawn_push (C))))
-                //{
-                //    backward = true;
-                //}
                 else
                 {
                     Bitboard b;
@@ -266,13 +261,6 @@ namespace Pawns {
         File kf = _file (king_sq);
         if (kf < F_B) kf = F_B;
         if (kf > F_G) kf = F_G;
-
-        //// TODO::
-        //Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
-        //bool dangerous_edge_pawns = 
-        //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
-        //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
-        //if (dangerous_edge_pawns) safety -= Value (100);
 
         for (File f = kf - 1; f <= kf + 1; ++f)
         {

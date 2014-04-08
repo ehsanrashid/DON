@@ -118,9 +118,9 @@ namespace Engine {
 
 #ifndef NDEBUG
         //Tester::test_str ();
-        //Tester::main_test ();
-        //system ("pause");
-        //return;
+        Tester::main_test ();
+        system ("pause");
+        return;
 #endif
 
         UCI   ::start (args);

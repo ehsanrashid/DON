@@ -6,6 +6,7 @@
 #include "BitCount.h"
 #include "Position.h"
 #include "Zobrist.h"
+#include "Thread.h"
 
 namespace Tester {
 
@@ -186,7 +187,7 @@ namespace Tester {
             Square s;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
             buf = pos.fen ();
 
             ASSERT (buf == fen);
@@ -229,7 +230,7 @@ namespace Tester {
             // ----
 
             fen = "rn3rk1/pbppq1pp/1p2pb2/4N2Q/3PN3/3B4/PPP2PPP/R3K2R w KQ - 4 11";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
             buf = pos.fen ();
 
             ASSERT (buf == fen);
@@ -273,7 +274,7 @@ namespace Tester {
             // ----
 
             fen = "8/8/1R5p/q5pk/PR3pP1/7P/8/7K b - g3 2 10";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
             buf = pos.fen ();
 
             ASSERT (buf != fen);
@@ -287,7 +288,7 @@ namespace Tester {
             //----
 
             fen = "r4r2/3b1pk1/p1p5/4p1p1/1PQbPq1p/P2P4/3RBP1P/2R3K1 w - - 1 25";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
             buf = pos.fen ();
 
             ASSERT (buf == fen);
@@ -325,7 +326,7 @@ namespace Tester {
             // ----
 
             fen = "r1bqr1k1/p1p2ppp/2p5/3p4/2PQn3/1B6/P1P2PPP/R1B2RK1 b - - 3 12";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
             buf = pos.fen ();
 
             ASSERT (buf == fen);
@@ -368,7 +369,7 @@ namespace Tester {
             // =========
 
             fen = "rkbnrnqb/pppppppp/8/8/8/8/PPPPPPPP/RKBNRNQB w EAea - 0 1";
-            Position::parse (pos, fen, NULL, true);
+            Position::parse (pos, fen, Threadpool.main (), true);
             buf = pos.fen (true);
 
             ASSERT (buf == fen);
@@ -403,7 +404,7 @@ namespace Tester {
             Position pos (0);
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
 
             ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
             ASSERT (U64 (0x37FC40DA841E1692) == ZobPG.compute_pawn_key (pos));
@@ -411,7 +412,7 @@ namespace Tester {
             ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_fen_key (fen));
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
-            Position::parse (pos, fen, NULL, true);
+            Position::parse (pos, fen, Threadpool.main (), true);
 
             ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
             ASSERT (U64 (0x37FC40DA841E1692) == ZobPG.compute_pawn_key (pos));
@@ -419,7 +420,7 @@ namespace Tester {
             ASSERT (U64 (0x463B96181691FC9C) == ZobPG.compute_fen_key (fen, true));
 
             fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
 
             ASSERT (pos.ok ());
             ASSERT (U64 (0xB76D8438E5D28230) == ZobPG.compute_matl_key (pos));
@@ -428,7 +429,7 @@ namespace Tester {
             ASSERT (U64 (0x1BCF67975D7D9F11) == ZobPG.compute_fen_key (fen));
 
             fen = "8/8/8/8/k1Pp2R1/8/6K1/8 b - c3 0 1";
-            Position::parse (pos, fen);
+            Position::parse (pos, fen, Threadpool.main ());
 
             ASSERT (U64 (0x184A5183C6AEF4C5) == ZobPG.compute_matl_key (pos));
             ASSERT (U64 (0xB7B954171FD65613) == ZobPG.compute_pawn_key (pos));
@@ -446,7 +447,7 @@ namespace Tester {
             Move m;
 
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-            pos.setup (fen);
+            pos.setup (fen, Threadpool.main ());
             si = states;
 
             ASSERT (U64 (0x463B96181691FC9C) == pos.posi_key ());
@@ -490,7 +491,7 @@ namespace Tester {
 
             // castling do/undo
             fen = "rnbqk2r/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1";
-            pos.setup (fen);
+            pos.setup (fen, Threadpool.main ());
             si = states;
             
             m = mk_move<CASTLE> (SQ_E1, SQ_H1);
@@ -502,7 +503,7 @@ namespace Tester {
 
 
             fen = "2r1nrk1/p2q1ppp/1p1p4/n1pPp3/P1P1P3/2PBB1N1/4QPPP/R4RK1 w - - 0 1";
-            pos.setup (fen);
+            pos.setup (fen, Threadpool.main ());
 
             for (u08 i = 0; i < 50; ++i)
             {

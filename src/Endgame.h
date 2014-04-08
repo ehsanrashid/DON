@@ -49,7 +49,6 @@ namespace EndGame {
 
     };
 
-
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
     // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
     template<i32> struct eg_fun;
@@ -62,13 +61,19 @@ namespace EndGame {
     {
     public:
 
-        virtual ~EndgameBase () {}
+        virtual ~EndgameBase ()
+        {}
 
         virtual Color color () const = 0;
 
         virtual T operator() (const Position &pos) const = 0;
 
     };
+
+#ifdef _MSC_VER
+// Disable some silly and noisy warning from MSVC compiler
+#   pragma warning (disable: 4512) // Assignment operator could not be generated
+#endif
 
     template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
     struct Endgame
