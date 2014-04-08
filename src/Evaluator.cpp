@@ -150,29 +150,29 @@ namespace Evaluator {
             {},
             // Knights
             {
-                S (-35, -30), S (-22, -20), S (- 9, -10), S (+ 3, + 0), S (+15, +10),
-                S (+27, +20), S (+37, +28), S (+42, +31), S (+44, +33)
+                S (- 35,- 30), S (- 22,- 20), S (-  9,- 10), S (+  3,+  0), S (+ 15,+ 10),
+                S (+ 27,+ 20), S (+ 37,+ 28), S (+ 42,+ 31), S (+ 44,+ 33)
             },
             // Bishops
             {
-                S (-22, -27), S (- 8, -13), S (+ 6, + 1), S (+20, +15), S (+34, +29),
-                S (+48, +43), S (+60, +55), S (+68, +63), S (+74, +68), S (+77, +72),
-                S (+80, +75), S (+82, +77), S (+84, +79), S (+86, +81)
+                S (- 22, -27), S (-  8, -13), S (+  6,+  1), S (+ 20,+ 15), S (+ 34,+ 29),
+                S (+ 48,+ 43), S (+ 60,+ 55), S (+ 68,+ 63), S (+ 74,+ 68), S (+ 77,+ 72),
+                S (+ 80,+ 75), S (+ 82,+ 77), S (+ 84,+ 79), S (+ 86,+ 81)
             },
             // Rooks
             {
-                S (-17, -33), S (-11, -16), S (- 5, + 0), S (+ 1, +16), S (+ 7, +32),
-                S (+13, +48), S (+18, +64), S (+22, +80), S (+26, +96), S (+29,+109),
-                S (+31,+115), S (+33,+119), S (+35,+122), S (+36,+123), S (+37,+124),
+                S (- 17,- 33), S (- 11,- 16), S (-  5,+  0), S (+  1,+ 16), S (+  7,+ 32),
+                S (+ 13,+ 48), S (+ 18,+ 64), S (+ 22,+ 80), S (+ 26,+ 96), S (+ 29,+109),
+                S (+ 31,+115), S (+ 33,+119), S (+ 35,+122), S (+ 36,+123), S (+ 37,+124),
             },
             // Queens
             {
-                S (-12, -20), S (- 8, -13), S (- 5, - 7), S (- 2, - 1), S (+ 1, + 5),
-                S (+ 4, +11), S (+ 7, +17), S (+10, +23), S (+13, +29), S (+16, +34),
-                S (+18, +38), S (+20, +40), S (+22, +41), S (+23, +41), S (+24, +41),
-                S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41),
-                S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41), S (+25, +41),
-                S (+25, +41), S (+25, +41), S (+25, +41)
+                S (- 12, -20), S (-  8, -13), S (-  5, - 7), S (-  2, - 1), S (+  1,+  5),
+                S (+  4,+ 11), S (+  7,+ 17), S (+ 10,+ 23), S (+ 13,+ 29), S (+ 16,+ 34),
+                S (+ 18,+ 38), S (+ 20,+ 40), S (+ 22,+ 41), S (+ 23,+ 41), S (+ 24,+ 41),
+                S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41),
+                S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41),
+                S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41)
             },
         };
 
@@ -227,13 +227,8 @@ namespace Evaluator {
 
         const Score RookOn7thBonus          = S (+11, +20);
         const Score RookOnPawnBonus         = S (+10, +28);
-
-        //const Score QueenOn7thBonus         = S (+ 3, + 8);
-        //const Score QueenOnPawnBonus        = S (+ 4, +20);
-
         const Score RookOpenFileBonus       = S (+43, +21);
         const Score RookSemiopenFileBonus   = S (+19, +10);
-
         //const Score RookDoubledOpenBonus    = S (+23, +10);
         //const Score RookDoubledSemiopenBonus= S (+12, + 6);
 
@@ -245,8 +240,8 @@ namespace Evaluator {
         const Score PawnUnstoppableBonus    = S (+ 0, +20);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
-        // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
-        // happen in Chess960 games.
+        // a friendly pawn on b2/g2 (b7/g7 for black).
+        // This can obviously only happen in Chess960 games.
         const Score BishopTrappedA1H1Penalty= S (+50, +50);
 
 #undef S
@@ -278,8 +273,7 @@ namespace Evaluator {
         const i32 RookContactCheck  = +16;
         const i32 QueenContactCheck = +24;
 
-        const i32 PiecePinned            = + 2;
-        //const i32 PiecePinnedUnsupported = + 1;
+        const i32 PiecePinned       = + 2;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -639,7 +633,6 @@ namespace Evaluator {
                             && (R_8 == rel_rank (C, ek_sq)))
                         {
                             score += RookOn7thBonus;
-                                //(ROOK == PT) ? RookOn7thBonus : QueenOn7thBonus;
                         }
 
                         // Rook piece attacking enemy pawns on the same rank/file
@@ -647,7 +640,6 @@ namespace Evaluator {
                         if (pawns)
                         {
                             score += RookOnPawnBonus * i32 (pop_count<MAX15> (pawns));
-                                //((ROOK == PT) ? RookOnPawnBonus : QueenOnPawnBonus) * i32 (pop_count<MAX15> (pawns));
                         }
                     }
 
@@ -844,12 +836,6 @@ namespace Evaluator {
                 if (pinned_pieces != U64 (0))
                 {
                     attack_units += PiecePinned * pop_count<MAX15> (pinned_pieces);
-
-                    //// Penalty for pinned pieces which not defended by a pawn
-                    //if (pinned_pieces & ~ei.attacked_by[C][PAWN])
-                    //{
-                    //    attack_units += PiecePinnedUnsupported;
-                    //}
                 }
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
@@ -1094,8 +1080,9 @@ namespace Evaluator {
             ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
             ASSERT (PHASE_ENDGAME <= phase && phase <= PHASE_MIDGAME);
 
-            i32 eg  = (eg_value (score) * i32 (scale_factor)) / SCALE_FACTOR_NORMAL;
-            return Value ((mg_value (score) * i32 (phase) + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
+            i32 mg = mg_value (score) * i32 (phase);
+            i32 eg = eg_value (score) * i32 (scale_factor) / SCALE_FACTOR_NORMAL;
+            return Value ((mg + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
         }
 
         // apply_weight() weights 'score' by factor 'w' trying to prevent overflow

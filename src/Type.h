@@ -551,8 +551,8 @@ struct Castling
 {
     static const CRight
     Right = (C == WHITE)
-      ? CS == CS_Q ? CR_W_Q : CR_W_K
-      : CS == CS_Q ? CR_B_Q : CR_B_K;
+      ? (CS == CS_Q) ? CR_W_Q : CR_W_K
+      : (CS == CS_Q) ? CR_B_Q : CR_B_K;
 };
 
 inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }
