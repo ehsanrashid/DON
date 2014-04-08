@@ -100,13 +100,14 @@ namespace Pawns {
                 pos.pieces (C_, PAWN),
             };
 
-            e->_passed_pawns  [C] = e->_candidate_pawns[C] = 0;
+            e->_passed_pawns  [C] = e->_candidate_pawns[C] = U64 (0);
             e->_king_sq       [C] = SQ_NO;
             e->_semiopen_files[C] = 0xFF;
             e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
             e->_pawn_count_sq [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
-            e->_pawn_count_sq [C][WHITE] = pos.count<PAWN> (C) - e->_pawn_count_sq[C][BLACK];
-
+            e->_pawn_count_sq [C][WHITE] = pop_count<MAX15> (pawns[0] & LIHT_bb);
+                //pos.count<PAWN> (C) - e->_pawn_count_sq[C][BLACK];
+            
             Score pawn_score = SCORE_ZERO;
 
             const Square *pl = pos.list<PAWN> (C);
@@ -140,14 +141,18 @@ namespace Pawns {
                 bool backward;
                 // Test for backward pawn.
                 // If the pawn is passed, isolated, or connected it cannot be backward.
-                // If there are friendly pawns behind on adjacent files
-                // or if can capture an enemy pawn it cannot be backward either.
+                // If there are friendly pawns behind on adjacent files or
+                // If it can capture an enemy pawn it cannot be backward either.
                 if (   (passed | isolated | connected)
                     || (pawns[0] & PawnAttackSpan[C_][s])
                     || (pawns[1] & PawnAttacks[C][s]))
                 {
                     backward = false;
                 }
+                //else if (opposed && (pawns[1] & (s + pawn_push (C))))
+                //{
+                //    backward = true;
+                //}
                 else
                 {
                     Bitboard b;
@@ -170,8 +175,8 @@ namespace Pawns {
                 // enemy pawns in the forward direction on the adjacent files.
                 Bitboard adj_pawns;
                 bool candidate_passed = !(opposed | passed | backward | isolated)
-                    && (adj_pawns = PawnAttackSpan[C_][s + PUSH] & pawns[0]) != 0
-                    &&  pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (PawnAttackSpan[C][s] & pawns[1]);
+                    && ((adj_pawns = PawnAttackSpan[C_][s + PUSH] & pawns[0]) != U64 (0))
+                    && (pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (PawnAttackSpan[C][s] & pawns[1]));
 
                 // Passed pawns will be properly scored in evaluation because we need
                 // full attack info to evaluate passed pawns. Only the frontmost passed
@@ -257,15 +262,17 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        File kf = max (F_B, min (F_G, _file (king_sq)));
+        //File kf = max (F_B, min (F_G, _file (king_sq)));
+        File kf = _file (king_sq);
+        if (kf < F_B) kf = F_B;
+        if (kf > F_G) kf = F_G;
 
         //// TODO::
         //Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
-        //bool dangerous_edge_pawn = 
+        //bool dangerous_edge_pawns = 
         //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
         //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
-
-        //if (dangerous_edge_pawn) safety -= Value (100);
+        //if (dangerous_edge_pawns) safety -= Value (100);
 
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
@@ -289,9 +296,7 @@ namespace Pawns {
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk != R_1)
-                    ? ((b_rk == w_rk + 1) ? 2 : 1)
-                    : 0;
+                i08 danger = (w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
                 
                 safety -= ShelterWeakness[w_rk]
                        +  StormDanger[danger][b_rk];

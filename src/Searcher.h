@@ -30,11 +30,6 @@ namespace Searcher {
 
     const u08 MAX_SKILL_LEVEL = 20;
 
-    //const u16 FAIL_LOW_MARGIN = 50;        // => 20
-    //const u16 FUTILITY_CUT_LIMIT_PCT = 60; // => 60
-    //const u16 MAX_THREAT = 90;
-
-
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.

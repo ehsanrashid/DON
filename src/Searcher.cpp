@@ -299,9 +299,9 @@ namespace Searcher {
 
             StateInfo si;
             CheckInfo ci (pos);
-            for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
+            for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
             {
-                Move m = *itr;
+                Move m = *moves;
                 pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
                 leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
                 pos.undo_move ();

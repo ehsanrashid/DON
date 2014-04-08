@@ -117,9 +117,9 @@ namespace Notation {
             }
         }
 
-        for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
+        for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
         {
-            Move m = *itr;
+            Move m = *moves;
             if (scan == move_to_can (m, pos.chess960 ()))
             {
                 return m;
@@ -132,9 +132,9 @@ namespace Notation {
     // single algebraic notation and returns an equivalent legal move if any.
     Move move_from_san (const string &san, Position &pos)
     {
-        for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
+        for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
         {
-            Move m = *itr;
+            Move m = *moves;
             if (san == move_to_san (m, pos))
             {
                 return m;
