@@ -73,10 +73,11 @@ namespace EndGame {
             return sq;
         }
 
+        template<Color C>
         // Get the material key of a Position out of the given endgame key code
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
         // and then let a Position object to do the work for us.
-        inline Key key (const string &code, Color c)
+        inline Key key (const string &code)
         {
             ASSERT (0 < code.length () && code.length () <= 8);
             ASSERT (code[0] == 'K');
@@ -87,7 +88,7 @@ namespace EndGame {
                 code.substr (0, code.find('K', 1)), // Strong
             };
 
-            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
+            transform (sides[C].begin (), sides[C].end (), sides[C].begin (), ::tolower);
             
             string fen = sides[0] + char (8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length() + '0') + " w - - 0 1";
@@ -101,7 +102,7 @@ namespace EndGame {
     } // namespace
 
     // Endgames members definitions
-    Endgames::Endgames ()
+    Endgames:: Endgames ()
     {
         add<KPK>     ("KPK");
         add<KNNK>    ("KNNK");
@@ -132,8 +133,8 @@ namespace EndGame {
     template<EndgameT E>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<E>*) 0)[key (code, WHITE)] = new Endgame<E> (WHITE);
-        map ((Endgame<E>*) 0)[key (code, BLACK)] = new Endgame<E> (BLACK);
+        map ((Endgame<E>*) 0)[key<WHITE> (code)] = new Endgame<E> (WHITE);
+        map ((Endgame<E>*) 0)[key<BLACK> (code)] = new Endgame<E> (BLACK);
     }
 
     template<>

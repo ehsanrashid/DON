@@ -74,8 +74,10 @@ namespace EndGame {
     struct Endgame
         : public EndgameBase<T>
     {
+
     private:
-        Color _stong_side, _weak_side;
+        const Color _stong_side
+                  , _weak_side;
 
     public:
 
