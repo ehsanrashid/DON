@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (u08 depth)
         {
-            return Value (100 * depth); // TODO::
+            return Value (64 * depth); // TODO::100
         }
 
         template<bool PVNode>
@@ -842,7 +842,7 @@ namespace Searcher {
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
                 if (   !((ss)->skip_null_move)
-                    && (depth < 7 * ONE_MOVE) // TODO::
+                    //&& (depth < 7 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
@@ -1099,12 +1099,12 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth*1.25); // TODO::
+                    Value rbeta = tt_value - i32 (depth*1.25); // TODO::depth*1
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
 
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, /*2*depth/3*/ depth/2, cut_node);
+                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
 
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
@@ -1519,10 +1519,9 @@ namespace Searcher {
                     if (depth > 4)
                     {
                         // TODO::
-                        window = 
-                            //Value (16);
-                            //Value (depth < 48 ? 12 + depth / 8 : 18);
-                            Value (depth < 40 ? 15 + depth / 8 : 20);
+                        window = //Value (16);
+                            //Value (depth < 40 ? 15 + depth / 8 : 20);
+                            Value (depth < 32 ? 14 + depth / 8 : 18);
 
                         alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
