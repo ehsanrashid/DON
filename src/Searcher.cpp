@@ -132,9 +132,9 @@ namespace Searcher {
         inline Value value_to_tt (Value v, i32 ply)
         {
             ASSERT (v != VALUE_NONE);
-            return
-                v >= VALUE_MATES_IN_MAX_PLY ? v + ply :
-                v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
+            return v >= VALUE_MATES_IN_MAX_PLY ? v + ply
+                 : v <= VALUE_MATED_IN_MAX_PLY ? v - ply
+                 : v;
         }
         // value_fr_tt () is the inverse of value_to_tt ():
         // It adjusts a mate score from the transposition table
@@ -142,10 +142,10 @@ namespace Searcher {
         // to "plies to mate/be mated from the root".
         inline Value value_fr_tt (Value v, i32 ply)
         {
-            return
-                v == VALUE_NONE             ? VALUE_NONE :
-                v >= VALUE_MATES_IN_MAX_PLY ? v - ply :
-                v <= VALUE_MATED_IN_MAX_PLY ? v + ply : v;
+            return v == VALUE_NONE             ? VALUE_NONE
+                 : v >= VALUE_MATES_IN_MAX_PLY ? v - ply
+                 : v <= VALUE_MATED_IN_MAX_PLY ? v + ply
+                 : v;
         }
 
         // info_pv () formats PV information according to UCI protocol.
@@ -329,8 +329,7 @@ namespace Searcher {
             // Check for an instant draw or maximum ply reached
             if (pos.draw () || ((ss)->ply > MAX_PLY))
             {
-                return ((ss)->ply > MAX_PLY && !IN_CHECK)
-                    ? evaluate (pos)
+                return ((ss)->ply > MAX_PLY && !IN_CHECK) ? evaluate (pos)
                     : DrawValue[pos.active ()];
             }
 
@@ -450,9 +449,10 @@ namespace Searcher {
             {
                 ASSERT (_ok (move));
 
-                bool gives_check= ((NORMAL == mtype (move)) && !ci.discoverers)
-                                ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                                : (pos.gives_check (move, ci));
+                bool gives_check=
+                      ((NORMAL == mtype (move)) && !ci.discoverers)
+                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    : (pos.gives_check (move, ci));
 
                 if (!PVNode)
                 {
@@ -490,10 +490,11 @@ namespace Searcher {
                     }
 
                     // Detect non-capture evasions that are candidate to be pruned
-                    bool evasion_prunable = IN_CHECK
-                                         && (best_value > VALUE_MATED_IN_MAX_PLY)
-                                         && !(pos.capture (move))
-                                         && !(pos.can_castle (pos.active ()));
+                    bool evasion_prunable =
+                           IN_CHECK
+                        && (best_value > VALUE_MATED_IN_MAX_PLY)
+                        && !(pos.capture (move))
+                        && !(pos.can_castle (pos.active ()));
 
                     // Don't search moves with negative SEE values
                     if (   (!IN_CHECK || evasion_prunable)
@@ -576,7 +577,7 @@ namespace Searcher {
         }
 
         template <NodeT NT>
-        // search<> () is the main search function for both PV and non-PV nodes and for
+        // search<>() is the main search function for both PV and non-PV nodes and for
         // normal and SplitPoint nodes. When called just after a splitpoint the search
         // is simpler because we have already probed the hash table, done a null move
         // search, and searched the first move before splitting, we don't have to repeat
@@ -660,8 +661,7 @@ namespace Searcher {
                 // Step 2. Check for aborted search and immediate draw
                 if (Signals.stop || pos.draw () || ((ss)->ply > MAX_PLY))
                 {
-                    return ((ss)->ply > MAX_PLY && !in_check)
-                        ? evaluate (pos)
+                    return ((ss)->ply > MAX_PLY && !in_check) ? evaluate (pos)
                         : DrawValue[pos.active ()];
                 }
 
@@ -741,14 +741,14 @@ namespace Searcher {
                         if (TB50MoveRule)
                         {
                             value = v < -1 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
-                                :   v >  1 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
-                                :   VALUE_DRAW + 2 * v;
+                                  : v >  1 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
+                                  : VALUE_DRAW + 2 * v;
                         }
                         else
                         {
                             value = v < 0 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
-                                :   v > 0 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
-                                :   VALUE_DRAW;
+                                  : v > 0 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
+                                  : VALUE_DRAW;
                         }
 
                         TT.store (
@@ -1071,13 +1071,15 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check= ((NORMAL == mtype (move)) && !ci.discoverers)
-                                ?  (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                                :  (pos.gives_check (move, ci));
+                bool gives_check=
+                      ((NORMAL == mtype (move)) && !ci.discoverers)
+                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    : (pos.gives_check (move, ci));
 
-                bool dangerous  = ((gives_check)
-                                || (NORMAL != mtype (move))
-                                || (pos.advanced_pawn_push (move)));
+                bool dangerous  = 
+                       ((gives_check)
+                    || (NORMAL != mtype (move))
+                    || (pos.advanced_pawn_push (move)));
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1103,9 +1105,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
-
+                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth / 2, cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
