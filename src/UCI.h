@@ -28,7 +28,7 @@ namespace UCI {
         friend std::basic_ostream<charT, Traits>&
             operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options);
 
-        size_t index;
+        size_t _index;
         std::string _type;
 
         std::string
@@ -76,7 +76,7 @@ namespace UCI {
                 itr != options.end (); ++itr)
             {
                 const Option &option = itr->second;
-                if (idx == option.index)
+                if (idx == option._index)
                 {
                     os << "option name " << itr->first << option << std::endl;
                     break;

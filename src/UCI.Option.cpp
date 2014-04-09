@@ -113,7 +113,7 @@ namespace UCI {
     {
         static size_t order = 0;
         *this = opt;
-        index = order++;
+        _index = order++;
     }
 
     // Option Events
