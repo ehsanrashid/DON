@@ -250,7 +250,7 @@ namespace Pawns {
 
         Value safety = MaxSafetyBonus;
 
-        Bitboard front_pawns = pos.pieces (PAWN) & (FrontRank_bb[C][_rank (king_sq)] | rank_bb (king_sq));
+        Bitboard front_pawns = pos.pieces<PAWN> () & (FrontRank_bb[C][_rank (king_sq)] | rank_bb (king_sq));
         Bitboard pawns[CLR_NO] =
         {
             front_pawns & pos.pieces (C ),
@@ -300,16 +300,16 @@ namespace Pawns {
     Score Entry::update_safety (const Position &pos, Square king_sq)
     {
         _king_sq[C] = king_sq;
-        _castle_rights[C] = pos.can_castle(C);
+        _castle_rights[C] = pos.can_castle (C);
         _kp_min_dist  [C] = 0;
 
-        Bitboard pawns = pos.pieces (C, PAWN);
-        if (pawns)
+        Bitboard pawns = pos.pieces<PAWN> (C);
+        if (pawns != U64 (0))
         {
             while (!(DistanceRings[king_sq][_kp_min_dist[C]++] & pawns));
         }
 
-        if (rel_rank(C, king_sq) > R_4)
+        if (rel_rank (C, king_sq) > R_4)
         {
             return _king_safety[C] = mk_score (0, -16 * _kp_min_dist[C]);
         }
