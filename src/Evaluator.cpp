@@ -717,13 +717,13 @@ namespace Evaluator {
             };
 
             Score score = 
-                evaluate_ptype<NIHT, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              - evaluate_ptype<NIHT, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              + evaluate_ptype<NIHT, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
               + evaluate_ptype<BSHP, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              - evaluate_ptype<BSHP, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
               + evaluate_ptype<ROOK, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
               + evaluate_ptype<QUEN, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
+              - evaluate_ptype<NIHT, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              - evaluate_ptype<BSHP, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
               - evaluate_ptype<QUEN, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK]);
 
             // Sum up all attacked squares (updated in evaluate_pieces)
@@ -736,14 +736,11 @@ namespace Evaluator {
                   | ei.attacked_by[c][ROOK]
                   | ei.attacked_by[c][QUEN]
                   | ei.attacked_by[c][KING];
-            }
 
-            if (TRACE)
-            {
-                for (Color c = WHITE; c <= BLACK; ++c)
-                {
-                    Tracing::Terms[c][Tracing::MOBILITY] = apply_weight (mobility[c], Weights[Mobility]);
-                }
+                  if (TRACE)
+                  {
+                      Tracing::Terms[c][Tracing::MOBILITY] = apply_weight (mobility[c], Weights[Mobility]);
+                  }
             }
 
             return score;

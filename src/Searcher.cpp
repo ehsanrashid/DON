@@ -1715,7 +1715,6 @@ namespace Searcher {
             --ply;
         }
         while (ply != 0);
-
     }
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
@@ -1755,7 +1754,6 @@ namespace Searcher {
             --ply;
         }
         while (ply != 0);
-
     }
 
     u64 perft (Position &pos, const Depth &depth)
