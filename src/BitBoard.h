@@ -333,42 +333,38 @@ namespace BitBoard {
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE u16 magic_index   (Square s, Bitboard occ);
+    extern INLINE u16 magic_index(Square s, Bitboard occ);
 
     template<>
-    INLINE u16 magic_index   <BSHP> (Square s, Bitboard occ)
+    INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-
 #ifdef BMI
-       return u16 (_pext_u64 (occ, BMask_bb[s]));
-#endif
-
+        return u16 (_pext_u64 (occ, BMask_bb[s]));
+#else
 #ifdef _64BIT
         return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #else
-        u32 lo = (u32 (occ >>  0) & u32 (BMask_bb[s] >>  0)) * u32 (BMagic_bb[s] >>  0);
-        u32 hi = (u32 (occ >> 32) & u32 (BMask_bb[s] >> 32)) * u32 (BMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >> 0x00) & u32 (BMask_bb[s] >> 0x00)) * u32 (BMagic_bb[s] >> 0x00);
+        u32 hi = (u32 (occ >> 0x20) & u32 (BMask_bb[s] >> 0x20)) * u32 (BMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> BShift[s]);
 #endif
-
+#endif
     }
 
     template<>
-    INLINE u16 magic_index   <ROOK> (Square s, Bitboard occ)
+    INLINE u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-
 #ifdef BMI
-       return u16 (_pext_u64 (occ, RMask_bb[s]));
-#endif
-
+        return u16 (_pext_u64 (occ, RMask_bb[s]));
+#else
 #ifdef _64BIT
         return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
 #else
-        u32 lo = (u32 (occ >>  0) & u32 (RMask_bb[s] >>  0)) * u32 (RMagic_bb[s] >>  0);
-        u32 hi = (u32 (occ >> 32) & u32 (RMask_bb[s] >> 32)) * u32 (RMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >> 0x00) & u32 (RMask_bb[s] >> 0x00)) * u32 (RMagic_bb[s] >> 0x00);
+        u32 hi = (u32 (occ >> 0x20) & u32 (RMask_bb[s] >> 0x20)) * u32 (RMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> RShift[s]);
 #endif
-
+#endif
     }
 
     template<>
@@ -389,23 +385,11 @@ namespace BitBoard {
     // Piece attacks from square
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        //switch (ptype (p))
-        //{
-        //case PAWN: return PawnAttacks[color (p)][s];
-        //case BSHP: return attacks_bb<BSHP> (s, occ);
-        //case ROOK: return attacks_bb<ROOK> (s, occ);
-        //case QUEN: return attacks_bb<BSHP> (s, occ)
-        //               |  attacks_bb<ROOK> (s, occ);
-        //case NIHT: return PieceAttacks[NIHT][s];
-        //case KING: return PieceAttacks[KING][s];
-        //default  : return U64 (0);
-        //}
-
         PieceT pt = ptype (p);
-        return (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
+        return (PAWN == pt) ? PawnAttacks[color (p)][s]
+             : (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
              : (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
              : (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
-             : (PAWN == pt) ? PawnAttacks[color (p)][s]
              : (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
              : U64 (0);
     }
