@@ -53,7 +53,7 @@ namespace UCI {
     Option::operator bool () const
     {
         ASSERT (_type == "check");
-        return (_value == "true" || _value == "True");
+        return (_value == "true");
     }
     Option::operator i32 () const
     {
@@ -73,24 +73,21 @@ namespace UCI {
     {
         ASSERT (!_type.empty ());
 
-        if (  (_type != "button" && value.empty ())
-           || (_type == "check" && value != "true" && value != "false")
-           || (_type == "spin" && (atoi (value.c_str ()) < _minimum || atoi (value.c_str ()) > _maximum))
-           )
+        if (!( (_type != "button" && value.empty ())
+            || (_type == "check" && value != "true" && value != "false")
+            || (_type == "spin" && (atoi (value.c_str ()) < _minimum || atoi (value.c_str ()) > _maximum))
+           ))
         {
-            return *this;
-        }
-
-        if (_value != value)
-        {
-            if (_type != "button")
+            if (_value != value)
             {
-                _value = value;
-            }
-
-            if (_on_change != NULL)
-            {
-                _on_change (*this);
+                if (_type != "button")
+                {
+                    _value = value;
+                }
+                if (_on_change != NULL)
+                {
+                    _on_change (*this);
+                }
             }
         }
         return *this;

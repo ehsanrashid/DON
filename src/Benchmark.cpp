@@ -56,7 +56,7 @@ namespace {
 
 }
 
-// benchmark () runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
+// benchmark() runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
 // There are five optional parameters:
 //  - transposition table size (default is 32 MB).
 //  - number of search threads that should be used (default is 1 thread).
