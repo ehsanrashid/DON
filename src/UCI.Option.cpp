@@ -66,9 +66,10 @@ namespace UCI {
         return _value;
     }
 
-    // operator=() updates currentValue and triggers on_change() action. It's up to
-    // the GUI to check for option's limits, but we could receive the new value from
-    // the user by console window, so let's check the bounds anyway.
+    // operator=() updates value and triggers on_change() action.
+    // It's up to the GUI to check for option's limits,
+    // but we could receive the new value from the user by console window,
+    // so let's check the bounds anyway.
     Option& Option::operator= (const string &value)
     {
         ASSERT (!_type.empty ());
@@ -93,6 +94,15 @@ namespace UCI {
         return *this;
     }
 
+    // operator<<() inits options and assigns idx in the correct printing order
+    void Option::operator<< (const Option &opt)
+    {
+        static u08 order = 0;
+        *this = opt;
+        _idx = order++;
+    }
+
+    // operator()() is to string method of option
     string Option::operator() ()  const
     {
         ostringstream oss;
@@ -106,14 +116,6 @@ namespace UCI {
             }
         }
         return oss.str ();
-    }
-
-    // operator<<() inits options and assigns idx in the correct printing order
-    void Option::operator<< (const Option &opt)
-    {
-        static size_t order = 0;
-        *this = opt;
-        _index = order++;
     }
 
     // Option Events
