@@ -377,23 +377,11 @@ namespace BitBoard {
     // Piece attacks from square
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
-        //switch (ptype (p))
-        //{
-        //case PAWN: return PawnAttacks[color (p)][s];
-        //case BSHP: return attacks_bb<BSHP> (s, occ);
-        //case ROOK: return attacks_bb<ROOK> (s, occ);
-        //case QUEN: return attacks_bb<BSHP> (s, occ)
-        //               |  attacks_bb<ROOK> (s, occ);
-        //case NIHT: return PieceAttacks[NIHT][s];
-        //case KING: return PieceAttacks[KING][s];
-        //default  : return U64 (0);
-        //}
-
         PieceT pt = ptype (p);
-        return (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
+        return (PAWN == pt) ? PawnAttacks[color (p)][s]
+             : (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
              : (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
              : (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
-             : (PAWN == pt) ? PawnAttacks[color (p)][s]
              : (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
              : U64 (0);
     }
