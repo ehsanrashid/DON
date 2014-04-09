@@ -309,26 +309,16 @@ namespace Threads {
 
 }
 
-//#if __cplusplus > 199711L
-//#   include <thread>
-//#endif
-
 inline u32 cpu_count ()
 {
 
-//#if __cplusplus > 199711L
-//    // May return 0 when not able to detect
-//    return std::thread::hardware_concurrency ();
-//
-//#else    
-
-#   ifdef WIN32
+#ifdef WIN32
 
     SYSTEM_INFO sys_info;
     GetSystemInfo (&sys_info);
     return sys_info.dwNumberOfProcessors;
 
-#   elif MACOS
+#elif MACOS
 
     u32 count;
     u32 len = sizeof (count);
@@ -345,15 +335,15 @@ inline u32 cpu_count ()
     }
     return count;
 
-#   elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
 
     return sysconf (_SC_NPROCESSORS_ONLN);
 
-#   elif __IRIX
+#elif __IRIX
 
     return sysconf (_SC_NPROC_ONLN);
 
-#   elif __HPUX
+#elif __HPUX
 
     pst_dynamic psd;
     return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
@@ -361,13 +351,11 @@ inline u32 cpu_count ()
 
     //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
 
-#   else
+#else
 
     return 1;
 
-#   endif
-
-//#endif
+#endif
 
 }
 

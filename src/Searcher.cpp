@@ -1789,7 +1789,7 @@ namespace Searcher {
             goto finish;
         }
 
-        if (!Limits.infinite && !Limits.mate && bool (*(Options["Own Book"])))
+        if (!Limits.infinite && Limits.mate == 0 && bool (*(Options["Own Book"])))
         {
             if (!Book.is_open ())
             {
