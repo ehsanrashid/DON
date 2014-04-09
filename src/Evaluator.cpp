@@ -174,6 +174,7 @@ namespace Evaluator {
                 S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41),
                 S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41)
             },
+            {}
         };
 
         // OutpostBonus[PieceT][Square] contains bonuses of knights and bishops,
@@ -535,7 +536,7 @@ namespace Evaluator {
                     (BSHP == PT) ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
                     (ROOK == PT) ? attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
                     (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
-                    (NIHT == PT) ? PieceAttacks[NIHT][s] : PieceAttacks[KING][s];
+                    PieceAttacks[PT][s];
 
                 if (ei.pinned_pieces[C] & s)
                 {
@@ -564,10 +565,7 @@ namespace Evaluator {
                                 );
                 }
 
-                i32 mob = (QUEN != PT)
-                    ? pop_count<MAX15> (attacks & mobility_area)
-                    : pop_count<FULL > (attacks & mobility_area);
-
+                i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility[C] += MobilityBonus[PT][mob];
 
                 // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -576,6 +574,8 @@ namespace Evaluator {
                 {
                     score -= PawnThreatenPenalty[PT];
                 }
+
+                // Special extra evaluation for pieces
 
                 if (BSHP == PT || NIHT == PT)
                 {
@@ -655,7 +655,6 @@ namespace Evaluator {
                         }
                     }
 
-                    // Special extra evaluation for rooks
                     //// Give a bonus if we are a rook and can pin a piece or
                     //// can give a discovered check through an x-ray attack.
                     //if (   (PieceAttacks[ROOK][ek_sq] & s)
@@ -897,9 +896,10 @@ namespace Evaluator {
             if (weak_enemies)
             {
                 Bitboard attacked_enemies;
+                // Minor
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
                 if (attacked_enemies) score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
-
+                // Major
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
                 if (attacked_enemies) score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
             }
