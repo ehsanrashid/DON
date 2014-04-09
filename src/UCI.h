@@ -26,9 +26,13 @@ namespace UCI {
 
         template<class charT, class Traits>
         friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options);
+            operator<< (std::basic_ostream<charT, Traits> &os, const Option &opt);
 
-        size_t _index;
+        template<class charT, class Traits>
+        friend std::basic_ostream<charT, Traits>&
+            operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &optmap);
+
+        u08 _idx;
         std::string _type;
 
         std::string
@@ -41,20 +45,20 @@ namespace UCI {
         OnChange _on_change;
 
     public:
-        Option (OnChange = NULL);
-        Option (bool val, OnChange = NULL);
-        Option (const char *val, OnChange = NULL);
-        Option (i32 val, i32 minimum, i32 maximum, OnChange = NULL);
+        Option (OnChange on_change = NULL);
+        Option (bool val, OnChange on_change = NULL);
+        Option (const char *val, OnChange on_change = NULL);
+        Option (i32 val, i32 minimum, i32 maximum, OnChange on_change = NULL);
 
         operator bool () const;
         operator i32  () const;
         operator std::string() const;
 
         Option& operator=  (const std::string &value);
-        std::string operator() ()  const;
 
         void    operator<< (const Option &opt);
 
+        std::string operator() ()  const;
     };
 
     template<class charT, class Traits>
@@ -65,18 +69,20 @@ namespace UCI {
         return os;
     }
 
+    // operator<<() is used to print all the options default values in chronological
+    // insertion order (the idx field) and in the format defined by the UCI protocol.
     template<class charT, class Traits>
     inline std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &options)
+        operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &optmap)
     {
-        for (size_t idx = 0; idx < options.size (); ++idx)
+        for (size_t idx = 0; idx < optmap.size (); ++idx)
         {
             for (OptionMap::const_iterator
-                itr  = options.begin ();
-                itr != options.end (); ++itr)
+                itr  = optmap.begin ();
+                itr != optmap.end (); ++itr)
             {
                 const Option &option = itr->second;
-                if (idx == option._index)
+                if (idx == option._idx)
                 {
                     os << "option name " << itr->first << option << std::endl;
                     break;
