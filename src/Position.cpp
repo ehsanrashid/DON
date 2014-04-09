@@ -1740,11 +1740,11 @@ Position::operator string () const
     }
     oss << "\n";
     
-    MoveList<LEGAL> moves (*this);
-    oss << "Legal moves (" << moves.size () << "): ";
-    for ( ; *moves; ++moves)
+    MoveList<LEGAL> ms (*this);
+    oss << "Legal moves (" << ms.size () << "): ";
+    for ( ; *ms; ++ms)
     {
-        oss << move_to_san (*moves, *const_cast<Position*> (this)) << " ";
+        oss << move_to_san (*ms, *const_cast<Position*> (this)) << " ";
     }
 
     return oss.str ();
