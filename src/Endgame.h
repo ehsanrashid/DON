@@ -94,7 +94,6 @@ namespace EndGame {
         inline Color color () const { return _stong_side; }
 
         T operator() (const Position &pos) const;
-
     };
 
     // Endgames class stores in two std::map the pointers to endgame evaluation
@@ -102,6 +101,8 @@ namespace EndGame {
     // endgame function calling its operator() that is virtual.
     class Endgames
     {
+
+    private:
 
         typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
         typedef std::map<Key, EndgameBase<eg_fun<1>::type>*> M2;
@@ -125,7 +126,6 @@ namespace EndGame {
         {
             return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
         }
-
     };
 
 }

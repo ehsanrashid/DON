@@ -242,7 +242,7 @@ namespace Notation {
     //    string lan;
     //    return lan;
     //}
-    //const std::string move_to_fan (Move m, Position &pos)
+    //const string move_to_fan (Move m, Position &pos)
     //{
     //    string fan;
     //    return fan;

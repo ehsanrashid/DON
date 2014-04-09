@@ -57,15 +57,15 @@ namespace MoveGenerator {
     {
 
     private:
-
         ValMove  moves[MAX_MOVES]
                 , *curr
                 , *last;
 
     public:
+
         explicit MoveList (const Position &pos)
             : curr (moves)
-            , last (generate<GT>(moves, pos))
+            , last (generate<GT> (moves, pos))
         {
             last->move = MOVE_NONE;
         }
@@ -100,7 +100,6 @@ namespace MoveGenerator {
         //    movelist.curr = curr;
         //    return os;
         //}
-
     };
 
 }
