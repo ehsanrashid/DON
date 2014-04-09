@@ -45,18 +45,13 @@ namespace Searcher {
         struct GameClock
         {
             // unit: milli-seconds
-            u32 time;   // time left
-            u32 inc;    // time gain
+            u32 time;   // Time left
+            u32 inc;    // Time gain
 
-            //GameClock (u32 tm, u32 in)
-            //    : time (tm)
-            //    , inc  (in)
-            //{}
             GameClock ()
                 : time (0)
                 , inc  (0)
             {}
-
         };
 
     public:
@@ -86,7 +81,6 @@ namespace Searcher {
         {
             return !(infinite || movetime || depth || nodes || mate);
         }
-
     };
 
     // Signals stores volatile flags updated during the search sent by the GUI
@@ -108,7 +102,6 @@ namespace Searcher {
             , root_1stmove   (false)
             , root_failedlow (false)
         {}
-
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
