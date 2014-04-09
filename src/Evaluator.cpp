@@ -167,9 +167,9 @@ namespace Evaluator {
             },
             // Queens
             {
-                S (- 12, -20), S (-  8, -13), S (-  5, - 7), S (-  2, - 1), S (+  1,+  5),
-                S (+  4,+ 11), S (+  7,+ 17), S (+ 10,+ 23), S (+ 13,+ 29), S (+ 16,+ 34),
-                S (+ 18,+ 38), S (+ 20,+ 40), S (+ 22,+ 41), S (+ 23,+ 41), S (+ 24,+ 41),
+                S (- 12, -20), S (-  8, -13), S (-  5, - 7), S (   0,   0), S (+  6,+ 10),
+                S (+ 11,+ 19), S (+ 13,+ 29), S (+ 18,+ 38), S (+ 20,+ 40), S (+ 21,+ 41),
+                S (+ 22,+ 41), S (+ 22,+ 41), S (+ 22,+ 41), S (+ 23,+ 41), S (+ 24,+ 41),
                 S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41),
                 S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41),
                 S (+ 25,+ 41), S (+ 25,+ 41), S (+ 25,+ 41)
@@ -285,7 +285,7 @@ namespace Evaluator {
         template<Color C>
         void init_eval_info (const Position &pos, EvalInfo &ei);
 
-        template<Color C, bool TRACE>
+        template<bool TRACE>
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[]);
 
         template<Color C, bool TRACE>
@@ -346,9 +346,8 @@ namespace Evaluator {
             init_eval_info<BLACK> (pos, ei);
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             // Evaluate pieces and mobility
-            score += evaluate_pieces<WHITE, TRACE> (pos, ei, mobility)
-                  -  evaluate_pieces<BLACK, TRACE> (pos, ei, mobility);
-            // initialize evaluation info ends here
+            score += evaluate_pieces<TRACE> (pos, ei, mobility);
+            // Initialize evaluation info ends here
             
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
@@ -460,7 +459,9 @@ namespace Evaluator {
             ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
             // Init king safety tables only if we are going to use them
-            if (pos.count<QUEN> (C) && pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+            if (   pos.count<QUEN> (C) 
+                && (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+               )
             {
                 ei.king_ring              [C_] = attacks | shift_del<PULL> (attacks);
                 attacks &= ei.attacked_by [C ][PAWN];
@@ -492,7 +493,8 @@ namespace Evaluator {
             if (bonus && (ei.attacked_by[C][PAWN] & s))
             {
                 if (   !(pos.pieces<NIHT> (C_))
-                    && !(pos.pieces<BSHP> (C_) & squares_of_color (s)))
+                    && !(pos.pieces<BSHP> (C_) & squares_of_color (s))
+                   )
                 {
                     bonus += i32 (bonus)*1.5;
                 }
@@ -552,6 +554,14 @@ namespace Evaluator {
                     {
                         ei.king_zone_attacks_count[C] += pop_count<MAX15> (attacks_king);
                     }
+                }
+
+                if (QUEN == PT)
+                {
+                    attacks &= ~( ei.attacked_by[C_][NIHT]
+                                | ei.attacked_by[C_][BSHP]
+                                | ei.attacked_by[C_][ROOK]
+                                );
                 }
 
                 i32 mob = (QUEN != PT)
@@ -617,20 +627,22 @@ namespace Evaluator {
 
                     // Bishop or knight behind a pawn
                     if (   (rel_rank (C, s) < R_5)
-                        && (pos.pieces<PAWN> () & (s + pawn_push (C))))
+                        && (pos.pieces<PAWN> () & (s + pawn_push (C)))
+                       )
                     {
                         score += MinorBehindPawnBonus;
                     }
                 }
 
-                if (ROOK == PT /*|| QUEN == PT*/)
+                if (ROOK == PT)
                 {
                     Rank r = rel_rank (C, s);
                     if (R_5 <= r)
                     {
                         // Rook piece on 7th rank and enemy king trapped on 8th
                         if (   (R_7 == r)
-                            && (R_8 == rel_rank (C, ek_sq)))
+                            && (R_8 == rel_rank (C, ek_sq))
+                           )
                         {
                             score += RookOn7thBonus;
                         }
@@ -644,46 +656,45 @@ namespace Evaluator {
                     }
 
                     // Special extra evaluation for rooks
-                    //if (ROOK == PT)
+                    //// Give a bonus if we are a rook and can pin a piece or
+                    //// can give a discovered check through an x-ray attack.
+                    //if (   (PieceAttacks[ROOK][ek_sq] & s)
+                    //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ())
+                    //   )
                     //{
-                        //// Give a bonus if we are a rook and can pin a piece or
-                        //// can give a discovered check through an x-ray attack.
-                        //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                        //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ()))
+                    //    score += PinBonus;
+                    //}
+
+                    // Give a bonus for a rook on a open or semi-open file
+                    if (ei.pi->semiopen<C> (_file (s)))
+                    {
+                        score += ei.pi->semiopen<C_> (_file (s))
+                               ? RookOpenFileBonus
+                               : RookSemiopenFileBonus;
+
+                        //// Give more bonus if the rook is doubled
+                        //if (FrontSqs_bb[C_][s] & pos.pieces<ROOK> (C))
                         //{
-                        //    score += PinBonus;
+                        //    score += ei.pi->semiopen<C_> (_file (s))
+                        //           ? RookDoubledOpenBonus
+                        //           : RookDoubledSemiopenBonus;
                         //}
-
-                        // Give a bonus for a rook on a open or semi-open file
-                        if (ei.pi->semiopen<C> (_file (s)))
+                    }
+                    else
+                    {
+                        if (mob <= 3)
                         {
-                            score += ei.pi->semiopen<C_> (_file (s))
-                                   ? RookOpenFileBonus
-                                   : RookSemiopenFileBonus;
-
-                            //// Give more bonus if the rook is doubled
-                            //if (FrontSqs_bb[C_][s] & pos.pieces<ROOK> (C))
-                            //{
-                            //    score += ei.pi->semiopen<C_> (_file (s))
-                            //           ? RookDoubledOpenBonus
-                            //           : RookDoubledSemiopenBonus;
-                            //}
-                        }
-                        else
-                        {
-                            if (mob <= 3)
+                            // Penalize rooks which are trapped by a king. Penalize more if the
+                            // king has lost its castling capability.
+                            if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                                && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                                && !ei.pi->semiopen_on_side<C> (_file (fk_sq), _file (fk_sq) < F_E)
+                               )
                             {
-                                // Penalize rooks which are trapped by a king. Penalize more if the
-                                // king has lost its castling capability.
-                                if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
-                                    && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                    && !ei.pi->semiopen_on_side<C> (_file (fk_sq), _file (fk_sq) < F_E))
-                                {
-                                    score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
-                                }
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
                             }
                         }
-                    //}
+                    }
                 }
             }
 
@@ -695,33 +706,45 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color C, bool TRACE>
+        template<bool TRACE>
         // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
-
             // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-            Bitboard mobility_area = ~(ei.attacked_by[C_][PAWN] | pos.pieces (C, PAWN, KING));
+            const Bitboard mobility_area[CLR_NO] =
+            {
+                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
+                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
+            };
 
             Score score = 
-                evaluate_ptype<NIHT, C, TRACE> (pos, ei, mobility, mobility_area)
-              + evaluate_ptype<BSHP, C, TRACE> (pos, ei, mobility, mobility_area)
-              + evaluate_ptype<ROOK, C, TRACE> (pos, ei, mobility, mobility_area)
-              + evaluate_ptype<QUEN, C, TRACE> (pos, ei, mobility, mobility_area);
+                evaluate_ptype<NIHT, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
+              - evaluate_ptype<NIHT, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              + evaluate_ptype<BSHP, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
+              - evaluate_ptype<BSHP, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              + evaluate_ptype<ROOK, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
+              - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
+              + evaluate_ptype<QUEN, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
+              - evaluate_ptype<QUEN, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK]);
 
-            // Sum up all attacked squares
-            ei.attacked_by[C][NONE] =
-                ei.attacked_by[C][PAWN]
-              | ei.attacked_by[C][NIHT]
-              | ei.attacked_by[C][BSHP]
-              | ei.attacked_by[C][ROOK]
-              | ei.attacked_by[C][QUEN]
-              | ei.attacked_by[C][KING];
+            // Sum up all attacked squares (updated in evaluate_pieces)
+            for (Color c = WHITE; c <= BLACK; ++c)
+            {
+                ei.attacked_by[c][NONE] =
+                    ei.attacked_by[c][PAWN]
+                  | ei.attacked_by[c][NIHT]
+                  | ei.attacked_by[c][BSHP]
+                  | ei.attacked_by[c][ROOK]
+                  | ei.attacked_by[c][QUEN]
+                  | ei.attacked_by[c][KING];
+            }
 
             if (TRACE)
             {
-                Tracing::Terms[C][Tracing::MOBILITY] = apply_weight (mobility[C], Weights[Mobility]);
+                for (Color c = WHITE; c <= BLACK; ++c)
+                {
+                    Tracing::Terms[c][Tracing::MOBILITY] = apply_weight (mobility[c], Weights[Mobility]);
+                }
             }
 
             return score;
