@@ -235,16 +235,16 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //
     //if (pick_best)
     //{
-    //    vector<PBEntry>::const_iterator moves = pe_list.begin ();
-    //    while (moves != pe_list.end ())
+    //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
+    //    while (ms != pe_list.end ())
     //    {
-    //        pbe = *moves;
+    //        pbe = *ms;
     //        if (pbe.weight == max_weight)
     //        {
     //            move = Move (pbe.move);
     //            break;
     //        }
-    //        ++moves;
+    //        ++ms;
     //    }
     //}
     //else
@@ -255,17 +255,17 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
     //    u32 rand = (_rkiss.rand<u32> () % sum_weight);
-    //    vector<PBEntry>::const_iterator moves = pe_list.begin ();
-    //    while (moves != pe_list.end ())
+    //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
+    //    while (ms != pe_list.end ())
     //    {
-    //        pbe = *moves;
+    //        pbe = *ms;
     //        if (pbe.weight > rand)
     //        {
     //            move = Move (pbe.move);
     //            break;
     //        }
     //        rand -= pbe.weight;
-    //        ++moves;
+    //        ++ms;
     //    }
     //}
 
@@ -326,9 +326,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     if (pt) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
+    for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
     {
-        Move m = *moves;
+        Move m = *ms;
         //if ((m ^ mtype (m)) == move)
         if ((m & 0x3FFF) == move)
         {

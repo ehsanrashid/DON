@@ -301,9 +301,9 @@ namespace Searcher {
 
             StateInfo si;
             CheckInfo ci (pos);
-            for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
+            for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
-                Move m = *moves;
+                Move m = *ms;
                 pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
                 leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
                 pos.undo_move ();
@@ -370,7 +370,8 @@ namespace Searcher {
                 && (tt_value != VALUE_NONE) // Only in case of TT access race
                 && (        PVNode ?  tte->bound () == BND_EXACT
                 : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                :                    (tte->bound () &  BND_UPPER))
+                :                    (tte->bound () &  BND_UPPER)
+                   )
                )
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE

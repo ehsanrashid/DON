@@ -28,11 +28,11 @@ namespace Evaluator {
             Material::Entry *mi;
             Pawns   ::Entry *pi;
 
-            // attacked_by[color][piecetype] contains all squares attacked by a given color and piece type,
-            // attacked_by[color][NONE] contains all squares attacked by the given color.
+            // attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
+            // attacked_by[Color][NONE] contains all squares attacked by the given color.
             Bitboard attacked_by[CLR_NO][TOTL];
 
-            // king_ring[color] is the zone around the king which is considered
+            // king_ring[Color] is the zone around the king which is considered
             // by the king safety evaluation. This consists of the squares directly
             // adjacent to the king, and the three (or two, for a king on an edge file)
             // squares two ranks in front of the king. For instance, if black's king
@@ -40,18 +40,16 @@ namespace Evaluator {
             // f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring[CLR_NO];
 
-            // king_attackers_count[color] is the number of pieces of the given color
+            // king_attackers_count[Color] is the number of pieces of the given color
             // which attack a square in the king_ring of the enemy king.
             u08 king_attackers_count[CLR_NO];
 
-            // king_attackers_weight[color] is the sum of the "weight" of the pieces of the
-            // given color which attack a square in the king_ring of the enemy king. The
-            // weights of the individual piece types are given by the variables
-            // QueenAttackWeight, RookAttackWeight, BishopAttackWeight and
-            // KnightAttackWeight in evaluate.cpp
+            // king_attackers_weight[Color] is the sum of the "weight" of the pieces of the
+            // given color which attack a square in the king_ring of the enemy king. The weights
+            // of the individual piece types are given by the variables KingAttackWeights[PieceT]
             i32 king_attackers_weight[CLR_NO];
 
-            // king_zone_attacks_count[color] is the number of attacks to squares
+            // king_zone_attacks_count[Color] is the number of attacks to squares
             // directly adjacent to the king of the given color. Pieces which attack
             // more than one square are counted multiple times. For instance, if black's
             // king is on g8 and there's a white knight on g5, this knight adds
@@ -116,8 +114,8 @@ namespace Evaluator {
         }
 
         // Evaluation weights, initialized from UCI options
-        // Cowardice  -> KingDangerUs
-        // Aggressive -> KingDangerThem
+        // Cowardice  -> KingDanger to Self
+        // Aggressive -> KingDanger to Opponent
         enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
         
         struct Weight { i32 mg, eg; };
@@ -267,12 +265,10 @@ namespace Evaluator {
         const i32 KingAttackWeights[NONE] = { 0, 2, 2, 3, 5, 0, };
 
         // Bonuses for enemy's safe checks
-        const i32 KnightCheck       = + 3;
-        const i32 BishopCheck       = + 2;
-        const i32 RookCheck         = + 8;
-        const i32 QueenCheck        = +12;
-        const i32 RookContactCheck  = +16;
-        const i32 QueenContactCheck = +24;
+        const i32 PieceCheckWeights[NONE] = { 0, + 3, + 2, + 8, +12, 0, };
+
+        const i32 RookContactCheckWeight  = +16;
+        const i32 QueenContactCheckWeight = +24;
 
         const i32 PiecePinned       = + 2;
 
@@ -460,7 +456,7 @@ namespace Evaluator {
             ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
             // Init king safety tables only if we are going to use them
-            if (   pos.count<QUEN> (C) 
+            if (   (pos.count<QUEN> (C) != 0) 
                 && (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
                )
             {
@@ -474,6 +470,8 @@ namespace Evaluator {
             {
                 ei.king_ring              [C_] = U64 (0);
                 ei.king_attackers_count   [C ] = 0;
+                ei.king_zone_attacks_count[C ] = 0;
+                ei.king_attackers_weight  [C ] = 0;
             }
         }
 
@@ -524,6 +522,7 @@ namespace Evaluator {
             const Color  C_    = ((WHITE == C) ? BLACK : WHITE);
             const Square fk_sq = pos.king_sq (C);
             const Square ek_sq = pos.king_sq (C_);
+            const Bitboard occ = pos.pieces ();
 
             ei.attacked_by[C][PT] = U64 (0);
 
@@ -533,9 +532,9 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, occ ^ pos.pieces (C, QUEN, BSHP)) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, occ ^ pos.pieces (C, QUEN, ROOK)) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
                     PieceAttacks[PT][s];
 
                 if (ei.pinned_pieces[C] & s)
@@ -585,7 +584,7 @@ namespace Evaluator {
                         //// Give a bonus if we are a bishop and can pin a piece or
                         //// can give a discovered check through an x-ray attack.
                         //if (   (PieceAttacks[BSHP][ek_sq] & s)
-                        //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ()))
+                        //    && !more_than_one (Between_bb[s][ek_sq] & occ))
                         //{
                         //    score += PinBonus;
                         //}
@@ -658,7 +657,7 @@ namespace Evaluator {
                     //// Give a bonus if we are a rook and can pin a piece or
                     //// can give a discovered check through an x-ray attack.
                     //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                    //    && !more_than_one (Between_bb[s][ek_sq] & pos.pieces ())
+                    //    && !more_than_one (Between_bb[s][ek_sq] & occ)
                     //   )
                     //{
                     //    score += PinBonus;
@@ -726,7 +725,7 @@ namespace Evaluator {
               - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
               - evaluate_ptype<QUEN, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK]);
 
-            // Sum up all attacked squares (updated in evaluate_pieces)
+            // Sum up all attacked squares (updated in evaluate_ptype)
             for (Color c = WHITE; c <= BLACK; ++c)
             {
                 ei.attacked_by[c][NONE] =
@@ -797,7 +796,7 @@ namespace Evaluator {
                     if (undefended_attacked)
                     {
                         attack_units += 
-                            QueenContactCheck
+                            QueenContactCheckWeight
                           * pop_count<MAX15> (undefended_attacked)
                           * (C_ == pos.active () ? 2 : 1);
                     }
@@ -821,34 +820,35 @@ namespace Evaluator {
                     if (undefended_attacked)
                     {
                         attack_units +=
-                            RookContactCheck
+                            RookContactCheckWeight
                           * pop_count<MAX15> (undefended_attacked)
                           * (C_ == pos.active () ? 2 : 1);
                     }
                 }
 
+                const Bitboard occ = pos.pieces ();
                 // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
                 
-                Bitboard   rook_check = attacks_bb<ROOK> (king_sq, pos.pieces ()) & safe_sq;
-                Bitboard bishop_check = attacks_bb<BSHP> (king_sq, pos.pieces ()) & safe_sq;
+                Bitboard   rook_check = attacks_bb<ROOK> (king_sq, occ) & safe_sq;
+                Bitboard bishop_check = attacks_bb<BSHP> (king_sq, occ) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
                 safe_check = (rook_check | bishop_check) & ei.attacked_by[C_][QUEN];
-                if (safe_check) attack_units += QueenCheck * pop_count<MAX15> (safe_check);
+                if (safe_check) attack_units += PieceCheckWeights[QUEN] * pop_count<MAX15> (safe_check);
 
                 // Enemy rooks safe checks
                 safe_check =   rook_check & ei.attacked_by[C_][ROOK];
-                if (safe_check) attack_units += RookCheck * pop_count<MAX15> (safe_check);
+                if (safe_check) attack_units += PieceCheckWeights[ROOK] * pop_count<MAX15> (safe_check);
 
                 // Enemy bishops safe checks
                 safe_check = bishop_check & ei.attacked_by[C_][BSHP];
-                if (safe_check) attack_units += BishopCheck * pop_count<MAX15> (safe_check);
+                if (safe_check) attack_units += PieceCheckWeights[BSHP] * pop_count<MAX15> (safe_check);
 
                 // Enemy knights safe checks
                 safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
-                if (safe_check) attack_units += KnightCheck * pop_count<MAX15> (safe_check);
+                if (safe_check) attack_units += PieceCheckWeights[NIHT] * pop_count<MAX15> (safe_check);
 
                 Bitboard pinned_pieces = ei.pinned_pieces[C];
                 // Penalty for pinned pieces 
@@ -950,6 +950,7 @@ namespace Evaluator {
                     // If the pawn is free to advance, increase bonus
                     if (pos.empty (block_sq))
                     {
+                        const Bitboard occ = pos.pieces ();
                         // squares to queen
                         Bitboard queen_squares = FrontSqs_bb[C][s];
                         
@@ -958,7 +959,7 @@ namespace Evaluator {
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
-                                  && (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
+                                  && (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
                         {
                             unsafe_squares = queen_squares;
                         }
@@ -969,7 +970,7 @@ namespace Evaluator {
 
                         Bitboard defended_squares;
                         if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
-                                  && (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())))
+                                  && (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
                         {
                             defended_squares = queen_squares;
                         }
