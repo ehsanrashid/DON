@@ -8,7 +8,7 @@
 #include "Type.h"
 
 #ifdef BMI
-#   include <x86intrin.h> // Gcc header for _pext_u64() intrinsic
+#   include <x86intrin.h> // GCC header for _pext_u64() intrinsic
 #endif
 
 namespace BitBoard {
