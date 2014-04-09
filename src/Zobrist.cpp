@@ -14,7 +14,7 @@ namespace Zobrist {
     RKISS   Rkiss;
     Key     Exclusion;
 
-    void Zob::initialize (RKISS rk)
+    void Zob::initialize (RKISS &rk)
     {
         for (u16 i = 0; i < ZOB_SIZE; ++i)
         {
@@ -108,138 +108,6 @@ namespace Zobrist {
 
         return posi_key;
     }
-
-#ifndef NDEBUG
-    // Hash key of the FEN
-    Key Zob::compute_fen_key (const   char *fen, bool c960) const
-    {
-        if (!fen)   return U64 (0);
-
-        Key fen_key = U64 (0);
-        File king[CLR_NO] = {F_NO};
-
-#undef skip_whitespace
-#undef get_next
-
-#define skip_whitespace()  while (isspace (u08 (*fen))) ++fen
-#define get_next()         ch = u08 (*fen++)
-
-        unsigned char ch;
-        for (Rank r = R_8; r >= R_1; --r)
-        {
-            File f = F_A;
-            while (f <= F_H)
-            {
-                ch = *fen++;
-                if (!ch) return U64 (0);
-
-                if      (isdigit (ch))
-                {
-                    // empty square(s)
-                    if ('1' > ch || ch > '8') return U64 (0);
-
-                    u08 empty = (ch - '0');
-                    f += empty;
-
-                    if (f > F_NO) return U64 (0);
-                }
-                else if (isalpha (ch))
-                {
-                    size_t idx = PieceChar.find (ch);
-                    if (idx != string::npos)
-                    {
-                        Piece p = Piece (idx);
-                        if (EMPTY == p) return U64 (0);
-                        if (KING == ptype (p))  king[color (p)] = f;
-
-                        fen_key ^= _.piecesq[color (p)][ptype (p)][(f | r)];
-                    }
-                    ++f;
-                }
-                else
-                {
-                    return U64 (0);
-                }
-            }
-            if (r > R_1)
-            {
-                ch = *fen++;
-                if ('/' != ch) return U64 (0);
-            }
-        }
-        skip_whitespace ();
-        char active = get_next ();
-        if ('w' == active) fen_key ^= _.mover_side;
-
-        skip_whitespace ();
-        // 3. Castling availability
-        // Compatible with 3 standards:
-        // * Normal FEN standard,
-        // * Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
-        // * X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
-        // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-        get_next ();
-        if ('-' != ch)
-        {
-            if (c960)
-            {
-                do
-                {
-                    Color c = isupper (ch) ? WHITE : BLACK;
-                    char sym = tolower (ch);
-                    if ('a' <= sym && sym <= 'h')
-                    {
-                        fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
-                    }
-                    else
-                    {
-                        return U64 (0);
-                    }
-
-                    get_next ();
-                }
-                while (ch && !isspace (ch));
-            }
-            else
-            {
-                do
-                {
-                    Color c = isupper (ch) ? WHITE : BLACK;
-                    switch (toupper (ch))
-                    {
-                    case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
-                    case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;
-                    default:  return U64 (0); break;
-                    }
-
-                    get_next ();
-                }
-                while (ch && !isspace (ch));
-            }
-        }
-
-        skip_whitespace ();
-        get_next ();
-        if ('-' != ch)
-        {
-            unsigned char ep_f = tolower (ch);
-            if (!isalpha (ep_f)) return U64 (0);
-            if ('a' > ep_f || ep_f > 'h') return U64 (0);
-
-            unsigned char ep_r = get_next ();
-            if (!isdigit (ep_r)) return U64 (0);
-            if (   ('w' == active && '6' != ep_r)
-                || ('b' == active && '3' != ep_r)) return U64 (0);
-
-            fen_key ^= _.en_passant[to_file (ep_f)];
-        }
-
-#undef skip_whitespace
-#undef get_next
-
-        return fen_key;
-    }
-#endif
 
     // Hash key of the FEN
     Key Zob::compute_fen_key (const string &fen, bool c960) const
