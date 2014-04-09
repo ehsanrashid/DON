@@ -1593,7 +1593,7 @@ namespace Searcher {
                     // Sort the PV lines searched so far and update the GUI
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
                     
-                    elapsed = (now () - SearchTime);
+                    elapsed = now () - SearchTime;
                     if ((IndexPV + 1) == MultiPV || (elapsed > InfoDuration))
                     {
                         sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
@@ -1615,7 +1615,7 @@ namespace Searcher {
                 {
                     string search_log_fn = string (Options["Search Log File"]);
                     LogFile log (search_log_fn);
-                    log << pretty_pv (pos, depth, RootMoves[0].value[0], (now () - SearchTime), &RootMoves[0].pv[0]) << endl;
+                    log << pretty_pv (pos, depth, RootMoves[0].value[0], now () - SearchTime, &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Have found a "mate in x"?
@@ -1775,7 +1775,7 @@ namespace Searcher {
         bool write_search_log = bool (Options["Write Search Log"]);
         string search_log_fn  = string (Options["Search Log File"]);
 
-        i32 piece_cnt;
+        //i32 piece_cnt;
 
         if (RootMoves.empty ())
         {
@@ -1821,8 +1821,6 @@ namespace Searcher {
                 << endl;
         }
 
-        piece_cnt = RootPos.count ();
-        
         TBCardinality = 0;
         TB50MoveRule = true;
         TBHits = 0;
@@ -1830,6 +1828,7 @@ namespace Searcher {
         TBProbeDepth = DEPTH_NONE;
 
         /*
+        piece_cnt = RootPos.count ();
         TBCardinality = i32 (Options["Syzygy Probe Limit"]);
         if (TBCardinality > TBSyzygy::TB_Largest)
         {
@@ -1930,7 +1929,6 @@ namespace Searcher {
             }
             log << endl;
         }
-
 
     finish:
         
