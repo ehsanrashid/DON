@@ -7,6 +7,10 @@
 
 #include "Type.h"
 
+#ifdef BMI
+#   include <x86intrin.h> // Gcc header for _pext_u64() intrinsic
+#endif
+
 namespace BitBoard {
 
     const Bitboard FA_bb = U64 (0x0101010101010101);
@@ -335,6 +339,10 @@ namespace BitBoard {
     INLINE u16 magic_index   <BSHP> (Square s, Bitboard occ)
     {
 
+#ifdef BMI
+       return u16 (_pext_u64 (occ, BMask_bb[s]));
+#endif
+
 #ifdef _64BIT
         return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #else
@@ -348,6 +356,10 @@ namespace BitBoard {
     template<>
     INLINE u16 magic_index   <ROOK> (Square s, Bitboard occ)
     {
+
+#ifdef BMI
+       return u16 (_pext_u64 (occ, RMask_bb[s]));
+#endif
 
 #ifdef _64BIT
         return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);

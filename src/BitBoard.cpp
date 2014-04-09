@@ -138,6 +138,10 @@ namespace BitBoard {
                 {
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
+#               ifdef BMI
+                    attacks_bb[s][_pext_u64 (occ, mask)] = reference[size];
+#               endif
+
                     ++size;
                     occ = (occ - mask) & mask;
                 }
@@ -149,6 +153,10 @@ namespace BitBoard {
                 {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
+
+#           ifdef BMI
+                continue;
+#           endif
 
                 u16 booster = MagicBoosters[_rank (s)];
 
