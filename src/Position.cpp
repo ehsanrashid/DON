@@ -172,7 +172,7 @@ u08 Position::_50_move_dist;
 
 void Position::initialize ()
 {
-    _50_move_dist = 2 * i32 (*(Options["50 Move Distance"]));  
+    _50_move_dist = 2 * i32 (Options["50 Move Distance"]);
 
     for (PieceT pt = PAWN; pt <= KING; ++pt)
     {

@@ -20,7 +20,7 @@ namespace {
 
     const u08   FEN_TOTAL   = 30;
 
-    const char* DefaultFens[FEN_TOTAL] =
+    const char *DefaultFens[FEN_TOTAL] =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -83,12 +83,12 @@ void benchmark (istream &is, const Position &pos)
     string limit_type = (is >> token) ? token : "depth";
     string fen_fn     = (is >> token) ? token : "default";
 
-    *Options["Hash"]    = hash;
-    *Options["Threads"] = threads;
+    Options["Hash"]    = hash;
+    Options["Threads"] = threads;
 
     TT.master_clear ();
 
-    i32     value = abs (atoi (limit_val.c_str ()));
+    i32 value = abs (atoi (limit_val.c_str ()));
     //value = value >= 0 ? value : -value;
 
     LimitsT limits;
@@ -132,7 +132,7 @@ void benchmark (istream &is, const Position &pos)
         states = StateInfoStackPtr (new StateInfoStack ());
     }
     
-    bool chess960  = bool (*(Options["UCI_Chess960"]));
+    bool chess960  = bool (Options["UCI_Chess960"]);
     u64 nodes      = 0;
     point elapsed  = now ();
 
@@ -188,12 +188,12 @@ void benchtest (istream &is, const Position &pos)
     string limit_type = (is >> token) ? token : "depth";
     string fen_fn     = (is >> token) ? token : "default";
 
-    *Options["Hash"]    = hash;
-    *Options["Threads"] = threads;
+    Options["Hash"]    = hash;
+    Options["Threads"] = threads;
 
     TT.master_clear ();
 
-    i32     value = abs (atoi (limit_val.c_str ()));
+    i32 value = abs (atoi (limit_val.c_str ()));
     //value = value >= 0 ? value : -value;
 
     LimitsT limits;
@@ -237,7 +237,7 @@ void benchtest (istream &is, const Position &pos)
         states = StateInfoStackPtr (new StateInfoStack ());
     }
     
-    bool chess960  = bool (*(Options["UCI_Chess960"]));
+    bool chess960  = bool (Options["UCI_Chess960"]);
     u64 nodes      = 0;
     point elapsed  = now ();
 

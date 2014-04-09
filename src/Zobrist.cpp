@@ -264,6 +264,7 @@ namespace Zobrist {
             else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
+                if (KING == ptype (p))  king[color (p)] = _file (s);
                 fen_key ^= _.piecesq[color (p)][ptype (p)][s];
                 ++s;
             }
@@ -302,7 +303,7 @@ namespace Zobrist {
                 {
                 case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
                 case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;
-                default : return U64 (0); break;
+                default : break;
                 }
             }
         }

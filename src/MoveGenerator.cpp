@@ -37,7 +37,7 @@ namespace MoveGenerator {
             // Generates piece common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                static_assert (KING != PT && PAWN != PT, "PT must not be 'KING | PAWN'");
+                //ASSERT (KING != PT && PAWN != PT, "PT must not be 'KING | PAWN'");
 
                 Bitboard occ = pos.pieces ();
 
@@ -89,7 +89,7 @@ namespace MoveGenerator {
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
-                //static_assert (EVASION != GT, "GT must not be EVASION");
+                //ASSERT (EVASION != GT, "GT must not be EVASION");
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
                 if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ())
                 {
@@ -148,7 +148,7 @@ namespace MoveGenerator {
             // Generates KING common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                //static_assert (EVASION != GT, "GT must not be EVASION");
+                //ASSERT (EVASION != GT, "GT must not be EVASION");
                 if (EVASION == GT) return;
 
                 if (CHECK != GT && QUIET_CHECK != GT)
@@ -205,7 +205,7 @@ namespace MoveGenerator {
             // Generates PAWN promotion move
             static INLINE void generate_promotion (ValMove *&moves, Bitboard pawns_on_R7, Bitboard targets, const CheckInfo *ci)
             {
-                static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "Value of Delta is wrong");
+                //ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "Value of Delta is wrong");
 
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
                 while (promotes != U64 (0))
@@ -430,7 +430,7 @@ namespace MoveGenerator {
     ValMove* generate (ValMove *moves, const Position &pos)
     {
         //ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
-        static_assert (RELAX == GT || CAPTURE == GT || QUIET == GT, "GT must be 'RELAX | CAPTURE | QUIET'");
+        //ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT, "GT must be 'RELAX | CAPTURE | QUIET'");
         ASSERT (pos.checkers () == U64 (0));
 
         Color active    = pos.active ();

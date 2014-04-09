@@ -45,7 +45,7 @@ namespace UCI {
 
         inline void exe_ucinewgame ()
         {
-            TT.clear_hash = !bool (*(Options["Never Clear Hash"]));
+            TT.clear_hash = !bool (Options["Never Clear Hash"]);
         }
 
         inline void exe_isready ()
@@ -78,7 +78,7 @@ namespace UCI {
 
                     if (Options.count (name) > 0)
                     {
-                        *Options[name] = value;
+                        Options[name] = value;
                     }
                     else
                     {
@@ -170,7 +170,7 @@ namespace UCI {
             
             Key posi_key = RootPos.posi_key ();
 
-            RootPos.setup (fen, Threadpool.main (), bool (*(Options["UCI_Chess960"])));
+            RootPos.setup (fen, Threadpool.main (), bool (Options["UCI_Chess960"]));
             
             if (posi_key != RootPos.posi_key ())
             {
@@ -372,8 +372,8 @@ namespace UCI {
             if (cstm >> token)
             {
                 stringstream ss;
-                ss  << i32 (*(Options["Hash"]))    << " "
-                    << i32 (*(Options["Threads"])) << " "
+                ss  << i32 (Options["Hash"])    << " "
+                    << i32 (Options["Threads"]) << " "
                     << token << " perft current";
 
                 benchmark (ss, RootPos);
@@ -399,7 +399,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &args)
     {
-        RootPos.setup (FEN_N, Threadpool.main (), bool (*(Options["UCI_Chess960"])));
+        RootPos.setup (FEN_N, Threadpool.main (), bool (Options["UCI_Chess960"]));
 
         bool running = args.empty ();
         string cmd   = args;

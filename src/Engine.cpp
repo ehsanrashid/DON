@@ -110,17 +110,17 @@ namespace Engine {
         Evaluator::initialize ();
         Threadpool.initialize ();
         
-        TT.resize (i32 (*(Options["Hash"])), true);
-        string syzygy_path = string (*(Options["Syzygy Path"]));
-        TBSyzygy::initialize (syzygy_path);
+        TT.resize (i32 (Options["Hash"]), true);
+        //string syzygy_path = string (Options["Syzygy Path"]);
+        //TBSyzygy::initialize (syzygy_path);
 
         cout << endl;
 
 #ifndef NDEBUG
         //Tester::test_str ();
-        Tester::main_test ();
-        system ("pause");
-        return;
+        //Tester::main_test ();
+        //system ("pause");
+        //return;
 #endif
 
         UCI   ::start (args);

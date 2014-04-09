@@ -73,11 +73,11 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
     */
 
     // Read uci parameters
-    u08 emergency_move_horizon = i32 (*(Options["Emergency Move Horizon"]));
-    u32 emergency_base_time    = i32 (*(Options["Emergency Base Time"]));
-    u32 emergency_move_time    = i32 (*(Options["Emergency Move Time"]));
-    u32 minimum_thinking_time  = i32 (*(Options["Minimum Thinking Time"]));
-    u16 slow_mover             = i32 (*(Options["Slow Mover"]));
+    u08 emergency_move_horizon = i32 (Options["Emergency Move Horizon"]);
+    u32 emergency_base_time    = i32 (Options["Emergency Base Time"]);
+    u32 emergency_move_time    = i32 (Options["Emergency Move Time"]);
+    u32 minimum_thinking_time  = i32 (Options["Minimum Thinking Time"]);
+    u16 slow_mover             = i32 (Options["Slow Mover"]);
 
     // Initialize to maximum values but unstable_pv_extra_time that is reset
     _unstable_pv_factor  = 1.0;
@@ -103,7 +103,7 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
         if (_maximum_search_time > max_time) _maximum_search_time = max_time;
     }
 
-    if (bool (*(Options["Ponder"])))
+    if (bool (Options["Ponder"]))
     {
         _optimum_search_time += _optimum_search_time / 4;
     }

@@ -19,124 +19,108 @@ namespace UCI {
     using namespace Threads;
     using namespace Searcher;
 
-    namespace OptionType {
+    Option::Option (OnChange on_change)
+        : _type ("button")
+        , _minimum (0)
+        , _maximum (0)
+        , _on_change (on_change)
+    {}
+    Option::Option (bool val, OnChange on_change)
+        : _type ("check")
+        , _minimum (0)
+        , _maximum (0)
+        , _on_change (on_change)
+    {
+        _default = _value = (val ? "true" : "false");
+    }
+    Option::Option (const char *val, OnChange on_change)
+        : _type ("string")
+        , _minimum (0)
+        , _maximum (0)
+        , _on_change (on_change)
+    {
+        _default = _value = val;
+    }
+    Option::Option (i32 val, i32 minimum, i32 maximum, OnChange on_change)
+        : _type ("spin")
+        , _minimum (minimum)
+        , _maximum (maximum)
+        , _on_change (on_change)
+    {
+        ostringstream oss; oss << val; _default = _value = oss.str ();
+    }
 
-        Option:: Option (const OnChange on_change)
-            : index (Options.size ())
-            , _on_change (on_change)
-        {}
-        Option::~Option ()
-        {
-            if (_on_change)
-            {
-                _on_change = NULL;
-            }
-        }
+    Option::operator bool () const
+    {
+        ASSERT (_type == "check");
+        return (_value == "true" || _value == "True");
+    }
+    Option::operator i32 () const
+    {
+        ASSERT (_type == "spin");
+        return atoi (_value.c_str());
+    }
+    Option::operator string () const
+    {
+        ASSERT (_type == "string");
+        return _value;
+    }
 
-        ButtonOption::ButtonOption (const OnChange on_change)
-            : Option (on_change)
-        {}
-        string ButtonOption::operator() () const
+    // operator=() updates currentValue and triggers on_change() action. It's up to
+    // the GUI to check for option's limits, but we could receive the new value from
+    // the user by console window, so let's check the bounds anyway.
+    Option& Option::operator= (const string &value)
+    {
+        ASSERT (!_type.empty ());
+
+        if (  (_type != "button" && value.empty ())
+           || (_type == "check" && value != "true" && value != "false")
+           || (_type == "spin" && (atoi (value.c_str ()) < _minimum || atoi (value.c_str ()) > _maximum))
+           )
         {
-            ostringstream oss;
-            oss << "type button";
-            return oss.str ();
-        }
-        Option& ButtonOption::operator= (string &)
-        {
-            if (_on_change) _on_change (*this);
             return *this;
         }
 
-        CheckOption::CheckOption (const bool value, const OnChange on_change)
-            : Option (on_change)
+        if (_value != value)
         {
-            _default = _value = value;
-        }
-        string CheckOption::operator() () const
-        {
-            ostringstream oss;
-            oss << "type check"
-                << " default " << boolalpha << _default;
-            return oss.str ();
-        }
-        CheckOption::operator bool () const { return _value; }
-        Option& CheckOption::operator= (string &value)
-        {
-            if (value.empty ()) return *this;
-            bool val = (value == "true");
-            if (_value != val)
-            {
-                _value = val;
-                if (_on_change) _on_change (*this);
-            }
-            return *this;
-        }
-
-        StringOption::StringOption (const char value[], const OnChange on_change)
-            : Option (on_change)
-        {
-            _default = _value = value;
-        }
-        string StringOption::operator() () const
-        {
-            ostringstream oss;
-            oss << "type string"
-                << " default " << _default; //(_default.empty () ? "<empty>" : _default);
-            return oss.str ();
-        }
-        StringOption::operator string () const
-        {
-            return _value; //(_value.empty () ? "<empty>" : _value);
-        }
-        Option& StringOption::operator= (string &value)
-        {
-            if (_value != value)
+            if (_type != "button")
             {
                 _value = value;
-                if (_on_change) _on_change (*this);
             }
-            return *this;
-        }
 
-        SpinOption::SpinOption (i32 value, i32 minimum, i32 maximum, const OnChange on_change)
-            : Option (on_change)
-        {
-            _default = _value = value;
-            _minimum = minimum;
-            _maximum = maximum;
-        }
-        string SpinOption::operator() () const
-        {
-            ostringstream oss;
-            oss << "type spin"
-                << " default " << _default
-                << " min "     << _minimum
-                << " max "     << _maximum;
-            return oss.str ();
-        }
-        SpinOption::operator i32 () const { return _value; }
-        Option& SpinOption::operator= (string &value)
-        {
-            if (value.empty ()) return *this;
-            i32 val = atoi (value.c_str ());
-            //val = min (max (val, _minimum), _maximum);
-            if (val < _minimum) val = _minimum;
-            if (val > _maximum) val = _maximum;
-            if (_value != val)
+            if (_on_change != NULL)
             {
-                _value = val;
-                if (_on_change) _on_change (*this);
+                _on_change (*this);
             }
-            return *this;
         }
+        return *this;
+    }
 
+    string Option::operator() ()  const
+    {
+        ostringstream oss;
+        oss << " type " << _type;
+        if (_type != "button")
+        {
+            oss << " default " << _default;
+            if (_type == "spin")
+            {
+                oss << " min " << _minimum << " max " << _maximum;
+            }
+        }
+        return oss.str ();
+    }
+
+    // operator<<() inits options and assigns idx in the correct printing order
+    void Option::operator<< (const Option &opt)
+    {
+        static size_t order = 0;
+        *this = opt;
+        index = order++;
     }
 
     // Option Events
     namespace {
-
-        using namespace OptionType;
 
 #   ifdef LPAGES
         void on_large_pages     (const Option &)
@@ -157,8 +141,8 @@ namespace UCI {
 
         void on_save_hash   (const Option &)
         {
-            string hash_fn = string (*(Options["Hash File"]));
-            ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
+            string hash_fn = string (Options["Hash File"]);
+            ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
             ofhash << TT;
             ofhash.close ();
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
@@ -166,8 +150,8 @@ namespace UCI {
 
         void on_load_hash   (const Option &)
         {
-            string hash_fn = string (*(Options["Hash File"]));
-            ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
+            string hash_fn = string (Options["Hash File"]);
+            ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
             ifhash >> TT;
             ifhash.close ();
             sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
@@ -181,7 +165,7 @@ namespace UCI {
         void on_change_tb_syzygy (const Option &opt)
         {
             string syzygy_path = string (opt);
-            TBSyzygy::initialize (syzygy_path);
+            //TBSyzygy::initialize (syzygy_path);
         }
         
         void on_config_threadpool(const Option &)
@@ -231,21 +215,21 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         = OptionPtr (new SpinOption (128, TranspositionTable::MIN_TT_SIZE, TranspositionTable::MAX_TT_SIZE, on_resize_hash));
+        Options["Hash"]                         << Option (128, TranspositionTable::MIN_TT_SIZE, TranspositionTable::MAX_TT_SIZE, on_resize_hash);
 #ifdef LPAGES
-        Options["Large Pages"]                  = OptionPtr (new CheckOption (true, on_large_pages));
+        Options["Large Pages"]                  << Option (true, on_large_pages);
 #endif
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.
-        Options["Clear Hash"]                   = OptionPtr (new ButtonOption (on_clear_hash));
+        Options["Clear Hash"]                   << Option (on_clear_hash);
 
         // This option prevents the Hash Memory from being cleared between successive games or positions belonging to different games.
         // Default false
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Never Clear Hash"]             = OptionPtr (new CheckOption (false));
+        Options["Never Clear Hash"]             << Option (false);
 
         // Persistent Hash Options
         // -----------------------
@@ -271,14 +255,14 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    = OptionPtr (new StringOption ("Hash.dat"));
+        Options["Hash File"]                    << Option ("Hash.dat");
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
         // The size of the file will be identical to the size of the hash memory, so this operation could take a while.
         // This feature can be used to interrupt and restart a deep analysis at any time.
-        Options["Save Hash"]                    = OptionPtr (new ButtonOption (on_save_hash));
+        Options["Save Hash"]                    << Option (on_save_hash);
 
         // Load a previously saved Hash file from disk.
         // Use the Load Hash File button after loading the game or position, but before starting the analysis.
@@ -286,7 +270,7 @@ namespace UCI {
         // The size of the Hash memory will automatically be set to the size of the saved file.
         // Please make sure to check the Never Clear Hash option,
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Load Hash"]                    = OptionPtr (new ButtonOption (on_load_hash));
+        Options["Load Hash"]                    << Option (on_load_hash);
 
         // Position Learning Options
         // -------------------------
@@ -294,20 +278,20 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // Whether or not the engine should use the Opening Book.
-        Options["Own Book"]                     = OptionPtr (new CheckOption (false));
+        Options["Own Book"]                     << Option (false);
         // The filename of the Opening Book.
-        Options["Book File"]                    = OptionPtr (new StringOption ("Book.bin", on_change_book));
+        Options["Book File"]                    << Option ("Book.bin", on_change_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               = OptionPtr (new CheckOption (true));
+        Options["Best Book Move"]               << Option (true);
 
         // End Game Table Bases Options
         // ----------------------------
         // 
-        Options["Syzygy Path"]                  = OptionPtr (new StringOption ("", on_change_tb_syzygy));
-        Options["Syzygy Probe Depth"]           = OptionPtr (new SpinOption ( 1, 1, 100));
-        Options["Syzygy 50 Move Rule"]          = OptionPtr (new CheckOption (true));
-        Options["Syzygy Probe Limit"]           = OptionPtr (new SpinOption ( 6, 0, 6));
+        Options["Syzygy Path"]                  << Option ("", on_change_tb_syzygy);
+        Options["Syzygy Probe Depth"]           << Option ( 1, 1, 100);
+        Options["Syzygy 50 Move Rule"]          << Option (true);
+        Options["Syzygy Probe Limit"]           << Option ( 6, 0, 6);
 
         // Cores and Threads Options
         // -------------------------
@@ -319,7 +303,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      = OptionPtr (new SpinOption ( 1, 1, MAX_THREADS, on_config_threadpool));
+        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, on_config_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -327,14 +311,14 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  = OptionPtr (new SpinOption ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool));
+        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool);
 
         // If this is set to true, threads are suspended when there is no work to do.
         // This saves CPU power consumption, but waking a thread takes a small bit of time.
         // For maximum performance, set this option to false,
         // but if you need to reduce power consumption (i.e. on mobile devices) set this option to true.
         // Default true
-        Options["Idle Threads Sleep"]           = OptionPtr (new CheckOption (true));
+        Options["Idle Threads Sleep"]           << Option (true);
 
         // Game Play Options
         // -----------------
@@ -343,14 +327,14 @@ namespace UCI {
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       = OptionPtr (new CheckOption (true));
+        Options["Ponder"]                       << Option (true);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      = OptionPtr (new SpinOption ( 1, 1, 50));
+        Options["MultiPV"]                      << Option ( 1, 1, 50);
 
         // TODO::
         //// Limit the multi-PV analysis to moves within a range of the best move.
@@ -358,7 +342,7 @@ namespace UCI {
         ////
         //// Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         //// A value of 0 means that this parameter will not be taken into account.
-        //Options["MultiPV_cp"]                   = OptionPtr (new SpinOption (0, 0, 999));
+        //Options["MultiPV_cp"]                   << Option (0, 0, 999);
 
         // TODO::
         //// Level of contempt to avoid draws in game play.
@@ -386,14 +370,14 @@ namespace UCI {
         //// One could envisage more pronounced contempt but this would start to degrade the engine's objective strength.
         //// By default the contempt is only activated during game play, not during infinite analysis.
         //// If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
-        //Options["Contempt"]                     = OptionPtr (new SpinOption (1,   0,  2));
+        //Options["Contempt"]                     << Option (1,   0,  2);
 
         // Roughly equivalent to "Optimism."
         // Factor for adjusted contempt. Changes playing style.
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -50, Max +50.
-        Options["Contempt Factor"]              = OptionPtr (new SpinOption (0, -50, +50));
+        Options["Contempt Factor"]              << Option (0, -50, +50);
         
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -406,7 +390,7 @@ namespace UCI {
         //
         // By setting 50 Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["50 Move Distance"]             = OptionPtr (new SpinOption (50, 5, 50, on_50_move_dist));
+        Options["50 Move Distance"]             << Option (50, 5, 50, on_50_move_dist);
 
 
         // TODO::
@@ -420,22 +404,22 @@ namespace UCI {
         //// you could find a best move e2-e4 scoring about +0.3 for White.
         //// If you then play e2-e4 and analyze for Black you could find a score close to +0.0.
         //// If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it's White or Black to move.
-        //Options["Analysis Contempt"]            = OptionPtr (new CheckOption (false));
+        //Options["Analysis Contempt"]            << Option (false);
 
-        Options["Mobility (Midgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
-        Options["Mobility (Endgame)"]           = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Mobility (Midgame)"]           << Option (100, 0, 200, on_change_evaluation);
+        Options["Mobility (Endgame)"]           << Option (100, 0, 200, on_change_evaluation);
 
-        Options["Pawn Structure (Midgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
-        Options["Pawn Structure (Endgame)"]     = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Pawn Structure (Midgame)"]     << Option (100, 0, 200, on_change_evaluation);
+        Options["Pawn Structure (Endgame)"]     << Option (100, 0, 200, on_change_evaluation);
 
-        Options["Passed Pawns (Midgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
-        Options["Passed Pawns (Endgame)"]       = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Passed Pawns (Midgame)"]       << Option (100, 0, 200, on_change_evaluation);
+        Options["Passed Pawns (Endgame)"]       << Option (100, 0, 200, on_change_evaluation);
         
-        Options["Space"]                        = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
         // Degree of cowardice.
-        Options["Cowardice"]                    = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Cowardice"]                    << Option (100, 0, 200, on_change_evaluation);
         // Degree of agressiveness.
-        Options["Aggressive"]                   = OptionPtr (new SpinOption (100, 0, 200, on_change_evaluation));
+        Options["Aggressive"]                   << Option (100, 0, 200, on_change_evaluation);
 
 
         // TODO::
@@ -445,27 +429,27 @@ namespace UCI {
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  = OptionPtr (new SpinOption (  0, 0, 99));
+        Options["Mate Search"]                  << Option (  0, 0, 99);
         // How well you want engine to play.
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  = OptionPtr (new SpinOption (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL));
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
-        Options["Emergency Move Horizon"]       = OptionPtr (new SpinOption ( 40, 0, 50));
-        Options["Emergency Base Time"]          = OptionPtr (new SpinOption ( 60, 0, 30000));
-        Options["Emergency Move Time"]          = OptionPtr (new SpinOption ( 30, 0, 5000));
+        Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
+        Options["Emergency Base Time"]          << Option ( 60, 0, 30000);
+        Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
         // The minimum amount of time to analyze, in milliseconds.
-        Options["Minimum Thinking Time"]        = OptionPtr (new SpinOption ( 20, 0, 5000));
+        Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // Move fast if small value, 100 is neutral
-        Options["Slow Mover"]                   = OptionPtr (new SpinOption ( 80, 10, 1000));
+        Options["Slow Mover"]                   << Option ( 80, 10, 1000);
 
         // Debug Options
         // -------------
         // Whether or not to write a debug log.
-        Options["Write IO Log"]                 = OptionPtr (new CheckOption (false, on_io_log));
+        Options["Write IO Log"]                 << Option (false, on_io_log);
         // Whether or not to write a search log.
-        Options["Write Search Log"]             = OptionPtr (new CheckOption (false));
+        Options["Write Search Log"]             << Option (false);
         // The filename of the search log.
-        Options["Search Log File"]              = OptionPtr (new StringOption ("SearchLog.txt"));
+        Options["Search Log File"]              << Option ("SearchLog.txt");
 
         /// ---------------------------------------------------------------------------------------
 
@@ -473,24 +457,24 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        Options["UCI_Chess960"]                 = OptionPtr (new CheckOption (false));
+        Options["UCI_Chess960"]                 << Option (false);
 
         // TODO::
         //// Activate the strength limit specified in the UCI_Elo parameter.
         //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //// Default false.
         ////
-        //Options["UCI_LimitStrength"]            = OptionPtr (new CheckOption (false));
+        //Options["UCI_LimitStrength"]            << Option (false);
 
         //// UCI-protocol compliant version of Strength parameter.
         //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
         //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //// Default 3000, Min 1200, Max 3000.
-        //Options["UCI_ELO"]                      = OptionPtr (new SpinOption (3000, 1200, 3000));
+        //Options["UCI_ELO"]                      << Option (3000, 1200, 3000);
 
         // TODO::
         //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["UCI_Query"]                    = OptionPtr (new ButtonOption (on_query));
+        //Options["UCI_Query"]                    << Option (on_query);
 
     }
 

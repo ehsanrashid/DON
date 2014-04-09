@@ -287,9 +287,9 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure ()
     {
-        split_depth = i32 (*(Options["Split Depth"])) * ONE_MOVE;
+        split_depth = i32 (Options["Split Depth"]) * ONE_MOVE;
         u08 threads;
-        threads     = i32 (*(Options["Threads"]));
+        threads     = i32 (Options["Threads"]);
 
         ASSERT (threads > 0);
 

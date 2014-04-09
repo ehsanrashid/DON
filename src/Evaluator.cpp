@@ -481,7 +481,7 @@ namespace Evaluator {
         // evaluate_outposts() evaluates bishop and knight outposts squares
         inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
         {
-            //static_assert (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
+            //ASSERT (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
             ASSERT (BSHP == PT || NIHT == PT);
 
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -1119,8 +1119,8 @@ namespace Evaluator {
         {
             Weight weight =
             {
-                i32 (*(Options[mg_opt])) * mg_value (internal_weight) / 100, // =mg
-                i32 (*(Options[eg_opt])) * eg_value (internal_weight) / 100  // =eg
+                i32 (Options[mg_opt]) * mg_value (internal_weight) / 100, // =mg
+                i32 (Options[eg_opt]) * eg_value (internal_weight) / 100  // =eg
             };
             return weight;
         }

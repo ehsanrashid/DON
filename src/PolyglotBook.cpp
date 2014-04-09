@@ -126,7 +126,7 @@ PolyglotBook::PolyglotBook ()
 {}
 
 PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
-    : fstream (fn_book, mode|ios_base::binary)
+    : fstream (fn_book.c_str (), mode|ios_base::binary)
     , _fn_book (fn_book)
     , _mode (mode)
     , _size_book (0)
@@ -144,7 +144,7 @@ PolyglotBook::~PolyglotBook ()
 bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
 {
     close ();
-    fstream::open (fn_book, mode|ios_base::binary);
+    fstream::open (fn_book.c_str (), mode|ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _fn_book = fn_book;
     _mode    = mode;
@@ -367,14 +367,15 @@ string PolyglotBook::read_entries (const Position &pos)
         sum_weight += pbe.weight;
     }
 
+    //TODO::
     ostringstream oss;
-    for_each (pe_list.begin (), pe_list.end (), [&oss, &sum_weight] (PBEntry _pbe)
-    {
-        oss << setfill ('0')
-            << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-            << (sum_weight ? double (_pbe.weight) * 100 / double (sum_weight) : 0.0)
-            << endl;
-    });
+    //for_each (pe_list.begin (), pe_list.end (), [&oss, &sum_weight] (PBEntry _pbe)
+    //{
+    //    oss << setfill ('0')
+    //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
+    //        << (sum_weight ? double (_pbe.weight) * 100 / double (sum_weight) : 0.0)
+    //        << endl;
+    //});
 
     return oss.str ();
 }

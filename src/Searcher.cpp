@@ -84,12 +84,14 @@ namespace Searcher {
         MovesStats  CounterMoves
             ,       FollowupMoves;
 
+        
         i32     TBCardinality;
         u16     TBHits;
         bool    RootInTB;
         bool    TB50MoveRule;
         Depth   TBProbeDepth;
         Value   TBScore;
+        
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -158,7 +160,7 @@ namespace Searcher {
 
             ostringstream oss;
 
-            u08 rm_size = min<i32> (*(Options["MultiPV"]), RootMoves.size ());
+            u08 rm_size = min<i32> (Options["MultiPV"], RootMoves.size ());
             u08 sel_depth = 0;
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
@@ -1480,8 +1482,8 @@ namespace Searcher {
 
             i32 depth    =  DEPTH_ZERO;
 
-            MultiPV = i32 (*(Options["MultiPV"]));
-            u08 lvl = i32 (*(Options["Skill Level"]));
+            MultiPV = i32 (Options["MultiPV"]);
+            u08 lvl = i32 (Options["Skill Level"]);
             Skill skill (lvl);
 
             // Do we have to play with skill handicap? In this case enable MultiPV search
@@ -1608,10 +1610,10 @@ namespace Searcher {
                     }
                 }
 
-                bool write_search_log = *(Options["Write Search Log"]);
+                bool write_search_log = bool (Options["Write Search Log"]);
                 if (write_search_log)
                 {
-                    string search_log_fn = *(Options["Search Log File"]);
+                    string search_log_fn = string (Options["Search Log File"]);
                     LogFile log (search_log_fn);
                     log << pretty_pv (pos, depth, RootMoves[0].value[0], (now () - SearchTime), &RootMoves[0].pv[0]) << endl;
                 }
@@ -1765,13 +1767,13 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        i32 contempt = i32 (*(Options["Contempt Factor"])) * VALUE_EG_PAWN / 100; // From centipawns
+        i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns
         //contempt = contempt * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
         DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
         DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
 
-        bool write_search_log = bool (*(Options["Write Search Log"]));
-        string search_log_fn  = string (*(Options["Search Log File"]));
+        bool write_search_log = bool (Options["Write Search Log"]);
+        string search_log_fn  = string (Options["Search Log File"]);
 
         i32 piece_cnt;
 
@@ -1787,13 +1789,13 @@ namespace Searcher {
             goto finish;
         }
 
-        if (!Limits.infinite && Limits.mate == 0 && bool (*(Options["Own Book"])))
+        if (!Limits.infinite && Limits.mate == 0 && bool (Options["Own Book"]))
         {
             if (!Book.is_open ())
             {
-                Book.open (*(Options["Book File"]), ios_base::in|ios_base::binary);
+                Book.open (string (Options["Book File"]), ios_base::in|ios_base::binary);
             }
-            Move book_move = Book.probe_move (RootPos, bool (*(Options["Best Book Move"])));
+            Move book_move = Book.probe_move (RootPos, bool (Options["Best Book Move"]));
             if (   book_move != MOVE_NONE
                 && count (RootMoves.begin (), RootMoves.end (), book_move))
             {
@@ -1821,14 +1823,21 @@ namespace Searcher {
 
         piece_cnt = RootPos.count ();
         
-        TBCardinality = i32 (*(Options["Syzygy Probe Limit"]));
+        TBCardinality = 0;
+        TB50MoveRule = true;
+        TBHits = 0;
+        RootInTB = false;
+        TBProbeDepth = DEPTH_NONE;
+
+        /*
+        TBCardinality = i32 (Options["Syzygy Probe Limit"]);
         if (TBCardinality > TBSyzygy::TB_Largest)
         {
             TBCardinality = TBSyzygy::TB_Largest;
         }
 
-        TB50MoveRule = bool (*(Options["Syzygy 50 Move Rule"]));
-        TBProbeDepth = i32 (*(Options["Syzygy Probe Depth"])) * ONE_MOVE;
+        TB50MoveRule = bool (Options["Syzygy 50 Move Rule"]);
+        TBProbeDepth = i32 (Options["Syzygy Probe Depth"]) * ONE_MOVE;
 
         TBHits = 0;
         RootInTB = false;
@@ -1878,6 +1887,7 @@ namespace Searcher {
                 TBHits = 0;
             }
         }
+        */
 
         // Reset the threads, still sleeping: will wake up at split time
         for (u08 t = 0; t < Threadpool.size (); ++t)
@@ -1885,7 +1895,7 @@ namespace Searcher {
             Threadpool[t]->max_ply = 0;
         }
 
-        Threadpool.idle_sleep = *(Options["Idle Threads Sleep"]);
+        Threadpool.idle_sleep = bool (Options["Idle Threads Sleep"]);
         Threadpool.timer->run = true;
 
         Threadpool.timer->notify_one ();// Wake up the recurring timer

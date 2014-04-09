@@ -42,8 +42,8 @@ SIGNBENCH = ./$(EXE) bench
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
 	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o  \
-	Thread.o TimeManager.o Transposition.o TriLogger.o UCI.o UCI.Option.o Zobrist.o       \
-	Debugger.o MemoryHandler.o TB_Syzygy.o
+	Thread.o TimeManager.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o   \
+	Debugger.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -206,7 +206,7 @@ endif
 # -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
 # -Wall -fabi-version=6 -fno-access-control -fno-strict-enums -Wno-pragmas -fexceptions
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-strict-enums -fno-rtti $(EXTRACXXFLAGS)
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)

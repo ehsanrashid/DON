@@ -181,7 +181,7 @@ namespace MemoryHandler {
     {
         UsePages = false;
 
-        if (bool (*(Options["Large Pages"])))
+        if (bool (Options["Large Pages"]))
         {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
