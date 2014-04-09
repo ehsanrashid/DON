@@ -278,7 +278,7 @@ namespace EndGame {
                && (SquareDist[wk_sq][wp_sq] == 1)
                && (_rank (sk_sq) >= R_4)
                && (SquareDist[sk_sq][wp_sq] > 2 + (_stong_side == pos.active ()))
-               )
+                )
         {
             value = Value (80 - SquareDist[sk_sq][wp_sq] * 8);
         }
@@ -298,7 +298,7 @@ namespace EndGame {
     // The score is slightly bigger when the defending king is close to the edge.
     Value Endgame<KRKB>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
@@ -327,7 +327,7 @@ namespace EndGame {
     // in KR vs KB, particularly if the king and the knight are far apart.
     Value Endgame<KRKN>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 0));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK, 0));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_NIHT, 0));
 
         Square wk_sq = pos.king_sq (_weak_side);
@@ -353,7 +353,7 @@ namespace EndGame {
     Value Endgame<KQKP>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO    , 1));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO   , 1));
 
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
@@ -380,7 +380,7 @@ namespace EndGame {
     Value Endgame<KQKR>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_ROOK , 0));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_MG_ROOK, 0));
 
         Square sk_sq = pos.king_sq (_stong_side);
         Square wk_sq = pos.king_sq (_weak_side);
@@ -567,7 +567,7 @@ namespace EndGame {
     // TODO::
     ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
     {
-        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK  , 1));
+        ASSERT (verify_material (pos, _stong_side, VALUE_MG_ROOK, 1));
         ASSERT (verify_material (pos,  _weak_side, VALUE_MG_BSHP, 0));
 
         // Test for a rook pawn
@@ -715,7 +715,7 @@ namespace EndGame {
     ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _stong_side, VALUE_MG_NIHT, 1));
-        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO     , 0));
+        ASSERT (verify_material (pos,  _weak_side, VALUE_ZERO   , 0));
 
         // Assume _stong_side is white and the pawn is on files A-D
         Square sp_sq = normalize (pos, _stong_side, pos.list<PAWN> (_stong_side)[0]);
