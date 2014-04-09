@@ -58,7 +58,7 @@ namespace Searcher {
         template<bool PVNode>
         inline Depth reduction (bool imp, u08 depth, u08 move_num)
         {
-            depth = depth / i08 (ONE_MOVE);
+            depth = depth / u08 (ONE_MOVE);
             return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
