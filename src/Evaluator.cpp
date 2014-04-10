@@ -81,7 +81,7 @@ namespace Evaluator {
                 Terms[BLACK][term] = b_score;
             }
 
-            inline void format_row (stringstream &ss, const char *name, u08 term)
+            inline void format_row (stringstream &ss, const string &name, u08 term)
             {
                 Score score[CLR_NO] =
                 {
