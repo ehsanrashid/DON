@@ -40,6 +40,7 @@ namespace BitBoard {
 
     const Bitboard CRNR_bb = U64 (0x8100000000000081);            // 04 CORNER squares.
     const Bitboard MID_EDGE_bb = (FA_bb | FH_bb) & (R2_bb | R3_bb);
+    const Bitboard EDGE_bb = R1_bb | R8_bb | FA_bb | FH_bb;
 
     const Delta PawnDeltas[CLR_NO][3] =
     {
