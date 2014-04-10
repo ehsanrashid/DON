@@ -568,7 +568,7 @@ namespace Evaluator {
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility[C] += MobilityBonus[PT][mob];
 
-                if (mob <= 1 && (EDGE_bb & s))
+                if (mob <= 1 && (RIMEDGE_bb & s))
                 {
                     score -= LowMobilityPenalty;
                 }
