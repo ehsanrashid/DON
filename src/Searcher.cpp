@@ -58,7 +58,7 @@ namespace Searcher {
         template<bool PVNode>
         inline Depth reduction (bool imp, u08 depth, u08 move_num)
         {
-            depth = depth / i08 (ONE_MOVE);
+            depth = depth / u08 (ONE_MOVE);
             return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
@@ -84,14 +84,12 @@ namespace Searcher {
         MovesStats  CounterMoves
             ,       FollowupMoves;
 
-        
         i32     TBCardinality;
         u16     TBHits;
         bool    RootInTB;
         bool    TB50MoveRule;
         Depth   TBProbeDepth;
         Value   TBScore;
-        
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -308,7 +306,6 @@ namespace Searcher {
                 leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
                 pos.undo_move ();
             }
-
             return leaf_count;
         }
 
@@ -1127,7 +1124,7 @@ namespace Searcher {
                     if (   !(capture_or_promotion)
                         && !(in_check)
                         && !(dangerous)
-                     /* && (move != tt_move) Already implicit in the next condition */
+                     // && (move != tt_move) Already implicit in the next condition
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
                        )
                     {
@@ -1514,7 +1511,6 @@ namespace Searcher {
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
-
                 // MultiPV loop. We perform a full root search for each PV line
                 for (IndexPV = 0; (IndexPV < MultiPV) && !Signals.stop; ++IndexPV)
                 {
@@ -1690,7 +1686,7 @@ namespace Searcher {
         Move m = pv[ply];
         pv.clear ();
         StateInfo states[MAX_PLY_6]
-        ,        *si = states;
+                , *si = states;
 
         const TTEntry *tte;
         do
@@ -1726,7 +1722,7 @@ namespace Searcher {
     {
         i08 ply = 0;
         StateInfo states[MAX_PLY_6]
-        ,        *si = states;
+                , *si = states;
 
         const TTEntry *tte;
         do

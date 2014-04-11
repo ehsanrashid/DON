@@ -251,10 +251,6 @@ public:
     Value see      (Move m) const;
     Value see_sign (Move m) const;
 
-    //template<PieceT PT>
-    //// Attacks of the PTYPE from the square
-    //Bitboard attacks_from (Square s) const;
-
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
@@ -314,14 +310,6 @@ public:
         return os;
     }
 
-    //template<class charT, class Traits>
-    //friend std::basic_istream<charT, Traits>&
-    //    operator>> (std::basic_istream<charT, Traits> &is, Position &pos)
-    //{
-    //    //is >> fen; pos.setup
-    //    return is;
-    //}
-
 };
 
 // -------------------------------
@@ -330,8 +318,10 @@ INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; 
 inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
 inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
+
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
+
 inline Bitboard Position::pieces  (Color c)  const { return _color_bb[c];  }
 inline Bitboard Position::pieces  (PieceT pt)const { return _types_bb[pt]; }
 template<PieceT PT>
@@ -342,17 +332,18 @@ inline Bitboard Position::pieces (Color c)            const { return _color_bb[c
 inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
 inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
+
 inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 template<PieceT PT>
 inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
 inline i32 Position::count (Color c) const
 {
     return  _piece_count[c][PAWN]
-    +       _piece_count[c][NIHT]
-    +       _piece_count[c][BSHP]
-    +       _piece_count[c][ROOK]
-    +       _piece_count[c][QUEN]
-    +       _piece_count[c][KING];
+          + _piece_count[c][NIHT]
+          + _piece_count[c][BSHP]
+          + _piece_count[c][ROOK]
+          + _piece_count[c][QUEN]
+          + _piece_count[c][KING];
 }
 template<PieceT PT>
 inline i32 Position::count ()        const
@@ -362,12 +353,13 @@ inline i32 Position::count ()        const
 inline i32 Position::count ()        const
 {
     return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
-    +       _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
-    +       _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
-    +       _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
-    +       _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
-    +       _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
+          + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
+          + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
+          + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
+          + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
+          + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
 }
+
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
 // Castling rights for both side
@@ -381,14 +373,18 @@ inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
 inline Piece  Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
 inline Bitboard Position::checkers    () const { return _si->checkers; }
+
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
 inline Key    Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::Exclusion; }
+
 inline Score  Position::psq_score     () const { return _si->psq_score; }
 inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+
 inline CRight Position::can_castle   (CRight cr) const { return _si->castle_rights & cr; }
 inline CRight Position::can_castle   (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
+
 inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
 inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
@@ -404,18 +400,6 @@ inline bool Position::chess960  () const { return _chess960; }
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 inline Threads::Thread* Position::thread () const { return _thread; }
-
-//template<PieceT PT>
-//// Attacks of the PTYPE from the square
-//inline Bitboard Position::attacks_from (Square s) const
-//{
-//    return (BSHP == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE])
-//        :  (ROOK == PT) ? BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
-//        :  (QUEN == PT) ? BitBoard::attacks_bb<BSHP> (s, _types_bb[NONE]) | BitBoard::attacks_bb<ROOK> (s, _types_bb[NONE])
-//        :  (PAWN == PT) ? BitBoard::PawnAttacks[_active][s]
-//        :  (NIHT == PT ||  KING == PT) ? BitBoard::PieceAttacks[PT][s]
-//        :  U64 (0);
-//}
 
 // Attackers to the square on given occ
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const

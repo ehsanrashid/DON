@@ -433,12 +433,13 @@ namespace MoveGenerator {
         //ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT, "GT must be 'RELAX | CAPTURE | QUIET'");
         ASSERT (pos.checkers () == U64 (0));
 
-        Color active    = pos.active ();
+        Color active = pos.active ();
 
-        Bitboard targets = CAPTURE == GT ?  pos.pieces (~active)
-            :              QUIET   == GT ? ~pos.pieces ()
-            :              RELAX   == GT ? ~pos.pieces (active)
-            :              U64 (0);
+        Bitboard targets = 
+              CAPTURE == GT ?  pos.pieces (~active)
+            : QUIET   == GT ? ~pos.pieces ()
+            : RELAX   == GT ? ~pos.pieces (active)
+            : U64 (0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets)
             :  BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets)

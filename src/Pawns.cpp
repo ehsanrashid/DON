@@ -269,7 +269,7 @@ namespace Pawns {
             mid_pawns  = pawns[1] & File_bb[f];
             Rank b_rk = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
 
-            if (   (MID_EDGE_bb & (f | b_rk))
+            if (   (MIDEDGE_bb & (f | b_rk))
                 && (_file (king_sq) == f)
                 && (rel_rank (C, king_sq) == b_rk - 1)
                )

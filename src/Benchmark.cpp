@@ -98,12 +98,9 @@ void benchmark (istream &is, const Position &pos)
     //else if (limit_type == "depth")
     else                            limits.depth    = value;
 
-    StateInfoStackPtr states;
-
     if      (fen_fn == "default")
     {
         fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
-        states = StateInfoStackPtr (new StateInfoStack ());
     }
     else if (fen_fn == "current")
     {
@@ -129,12 +126,13 @@ void benchmark (istream &is, const Position &pos)
         }
 
         ifs.close ();
-        states = StateInfoStackPtr (new StateInfoStack ());
     }
     
     bool chess960  = bool (Options["UCI_Chess960"]);
     u64 nodes      = 0;
     point elapsed  = now ();
+
+    StateInfoStackPtr states;
 
     u16 total = fens.size ();
     for (u16 i = 0; i < total; ++i)
@@ -173,7 +171,6 @@ void benchmark (istream &is, const Position &pos)
         << "Nodes searched  : " << nodes   << "\n"
         << "Nodes/second    : " << nodes * 1000 / elapsed
         << endl;
-
 }
 
 void benchtest (istream &is, const Position &pos)
@@ -203,12 +200,9 @@ void benchtest (istream &is, const Position &pos)
     //else if (limit_type == "depth")
     else                            limits.depth    = value;
 
-    StateInfoStackPtr states;
-
     if      (fen_fn == "default")
     {
         fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
-        states = StateInfoStackPtr (new StateInfoStack ());
     }
     else if (fen_fn == "current")
     {
@@ -234,12 +228,13 @@ void benchtest (istream &is, const Position &pos)
         }
 
         ifs.close ();
-        states = StateInfoStackPtr (new StateInfoStack ());
     }
     
     bool chess960  = bool (Options["UCI_Chess960"]);
     u64 nodes      = 0;
     point elapsed  = now ();
+
+    StateInfoStackPtr states;
 
     u16 total = fens.size ();
     for (u16 i = 0; i < total; ++i)
@@ -278,5 +273,4 @@ void benchtest (istream &is, const Position &pos)
         << "Nodes searched  : " << nodes   << "\n"
         << "Nodes/second    : " << nodes * 1000 / elapsed
         << endl;
-
 }

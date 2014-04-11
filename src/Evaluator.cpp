@@ -81,7 +81,7 @@ namespace Evaluator {
                 Terms[BLACK][term] = b_score;
             }
 
-            inline void format_row (stringstream &ss, const char *name, u08 term)
+            inline void format_row (stringstream &ss, const string &name, u08 term)
             {
                 Score score[CLR_NO] =
                 {
@@ -237,6 +237,7 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S (+25, +10);
         const Score RookTrappedPenalty      = S (+90, + 0);
         const Score PawnUnstoppableBonus    = S (+ 0, +20);
+        const Score LowMobilityPenalty      = S (+40, +20);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -566,6 +567,11 @@ namespace Evaluator {
 
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility[C] += MobilityBonus[PT][mob];
+
+                if (mob <= 1 && (RIMEDGE_bb & s))
+                {
+                    score -= LowMobilityPenalty;
+                }
 
                 // Decrease score if we are attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when we have full attack info.

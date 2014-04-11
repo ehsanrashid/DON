@@ -8,11 +8,9 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-
-#include "Platform.h"
-
 #include <ctime>
 
+#include "Platform.h"
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 

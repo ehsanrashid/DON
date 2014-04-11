@@ -19,6 +19,7 @@ namespace std {
         : public basic_streambuf<Elem, Traits>
         , public noncopyable
     {
+
     private:
         basic_streambuf<Elem, Traits> *_strmbuf;
         basic_ofstream <Elem, Traits> *_filestm;
@@ -86,7 +87,6 @@ namespace std {
 
     typedef basic_tie_buf<char,    char_traits<char> >     tie_buf;
     typedef basic_tie_buf<wchar_t, char_traits<wchar_t> >  tie_wbuf;
-
 }
 
 #endif // _TIE_BUFFER_H_INC_
