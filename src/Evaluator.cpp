@@ -595,11 +595,6 @@ namespace Evaluator {
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility += MobilityBonus[PT][mob];
 
-                if (mob <= 1 && (RIMEDGE_bb & s))
-                {
-                    score -= PieceLowMobilityPenalty;
-                }
-
                 // Decrease score if we are attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when we have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
@@ -729,12 +724,19 @@ namespace Evaluator {
                 }
 
                 // TODO::
-                // Queen with low mobility
+                // Low mobility penalty
                 if (QUEN == PT)
                 {
                     if (mob <= 5 && RIMEDGE_bb & s)
                     {
-                        //score -= (6 - mob) * QueenLowMobilityPenalty;
+                        score -= (6 - mob) * QueenLowMobilityPenalty;
+                    }
+                }
+                else
+                {
+                    if (mob <= 1 && (RIMEDGE_bb & s))
+                    {
+                        score -= (2 - mob) * PieceLowMobilityPenalty;
                     }
                 }
             }
