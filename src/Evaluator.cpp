@@ -237,7 +237,8 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S (+25, +10);
         const Score RookTrappedPenalty      = S (+90, + 0);
         const Score PawnUnstoppableBonus    = S (+ 0, +20);
-        const Score LowMobilityPenalty      = S (+40, +20);
+        const Score PieceLowMobilityPenalty = S (+40, +20);
+        const Score QueenLowMobilityPenalty = S (+16, + 8);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -418,9 +419,13 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
+                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
                 Tracing::add_term (Tracing::PST      , pos.psq_score ());
                 Tracing::add_term (Tracing::IMBALANCE, ei.mi->material_score ());
-                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
+
+                Tracing::add_term (Tracing::MOBILITY
+                    , apply_weight (mobility[WHITE], Weights[Mobility])
+                    , apply_weight (mobility[BLACK], Weights[Mobility]));
 
                 Score scr[CLR_NO] =
                 {
@@ -570,7 +575,7 @@ namespace Evaluator {
 
                 if (mob <= 1 && (RIMEDGE_bb & s))
                 {
-                    score -= LowMobilityPenalty;
+                    score -= PieceLowMobilityPenalty;
                 }
 
                 // Decrease score if we are attacked by an enemy pawn. Remaining part
@@ -700,6 +705,15 @@ namespace Evaluator {
                         }
                     }
                 }
+
+                 // Queen with low mobility
+                if (QUEN == PT)
+                {
+                    if (mob <= 5 && RIMEDGE_bb & s)
+                    {
+                        score -= (6 - mob) * QueenLowMobilityPenalty;
+                    }
+                }
             }
 
             if (TRACE)
@@ -709,6 +723,11 @@ namespace Evaluator {
 
             return score;
         }
+
+        template<> Score evaluate_ptype<KING, WHITE, false>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
+        template<> Score evaluate_ptype<KING, WHITE,  true>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
+        template<> Score evaluate_ptype<KING, BLACK, false>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
+        template<> Score evaluate_ptype<KING, BLACK,  true>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
 
         template<bool TRACE>
         // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
@@ -741,11 +760,6 @@ namespace Evaluator {
                   | ei.attacked_by[c][ROOK]
                   | ei.attacked_by[c][QUEN]
                   | ei.attacked_by[c][KING];
-
-                  if (TRACE)
-                  {
-                      Tracing::Terms[c][Tracing::MOBILITY] = apply_weight (mobility[c], Weights[Mobility]);
-                  }
             }
 
             return score;

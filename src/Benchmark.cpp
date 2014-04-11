@@ -86,8 +86,6 @@ void benchmark (istream &is, const Position &pos)
     Options["Hash"]    = hash;
     Options["Threads"] = threads;
 
-    TT.master_clear ();
-
     i32 value = abs (atoi (limit_val.c_str ()));
     //value = value >= 0 ? value : -value;
 
@@ -142,7 +140,7 @@ void benchmark (istream &is, const Position &pos)
         cerr
             << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << total << "\n";
-
+        
         if (limit_type == "perft")
         {
             u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
@@ -151,6 +149,7 @@ void benchmark (istream &is, const Position &pos)
         }
         else
         {
+            TT.master_clear ();
             Threadpool.start_thinking (root_pos, limits, states);
             Threadpool.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();
@@ -188,8 +187,6 @@ void benchtest (istream &is, const Position &pos)
     Options["Hash"]    = hash;
     Options["Threads"] = threads;
 
-    TT.master_clear ();
-
     i32 value = abs (atoi (limit_val.c_str ()));
     //value = value >= 0 ? value : -value;
 
@@ -253,6 +250,7 @@ void benchtest (istream &is, const Position &pos)
         }
         else
         {
+            TT.master_clear ();
             Threadpool.start_thinking (root_pos, limits, states);
             Threadpool.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();

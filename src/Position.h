@@ -338,12 +338,12 @@ template<PieceT PT>
 inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
 inline i32 Position::count (Color c) const
 {
-    return  _piece_count[c][PAWN]
-          + _piece_count[c][NIHT]
-          + _piece_count[c][BSHP]
-          + _piece_count[c][ROOK]
-          + _piece_count[c][QUEN]
-          + _piece_count[c][KING];
+    return _piece_count[c][PAWN]
+         + _piece_count[c][NIHT]
+         + _piece_count[c][BSHP]
+         + _piece_count[c][ROOK]
+         + _piece_count[c][QUEN]
+         + _piece_count[c][KING];
 }
 template<PieceT PT>
 inline i32 Position::count ()        const
@@ -352,12 +352,12 @@ inline i32 Position::count ()        const
 }
 inline i32 Position::count ()        const
 {
-    return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
-          + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
-          + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
-          + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
-          + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
-          + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
+    return _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
+         + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
+         + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
+         + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
+         + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
+         + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
 }
 
 template<PieceT PT>

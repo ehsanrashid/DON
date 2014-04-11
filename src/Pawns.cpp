@@ -76,7 +76,7 @@ namespace Pawns {
         {
             { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+128), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) },
         };
 
         // Max bonus for king safety. Corresponds to start position with all the pawns
@@ -257,10 +257,17 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        //File kf = max (F_B, min (F_G, _file (king_sq)));
+        // TODO::
         File kf = _file (king_sq);
         if (kf < F_B) kf = F_B;
         if (kf > F_G) kf = F_G;
+        
+        Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
+        bool dangerous_edge_pawns = 
+               (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
+            && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
+
+        if (dangerous_edge_pawns) safety -= Value(100);
 
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
