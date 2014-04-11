@@ -257,11 +257,11 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        // TODO::
         File kf = _file (king_sq);
         if (kf < F_B) kf = F_B;
         if (kf > F_G) kf = F_G;
         
+        // TODO::
         Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
         bool dangerous_edge_pawns = 
                (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))

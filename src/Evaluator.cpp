@@ -284,8 +284,8 @@ namespace Evaluator {
         template<Color C>
         void init_eval_info (const Position &pos, EvalInfo &ei);
 
-        template<bool TRACE>
-        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[]);
+        template<PieceT PT, Color C, bool TRACE>
+        Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility);
 
         template<Color C, bool TRACE>
         Score evaluate_king (const Position &pos, const EvalInfo &ei);
@@ -343,11 +343,30 @@ namespace Evaluator {
             // Initialize attack and king safety bitboards
             init_eval_info<WHITE> (pos, ei);
             init_eval_info<BLACK> (pos, ei);
-            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
+
+            ei.attacked_by[WHITE][NONE] |= ei.attacked_by[WHITE][KING];
+            ei.attacked_by[BLACK][NONE] |= ei.attacked_by[BLACK][KING];
+
             // Evaluate pieces and mobility
-            score += evaluate_pieces<TRACE> (pos, ei, mobility);
-            // Initialize evaluation info ends here
+            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             
+            // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+            const Bitboard mobility_area[CLR_NO] =
+            {
+                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
+                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
+            };
+
+            score += 
+              + evaluate_piece<QUEN, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<QUEN, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
+              + evaluate_piece<ROOK, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<ROOK, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
+              + evaluate_piece<BSHP, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BSHP, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
+              + evaluate_piece<NIHT, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<NIHT, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
@@ -457,9 +476,9 @@ namespace Evaluator {
 
             ei.pinned_pieces[C] = pos.pinneds (C);
 
-            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
+            ei.attacked_by[C][NONE] = ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
-            ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
+            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
 
             // Init king safety tables only if we are going to use them
             if (   (pos.count<QUEN> (C) != 0) 
@@ -520,8 +539,8 @@ namespace Evaluator {
         }
 
         template<PieceT PT, Color C, bool TRACE>
-        // evaluate_ptype<>() assigns bonuses and penalties to the pieces of a given color except PAWN
-        inline Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
+        // evaluate_piece<>() assigns bonuses and penalties to the pieces of a given color except PAWN
+        inline Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility)
         {
             Score score = SCORE_ZERO;
 
@@ -548,7 +567,7 @@ namespace Evaluator {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
 
-                ei.attacked_by[C][PT] |= attacks;
+                ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
                 if (attacks & ei.king_ring[C_])
                 {
@@ -571,7 +590,7 @@ namespace Evaluator {
                 }
 
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
-                mobility[C] += MobilityBonus[PT][mob];
+                mobility += MobilityBonus[PT][mob];
 
                 if (mob <= 1 && (RIMEDGE_bb & s))
                 {
@@ -706,12 +725,13 @@ namespace Evaluator {
                     }
                 }
 
-                 // Queen with low mobility
+                // TODO::
+                // Queen with low mobility
                 if (QUEN == PT)
                 {
                     if (mob <= 5 && RIMEDGE_bb & s)
                     {
-                        score -= (6 - mob) * QueenLowMobilityPenalty;
+                        //score -= (6 - mob) * QueenLowMobilityPenalty;
                     }
                 }
             }
@@ -724,46 +744,10 @@ namespace Evaluator {
             return score;
         }
 
-        template<> Score evaluate_ptype<KING, WHITE, false>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
-        template<> Score evaluate_ptype<KING, WHITE,  true>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
-        template<> Score evaluate_ptype<KING, BLACK, false>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
-        template<> Score evaluate_ptype<KING, BLACK,  true>(const Position&, EvalInfo&, Score[], Bitboard) { return SCORE_ZERO; }
-
-        template<bool TRACE>
-        // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
-        inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
-        {
-            // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-            const Bitboard mobility_area[CLR_NO] =
-            {
-                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
-                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
-            };
-
-            Score score = 
-              + evaluate_ptype<NIHT, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<BSHP, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<ROOK, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<QUEN, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              - evaluate_ptype<NIHT, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<BSHP, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<QUEN, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK]);
-
-            // Sum up all attacked squares (updated in evaluate_ptype)
-            for (Color c = WHITE; c <= BLACK; ++c)
-            {
-                ei.attacked_by[c][NONE] =
-                    ei.attacked_by[c][PAWN]
-                  | ei.attacked_by[c][NIHT]
-                  | ei.attacked_by[c][BSHP]
-                  | ei.attacked_by[c][ROOK]
-                  | ei.attacked_by[c][QUEN]
-                  | ei.attacked_by[c][KING];
-            }
-
-            return score;
-        }
+        template<> Score evaluate_piece<KING, WHITE, false>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, WHITE,  true>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, BLACK, false>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, BLACK,  true>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
         //  --- init evaluation info <---
 
         //  --- use evaluation info --->
