@@ -237,7 +237,8 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S (+25, +10);
         const Score RookTrappedPenalty      = S (+90, + 0);
         const Score PawnUnstoppableBonus    = S (+ 0, +20);
-        const Score LowMobilityPenalty      = S (+40, +20);
+        const Score PieceLowMobilityPenalty = S (+40, +20);
+        const Score QueenLowMobilityPenalty = S (+16, + 8);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -271,7 +272,7 @@ namespace Evaluator {
         const i32 RookContactCheckWeight  = +16;
         const i32 QueenContactCheckWeight = +24;
 
-        const i32 PiecePinned       = + 2;
+        const i32 PiecePinnedWeight       = + 2;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -283,8 +284,8 @@ namespace Evaluator {
         template<Color C>
         void init_eval_info (const Position &pos, EvalInfo &ei);
 
-        template<bool TRACE>
-        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[]);
+        template<PieceT PT, Color C, bool TRACE>
+        Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility);
 
         template<Color C, bool TRACE>
         Score evaluate_king (const Position &pos, const EvalInfo &ei);
@@ -342,11 +343,33 @@ namespace Evaluator {
             // Initialize attack and king safety bitboards
             init_eval_info<WHITE> (pos, ei);
             init_eval_info<BLACK> (pos, ei);
-            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
+
+            ei.attacked_by[WHITE][NONE] |= ei.attacked_by[WHITE][KING];
+            ei.attacked_by[BLACK][NONE] |= ei.attacked_by[BLACK][KING];
+
             // Evaluate pieces and mobility
-            score += evaluate_pieces<TRACE> (pos, ei, mobility);
-            // Initialize evaluation info ends here
+            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             
+            // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+            const Bitboard mobility_area[CLR_NO] =
+            {
+                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
+                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
+            };
+
+            score += 
+              + evaluate_piece<NIHT, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<NIHT, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<BSHP, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BSHP, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<ROOK, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<ROOK, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<QUEN, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<QUEN, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
@@ -418,9 +441,13 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
+                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
                 Tracing::add_term (Tracing::PST      , pos.psq_score ());
                 Tracing::add_term (Tracing::IMBALANCE, ei.mi->material_score ());
-                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
+
+                Tracing::add_term (Tracing::MOBILITY
+                    , apply_weight (mobility[WHITE], Weights[Mobility])
+                    , apply_weight (mobility[BLACK], Weights[Mobility]));
 
                 Score scr[CLR_NO] =
                 {
@@ -452,9 +479,9 @@ namespace Evaluator {
 
             ei.pinned_pieces[C] = pos.pinneds (C);
 
-            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
+            ei.attacked_by[C][NONE] = ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
-            ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
+            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
 
             // Init king safety tables only if we are going to use them
             if (   (pos.count<QUEN> (C) != 0) 
@@ -515,8 +542,8 @@ namespace Evaluator {
         }
 
         template<PieceT PT, Color C, bool TRACE>
-        // evaluate_ptype<>() assigns bonuses and penalties to the pieces of a given color except PAWN
-        inline Score evaluate_ptype (const Position &pos, EvalInfo &ei, Score mobility[], Bitboard mobility_area)
+        // evaluate_piece<>() assigns bonuses and penalties to the pieces of a given color except PAWN
+        inline Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility)
         {
             Score score = SCORE_ZERO;
 
@@ -543,7 +570,7 @@ namespace Evaluator {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
 
-                ei.attacked_by[C][PT] |= attacks;
+                ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
                 if (attacks & ei.king_ring[C_])
                 {
@@ -566,12 +593,7 @@ namespace Evaluator {
                 }
 
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
-                mobility[C] += MobilityBonus[PT][mob];
-
-                if (mob <= 1 && (RIMEDGE_bb & s))
-                {
-                    score -= LowMobilityPenalty;
-                }
+                mobility += MobilityBonus[PT][mob];
 
                 // Decrease score if we are attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when we have full attack info.
@@ -700,6 +722,23 @@ namespace Evaluator {
                         }
                     }
                 }
+
+                // TODO::
+                // Low mobility penalty
+                if (QUEN == PT)
+                {
+                    if (mob <= 5 && RIMEDGE_bb & s)
+                    {
+                        score -= (6 - mob) * QueenLowMobilityPenalty;
+                    }
+                }
+                else
+                {
+                    if (mob <= 1 && (RIMEDGE_bb & s))
+                    {
+                        score -= (2 - mob) * PieceLowMobilityPenalty;
+                    }
+                }
             }
 
             if (TRACE)
@@ -710,46 +749,10 @@ namespace Evaluator {
             return score;
         }
 
-        template<bool TRACE>
-        // evaluate_pieces<>() assigns bonuses and penalties to all the pieces of a given color.
-        inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score mobility[])
-        {
-            // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
-            const Bitboard mobility_area[CLR_NO] =
-            {
-                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
-                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
-            };
-
-            Score score = 
-              + evaluate_ptype<NIHT, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<BSHP, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<ROOK, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              + evaluate_ptype<QUEN, WHITE, TRACE> (pos, ei, mobility, mobility_area[WHITE])
-              - evaluate_ptype<NIHT, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<BSHP, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<ROOK, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK])
-              - evaluate_ptype<QUEN, BLACK, TRACE> (pos, ei, mobility, mobility_area[BLACK]);
-
-            // Sum up all attacked squares (updated in evaluate_ptype)
-            for (Color c = WHITE; c <= BLACK; ++c)
-            {
-                ei.attacked_by[c][NONE] =
-                    ei.attacked_by[c][PAWN]
-                  | ei.attacked_by[c][NIHT]
-                  | ei.attacked_by[c][BSHP]
-                  | ei.attacked_by[c][ROOK]
-                  | ei.attacked_by[c][QUEN]
-                  | ei.attacked_by[c][KING];
-
-                  if (TRACE)
-                  {
-                      Tracing::Terms[c][Tracing::MOBILITY] = apply_weight (mobility[c], Weights[Mobility]);
-                  }
-            }
-
-            return score;
-        }
+        template<> Score evaluate_piece<KING, WHITE, false>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, WHITE,  true>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, BLACK, false>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
+        template<> Score evaluate_piece<KING, BLACK,  true>(const Position&, EvalInfo&, const Bitboard &, Score &) { return SCORE_ZERO; }
         //  --- init evaluation info <---
 
         //  --- use evaluation info --->
@@ -860,7 +863,7 @@ namespace Evaluator {
                 // Penalty for pinned pieces 
                 if (pinned_pieces != U64 (0))
                 {
-                    attack_units += PiecePinned * pop_count<MAX15> (pinned_pieces);
+                    attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
                 }
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
