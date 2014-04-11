@@ -77,7 +77,8 @@ namespace UCI {
         if (!( (_type != "button" && value.empty ())
             || (_type == "check" && value != "true" && value != "false")
             || (_type == "spin" && (atoi (value.c_str ()) < _minimum || atoi (value.c_str ()) > _maximum))
-           ))
+             )
+           )
         {
             if (_value != value)
             {
