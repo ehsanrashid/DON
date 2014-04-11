@@ -358,14 +358,17 @@ namespace Evaluator {
             };
 
             score += 
-              + evaluate_piece<QUEN, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<QUEN, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
-              + evaluate_piece<ROOK, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<ROOK, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
-              + evaluate_piece<BSHP, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BSHP, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK])
               + evaluate_piece<NIHT, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
               - evaluate_piece<NIHT, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<BSHP, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BSHP, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<ROOK, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<ROOK, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            score += 
+              + evaluate_piece<QUEN, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<QUEN, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
