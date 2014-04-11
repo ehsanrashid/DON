@@ -413,7 +413,7 @@
     </ShowAsCollectionAssociation>
   </Class>
   <Class Name="EndGame::Endgames">
-    <Position X="21.25" Y="18" Width="2.5" />
+    <Position X="21.75" Y="18.5" Width="2.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
@@ -437,7 +437,7 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="6.25" Y="13.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
     </TypeIdentifier>
   </Class>
@@ -664,12 +664,10 @@
   </Class>
   <Class Name="Threads::ThreadPool">
     <Position X="5.5" Y="15.25" Width="2" />
-    <InheritanceLine Type="std::vector&lt;_Ty, _Alloc&gt;" FixedFromPoint="true">
+    <InheritanceLine Type="std::vector&lt;_Ty, _Alloc&gt;" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="6.75" Y="14.372" />
-        <Point X="6.75" Y="14.875" />
-        <Point X="6.5" Y="14.875" />
-        <Point X="6.5" Y="15.25" />
+        <Point X="6.75" Y="15.25" />
       </Path>
     </InheritanceLine>
     <AssociationLine Name="split_depth" Type="Depth" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
@@ -727,7 +725,7 @@
   <Class Name="std::map&lt;_Kty, _Ty, _Pr, _Alloc&gt;" Collapsed="true">
     <Position X="2" Y="11.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAEAAAAAAAAAAAAAAAAAAAAAEAAAAAgQAgAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\map</FileName>
     </TypeIdentifier>
   </Class>
@@ -904,8 +902,8 @@
     <AssociationLine Name="_table" Type="std::vector&lt;_Ty, _Alloc&gt;" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="12.562" Y="19.75" />
-        <Point X="12.562" Y="18.432" />
-        <Point X="7.875" Y="18.432" />
+        <Point X="12.562" Y="18.692" />
+        <Point X="7.875" Y="18.692" />
         <Point X="7.875" Y="14.372" />
       </Path>
       <MemberNameLabel ManuallyPlaced="true" ManuallySized="true">
@@ -1270,6 +1268,59 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
+  <Struct Name="EndGame::eg_fun&lt;0&gt;">
+    <Position X="27.5" Y="19.25" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Typedef Name="EndGame::eg_fun&lt;0&gt;::type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>src\Endgame.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::eg_fun&lt;1&gt;">
+    <Position X="29.25" Y="19.25" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Typedef Name="EndGame::eg_fun&lt;1&gt;::type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>src\Endgame.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::EndgameBase&lt;T&gt;">
+    <Position X="25" Y="19.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQAAEAAAAAAAAAAAAACAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::Endgame&lt;E, T&gt;">
+    <Position X="25" Y="21.5" Width="1.5" />
+    <InheritanceLine Type="EndGame::EndgameBase&lt;T&gt;">
+      <InheritanceModifierLabel ManuallyPlaced="true">
+        <Position X="-0.166" Y="0.101" />
+      </InheritanceModifierLabel>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAEAAIAACAABAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">
     <Position X="41.75" Y="9.5" Width="2" />
     <TypeIdentifier>
@@ -1448,7 +1499,7 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="StartRoutine" Collapsed="true">
-    <Position X="19.25" Y="20.5" Width="1.5" />
+    <Position X="16.25" Y="20.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
@@ -1599,6 +1650,13 @@
     <TypeIdentifier>
       <HashCode>gAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="EndGame::EndgameT">
+    <Position X="27.5" Y="21.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAACAARAAAAAAEDAgBCKIABAQQABAIAAAAE=</HashCode>
+      <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Font Name="Consolas" Size="8.25" />
