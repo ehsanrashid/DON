@@ -272,7 +272,7 @@ namespace Evaluator {
         const i32 RookContactCheckWeight  = +16;
         const i32 QueenContactCheckWeight = +24;
 
-        const i32 PiecePinned       = + 2;
+        const i32 PiecePinnedWeight       = + 2;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -858,7 +858,7 @@ namespace Evaluator {
                 // Penalty for pinned pieces 
                 if (pinned_pieces != U64 (0))
                 {
-                    attack_units += PiecePinned * pop_count<MAX15> (pinned_pieces);
+                    attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
                 }
 
                 // To index KingDanger[] attack_units must be in [0, 99] range
