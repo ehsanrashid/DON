@@ -361,8 +361,8 @@ namespace Evaluator {
             // no minor piece which can exchange the outpost piece.
             if (bonus && (ei.attacked_by[C][PAWN] & s))
             {
-                if (   (pos.pieces<NIHT> (C_) = U64 (0))
-                    && (pos.pieces<BSHP> (C_) & squares_of_color (s) = U64 (0))
+                if (   (pos.pieces<NIHT> (C_) == U64 (0))
+                    && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
                    )
                 {
                     bonus += i32 (bonus)*1.5;
@@ -489,7 +489,7 @@ namespace Evaluator {
                     }
 
                     // Bishop and knight outposts squares
-                    if (pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] = U64 (0))
+                    if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))
                     {
                         score += evaluate_outposts<PT, C> (pos, ei, s);
                     }
@@ -831,11 +831,11 @@ namespace Evaluator {
                 // Increase the bonus if the passed pawn is supported by a friendly pawn
                 // on the same rank and a bit smaller if it's on the previous rank.
                 Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
-                if (supporting_pawns & rank_bb (s) != U64 (0))
+                if ((supporting_pawns & rank_bb (s)) != U64 (0))
                 {
                     eg_bonus += Value (r * 20);
                 }
-                else if (supporting_pawns & rank_bb (s - pawn_push (C)) != U64 (0))
+                else if ((supporting_pawns & rank_bb (s - pawn_push (C))) != U64 (0))
                 {
                     eg_bonus += Value (r * 12);
                 }
@@ -846,7 +846,7 @@ namespace Evaluator {
                 // we try the following: Increase the value for rook pawns if the
                 // other side has no pieces apart from a knight, and decrease the
                 // value if the other side has a rook or queen.
-                if (file_bb (s) & (FA_bb | FH_bb) != U64 (0))
+                if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
                 {
                     if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
                     {

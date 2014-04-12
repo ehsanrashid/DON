@@ -79,7 +79,7 @@ prefetch= no
 bsfq    = no
 popcnt  = no
 sse     = no
-mbi     = no
+bmi     = no
 pages   = no
 
 ### 2.2 Architecture specific
@@ -140,17 +140,6 @@ ifeq ($(ARCH),x86-64-bmi)
 	popcnt  = yes
 	sse     = yes
 	bmi     = yes
-	pages   = yes
-endif
-
-ifeq ($(ARCH),x86-64-modern-debug)
-	debug   = yes
-	arch    = x86_64
-	bits    = 64
-	prefetch= yes
-	bsfq    = yes
-	popcnt  = yes
-	sse     = yes
 	pages   = yes
 endif
 
@@ -350,7 +339,7 @@ endif
 
 ### 3.9 popcnt
 ifeq ($(popcnt),yes)
-	CXXFLAGS += -msse3 -DPOPCNT
+	CXXFLAGS += -DPOPCNT -msse3
 endif
 
 ### 3.10 bmi
@@ -408,7 +397,6 @@ help:
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-popcnt           > x86 64-bit with popcnt support"
 	@echo "x86-64-bmi              > x86 64-bit with bmi support"
-	@echo "x86-64-modern-debug     > x86 64-bit with popcnt support debug mode"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
 	@echo "x86-32-popcnt           > x86 32-bit with popcnt support"
