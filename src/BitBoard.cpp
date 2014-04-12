@@ -38,11 +38,13 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
 
+#ifndef BMI
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) u08      BShift[SQ_NO];
-    CACHE_ALIGN(64) u08      RShift[SQ_NO];
+    CACHE_ALIGN(64) u08       BShift[SQ_NO];
+    CACHE_ALIGN(64) u08       RShift[SQ_NO];
+#endif
 
     // FILE & RANK distance
     u08 FileRankDist[F_NO][R_NO];
@@ -93,18 +95,18 @@ namespace BitBoard {
 
         void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
-
+#   ifndef BMI
             const u16 MagicBoosters[R_NO] =
 #       ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #       else
             { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
 #       endif
-
+            
             Bitboard occupancy[MAX_LMOVES];
             Bitboard reference[MAX_LMOVES];
-
             RKISS rkiss;
+#   endif
 
             attacks_bb[SQ_A1] = table_bb;
 
@@ -122,24 +124,29 @@ namespace BitBoard {
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
+#           ifndef BMI
                 shift[s] =
-#       ifdef _64BIT
+#               ifdef _64BIT
                     64
-#       else
+#               else
                     32
-#       endif
+#               endif
                     - pop_count<MAX15> (mask);
+#           else
+                (void) shift[s];
+#           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                u32 size   = 0;
-                Bitboard occ    = U64 (0);
+                u32 size     = 0;
+                Bitboard occ = U64 (0);
                 do
                 {
+#               ifdef BMI
+                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
+#               else
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
-#               ifdef BMI
-                    attacks_bb[s][_pext_u64 (occ, mask)] = reference[size];
 #               endif
 
                     ++size;
@@ -154,9 +161,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#           ifdef BMI
-                continue;
-#else
+#           ifndef BMI
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -193,14 +198,22 @@ namespace BitBoard {
                     }
                 }
                 while (i < size);
+#           else
+                (void) magics_bb[s]; 
+                (void) m_index; 
 #           endif
             }
         }
 
         void initialize_sliding ()
         {
+#       ifndef BMI
             initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
+#       else
+            initialize_table (BTable_bb, BAttack_bb, NULL, BMask_bb, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, NULL, RMask_bb, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
+#       endif
         }
 
     }

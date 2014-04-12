@@ -74,11 +74,14 @@ namespace Engine {
         oss << " w32";
 #endif
 
-#ifdef POPCNT
-        oss << "-POPCNT";
-#endif
 #ifdef BMI
         cout << "-BMI";
+#endif
+#ifdef POPCNT
+        oss << "-POP";
+#endif
+#ifdef LPAGES
+        oss << "-LP";
 #endif
 
         oss << "\n" 
@@ -101,10 +104,10 @@ namespace Engine {
 //        cout << "info string BMI available." << endl;
 //#endif
 
-#ifdef LPAGES
-        cout << "info string LARGE PAGES available." << endl;
-        MemoryHandler::initialize ();
-#endif
+//#ifdef LPAGES
+//        cout << "info string LARGE PAGES available." << endl;
+//        MemoryHandler::initialize ();
+//#endif
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
