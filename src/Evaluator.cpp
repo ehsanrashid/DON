@@ -60,7 +60,7 @@ namespace Evaluator {
 
         };
 
-        namespace Tracing {
+        namespace Tracer {
 
             // Used for tracing
             enum TermT
@@ -226,8 +226,6 @@ namespace Evaluator {
         const Score RookOnPawnBonus         = S(+10,+28);
         const Score RookOpenFileBonus       = S(+43,+21);
         const Score RookSemiopenFileBonus   = S(+19,+10);
-        //const Score RookDoubledOpenBonus    = S(+23,+10);
-        //const Score RookDoubledSemiopenBonus= S(+12,+ 6);
 
         const Score BishopPawnsPenalty      = S(+ 8,+12);
         const Score KnightPawnsPenalty      = S(+ 8,+ 4);
@@ -235,8 +233,6 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
         const Score PawnUnstoppableBonus    = S(+ 0,+20);
-
-        //const Score PinBonus                = S(+18,+ 6);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -371,13 +367,6 @@ namespace Evaluator {
                 {
                     bonus += i32 (bonus)*0.5;
                 }
-
-                //// Increase bonus more if the piece blocking enemy pawn
-                //if (pos[s + pawn_push (C)] == (C_|PAWN))
-                //{
-                //    bonus += i32 (bonus)*0.5;
-                //}
-
             }
 
             return mk_score (bonus, bonus);
@@ -451,14 +440,6 @@ namespace Evaluator {
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
-                        //// Give a bonus if we are a bishop and can pin a piece or
-                        //// can give a discovered check through an x-ray attack.
-                        //if (   (PieceAttacks[BSHP][ek_sq] & s)
-                        //    && !more_than_one (Between_bb[s][ek_sq] & occ))
-                        //{
-                        //    score += PinBonus;
-                        //}
-
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -524,29 +505,12 @@ namespace Evaluator {
                         }
                     }
 
-                    //// Give a bonus if we are a rook and can pin a piece or
-                    //// can give a discovered check through an x-ray attack.
-                    //if (   (PieceAttacks[ROOK][ek_sq] & s)
-                    //    && !more_than_one (Between_bb[s][ek_sq] & occ)
-                    //   )
-                    //{
-                    //    score += PinBonus;
-                    //}
-
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen<C> (_file (s)) != 0)
                     {
                         score += ei.pi->semiopen<C_> (_file (s))
                                ? RookOpenFileBonus
                                : RookSemiopenFileBonus;
-
-                        //// Give more bonus if the rook is doubled
-                        //if (FrontSqs_bb[C_][s] & pos.pieces<ROOK> (C))
-                        //{
-                        //    score += ei.pi->semiopen<C_> (_file (s))
-                        //           ? RookDoubledOpenBonus
-                        //           : RookDoubledSemiopenBonus;
-                        //}
                     }
                     else
                     {
@@ -569,7 +533,7 @@ namespace Evaluator {
 
             if (TRACE)
             {
-                Tracing::Terms[C][PT] = score;
+                Tracer::Terms[C][PT] = score;
             }
 
             return score;
@@ -697,7 +661,7 @@ namespace Evaluator {
 
             if (TRACE)
             {
-                Tracing::Terms[C][KING] = score;
+                Tracer::Terms[C][KING] = score;
             }
 
             return score;
@@ -732,7 +696,7 @@ namespace Evaluator {
 
             if (TRACE)
             {
-                Tracing::Terms[C][Tracing::THREAT] = score;
+                Tracer::Terms[C][Tracer::THREAT] = score;
             }
 
             return score;
@@ -869,7 +833,7 @@ namespace Evaluator {
 
             if (TRACE)
             {
-                Tracing::Terms[C][Tracing::PASSED] = apply_weight (score, Weights[PassedPawns]);
+                Tracer::Terms[C][Tracer::PASSED] = apply_weight (score, Weights[PassedPawns]);
             }
 
             // Add the scores to the middle game and endgame eval
@@ -1035,7 +999,6 @@ namespace Evaluator {
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    //bool one_pawn = (pos.count<PAWN> () == 1);
                     scale_factor  = (pos.count<PAWN> () == 1)
                         ? ScaleFactor (8)
                         : ScaleFactor (32);
@@ -1053,11 +1016,11 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
-                Tracing::add_term (PAWN              , ei.pi->pawn_score ());
-                Tracing::add_term (Tracing::PST      , pos.psq_score ());
-                Tracing::add_term (Tracing::IMBALANCE, ei.mi->material_score ());
+                Tracer::add_term (PAWN              , ei.pi->pawn_score ());
+                Tracer::add_term (Tracer::PST      , pos.psq_score ());
+                Tracer::add_term (Tracer::IMBALANCE, ei.mi->material_score ());
 
-                Tracing::add_term (Tracing::MOBILITY
+                Tracer::add_term (Tracer::MOBILITY
                     , apply_weight (mobility[WHITE], Weights[Mobility])
                     , apply_weight (mobility[BLACK], Weights[Mobility]));
 
@@ -1067,20 +1030,20 @@ namespace Evaluator {
                     ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei)
                 };
 
-                Tracing::add_term (Tracing::SPACE
+                Tracer::add_term (Tracer::SPACE
                     , apply_weight (scr[WHITE], Weights[Space])
                     , apply_weight (scr[BLACK], Weights[Space]));
 
-                Tracing::add_term (Tracing::TOTAL    , score);
+                Tracer::add_term (Tracer::TOTAL    , score);
 
-                Tracing::Evalinfo    = ei;
-                Tracing::Scalefactor = scale_factor;
+                Tracer::Evalinfo    = ei;
+                Tracer::Scalefactor = scale_factor;
             }
 
             return (WHITE == pos.active ()) ? value : -value;
         }
 
-        namespace Tracing {
+        namespace Tracer {
 
             string trace (const Position &pos)
             {
@@ -1110,10 +1073,6 @@ namespace Evaluator {
                 ss  << "---------------------+-------------+-------------+--------------\n";
                 format_row (ss, "Total"                 , TOTAL);
                 ss  << "\n"
-                    //<< "Scaling: " << noshowpos
-                    //<< setw (5) << (100.0 * Evalinfo.mi->game_phase ()) / 128.0 << "% MG, "
-                    //<< setw (5) << (100.0 * (1.0 - Evalinfo.mi->game_phase () / 128.0)) << "% * "
-                    //<< setw (5) << (100.0 * Scalefactor) / SCALE_FACTOR_NORMAL << "% EG.\n"
                     << "Total evaluation: " << value_to_cp (value) << " (white side)\n";
 
                 return ss.str ();
@@ -1135,7 +1094,7 @@ namespace Evaluator {
     // evaluation term. Used mainly for debugging.
     string trace (const Position &pos)
     {
-        return Tracing::trace (pos);
+        return Tracer::trace (pos);
     }
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
@@ -1150,7 +1109,7 @@ namespace Evaluator {
         Weights[Aggressive]    = weight_option ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
 
         const i32 MaxSlope  =   30;
-        const i32 PeakScore = 1280; // 0x500
+        const i32 PeakScore = 1280;
 
         i32 mg = 0;
         for (u08 i = 1; i < 100; ++i)
