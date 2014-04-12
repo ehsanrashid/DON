@@ -107,8 +107,7 @@ namespace Searcher {
             for (u08 i = 0; i < quiets_count; ++i)
             {
                 Move m = quiet_moves[i];
-                if (m == move) continue;
-                History.update (pos[org_sq (m)], dst_sq (m), -bonus);
+                if (m != move) History.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
             Move opp_move = (ss-1)->current_move;
