@@ -130,11 +130,11 @@ namespace Pawns {
 
                 // Flag the pawn as passed, isolated, doubled,
                 // unsupported or connected (but not the backward one).
-                bool connected  =  (pawns[0] & AdjFile_bb[f] & rr_bb);
+                Bitboard connected =  (pawns[0] & AdjFile_bb[f] & rr_bb);
                 bool unsupported= !(pawns[0] & AdjFile_bb[f] & pr_bb);
                 bool isolated   = !(pawns[0] & AdjFile_bb[f]);
-                bool doubled    =   pawns[0] & FrontSqs_bb[C][s];
-                bool opposed    =   pawns[1] & FrontSqs_bb[C][s];
+                Bitboard doubled =   pawns[0] & FrontSqs_bb[C][s];
+                Bitboard opposed =   pawns[1] & FrontSqs_bb[C][s];
                 bool passed     = !(pawns[1] & PasserPawnSpan[C][s]);
 
                 bool backward;
@@ -183,7 +183,7 @@ namespace Pawns {
 
                 if (unsupported && !isolated) pawn_score -= UnsupportedPawnPenalty;
 
-                if (doubled)    pawn_score -= DoubledPenalty[f];
+                if (doubled)    pawn_score -= DoubledPenalty[f] / i32 (rank_dist (s, scan_lsq (doubled)));
             
                 if (backward)   pawn_score -= BackwardPenalty[opposed][f];
 
