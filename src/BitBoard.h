@@ -7,6 +7,10 @@
 
 #include "Type.h"
 
+#ifdef BMI
+#   include <immintrin.h> // Header for _pext_u64() intrinsic
+#endif
+
 namespace BitBoard {
 
     const Bitboard FA_bb = U64 (0x0101010101010101);
@@ -330,34 +334,38 @@ namespace BitBoard {
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE u16 magic_index   (Square s, Bitboard occ);
+    extern INLINE u16 magic_index(Square s, Bitboard occ);
 
     template<>
-    INLINE u16 magic_index   <BSHP> (Square s, Bitboard occ)
+    INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-
+#ifdef BMI
+        return u16 (_pext_u64 (occ, BMask_bb[s]));
+#else
 #ifdef _64BIT
         return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #else
-        u32 lo = (u32 (occ >>  0) & u32 (BMask_bb[s] >>  0)) * u32 (BMagic_bb[s] >>  0);
-        u32 hi = (u32 (occ >> 32) & u32 (BMask_bb[s] >> 32)) * u32 (BMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >> 0x00) & u32 (BMask_bb[s] >> 0x00)) * u32 (BMagic_bb[s] >> 0x00);
+        u32 hi = (u32 (occ >> 0x20) & u32 (BMask_bb[s] >> 0x20)) * u32 (BMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> BShift[s]);
 #endif
-
+#endif
     }
 
     template<>
-    INLINE u16 magic_index   <ROOK> (Square s, Bitboard occ)
+    INLINE u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-
+#ifdef BMI
+        return u16 (_pext_u64 (occ, RMask_bb[s]));
+#else
 #ifdef _64BIT
         return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
 #else
-        u32 lo = (u32 (occ >>  0) & u32 (RMask_bb[s] >>  0)) * u32 (RMagic_bb[s] >>  0);
-        u32 hi = (u32 (occ >> 32) & u32 (RMask_bb[s] >> 32)) * u32 (RMagic_bb[s] >> 32);
+        u32 lo = (u32 (occ >> 0x00) & u32 (RMask_bb[s] >> 0x00)) * u32 (RMagic_bb[s] >> 0x00);
+        u32 hi = (u32 (occ >> 0x20) & u32 (RMask_bb[s] >> 0x20)) * u32 (RMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> RShift[s]);
 #endif
-
+#endif
     }
 
     template<>
