@@ -57,11 +57,11 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
     void *mem = calloc (mem_size + offset, 1);
     if (mem == NULL)
     {
-        cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB..." << endl;
+        cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
-    std::cout << "info string Hash " << (mem_size >> 20) << " MB..." << std::endl;
+    std::cout << "info string Hash " << (mem_size >> 20) << " MB." << std::endl;
 
     void **ptr =
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));

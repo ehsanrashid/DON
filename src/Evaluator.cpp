@@ -109,7 +109,7 @@ namespace Evaluator {
                 }
             }
 
-            string do_trace (const Position &pos);
+            string trace (const Position &pos);
 
         }
 
@@ -922,7 +922,7 @@ namespace Evaluator {
         }
 
         template<bool TRACE>
-        inline Value do_evaluate (const Position &pos)
+        inline Value evaluate (const Position &pos)
         {
             ASSERT (pos.checkers () == U64 (0));
 
@@ -1082,11 +1082,11 @@ namespace Evaluator {
 
         namespace Tracing {
 
-            string do_trace (const Position &pos)
+            string trace (const Position &pos)
             {
                 memset (Terms, 0, sizeof (Terms));
 
-                Value value = do_evaluate<true> (pos);
+                Value value = evaluate<true> (pos);
                 value = (pos.active () == WHITE) ? +value : -value; // White's point of view
 
                 stringstream ss;
@@ -1127,7 +1127,7 @@ namespace Evaluator {
     // between them based on the remaining material.
     Value evaluate (const Position &pos)
     {
-        return do_evaluate<false> (pos);
+        return evaluate<false> (pos);
     }
 
     // trace() is like evaluate() but instead of a value returns a string suitable
@@ -1135,7 +1135,7 @@ namespace Evaluator {
     // evaluation term. Used mainly for debugging.
     string trace (const Position &pos)
     {
-        return Tracing::do_trace (pos);
+        return Tracing::trace (pos);
     }
 
     // initialize() computes evaluation weights from the corresponding UCI parameters

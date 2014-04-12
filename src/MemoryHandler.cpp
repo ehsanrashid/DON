@@ -196,7 +196,7 @@ namespace MemoryHandler {
             if (mem_ref != NULL)
             {
                 UsePages = true;
-                cout << "info string LargePage Hash " << (mem_size >> 20) << " MB..." << endl;
+                cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << endl;
                 return;
             }
 
@@ -209,7 +209,7 @@ namespace MemoryHandler {
             if (mem_ref != NULL)
             {
                 UsePages = true;
-                cout << "info string Page Hash " << (mem_size >> 20) << " MB..." << endl;
+                cout << "info string Page Hash " << (mem_size >> 20) << " MB." << endl;
                 return;
             }
 
@@ -223,7 +223,7 @@ namespace MemoryHandler {
                 {
                     UsePages = true;
                     memset (mem_ref, 0, SHMSZ);
-                    cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB..." << endl;
+                    cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << endl;
                     return;
                 }
                 //perror ("shmat: Shared memory attach failure");
@@ -243,11 +243,11 @@ namespace MemoryHandler {
         if (mem_ref != NULL)
         {
             memset (mem_ref, 0, mem_size);
-            cout << "info string Hash " << (mem_size >> 20) << " MB..." << endl;
+            cout << "info string Hash " << (mem_size >> 20) << " MB." << endl;
             return;
         }
 
-        cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB..." << endl;
+        cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB." << endl;
         Engine::exit (EXIT_FAILURE);
     }
 
