@@ -93,7 +93,7 @@ namespace BitBoard {
 
         typedef u16 (*Indexer) (Square s, Bitboard occ);
 
-        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
+        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
 #   ifndef BMI
             const u16 MagicBoosters[R_NO] =
@@ -205,7 +205,7 @@ namespace BitBoard {
             }
         }
 
-        void initialize_sliding ()
+        inline void initialize_sliding ()
         {
 #       ifndef BMI
             initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
