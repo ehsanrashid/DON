@@ -62,6 +62,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 #                                              with GCC and ICC 64-bit)
 # popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
+# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
 # pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -78,6 +79,7 @@ prefetch= no
 bsfq    = no
 popcnt  = no
 sse     = no
+mbi     = no
 pages   = no
 
 ### 2.2 Architecture specific
@@ -97,7 +99,7 @@ ifeq ($(ARCH),x86-32)
 	pages   = yes
 endif
 
-ifeq ($(ARCH),x86-32-modern)
+ifeq ($(ARCH),x86-32-popcnt)
 	arch    = i386
 	prefetch= yes
 	popcnt  = yes
@@ -120,13 +122,24 @@ ifeq ($(ARCH),x86-64)
 	pages   = yes
 endif
 
-ifeq ($(ARCH),x86-64-modern)
+ifeq ($(ARCH),x86-64-popcnt)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
 	bsfq    = yes
 	popcnt  = yes
 	sse     = yes
+	pages   = yes
+endif
+
+ifeq ($(ARCH),x86-64-bmi)
+	arch    = x86_64
+	bits    = 64
+	prefetch= yes
+	bsfq    = yes
+	popcnt  = yes
+	sse     = yes
+	bmi     = yes
 	pages   = yes
 endif
 
@@ -271,7 +284,7 @@ endif
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
-	CXXFLAGS += -g -DTRI_LOGGER
+	CXXFLAGS += -g
 endif
 
 ### 3.5 Optimization
@@ -340,12 +353,20 @@ ifeq ($(popcnt),yes)
 	CXXFLAGS += -msse3 -DPOPCNT
 endif
 
-### 3.10 pages
+### 3.10 bmi
+ifeq ($(bmi),yes)
+	CXXFLAGS += -DBMI
+	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+		CXXFLAGS += -mbmi2
+	endif
+endif
+
+### 3.11 pages
 ifeq ($(pages),yes)
 	CXXFLAGS += -DLPAGES
 endif
 
-### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw.
+### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
@@ -361,7 +382,7 @@ ifeq ($(comp),gcc)
 	endif
 endif
 
-### 3.12
+### 3.13
 # CXXFLAGS += -DFFPOPCNT
 
 ### ==========================================================================
@@ -377,9 +398,7 @@ help:
 	@echo "Supported targets:"
 	@echo "------------------"
 	@echo "build                   > Standard build"
-	@echo "signature-build         > Standard build with embedded signature"
 	@echo "profile-build           > PGO build"
-	@echo "signature-profile-build > PGO build with embedded signature"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
 	@echo "clean                   > Clean up"
@@ -387,11 +406,12 @@ help:
 	@echo "Supported archs:"
 	@echo "----------------"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "x86-64-modern           > x86 64-bit with popcnt support"
+	@echo "x86-64-popcnt           > x86 64-bit with popcnt support"
+	@echo "x86-64-bmi              > x86 64-bit with bmi support"
 	@echo "x86-64-modern-debug     > x86 64-bit with popcnt support debug mode"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "x86-32-modern           > x86 32-bit with popcnt support"
+	@echo "x86-32-popcnt           > x86 32-bit with popcnt support"
 	@echo "linux-ppc-64            > PPC-Linux 64 bit"
 	@echo "osx-ppc-64              > PPC-Mac OS X 64 bit"
 	@echo "osx-ppc-32              > PPC-Mac OS X 32 bit"
@@ -419,7 +439,7 @@ help:
 	@echo "make build ARCH=x86-32    (This is for 32-bit systems)"
 	@echo ""
 
-.PHONY: build profile-build embed-signature
+.PHONY: build profile-build
 build:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
@@ -443,18 +463,6 @@ profile-build:
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_clean)
-
-embed-signature:
-	@echo "Running benchmark for getting the signature ..."
-	@$(SIGNBENCH) 2>&1 | sed -n 's/Nodes searched  : \(.*\)/\/string Version\/s\/"\\(.*\\)"\/"sig-\1"\//p' > sign.txt
-	@sed -f sign.txt Engine.cpp > Engine_.cpp
-	@mv Engine_.cpp Engine.cpp
-	@rm sign.txt
-
-signature-build: build embed-signature
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
-
-signature-profile-build: build embed-signature profile-build
 
 strip:
 	strip $(EXE).exe
@@ -492,6 +500,7 @@ config-sanity:
 	@echo "bsfq    : '$(bsfq)'"
 	@echo "popcnt  : '$(popcnt)'"
 	@echo "sse     : '$(sse)'"
+	@echo "bmi     : '$(bmi)'"
 	@echo "pages   : '$(pages)'"
 	@echo ""
 	@echo "Flags:"
@@ -512,6 +521,7 @@ config-sanity:
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
+	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 # generating obj file

@@ -75,7 +75,10 @@ namespace Engine {
 #endif
 
 #ifdef POPCNT
-        oss << "-modern";
+        oss << "-POPCNT";
+#endif
+#ifdef BMI
+        cout << "-BMI";
 #endif
 
         oss << "\n" 
@@ -91,9 +94,12 @@ namespace Engine {
 
 //        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
-#ifdef POPCNT
-        cout << "info string POPCNT available." << endl;
-#endif
+//#ifdef POPCNT
+//        cout << "info string POPCNT available." << endl;
+//#endif
+//#ifdef BMI
+//        cout << "info string BMI available." << endl;
+//#endif
 
 #ifdef LPAGES
         cout << "info string LARGE PAGES available." << endl;
