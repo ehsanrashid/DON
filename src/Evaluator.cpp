@@ -998,12 +998,13 @@ namespace Evaluator {
                   -  evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
 
             // If one side has only a king, score for potential unstoppable pawns
-            if (   (pos.non_pawn_material (WHITE) == VALUE_ZERO)
-                || (pos.non_pawn_material (BLACK) == VALUE_ZERO)
-               )
+            if (pos.non_pawn_material (BLACK) == VALUE_ZERO)
             {
-                score += evaluate_unstoppable_pawns<WHITE> (pos, ei)
-                      -  evaluate_unstoppable_pawns<BLACK> (pos, ei);
+                score += evaluate_unstoppable_pawns<WHITE> (pos, ei);
+            }
+            if (pos.non_pawn_material (WHITE) == VALUE_ZERO)
+            {
+                score -= evaluate_unstoppable_pawns<BLACK> (pos, ei);
             }
 
             Score space_weight = ei.mi->space_weight ();
