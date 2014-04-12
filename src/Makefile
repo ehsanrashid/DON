@@ -60,9 +60,9 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
-# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
-# popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
+# popcnt  = yes/no    --- -DPOPCNT         --- Use POPCNT x86_64 asm-instruction
+# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
 # pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -485,10 +485,10 @@ config-sanity:
 	@echo "os      : '$(os)'"
 	@echo "bits    : '$(bits)'"
 	@echo "prefetch: '$(prefetch)'"
-	@echo "bsfq    : '$(bsfq)'"
-	@echo "bmi     : '$(bmi)'"
-	@echo "popcnt  : '$(popcnt)'"
 	@echo "sse     : '$(sse)'"
+	@echo "bsfq    : '$(bsfq)'"
+	@echo "popcnt  : '$(popcnt)'"
+	@echo "bmi     : '$(bmi)'"
 	@echo "pages   : '$(pages)'"
 	@echo ""
 	@echo "Flags:"
@@ -506,10 +506,10 @@ config-sanity:
 	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
-	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
-	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
+	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
+	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
+	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
 	@test "$(pages)" = "yes" || test "$(pages)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 

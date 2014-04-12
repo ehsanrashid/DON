@@ -140,7 +140,7 @@ void benchmark (istream &is, const Position &pos)
         cerr
             << "\n--------------\n" 
             << "Position: " << (i + 1) << "/" << total << "\n";
-        
+
         if (limit_type == "perft")
         {
             u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
