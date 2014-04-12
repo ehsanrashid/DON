@@ -60,9 +60,9 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
+# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
 # popcnt  = yes/no    --- -DPOPCNT         --- Use popcnt x86_64 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
 # pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -77,9 +77,9 @@ os      = any
 bits    = 32
 prefetch= no
 bsfq    = no
+bmi     = no
 popcnt  = no
 sse     = no
-bmi     = no
 pages   = no
 
 ### 2.2 Architecture specific
@@ -137,9 +137,9 @@ ifeq ($(ARCH),x86-64-bmi)
 	bits    = 64
 	prefetch= yes
 	bsfq    = yes
+	bmi     = yes
 	popcnt  = yes
 	sse     = yes
-	bmi     = yes
 	pages   = yes
 endif
 
@@ -486,9 +486,9 @@ config-sanity:
 	@echo "bits    : '$(bits)'"
 	@echo "prefetch: '$(prefetch)'"
 	@echo "bsfq    : '$(bsfq)'"
+	@echo "bmi     : '$(bmi)'"
 	@echo "popcnt  : '$(popcnt)'"
 	@echo "sse     : '$(sse)'"
-	@echo "bmi     : '$(bmi)'"
 	@echo "pages   : '$(pages)'"
 	@echo ""
 	@echo "Flags:"
@@ -507,9 +507,10 @@ config-sanity:
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
+	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
+	@test "$(pages)" = "yes" || test "$(pages)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 # generating obj file
