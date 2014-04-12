@@ -11,6 +11,8 @@ using namespace Searcher;
 
 namespace {
 
+    enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
+
     const u08    MoveHorizon = 50;    // Plan time management at most this many moves ahead
     const double MaxRatio    = 07.00; // When in trouble, we can step over reserved time with this ratio
     const double StealRatio  = 00.33; // However we must not steal time from remaining moves over this ratio
@@ -27,8 +29,6 @@ namespace {
     {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
-
-    enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
     // remaining_time() calculate the time remaining
     template<TimeT TT>

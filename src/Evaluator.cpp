@@ -143,7 +143,7 @@ namespace Evaluator {
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
         // indexed by piece type and number of attacked squares not occupied by friendly pieces.
-        const Score MobilityBonus[NONE][32] =
+        const Score MobilityBonus[NONE][28] =
         {
             {},
             // Knights
