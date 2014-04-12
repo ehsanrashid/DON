@@ -131,7 +131,7 @@ namespace Evaluator {
         // parameters at 100, which looks prettier.
         //
         // Values modified by Joona Kiiski
-        const Score InternalWeights[] =
+        const Score InternalWeights[6] =
         {
             S(+289,+344), // Mobility
             S(+233,+201), // PawnStructure
@@ -516,11 +516,12 @@ namespace Evaluator {
                     {
                         if (mob <= 3)
                         {
+                            File f = _file (fk_sq); 
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
-                            if (   ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                            if (   ((f < F_E) == (_file (s) < f))
                                 && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                && !ei.pi->semiopen_on_side<C> (_file (fk_sq), _file (fk_sq) < F_E)
+                                && ei.pi->semiopen_on_side<C> (f, f < F_E) == 0
                                )
                             {
                                 score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
@@ -528,7 +529,6 @@ namespace Evaluator {
                         }
                     }
                 }
-
             }
 
             if (TRACE)

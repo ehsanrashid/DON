@@ -169,7 +169,7 @@ void benchmark (istream &is, const Position &pos)
         << "Total time (ms) : " << elapsed << "\n"
         << "Nodes searched  : " << nodes   << "\n"
         << "Nodes/second    : " << nodes * 1000 / elapsed
-        << endl;
+        << "\n---------------------------\n" << endl;
 }
 
 void benchtest (istream &is, const Position &pos)
