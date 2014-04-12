@@ -130,12 +130,12 @@ namespace Pawns {
 
                 // Flag the pawn as passed, isolated, doubled,
                 // unsupported or connected (but not the backward one).
-                Bitboard connected =  (pawns[0] & AdjFile_bb[f] & rr_bb);
-                bool unsupported= !(pawns[0] & AdjFile_bb[f] & pr_bb);
-                bool isolated   = !(pawns[0] & AdjFile_bb[f]);
+                bool connected   =  (pawns[0] & AdjFile_bb[f] & rr_bb);
+                bool unsupported = !(pawns[0] & AdjFile_bb[f] & pr_bb);
+                bool isolated    = !(pawns[0] & AdjFile_bb[f]);
                 Bitboard doubled =   pawns[0] & FrontSqs_bb[C][s];
-                Bitboard opposed =   pawns[1] & FrontSqs_bb[C][s];
-                bool passed     = !(pawns[1] & PasserPawnSpan[C][s]);
+                bool opposed     =   pawns[1] & FrontSqs_bb[C][s];
+                bool passed      = !(pawns[1] & PasserPawnSpan[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -162,14 +162,14 @@ namespace Pawns {
                     backward = (b | shift_del<PUSH> (b)) & pawns[1];
                 }
 
-                ASSERT (opposed | passed | (PawnAttackSpan[C][s] & pawns[1]));
+                ASSERT (opposed || passed || (PawnAttackSpan[C][s] & pawns[1]));
 
                 // A not passed pawn is a candidate to become passed, if it is free to
                 // advance and if the number of friendly pawns beside or behind this
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 Bitboard adj_pawns;
-                bool candidate_passed = !(opposed | passed | backward | isolated)
+                bool candidate_passed = !(opposed || passed || backward || isolated)
                     && ((adj_pawns = PawnAttackSpan[C_][s + PUSH] & pawns[0]) != U64 (0))
                     && (pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (PawnAttackSpan[C][s] & pawns[1]));
 

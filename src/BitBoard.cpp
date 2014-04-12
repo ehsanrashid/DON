@@ -156,8 +156,7 @@ namespace BitBoard {
 
 #           ifdef BMI
                 continue;
-#           endif
-
+#else
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -194,7 +193,7 @@ namespace BitBoard {
                     }
                 }
                 while (i < size);
-
+#           endif
             }
         }
 
