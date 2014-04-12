@@ -76,10 +76,10 @@ optimize= yes
 os      = any
 bits    = 32
 prefetch= no
-bsfq    = no
-bmi     = no
-popcnt  = no
 sse     = no
+bsfq    = no
+popcnt  = no
+bmi     = no
 pages   = no
 
 ### 2.2 Architecture specific
@@ -102,8 +102,8 @@ endif
 ifeq ($(ARCH),x86-32-popcnt)
 	arch    = i386
 	prefetch= yes
-	popcnt  = yes
 	sse     = yes
+	popcnt  = yes
 	pages   = yes
 endif
 
@@ -117,8 +117,8 @@ ifeq ($(ARCH),x86-64)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
-	bsfq    = yes
 	sse     = yes
+	bsfq    = yes
 	pages   = yes
 endif
 
@@ -126,9 +126,9 @@ ifeq ($(ARCH),x86-64-popcnt)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
+	sse     = yes
 	bsfq    = yes
 	popcnt  = yes
-	sse     = yes
 	pages   = yes
 endif
 
@@ -136,10 +136,10 @@ ifeq ($(ARCH),x86-64-bmi)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
-	bsfq    = yes
-	bmi     = yes
-	popcnt  = yes
 	sse     = yes
+	bsfq    = yes
+	popcnt  = yes
+	bmi     = yes
 	pages   = yes
 endif
 
@@ -173,19 +173,19 @@ ifeq ($(ARCH),osx-x86-64)
 	os      = osx
 	bits    = 64
 	prefetch= yes
-	bsfq    = yes
 	sse     = yes
+	bsfq    = yes
 	pages   = yes
 endif
 
-ifeq ($(ARCH),osx-x86-64-modern)
+ifeq ($(ARCH),osx-x86-64-popcnt)
 	arch    = x86_64
 	os      = osx
 	bits    = 64
 	prefetch= yes
+	sse     = yes
 	bsfq    = yes
 	popcnt  = yes
-	sse     = yes
 	pages   = yes
 endif
 
@@ -193,9 +193,9 @@ ifeq ($(ARCH),osx-x86-32)
 	arch    = i386
 	os      = osx
 	prefetch= yes
+	sse     = yes
 	bsfq    = no
 	popcnt  = no
-	sse     = yes
 	pages   = yes
 endif
 
@@ -403,7 +403,7 @@ help:
 	@echo "linux-ppc-64            > PPC-Linux 64 bit"
 	@echo "osx-ppc-64              > PPC-Mac OS X 64 bit"
 	@echo "osx-ppc-32              > PPC-Mac OS X 32 bit"
-	@echo "osx-x86-64-modern       > x86-Mac OS X 64 bit with popcnt support"
+	@echo "osx-x86-64-popcnt       > x86-Mac OS X 64 bit with popcnt support"
 	@echo "osx-x86-64              > x86-Mac OS X 64 bit"
 	@echo "osx-x86-32              > x86-Mac OS X 32 bit"
 	@echo "armv7                   > ARMv7 32 bit"
