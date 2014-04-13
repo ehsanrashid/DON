@@ -99,14 +99,6 @@ ifeq ($(ARCH),x86-32)
 	pages   = yes
 endif
 
-ifeq ($(ARCH),x86-32-popcnt)
-	arch    = i386
-	prefetch= yes
-	sse     = yes
-	popcnt  = yes
-	pages   = yes
-endif
-
 ifeq ($(ARCH),general-64)
 	arch    = any
 	bits    = 64
@@ -149,53 +141,14 @@ ifeq ($(ARCH),armv7)
 	bsfq    = yes
 endif
 
-ifeq ($(ARCH),osx-ppc-32)
+ifeq ($(ARCH),ppc-32)
 	arch    = ppc
-	os      = osx
 	pages   = yes
 endif
 
-ifeq ($(ARCH),osx-ppc-64)
-	arch    = ppc64
-	os      = osx
-	bits    = 64
-	pages   = yes
-endif
-
-ifeq ($(ARCH),linux-ppc-64)
+ifeq ($(ARCH),ppc-64)
 	arch    = ppc64
 	bits    = 64
-	pages   = yes
-endif
-
-ifeq ($(ARCH),osx-x86-64)
-	arch    = x86_64
-	os      = osx
-	bits    = 64
-	prefetch= yes
-	sse     = yes
-	bsfq    = yes
-	pages   = yes
-endif
-
-ifeq ($(ARCH),osx-x86-64-popcnt)
-	arch    = x86_64
-	os      = osx
-	bits    = 64
-	prefetch= yes
-	sse     = yes
-	bsfq    = yes
-	popcnt  = yes
-	pages   = yes
-endif
-
-ifeq ($(ARCH),osx-x86-32)
-	arch    = i386
-	os      = osx
-	prefetch= yes
-	sse     = yes
-	bsfq    = no
-	popcnt  = no
 	pages   = yes
 endif
 
@@ -253,7 +206,7 @@ else
 	profile_clean   = gcc-profile-clean
 endif
 
-ifeq ($(os),osx)
+ifeq ($(UNAME),Darwin)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.6
 	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.6
 endif
@@ -280,7 +233,7 @@ endif
 ifeq ($(optimize),yes)
 	ifeq ($(comp),gcc)
 		CXXFLAGS += -O3
-		ifeq ($(os),osx)
+		ifeq ($(UNAME),Darwin)
 			ifeq ($(arch),i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
@@ -297,7 +250,7 @@ ifeq ($(optimize),yes)
 		CXXFLAGS += -O3
 	endif
 	ifeq ($(comp),icc)
-		ifeq ($(os),osx)
+		ifeq ($(UNAME),Darwin)
 			CXXFLAGS += -fast -mdynamic-no-pic
 		else
 			CXXFLAGS += -fast
@@ -306,8 +259,11 @@ ifeq ($(optimize),yes)
 
 	ifeq ($(comp),clang)
 		CXXFLAGS += -O3
-		ifeq ($(os),osx)
-			CXXFLAGS += -flto
+		ifeq ($(UNAME),Darwin)
+			ifeq ($(bmi),no)
+			  CXXFLAGS += -flto
+				LDFLAGS += $(CXXFLAGS)
+			endif
 			ifeq ($(arch),i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
@@ -395,18 +351,13 @@ help:
 	@echo "Supported archs:"
 	@echo "----------------"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "x86-64-popcnt           > x86 64-bit with popcnt support"
-	@echo "x86-64-bmi              > x86 64-bit with bmi support"
-	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
+	@echo "x86-64-popcnt           > x86 64-bit with POPCNT support"
+	@echo "x86-64-bmi              > x86 64-bit with BMI support"
 	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "x86-32-popcnt           > x86 32-bit with popcnt support"
-	@echo "linux-ppc-64            > PPC-Linux 64 bit"
-	@echo "osx-ppc-64              > PPC-Mac OS X 64 bit"
-	@echo "osx-ppc-32              > PPC-Mac OS X 32 bit"
-	@echo "osx-x86-64-popcnt       > x86-Mac OS X 64 bit with popcnt support"
-	@echo "osx-x86-64              > x86-Mac OS X 64 bit"
-	@echo "osx-x86-32              > x86-Mac OS X 32 bit"
-	@echo "armv7                   > ARMv7 32 bit"
+	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
+	@echo "ppc-64                  > PPC 64-bit"
+	@echo "ppc-32                  > PPC 32-bit"
+	@echo "armv7                   > ARMv7 32-bit"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "general-32              > unspecified 32-bit"
 	@echo ""
