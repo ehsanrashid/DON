@@ -616,7 +616,7 @@ namespace Searcher {
 
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
-            bool   in_check = pos.checkers ();
+            bool   in_check = pos.checkers () != U64 (0);
 
             if (SPNode)
             {

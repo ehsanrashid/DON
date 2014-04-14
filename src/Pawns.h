@@ -11,13 +11,18 @@
 
 namespace Pawns {
 
-    // Pawns::Entry contains various information about a pawn structure. Currently,
-    // it only includes a middle game and end game pawn structure evaluation, and a
-    // bitboard of passed pawns. We may want to add further information in the future.
+    // Pawns::Entry contains various information about a pawn structure.
     // A lookup to the pawn hash table (performed by calling the probe function)
     // returns a pointer to an Entry object.
     struct Entry
     {
+
+    private:
+        template<Color C>
+        Score do_king_safety (const Position &pos, Square k_sq);
+
+    public:
+
         Key     _pawn_key;
         Score   _pawn_score;
 
@@ -26,12 +31,13 @@ namespace Pawns {
         Bitboard _candidate_pawns[CLR_NO];
         
         Square _king_sq       [CLR_NO];
-        // Count of pawns on LIGHT and DARK squares
-        u08   _pawn_count_sq  [CLR_NO][CLR_NO];
+        Score  _king_safety   [CLR_NO];
+
         u08   _kp_min_dist    [CLR_NO];
         u08   _castle_rights  [CLR_NO];
         u08   _semiopen_files [CLR_NO];
-        Score _king_safety    [CLR_NO];
+        // Count of pawns on LIGHT and DARK squares
+        u08   _pawn_count_sq  [CLR_NO][CLR_NO]; // [color][light/dark squares]       
 
         inline Score    pawn_score()      const { return _pawn_score; }
 
@@ -51,26 +57,24 @@ namespace Pawns {
         }
 
         template<Color C>
-        inline u08  semiopen        (File f) const
+        inline u08  semiopen_file (File f) const
         {
             return _semiopen_files[C] & (1 << f);
         }
 
         template<Color C>
-        inline u08  semiopen_on_side(File f, bool left) const
+        inline u08  semiopen_side(File f, bool left) const
         {
             return _semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
+
 
         template<Color C>
         inline Score king_safety (const Position &pos, Square k_sq)
         {
             return (_king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
-                ? _king_safety[C] : update_safety<C> (pos, k_sq);
+                ? _king_safety[C] : (_king_safety[C] = do_king_safety<C> (pos, k_sq));
         }
-
-        template<Color C>
-        Score update_safety (const Position &pos, Square k_sq);
 
         template<Color C>
         Value shelter_storm (const Position &pos, Square k_sq);

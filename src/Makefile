@@ -261,7 +261,7 @@ ifeq ($(optimize),yes)
 		CXXFLAGS += -O3
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(bmi),no)
-			  CXXFLAGS += -flto
+				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
 			endif
 			ifeq ($(arch),i386)
@@ -302,7 +302,7 @@ endif
 ifeq ($(bmi),yes)
 	CXXFLAGS += -DBMI
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
-		CXXFLAGS += -mbmi2
+		CXXFLAGS += -mbmi -mbmi2
 	endif
 endif
 

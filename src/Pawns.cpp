@@ -302,9 +302,9 @@ namespace Pawns {
     }
 
     template<Color C>
-    // Entry::update_safety() calculates and caches a bonus for king safety. It is
+    // Entry::king_safety() calculates and caches a bonus for king safety. It is
     // called only when king square changes, about 20% of total king_safety() calls.
-    Score Entry::update_safety (const Position &pos, Square king_sq)
+    Score Entry::do_king_safety (const Position &pos, Square king_sq)
     {
         _king_sq[C] = king_sq;
         _castle_rights[C] = pos.can_castle (C);
@@ -318,7 +318,7 @@ namespace Pawns {
 
         if (rel_rank (C, king_sq) > R_4)
         {
-            return _king_safety[C] = mk_score (0, -16 * _kp_min_dist[C]);
+            return mk_score (0, -16 * _kp_min_dist[C]);
         }
 
         Value bonus = shelter_storm<C> (pos, king_sq);
@@ -333,12 +333,12 @@ namespace Pawns {
             bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
         }
 
-        return _king_safety[C] = mk_score (bonus, -16 * _kp_min_dist[C]);
+        return mk_score (bonus, -16 * _kp_min_dist[C]);
     }
 
     // Explicit template instantiation
     // -------------------------------
-    template Score Entry::update_safety<WHITE> (const Position &pos, Square king_sq);
-    template Score Entry::update_safety<BLACK> (const Position &pos, Square king_sq);
+    template Score Entry::do_king_safety<WHITE> (const Position &pos, Square king_sq);
+    template Score Entry::do_king_safety<BLACK> (const Position &pos, Square king_sq);
 
 } // namespace Pawns

@@ -506,9 +506,9 @@ namespace Evaluator {
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
-                    if (ei.pi->semiopen<C> (_file (s)) != 0)
+                    if (ei.pi->semiopen_file<C> (_file (s)) != 0)
                     {
-                        score += ei.pi->semiopen<C_> (_file (s))
+                        score += ei.pi->semiopen_file<C_> (_file (s))
                                ? RookOpenFileBonus
                                : RookSemiopenFileBonus;
                     }
@@ -521,10 +521,10 @@ namespace Evaluator {
                             // king has lost its castling capability.
                             if (   ((f < F_E) == (_file (s) < f))
                                 && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                && ei.pi->semiopen_on_side<C> (f, f < F_E) == 0
+                                && ei.pi->semiopen_side<C> (f, f < F_E) == 0
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (pos.can_castle (C) ? 1 : 2);
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + !pos.can_castle (C));
                             }
                         }
                     }
