@@ -27,19 +27,15 @@ namespace std {
         {}
     };
 
-
-    // char case-insensitive less comparator
-    struct   char_less_nocase_comparer : public binary_function<const unsigned char, const unsigned char, bool>
+    // Case-insensitive less comparator for char
+    inline bool NoCaseLess (const unsigned char c1, const unsigned char c2)
     {
-        bool operator() (const unsigned char c1, const unsigned char c2) const
-        {
-            //return toupper (c1) < toupper (c2);
-            return tolower (c1) < tolower (c2);
-        }
-    };
+        //return toupper (c1) < toupper (c2);
+        return tolower (c1) < tolower (c2);
+    }
 
-    // string case-insensitive less comparator
-    struct string_less_nocase_comparer : public binary_function<string&, string&, bool>
+    // Case-insensitive less comparator for string
+    struct NoCaseLessComparer : public binary_function<string&, string&, bool>
     {
         bool operator() (const string &s1, const string &s2) const
         {
@@ -55,27 +51,23 @@ namespace std {
 
             //return stricmp(s1.c_str (), s2.c_str ()) < 0;
 
-            return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), char_less_nocase_comparer ());
+            return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), NoCaseLess);
         }
     };
 
-    //// case-insensitive equal comparator for char
-    //struct   char_equal_nocase_comparer : public binary_function<const unsigned char, const unsigned char, bool>
+    //// Case-insensitive Equal comparator for char
+    //inline bool NoCaseEqual (const unsigned char c1, const unsigned char c2)
     //{
-    //    bool operator() (const unsigned char c1, const unsigned char c2) const
-    //    {
-    //        //return toupper (c1) == toupper (c2);
-    //        return tolower (c1) == tolower (c2);
-    //    }
-    //};
-
-    //// case-insensitive equal comparator for string
-    //struct string_equal_nocase_comparer : public binary_function<string&, string&, bool>
+    //    //return toupper (c1) == toupper (c2);
+    //    return tolower (c1) == tolower (c2);
+    //}
+    //// Case-insensitive Equal comparator for string
+    //struct NoCaseEqualComparer : public binary_function<string&, string&, bool>
     //{
     //    bool operator() (const string &s1, const string &s2) const
     //    {
     //        return stricmp(s1.c_str (), s2.c_str ()) == 0;
-    //        //return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), char_equal_nocase_comparer ());
+    //        //return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), NoCaseEqual);
     //    }
     //};
 

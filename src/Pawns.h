@@ -18,6 +18,9 @@ namespace Pawns {
     {
 
     private:
+        
+        Score  _king_safety   [CLR_NO];
+
         template<Color C>
         Score do_king_safety (const Position &pos, Square k_sq);
 
@@ -31,13 +34,11 @@ namespace Pawns {
         Bitboard _candidate_pawns[CLR_NO];
         
         Square _king_sq       [CLR_NO];
-        Score  _king_safety   [CLR_NO];
-
-        u08   _kp_min_dist    [CLR_NO];
-        u08   _castle_rights  [CLR_NO];
-        u08   _semiopen_files [CLR_NO];
+        u08    _kp_min_dist   [CLR_NO];
+        u08    _castle_rights [CLR_NO];
+        u08    _semiopen_files[CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08   _pawn_count_sq  [CLR_NO][CLR_NO]; // [color][light/dark squares]       
+        u08    _pawn_count_sq [CLR_NO][CLR_NO]; // [color][light/dark squares]       
 
         inline Score    pawn_score()      const { return _pawn_score; }
 
@@ -53,7 +54,7 @@ namespace Pawns {
         template<Color C>
         inline i32  pawns_on_same_color_squares (Square s) const
         {
-            return _pawn_count_sq[C][bool (BitBoard::DARK_bb & BitBoard::Square_bb[s])];
+            return _pawn_count_sq[C][bool (BitBoard::DARK_bb & s)];
         }
 
         template<Color C>

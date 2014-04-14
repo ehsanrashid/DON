@@ -16,7 +16,7 @@ namespace UCI {
     class Option;
 
     // Our options container is actually a std::map
-    typedef std::map<std::string, Option, std::string_less_nocase_comparer> OptionMap;
+    typedef std::map<std::string, Option, std::NoCaseLessComparer> OptionMap;
 
     // Option class implements an option as defined by UCI protocol
     class Option
