@@ -75,7 +75,7 @@ namespace Engine {
 #endif
 
 #ifdef BMI
-        cout << "-BMI";
+        oss << "-BMI";
 #endif
 #ifdef POPCNT
         oss << "-POP";
@@ -103,7 +103,6 @@ namespace Engine {
 //#ifdef BMI
 //        cout << "info string BMI available." << endl;
 //#endif
-
 //#ifdef LPAGES
 //        cout << "info string LARGE PAGES available." << endl;
 //        MemoryHandler::initialize ();

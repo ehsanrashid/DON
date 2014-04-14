@@ -313,24 +313,23 @@ namespace Pawns {
         Bitboard pawns = pos.pieces<PAWN> (C);
         if (pawns != U64 (0))
         {
-            while (!(DistanceRings[king_sq][_kp_min_dist[C]++] & pawns));
+            while ((DistanceRings[king_sq][_kp_min_dist[C]++] & pawns) == U64 (0)) {}
         }
 
-        if (rel_rank (C, king_sq) > R_4)
+        Value bonus = VALUE_ZERO;
+        if (rel_rank (C, king_sq) <= R_4)
         {
-            return mk_score (0, -16 * _kp_min_dist[C]);
-        }
+            bonus = shelter_storm<C> (pos, king_sq);
 
-        Value bonus = shelter_storm<C> (pos, king_sq);
-
-        // If we can castle use the bonus after the castle if is bigger
-        if (pos.can_castle (Castling<C, CS_K>::Right))
-        {
-            bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_K)));
-        }
-        if (pos.can_castle (Castling<C, CS_Q>::Right))
-        {
-            bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
+            // If we can castle use the bonus after the castle if is bigger
+            if (pos.can_castle (Castling<C, CS_K>::Right))
+            {
+                bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_K)));
+            }
+            if (pos.can_castle (Castling<C, CS_Q>::Right))
+            {
+                bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_WK_Q)));
+            }
         }
 
         return mk_score (bonus, -16 * _kp_min_dist[C]);
