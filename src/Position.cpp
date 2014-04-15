@@ -1586,7 +1586,6 @@ void Position::undo_null_move ()
     ASSERT (ok ());
 }
 
-
 // flip position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
@@ -1620,7 +1619,7 @@ void Position::flip ()
     ASSERT (ok ());
 }
 
-string Position::fen (bool                 c960, bool full) const
+string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
 
