@@ -1477,8 +1477,8 @@ void Position::  do_move (Move m, StateInfo &si)
 // do_move() do the move from string (CAN)
 void Position::  do_move (string &can, StateInfo &si)
 {
-    Move move = move_from_can (can, *this);
-    if (MOVE_NONE != move) do_move (move, si);
+    Move m = move_from_can (can, *this);
+    if (MOVE_NONE != m) do_move (m, si);
 }
 // undo_move() undo the last move
 void Position::undo_move ()
