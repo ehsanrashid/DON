@@ -118,7 +118,7 @@ namespace Searcher {
             }
         }
 
-        // value_to_tt () adjusts a mate score from "plies to mate from the root" to
+        // value_to_tt() adjusts a mate score from "plies to mate from the root" to
         // "plies to mate from the current position". Non-mate scores are unchanged.
         // The function is called before storing a value to the transposition table.
         inline Value value_to_tt (Value v, i32 ply)
@@ -128,7 +128,7 @@ namespace Searcher {
                  : v <= VALUE_MATED_IN_MAX_PLY ? v - ply
                  : v;
         }
-        // value_fr_tt () is the inverse of value_to_tt ():
+        // value_fr_tt() is the inverse of value_to_tt ():
         // It adjusts a mate score from the transposition table
         // (where refers to the plies to mate/be mated from current position)
         // to "plies to mate/be mated from the root".
@@ -140,7 +140,7 @@ namespace Searcher {
                  : v;
         }
 
-        // info_pv () formats PV information according to UCI protocol.
+        // info_pv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
         inline string info_pv (const Position &pos, u08 depth, Value alpha, Value beta, point elapsed)
@@ -762,7 +762,7 @@ namespace Searcher {
                 if (   (depth < 4 * ONE_MOVE)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (tt_move == MOVE_NONE)
-                    && (!pos.pawn_on_7thR (pos.active ())) // TODO::
+                    && (!pos.pawn_on_7thR (pos.active ()))
                    )
                 {
                     Value ralpha = alpha - razor_margin (depth);
