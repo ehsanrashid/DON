@@ -178,7 +178,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (attacks_bb[s], 0, size * sizeof (*attacks_bb[s]));
+                    memset (attacks_bb[s], U64 (0), size * sizeof (*attacks_bb[s]));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -188,18 +188,18 @@ namespace BitBoard {
                     {
                         Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
 
-                        if (attacks && (attacks != reference[i]))
+                        if ((attacks != U64 (0)) && (attacks != reference[i]))
                         {
                             break;
                         }
 
-                        ASSERT (reference[i]);
+                        ASSERT (reference[i] != U64 (0));
                         attacks = reference[i];
                     }
                 }
                 while (i < size);
 #           else
-                (void) magics_bb[s]; 
+                (void) magics_bb; 
                 (void) m_index; 
 #           endif
             }

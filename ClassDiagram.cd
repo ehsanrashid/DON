@@ -515,14 +515,14 @@
     </TypeIdentifier>
   </Class>
   <Class Name="std::width_prec">
-    <Position X="44.25" Y="1" Width="1.5" />
+    <Position X="44.5" Y="1" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ACAAAAAAAAAAAAAAEAAAAAAAABAAAAAAAAAAAAgAAAA=</HashCode>
       <FileName>src\manipulator.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="std::manip_infra&lt;T, C&gt;">
-    <Position X="42.25" Y="1" Width="1.5" />
+    <Position X="42.75" Y="1" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAgAAAAAAIAAAAAAAAAAAAAABAA=</HashCode>
       <FileName>src\manipulator.h</FileName>
@@ -1234,28 +1234,21 @@
     </ShowAsAssociation>
   </Struct>
   <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
-    <Position X="40.25" Y="2" Width="1.5" />
+    <Position X="37.5" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::binary_nullfunctor&lt;T&gt;" Collapsed="true">
-    <Position X="38.5" Y="1" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\functor.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="std::char_nocase_less_comparer" Collapsed="true">
-    <Position X="40.25" Y="1" Width="1.5" />
+    <Position X="39.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::NoCaseLessComparer" Collapsed="true">
-    <Position X="38.5" Y="2" Width="1.5" />
+    <Position X="41" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
@@ -1319,6 +1312,20 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAEAAIAACAABAAAAAAAAA=</HashCode>
       <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::binary_function&lt;_Arg1, _Arg2, _Result&gt;" Collapsed="true">
+    <Position X="40" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\xstddef</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::unary_function&lt;_Arg, _Result&gt;" Collapsed="true">
+    <Position X="37.5" Y="1" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\xstddef</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">

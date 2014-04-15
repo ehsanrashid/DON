@@ -481,6 +481,7 @@ namespace MoveGenerator {
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
+
             SERIALIZE (moves, org, attacks);
         }
 
