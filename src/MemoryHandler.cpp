@@ -8,8 +8,8 @@
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   include <tchar.h>
-#   include <stdio.h>
-#   include <stdlib.h>
+#   include <cstdio>
+#   include <cstdlib>
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX
@@ -183,7 +183,6 @@ namespace MemoryHandler {
 
         if (bool (Options["Large Pages"]))
         {
-
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             /* Vlad0 */
@@ -236,7 +235,6 @@ namespace MemoryHandler {
                 //Engine::exit (EXIT_FAILURE);
             }
 #   endif
-
         }
 
         MEMALIGN (mem_ref, align, mem_size);
@@ -267,7 +265,7 @@ namespace MemoryHandler {
 
 #   else   // Linux - Unix
 
-            if(shmdt  (mem) != 0) { cerr << "Could not close memory segment." << endl; }
+            if (shmdt (mem) != 0) { cerr << "Could not close memory segment." << endl; }
             shmctl (Num, IPC_RMID, NULL);
             
 #   endif
@@ -276,12 +274,10 @@ namespace MemoryHandler {
         }
 
         ALIGNED_FREE (mem);
-        
     }
-
+    
     void initialize      ()
     {
-
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
         SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
@@ -417,7 +413,6 @@ namespace MemoryHandler {
 
 
 #   endif
-
     }
 
 }
