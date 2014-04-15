@@ -164,7 +164,7 @@ namespace MoveGenerator {
                     if (pos.can_castle (C) && !pos.checkers ())
                     {
                         CheckInfo cc;
-                        if (!ci)
+                        if (ci == NULL)
                         {
                             cc = CheckInfo (pos);
                             ci = &cc;

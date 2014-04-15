@@ -122,7 +122,7 @@ INLINE Square  scan_lsq (Bitboard bb)
 
     // * @author Kim Walisch (2012)
     // * DeBruijn(U32(0x4000000)) = U64 (0X03F79D71B4CB0A89)
-    if (!bb) return SQ_NO;
+    if (bb == U64 (0)) return SQ_NO;
     CACHE_ALIGN(8)
         const u08 BSF_Table[SQ_NO] =
     {
@@ -172,7 +172,7 @@ inline Square  scan_msq (Bitboard bb)
 
     // * @authors Kim Walisch, Mark Dickinson (2012)
     // * DeBruijn(U32(0x4000000)) = U64 (0X03F79D71B4CB0A89)
-    if (!bb) return SQ_NO;
+    if (bb == U64 (0)) return SQ_NO;
     CACHE_ALIGN(8)
         const u08 BSF_Table[SQ_NO] =
     {
@@ -221,7 +221,7 @@ inline Square  scan_msq (Bitboard bb)
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
     };
 
-    if (!bb) return SQ_NO;
+    if (bb == U64 (0)) return SQ_NO;
     u08 msb = 0;
     if (bb > 0xFFFFFFFF)
     {

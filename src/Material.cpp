@@ -102,7 +102,7 @@ namespace Material {
             for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
             {
                 i32 pc = count[C][pt1];
-                if (!pc) continue;
+                if (pc == 0) continue;
 
                 i32 v = LinearCoefficients[pt1];
 

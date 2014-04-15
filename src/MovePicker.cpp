@@ -88,7 +88,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     , followup_moves (NULL)
     , depth (DEPTH_ZERO)
 {
-    ASSERT (!pos.checkers ());
+    ASSERT (pos.checkers () == U64 (0));
 
     stage = PROBCUT;
 
