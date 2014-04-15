@@ -84,13 +84,6 @@ namespace Searcher {
         MovesStats  CounterMoves
             ,       FollowupMoves;
 
-        i32     TBCardinality;
-        u16     TBHits;
-        bool    RootInTB;
-        bool    TB50MoveRule;
-        Depth   TBProbeDepth;
-        Value   TBScore;
-
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
         inline void update_stats (Position &pos, Stack *ss, Move move, u08 depth, Move *quiet_moves, u08 quiets_count)
@@ -187,19 +180,6 @@ namespace Searcher {
                     v = RootMoves[i].value[1];
                 }
 
-                bool tb = RootInTB;
-                if (tb)
-                {
-                    if (abs (v) >= VALUE_MATES_IN_MAX_PLY)
-                    {
-                        tb = false;
-                    }
-                    else
-                    {
-                        v = TBScore;
-                    }
-                }
-                
                 // Not at first line
                 if (oss.rdbuf ()->in_avail ()) oss << "\n";
 
@@ -207,13 +187,11 @@ namespace Searcher {
                     << " multipv "  << u16 (i + 1)
                     << " depth "    << u16 (d)
                     << " seldepth " << u16 (sel_depth)
-                    << " score "    << ((!tb && i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
+                    << " score "    << ((i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
                     << " time "     << elapsed
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * M_SEC / elapsed
                     << " hashfull " << TT.permill_full ()
-                    << " tbhits "   << TBHits
-                    //<< " cpuload "  << // the cpu usage of the engine is x permill.
                     << " pv";
                 for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
@@ -724,45 +702,6 @@ namespace Searcher {
                     return tt_value;
                 }
 
-                /*
-                // Step 4-TB. Tablebase probe
-                if (   (depth >= TBProbeDepth)
-                    && (pos.clock50 () == 0)
-                    && (pos.count () <= TBCardinality))
-                {
-                    i32 found, v = TBSyzygy::probe_wdl (pos, &found);
-
-                    if (found)
-                    {
-                        ++TBHits;
-
-                        Value value;
-                        if (TB50MoveRule)
-                        {
-                            value = v < -1 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
-                                  : v >  1 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
-                                  : VALUE_DRAW + 2 * v;
-                        }
-                        else
-                        {
-                            value = v < 0 ? VALUE_MATED_IN_MAX_PLY + i32 ((ss)->ply)
-                                  : v > 0 ? VALUE_MATES_IN_MAX_PLY - i32 ((ss)->ply)
-                                  : VALUE_DRAW;
-                        }
-
-                        TT.store (
-                            posi_key,
-                            MOVE_NONE,
-                            depth + 6 * ONE_MOVE,
-                            BND_EXACT,
-                            pos.game_nodes (),
-                            value_to_tt (value, (ss)->ply),
-                            VALUE_NONE);
-
-                        return value;
-                    }
-                }
-                */
             }
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -1817,73 +1756,6 @@ namespace Searcher {
                 << endl;
         }
 
-        TBCardinality = 0;
-        TB50MoveRule = true;
-        TBHits = 0;
-        RootInTB = false;
-        TBProbeDepth = DEPTH_NONE;
-
-        /*
-        piece_cnt = RootPos.count ();
-        TBCardinality = i32 (Options["Syzygy Probe Limit"]);
-        if (TBCardinality > TBSyzygy::TB_Largest)
-        {
-            TBCardinality = TBSyzygy::TB_Largest;
-        }
-
-        TB50MoveRule = bool (Options["Syzygy 50 Move Rule"]);
-        TBProbeDepth = i32 (Options["Syzygy Probe Depth"]) * ONE_MOVE;
-
-        TBHits = 0;
-        RootInTB = false;
-
-        if (piece_cnt <= TBCardinality)
-        {
-            TBHits = RootMoves.size ();
-
-            // If the current root position is in the tablebases then RootMoves
-            // contains only moves that preserve the draw or win.
-            RootInTB = TBSyzygy::root_probe (RootPos, TBScore);
-
-            if (RootInTB)
-            {
-                TBCardinality = 0; // Do not probe tablebases during the search
-
-                // It might be a good idea to mangle the hash key (xor it
-                // with a fixed value) in order to "clear" the hash table of
-                // the results of previous probes. However, that would have to
-                // be done from within the Position class, so we skip it for now.
-
-                // Optional: decrease target time.
-            }
-            else // If DTZ tables are missing, use WDL tables as a fallback
-            {
-                // Filter out moves that do not preserve a draw or win.
-                RootInTB = TBSyzygy::root_probe_wdl (RootPos, TBScore);
-
-                // Only probe during search if winning.
-                if (TBScore <= VALUE_DRAW)
-                {
-                    TBCardinality = 0;
-                }
-            }
-
-            if (RootInTB)
-            {
-                if (!TB50MoveRule)
-                {
-                    TBScore = TBScore > VALUE_DRAW ? VALUE_MATES_IN_MAX_PLY - 1
-                            : TBScore < VALUE_DRAW ? VALUE_MATED_IN_MAX_PLY + 1
-                            : TBScore;
-                }
-            }
-            else
-            {
-                TBHits = 0;
-            }
-        }
-        */
-
         // Reset the threads, still sleeping: will wake up at split time
         for (u08 t = 0; t < Threadpool.size (); ++t)
         {
@@ -1898,11 +1770,6 @@ namespace Searcher {
 
         Threadpool.timer->run = false;  // Stop the timer
         Threadpool.idle_sleep = true;   // Send idle threads to sleep
-
-        if (RootInTB)
-        {
-            // If we mangled the hash key, unmangle it here
-        }
 
         if (write_search_log)
         {
@@ -1937,7 +1804,6 @@ namespace Searcher {
             << " time "     << elapsed
             << " nodes "    << RootPos.game_nodes ()
             << " nps "      << RootPos.game_nodes () * M_SEC / elapsed
-            << " tbhits "   << TBHits
             << " hashfull " << TT.permill_full ()
             << sync_endl;
 

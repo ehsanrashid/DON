@@ -162,12 +162,6 @@ namespace UCI {
             Searcher::Book.close ();
         }
 
-        void on_change_tb_syzygy (const Option &opt)
-        {
-            string syzygy_path = string (opt);
-            //TBSyzygy::initialize (syzygy_path);
-        }
-        
         void on_config_threadpool(const Option &)
         {
             Threadpool.configure ();
@@ -287,11 +281,6 @@ namespace UCI {
 
         // End Game Table Bases Options
         // ----------------------------
-        // 
-        Options["Syzygy Path"]                  << Option ("", on_change_tb_syzygy);
-        Options["Syzygy Probe Depth"]           << Option ( 1, 1, 100);
-        Options["Syzygy 50 Move Rule"]          << Option (true);
-        Options["Syzygy Probe Limit"]           << Option ( 6, 0, 6);
 
         // Cores and Threads Options
         // -------------------------
