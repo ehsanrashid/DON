@@ -520,9 +520,10 @@ bool Position::ok (i08 *step) const
     return true;
 }
 
-// least_valuable_attacker() is an helper function used by see() to locate the least
-// valuable attacker for the side to move, remove the attacker we just found
-// from the bitboards and scan for new X-ray attacks behind it.
+// least_valuable_attacker() is a helper function used by see()
+// to locate the least valuable attacker for the side to move,
+// remove the attacker we just found from the bitboards and
+// scan for new X-ray attacks behind it.
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
