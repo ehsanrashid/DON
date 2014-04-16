@@ -1726,9 +1726,9 @@ Position::operator string () const
 
     oss << "Checkers: ";
     Bitboard chkrs = checkers ();
-    if (chkrs)
+    if (chkrs != U64 (0))
     {
-        while (chkrs)
+        while (chkrs != U64 (0))
         {
             Square chk = pop_lsq (chkrs);
             oss << PieceChar[ptype (_board[chk])] << to_string (chk) << " ";
