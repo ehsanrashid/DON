@@ -136,172 +136,172 @@ namespace Material {
 
     } // namespace
 
-    // Material::probe () takes a position object as input,
-    // looks up a MaterialEntry object, and returns a pointer to it.
+    // Material::probe() takes a position object as input, looks up a MaterialEntry object,
+    // and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so we don't have to recompute everything
     // when the same material configuration occurs again.
     Entry* probe     (const Position &pos, Table &table)
     {
-        Key key  = pos.matl_key ();
-        Entry *e = table[key];
+        Key matl_key = pos.matl_key ();
+        Entry *e     = table[matl_key];
 
         // If e->_key matches the position's material hash key, it means that we
         // have analysed this material configuration before, and we can simply
         // return the information we found the last time instead of recomputing it.
-        if (e->_key == key) return e;
-
-        memset (e, 0, sizeof (*e));
-        e->_key           = key;
-        e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
-        e->_game_phase    = game_phase (pos);
-
-        // Let's look if we have a specialized evaluation function for this
-        // particular material configuration. First we look for a fixed
-        // configuration one, then a generic one if previous search failed.
-        if (EndGames->probe (key, e->evaluation_func))
+        if (e->_matl_key != matl_key)
         {
-            return e;
-        }
+            memset (e, 0, sizeof (*e));
+            e->_matl_key      = matl_key;
+            e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
+            e->_game_phase    = game_phase (pos);
 
-        if (is_KXK<WHITE> (pos))
-        {
-            e->evaluation_func = &EvaluateKXK[WHITE];
-            return e;
-        }
-        if (is_KXK<BLACK> (pos))
-        {
-            e->evaluation_func = &EvaluateKXK[BLACK];
-            return e;
-        }
-
-        // OK, we didn't find any special evaluation function for the current
-        // material configuration. Is there a suitable scaling function?
-        //
-        // We face problems when there are several conflicting applicable
-        // scaling functions and we need to decide which one to use.
-        EndgameBase<ScaleFactor> *eg_sf;
-        if (EndGames->probe (key, eg_sf))
-        {
-            e->scaling_func[eg_sf->color ()] = eg_sf;
-            return e;
-        }
-
-        // Generic scaling functions that refer to more than one material distribution.
-        // Should be probed after the specialized ones.
-        // Note that these ones don't return after setting the function.
-
-        if (is_KBPsKs<WHITE> (pos))
-        {
-            e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
-        }
-        if (is_KBPsKs<BLACK> (pos))
-        {
-            e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
-        }
-
-        if      (is_KQKRPs<WHITE> (pos))
-        {
-            e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
-        }
-        else if (is_KQKRPs<BLACK> (pos))
-        {
-            e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
-        }
-
-
-        Value npm[CLR_NO] = 
-        {
-            pos.non_pawn_material (WHITE),
-            pos.non_pawn_material (BLACK),
-        };
-
-        if (npm[WHITE] + npm[BLACK] == VALUE_ZERO && pos.pieces<PAWN> ())
-        {
-            if      (pos.count<PAWN> (BLACK) == 0
-                &&   pos.count<PAWN> (WHITE) >= 2)
+            // Let's look if we have a specialized evaluation function for this
+            // particular material configuration. First we look for a fixed
+            // configuration one, then a generic one if previous search failed.
+            if (EndGames->probe (matl_key, e->evaluation_func))
             {
-                //ASSERT (pos.count<PAWN> (WHITE) >= 2);
-                e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
+                return e;
             }
-            else if (pos.count<PAWN> (WHITE) == 0
-                &&   pos.count<PAWN> (BLACK) >= 2)
+
+            if (is_KXK<WHITE> (pos))
             {
-                //ASSERT (pos.count<PAWN> (BLACK) >= 2);
-                e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
+                e->evaluation_func = &EvaluateKXK[WHITE];
+                return e;
             }
-            else if (pos.count<PAWN> (WHITE) == 1
-                &&   pos.count<PAWN> (BLACK) == 1)
+            if (is_KXK<BLACK> (pos))
             {
-                // This is a special case because we set scaling functions for both colors instead of only one.
-                e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
-                e->scaling_func[BLACK] = &ScaleKPKP[BLACK];
+                e->evaluation_func = &EvaluateKXK[BLACK];
+                return e;
             }
+
+            // OK, we didn't find any special evaluation function for the current
+            // material configuration. Is there a suitable scaling function?
+            //
+            // We face problems when there are several conflicting applicable
+            // scaling functions and we need to decide which one to use.
+            EndgameBase<ScaleFactor> *eg_sf;
+            if (EndGames->probe (matl_key, eg_sf))
+            {
+                e->scaling_func[eg_sf->color ()] = eg_sf;
+                return e;
+            }
+
+            // Generic scaling functions that refer to more than one material distribution.
+            // Should be probed after the specialized ones.
+            // Note that these ones don't return after setting the function.
+            if (is_KBPsKs<WHITE> (pos))
+            {
+                e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
+            }
+            if (is_KBPsKs<BLACK> (pos))
+            {
+                e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
+            }
+
+            if      (is_KQKRPs<WHITE> (pos))
+            {
+                e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
+            }
+            else if (is_KQKRPs<BLACK> (pos))
+            {
+                e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
+            }
+
+            Value npm[CLR_NO] = 
+            {
+                pos.non_pawn_material (WHITE),
+                pos.non_pawn_material (BLACK),
+            };
+
+            if (npm[WHITE] + npm[BLACK] == VALUE_ZERO && pos.pieces<PAWN> ())
+            {
+                if      (pos.count<PAWN> (BLACK) == 0
+                    &&   pos.count<PAWN> (WHITE) >= 2)
+                {
+                    //ASSERT (pos.count<PAWN> (WHITE) >= 2);
+                    e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
+                }
+                else if (pos.count<PAWN> (WHITE) == 0
+                    &&   pos.count<PAWN> (BLACK) >= 2)
+                {
+                    //ASSERT (pos.count<PAWN> (BLACK) >= 2);
+                    e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
+                }
+                else if (pos.count<PAWN> (WHITE) == 1
+                    &&   pos.count<PAWN> (BLACK) == 1)
+                {
+                    // This is a special case because we set scaling functions for both colors instead of only one.
+                    e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
+                    e->scaling_func[BLACK] = &ScaleKPKP[BLACK];
+                }
+            }
+
+            // No pawns makes it difficult to win, even with a material advantage.
+            // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
+            // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
+
+            if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
+            {
+                if      (pos.count<PAWN> (WHITE) == 0)
+                {
+                    e->_factor[WHITE] = u08 (npm[WHITE] <= VALUE_MG_BSHP ?
+                        SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
+                        1 : npm[BLACK] <= VALUE_MG_BSHP ? 
+                        4 : 12);
+                }
+                else if (pos.count<PAWN> (WHITE) == 1)
+                {
+                    e->_factor[WHITE] = u08 ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
+                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
+                }
+            }
+
+            if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
+            {
+                if      (pos.count<PAWN> (BLACK) == 0)
+                {
+                    e->_factor[BLACK] = u08 (npm[BLACK] <= VALUE_MG_BSHP ?
+                        SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
+                        1 : npm[WHITE] <= VALUE_MG_BSHP ? 
+                        4 : 12);
+                }
+                else if (pos.count<PAWN> (BLACK) == 1)
+                {
+                    e->_factor[BLACK] = u08 ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
+                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
+                }
+            }
+
+            // Compute the space weight
+            if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
+            {
+                i32 minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
+                e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
+            }
+
+            // Evaluate the material imbalance.
+            // We use KING as a place holder for the bishop pair "extended piece",
+            // this allow us to be more flexible in defining bishop pair bonuses.
+            const i32 count[CLR_NO][NONE] =
+            {
+                {
+                    pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
+                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE)
+                },
+                {
+                    pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
+                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK)
+                }
+            };
+
+            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
         }
 
-        // No pawns makes it difficult to win, even with a material advantage.
-        // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
-        // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-
-        if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
-        {
-            if      (pos.count<PAWN> (WHITE) == 0)
-            {
-                e->_factor[WHITE] = u08 (npm[WHITE] <= VALUE_MG_BSHP ?
-                    SCALE_FACTOR_DRAW : !pos.count<NIHT> (WHITE) && !pos.bishops_pair (WHITE) ?
-                    1 : npm[BLACK] <= VALUE_MG_BSHP ? 
-                    4 : 12);
-            }
-            else if (pos.count<PAWN> (WHITE) == 1)
-            {
-                e->_factor[WHITE] = u08 ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
-                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
-            }
-        }
-
-        if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
-        {
-            if      (pos.count<PAWN> (BLACK) == 0)
-            {
-                e->_factor[BLACK] = u08 (npm[BLACK] <= VALUE_MG_BSHP ?
-                    SCALE_FACTOR_DRAW : !pos.count<NIHT> (BLACK) && !pos.bishops_pair (BLACK) ?
-                    1 : npm[WHITE] <= VALUE_MG_BSHP ? 
-                    4 : 12);
-            }
-            else if (pos.count<PAWN> (BLACK) == 1)
-            {
-                e->_factor[BLACK] = u08 ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
-                    4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
-            }
-        }
-
-        // Compute the space weight
-        if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
-        {
-            i32 minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
-            e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
-        }
-
-        // Evaluate the material imbalance.
-        // We use KING as a place holder for the bishop pair "extended piece",
-        // this allow us to be more flexible in defining bishop pair bonuses.
-        const i32 count[CLR_NO][NONE] =
-        {
-            {
-                pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
-            },
-            {
-                pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
-            },
-        };
-
-        e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
         return e;
     }
 
-    // Material::game_phase () calculates the phase given the current position.
+    // Material::game_phase() calculates the phase given the current position.
     // Because the phase is strictly a function of the material, it is stored in MaterialEntry.
     Phase game_phase (const Position &pos)
     {

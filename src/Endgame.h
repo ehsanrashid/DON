@@ -122,9 +122,9 @@ namespace EndGame {
        ~Endgames ();
 
         template<class T>
-        inline T probe (Key key, T &eg)
+        inline T probe (Key matl_key, T &eg)
         {
-            return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
+            return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
         }
     };
 

@@ -7,7 +7,7 @@ TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 
-const u08  TranspositionTable::TOT_CLUSTER_ENTRY = 4;
+const u08  TranspositionTable::CLUSTER_ENTRIES = 4;
 
 const u08  TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
 
@@ -78,15 +78,15 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
-// each cluster consists of TOT_CLUSTER_ENTRY number of entry.
+// each cluster consists of CLUSTER_ENTRIES number of entry.
 u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 {
     if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
     u64 mem_size      = u64 (mem_size_mb) << 20;
-    u64 cluster_count = (mem_size) / sizeof (TTEntry[TOT_CLUSTER_ENTRY]);
-    u64   entry_count = u64 (TOT_CLUSTER_ENTRY) << scan_msq (cluster_count);
+    u64 cluster_count = (mem_size) / sizeof (TTEntry[CLUSTER_ENTRIES]);
+    u64   entry_count = u64 (CLUSTER_ENTRIES) << scan_msq (cluster_count);
 
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
 
@@ -98,7 +98,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 
         alloc_aligned_memory (mem_size, CACHE_LINE_SIZE);
 
-        _hash_mask = (entry_count - TOT_CLUSTER_ENTRY);
+        _hash_mask = (entry_count - CLUSTER_ENTRIES);
     }
 
     return (mem_size >> 20);
@@ -127,7 +127,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
     // By default replace first entry
     TTEntry *rte = tte;
 
-    for (u08 i = 0; i < TOT_CLUSTER_ENTRY; ++i, ++tte)
+    for (u08 i = 0; i < CLUSTER_ENTRIES; ++i, ++tte)
     {
         if (tte->_key == 0 || tte->_key == key32) // Empty or Old then overwrite
         {
@@ -185,7 +185,7 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u32 key32 = (key >> 32);
     TTEntry *tte = cluster_entry (key);
-    for (u08 i = 0; i < TOT_CLUSTER_ENTRY; ++i, ++tte)
+    for (u08 i = 0; i < CLUSTER_ENTRIES; ++i, ++tte)
     {
         if (tte->_key == key32)
         {

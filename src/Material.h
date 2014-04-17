@@ -28,7 +28,7 @@ namespace Material {
 
     public:
 
-        Key     _key;
+        Key     _matl_key;
         i16     _value;
         u08     _factor[CLR_NO];
         Score   _space_weight;

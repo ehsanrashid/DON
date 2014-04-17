@@ -54,7 +54,7 @@ namespace Threads {
         mutex.unlock ();
     }
 
-    // wait_for() set the thread to sleep until condition 'b' turns true
+    // wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
         mutex.lock ();

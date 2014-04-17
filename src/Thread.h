@@ -211,6 +211,7 @@ namespace Threads {
         Pawns   ::Table   pawns_table;
 
         Position *active_pos;
+
         u08   idx
             , max_ply;
 
