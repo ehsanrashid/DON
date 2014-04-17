@@ -336,8 +336,8 @@ namespace Evaluator {
             {
                 ei.king_ring              [C_] = U64 (0);
                 ei.king_attackers_count   [C ] = 0;
-                ei.king_zone_attacks_count[C ] = 0;
-                ei.king_attackers_weight  [C ] = 0;
+                //ei.king_zone_attacks_count[C ] = 0;
+                //ei.king_attackers_weight  [C ] = 0;
             }
         }
 

@@ -51,7 +51,7 @@ public:
     Move  move  () const { return Move  (_move);  }
     Depth depth () const { return Depth (_depth); }
     Bound bound () const { return Bound (_bound); }
-    //u08   gen   () const { return u08   (_gen);   }
+    u08   gen   () const { return u08   (_gen);   }
     u16   nodes () const { return u16   (_nodes); }
     Value value () const { return Value (_value); }
     Value eval  () const { return Value (_eval);  }
