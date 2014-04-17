@@ -276,12 +276,10 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
-
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);
         }
-        
         delete Endgames;
     }
 
