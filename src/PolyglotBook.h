@@ -113,7 +113,7 @@ public:
         return _size_book;
     }
 
-    bool is_open () const { return std::fstream::is_open(); }
+    bool is_open () const { return std::fstream::is_open (); }
 
     // probe_move() tries to find a book move for the given position.
     // If no move is found returns MOVE_NONE.

@@ -160,7 +160,7 @@ namespace UCI {
 
         void on_change_book (const Option &)
         {
-            Searcher::Book.close ();
+            Book.close ();
         }
 
         void on_config_threadpool(const Option &)
