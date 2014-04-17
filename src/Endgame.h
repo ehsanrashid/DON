@@ -57,7 +57,7 @@ namespace EndGame {
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
-    struct EndgameBase
+    class EndgameBase
     {
     public:
 
@@ -76,7 +76,7 @@ namespace EndGame {
 #endif
 
     template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
-    struct Endgame
+    class Endgame
         : public EndgameBase<T>
     {
 
