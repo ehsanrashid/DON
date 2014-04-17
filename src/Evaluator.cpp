@@ -711,7 +711,7 @@ namespace Evaluator {
             Score score = SCORE_ZERO;
 
             Bitboard passed_pawns = ei.pi->passed_pawns<C> ();
-            while (passed_pawns)
+            while (passed_pawns != U64 (0))
             {
                 Square s = pop_lsq (passed_pawns);
 
@@ -724,7 +724,7 @@ namespace Evaluator {
                 Value mg_bonus = Value (17 * rr);
                 Value eg_bonus = Value (7 * (rr + r + 1));
 
-                if (rr)
+                if (rr != 0)
                 {
                     Square block_sq = s + pawn_push (C);
                     Square fk_sq = pos.king_sq (C);
@@ -791,18 +791,6 @@ namespace Evaluator {
                         eg_bonus += Value (k * rr);
                     }
                 } // 0 != rr
-
-                // Increase the bonus if the passed pawn is supported by a friendly pawn
-                // on the same rank and a bit smaller if it's on the previous rank.
-                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
-                if ((supporting_pawns & rank_bb (s)) != U64 (0))
-                {
-                    eg_bonus += Value (r * 20);
-                }
-                else if ((supporting_pawns & rank_bb (s - pawn_push (C))) != U64 (0))
-                {
-                    eg_bonus += Value (r * 12);
-                }
 
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
