@@ -82,7 +82,6 @@ namespace Pawns {
 
     };
 
-
     typedef HashTable<Entry, 16384> Table;
 
     extern void initialize ();

@@ -236,8 +236,10 @@ namespace Pawns {
         if (e->_pawn_key != pawn_key)
         {
             e->_pawn_key    = pawn_key;
-            e->_pawn_score  = evaluate<WHITE> (pos, e) - evaluate<BLACK> (pos, e);
+            e->_pawn_score  = evaluate<WHITE> (pos, e)
+                            - evaluate<BLACK> (pos, e);
         }
+
         return e;
     }
 
@@ -306,7 +308,7 @@ namespace Pawns {
     // called only when king square changes, about 20% of total king_safety() calls.
     Score Entry::do_king_safety (const Position &pos, Square king_sq)
     {
-        _king_sq[C] = king_sq;
+        _king_sq      [C] = king_sq;
         _castle_rights[C] = pos.can_castle (C);
         _kp_min_dist  [C] = 0;
 

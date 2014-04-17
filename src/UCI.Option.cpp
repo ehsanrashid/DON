@@ -113,7 +113,8 @@ namespace UCI {
             oss << " default " << _default;
             if (_type == "spin")
             {
-                oss << " min " << _minimum << " max " << _maximum;
+                oss << " min " << _minimum
+                    << " max " << _maximum;
             }
         }
         return oss.str ();
