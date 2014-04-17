@@ -22,8 +22,7 @@ namespace Threads {
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
 
-extern const std::string FEN_N;
-extern const std::string FEN_X;
+extern const std::string StartFEN;
 
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);

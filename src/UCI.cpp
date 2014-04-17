@@ -150,7 +150,7 @@ namespace UCI {
                 // consume "startpos" or "fen" token
                 if      (token == "startpos")
                 {
-                    fen = FEN_N;
+                    fen = StartFEN;
                     cstm >> token; // Consume "moves" token if any
                 }
                 else if (token == "fen")
@@ -399,7 +399,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &args)
     {
-        RootPos.setup (FEN_N, Threadpool.main (), bool (Options["UCI_Chess960"]));
+        RootPos.setup (StartFEN, Threadpool.main (), bool (Options["UCI_Chess960"]));
 
         bool running = args.empty ();
         string cmd   = args;

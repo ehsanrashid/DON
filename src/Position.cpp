@@ -29,11 +29,7 @@ const Value PieceValue[PHASE_NO][TOTL] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
-
-//const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-//const char *const FEN_X = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
-const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
+const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 bool _ok (const string &fen, bool c960, bool full)
 {
@@ -135,7 +131,7 @@ namespace {
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    inline void prefetch (char *addr)
+    inline void prefetch (const char *addr)
     {
 
 #   if defined(__INTEL_COMPILER)
@@ -151,7 +147,7 @@ namespace {
 
 #else
 
-    inline void prefetch (char *addr)
+    inline void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -160,7 +156,7 @@ namespace {
 
 #else
 
-    inline void prefetch (char *) {}
+    inline void prefetch (const char *) {}
 
 #endif
 
