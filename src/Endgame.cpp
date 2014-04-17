@@ -12,6 +12,8 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
+EndGame::Endgames* Endgames; // Global Endgames
+
 namespace EndGame {
 
     namespace {
@@ -1055,6 +1057,18 @@ namespace EndGame {
         return SCALE_FACTOR_NONE;
     }
 
+
+
+    void   initialize ()
+    {
+        ::Endgames = new EndGame::Endgames();
+    }
+
+    void deinitialize ()
+    {
+        delete ::Endgames;
+    }
+
 }
 
-EndGame::Endgames* Endgames; // Global Endgames
+

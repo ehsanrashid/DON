@@ -116,6 +116,7 @@ namespace Engine {
         Searcher ::initialize ();
         Pawns    ::initialize ();
         Evaluator::initialize ();
+        EndGame  ::initialize ();
         Threadpool.initialize ();
         
         TT.resize (i32 (Options["Hash"]), true);
@@ -136,10 +137,11 @@ namespace Engine {
     // Exit from engine with exit code. (in case of some crash)
     void exit (i32 code)
     {
-        UCI::stop ();
+        UCI       ::stop ();
         
         Threadpool.deinitialize ();
-        UCI::deinitialize ();
+        EndGame  ::deinitialize ();
+        UCI      ::deinitialize ();
 
         ::exit (code);
     }

@@ -265,7 +265,6 @@ namespace Threads {
     // engine at this point due to allocation of Endgames object.
     void ThreadPool::initialize ()
     {
-        Endgames = new EndGame::Endgames();
         idle_sleep = true;
         timer = new_thread<TimerThread> ();
         push_back (new_thread<MainThread> ());
@@ -280,7 +279,6 @@ namespace Threads {
         {
             delete_thread (*itr);
         }
-        delete Endgames;
     }
 
     // configure() updates internal threads parameters from the corresponding

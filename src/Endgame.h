@@ -128,6 +128,9 @@ namespace EndGame {
         }
     };
 
+    extern void   initialize ();
+    extern void deinitialize ();
+
 }
 
 extern EndGame::Endgames* Endgames; // Global Endgames
