@@ -885,7 +885,7 @@ namespace Evaluator {
 
             // Initialize score by reading the incrementally updated scores included
             // in the position object (material + piece square tables) and adding Tempo bonus. 
-            score = pos.psq_score () + (WHITE == pos.active () ? TempoBonus : -TempoBonus);
+            score = pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus);
 
             EvalInfo ei;
             // Probe the material hash table
@@ -1004,7 +1004,7 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
-                Tracer::add_term (PAWN              , ei.pi->pawn_score ());
+                Tracer::add_term (PAWN             , ei.pi->pawn_score ());
                 Tracer::add_term (Tracer::PST      , pos.psq_score ());
                 Tracer::add_term (Tracer::IMBALANCE, ei.mi->material_score ());
 
@@ -1028,7 +1028,7 @@ namespace Evaluator {
                 Tracer::Scalefactor = scale_factor;
             }
 
-            return (WHITE == pos.active ()) ? value : -value;
+            return (WHITE == pos.active ()) ? +value : -value;
         }
 
         namespace Tracer {

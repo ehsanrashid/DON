@@ -8,13 +8,14 @@
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
-using namespace std;
-using namespace BitBoard;
-using namespace MoveGenerator;
-
-EndGame::Endgames *EndGames; // Global Endgames
+EndGame::Endgames *EndGames = NULL; // Global Endgames
 
 namespace EndGame {
+
+    using namespace std;
+    using namespace BitBoard;
+    using namespace BitBases;
+    using namespace MoveGenerator;
 
     namespace {
 
@@ -174,7 +175,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -193,7 +194,7 @@ namespace EndGame {
 
         Value value;
 
-        if (BitBases::probe_kpk (c, sk_sq, sp_sq, wk_sq))
+        if (probe_kpk (c, sk_sq, sp_sq, wk_sq))
         {
             value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (sp_sq));
         }
@@ -202,10 +203,10 @@ namespace EndGame {
             value = Value ((
                 PushClose[SquareDist[sk_sq][wk_sq]] +
                 PushClose[SquareDist[sp_sq][sk_sq]] +
-                PushAway[SquareDist[sp_sq][wk_sq]]) / 10);
+                PushAway [SquareDist[sp_sq][wk_sq]]) / 10);
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -232,7 +233,7 @@ namespace EndGame {
         Value value = VALUE_KNOWN_WIN
             + PushClose[SquareDist[sk_sq][wk_sq]] + PushToCorners[wk_sq];
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -244,7 +245,7 @@ namespace EndGame {
 
         Value value = Value (PushToEdges[wk_sq] / 8);
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -287,12 +288,12 @@ namespace EndGame {
         else
         {
             value = Value (200)
-                  - Value (8 * SquareDist[sk_sq][wp_sq + DEL_S])
-                  + Value (8 * SquareDist[wk_sq][wp_sq + DEL_S])
+                  - Value (8 * SquareDist[sk_sq][wp_sq+DEL_S])
+                  + Value (8 * SquareDist[wk_sq][wp_sq+DEL_S])
                   + Value (8 * SquareDist[wp_sq][queening_sq]);
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -321,7 +322,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -344,7 +345,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -371,7 +372,7 @@ namespace EndGame {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -390,7 +391,7 @@ namespace EndGame {
         Value value  = VALUE_EG_QUEN - VALUE_EG_ROOK
             + PushToEdges[wk_sq] + PushClose[SquareDist[sk_sq][wk_sq]];
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
     template<>
@@ -423,14 +424,14 @@ namespace EndGame {
 
             value = VALUE_MG_BSHP + PushToCorners[wk_sq]
                   + PushClose[SquareDist[sk_sq][wk_sq]]
-                  + PushAway[SquareDist[wk_sq][wn_sq]];
+                  + PushAway [SquareDist[wk_sq][wn_sq]];
         }
         else
         {
             value = Value (PushClose[SquareDist[sk_sq][wk_sq]] / 8);
         }
 
-        return (_stong_side == pos.active ()) ? value : -value;
+        return (_stong_side == pos.active ()) ? +value : -value;
     }
 
 
@@ -510,7 +511,7 @@ namespace EndGame {
 
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
         if (   (r <= R_5)
-            && (wk_sq == sp_sq + DEL_N)
+            && (wk_sq == sp_sq+DEL_N)
             && (SquareDist[sk_sq][sp_sq] - tempo >= 2)
             && (SquareDist[sk_sq][wr_sq] - tempo >= 2)
            )
@@ -536,10 +537,10 @@ namespace EndGame {
             && (f == _file (sr_sq))
             && (sr_sq < sp_sq)
             && (SquareDist[sk_sq][queening_sq] < SquareDist[wk_sq][queening_sq] - 2 + tempo)
-            && (SquareDist[sk_sq][sp_sq + DEL_N] < SquareDist[wk_sq][sp_sq + DEL_N] - 2 + tempo)
+            && (SquareDist[sk_sq][sp_sq+DEL_N] < SquareDist[wk_sq][sp_sq+DEL_N] - 2 + tempo)
             && ( SquareDist[wk_sq][sr_sq] + tempo >= 3
              || ( SquareDist[sk_sq][queening_sq] < SquareDist[wk_sq][sr_sq] + tempo
-              &&  SquareDist[sk_sq][sp_sq + DEL_N] < SquareDist[wk_sq][sr_sq] + tempo
+              &&  SquareDist[sk_sq][sp_sq+DEL_N] < SquareDist[wk_sq][sr_sq] + tempo
                 )
                )
            )
@@ -706,7 +707,7 @@ namespace EndGame {
 
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
-        return BitBases::probe_kpk (c, sk_sq, sp_sq, wk_sq)
+        return probe_kpk (c, sk_sq, sp_sq, wk_sq)
             ? SCALE_FACTOR_NONE
             : SCALE_FACTOR_DRAW;
     }
@@ -1058,15 +1059,20 @@ namespace EndGame {
     }
 
 
-
     void   initialize ()
     {
-        EndGames = new EndGame::Endgames();
+        if (EndGames == NULL)
+        {
+            EndGames = new Endgames();
+        }
     }
 
     void deinitialize ()
     {
-        delete EndGames;
+        if (EndGames != NULL)
+        {
+            delete EndGames;
+        }
     }
 
 }

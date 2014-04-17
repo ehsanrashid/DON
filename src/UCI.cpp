@@ -219,15 +219,15 @@ namespace UCI {
             i32     value;
             while (cstm >> token)
             {
-                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? value : -value; }
-                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? value : -value; }
-                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? value : -value; }
-                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? value : -value; }
-                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? value : -value; }
-                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? value : -value; }
-                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? value : -value; }
-                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? value : -value; }
-                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? value : -value; }
+                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? +value : -value; }
+                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? +value : -value; }
+                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
+                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
+                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? +value : -value; }
+                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? +value : -value; }
+                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? +value : -value; }
+                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? +value : -value; }
+                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? +value : -value; }
                 else if (token == "infinite")   { limits.infinite  = true; }
                 else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)

@@ -87,7 +87,7 @@ void benchmark (istream &is, const Position &pos)
     Options["Threads"] = threads;
 
     i32 value = abs (atoi (limit_val.c_str ()));
-    //value = value >= 0 ? value : -value;
+    //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
     if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
@@ -188,7 +188,7 @@ void benchtest (istream &is, const Position &pos)
     Options["Threads"] = threads;
 
     i32 value = abs (atoi (limit_val.c_str ()));
-    //value = value >= 0 ? value : -value;
+    //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
     if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
