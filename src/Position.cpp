@@ -551,7 +551,7 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
 
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
-Value Position::see (Move m) const
+Value Position::see      (Move m) const
 {
     ASSERT (_ok (m));
 

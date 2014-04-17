@@ -56,7 +56,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
 # os      = (name)    ---                  --- Target operating system
-# bits    = 64/32     --- -D_64BIT         --- 64-/32-bit operating system
+# bits    = 64/32     --- -D_64BIT         --- 64/32-bit operating system
 # prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
@@ -135,12 +135,6 @@ ifeq ($(ARCH),x86-64-bmi)
 	pages   = yes
 endif
 
-ifeq ($(ARCH),armv7)
-	arch    = armv7
-	prefetch= yes
-	bsfq    = yes
-endif
-
 ifeq ($(ARCH),ppc-32)
 	arch    = ppc
 	pages   = yes
@@ -150,6 +144,12 @@ ifeq ($(ARCH),ppc-64)
 	arch    = ppc64
 	bits    = 64
 	pages   = yes
+endif
+
+ifeq ($(ARCH),armv7)
+	arch    = armv7
+	prefetch= yes
+	bsfq    = yes
 endif
 
 
@@ -350,21 +350,21 @@ help:
 	@echo ""
 	@echo "Supported archs:"
 	@echo "----------------"
+	@echo "general-32              > unspecified 32-bit"
+	@echo "x86-32                  > x86 32-bit with SSE support"
+	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
+	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
 	@echo "x86-64-popcnt           > x86 64-bit with POPCNT support"
 	@echo "x86-64-bmi              > x86 64-bit with BMI support"
-	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
-	@echo "ppc-64                  > PPC 64-bit"
 	@echo "ppc-32                  > PPC 32-bit"
+	@echo "ppc-64                  > PPC 64-bit"
 	@echo "armv7                   > ARMv7 32-bit"
-	@echo "general-64              > unspecified 64-bit"
-	@echo "general-32              > unspecified 32-bit"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
-	@echo "gcc                     > Gnu compiler (default)"
-	@echo "mingw                   > Gnu compiler with MinGW under Windows"
+	@echo "gcc                     > GNU compiler (default)"
+	@echo "mingw                   > GNU compiler with MinGW under Windows"
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
