@@ -159,7 +159,7 @@ namespace Threads {
         Mutex         mutex;
         NativeHandle  handle;
         Condition     sleep_condition;
-        volatile bool exit;
+        volatile bool  exit;
 
         ThreadBase ()
             : exit (false)
@@ -207,17 +207,17 @@ namespace Threads {
     public:
         SplitPoint splitpoints[MAX_SPLITPOINT_THREADS];
         
-        Material::Table   material_table;
-        Pawns   ::Table   pawns_table;
+        Material::Table  material_table;
+        Pawns   ::Table  pawns_table;
 
-        Position *active_pos;
+        Position        *active_pos;
 
-        u08   idx
-            , max_ply;
+        u08              idx
+            ,            max_ply;
 
         SplitPoint* volatile active_splitpoint;
-        volatile u08  splitpoint_threads;
-        volatile bool searching;
+        volatile    u08      splitpoint_threads;
+        volatile    bool     searching;
 
         Thread ();
 
