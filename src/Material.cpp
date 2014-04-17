@@ -159,7 +159,7 @@ namespace Material {
         // Let's look if we have a specialized evaluation function for this
         // particular material configuration. First we look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (::Endgames->probe (key, e->evaluation_func))
+        if (EndGames->probe (key, e->evaluation_func))
         {
             return e;
         }
@@ -181,7 +181,7 @@ namespace Material {
         // We face problems when there are several conflicting applicable
         // scaling functions and we need to decide which one to use.
         EndgameBase<ScaleFactor> *eg_sf;
-        if (::Endgames->probe (key, eg_sf))
+        if (EndGames->probe (key, eg_sf))
         {
             e->scaling_func[eg_sf->color ()] = eg_sf;
             return e;

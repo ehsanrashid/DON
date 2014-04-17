@@ -12,7 +12,7 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGenerator;
 
-EndGame::Endgames* Endgames; // Global Endgames
+EndGame::Endgames *EndGames; // Global Endgames
 
 namespace EndGame {
 
@@ -1061,14 +1061,12 @@ namespace EndGame {
 
     void   initialize ()
     {
-        ::Endgames = new EndGame::Endgames();
+        EndGames = new EndGame::Endgames();
     }
 
     void deinitialize ()
     {
-        delete ::Endgames;
+        delete EndGames;
     }
 
 }
-
-
