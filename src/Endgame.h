@@ -130,4 +130,6 @@ namespace EndGame {
 
 }
 
+extern EndGame::Endgames* Endgames; // Global Endgames
+
 #endif // _ENDGAME_H_INC_

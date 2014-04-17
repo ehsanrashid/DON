@@ -1056,3 +1056,5 @@ namespace EndGame {
     }
 
 }
+
+EndGame::Endgames* Endgames; // Global Endgames

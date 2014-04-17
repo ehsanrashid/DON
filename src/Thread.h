@@ -209,7 +209,6 @@ namespace Threads {
         
         Material::Table   material_table;
         Pawns   ::Table   pawns_table;
-        EndGame::Endgames endgames;
 
         Position *active_pos;
         u08   idx

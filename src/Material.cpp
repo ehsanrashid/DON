@@ -141,7 +141,7 @@ namespace Material {
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so we don't have to recompute everything
     // when the same material configuration occurs again.
-    Entry* probe     (const Position &pos, Table &table, Endgames &endgames)
+    Entry* probe     (const Position &pos, Table &table)
     {
         Key key  = pos.matl_key ();
         Entry *e = table[key];
@@ -159,7 +159,7 @@ namespace Material {
         // Let's look if we have a specialized evaluation function for this
         // particular material configuration. First we look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (endgames.probe (key, e->evaluation_func))
+        if (::Endgames->probe (key, e->evaluation_func))
         {
             return e;
         }
@@ -181,7 +181,7 @@ namespace Material {
         // We face problems when there are several conflicting applicable
         // scaling functions and we need to decide which one to use.
         EndgameBase<ScaleFactor> *eg_sf;
-        if (endgames.probe (key, eg_sf))
+        if (::Endgames->probe (key, eg_sf))
         {
             e->scaling_func[eg_sf->color ()] = eg_sf;
             return e;

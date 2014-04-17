@@ -4,6 +4,7 @@
 
 #include "MoveGenerator.h"
 #include "Searcher.h"
+#include "Endgame.h"
 #include "UCI.h"
 
 Threads::ThreadPool     Threadpool; // Global ThreadPool
@@ -261,9 +262,10 @@ namespace Threads {
     // initialize() is called at startup to create and launch requested threads, that will
     // go immediately to sleep due to 'idle_sleep' set to true.
     // We cannot use a c'tor becuase Threadpool is a static object and we need a fully initialized
-    // engine at this point due to allocation of Endgames in Thread c'tor.
+    // engine at this point due to allocation of Endgames object.
     void ThreadPool::initialize ()
     {
+        Endgames = new EndGame::Endgames();
         idle_sleep = true;
         timer = new_thread<TimerThread> ();
         push_back (new_thread<MainThread> ());
@@ -279,6 +281,8 @@ namespace Threads {
         {
             delete_thread (*itr);
         }
+        
+        delete Endgames;
     }
 
     // configure() updates internal threads parameters from the corresponding

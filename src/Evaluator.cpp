@@ -889,7 +889,7 @@ namespace Evaluator {
 
             EvalInfo ei;
             // Probe the material hash table
-            ei.mi = Material::probe (pos, thread->material_table, thread->endgames);
+            ei.mi = Material::probe (pos, thread->material_table);
             score += ei.mi->material_score ();
 
             // If we have a specialized evaluation function for the current material
