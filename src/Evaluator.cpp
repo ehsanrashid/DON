@@ -447,16 +447,19 @@ namespace Evaluator {
                         // when that pawn is also blocked.
                         if (pos.chess960 ())
                         {
-                            if (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1))
+                            if (   s == rel_sq (C, SQ_A1)
+                                || s == rel_sq (C, SQ_H1)
+                               )
                             {
                                 Piece P = (C | PAWN);
                                 Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
                                 if (pos[s + d] == P)
                                 {
-                                    score -=
-                                        !pos.empty (s + d + pawn_push (C)) ? BishopTrappedA1H1Penalty * 4
-                                        : (pos[s + d + d] == P)            ? BishopTrappedA1H1Penalty * 2
-                                        :                                    BishopTrappedA1H1Penalty;
+                                    score -= BishopTrappedA1H1Penalty *
+                                        ( (pos[s + d + pawn_push (C)]!=EMPTY) ? 4
+                                        : (pos[s + d + d] == P)               ? 2
+                                        :                                       1
+                                        );
                                 }
                             }
                         }
@@ -499,7 +502,7 @@ namespace Evaluator {
 
                         // Rook piece attacking enemy pawns on the same rank/file
                         Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (pawns)
+                        if (pawns != U64 (0))
                         {
                             score += RookOnPawnBonus * i32 (pop_count<MAX15> (pawns));
                         }
@@ -519,9 +522,9 @@ namespace Evaluator {
                             File f = _file (fk_sq); 
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
-                            if (   ((f < F_E) == (_file (s) < f))
-                                && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                && ei.pi->semiopen_side<C> (f, _file (s) < f) == 0
+                            if (  ((f < F_E) == (_file (s) < f))
+                               && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                               && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
                                 score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + !pos.can_castle (C));
