@@ -174,7 +174,6 @@ namespace Searcher {
 
     };
 
-
     extern LimitsT               Limits;
     extern SignalsT volatile     Signals;
 

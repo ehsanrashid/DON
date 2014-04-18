@@ -561,7 +561,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _index[s1] = -1;
     _piece_list[c][pt][_index[s2]] = s2;
 }
-// Position::do_castling() is a helper used to do/undo a castling move.
+// do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
 template<bool DO>
 inline void Position::do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook)

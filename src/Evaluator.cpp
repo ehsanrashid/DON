@@ -519,7 +519,7 @@ namespace Evaluator {
                     {
                         if (mob <= 3)
                         {
-                            File f = _file (fk_sq); 
+                            File f = _file (fk_sq);
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
                             if (  ((f < F_E) == (_file (s) < f))

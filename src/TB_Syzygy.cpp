@@ -2504,7 +2504,7 @@ namespace TBSyzygy {
 
             // Generate (at least) all legal non-ep captures including (under)promotions.
             // It is OK to generate more, as long as they are filtered out below.
-            if (pos.checkers ())
+            if (pos.checkers () != U64 (0))
             {
                 end = generate<EVASION> (moves, pos);
             }
@@ -2584,7 +2584,7 @@ namespace TBSyzygy {
             {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
-                end = pos.checkers ()
+                end = pos.checkers () != U64 (0)
                     ? generate<EVASION> (moves, pos)
                     : generate<RELAX> (moves, pos);
 
@@ -2638,7 +2638,7 @@ namespace TBSyzygy {
             else
             {
                 i32 best = -1;
-                end = pos.checkers ()
+                end = pos.checkers () != U64 (0)
                     ? generate<EVASION> (moves, pos)
                     : generate<RELAX  > (moves, pos);
 
@@ -2719,7 +2719,7 @@ namespace TBSyzygy {
         i32 v1 = -3;
         // Generate (at least) all legal en passant captures.
         ValMove moves[MAX_MOVES];
-        ValMove *end = pos.checkers ()
+        ValMove *end = pos.checkers () != U64 (0)
             ? generate<EVASION> (moves, pos)
             : generate<CAPTURE> (moves, pos);
 
@@ -2757,7 +2757,7 @@ namespace TBSyzygy {
                     if (mtype (move) == ENPASSANT) continue;
                     if (pos.legal (move, ci.pinneds)) break;
                 }
-                if (cur == end && !pos.checkers ())
+                if (cur == end && pos.checkers () == U64 (0))
                 {
                     end = generate<QUIET> (end, pos);
                     for (; cur < end; ++cur)
@@ -2815,7 +2815,7 @@ namespace TBSyzygy {
         i32 v1 = -3;
 
         ValMove moves[MAX_MOVES];
-        ValMove *end = pos.checkers ()
+        ValMove *end = pos.checkers () != U64 (0)
             ? generate<EVASION> (moves, pos)
             : generate<CAPTURE> (moves, pos);
 
@@ -2881,7 +2881,7 @@ namespace TBSyzygy {
                     if (mtype (move) == ENPASSANT) continue;
                     if (pos.legal (move, ci.pinneds)) break;
                 }
-                if (cur == end && !pos.checkers ())
+                if (cur == end && pos.checkers () == U64 (0))
                 {
                     end = generate<QUIET> (end, pos);
                     for (; cur < end; ++cur)
@@ -2924,7 +2924,7 @@ namespace TBSyzygy {
             pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
             
             bool mate = false;
-            if (pos.checkers () && dtz > 0)
+            if (pos.checkers () != U64 (0) && dtz > 0)
             {
                 ValMove moves[MAX_MOVES];
                 if (generate<LEGAL> (moves, pos) == moves)

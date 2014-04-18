@@ -90,8 +90,8 @@ namespace MoveGenerator {
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
                 //ASSERT (EVASION != GT, "GT must not be EVASION");
-                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
-                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ())
+                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64 (0));
+                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0))
                 {
                     return;
                 }
@@ -161,7 +161,7 @@ namespace MoveGenerator {
 
                 if (CAPTURE != GT)
                 {
-                    if (pos.can_castle (C) && !pos.checkers ())
+                    if (pos.can_castle (C) && pos.checkers () == U64 (0))
                     {
                         CheckInfo cc;
                         if (ci == NULL)
@@ -588,7 +588,7 @@ namespace MoveGenerator {
     // Generates all legal moves.
     ValMove* generate<LEGAL>       (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers ()
+        ValMove *end = pos.checkers () != U64 (0)
             ? generate<EVASION> (moves, pos)
             : generate<RELAX  > (moves, pos);
 

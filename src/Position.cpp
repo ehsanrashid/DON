@@ -1196,7 +1196,7 @@ bool Position::can_en_passant (Square ep_sq) const
     return false;
 }
 
-// compute_psq_score () computes the incremental scores for the middle
+// compute_psq_score() computes the incremental scores for the middle
 // game and the endgame. These functions are used to initialize the incremental
 // scores when a new position is set up, and to verify that the scores are correctly
 // updated by do_move and undo_move when the program is running in debug mode.
@@ -1212,7 +1212,7 @@ Score Position::compute_psq_score () const
     return score;
 }
 
-// compute_non_pawn_material () computes the total non-pawn middle
+// compute_non_pawn_material() computes the total non-pawn middle
 // game material value for the given side. Material values are updated
 // incrementally during the search, this function is only used while
 // initializing a new Position object.
@@ -1609,7 +1609,7 @@ void Position::undo_null_move ()
     ASSERT (ok ());
 }
 
-// flip position with the white and black sides reversed.
+// flip() flips position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
