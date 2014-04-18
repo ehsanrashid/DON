@@ -121,7 +121,6 @@ namespace TrivialLogger {
 
 #       define XSTR(s) STR(s)
 #       define STR(s) #s
-
 #       define MIN(x1, x2) ((x1) < (x2) ? (x1) : (x2))
 #       define MAX(x1, x2) ((x1) > (x2) ? (x1) : (x2))
 

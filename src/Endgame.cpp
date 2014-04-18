@@ -21,7 +21,7 @@ namespace EndGame {
 
         // Table used to drive the king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
-        const i32 PushToEdges[SQ_NO] =
+        const i32 PushToEdges  [SQ_NO] =
         {
             100, 90,  80,  70,  70,  80,  90, 100,
             90,  70,  60,  50,  50,  60,  70,  90,
@@ -1072,6 +1072,7 @@ namespace EndGame {
         if (EndGames != NULL)
         {
             delete EndGames;
+            EndGames = NULL;
         }
     }
 

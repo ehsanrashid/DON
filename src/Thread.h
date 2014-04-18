@@ -84,8 +84,6 @@ namespace Threads {
     const u08   MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
     const u08   MAX_SPLIT_DEPTH        =  15; // Maximum split depth
 
-    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
-
     struct Mutex
     {
     private:
@@ -100,6 +98,8 @@ namespace Threads {
         void   lock () { lock_grab (_lock); }
         void unlock () { lock_release (_lock); }
     };
+
+    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
 
     struct Condition
     {
@@ -117,6 +117,30 @@ namespace Threads {
         void notify_one () { cond_signal (condition); }
 
     };
+
+    // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
+    // conversion from milliseconds to struct timespec, as used by pthreads.
+    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
+    {
+
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+
+        i32 tm = msec;
+
+#else    // Linux - Unix
+
+        timespec ts
+            ,   *tm = &ts;
+        u64 ms = Time::now() + msec;
+
+        ts.tv_sec = ms / Time::M_SEC;
+        ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
+
+#endif
+
+        cond_timedwait (sleep_cond, sleep_lock, tm);
+
+    }
 
     class Thread;
 
@@ -282,30 +306,6 @@ namespace Threads {
         void wait_for_think_finished ();
 
     };
-
-    // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-    // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
-    {
-
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-        i32 tm = msec;
-
-#else    // Linux - Unix
-
-        timespec ts
-            ,   *tm = &ts;
-        u64 ms = Time::now() + msec;
-
-        ts.tv_sec = ms / Time::M_SEC;
-        ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
-
-#endif
-
-        cond_timedwait (sleep_cond, sleep_lock, tm);
-
-    }
 
 }
 

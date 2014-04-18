@@ -1263,7 +1263,7 @@
       <FileName>src\functor.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="std::NoCaseLessComparer" Collapsed="true">
+  <Struct Name="std::no_case_less_comparer" Collapsed="true">
     <Position X="41" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

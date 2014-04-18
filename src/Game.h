@@ -57,7 +57,7 @@ class Game
 {
 public:
 
-    typedef std::map<std::string, Tag, std::NoCaseLessComparer> TagMap;
+    typedef std::map<std::string, Tag, std::no_case_less_comparer> TagMap;
 
 private:
 

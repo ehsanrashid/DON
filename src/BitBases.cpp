@@ -15,23 +15,6 @@ namespace BitBases {
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MAX_INDEX = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
 
-        // Each u32 stores results of 32 positions, one per bit
-        u32 KPKBitbase[MAX_INDEX / 32];
-
-        // A KPK bitbase index is an integer in [0, MAX_INDEX] range
-        //
-        // Information is mapped in a way that minimizes the number of iterations:
-        //
-        // bit  0- 5: white king square (from SQ_A1 to SQ_H8)
-        // bit  6-11: black king square (from SQ_A1 to SQ_H8)
-        // bit    12: side to move (WHITE or BLACK)
-        // bit 13-14: white pawn file (from F_A to F_D)
-        // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
-        inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
-        {
-            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32 (R_7) - i32 (_rank (wp_sq))) << 15);
-        }
-
         enum Result
         {
             INVALID = 0,
@@ -40,8 +23,10 @@ namespace BitBases {
             WIN     = 4,
             LOSE    = 8
         };
-
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
+
+        // Each u32 stores results of 32 positions, one per bit
+        u32 KPKBitbase[MAX_INDEX / 32];
 
         struct KPKPosition
         {
@@ -114,6 +99,20 @@ namespace BitBases {
                     }
                 }
             }
+        }
+
+        // A KPK bitbase index is an integer in [0, MAX_INDEX] range
+        //
+        // Information is mapped in a way that minimizes the number of iterations:
+        //
+        // bit  0- 5: white king square (from SQ_A1 to SQ_H8)
+        // bit  6-11: black king square (from SQ_A1 to SQ_H8)
+        // bit    12: side to move (WHITE or BLACK)
+        // bit 13-14: white pawn file (from F_A to F_D)
+        // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
+        inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
+        {
+            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32 (R_7) - i32 (_rank (wp_sq))) << 15);
         }
 
         template<Color C>
