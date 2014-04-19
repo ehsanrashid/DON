@@ -96,8 +96,8 @@ namespace Pawns {
 
             const Bitboard pawns[CLR_NO] =
             {
-                pos.pieces (C , PAWN),
-                pos.pieces (C_, PAWN),
+                pos.pieces<PAWN> (C ),
+                pos.pieces<PAWN> (C_),
             };
 
             e->_passed_pawns  [C] = e->_candidate_pawns[C] = U64 (0);

@@ -33,7 +33,7 @@
 // We use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION   Lock;
+typedef CRITICAL_SECTION    Lock;
 typedef HANDLE              WaitCondition;
 typedef HANDLE              NativeHandle;
 
@@ -99,25 +99,6 @@ namespace Threads {
         void unlock () { lock_release (_lock); }
     };
 
-    extern void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec);
-
-    struct Condition
-    {
-    private:
-        WaitCondition condition;
-
-    public:
-        Condition () { cond_create  (condition); }
-       ~Condition () { cond_destroy (condition); }
-
-        void wait (Mutex &m) { cond_wait (condition, m._lock); }
-
-        void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
-
-        void notify_one () { cond_signal (condition); }
-
-    };
-
     // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
     // conversion from milliseconds to struct timespec, as used by pthreads.
     inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
@@ -141,6 +122,24 @@ namespace Threads {
         cond_timedwait (sleep_cond, sleep_lock, tm);
 
     }
+
+    struct Condition
+    {
+    private:
+        WaitCondition condition;
+
+    public:
+        Condition () { cond_create  (condition); }
+       ~Condition () { cond_destroy (condition); }
+
+        void wait (Mutex &m) { cond_wait (condition, m._lock); }
+
+        void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
+
+        void notify_one () { cond_signal (condition); }
+
+    };
+
 
     class Thread;
 

@@ -38,9 +38,9 @@ namespace Searcher {
     namespace {
 
         // Set to true to force running with one thread. Used for debugging
-        const bool FakeSplit        = false;
+        const bool    FakeSplit     = false;
 
-        const u08  MAX_QUIETS       = 64;
+        const u08     MAX_QUIETS    = 64;
 
         const point   InfoDuration  = 3000; // 3 sec
 
