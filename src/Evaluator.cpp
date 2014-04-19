@@ -345,7 +345,6 @@ namespace Evaluator {
         // evaluate_outposts() evaluates bishop and knight outposts squares
         inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
         {
-            //ASSERT (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
             ASSERT (BSHP == PT || NIHT == PT);
 
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
