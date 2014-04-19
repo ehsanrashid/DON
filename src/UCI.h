@@ -46,9 +46,9 @@ namespace UCI {
 
     public:
         Option (OnChange on_change = NULL);
-        Option (const bool         val, OnChange on_change = NULL);
-        Option (const std::string &val, OnChange on_change = NULL);
-        Option (const i32          val, i32 minimum, i32 maximum, OnChange on_change = NULL);
+        Option (const bool  val, OnChange on_change = NULL);
+        Option (const char *val, OnChange on_change = NULL);
+        Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change = NULL);
 
         operator bool () const;
         operator i32  () const;
