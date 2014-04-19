@@ -1137,7 +1137,8 @@ namespace Searcher {
                     }
 
                     if (   !(capture_or_promotion)
-                        && (quiets_count < MAX_QUIETS))
+                        && (quiets_count < MAX_QUIETS)
+                       )
                     {
                         quiet_moves[quiets_count++] = move;
                     }
@@ -1217,9 +1218,9 @@ namespace Searcher {
                     value =
                         (new_depth < ONE_MOVE)
                         ? (gives_check
-                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
+                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
+                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
+                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
                 }
 
                 // Principal Variation Search
@@ -1431,14 +1432,14 @@ namespace Searcher {
                     MultiPV = 4;
                 }
             }
-            // Minimum MultiPV & RootMoves.size()
+
             if (MultiPV > RootMoves.size ())
             {
                 MultiPV = RootMoves.size ();
             }
 
             // Iterative deepening loop until requested to stop or target depth reached
-            while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
+            while (++depth <= MAX_PLY && !Signals.stop && (Limits.depth == 0 || depth <= Limits.depth))
             {
                 // Age out PV variability metric
                 BestMoveChanges *= 0.5;
@@ -1455,10 +1456,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        // TODO::
-                        window = //Value (16);
-                            //Value (depth < 40 ? 15 + depth / 8 : 20);
-                            Value (depth < 32 ? 14 + depth / 8 : 18);
+                        window = Value (depth < 32 ? 14 + depth / 8 : 18);
 
                         alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);

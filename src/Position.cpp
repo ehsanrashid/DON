@@ -1032,7 +1032,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     // Can we skip the ugly special cases ?
     if (mt == NORMAL) return false;
 
-    Bitboard occ = _types_bb[NONE];
+    const Bitboard occ = _types_bb[NONE];
 
     if      (mt == CASTLE)
     {
@@ -1180,7 +1180,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     // Check en-passant is legal for the position
     Square   ksq = _piece_list[_active][KING][0];
-    Bitboard occ = _types_bb[NONE];
+    const Bitboard occ = _types_bb[NONE];
     for (vector<Move>::const_iterator itr = ep_mlist.begin (); itr != ep_mlist.end (); ++itr)
     {
         Move m = *itr;
