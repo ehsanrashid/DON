@@ -808,7 +808,7 @@ namespace Searcher {
                     // Null move dynamic (variable) reduction based on depth and value
                     Depth R = Depth (
                             + (3 << ONE_PLY)
-                            + (depth >> 2)
+                            + (depth >> 2*ONE_PLY)
                             + ((i32 (eval - beta) / VALUE_EG_PAWN) << ONE_PLY));
 
                     // Do null move
@@ -898,7 +898,7 @@ namespace Searcher {
                 && (PVNode || (ss)->static_eval + Value (256) >= beta)
                )
             {
-                Depth d = depth - Depth ((2 << ONE_PLY) + (PVNode ? 0 : depth >> 2)); // TODO::
+                Depth d = depth - Depth ((2 << ONE_PLY) + (PVNode ? 0 : depth >> 2*ONE_PLY)); // TODO::
 
                 (ss)->skip_null_move = true;
                 search<PVNode ? PV : NonPV> (pos, ss, alpha, beta, d, true);
@@ -1044,7 +1044,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth >> 1), cut_node);
+                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth >> ONE_PLY), cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
