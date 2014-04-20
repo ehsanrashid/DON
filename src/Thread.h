@@ -44,7 +44,7 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #   define lock_grab(x)          EnterCriticalSection (&(x))
 #   define lock_release(x)       LeaveCriticalSection (&(x))
 #   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_create(h)        h = CreateEvent (0, FALSE, FALSE, 0);
+#   define cond_create(h)        h = CreateEvent (NULL, FALSE, FALSE, NULL);
 #   define cond_destroy(h)       CloseHandle (h)
 #   define cond_signal(h)        SetEvent (h)
 #   define cond_wait(c,l)        { lock_release (l); WaitForSingleObject (c, INFINITE); lock_grab (l); }

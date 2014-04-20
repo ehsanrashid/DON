@@ -257,26 +257,19 @@ namespace BitBoard {
 
     inline bool more_than_one (Bitboard bb) { return ((bb) & (bb - 1)) != U64 (0); }
 
-    template<Delta DEL>
     // Shift the Bitboard using delta
-    inline Bitboard shift_del (Bitboard bb);
+    template<Delta DEL> inline Bitboard shift_del (Bitboard bb);
 
-    template<>
-    inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (8); }
-    template<>
-    inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (8); }
-    //template<>
-    //inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (1); }
-    //template<>
-    //inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (1); }
-    template<>
-    inline Bitboard shift_del<DEL_NE> (Bitboard bb) { return (bb & FH_bb_) << (9); } //(bb << 9) & FA_bb_;
-    template<>
-    inline Bitboard shift_del<DEL_SE> (Bitboard bb) { return (bb & FH_bb_) >> (7); } //(bb >> 7) & FA_bb_;
-    template<>
-    inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (7); } //(bb << 7) & FH_bb_;
-    template<>
-    inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (9); } //(bb >> 9) & FH_bb_;
+    template<> inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (+DEL_N); }
+    template<> inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (-DEL_S); }
+    template<> inline Bitboard shift_del<DEL_NN> (Bitboard bb) { return (bb) << (+DEL_NN); }
+    template<> inline Bitboard shift_del<DEL_SS> (Bitboard bb) { return (bb) >> (-DEL_SS); }
+    //template<> inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (+DEL_E); }
+    //template<> inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_W); }
+    template<> inline Bitboard shift_del<DEL_NE> (Bitboard bb) { return (bb & FH_bb_) << (+DEL_NE); } //(bb << +DEL_NE) & FA_bb_;
+    template<> inline Bitboard shift_del<DEL_SE> (Bitboard bb) { return (bb & FH_bb_) >> (-DEL_SE); } //(bb >> -DEL_SE) & FA_bb_;
+    template<> inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (+DEL_NW); } //(bb << +DEL_NW) & FH_bb_;
+    template<> inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_SW); } //(bb >> -DEL_SW) & FH_bb_;
 
     // Rotate RIGHT (toward LSB)
     inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08 (SQ_NO) - k)); }

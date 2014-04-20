@@ -854,7 +854,9 @@ namespace Evaluator {
         // material hash table. The aim is to improve play on game opening.
         inline i32 evaluate_space (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Delta  PULL = ((WHITE == C) ? DEL_S  : DEL_N );
+            const Delta DPULL = ((WHITE == C) ? DEL_SS : DEL_NN);
 
             // Find the safe squares for our pieces inside the area defined by
             // SpaceMask[]. A square is unsafe if it is attacked by an enemy
@@ -871,8 +873,8 @@ namespace Evaluator {
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
-            behind |= ((WHITE == C) ? behind >> 0x08 : behind << 0x08);
-            behind |= ((WHITE == C) ? behind >> 0x10 : behind << 0x10);
+            behind |= shift_del< PULL> (behind);
+            behind |= shift_del<DPULL> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
             return pop_count<FULL> (((WHITE == C) ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));

@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 
 #include "Type.h"
 #include "MemoryHandler.h"
