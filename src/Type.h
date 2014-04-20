@@ -51,16 +51,6 @@ enum Square : i08
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NO,
 
-    SQ_WK_Q  = SQ_C1,
-    SQ_WK_K  = SQ_G1,
-    SQ_WR_Q  = SQ_D1,
-    SQ_WR_K  = SQ_F1,
-
-    SQ_BK_Q  = SQ_C8,
-    SQ_BK_K  = SQ_G8,
-    SQ_BR_Q  = SQ_D8,
-    SQ_BR_K  = SQ_F8
-
 };
 
 // Delta of Square

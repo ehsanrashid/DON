@@ -102,7 +102,7 @@ namespace MoveGenerator {
                 Square org_rook = pos.castle_rook (CR);
                 if (ROOK != ptype (pos[org_rook])) return;
 
-                Square dst_king = rel_sq (C, KingSide ? SQ_WK_K : SQ_WK_Q);
+                Square dst_king = rel_sq (C, KingSide ? SQ_G1 : SQ_C1);
 
                 Bitboard enemies = pos.pieces (C_);
 

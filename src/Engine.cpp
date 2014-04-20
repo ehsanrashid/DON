@@ -85,8 +85,8 @@ namespace Engine {
 #endif
 
         oss << "\n" 
-            << ((uci) ? "id author " : "(c) 2014 ")
-            << Author << "\n";
+            << ((uci) ? ("id author " + Author)
+            : (Author + " (c) 2014")) << "\n";
 
         return oss.str ();
     }

@@ -754,7 +754,7 @@ bool Position::pseudo_legal (Move m) const
         }
         // Castle is always encoded as "King captures friendly Rook"
         ASSERT (dst == castle_rook (mk_castle_right (_active, king_side ? CS_K : CS_Q)));
-        dst = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
+        dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
 
         Delta step = (king_side ? DEL_W : DEL_E);
         for (Square s = dst; s != org; s += step)
@@ -1039,8 +1039,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // Castling with check ?
         bool  king_side = (dst > org);
         Square org_rook = dst; // 'King captures the rook' notation
-        dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
-        Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
+        dst             = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
+        Square dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
 
         return (PieceAttacks[ROOK][dst_rook] & ci.king_sq) // First x-ray check then full check
             && (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
@@ -1132,8 +1132,8 @@ void Position::set_castle (Color c, Square org_rook)
 
     bool king_side = (org_rook > org_king);
     CRight cr = mk_castle_right (c, king_side ? CS_K : CS_Q);
-    Square dst_rook = rel_sq (c, king_side ? SQ_WR_K : SQ_WR_Q);
-    Square dst_king = rel_sq (c, king_side ? SQ_WK_K : SQ_WK_Q);
+    Square dst_rook = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
+    Square dst_king = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
 
     _si->castle_rights     |= cr;
 

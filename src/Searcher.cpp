@@ -48,7 +48,7 @@ namespace Searcher {
         u08 FutilityMoveCounts[2][32];  // [improving][depth]
 
         // Reduction lookup tables (initialized at startup) and their access function
-        u08 Reductions[2][2][64][64]; // [pv][improving][depth][move_num]
+        u08 Reductions[2][2][64][64];   // [pv][improving][depth][move_num]
 
         inline Value futility_margin (u08 depth)
         {
