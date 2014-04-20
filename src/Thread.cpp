@@ -30,15 +30,15 @@ namespace Threads {
         inline T* new_thread ()
         {
             T *th = new T ();
-            thread_create (th->handle, start_routine, th); // Will go to sleep
+            thread_create (th->native_handle, start_routine, th); // Will go to sleep
             return th;
         }
 
         inline void delete_thread (ThreadBase *th)
         {
-            th->exit = true;            // Search must be already finished
+            th->stop ();                // Search must be already finished
             th->notify_one ();
-            thread_join (th->handle);   // Wait for thread termination
+            thread_join (th->native_handle);   // Wait for thread termination
             delete th;
         }
 

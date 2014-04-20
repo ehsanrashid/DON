@@ -35,7 +35,7 @@
 // but apart from this they have the same speed performance of SRW locks.
 typedef CRITICAL_SECTION    Lock;
 typedef HANDLE              WaitCondition;
-typedef HANDLE              NativeHandle;
+typedef HANDLE              Handle;
 
 // On Windows 95 and 98 parameter lpThreadId my not be null
 inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
@@ -59,7 +59,7 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 
 typedef pthread_mutex_t     Lock;
 typedef pthread_cond_t      WaitCondition;
-typedef pthread_t           NativeHandle;
+typedef pthread_t           Handle;
 typedef void* (*StartRoutine) (void*);
 
 #   define lock_create(x)        pthread_mutex_init (&(x), NULL)
@@ -178,24 +178,24 @@ namespace Threads {
     class ThreadBase
     {
 
-    public:
-        Mutex         mutex;
-        NativeHandle  handle;
+    protected:
         Condition     sleep_condition;
         volatile bool  exit;
 
-        ThreadBase ()
-            : exit (false)
-        {}
+    public:
+        Mutex   mutex;
+        Handle  native_handle;
 
-        virtual ~ThreadBase ()
-        {}
+        ThreadBase () : exit (false) {}
 
-        virtual void idle_loop () = 0;
+        virtual ~ThreadBase () {}
 
+        void stop () { exit = true; }
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
+
+        virtual void idle_loop () = 0;
     };
 
     // TimerThread is derived from ThreadBase class
@@ -203,16 +203,18 @@ namespace Threads {
     class TimerThread
         : public ThreadBase
     {
+    private:
+        bool run;
 
     public:
         // This is the minimum interval in msec between two check_time() calls
         static const i32 Resolution = 5;
 
-        bool run;
+        TimerThread () : run (false) {}
 
-        TimerThread ()
-            : run (false)
-        {}
+        void start () { run = true ; }
+        void stop  () { run = false; }
+        bool running () const { return run; }
 
         virtual void idle_loop ();
 
@@ -265,9 +267,7 @@ namespace Threads {
     public:
         volatile bool thinking;
 
-        MainThread ()
-            : thinking (true)
-        {} // Avoid a race with start_thinking ()
+        MainThread () : thinking (true) {} // Avoid a race with start_thinking ()
 
         virtual void idle_loop ();
 
@@ -287,8 +287,8 @@ namespace Threads {
         Mutex   mutex;
 
         Condition   sleep_condition;
+        
         TimerThread *timer;
-
         MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
         // No c'tor and d'tor, threads rely on globals that should

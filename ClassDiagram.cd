@@ -160,7 +160,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AEgAAAAMCBIIAIAECIAgIACAAQEAIAEBAwAAAASAAAA=</HashCode>
+      <HashCode>AEgAAAAMCAIIAIAECIAgIACAAQECIAEBAwAAAASAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -528,32 +528,6 @@
       <FileName>src\manipulator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Tree&lt;T&gt;">
-    <Position X="46.5" Y="1" Width="1.5" />
-    <NestedTypes>
-      <Typedef Name="Tree&lt;T&gt;::Ptr" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Tree.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Typedef>
-      <Typedef Name="Tree&lt;T&gt;::List" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Tree.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Typedef>
-    </NestedTypes>
-    <TypeIdentifier>
-      <HashCode>AMQAAAAABACQAAUEBAAgAQACAAEAAAAAAAEQQACAAAA=</HashCode>
-      <FileName>src\Tree.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="Forest&lt;T&gt;">
-    <Position X="48.5" Y="1" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AEQAIQAAACAAAAAEBAAIAAACAAEAAAAAAAEAACAAAAA=</HashCode>
-      <FileName>src\Forest.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="Threads::Thread">
     <Position X="17.5" Y="17.25" Width="1.75" />
     <AssociationLine Name="splitpoints" Type="Threads::SplitPoint">
@@ -726,15 +700,15 @@
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\map</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EndGame::EndgameBase&lt;T&gt;" Collapsed="true">
-    <Position X="24.75" Y="19.5" Width="1.5" />
+  <Class Name="EndGame::EndgameBase&lt;T&gt;">
+    <Position X="24.75" Y="19" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAQAAEAAAAAAAAAAAAACAAAAAAAAAAAA=</HashCode>
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EndGame::Endgame&lt;E, T&gt;" Collapsed="true">
-    <Position X="24.75" Y="21" Width="1.5" />
+  <Class Name="EndGame::Endgame&lt;ET, T&gt;">
+    <Position X="24.75" Y="21" Width="2" />
     <InheritanceLine Type="EndGame::EndgameBase&lt;T&gt;">
       <InheritanceModifierLabel ManuallyPlaced="true">
         <Position X="-0.12" Y="0.17" />
@@ -937,7 +911,7 @@
   <Struct Name="TTEntry">
     <Position X="7" Y="19" Width="2.5" />
     <TypeIdentifier>
-      <HashCode>ABAoABAAAACAAACAEACMAAAAAAAAACAAAAICYAAAIAA=</HashCode>
+      <HashCode>ABAoABAAAACAAACAEACMQAAAAAAAACAAAAICYAAAIAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -1277,30 +1251,13 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="EndGame::eg_fun&lt;0&gt;">
+  <Struct Name="EndGame::eg_fun&lt;false&gt;">
     <Position X="27.5" Y="19.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <NestedTypes>
-      <Typedef Name="EndGame::eg_fun&lt;0&gt;::type" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Endgame.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Typedef>
-    </NestedTypes>
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Endgame.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="EndGame::eg_fun&lt;1&gt;">
-    <Position X="29.25" Y="19.25" Width="1.5" />
-    <Compartments>
-      <Compartment Name="Nested Types" Collapsed="false" />
-    </Compartments>
-    <NestedTypes>
-      <Typedef Name="EndGame::eg_fun&lt;1&gt;::type" Collapsed="true">
+      <Typedef Name="EndGame::eg_fun&lt;false&gt;::type" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>src\Endgame.h</NewMemberFileName>
         </TypeIdentifier>
@@ -1323,6 +1280,23 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\xstddef</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::eg_fun&lt;true&gt;">
+    <Position X="29.25" Y="19.25" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Typedef Name="EndGame::eg_fun&lt;true&gt;::type" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>src\Endgame.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="std::null_stream" Collapsed="true">
@@ -1503,7 +1477,7 @@
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="StartRoutine" Collapsed="true">
-    <Position X="16.25" Y="20.25" Width="1.5" />
+    <Position X="19.25" Y="20.25" Width="2" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>

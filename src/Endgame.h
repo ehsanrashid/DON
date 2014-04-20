@@ -50,10 +50,10 @@ namespace EndGame {
     };
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
+    // Type eg_fun<bool>::type equals to either ScaleFactor or Value depending if the template parameter is true or false.
     template<bool> struct eg_fun;
     template<> struct eg_fun<false> { typedef Value         type; };
-    template<> struct eg_fun<true>  { typedef ScaleFactor   type; };
+    template<> struct eg_fun<true > { typedef ScaleFactor   type; };
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
@@ -103,8 +103,8 @@ namespace EndGame {
 
     private:
 
-        typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
-        typedef std::map<Key, EndgameBase<eg_fun<1>::type>*> M2;
+        typedef std::map<Key, EndgameBase<eg_fun<false>::type>*> M1;
+        typedef std::map<Key, EndgameBase<eg_fun<true >::type>*> M2;
 
         M1 m1;
         M2 m2;

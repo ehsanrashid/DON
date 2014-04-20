@@ -1764,12 +1764,12 @@ namespace Searcher {
         }
 
         Threadpool.idle_sleep = bool (Options["Idle Threads Sleep"]);
-        Threadpool.timer->run = true;
+        Threadpool.timer->start();
 
         Threadpool.timer->notify_one ();// Wake up the recurring timer
         iter_deep_loop (RootPos);       // Let's start searching !
 
-        Threadpool.timer->run = false;  // Stop the timer
+        Threadpool.timer->stop();
         Threadpool.idle_sleep = true;   // Send idle threads to sleep
 
         if (write_search_log)
