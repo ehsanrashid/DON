@@ -17,7 +17,7 @@ namespace {
 
 }
 
-void main (i32 argc, const char* const argv[])
+i32 main (i32 argc, const char* const argv[])
 {
     string args = strarg (argc, argv);
     Engine::run (args);

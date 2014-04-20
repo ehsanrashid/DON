@@ -361,7 +361,6 @@ inline File  operator-  (File  f, i32 i) { return File (i32 (f) - i); }
 inline File& operator+= (File &f, i32 i) { f = File (i32 (f) + i); return f; }
 inline File& operator-= (File &f, i32 i) { f = File (i32 (f) - i); return f; }
 
-
 INC_DEC_OPERATORS (Rank)
 inline Rank  operator+  (Rank  r, i32 i) { return Rank (i32 (r) + i); }
 inline Rank  operator-  (Rank  r, i32 i) { return Rank (i32 (r) - i); }
@@ -431,7 +430,6 @@ extern const std::string ColorChar;
 
 extern const Value PieceValue[PHASE_NO][TOTL];
 
-
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color (c^BLACK); }
 //template<class charT, class Traits>
@@ -454,7 +452,6 @@ inline char to_char   (File f, bool lower = true) { return char (i08 (f) - i08 (
 //    return os;
 //}
 
-
 inline bool _ok       (Rank r) { return !(r & ~i08 (R_8)); }
 inline Rank operator~ (Rank r) { return Rank (r ^ i08 (R_8)); }
 inline Rank to_rank   (char r) { return Rank (r - '1'); }
@@ -466,7 +463,6 @@ inline char to_char   (Rank r) { return char (i08 (r) - i08 (R_1)) + '1'; }
 //    os << to_char (r);
 //    return os;
 //}
-
 
 inline Square operator| (File f, Rank r) { return Square (( r << 3) | i08 (f)); }
 inline Square operator| (Rank r, File f) { return Square ((~r << 3) | i08 (f)); }
@@ -644,9 +640,9 @@ inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 
 //template<class charT, class Traits>
 //inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_lst)
+//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_list)
 //{
-//    std::for_each (sq_lst.begin (), sq_lst.end (), [&os] (Square s) { os << s << std::endl; });
+//    std::for_each (sq_list.begin (), sq_list.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
 
