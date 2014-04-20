@@ -50,7 +50,7 @@ namespace MemoryHandler {
         
         typedef INT (*GetLargePageMinimum) (VOID);
 
-        VOID ErrorExit (const LPSTR lpAPI, DWORD dwError)
+        VOID error_exit (const LPSTR lpAPI, DWORD dwError)
         {
             LPSTR lpvMessageBuffer = NULL;
 
@@ -73,14 +73,14 @@ namespace MemoryHandler {
             ExitProcess  (dwError);
         }
         
-        VOID SetupPrivilege (const LPSTR lpPrivilege, BOOL bEnable)
+        VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
         {
             HANDLE hProcess = GetCurrentProcess();
             HANDLE hToken;
             // Open process token
             if (!OpenProcessToken (hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
             {
-                //ErrorExit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
+                //error_exit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
             TOKEN_PRIVILEGES tp;
@@ -91,7 +91,7 @@ namespace MemoryHandler {
             // Get the luid
             if (!LookupPrivilegeValue (NULL, lpPrivilege, &tp.Privileges[0].Luid))
             {
-                //ErrorExit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
+                //error_exit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
 
             BOOL bStatus = AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
@@ -101,73 +101,15 @@ namespace MemoryHandler {
             DWORD dwError = GetLastError ();
             if (!bStatus || (dwError != ERROR_SUCCESS))
             {
-                //ErrorExit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
+                //error_exit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
             }
 
             // Close the handle
             if (!CloseHandle (hToken))
             {
-                //ErrorExit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
+                //error_exit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
             }
         }
-
-        /*
-
-        //#       define PAGELIMIT    80            // Number of pages to ask for
-
-        //LPTSTR lpNxtPage;               // Address of the next page to ask for
-        //DWORD dwPages = 0;              // Count of pages gotten so far
-        //DWORD dwPageSize;               // Page size on this computer
-
-        //INT PageFaultExceptionFilter (DWORD dwCode)
-        //{
-        //    LPVOID lpvResult;
-
-        //    // If the exception is not a page fault, exit.
-
-        //    if (dwCode != EXCEPTION_ACCESS_VIOLATION)
-        //    {
-        //        _tprintf (TEXT ("Exception code = %ld.\n"), dwCode);
-        //        return EXCEPTION_EXECUTE_HANDLER;
-        //    }
-
-        //    _tprintf (TEXT ("Exception is a page fault.\n"));
-
-        //    // If the reserved pages are used up, exit.
-
-        //    if (dwPages >= PAGELIMIT)
-        //    {
-        //        _tprintf (TEXT ("Exception: out of pages.\n"));
-        //        return EXCEPTION_EXECUTE_HANDLER;
-        //    }
-
-        //    // Otherwise, commit another page.
-
-        //    lpvResult = VirtualAlloc (
-        //                     (LPVOID) lpNxtPage, // Next page to commit
-        //                     dwPageSize,         // Page size, in bytes
-        //                     MEM_COMMIT,         // Allocate a committed page
-        //                     PAGE_READWRITE);    // Read/write access
-        //    if (lpvResult == NULL)
-        //    {
-        //        _tprintf (TEXT ("VirtualAlloc failed.\n"));
-        //        return EXCEPTION_EXECUTE_HANDLER;
-        //    }
-        //    else
-        //    {
-        //        _tprintf (TEXT ("Allocating another page.\n"));
-        //    }
-
-        //    // Increment the page count, and advance lpNxtPage to the next page.
-
-        //    ++dwPages;
-        //    lpNxtPage = (LPTSTR) ((PCHAR) lpNxtPage + dwPageSize);
-
-        //    // Continue execution where the page fault occurred.
-
-        //    return EXCEPTION_CONTINUE_EXECUTION;
-        //}
-        */
 
 #   else    // Linux - Unix
 
@@ -279,7 +221,7 @@ namespace MemoryHandler {
     {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        SetupPrivilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
+        setup_privilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
         
 #   else    // Linux - Unix
 
