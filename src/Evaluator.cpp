@@ -414,6 +414,13 @@ namespace Evaluator {
                     }
                 }
 
+                if (ROOK == PT)
+                {
+                    attacks &= ~( ei.attacked_by[C_][NIHT]
+                                | ei.attacked_by[C_][BSHP]
+                                );
+                }
+
                 if (QUEN == PT)
                 {
                     attacks &= ~( ei.attacked_by[C_][NIHT]
