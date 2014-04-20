@@ -133,11 +133,11 @@ namespace EndGame {
         for_each (m2.begin (), m2.end (), delete_endgame<M2>);
     }
 
-    template<EndgameT E>
+    template<EndgameT ET>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<E>*) 0)[key<WHITE> (code)] = new Endgame<E> (WHITE);
-        map ((Endgame<E>*) 0)[key<BLACK> (code)] = new Endgame<E> (BLACK);
+        map ((Endgame<ET>*) 0)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
+        map ((Endgame<ET>*) 0)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
     }
 
     template<>

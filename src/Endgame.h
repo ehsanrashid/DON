@@ -75,7 +75,7 @@ namespace EndGame {
 #   pragma warning (disable: 4512) // Assignment operator could not be generated
 #endif
 
-    template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
+    template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
     class Endgame
         : public EndgameBase<T>
     {
@@ -113,7 +113,7 @@ namespace EndGame {
         inline M1& map (M1::mapped_type) { return m1; }
         inline M2& map (M2::mapped_type) { return m2; }
 
-        template<EndgameT E>
+        template<EndgameT ET>
         void add (const std::string &code);
 
     public:

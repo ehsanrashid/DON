@@ -1419,9 +1419,8 @@ namespace Searcher {
 
             i32 depth    =  DEPTH_ZERO;
 
-            MultiPV = i32 (Options["MultiPV"]);
+            MultiPV   = i32 (Options["MultiPV"]);
             u08 level = i32 (Options["Skill Level"]);
-            i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns
 
             Skill skill (level);
 
@@ -1472,7 +1471,7 @@ namespace Searcher {
                     {
                         best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
 
-                        contempt = best_value > VALUE_DRAW ? +30 : -30;
+                        i32 contempt = best_value > VALUE_DRAW ? +96 : -96;
                         DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
                         DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
 
