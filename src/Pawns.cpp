@@ -63,7 +63,6 @@ namespace Pawns {
         // Unsupported pawn penalty
         const Score UnsupportedPawnPenalty  = S(+20,+10);
 
-
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] =
         {
@@ -142,7 +141,7 @@ namespace Pawns {
                 // If the pawn is passed, isolated, or connected it cannot be backward.
                 // If there are friendly pawns behind on adjacent files or
                 // If it can capture an enemy pawn it cannot be backward either.
-                if (   (passed | isolated | connected)
+                if (   (passed || isolated || connected)
                     || (pawns[0] & PawnAttackSpan[C_][s])
                     || (pawns[1] & PawnAttacks[C][s]))
                 {

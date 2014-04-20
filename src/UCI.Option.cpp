@@ -380,8 +380,7 @@ namespace UCI {
         //
         // By setting 50 Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["50 Move Distance"]             << Option (50, 5, 50, on_50_move_dist);
-
+        Options["50 Move Distance"]             << Option ( 50, 5,  50, on_50_move_dist);
 
         // TODO::
         //// Activate Contempt for position analysis.
@@ -410,7 +409,6 @@ namespace UCI {
         Options["Cowardice"]                    << Option (100, 0, 200, on_change_evaluation);
         // Degree of agressiveness.
         Options["Aggressive"]                   << Option (100, 0, 200, on_change_evaluation);
-
 
         // TODO::
         // Maximum search depth for mate search.

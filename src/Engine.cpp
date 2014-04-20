@@ -95,18 +95,18 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-//        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
+#ifdef POPCNT
+        //cout << "info string POPCNT available." << endl;
+#endif
+#ifdef BMI
+        //cout << "info string BMI available." << endl;
+#endif
+#ifdef LPAGES
+        //cout << "info string LARGE PAGES available." << endl;
+        MemoryHandler::initialize ();
+#endif
 
-//#ifdef POPCNT
-//        cout << "info string POPCNT available." << endl;
-//#endif
-//#ifdef BMI
-//        cout << "info string BMI available." << endl;
-//#endif
-//#ifdef LPAGES
-//        cout << "info string LARGE PAGES available." << endl;
-//        MemoryHandler::initialize ();
-//#endif
+        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
@@ -123,14 +123,7 @@ namespace Engine {
 
         cout << endl;
 
-#ifndef NDEBUG
-        //Tester::test_str ();
-        //Tester::main_test ();
-        //system ("pause");
-        //return;
-#endif
-
-        UCI   ::start (args);
+        UCI      ::start (args);
 
     }
 

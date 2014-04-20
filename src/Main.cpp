@@ -17,7 +17,7 @@ namespace {
 
 }
 
-i32 main (i32 argc, const char* const argv[])
+void main (i32 argc, const char* const argv[])
 {
     string args = strarg (argc, argv);
     Engine::run (args);
@@ -25,5 +25,4 @@ i32 main (i32 argc, const char* const argv[])
     //system ("pause");
     //atexit (report_leak);
     Engine::exit (EXIT_SUCCESS);
-    return EXIT_SUCCESS;
 }

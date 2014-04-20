@@ -91,10 +91,10 @@ namespace MoveGenerator {
             {
                 ASSERT (EVASION != GT);
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64 (0));
-                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0))
-                {
-                    return;
-                }
+                
+                if (EVASION == GT) return;
+                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0)) return;
+
                 const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
                 const Color C_  = ((WHITE == C) ? BLACK : WHITE);
 
@@ -148,7 +148,6 @@ namespace MoveGenerator {
             // Generates KING common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                ASSERT (EVASION != GT);
                 if (EVASION == GT) return;
 
                 if (CHECK != GT && QUIET_CHECK != GT)
@@ -479,7 +478,6 @@ namespace MoveGenerator {
             Bitboard attacks = attacks_bb (Piece (pt), org, occ) & empties;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
-
 
             SERIALIZE (moves, org, attacks);
         }
