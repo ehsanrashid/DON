@@ -1040,7 +1040,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth + (depth << 2)); // TODO::depth
+                    Value rbeta = tt_value - i32 (depth + (depth >> 2)); // TODO::depth
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
