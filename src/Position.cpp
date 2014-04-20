@@ -160,7 +160,7 @@ namespace {
 
 #endif
 
-    char toggle_case (char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
+    char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
 } // namespace
 

@@ -491,7 +491,7 @@ inline Piece Position:: moved_piece (Move m) const { return _board[org_sq (m)]; 
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
-    ASSERT (empty (s));
+    ASSERT (EMPTY == _board[s]);
     _board[s] = (c | pt);
 
     Bitboard bb      = BitBoard::Square_bb[s];
@@ -509,7 +509,7 @@ inline void  Position:: place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
-    ASSERT (!empty (s));
+    ASSERT (EMPTY != _board[s]);
 
     // WARNING: This is not a reversible operation. If we remove a piece in
     // do_move() and then replace it in undo_move() we will put it at the end of
@@ -540,8 +540,9 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
-    ASSERT (!empty (s1));
-    ASSERT ( empty (s2));
+    ASSERT (EMPTY != _board[s1]);
+    ASSERT (EMPTY == _board[s2]);
+    ASSERT (_index[s1] != -1);
 
     Piece  p  = _board[s1];
     Color  c  = color (p);

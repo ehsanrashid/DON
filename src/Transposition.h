@@ -239,7 +239,7 @@ public:
             os.write ((const charT *) &dummy, sizeof (dummy));
             os.write ((const charT *) &tt._generation, sizeof (tt._generation));
             os.write ((const charT *) &tt._hash_mask, sizeof (tt._hash_mask));
-            os.write ((const charT *)  tt._hash_table, mem_size_mb << 20);
+            os.write ((const charT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return os;
     }
 
@@ -257,7 +257,7 @@ public:
             is.read ((charT *) &tt._hash_mask, sizeof (tt._hash_mask));
             tt.resize (mem_size_mb);
             tt._generation = dummy;
-            is.read ((charT *)  tt._hash_table, mem_size_mb << 20);
+            is.read ((charT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return is;
     }
 

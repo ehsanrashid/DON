@@ -97,11 +97,13 @@ namespace Searcher {
             , root_failedlow;   // Failed low at Root
 
         SignalsT ()
-            : stop           (false)
-            , stop_ponderhit (false)
-            , root_1stmove   (false)
-            , root_failedlow (false)
-        {}
+            //: stop           (false)
+            //, stop_ponderhit (false)
+            //, root_1stmove   (false)
+            //, root_failedlow (false)
+        {
+            memset (this, 0, sizeof (*this));
+        }
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node

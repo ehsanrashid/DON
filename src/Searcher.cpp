@@ -1708,8 +1708,6 @@ namespace Searcher {
         bool write_search_log = bool (Options["Write Search Log"]);
         string search_log_fn  = string (Options["Search Log File"]);
 
-        //i32 piece_cnt;
-
         if (RootMoves.empty ())
         {
             RootMoves.push_back (RootMove (MOVE_NONE));
