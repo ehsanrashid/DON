@@ -1016,7 +1016,7 @@ namespace Searcher {
                     : (pos.gives_check (move, ci));
 
                 bool dangerous  = 
-                       ((gives_check)
+                    (  (gives_check)
                     || (NORMAL != mtype (move))
                     || (pos.advanced_pawn_push (move)));
 
@@ -1040,7 +1040,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth*1.25); // TODO::depth*1
+                    Value rbeta = tt_value - i32 (depth + (depth << 2)); // TODO::depth
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1167,7 +1167,7 @@ namespace Searcher {
 
                     if (!PVNode && cut_node)
                     {
-                        (ss)->reduction += ONE_MOVE; // 3 * ONE_PLY / 4; // TODO::
+                        (ss)->reduction += ONE_MOVE; // (3 << ONE_PLY) >> 2; // TODO::
                     }
                     else if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
                     {
