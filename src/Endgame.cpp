@@ -136,8 +136,8 @@ namespace EndGame {
     template<EndgameT ET>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<ET>*) 0)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
-        map ((Endgame<ET>*) 0)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
+        map ((Endgame<ET>*) NULL)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
+        map ((Endgame<ET>*) NULL)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
     }
 
     template<>

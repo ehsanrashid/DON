@@ -51,9 +51,9 @@ namespace EndGame {
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
     // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
-    template<i32> struct eg_fun;
-    template<> struct eg_fun<0> { typedef Value         type; };
-    template<> struct eg_fun<1> { typedef ScaleFactor   type; };
+    template<bool> struct eg_fun;
+    template<> struct eg_fun<false> { typedef Value         type; };
+    template<> struct eg_fun<true>  { typedef ScaleFactor   type; };
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
@@ -61,8 +61,7 @@ namespace EndGame {
     {
     public:
 
-        virtual ~EndgameBase ()
-        {}
+        virtual ~EndgameBase () {}
 
         virtual Color color () const = 0;
 
@@ -87,8 +86,8 @@ namespace EndGame {
     public:
 
         explicit Endgame (Color c)
-            : _stong_side(c)
-            , _weak_side(~c)
+            : _stong_side (c)
+            , _weak_side (~c)
         {}
 
         inline Color color () const { return _stong_side; }
