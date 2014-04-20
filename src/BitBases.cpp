@@ -129,7 +129,7 @@ namespace BitBases {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             Result r = INVALID;
 

@@ -126,17 +126,17 @@ namespace Threads {
     struct Condition
     {
     private:
-        WaitCondition condition;
+        WaitCondition _condition;
 
     public:
-        Condition () { cond_create  (condition); }
-       ~Condition () { cond_destroy (condition); }
+        Condition () { cond_create  (_condition); }
+       ~Condition () { cond_destroy (_condition); }
 
-        void wait (Mutex &m) { cond_wait (condition, m._lock); }
+        void wait (Mutex &mutex) { cond_wait (_condition, mutex._lock); }
 
-        void wait_for (Mutex &m, i32 ms) { cond_timed_wait (condition, m._lock, ms); }
+        void wait_for (Mutex &mutex, i32 ms) { cond_timed_wait (_condition, mutex._lock, ms); }
 
-        void notify_one () { cond_signal (condition); }
+        void notify_one () { cond_signal (_condition); }
 
     };
 
@@ -364,15 +364,15 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {
-    static Threads::Mutex m;
+    static Threads::Mutex mutex;
 
     if      (sync == IO_LOCK)
     {
-        m.lock ();
+        mutex.lock ();
     }
     else if (sync == IO_UNLOCK)
     {
-        m.unlock ();
+        mutex.unlock ();
     }
     return os;
 }

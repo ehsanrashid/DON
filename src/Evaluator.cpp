@@ -312,8 +312,7 @@ namespace Evaluator {
         // pawn attacks. To be done at the beginning of the evaluation.
         inline void init_eval_info (const Position &pos, EvalInfo &ei)
         {
-            const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
-            const Delta PULL = ((WHITE == C) ? DEL_S : DEL_N);
+            const Color  C_ = (WHITE == C) ? BLACK : WHITE;
 
             ei.pinned_pieces[C] = pos.pinneds (C);
 
@@ -326,7 +325,7 @@ namespace Evaluator {
                 && (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
                )
             {
-                ei.king_ring              [C_] = attacks | shift_del<PULL> (attacks);
+                ei.king_ring              [C_] = attacks | shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks);
                 attacks                       &= ei.attacked_by [C ][PAWN];
                 ei.king_attackers_count   [C ] = attacks ? pop_count<MAX15> (attacks) : 0;
                 ei.king_zone_attacks_count[C ] = 0;
@@ -347,7 +346,7 @@ namespace Evaluator {
         {
             ASSERT (BSHP == PT || NIHT == PT);
 
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             // Initial bonus based on square
             Value bonus = OutpostBonus[BSHP == PT][rel_sq (C, s)];
@@ -377,8 +376,8 @@ namespace Evaluator {
         {
             Score score = SCORE_ZERO;
 
-            const Color  C_    = ((WHITE == C) ? BLACK : WHITE);
-            const Square fk_sq = pos.king_sq (C);
+            const Color  C_    = (WHITE == C) ? BLACK : WHITE;
+            const Square fk_sq = pos.king_sq (C );
             const Square ek_sq = pos.king_sq (C_);
             const Bitboard occ = pos.pieces ();
 
@@ -553,7 +552,7 @@ namespace Evaluator {
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             Square king_sq = pos.king_sq (C);
             // King shelter and enemy pawns storm
@@ -681,7 +680,7 @@ namespace Evaluator {
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             Score score = SCORE_ZERO;
 
@@ -715,7 +714,7 @@ namespace Evaluator {
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             Score score = SCORE_ZERO;
 
@@ -854,9 +853,7 @@ namespace Evaluator {
         // material hash table. The aim is to improve play on game opening.
         inline i32 evaluate_space (const Position &pos, const EvalInfo &ei)
         {
-            const Color  C_  = ((WHITE == C) ? BLACK : WHITE);
-            const Delta  PULL = ((WHITE == C) ? DEL_S  : DEL_N );
-            const Delta DPULL = ((WHITE == C) ? DEL_SS : DEL_NN);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             // Find the safe squares for our pieces inside the area defined by
             // SpaceMask[]. A square is unsafe if it is attacked by an enemy
@@ -873,8 +870,8 @@ namespace Evaluator {
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
-            behind |= shift_del< PULL> (behind);
-            behind |= shift_del<DPULL> (behind);
+            behind |= shift_del<(WHITE == C) ? DEL_S  : DEL_N > (behind);
+            behind |= shift_del<(WHITE == C) ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
             return pop_count<FULL> (((WHITE == C) ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));

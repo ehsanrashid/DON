@@ -58,7 +58,7 @@ namespace Material {
         template<Color C>
         inline bool is_KXK(const Position &pos)
         {
-            const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
                 && pos.non_pawn_material (C_) == VALUE_ZERO
@@ -76,7 +76,7 @@ namespace Material {
         template<Color C>
         inline bool is_KQKRPs(const Position &pos)
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_  = (WHITE == C) ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) == VALUE_MG_QUEN
                 //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
@@ -92,7 +92,7 @@ namespace Material {
         // KING == BISHOP_PAIR
         inline Value imbalance (const i32 count[][NONE])
         {
-            const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+            const Color C_  = (WHITE == C) ? BLACK : WHITE;
 
             i32 value = VALUE_ZERO;
 

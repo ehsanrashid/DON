@@ -39,7 +39,7 @@ namespace MoveGenerator {
             {
                 ASSERT (KING != PT && PAWN != PT);
 
-                Bitboard occ = pos.pieces ();
+                const Bitboard occ = pos.pieces ();
 
                 const Square *pl = pos.list<PT> (C);
                 Square s;
@@ -96,7 +96,7 @@ namespace MoveGenerator {
                 if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0)) return;
 
                 const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
-                const Color C_  = ((WHITE == C) ? BLACK : WHITE);
+                const Color C_  = (WHITE == C) ? BLACK : WHITE;
 
                 Square org_king = pos.king_sq (C);
                 Square org_rook = pos.castle_rook (CR);
@@ -152,7 +152,7 @@ namespace MoveGenerator {
 
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+                    const Color C_ = (WHITE == C) ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (C);
                     Bitboard attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
                     SERIALIZE (moves, king_sq, attacks);
@@ -257,10 +257,10 @@ namespace MoveGenerator {
             // Generates PAWN common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                const Color C_   = ((WHITE == C) ? BLACK : WHITE);
-                const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
-                const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
-                const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
+                const Color C_   = (WHITE == C) ? BLACK : WHITE;
+                const Delta PUSH = (WHITE == C) ? DEL_N  : DEL_S;
+                const Delta RCAP = (WHITE == C) ? DEL_NE : DEL_SW;
+                const Delta LCAP = (WHITE == C) ? DEL_NW : DEL_SE;
 
                 Bitboard pawns = pos.pieces<PAWN> (C);
 

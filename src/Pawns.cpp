@@ -88,10 +88,10 @@ namespace Pawns {
         template<Color C>
         inline Score evaluate (const Position &pos, Pawns::Entry *e)
         {
-            const Color  C_  = ((WHITE == C) ? BLACK  : WHITE);
-            const Delta PUSH = ((WHITE == C) ? DEL_N  : DEL_S);
-            const Delta RCAP = ((WHITE == C) ? DEL_NE : DEL_SW);
-            const Delta LCAP = ((WHITE == C) ? DEL_NW : DEL_SE);
+            const Color  C_  = (WHITE == C) ? BLACK  : WHITE;
+            const Delta PUSH = (WHITE == C) ? DEL_N  : DEL_S;
+            const Delta RCAP = (WHITE == C) ? DEL_NE : DEL_SW;
+            const Delta LCAP = (WHITE == C) ? DEL_NW : DEL_SE;
 
             const Bitboard pawns[CLR_NO] =
             {
@@ -247,7 +247,7 @@ namespace Pawns {
     // the king is on, as well as the two adjacent files.
     Value Entry::shelter_storm (const Position &pos, Square king_sq)
     {
-        const Color C_ = ((WHITE == C) ? BLACK : WHITE);
+        const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
         Value safety = MaxSafetyBonus;
 
