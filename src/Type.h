@@ -227,8 +227,8 @@ enum Score : i32 { SCORE_ZERO = 0 };
 
 enum Depth : i16
 {
-    //ONE_PLY             =    1,
-    ONE_MOVE            =    2,//2 * i16 (ONE_PLY),
+    ONE_PLY             =    1,
+    ONE_MOVE            =    2 * i16 (ONE_PLY),
 
     DEPTH_ZERO          =    0 * i16 (ONE_MOVE),
     DEPTH_QS_CHECKS     =    0 * i16 (ONE_MOVE),

@@ -46,10 +46,6 @@ namespace MemoryHandler {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        /// http://msdn.microsoft.com/en-us/library/aa366543%28VS.85%29.aspx
-        
-        typedef INT (*GetLargePageMinimum) (VOID);
-
         VOID error_exit (const LPSTR lpAPI, DWORD dwError)
         {
             LPSTR lpvMessageBuffer = NULL;
@@ -70,7 +66,8 @@ namespace MemoryHandler {
             LocalFree (lpvMessageBuffer);
 
             dwError = GetLastError ();
-            ExitProcess  (dwError);
+            //ExitProcess  (dwError);
+            Engine::exit (dwError);
         }
         
         VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
@@ -127,7 +124,6 @@ namespace MemoryHandler {
         {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-            /* Vlad0 */
             mem_ref = VirtualAlloc
                 (NULL,                      // System selects address
                  mem_size,                  // Size of allocation
