@@ -781,41 +781,44 @@ namespace Evaluator {
                             defended_squares = queen_squares & ei.attacked_by[C][NONE];
                         }
 
-                        // If there aren't enemy attacks huge bonus, a bit smaller if at
-                        // least block square is not attacked, otherwise smallest bonus.
-                        i32 k = (unsafe_squares == U64 (0)) ? 15 : !(unsafe_squares & block_sq) ? 9 : 3;
+                        // Give a big bonus if there aren't enemy attacks, otherwise
+                        // a smaller bonus if block square is not attacked.
+                        i32 k = (unsafe_squares == U64 (0)) ? 15 : !(unsafe_squares & block_sq) ? 9 : 0;
 
-                        // Big bonus if the path to queen is fully defended, a bit less
-                        // if at least block square is defended.
-                        k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 2;
+                        // Give a big bonus if the path to queen is fully defended,
+                        // a smaller bonus if at least block square is defended.
+                        k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
 
                         mg_bonus += Value (k * rr);
                         eg_bonus += Value (k * rr);
                     }
                 }
 
-                // Rook pawns are a special case: They are sometimes worse, and
-                // sometimes better than other passed pawns. It is difficult to find
-                // good rules for determining whether they are good or bad. For now,
-                // we try the following: Increase the value for rook pawns if the
-                // other side has no pieces apart from a knight, and decrease the
-                // value if the other side has a rook or queen.
-                if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
+                if (eg_bonus != VALUE_ZERO)
                 {
-                    if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
+                    // Rook pawns are a special case: They are sometimes worse, and
+                    // sometimes better than other passed pawns. It is difficult to find
+                    // good rules for determining whether they are good or bad. For now,
+                    // we try the following: Increase the value for rook pawns if the
+                    // other side has no pieces apart from a knight, and decrease the
+                    // value if the other side has a rook or queen.
+                    if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
+                    {
+                        if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
+                        {
+                            eg_bonus += eg_bonus / 4;
+                        }
+                        else if (pos.pieces (C_, ROOK, QUEN) != U64 (0))
+                        {
+                            eg_bonus -= eg_bonus / 4;
+                        }
+                    }
+
+                    // Increase the bonus if we have more non-pawn pieces
+                    if (pos.count<PAWN> (C) < pos.count<PAWN> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
                     }
-                    else if (pos.pieces (C_, ROOK, QUEN) != U64 (0))
-                    {
-                        eg_bonus -= eg_bonus / 4;
-                    }
-                }
-
-                // Increase the bonus if we have more non-pawn pieces
-                if (pos.count<PAWN> (C) < pos.count<PAWN> (C_))
-                {
-                    eg_bonus += eg_bonus / 4;
                 }
 
                 score += mk_score (mg_bonus, eg_bonus);
