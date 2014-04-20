@@ -44,13 +44,13 @@ inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
 #   define lock_grab(x)          EnterCriticalSection (&(x))
 #   define lock_release(x)       LeaveCriticalSection (&(x))
 #   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_create(x)        x = CreateEvent (0, FALSE, FALSE, 0);
-#   define cond_destroy(x)       CloseHandle (x)
-#   define cond_signal(x)        SetEvent (x)
-#   define cond_wait(x,y)        { lock_release (y); WaitForSingleObject (x, INFINITE); lock_grab (y); }
-#   define cond_timedwait(x,y,z) { lock_release (y); WaitForSingleObject (x, z); lock_grab (y); }
-#   define thread_create(x,f,t)  x = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
-#   define thread_join(x)        { WaitForSingleObject (x, INFINITE); CloseHandle (x); }
+#   define cond_create(h)        h = CreateEvent (0, FALSE, FALSE, 0);
+#   define cond_destroy(h)       CloseHandle (h)
+#   define cond_signal(h)        SetEvent (h)
+#   define cond_wait(c,l)        { lock_release (l); WaitForSingleObject (c, INFINITE); lock_grab (l); }
+#   define cond_timedwait(c,l,t) { lock_release (l); WaitForSingleObject (c, t); lock_grab (l); }
+#   define thread_create(h,f,t)  h = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
+#   define thread_join(h)        { WaitForSingleObject (h, INFINITE); CloseHandle (h); }
 
 #else    // Linux - Unix
 
@@ -62,17 +62,17 @@ typedef pthread_cond_t      WaitCondition;
 typedef pthread_t           NativeHandle;
 typedef void* (*StartRoutine) (void*);
 
-#   define lock_create(x)   pthread_mutex_init (&(x), NULL)
-#   define lock_grab(x)     pthread_mutex_lock (&(x))
-#   define lock_release(x)  pthread_mutex_unlock (&(x))
-#   define lock_destroy(x)  pthread_mutex_destroy (&(x))
-#   define cond_create(x)   pthread_cond_init (&(x), NULL)
-#   define cond_destroy(x)  pthread_cond_destroy (&(x))
-#   define cond_signal(x)   pthread_cond_signal (&(x))
-#   define cond_wait(x,y)   pthread_cond_wait (&(x), &(y))
-#   define cond_timedwait(x,y,z)    pthread_cond_timedwait (&(x), &(y), z)
-#   define thread_create(x,f,t)     pthread_create (&(x), NULL, StartRoutine (f), t)
-#   define thread_join(x)   pthread_join (x, NULL)
+#   define lock_create(x)        pthread_mutex_init (&(x), NULL)
+#   define lock_grab(x)          pthread_mutex_lock (&(x))
+#   define lock_release(x)       pthread_mutex_unlock (&(x))
+#   define lock_destroy(x)       pthread_mutex_destroy (&(x))
+#   define cond_create(h)        pthread_cond_init (&(h), NULL)
+#   define cond_destroy(h)       pthread_cond_destroy (&(h))
+#   define cond_signal(h)        pthread_cond_signal (&(h))
+#   define cond_wait(c,l)        pthread_cond_wait (&(c), &(l))
+#   define cond_timedwait(c,l,t) pthread_cond_timedwait (&(c), &(l), t)
+#   define thread_create(h,f,t)  pthread_create (&(h), NULL, StartRoutine (f), t)
+#   define thread_join(h)        pthread_join (h, NULL)
 
 #endif
 
@@ -99,9 +99,9 @@ namespace Threads {
         void unlock () { lock_release (_lock); }
     };
 
-    // timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
+    // cond_timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
     // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
+    inline void cond_timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
     {
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
@@ -134,7 +134,7 @@ namespace Threads {
 
         void wait (Mutex &m) { cond_wait (condition, m._lock); }
 
-        void wait_for (Mutex &m, i32 ms) { timed_wait (condition, m._lock, ms); }
+        void wait_for (Mutex &m, i32 ms) { cond_timed_wait (condition, m._lock, ms); }
 
         void notify_one () { cond_signal (condition); }
 

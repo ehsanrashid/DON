@@ -783,23 +783,16 @@ namespace Evaluator {
 
                         // If there aren't enemy attacks huge bonus, a bit smaller if at
                         // least block square is not attacked, otherwise smallest bonus.
-                        i32 k = unsafe_squares == U64 (0) ? 15 : !(unsafe_squares & block_sq) ? 9 : 3;
+                        i32 k = (unsafe_squares == U64 (0)) ? 15 : !(unsafe_squares & block_sq) ? 9 : 3;
 
                         // Big bonus if the path to queen is fully defended, a bit less
                         // if at least block square is defended.
-                        if (defended_squares == queen_squares)
-                        {
-                            k += 6;
-                        }
-                        else if (defended_squares & block_sq)
-                        {
-                            k += ((unsafe_squares & defended_squares) == unsafe_squares) ? 4 : 2;
-                        }
+                        k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 2;
 
                         mg_bonus += Value (k * rr);
                         eg_bonus += Value (k * rr);
                     }
-                } // 0 != rr
+                }
 
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
