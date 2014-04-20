@@ -354,7 +354,7 @@ namespace Evaluator {
 
             // Increase bonus if supported by pawn, especially if the opponent has
             // no minor piece which can exchange the outpost piece.
-            if (bonus && (ei.attacked_by[C][PAWN] & s))
+            if (bonus != VALUE_ZERO && (ei.attacked_by[C][PAWN] & s))
             {
                 if (   (pos.pieces<NIHT> (C_) == U64 (0))
                     && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
@@ -522,7 +522,7 @@ namespace Evaluator {
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
                             if (  ((f < F_E) == (_file (s) < f))
-                               && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                               && (_rank (s) == _rank (fk_sq) || R_1 == rel_rank (C, fk_sq))
                                && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
@@ -583,10 +583,10 @@ namespace Evaluator {
                 {
                     // ...then remove squares not supported by another enemy piece
                     undefended_attacked &=
-                        ei.attacked_by[C_][PAWN]
+                      ( ei.attacked_by[C_][PAWN]
                       | ei.attacked_by[C_][NIHT]
                       | ei.attacked_by[C_][BSHP]
-                      | ei.attacked_by[C_][ROOK];
+                      | ei.attacked_by[C_][ROOK]);
 
                     if (undefended_attacked)
                     {
@@ -607,10 +607,10 @@ namespace Evaluator {
                 {
                     // ...and then remove squares not supported by another enemy piece
                     undefended_attacked &=
-                        ei.attacked_by[C_][PAWN]
+                      ( ei.attacked_by[C_][PAWN]
                       | ei.attacked_by[C_][NIHT]
                       | ei.attacked_by[C_][BSHP]
-                      | ei.attacked_by[C_][QUEN];
+                      | ei.attacked_by[C_][QUEN]);
 
                     if (undefended_attacked != U64 (0))
                     {
@@ -971,7 +971,7 @@ namespace Evaluator {
             }
 
             // Scale winning side if position is more drawish than it appears
-            ScaleFactor scale_factor = (eg_value (score) > VALUE_DRAW)
+            ScaleFactor sf = (eg_value (score) > VALUE_DRAW)
                 ? ei.mi->scale_factor<WHITE> (pos)
                 : ei.mi->scale_factor<BLACK> (pos);
 
@@ -979,8 +979,8 @@ namespace Evaluator {
             // colored bishop endgames, and use a lower scale for those.
             if (   (ei.mi->game_phase () < PHASE_MIDGAME)
                 && (pos.opposite_bishops ())
-                && (scale_factor == SCALE_FACTOR_NORMAL
-                 || scale_factor == SCALE_FACTOR_ONEPAWN)
+                && (sf == SCALE_FACTOR_NORMAL
+                 || sf == SCALE_FACTOR_ONEPAWN)
                )
             {
                 // Ignoring any pawns, do both sides only have a single bishop
@@ -991,7 +991,7 @@ namespace Evaluator {
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    scale_factor  = (pos.count<PAWN> () == 1)
+                    sf  = (pos.count<PAWN> () == 1)
                         ? ScaleFactor (8)
                         : ScaleFactor (32);
                 }
@@ -999,11 +999,11 @@ namespace Evaluator {
                 {
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops.
-                    scale_factor = ScaleFactor (50 * scale_factor / SCALE_FACTOR_NORMAL);
+                    sf = ScaleFactor (50 * sf / SCALE_FACTOR_NORMAL);
                 }
             }
 
-            Value value = interpolate (score, ei.mi->game_phase (), scale_factor);
+            Value value = interpolate (score, ei.mi->game_phase (), sf);
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
@@ -1029,7 +1029,7 @@ namespace Evaluator {
                 Tracer::add_term (Tracer::TOTAL    , score);
 
                 Tracer::Evalinfo    = ei;
-                Tracer::Scalefactor = scale_factor;
+                Tracer::Scalefactor = sf;
             }
 
             return (WHITE == pos.active ()) ? +value : -value;

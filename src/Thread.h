@@ -310,7 +310,6 @@ namespace Threads {
 
 inline u32 cpu_count ()
 {
-
 #ifdef WIN32
 
     SYSTEM_INFO sys_info;
@@ -355,7 +354,6 @@ inline u32 cpu_count ()
     return 1;
 
 #endif
-
 }
 
 enum SyncT { IO_LOCK, IO_UNLOCK };
