@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (u16 depth)
         {
-            return Value (depth << 6); // TODO::64/100
+            return Value (depth<<6); // TODO::64/100
         }
 
         template<bool PVNode>
@@ -1276,7 +1276,7 @@ namespace Searcher {
                     if (is_pv_move || value > alpha)
                     {
                         rm.value[0] = value;
-                        rm.nodes = pos.game_nodes ();
+                        //rm.nodes = pos.game_nodes ();
                         rm.extract_pv_from_tt (pos);
 
                         // We record how often the best move has been changed in each
@@ -1331,12 +1331,6 @@ namespace Searcher {
                        )
                     {
                         ASSERT (best_value < beta);
-
-                        //Debugger::dbg_hits_on (thread->splitpoint_threads == 4);
-
-                        //Debugger::dbg_mean_of (thread->splitpoint_threads);
-                        //Debugger::dbg_mean_of (Threadpool.split_depth);  // always== 8
-                        //Debugger::dbg_mean_of (depth);
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 

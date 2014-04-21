@@ -324,8 +324,8 @@ inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u
     inline T  operator*  (T  d, i32 i) { return T (i32 (d) * i); }                  \
     inline T  operator+  (T  d, i32 i) { return T (i32 (d) + i); }                  \
     inline T  operator-  (T  d, i32 i) { return T (i32 (d) - i); }                  \
-    inline T  operator+  (T  d)        { return T (+i32 (d)); }                     \
-    inline T  operator-  (T  d)        { return T (-i32 (d)); }                     \
+    inline T  operator+  (T  d       ) { return T (+i32 (d)); }                     \
+    inline T  operator-  (T  d       ) { return T (-i32 (d)); }                     \
     inline T& operator+= (T &d1, T d2) { d1 = T (i32 (d1) + i32 (d2)); return d1; } \
     inline T& operator-= (T &d1, T d2) { d1 = T (i32 (d1) - i32 (d2)); return d1; } \
     inline T& operator+= (T &d, i32 i) { d = T (i32 (d) + i); return d; }           \
@@ -338,11 +338,11 @@ inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u
 //inline T  operator/  (T  d, i32 i) { return T (i32 (d) / i); }                 
 //inline T& operator/= (T &d, i32 i) { d = T (i32 (d) / i); return d; }
 
-#define INC_DEC_OPERATORS(T)                                                        \
-    inline T  operator++ (T &d, i32) { T o = d; d = T (i32 (d) + 1); return o; }    \
-    inline T  operator-- (T &d, i32) { T o = d; d = T (i32 (d) - 1); return o; }    \
-    inline T& operator++ (T &d         ) { d = T (i32 (d) + 1); return d; }         \
-    inline T& operator-- (T &d         ) { d = T (i32 (d) - 1); return d; }
+#define INC_DEC_OPERATORS(T)                                                     \
+    inline T  operator++ (T &d, i32) { T o = d; d = T (i32 (d) + 1); return o; } \
+    inline T  operator-- (T &d, i32) { T o = d; d = T (i32 (d) - 1); return o; } \
+    inline T& operator++ (T &d     ) { d = T (i32 (d) + 1); return d; }          \
+    inline T& operator-- (T &d     ) { d = T (i32 (d) - 1); return d; }
 
 
 INC_DEC_OPERATORS (File)
