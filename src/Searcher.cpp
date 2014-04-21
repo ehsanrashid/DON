@@ -72,7 +72,7 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
-        Value   Contempt[CLR_NO]; // [best_value > VALUE_DRAW]
+        Value   Contempt[2]; // [best_value > VALUE_DRAW]
 
         double  BestMoveChanges;
 
@@ -1711,6 +1711,8 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
+        DrawValue[WHITE] = VALUE_DRAW;
+        DrawValue[BLACK] = VALUE_DRAW;
         i32 contempt = i32 (Options["Contempt Factor"]);
         Contempt[0] = (contempt+ 0) * VALUE_EG_PAWN / 100;
         Contempt[1] = (contempt+12) * VALUE_EG_PAWN / 100;

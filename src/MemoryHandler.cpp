@@ -72,16 +72,14 @@ namespace MemoryHandler {
         
         VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
         {
-            HANDLE hProcess = GetCurrentProcess();
             HANDLE hToken;
             // Open process token
-            if (!OpenProcessToken (hProcess, TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
+            if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
             {
                 //error_exit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
             TOKEN_PRIVILEGES tp;
-            
             // Enable or Disable privilege
             tp.PrivilegeCount = 1;
             tp.Privileges[0].Attributes = (bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
@@ -95,11 +93,11 @@ namespace MemoryHandler {
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last dwError value.
-            DWORD dwError = GetLastError ();
-            if (!bStatus || (dwError != ERROR_SUCCESS))
-            {
-                //error_exit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
-            }
+            //DWORD dwError = GetLastError ();
+            //if (!bStatus || (dwError != ERROR_SUCCESS))
+            //{
+            //    error_exit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
+            //}
 
             // Close the handle
             if (!CloseHandle (hToken))
@@ -220,8 +218,6 @@ namespace MemoryHandler {
         setup_privilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
         
 #   else    // Linux - Unix
-
-
 
 #   endif
     }
