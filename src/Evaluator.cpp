@@ -165,8 +165,8 @@ namespace Evaluator {
             },
             // Queens
             {
-                S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
-                S(+11,+19), S(+13,+29), S(+18,+38), S(+20,+40), S(+21,+41),
+                S(-42,-42), S(-28,-25), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
+                S(+10,+19), S(+14,+28), S(+18,+38), S(+20,+40), S(+21,+41),
                 S(+22,+41), S(+22,+41), S(+22,+41), S(+23,+41), S(+24,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
@@ -814,12 +814,11 @@ namespace Evaluator {
                         //    eg_bonus -= eg_bonus / 4;
                         //}
 
-                        Value npm = pos.non_pawn_material (C) + pos.non_pawn_material (C_);
-                        ebonus -= (npm - 2 * VALUE_EG_QUEN) * ebonus / VALUE_INFINITE;
+                        i32 npm = pos.non_pawn_material (C) + pos.non_pawn_material (C_);
+                        eg_bonus -= (npm - i32 (2 * VALUE_EG_QUEN)) * eg_bonus / VALUE_INFINITE;
                     }
 
-                    // Increase the bonus if we have more non-pawn pieces
-                    if (pos.count<PAWN> (C) < pos.count<PAWN> (C_))
+                    if (pos.count<PAWN> (C) > pos.count<PAWN> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
                     }
