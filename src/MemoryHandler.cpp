@@ -46,30 +46,29 @@ namespace MemoryHandler {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        VOID error_exit (const LPSTR lpAPI, DWORD dwError)
-        {
-            LPSTR lpvMessageBuffer = NULL;
+        //VOID error_exit (const LPSTR lpAPI, DWORD dwError)
+        //{
+        //    LPSTR lpvMessageBuffer = NULL;
+        //
+        //    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        //                     FORMAT_MESSAGE_FROM_SYSTEM |
+        //                     FORMAT_MESSAGE_IGNORE_INSERTS,
+        //                     NULL, dwError,
+        //                     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+        //                     lpvMessageBuffer, 0, NULL);
+        //
+        //    //... now display this string
+        //    _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
+        //    _tprintf (TEXT ("       error code = %lu.\n"), dwError);
+        //    _tprintf (TEXT ("       message    = %s.\n"), lpvMessageBuffer);
+        //
+        //    // Free the buffer allocated by the system
+        //    LocalFree (lpvMessageBuffer);
+        //
+        //    dwError = GetLastError ();
+        //    Engine::exit (dwError);
+        //}
 
-            FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                             FORMAT_MESSAGE_FROM_SYSTEM |
-                             FORMAT_MESSAGE_IGNORE_INSERTS,
-                             NULL, dwError,
-                             MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                             lpvMessageBuffer, 0, NULL);
-
-            //... now display this string
-            _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
-            _tprintf (TEXT ("       error code = %lu.\n"), dwError);
-            _tprintf (TEXT ("       message    = %s.\n"), lpvMessageBuffer);
-
-            // Free the buffer allocated by the system
-            LocalFree (lpvMessageBuffer);
-
-            dwError = GetLastError ();
-            //ExitProcess  (dwError);
-            Engine::exit (dwError);
-        }
-        
         VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
         {
             HANDLE hToken;
@@ -89,7 +88,8 @@ namespace MemoryHandler {
                 //error_exit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
 
-            BOOL bStatus = AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
+            //BOOL bStatus = 
+            AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last dwError value.
