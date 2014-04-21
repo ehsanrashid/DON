@@ -824,13 +824,15 @@ namespace Evaluator {
                 score += mk_score (mg_bonus, eg_bonus);
             }
 
+            // Add the scores to the middle game and endgame eval
+            score = apply_weight (score, Weights[PassedPawns]);
+
             if (TRACE)
             {
-                Tracer::Terms[C][Tracer::PASSED] = apply_weight (score, Weights[PassedPawns]);
+                Tracer::Terms[C][Tracer::PASSED] = score;
             }
-
-            // Add the scores to the middle game and endgame eval
-            return apply_weight (score, Weights[PassedPawns]);
+            
+            return score;
         }
 
         // evaluate_unstoppable_pawns() scores the most advanced among the passed and
@@ -1045,7 +1047,7 @@ namespace Evaluator {
                 memset (Terms, 0, sizeof (Terms));
 
                 Value value = evaluate<true> (pos);
-                value = (pos.active () == WHITE) ? +value : -value; // White's point of view
+                value = (WHITE == pos.active ()) ? +value : -value; // White's point of view
 
                 stringstream ss;
 

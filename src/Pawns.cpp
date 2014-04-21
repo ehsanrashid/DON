@@ -288,7 +288,7 @@ namespace Pawns {
             {
                 mid_pawns = pawns[0] & File_bb[f];
                 
-                Rank w_rk = mid_pawns
+                Rank w_rk = mid_pawns != U64 (0)
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
