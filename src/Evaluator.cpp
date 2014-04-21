@@ -798,20 +798,24 @@ namespace Evaluator {
                 {
                     // Rook pawns are a special case: They are sometimes worse, and
                     // sometimes better than other passed pawns. It is difficult to find
-                    // good rules for determining whether they are good or bad. For now,
-                    // we try the following: Increase the value for rook pawns if the
-                    // other side has no pieces apart from a knight, and decrease the
-                    // value if the other side has a rook or queen.
+                    // good rules for determining whether they are good or bad.
+                    // For now, we try the following:
+                    // - increase the value for rook pawns if the other side has
+                    // no pieces apart from a knight, and
+                    // - decrease the value if the other side has a rook or queen.
                     if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
                     {
-                        if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
-                        {
-                            eg_bonus += eg_bonus / 4;
-                        }
-                        else if (pos.pieces (C_, ROOK, QUEN) != U64 (0))
-                        {
-                            eg_bonus -= eg_bonus / 4;
-                        }
+                        //if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
+                        //{
+                        //    eg_bonus += eg_bonus / 4;
+                        //}
+                        //else if (pos.pieces (C_, ROOK, QUEN) != U64 (0))
+                        //{
+                        //    eg_bonus -= eg_bonus / 4;
+                        //}
+
+                        Value npm = pos.non_pawn_material (C) + pos.non_pawn_material (C_);
+                        ebonus -= (npm - 2 * VALUE_EG_QUEN) * ebonus / VALUE_INFINITE;
                     }
 
                     // Increase the bonus if we have more non-pawn pieces
