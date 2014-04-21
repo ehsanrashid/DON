@@ -99,22 +99,23 @@ namespace Material {
             // "The Evaluation of Material Imbalances in Chess"
 
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (PieceT pt1 = PAWN; pt1 <= QUEN; ++pt1)
+            for (PieceT pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 i32 pc = count[C][pt1];
-                if (pc == 0) continue;
-
-                i32 v = LinearCoefficients[pt1];
-
-                for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
+                if (pc != 0)
                 {
-                    v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
-                      +  count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
-                }
-                v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
-                  +  count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+                    i32 v = LinearCoefficients[pt1];
 
-                value += pc * v;
+                    for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    {
+                        v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
+                          +  count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
+                    }
+                    v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
+                      +  count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+
+                    value += pc * v;
+                }
             }
             value += count[C][KING] * LinearCoefficients[KING];
 

@@ -4,14 +4,13 @@
 #include <cstdarg>
 
 #include "Engine.h"
-#include "Transposition.h"
+#include "Benchmark.h"
 #include "Searcher.h"
 #include "Evaluator.h"
-#include "Benchmark.h"
-#include "Notation.h"
 #include "Thread.h"
+#include "Transposition.h"
+#include "Notation.h"
 #include "Debugger.h"
-
 
 namespace UCI {
 
@@ -437,6 +436,7 @@ namespace UCI {
             else if (token == "eval")       exe_eval ();
             else if (token == "perft")      exe_perft (cstm);
             else if (token == "bench")      exe_bench (cstm);
+            else if (token == "cls")        system ("cls");
             else if (token == "stop"
                 ||   token == "quit")       exe_stop ();
             else

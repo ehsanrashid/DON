@@ -1048,7 +1048,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, depth/ONE_MOVE, cut_node);
+                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth>>1), cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
