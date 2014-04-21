@@ -786,7 +786,7 @@ bool Position::pseudo_legal (Move m) const
             && (_si->en_passant_sq == dst)
             && (R_5 == r_org)
             && (R_6 == r_dst)
-            && (EMPTY == _board[dst])
+            && (empty (dst))
              )
            )
         {
@@ -835,7 +835,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!( (EMPTY == _board[dst])
+            if (!( (empty (dst))
                 && (0 == FileRankDist[_file (dst)][_file (org)])
                  )
                )
@@ -866,8 +866,8 @@ bool Position::pseudo_legal (Move m) const
             // source and destination squares must be empty.
             if (!( (R_2 == r_org)
                 && (R_4 == r_dst)
-                && (EMPTY == _board[dst])
-                && (EMPTY == _board[dst - pawn_push (_active)])
+                && (empty (dst))
+                && (empty (dst - pawn_push (_active)))
                 && (0 == FileRankDist[_file (dst)][_file (org)])
                  )
                )
@@ -1248,13 +1248,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     Square dst  = dst_sq (m);
     PieceT pt   = ptype (_board[org]);
 
-    ASSERT ((EMPTY != _board[org])
+    ASSERT ((!empty (org))
         &&  (_active == color (_board[org]))
         &&  (NONE != pt));
     
     MoveT mt   = mtype (m);
     
-    ASSERT ((EMPTY == _board[dst])
+    ASSERT ((empty (dst))
         ||  (pasive == color (_board[dst]))
         ||  (CASTLE == mt));
 
@@ -1299,7 +1299,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT (dst == _si->en_passant_sq); // Destination must be en-passant
         ASSERT (R_5 == rel_rank (_active, org));
         ASSERT (R_6 == rel_rank (_active, dst));
-        ASSERT (EMPTY == _board[cap]);      // Capture Square must be empty
+        ASSERT (empty (cap));      // Capture Square must be empty
 
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);

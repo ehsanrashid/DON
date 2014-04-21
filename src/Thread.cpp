@@ -287,7 +287,7 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure ()
     {
-        split_depth = Depth (i32 (Options["Split Depth"]) << ONE_PLY);
+        split_depth = i32 (Options["Split Depth"])*ONE_MOVE;
         u08 threads;
         threads     = i32 (Options["Threads"]);
 
@@ -297,7 +297,7 @@ namespace Threads {
         // Determines the best optimal minimum split depth automatically
         if (0 == split_depth)
         {
-            split_depth = Depth ((threads < 8 ? 4 : 7) << ONE_PLY);
+            split_depth = (threads < 8 ? 4 : 7)*ONE_MOVE;
         }
 
         while (size () < threads)
