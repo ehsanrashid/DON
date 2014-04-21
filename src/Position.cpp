@@ -538,7 +538,7 @@ template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
     Bitboard bb = stm_attackers & _types_bb[PT];
-    if (bb)
+    if (bb != U64 (0))
     {
         occupied ^= (bb & ~(bb - 1));
 

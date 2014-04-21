@@ -72,7 +72,8 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
-        
+        Value   Contempt[CLR_NO]; // [best_value > VALUE_DRAW]
+
         double  BestMoveChanges;
 
         u08     MultiPV
@@ -1476,9 +1477,9 @@ namespace Searcher {
                     {
                         best_value = search<Root> (pos, ss, alpha, beta, depth*ONE_MOVE, false);
 
-                        //i32 contempt = best_value > VALUE_DRAW ? +96 : -96;
-                        //DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
-                        //DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
+                        Value contempt = Contempt[best_value > VALUE_DRAW];
+                        DrawValue[ RootColor] = VALUE_DRAW - contempt;
+                        DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1710,10 +1711,9 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns
-        //contempt = contempt * Material::game_phase (RootPos) / PHASE_MIDGAME; // Scale down with phase
-        DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
-        DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
+        i32 contempt = i32 (Options["Contempt Factor"]);
+        Contempt[0] = (contempt+ 0) * VALUE_EG_PAWN / 100;
+        Contempt[1] = (contempt+12) * VALUE_EG_PAWN / 100;
 
         bool write_search_log = bool (Options["Write Search Log"]);
         string search_log_fn  = string (Options["Search Log File"]);
