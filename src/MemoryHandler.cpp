@@ -59,7 +59,7 @@ namespace MemoryHandler {
 
             //... now display this string
             _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
-            _tprintf (TEXT ("       error code = %ld.\n"), dwError);
+            _tprintf (TEXT ("       error code = %lu.\n"), dwError);
             _tprintf (TEXT ("       message    = %s.\n"), lpvMessageBuffer);
 
             // Free the buffer allocated by the system

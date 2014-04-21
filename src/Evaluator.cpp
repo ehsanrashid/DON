@@ -182,25 +182,25 @@ namespace Evaluator {
 
             // KNIGHTS
             {
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 4), V ( 8), V ( 8), V ( 4), V ( 0), V ( 0),
-                V ( 0), V ( 4), V (17), V (26), V (26), V (17), V ( 4), V ( 0),
-                V ( 0), V ( 8), V (26), V (35), V (35), V (26), V ( 8), V ( 0),
-                V ( 0), V ( 4), V (17), V (17), V (17), V (17), V ( 4), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0)
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 4), V( 8), V( 8), V( 4), V( 0), V( 0),
+                V( 0), V( 4), V(17), V(26), V(26), V(17), V( 4), V( 0),
+                V( 0), V( 8), V(26), V(35), V(35), V(26), V( 8), V( 0),
+                V( 0), V( 4), V(17), V(17), V(17), V(17), V( 4), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
             },
             // BISHOPS
             {
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 5), V ( 5), V ( 5), V ( 5), V ( 0), V ( 0),
-                V ( 0), V ( 5), V (10), V (10), V (10), V (10), V ( 5), V ( 0),
-                V ( 0), V (10), V (21), V (21), V (21), V (21), V (10), V ( 0),
-                V ( 0), V ( 5), V ( 8), V ( 8), V ( 8), V ( 8), V ( 5), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0),
-                V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0), V ( 0)
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 5), V( 5), V( 5), V( 5), V( 0), V( 0),
+                V( 0), V( 5), V(10), V(10), V(10), V(10), V( 5), V( 0),
+                V( 0), V(10), V(21), V(21), V(21), V(21), V(10), V( 0),
+                V( 0), V( 5), V( 8), V( 8), V( 8), V( 8), V( 5), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
             }
         };
 
@@ -456,15 +456,13 @@ namespace Evaluator {
                                 || s == rel_sq (C, SQ_H1)
                                )
                             {
-                                Piece P = (C | PAWN);
-                                Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
-                                if (pos[s + d] == P)
+                                const Piece pawn = (C | PAWN);
+                                Delta del = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
+                                if (pos[s + del] == pawn)
                                 {
                                     score -= BishopTrappedA1H1Penalty *
-                                        ( (pos[s + d + pawn_push (C)]!=EMPTY) ? 4
-                                        : (pos[s + d + d] == P)               ? 2
-                                        :                                       1
-                                        );
+                                        ( (pos[s + del + pawn_push (C)]!=EMPTY) ? 4
+                                        : (pos[s + del + del] == pawn)          ? 2 : 1);
                                 }
                             }
                         }
@@ -920,8 +918,8 @@ namespace Evaluator {
             // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
-                ~(ei.attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
+                ~(pos.pieces (WHITE, PAWN, KING) | ei.attacked_by[BLACK][PAWN]),
+                ~(pos.pieces (BLACK, PAWN, KING) | ei.attacked_by[WHITE][PAWN])
             };
 
             score += 

@@ -1811,7 +1811,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     pos.clear ();
 
     istringstream iss (fen);
-    char ch;
+    unsigned char ch;
 
     iss >> noskipws;
 
