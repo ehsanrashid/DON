@@ -17,9 +17,8 @@ namespace Material {
         const Value MidgameLimit = Value (15581);
         const Value EndgameLimit = Value ( 3998);
 
-        // Polynomial material balance parameters
-        //                                         P      N      B      R      Q     BP
-        const i32 LinearCoefficients[NONE] = { - 162, -1122, - 183, + 249, -  52, +1852, };
+        // Polynomial material balance parameters: P      N      B      R      Q     BP
+        const i32 LinearCoefficients[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
 
         const i32 QuadraticCoefficientsSameColor[NONE][NONE] =
         {
@@ -28,19 +27,19 @@ namespace Material {
             { +271, -  4, +  0, +  0, +  0, + 35, }, // N
             { +105, +  4, +  0, +  0, +  0, +  0, }, // B
             { -  2, + 46, +100, -141, +  0, - 27, }, // R
-            { + 29, + 83, +148, -163, +  0, + 58, }, // Q
+            { + 25, +129, +142, -137, +  0, -177, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
         const i32 QuadraticCoefficientsOppositeColor[NONE][NONE] =
         {
-            //       THEIR PIECES
+            //          THEIR PIECES
             //  P     N     B     R     Q    BP
             { +  0, +  0, +  0, +  0, +  0, + 37, }, // P
             { + 62, +  0, +  0, +  0, +  0, + 10, }, // N
             { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OUR PIECES
             { + 40, + 23, - 22, +  0, +  0, + 50, }, // R
-            { +101, +  3, +151, +171, +  0, +106, }, // Q
+            { +105, + 39, +141, +274, +  0, + 98, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
@@ -102,7 +101,7 @@ namespace Material {
             for (PieceT pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 i32 pc = count[C][pt1];
-                if (pc != 0)
+                if (pc > 0)
                 {
                     i32 v = LinearCoefficients[pt1];
 
@@ -118,19 +117,6 @@ namespace Material {
                 }
             }
             value += count[C][KING] * LinearCoefficients[KING];
-
-            // Queen vs. 3 minors slightly favours the minors
-            if (count[C][QUEN] == 1 && count[C_][QUEN] == 0)
-            {
-                i32 n = count[C_][NIHT] - count[C][NIHT];
-                i32 b = count[C_][BSHP] - count[C][BSHP];
-                if (  (n == 2 && b == 1)
-                   || (n == 1 && b == 2)
-                   || (n >= 3))
-                {
-                    value -= 66 * 16;
-                }
-            }
 
             return Value (value);
         }
@@ -310,7 +296,7 @@ namespace Material {
 
         return npm >= MidgameLimit ? PHASE_MIDGAME
             :  npm <= EndgameLimit ? PHASE_ENDGAME
-            :  Phase (((npm - EndgameLimit) * 128) / (MidgameLimit - EndgameLimit));
+            :  Phase (((npm - EndgameLimit) * 0x80) / (MidgameLimit - EndgameLimit));
     }
 
 } // namespace Material
