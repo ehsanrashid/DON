@@ -273,7 +273,7 @@ namespace BitBoard {
 
     // Rotate RIGHT (toward LSB)
     inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08 (SQ_NO) - k)); }
-    // Rotate LEFT (toward MSB)
+    // Rotate LEFT  (toward MSB)
     inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08 (SQ_NO) - k)); }
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64 (0))
@@ -295,10 +295,6 @@ namespace BitBoard {
     }
 
     // --------------------------------
-    template<PieceT PT>
-    // Attacks of the PieceT
-    extern Bitboard attacks_bb (Square s);
-
     template<PieceT PT>
     // Attacks of the PieceT with occupancy
     extern Bitboard attacks_bb (Square s, Bitboard occ);

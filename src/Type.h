@@ -93,21 +93,20 @@ enum CSide : i08
     CS_K ,    // (KING)-SHORT CASTLE
     CS_Q ,    // (QUEEN)-LONG CASTLE
     CS_NO
-
 };
 
 // Castle Right
 // Defined as in PolyGlot book hash key
 enum CRight : u08
 {
-    CR_NO ,                 // 0000
-    CR_W_K,                 // 0001
-    CR_W_Q = CR_W_K << 1,   // 0010
-    CR_B_K = CR_W_K << 2,   // 0100
-    CR_B_Q = CR_W_K << 3,   // 1000
+    CR_NO ,               // 0000
+    CR_WK = 1,            // 0001
+    CR_WQ = CR_WK << 1,   // 0010
+    CR_BK = CR_WK << 2,   // 0100
+    CR_BQ = CR_WK << 3,   // 1000
 
-    CR_W = u08 (CR_W_K) | u08 (CR_W_Q), // 0011
-    CR_B = u08 (CR_B_K) | u08 (CR_B_Q), // 1100
+    CR_W = u08 (CR_WK) | u08 (CR_WQ), // 0011
+    CR_B = u08 (CR_BK) | u08 (CR_BQ), // 1100
     CR_A = u08 (CR_W)   | u08 (CR_B),   // 1111
     CR_ALL = 16
 
@@ -175,7 +174,6 @@ enum MoveT : u16
     CASTLE    = 1 << 14, //0x4000, // 0100
     ENPASSANT = 2 << 14, //0x8000, // 1000
     PROMOTE   = 3 << 14  //0xC000, // 11xx
-
 };
 
 // Move stored in 16-bits
@@ -193,7 +191,6 @@ enum Move : u16
 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41
-
 };
 
 enum Value : i32
@@ -236,7 +233,6 @@ enum Depth : i16
     DEPTH_QS_RECAPTURES =   -5 * i16 (ONE_MOVE),
 
     DEPTH_NONE          = -128 * i16 (ONE_MOVE)
-
 };
 
 enum Bound : u08
@@ -281,7 +277,6 @@ enum Phase : i16
     MG       = 0,
     EG       = 1,
     PHASE_NO = 2
-
 };
 
 enum ScaleFactor : u08
@@ -292,7 +287,6 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255
-
 };
 
 inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
@@ -495,7 +489,7 @@ inline std::string to_string (Square s)
 inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight (CR_W << (c << BLACK)); }
-inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_W_K << ((CS_Q == cs) + (c << BLACK))); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_WK << ((CS_Q == cs) + (c << BLACK))); }
 inline CRight operator~ (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
 
 //inline std::string to_string (CRight cr)
@@ -506,15 +500,15 @@ inline CRight operator~ (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr <<
 //        if (can_castle (cr, CR_W))
 //        {
 //            scastle += "W:";
-//            if (can_castle (cr, CR_W_K)) scastle += " OO";
-//            if (can_castle (cr, CR_W_Q)) scastle += " OOO";
+//            if (can_castle (cr, CR_WK)) scastle += " OO";
+//            if (can_castle (cr, CR_WQ)) scastle += " OOO";
 //            scastle += " - ";
 //        }
 //        if (can_castle (cr, CR_B))
 //        {
 //            scastle += "B:";
-//            if (can_castle (cr, CR_B_K)) scastle += " OO";
-//            if (can_castle (cr, CR_B_Q)) scastle += " OOO";
+//            if (can_castle (cr, CR_BK)) scastle += " OO";
+//            if (can_castle (cr, CR_BQ)) scastle += " OOO";
 //        }
 //    }
 //    else
@@ -537,8 +531,8 @@ struct Castling
 {
     static const CRight
     Right = (C == WHITE)
-      ? (CS == CS_Q) ? CR_W_Q : CR_W_K
-      : (CS == CS_Q) ? CR_B_Q : CR_B_K;
+      ? (CS == CS_Q) ? CR_WQ : CR_WK
+      : (CS == CS_Q) ? CR_BQ : CR_BK;
 };
 
 inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }

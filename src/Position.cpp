@@ -1673,26 +1673,26 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
-                if (can_castle (CR_W_Q)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
+                if (can_castle (CR_WK)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
+                if (can_castle (CR_WQ)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
-                if (can_castle (CR_B_Q)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
+                if (can_castle (CR_BK)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
+                if (can_castle (CR_BQ)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
             }
         }
         else
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) oss << 'K';
-                if (can_castle (CR_W_Q)) oss << 'Q';
+                if (can_castle (CR_WK)) oss << 'K';
+                if (can_castle (CR_WQ)) oss << 'Q';
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) oss << 'k';
-                if (can_castle (CR_B_Q)) oss << 'q';
+                if (can_castle (CR_BK)) oss << 'k';
+                if (can_castle (CR_BQ)) oss << 'q';
             }
         }
     }

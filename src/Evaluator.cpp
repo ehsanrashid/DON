@@ -165,8 +165,8 @@ namespace Evaluator {
             },
             // Queens
             {
-                S(-42,-42), S(-28,-25), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
-                S(+10,+19), S(+14,+28), S(+18,+38), S(+20,+40), S(+21,+41),
+                S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
+                S(+11,+19), S(+13,+29), S(+18,+38), S(+20,+40), S(+21,+41),
                 S(+22,+41), S(+22,+41), S(+22,+41), S(+23,+41), S(+24,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
@@ -799,26 +799,16 @@ namespace Evaluator {
                     // Rook pawns are a special case: They are sometimes worse, and
                     // sometimes better than other passed pawns. It is difficult to find
                     // good rules for determining whether they are good or bad.
-                    // For now, we try the following:
-                    // - increase the value for rook pawns if the other side has
-                    // no pieces apart from a knight, and
-                    // - decrease the value if the other side has a rook or queen.
                     if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
                     {
-                        //if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
-                        //{
-                        //    eg_bonus += eg_bonus / 4;
-                        //}
-                        //else if (pos.pieces (C_, ROOK, QUEN) != U64 (0))
-                        //{
-                        //    eg_bonus -= eg_bonus / 4;
-                        //}
-
                         i32 npm = pos.non_pawn_material (C) + pos.non_pawn_material (C_);
                         eg_bonus -= (npm - i32 (2 * VALUE_EG_QUEN)) * eg_bonus / VALUE_INFINITE;
                     }
 
-                    if (pos.count<PAWN> (C) > pos.count<PAWN> (C_))
+                    // Increase the bonus if we have more non-pawn pieces
+                    if ( (pos.count (C ) - pos.count<PAWN> (C ))
+                       > (pos.count (C_) - pos.count<PAWN> (C_))
+                       )
                     {
                         eg_bonus += eg_bonus / 4;
                     }
@@ -1017,7 +1007,7 @@ namespace Evaluator {
             if (TRACE)
             {
                 Tracer::add_term (PAWN             , ei.pi->pawn_score ());
-                Tracer::add_term (Tracer::PST      , pos.psq_score ());
+                Tracer::add_term (Tracer::PST      , pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus));
                 Tracer::add_term (Tracer::IMBALANCE, ei.mi->material_score ());
 
                 Tracer::add_term (Tracer::MOBILITY
@@ -1058,7 +1048,7 @@ namespace Evaluator {
                     << "           Eval term |    White    |    Black    |     Total    \n"
                     << "                     |   MG    EG  |   MG    EG  |   MG    EG   \n"
                     << "---------------------+-------------+-------------+--------------\n";
-                format_row (ss, "Material, PST, Tempo"  , PST);
+                format_row (ss, "Material PST, Tempo"   , PST);
                 format_row (ss, "Material imbalance"    , IMBALANCE);
                 format_row (ss, "Pawns"                 , PAWN);
                 format_row (ss, "Knights"               , NIHT);

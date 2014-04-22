@@ -95,8 +95,8 @@ namespace MoveGenerator {
                 if (EVASION == GT) return;
                 if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0)) return;
 
-                const bool KingSide = (CR == CR_W_K || CR == CR_B_K);
-                const Color C_  = (WHITE == C) ? BLACK : WHITE;
+                const bool KingSide = (CR == CR_WK || CR == CR_BK);
+                const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
                 Square org_king = pos.king_sq (C);
                 Square org_rook = pos.castle_rook (CR);
