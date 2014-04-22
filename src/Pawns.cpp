@@ -75,7 +75,7 @@ namespace Pawns {
         {
             { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
         
         // Max bonus for king safety. Corresponds to start position with all the pawns
@@ -275,7 +275,9 @@ namespace Pawns {
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
-            Rank b_rk = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
+            Rank b_rk = (mid_pawns != U64 (0))
+                ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns))
+                : R_1;
 
             if (   (MIDEDGE_bb & (f | b_rk))
                 && (_file (king_sq) == f)
@@ -288,7 +290,7 @@ namespace Pawns {
             {
                 mid_pawns = pawns[0] & File_bb[f];
                 
-                Rank w_rk = mid_pawns != U64 (0)
+                Rank w_rk = (mid_pawns != U64 (0))
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
