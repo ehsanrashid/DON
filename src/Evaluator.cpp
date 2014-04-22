@@ -806,9 +806,7 @@ namespace Evaluator {
                     }
 
                     // Increase the bonus if we have more non-pawn pieces
-                    if ( (pos.count (C ) - pos.count<PAWN> (C ))
-                       > (pos.count (C_) - pos.count<PAWN> (C_))
-                       )
+                    if (pos.count<NONE> (C) > pos.count<NONE> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
                     }

@@ -335,6 +335,16 @@ inline Bitboard Position::pieces ()                   const { return  _types_bb[
 inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 template<PieceT PT>
 inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
+template<>
+// Count non-pawn pieces
+inline i32 Position::count<NONE> (Color c) const
+{
+    return _piece_count[c][NIHT]
+         + _piece_count[c][BSHP]
+         + _piece_count[c][ROOK]
+         + _piece_count[c][QUEN];
+}
+
 inline i32 Position::count (Color c) const
 {
     return _piece_count[c][PAWN]
