@@ -131,14 +131,15 @@ void MovePicker::value<CAPTURE> ()
         itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)]));
 
         MoveT mt = mtype (m);
-        if      (PROMOTE == mt)
-        {
-            itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
-        }
-        else if (ENPASSANT == mt)
+        if      (mt == ENPASSANT)
         {
             itr->value += PieceValue[MG][PAWN];
         }
+        else if (mt == PROMOTE)
+        {
+            itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
+        }
+
     }
 }
 

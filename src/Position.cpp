@@ -768,18 +768,6 @@ bool Position::pseudo_legal (Move m) const
         //ct = NONE;
         return true;
     }
-    else if (mt == PROMOTE)
-    {
-        if (!( (PAWN == pt)
-            && (R_7 == r_org)
-            && (R_8 == r_dst)
-             )
-           )
-        {
-            return false;
-        }
-        ct = ptype (_board[cap]);
-    }
     else if (mt == ENPASSANT)
     {
         if (!( (PAWN == pt)
@@ -799,6 +787,18 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         ct = PAWN;
+    }
+    else if (mt == PROMOTE)
+    {
+        if (!( (PAWN == pt)
+            && (R_7 == r_org)
+            && (R_8 == r_dst)
+             )
+           )
+        {
+            return false;
+        }
+        ct = ptype (_board[cap]);
     }
 
     if (KING == ct)
@@ -1045,11 +1045,6 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return (PieceAttacks[ROOK][dst_rook] & ci.king_sq) // First x-ray check then full check
             && (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
-    else if (mt == PROMOTE)
-    {
-        // Promotion with check ?
-        return (attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq);
-    }
     else if (mt == ENPASSANT)
     {
         // En passant capture with check ?
@@ -1061,6 +1056,11 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return ( (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
               || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
                );
+    }
+    else if (mt == PROMOTE)
+    {
+        // Promotion with check ?
+        return (attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq);
     }
 
     ASSERT (false);
@@ -1284,15 +1284,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
         ct = NONE;
     }
-    else if (mt == PROMOTE)
-    {
-        ASSERT (PAWN == pt);        // Moving type must be PAWN
-        ASSERT (R_7 == rel_rank (_active, org));
-        ASSERT (R_8 == rel_rank (_active, dst));
-
-        ct = ptype (_board[cap]);
-        ASSERT (PAWN != ct);
-    }
     else if (mt == ENPASSANT)
     {
         ASSERT (PAWN == pt);                // Moving type must be pawn
@@ -1304,6 +1295,15 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);
         ct = PAWN;
+    }
+    else if (mt == PROMOTE)
+    {
+        ASSERT (PAWN == pt);        // Moving type must be PAWN
+        ASSERT (R_7 == rel_rank (_active, org));
+        ASSERT (R_8 == rel_rank (_active, dst));
+
+        ct = ptype (_board[cap]);
+        ASSERT (PAWN != ct);
     }
 
     ASSERT (KING != ct);   // can't capture the KING
@@ -1533,16 +1533,6 @@ void Position::undo_move ()
         do_castling<false>(org, dst, org_rook, dst_rook);
         //ct  = NONE;
     }
-    else if (mt == PROMOTE)
-    {
-        ASSERT (promote (m) == ptype (_board[dst]));
-        ASSERT (R_8 == rel_rank (_active, dst));
-        ASSERT (NIHT <= promote (m) && promote (m) <= QUEN);
-        // Replace the promoted piece with the PAWN
-        remove_piece (dst);
-        place_piece (org, _active, PAWN);
-        //pt = PAWN;
-    }
     else if (mt == ENPASSANT)
     {
         ASSERT (PAWN == ptype (_board[dst]));
@@ -1553,6 +1543,16 @@ void Position::undo_move ()
         cap -= pawn_push (_active);
         ASSERT (empty (cap));
         move_piece (dst, org); // Put the piece back at the origin square
+    }
+    else if (mt == PROMOTE)
+    {
+        ASSERT (promote (m) == ptype (_board[dst]));
+        ASSERT (R_8 == rel_rank (_active, dst));
+        ASSERT (NIHT <= promote (m) && promote (m) <= QUEN);
+        // Replace the promoted piece with the PAWN
+        remove_piece (dst);
+        place_piece (org, _active, PAWN);
+        //pt = PAWN;
     }
 
     // If there was any capture piece
