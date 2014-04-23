@@ -876,26 +876,31 @@ namespace Evaluator {
         {
             ASSERT (pos.checkers () == U64 (0));
 
-            // Score is computed from the point of view of white.
-            Score score;
-
             Thread *thread = pos.thread ();
-
-            // Initialize score by reading the incrementally updated scores included
-            // in the position object (material + piece square tables) and adding Tempo bonus. 
-            score = pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus);
 
             EvalInfo ei;
             // Probe the material hash table
             ei.mi = Material::probe (pos, thread->material_table);
-            score += ei.mi->material_score ();
 
             // If we have a specialized evaluation function for the current material
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
+                if (TRACE)
+                {
+                    Tracer::Evalinfo    = ei;
+                }
+
                 return ei.mi->evaluate (pos);
             }
+
+            // Score is computed from the point of view of white.
+            Score score;
+
+            // Initialize score by reading the incrementally updated scores included
+            // in the position object (material + piece square tables) and adding Tempo bonus. 
+            score  = pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus);
+            score += ei.mi->material_score ();
 
             // Probe the pawn hash table
             ei.pi = Pawns::probe (pos, thread->pawns_table);

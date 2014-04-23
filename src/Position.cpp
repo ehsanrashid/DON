@@ -745,7 +745,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
-        bool king_side  = (dst > org); 
+        bool king_side = (dst > org); 
         if (castle_impeded (mk_castle_right (_active, king_side ? CS_K : CS_Q)))
         {
             return false;
@@ -951,9 +951,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
     Color pasive = ~_active;
 
-    Piece  p  = _board[org];
-    PieceT pt = ptype  (p);
-    ASSERT ((_active == color (p)) && (NONE != pt));
+    PieceT pt = ptype (_board[org]);
+    ASSERT ((_active == color (_board[org])) && (NONE != pt));
 
     Square ksq = _piece_list[_active][KING][0];
 
@@ -971,10 +970,10 @@ bool Position::legal        (Move m, Bitboard pinned) const
             return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive]); // Remove 'org' but not place 'dst'
         }
 
-        // A non-king move is legal if and only if it is not pinned or it
-        // is moving along the ray towards or away from the king or
-        // is a blocking evasion or a capture of the checking piece.
-        return !(pinned)
+        // A non-king move is legal if and only if it is not pinned or
+        // it is moving along the ray towards or away from the king or
+        // it is a blocking evasion or a capture of the checking piece.
+        return  (pinned == U64 (0))
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
@@ -1008,14 +1007,13 @@ bool Position::legal        (Move m, Bitboard pinned) const
 // gives_check() tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
-    ASSERT (color (_board[org_sq (m)]) == _active);
-    ASSERT (ci.discoverers == discoverers (_active));
-
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
-    Piece  p  = _board[org];
-    PieceT pt = ptype  (p);
+    ASSERT (color (_board[org]) == _active);
+    ASSERT (ci.discoverers == discoverers (_active));
+
+    PieceT pt = ptype (_board[org]);
 
     // Direct check ?
     if (ci.checking_bb[pt] & dst) return true;
@@ -1065,18 +1063,18 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     return false;
 }
 
-// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
-bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
-{
-    if (gives_check (m, ci))
-    {
-        Position pos = *this;
-        StateInfo si;
-        pos.do_move (m, si, &ci);
-        return (MoveList<LEGAL> (pos).size () == 0);
-    }
-    return false;
-}
+//// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
+//bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
+//{
+//    if (gives_check (m, ci))
+//    {
+//        Position pos = *this;
+//        StateInfo si;
+//        pos.do_move (m, si, &ci);
+//        return (MoveList<LEGAL> (pos).size () == 0);
+//    }
+//    return false;
+//}
 
 // clear() clear the position
 void Position::clear ()

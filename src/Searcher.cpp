@@ -425,10 +425,10 @@ namespace Searcher {
             {
                 ASSERT (_ok (move));
 
-                bool gives_check=
-                      ((NORMAL == mtype (move)) && !ci.discoverers)
-                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    : (pos.gives_check (move, ci));
+                bool gives_check= pos.gives_check (move, ci);
+                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
+                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    //: (pos.gives_check (move, ci));
 
                 if (!PVNode)
                 {
@@ -1013,10 +1013,10 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check=
-                      ((NORMAL == mtype (move)) && !ci.discoverers)
-                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    : (pos.gives_check (move, ci));
+                bool gives_check= pos.gives_check (move, ci);
+                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
+                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    //: (pos.gives_check (move, ci));
 
                 bool dangerous  = 
                     (  (gives_check)
