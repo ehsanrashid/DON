@@ -127,32 +127,30 @@ namespace {
     // which can be quite slow.
 #ifdef PREFETCH
 
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
     inline void prefetch (const char *addr)
     {
-
-#   if defined(__INTEL_COMPILER)
+#       if defined(__INTEL_COMPILER)
         {
             // This hack prevents prefetches from being optimized away by
             // Intel compiler. Both MSVC and gcc seem not be affected by this.
             __asm__ ("");
         }
-#   endif
-
+#       endif
         _mm_prefetch (addr, _MM_HINT_T0);
     }
 
-#else
+#   else
 
     inline void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
 
-#endif
+#   endif
 
 #else
 

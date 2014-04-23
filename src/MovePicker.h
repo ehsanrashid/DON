@@ -41,10 +41,11 @@ public:
 
     inline void update (Piece p, Square s, Move m)
     {
-        if (m == _table[p][s].first) return;
-
-        _table[p][s].second = _table[p][s].first;
-        _table[p][s].first = m;
+        if (m != _table[p][s].first)
+        {
+            _table[p][s].second = _table[p][s].first;
+            _table[p][s].first = m;
+        }
     }
 
     inline void update (Piece p, Square s, Value v)
@@ -68,7 +69,6 @@ typedef Stats< true,                Value  > GainsStats;
 typedef Stats<false,                Value  > HistoryStats;
 typedef Stats<false, std::pair<Move, Move> > MovesStats;
 
-
 // MovePicker class is used to pick one pseudo legal move at a time from the
 // current position. The most important method is next_move(), which returns a
 // new pseudo legal move each time it is called, until there are no moves left,
@@ -89,7 +89,6 @@ private:
         PROBCUT   , CAPTURES_S5,
         RECAPTURE , CAPTURES_S6,
         STOP
-
     };
 
     ValMove  moves[MAX_MOVES]

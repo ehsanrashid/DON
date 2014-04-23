@@ -114,7 +114,7 @@ template<class T>
 inline T RKISS::magic_rand (u16 s)
 {
     return BitBoard::rotate_L (BitBoard::rotate_L (rand<T> (), (s >> 0) & 0x3F) & rand<T> ()
-        ,                                                      (s >> 6) & 0x3F) & rand<T> ();
+                                                             , (s >> 6) & 0x3F) & rand<T> ();
 }
 
 #endif // _RKISS_H_INC_

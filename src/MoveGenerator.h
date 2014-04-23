@@ -13,6 +13,7 @@ const u08   MAX_MOVES   = 255;
 
 struct ValMove
 {
+public:
     Move    move;
     Value   value;
 

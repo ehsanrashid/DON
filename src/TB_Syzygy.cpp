@@ -1596,11 +1596,11 @@ namespace TBSyzygy {
             i32 min_len = data[9];
             i32 h = max_len - min_len + 1;
             i32 num_syms = *(u16 *) (&data[10 + 2 * h]);
-            d = (PairsData *) malloc (sizeof (*d) + (h - 1) * sizeof (base_t) + num_syms);
+            d = (PairsData *) malloc (sizeof (*d) + (h - 1)*sizeof (base_t) + num_syms);
             d->blocksize = blocksize;
             d->idxbits = idxbits;
             d->offset = (u16 *) (&data[10]);
-            d->symlen = ((u08 *) d) + sizeof (*d) + (h - 1) * sizeof (base_t);
+            d->symlen = ((u08 *) d) + sizeof (*d) + (h - 1)*sizeof (base_t);
             d->sympat = &data[12 + 2 * h];
             d->min_len = min_len;
             *next = &data[12 + 2 * h + 3 * num_syms + (num_syms & 1)];
@@ -3174,7 +3174,7 @@ namespace TBSyzygy {
             ++i;
         }
 
-        Paths = (char **) malloc (NumPaths * sizeof (*Paths));
+        Paths = (char **) malloc (NumPaths*sizeof (*Paths));
         for (i32 n = i = 0; n < NumPaths; ++n)
         {
             while (!PathString[i])

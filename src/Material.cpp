@@ -243,7 +243,7 @@ namespace Material {
                 else if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->_factor[WHITE] = u08 ((npm[WHITE] == npm[BLACK] || npm[WHITE] <= VALUE_MG_BSHP) ?
-                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK) + 1));
+                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (BLACK)/2 + 1));
                 }
             }
 
@@ -259,7 +259,7 @@ namespace Material {
                 else if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->_factor[BLACK] = u08 ((npm[BLACK] == npm[WHITE] || npm[BLACK] <= VALUE_MG_BSHP) ?
-                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE) + 1));
+                        4 : SCALE_FACTOR_ONEPAWN / (pos.count<PAWN> (WHITE)/2 + 1));
                 }
             }
 

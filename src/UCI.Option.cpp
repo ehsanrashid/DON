@@ -124,7 +124,7 @@ namespace UCI {
     namespace {
 
 #   ifdef LPAGES
-        void on_large_pages     (const Option &)
+        void on_large_pages (const Option &)
         {
             TT.resize ();
         }
@@ -163,12 +163,12 @@ namespace UCI {
             Book.close ();
         }
 
-        void on_config_threadpool(const Option &)
+        void on_config_threadpool (const Option &)
         {
             Threadpool.configure ();
         }
 
-        void on_change_evaluation(const Option &)
+        void on_change_evaluation (const Option &)
         {
             Evaluator::initialize ();
         }
