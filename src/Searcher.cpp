@@ -1001,9 +1001,9 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16 (depth>>ONE_PLY)
-                                << " time "           << elapsed
                                 << " currmovenumber " << setw (2) << u16 (moves_count + IndexPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
+                                << " time "           << elapsed
                                 << sync_endl;
                         }
                     }
@@ -1867,7 +1867,7 @@ namespace Searcher {
 
 namespace Threads {
 
-    // check_time () is called by the timer thread when the timer triggers.
+    // check_time() is called by the timer thread when the timer triggers.
     // It is used to print debug info and, more importantly,
     // to detect when out of available time and thus stop the search.
     void check_time ()
