@@ -349,15 +349,10 @@ namespace Evaluator {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             // Initial bonus based on square
-            Value bonus = VALUE_ZERO;
-            if      (NIHT == PT)
-            {
-                bonus = OutpostBonus[0][rel_sq (C, s)];
-            }
-            else if (BSHP == PT)
-            {
-                bonus = OutpostBonus[1][rel_sq (C, s)];
-            }
+            Value bonus = 
+                (NIHT == PT) ? OutpostBonus[0][rel_sq (C, s)] :
+                (BSHP == PT) ? OutpostBonus[1][rel_sq (C, s)] :
+                VALUE_ZERO;
 
             // Increase bonus if supported by pawn, especially if the opponent has
             // no minor piece which can exchange the outpost piece.
