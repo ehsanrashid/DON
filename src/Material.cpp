@@ -18,9 +18,9 @@ namespace Material {
         const Value EndgameLimit = Value ( 3998);
 
         // Polynomial material balance parameters: P      N      B      R      Q     BP
-        const i32 LinearCoefficients[NONE] = { - 162, -1122, - 183, + 249, - 157, +1852, };
+        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 157, +1852, };
 
-        const i32 QuadraticCoefficientsSameColor[NONE][NONE] =
+        const i32 OwnColorQuadraticCoefficient[NONE][NONE] =
         {
             //  P     N     B     R     Q    BP
             { +  2, +  0, +  0, +  0, +  0, + 39, }, // P
@@ -31,7 +31,7 @@ namespace Material {
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
-        const i32 QuadraticCoefficientsOppositeColor[NONE][NONE] =
+        const i32 OppColorQuadraticCoefficient[NONE][NONE] =
         {
             //          THEIR PIECES
             //  P     N     B     R     Q    BP
@@ -100,23 +100,23 @@ namespace Material {
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceT pt1 = PAWN; pt1 < KING; ++pt1)
             {
-                i32 pc = count[C][pt1];
+                i32 pc = count[C ][pt1];
                 if (pc > 0)
                 {
-                    i32 v = LinearCoefficients[pt1];
+                    i32 v = LinearCoefficient[pt1];
 
                     for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[C ][pt2] * QuadraticCoefficientsSameColor    [pt1][pt2]
-                          +  count[C_][pt2] * QuadraticCoefficientsOppositeColor[pt1][pt2];
+                        v += count[C ][pt2] * OwnColorQuadraticCoefficient[pt1][pt2]
+                          +  count[C_][pt2] * OppColorQuadraticCoefficient[pt1][pt2];
                     }
-                    v += count[C ][KING] * QuadraticCoefficientsSameColor    [pt1][KING]
-                      +  count[C_][KING] * QuadraticCoefficientsOppositeColor[pt1][KING];
+                    v += count[C ][KING] * OwnColorQuadraticCoefficient[pt1][KING]
+                      +  count[C_][KING] * OppColorQuadraticCoefficient[pt1][KING];
 
                     value += pc * v;
                 }
             }
-            value += count[C][KING] * LinearCoefficients[KING];
+            value += count[C ][KING] * LinearCoefficient[KING];
 
             return Value (value);
         }
@@ -133,8 +133,8 @@ namespace Material {
         Key matl_key = pos.matl_key ();
         Entry *e     = table[matl_key];
 
-        // If e->_key matches the position's material hash key, it means that we
-        // have analysed this material configuration before, and we can simply
+        // If e->_matl_key matches the position's material hash key, it means that
+        // we have analysed this material configuration before, and we can simply
         // return the information we found the last time instead of recomputing it.
         if (e->_matl_key != matl_key)
         {
@@ -201,22 +201,27 @@ namespace Material {
                 pos.non_pawn_material (BLACK),
             };
 
-            if (npm[WHITE] + npm[BLACK] == VALUE_ZERO && pos.pieces<PAWN> ())
+            if (   (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
+                && (pos.pieces<PAWN> () != U64 (0))
+               )
             {
-                if      (pos.count<PAWN> (BLACK) == 0
-                    &&   pos.count<PAWN> (WHITE) >= 2)
+                if (      (pos.count<PAWN> (BLACK) == 0)
+                       && (pos.count<PAWN> (WHITE) >= 2)
+                   )
                 {
                     //ASSERT (pos.count<PAWN> (WHITE) >= 2);
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
-                else if (pos.count<PAWN> (WHITE) == 0
-                    &&   pos.count<PAWN> (BLACK) >= 2)
+                else if ( (pos.count<PAWN> (WHITE) == 0)
+                       && (pos.count<PAWN> (BLACK) >= 2)
+                        )
                 {
                     //ASSERT (pos.count<PAWN> (BLACK) >= 2);
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
-                else if (pos.count<PAWN> (WHITE) == 1
-                    &&   pos.count<PAWN> (BLACK) == 1)
+                else if ( (pos.count<PAWN> (WHITE) == 1)
+                       && (pos.count<PAWN> (BLACK) == 1)
+                        )
                 {
                     // This is a special case because we set scaling functions for both colors instead of only one.
                     e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
