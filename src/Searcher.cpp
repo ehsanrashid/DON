@@ -15,7 +15,6 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Evaluator.h"
-#include "TB_Syzygy.h"
 #include "Thread.h"
 #include "Notation.h"
 #include "Debugger.h"
