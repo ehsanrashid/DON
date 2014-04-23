@@ -821,9 +821,12 @@ namespace Evaluator {
 
                 score += mk_score (mg_bonus, eg_bonus);
             }
-
-            // Add the scores to the middle game and endgame eval
-            score = apply_weight (score, Weights[PassedPawns]);
+            
+            if (score != SCORE_ZERO)
+            {
+                // Add the scores to the middle game and endgame eval
+                score = apply_weight (score, Weights[PassedPawns]);
+            }
 
             if (TRACE)
             {
