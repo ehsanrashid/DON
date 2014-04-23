@@ -349,25 +349,37 @@ namespace Evaluator {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             // Initial bonus based on square
-            Value bonus = OutpostBonus[BSHP == PT][rel_sq (C, s)];
+            Value bonus = VALUE_ZERO;
+            if      (NIHT == PT)
+            {
+                bonus = OutpostBonus[0][rel_sq (C, s)];
+            }
+            else if (BSHP == PT)
+            {
+                bonus = OutpostBonus[1][rel_sq (C, s)];
+            }
 
             // Increase bonus if supported by pawn, especially if the opponent has
             // no minor piece which can exchange the outpost piece.
-            if (bonus != VALUE_ZERO && (ei.attacked_by[C][PAWN] & s))
+            if (bonus != VALUE_ZERO)
             {
-                if (   (pos.pieces<NIHT> (C_) == U64 (0))
-                    && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
-                   )
+                if (ei.attacked_by[C][PAWN] & s)
                 {
-                    bonus += i32 (bonus)*1.5;
+                    if (   (pos.pieces<NIHT> (C_) == U64 (0))
+                        && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
+                        )
+                    {
+                        bonus += i32 (bonus)*1.5;
+                    }
+                    else
+                    {
+                        bonus += i32 (bonus)*0.5;
+                    }
                 }
-                else
-                {
-                    bonus += i32 (bonus)*0.5;
-                }
+                return mk_score (bonus, bonus);
             }
 
-            return mk_score (bonus, bonus);
+            return SCORE_ZERO;
         }
 
         template<PieceT PT, Color C, bool TRACE>
