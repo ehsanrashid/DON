@@ -138,7 +138,7 @@ namespace Material {
         // return the information we found the last time instead of recomputing it.
         if (e->_matl_key != matl_key)
         {
-            memset (e, 0, sizeof (*e));
+            memset (e, 0x00, sizeof (*e));
             e->_matl_key      = matl_key;
             e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->_game_phase    = game_phase (pos);

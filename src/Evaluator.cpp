@@ -1035,7 +1035,7 @@ namespace Evaluator {
 
             string trace (const Position &pos)
             {
-                memset (Terms, 0, sizeof (Terms));
+                memset (Terms, 0x00, sizeof (Terms));
 
                 Value value = evaluate<true> (pos);
                 value = (WHITE == pos.active ()) ? +value : -value; // White's point of view

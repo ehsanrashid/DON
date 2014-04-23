@@ -157,7 +157,7 @@ namespace MemoryHandler {
                 if (mem_ref != -1)
                 {
                     UsePages = true;
-                    memset (mem_ref, 0, SHMSZ);
+                    memset (mem_ref, 0x00, SHMSZ);
                     cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << endl;
                     return;
                 }
@@ -176,7 +176,7 @@ namespace MemoryHandler {
         MEMALIGN (mem_ref, align, mem_size);
         if (mem_ref != NULL)
         {
-            memset (mem_ref, 0, mem_size);
+            memset (mem_ref, 0x00, mem_size);
             cout << "info string Hash " << (mem_size >> 20) << " MB." << endl;
             return;
         }

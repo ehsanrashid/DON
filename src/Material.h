@@ -38,8 +38,8 @@ namespace Material {
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
         inline Score material_score () const { return mk_score (_value, _value); }
-        inline Score space_weight ()   const { return _space_weight; }
-        inline Phase game_phase ()     const { return _game_phase; }
+        inline Score space_weight   () const { return _space_weight; }
+        inline Phase game_phase     () const { return _game_phase; }
 
         inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
         inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
@@ -63,7 +63,7 @@ namespace Material {
 
     };
 
-    typedef HashTable<Entry, 8192> Table;
+    typedef HashTable<Entry, 0x2000> Table; // 8192
 
     Entry* probe     (const Position &pos, Table &table);
     

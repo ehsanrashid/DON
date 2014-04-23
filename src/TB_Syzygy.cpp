@@ -404,8 +404,8 @@ namespace TBSyzygy {
             if (fd == FD_ERR) return;
             close_tb (fd);
 
-            //for (i = 0; i < 16; ++i) pcs[i] = 0;
-            memset (pcs, 0, sizeof (pcs));
+            //for (i = 0; i < 16; ++i) pcs[i] = 0x00;
+            memset (pcs, 0x00, sizeof (pcs));
 
             color = 0;
             for (s = filename; *s; ++s)
@@ -2183,8 +2183,8 @@ namespace TBSyzygy {
             i32 i;
             i32 p[NONE];
             
-            //for (i = 0; i < NONE; ++i) p[i] = 0;
-            memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0x00;
+            memset (p, 0x00, sizeof (p));
 
             // Obtain the position's material signature key.
             Key key = pos.matl_key ();
@@ -2318,8 +2318,8 @@ namespace TBSyzygy {
             i32 i, res;
             i32 p[NONE];
             
-            //for (i = 0; i < NONE; ++i) p[i] = 0;
-            memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0x00;
+            memset (p, 0x00, sizeof (p));
 
             // Obtain the position's material signature key.
             u64 key = pos.matl_key ();

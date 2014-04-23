@@ -40,13 +40,13 @@ namespace Pawns {
         // Count of pawns on LIGHT and DARK squares
         u08    _pawn_count_sq [CLR_NO][CLR_NO]; // [color][light/dark squares]       
 
-        inline Score    pawn_score()      const { return _pawn_score; }
+        inline Score    pawn_score      () const { return _pawn_score; }
 
         template<Color C>
-        inline Bitboard pawn_attacks   () const { return _pawn_attacks[C]; }
+        inline Bitboard pawn_attacks    () const { return _pawn_attacks[C]; }
 
         template<Color C>
-        inline Bitboard passed_pawns   () const { return _passed_pawns[C]; }
+        inline Bitboard passed_pawns    () const { return _passed_pawns[C]; }
         
         template<Color C>
         inline Bitboard candidate_pawns () const { return _candidate_pawns[C]; }
@@ -64,11 +64,10 @@ namespace Pawns {
         }
 
         template<Color C>
-        inline u08  semiopen_side(File f, bool left) const
+        inline u08  semiopen_side (File f, bool left) const
         {
             return _semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
-
 
         template<Color C>
         inline Score king_safety (const Position &pos, Square k_sq)
@@ -82,7 +81,7 @@ namespace Pawns {
 
     };
 
-    typedef HashTable<Entry, 16384> Table;
+    typedef HashTable<Entry, 0x4000> Table; // 16384
 
     extern void initialize ();
 

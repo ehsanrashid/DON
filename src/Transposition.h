@@ -170,7 +170,7 @@ public:
     {
         if (clear_hash && _hash_table != NULL)
         {
-            memset (_hash_table, 0, entries () * TTENTRY_SIZE);
+            memset (_hash_table, 0x00, entries () * TTENTRY_SIZE);
             _generation = 0;
             std::cout << "info string Hash cleared." << std::endl;
         }

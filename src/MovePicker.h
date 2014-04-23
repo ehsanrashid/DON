@@ -36,7 +36,7 @@ public:
 
     inline void clear ()
     {
-        memset (_table, 0, sizeof (_table));
+        memset (_table, 0x00, sizeof (_table));
     }
 
     inline void update (Piece p, Square s, Move m)

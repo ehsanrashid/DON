@@ -29,7 +29,8 @@ namespace Searcher {
 
     using namespace Threads;
 
-    const u08 MAX_SKILL_LEVEL = 20;
+    const u08 MAX_SKILL_LEVEL   = 20;
+    const u08 MIN_SKILL_MULTIPV =  4;
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -103,7 +104,7 @@ namespace Searcher {
             //, root_1stmove   (false)
             //, root_failedlow (false)
         {
-            memset (this, 0, sizeof (*this));
+            memset (this, 0x00, sizeof (*this));
         }
     };
 

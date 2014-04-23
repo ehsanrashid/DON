@@ -787,10 +787,10 @@ namespace Searcher {
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
                    )
                 {
-                    Value eval_fut = eval - futility_margin (depth);
-                    if (eval_fut >= beta)
+                    Value fut_eval = eval - futility_margin (depth);
+                    if (fut_eval >= beta)
                     {
-                        return eval_fut;
+                        return fut_eval;
                     }
                 }
 
@@ -1400,7 +1400,7 @@ namespace Searcher {
             Stack stack[MAX_PLY_6]
                 , *ss = stack+2; // To allow referencing (ss-2)
 
-            memset (ss-2, 0, 5 * sizeof (*ss));
+            memset (ss-2, 0x00, 5 * sizeof (*ss));
             (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
             TT.new_gen ();
@@ -1424,13 +1424,14 @@ namespace Searcher {
 
             Skill skill (level);
 
-            // Do we have to play with skill handicap? In this case enable MultiPV search
+            // Do we have to play with skill handicap?
+            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
             // that we will use behind the scenes to retrieve a set of possible moves.
             if (skill.enabled ())
             {
-                if (MultiPV < 4)
+                if (MultiPV < MIN_SKILL_MULTIPV)
                 {
-                    MultiPV = 4;
+                    MultiPV = MIN_SKILL_MULTIPV;
                 }
             }
 
@@ -1459,8 +1460,8 @@ namespace Searcher {
                     {
                         window = Value (depth < 48 ? 14 + (depth>>3) : 20);
 
-                        alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
-                        beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
+                        alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
+                        beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
 
                     point elapsed;

@@ -1083,7 +1083,7 @@ bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0, sizeof (*this));
+    memset (this, 0x00, sizeof (*this));
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1378,7 +1378,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     else if (mt == CASTLE)
     {
         Square org_rook, dst_rook;
-        do_castling<true>(org, dst, org_rook, dst_rook);
+        do_castling<true> (org, dst, org_rook, dst_rook);
 
         p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
         p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
@@ -1530,7 +1530,7 @@ void Position::undo_move ()
     else if (mt == CASTLE)
     {
         Square org_rook, dst_rook;
-        do_castling<false>(org, dst, org_rook, dst_rook);
+        do_castling<false> (org, dst, org_rook, dst_rook);
         //ct  = NONE;
     }
     else if (mt == ENPASSANT)
