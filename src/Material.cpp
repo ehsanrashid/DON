@@ -18,7 +18,7 @@ namespace Material {
         const Value EndgameLimit = Value ( 3998);
 
         // Polynomial material balance parameters: P      N      B      R      Q     BP
-        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 157, +1852, };
+        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
 
         const i32 OwnColorQuadraticCoefficient[NONE][NONE] =
         {
@@ -27,7 +27,7 @@ namespace Material {
             { +271, -  4, +  0, +  0, +  0, + 35, }, // N
             { +105, +  4, +  0, +  0, +  0, +  0, }, // B
             { -  2, + 46, +100, -141, +  0, - 27, }, // R
-            { + 30, +126, +144, -127, +  0, -161, }, // Q
+            { + 25, +129, +142, -137, +  0, -177, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
@@ -39,7 +39,7 @@ namespace Material {
             { + 62, +  0, +  0, +  0, +  0, + 10, }, // N
             { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OUR PIECES
             { + 40, + 23, - 22, +  0, +  0, + 50, }, // R
-            { + 90, - 40, +142, +268, +  0, +103, }, // Q
+            { +105, - 39, +141, +274, +  0, + 98, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
@@ -123,8 +123,8 @@ namespace Material {
 
     } // namespace
 
-    // Material::probe() takes a position object as input, looks up a MaterialEntry object,
-    // and returns a pointer to it.
+    // Material::probe() takes a position object as input,
+    // looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so we don't have to recompute everything
     // when the same material configuration occurs again.
