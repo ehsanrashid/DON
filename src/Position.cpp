@@ -168,7 +168,7 @@ u08 Position::_50_move_dist;
 
 void Position::initialize ()
 {
-    _50_move_dist = 2 * i32 (Options["50 Move Distance"]);
+    _50_move_dist = 2*i32 (Options["50 Move Distance"]);
 
     for (PieceT pt = PAWN; pt <= KING; ++pt)
     {
@@ -1232,7 +1232,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     ASSERT (_ok (m));
     ASSERT (&si != _si);
 
-    Key posi_k = _si->posi_key;
+    Key p_key = _si->posi_key;
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
@@ -1331,7 +1331,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         prefetch ((char *) _thread->material_table[_si->matl_key]);
 
         // Update Hash key of position
-        posi_k ^= Zob._.piecesq[pasive][ct][cap];
+        p_key ^= Zob._.piecesq[pasive][ct][cap];
         // Update incremental scores
         _si->psq_score -= PSQ[pasive][ct][cap];
         // Reset Rule-50 draw counter
@@ -1352,7 +1352,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     // Reset old en-passant square
     if (SQ_NO != _si->en_passant_sq)
     {
-        posi_k ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
 
@@ -1371,7 +1371,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
                 Zob._.piecesq[_active][PAWN][dst];
         }
         
-        posi_k ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
+        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
         
         _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
@@ -1380,8 +1380,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         Square org_rook, dst_rook;
         do_castling<true>(org, dst, org_rook, dst_rook);
 
-        posi_k ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
-        posi_k ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
+        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
+        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
 
         _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
         _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
@@ -1399,7 +1399,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
         _si->pawn_key ^= Zob._.piecesq[_active][PAWN][org];
 
-        posi_k ^= Zob._.piecesq[_active][PAWN][org] ^ Zob._.piecesq[_active][ppt][dst];
+        p_key ^= Zob._.piecesq[_active][PAWN][org] ^ Zob._.piecesq[_active][ppt][dst];
 
         // Update incremental score
         _si->psq_score += PSQ[_active][ppt][dst] - PSQ[_active][PAWN][org];
@@ -1415,7 +1415,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->castle_rights &= ~cr;
         while (b != U64 (0))
         {
-            posi_k ^= Zob._.castle_right[0][pop_lsq (b)];
+            p_key ^= Zob._.castle_right[0][pop_lsq (b)];
         }
     }
 
@@ -1458,7 +1458,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Switch side to move
     _active = pasive;
-    posi_k ^= Zob._.mover_side;
+    p_key ^= Zob._.mover_side;
 
     // Handle pawn en-passant square setting
     if (PAWN == pt)
@@ -1471,7 +1471,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;
-                posi_k ^= Zob._.en_passant[_file (ep_sq)];
+                p_key ^= Zob._.en_passant[_file (ep_sq)];
             }
         }
 
@@ -1480,10 +1480,10 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     // Prefetch TT access as soon as we know the new hash key
-    prefetch((char*) TT.cluster_entry (posi_k));
+    prefetch ((char*) TT.cluster_entry (p_key));
 
     // Update the key with the final value
-    _si->posi_key     = posi_k;
+    _si->posi_key     = p_key;
     _si->capture_type = ct;
     _si->last_move    = m;
     ++_si->null_ply;

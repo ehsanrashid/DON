@@ -258,15 +258,15 @@ namespace Evaluator {
         // is used as an index to KingDanger[].
         //
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { 0, + 2, + 2, + 3, + 5, 0, };
+        const i32   KingAttackWeight[NONE] = { 0, + 2, + 2, + 3, + 5, 0 };
 
         // Bonuses for enemy's safe checks
-        const i32    SafeCheckWeight[NONE] = { 0, + 3, + 2, + 8, +12, 0, };
+        const i32    SafeCheckWeight[NONE] = { 0, + 3, + 2, + 8, +12, 0 };
 
         // Bonuses for enemy's contact safe checks
-        const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0, };
+        const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0 };
 
-        const i32 PiecePinnedWeight       = + 2;
+        const i32 PiecePinnedWeight = + 2;
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.

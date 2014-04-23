@@ -664,7 +664,7 @@ namespace Searcher {
             excluded_move = (ss)->excluded_move;
 
             posi_key = (excluded_move != MOVE_NONE)
-                     ? pos.posi_key_exclusion ()
+                     ? pos.posi_key_excl ()
                      : pos.posi_key ();
 
             tte      = TT.retrieve (posi_key);

@@ -55,7 +55,7 @@ namespace Material {
 
         // Helper templates used to detect a given material distribution
         template<Color C>
-        inline bool is_KXK(const Position &pos)
+        inline bool is_KXK (const Position &pos)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -65,7 +65,7 @@ namespace Material {
         }
 
         template<Color C> 
-        inline bool is_KBPsKs(const Position &pos)
+        inline bool is_KBPsKs (const Position &pos)
         {
             return pos.non_pawn_material (C ) == VALUE_MG_BSHP
                 && pos.count<BSHP> (C ) == 1
@@ -73,7 +73,7 @@ namespace Material {
         }
 
         template<Color C>
-        inline bool is_KQKRPs(const Position &pos)
+        inline bool is_KQKRPs (const Position &pos)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -209,14 +209,12 @@ namespace Material {
                        && (pos.count<PAWN> (WHITE) >= 2)
                    )
                 {
-                    //ASSERT (pos.count<PAWN> (WHITE) >= 2);
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 0)
                        && (pos.count<PAWN> (BLACK) >= 2)
                         )
                 {
-                    //ASSERT (pos.count<PAWN> (BLACK) >= 2);
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 1)
@@ -268,8 +266,8 @@ namespace Material {
             // Compute the space weight
             if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
             {
-                i32 minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
-                e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
+                i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
+                e->_space_weight = mk_score (minor_count * minor_count, 0);
             }
 
             // Evaluate the material imbalance.
@@ -287,7 +285,7 @@ namespace Material {
                 }
             };
 
-            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
+            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
         }
 
         return e;
