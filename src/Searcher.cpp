@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (u16 depth)
         {
-            return Value (depth<<6); // TODO::64/100
+            return Value (depth*100); // TODO::64/100
         }
 
         template<bool PVNode>
