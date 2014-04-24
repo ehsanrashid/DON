@@ -680,7 +680,7 @@ namespace Evaluator {
 
             Score score = SCORE_ZERO;
 
-            // Undefended minors get penalized even if not under attack
+            // Enemy undefended minors get penalized even if not under attack
             Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][NONE];
             if (undefended_minors != U64 (0)) score += MinorUndefendedPenalty;
 
@@ -731,7 +731,7 @@ namespace Evaluator {
                 if (rr != 0)
                 {
                     Square block_sq = s + pawn_push (C);
-                    Square fk_sq = pos.king_sq (C);
+                    Square fk_sq = pos.king_sq (C );
                     Square ek_sq = pos.king_sq (C_);
 
                     // Adjust bonus based on kings proximity

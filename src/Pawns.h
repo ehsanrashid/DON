@@ -54,7 +54,7 @@ namespace Pawns {
         template<Color C>
         inline i32  pawns_on_same_color_squares (Square s) const
         {
-            return _pawn_count_sq[C][bool (BitBoard::DARK_bb & s)];
+            return _pawn_count_sq[C][!!(BitBoard::DARK_bb & s)];
         }
 
         template<Color C>
