@@ -228,7 +228,6 @@ namespace Evaluator {
         const Score RookSemiopenFileBonus   = S(+19,+10);
 
         const Score BishopPawnsPenalty      = S(+ 8,+12);
-        const Score KnightPawnsPenalty      = S(+ 8,+ 4);
         const Score MinorBehindPawnBonus    = S(+16,+ 0);
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
@@ -476,11 +475,10 @@ namespace Evaluator {
 
                     }
 
-                    // Penalty for knight when there are few enemy pawns
-                    if (NIHT == PT)
-                    {
-                        score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C_), 0);
-                    }
+                    //if (NIHT == PT)
+                    //{
+                    //    
+                    //}
 
                     // Bishop and knight outposts squares
                     if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))
