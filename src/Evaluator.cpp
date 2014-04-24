@@ -978,8 +978,7 @@ namespace Evaluator {
             // colored bishop endgames, and use a lower scale for those.
             if (   (ei.mi->game_phase () < PHASE_MIDGAME)
                 && (pos.opposite_bishops ())
-                && (sf == SCALE_FACTOR_NORMAL
-                 || sf == SCALE_FACTOR_ONEPAWN)
+                && (sf <= SCALE_FACTOR_NORMAL)
                )
             {
                 // Ignoring any pawns, do both sides only have a single bishop
