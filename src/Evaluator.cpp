@@ -336,13 +336,15 @@ namespace Evaluator {
             }
         }
 
-        template<PieceT PT, Color C>
+        template<Color C, PieceT PT>
         // evaluate_outposts() evaluates bishop and knight outposts squares
         inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
         {
             ASSERT (BSHP == PT || NIHT == PT);
 
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            
+            Score score = SCORE_ZERO;
 
             // Initial bonus based on square
             Value bonus = 
@@ -367,13 +369,13 @@ namespace Evaluator {
                         bonus += i32 (bonus)*0.5;
                     }
                 }
-                bonus = mk_score (bonus, bonus);
+                score = mk_score (bonus, bonus);
             }
 
-            return bonus;
+            return score;
         }
 
-        template<PieceT PT, Color C, bool TRACE>
+        template<Color C, PieceT PT, bool TRACE>
         // evaluate_piece<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility)
         {
@@ -381,7 +383,6 @@ namespace Evaluator {
 
             const Color  C_    = (WHITE == C) ? BLACK : WHITE;
             const Square fk_sq = pos.king_sq (C );
-            const Square ek_sq = pos.king_sq (C_);
             const Bitboard occ = pos.pieces ();
 
             ei.attacked_by[C][PT] = U64 (0);
@@ -480,7 +481,7 @@ namespace Evaluator {
                     // Bishop and knight outposts squares
                     if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))
                     {
-                        score += evaluate_outposts<PT, C> (pos, ei, s);
+                        score += evaluate_outposts<C, PT> (pos, ei, s);
                     }
 
                     // Bishop or knight behind a pawn
@@ -921,17 +922,17 @@ namespace Evaluator {
             };
 
             score += 
-              + evaluate_piece<NIHT, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<NIHT, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, NIHT, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, NIHT, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<BSHP, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BSHP, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, BSHP, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, BSHP, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<ROOK, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<ROOK, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, ROOK, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, ROOK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<QUEN, WHITE, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<QUEN, BLACK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, QUEN, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, QUEN, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
