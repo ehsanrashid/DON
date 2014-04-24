@@ -226,7 +226,7 @@ namespace Evaluator {
         const Score MinorBehindPawnBonus    = S(+16,+ 0);
         const Score PawnUnstoppableBonus    = S(+ 0,+20);
 
-        const Score BishopPawnsPenalty      = S(+ 8,+12);
+        const Score BishopPawnsPenalty      = S(+ 8,+14);
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
 

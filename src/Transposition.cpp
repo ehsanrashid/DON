@@ -149,9 +149,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         /*
         if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
             - (rte->_gen == _generation)
-            - (tte->_depth < rte->_depth))
-            < 0
-           )
+            - (tte->_depth < rte->_depth)) < 0)
         {
             rte = tte;
         }

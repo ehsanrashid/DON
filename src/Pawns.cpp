@@ -268,8 +268,11 @@ namespace Pawns {
         //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
         //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
         //if (dangerous_edge_pawns) safety -= Value(100);
+        
+        i08 w_del = 1 + (kf == F_C);
+        i08 e_del = 1 + (kf == F_F);
 
-        for (File f = kf - 1; f <= kf + 1; ++f)
+        for (File f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
 
