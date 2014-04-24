@@ -66,15 +66,15 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] =
         {
-            V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+101), V(+101), V(+ 0)
+            V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+100), V(+100), V(+ 0)
         };
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
         
@@ -263,12 +263,11 @@ namespace Pawns {
         if (kf > F_G) kf = F_G;
         
         // TODO::
-        Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
-        bool dangerous_edge_pawns = 
-               (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
-            && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
-
-        if (dangerous_edge_pawns) safety -= Value(100);
+        //Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
+        //bool dangerous_edge_pawns = 
+        //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
+        //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
+        //if (dangerous_edge_pawns) safety -= Value(100);
 
         for (File f = kf - 1; f <= kf + 1; ++f)
         {
@@ -294,10 +293,10 @@ namespace Pawns {
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk != R_1) ? (b_rk == (w_rk + 1)) ? 2 : 1 : 0;
+                i08 danger = (w_rk != R_1 && w_rk < b_rk)
+                           ? ((w_rk + 1) == b_rk) ? 2 : 1 : 0;
                 
-                safety -= ShelterWeakness[w_rk]
-                       +  StormDanger[danger][b_rk];
+                safety -= (ShelterWeakness[w_rk] + StormDanger[danger][b_rk]);
             }
         }
 

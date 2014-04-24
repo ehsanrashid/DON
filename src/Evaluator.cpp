@@ -989,16 +989,16 @@ namespace Evaluator {
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    i08 pawn_count = pos.count<PAWN> ();
+                    u08 pawn_count = pos.count<PAWN> ();
                     sf  = (pawn_count == 0) ? SCALE_FACTOR_DRAW :
                           (pawn_count == 1) ? ScaleFactor (8) :
-                          ScaleFactor (32);
+                          ScaleFactor (min<i32> (16*pawn_count, SCALE_FACTOR_NORMAL));
                 }
                 else
                 {
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (50 * sf / SCALE_FACTOR_NORMAL);
+                    sf = ScaleFactor (50 * i32 (sf) / SCALE_FACTOR_NORMAL);
                 }
             }
 
@@ -1049,20 +1049,20 @@ namespace Evaluator {
                     << "           Eval term |    White    |    Black    |     Total    \n"
                     << "                     |   MG    EG  |   MG    EG  |   MG    EG   \n"
                     << "---------------------+-------------+-------------+--------------\n";
-                format_row (ss, "Material PST, Tempo"   , PST);
-                format_row (ss, "Material imbalance"    , IMBALANCE);
-                format_row (ss, "Pawns"                 , PAWN);
-                format_row (ss, "Knights"               , NIHT);
-                format_row (ss, "Bishops"               , BSHP);
-                format_row (ss, "Rooks"                 , ROOK);
-                format_row (ss, "Queens"                , QUEN);
-                format_row (ss, "Mobility"              , MOBILITY);
-                format_row (ss, "King safety"           , KING);
-                format_row (ss, "Threats"               , THREAT);
-                format_row (ss, "Passed pawns"          , PASSED);
-                format_row (ss, "Space"                 , SPACE);
+                format_row (ss, "Material PST, Tempo", PST);
+                format_row (ss, "Material imbalance" , IMBALANCE);
+                format_row (ss, "Pawns"              , PAWN);
+                format_row (ss, "Knights"            , NIHT);
+                format_row (ss, "Bishops"            , BSHP);
+                format_row (ss, "Rooks"              , ROOK);
+                format_row (ss, "Queens"             , QUEN);
+                format_row (ss, "Mobility"           , MOBILITY);
+                format_row (ss, "King safety"        , KING);
+                format_row (ss, "Threats"            , THREAT);
+                format_row (ss, "Passed pawns"       , PASSED);
+                format_row (ss, "Space"              , SPACE);
                 ss  << "---------------------+-------------+-------------+--------------\n";
-                format_row (ss, "Total"                 , TOTAL);
+                format_row (ss, "Total"              , TOTAL);
                 ss  << "\n"
                     << "Total evaluation: " << value_to_cp (value) << " (white side)\n";
 
