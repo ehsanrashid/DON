@@ -185,14 +185,18 @@ public:
     Square king_sq (Color c)    const;
 
     Bitboard pieces (Color c)   const;
+
     Bitboard pieces (PieceT pt) const;
     template<PieceT PT>
     Bitboard pieces ()          const;
+
     Bitboard pieces (Color c, PieceT pt)   const;
     template<PieceT PT>
     Bitboard pieces (Color c)   const;
+
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
+
     Bitboard pieces ()          const;
 
     i32      count  (Color c, PieceT pt)   const;
@@ -320,15 +324,19 @@ inline const Square* Position::operator[] (Piece  p)  const { return _piece_list
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces  (Color c)  const { return _color_bb[c];  }
-inline Bitboard Position::pieces  (PieceT pt)const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
+
+inline Bitboard Position::pieces (PieceT pt) const { return _types_bb[pt]; }
 template<PieceT PT>
 inline Bitboard Position::pieces ()                   const { return _types_bb[PT]; }
+
 inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]&_types_bb[pt]; }
 template<PieceT PT>
 inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]&_types_bb[PT]; }
+
 inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
+
 inline Bitboard Position::pieces ()                   const { return _types_bb[NONE]; }
 
 inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
