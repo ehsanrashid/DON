@@ -329,7 +329,7 @@ template<PieceT PT>
 inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]&_types_bb[PT]; }
 inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
-inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
+inline Bitboard Position::pieces ()                   const { return _types_bb[NONE]; }
 
 inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 template<PieceT PT>

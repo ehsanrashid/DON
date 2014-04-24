@@ -989,9 +989,10 @@ namespace Evaluator {
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    sf  = (pos.count<PAWN> () == 1)
-                        ? ScaleFactor (8)
-                        : ScaleFactor (32);
+                    i08 pawn_count = pos.count<PAWN> ();
+                    sf  = (pawn_count == 0) ? SCALE_FACTOR_DRAW :
+                          (pawn_count == 1) ? ScaleFactor (8) :
+                          ScaleFactor (32);
                 }
                 else
                 {
