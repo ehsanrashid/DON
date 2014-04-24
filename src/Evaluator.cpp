@@ -219,19 +219,16 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+56,+70), S(+56,+70), S(+76,+99), S(+86,+118), S(+ 0,+ 0)
         };
 
-
         const Score TempoBonus              = S(+24,+11);
-
-        const Score RookOn7thBonus          = S(+11,+20);
         const Score RookOnPawnBonus         = S(+10,+28);
         const Score RookOpenFileBonus       = S(+43,+21);
         const Score RookSemiopenFileBonus   = S(+19,+10);
+        const Score MinorBehindPawnBonus    = S(+16,+ 0);
+        const Score PawnUnstoppableBonus    = S(+ 0,+20);
 
         const Score BishopPawnsPenalty      = S(+ 8,+12);
-        const Score MinorBehindPawnBonus    = S(+16,+ 0);
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
-        const Score PawnUnstoppableBonus    = S(+ 0,+20);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -370,10 +367,10 @@ namespace Evaluator {
                         bonus += i32 (bonus)*0.5;
                     }
                 }
-                return mk_score (bonus, bonus);
+                bonus = mk_score (bonus, bonus);
             }
 
-            return SCORE_ZERO;
+            return bonus;
         }
 
         template<PieceT PT, Color C, bool TRACE>
@@ -500,14 +497,6 @@ namespace Evaluator {
                     Rank r = rel_rank (C, s);
                     if (R_5 <= r)
                     {
-                        // Rook piece on 7th rank and enemy king trapped on 8th
-                        if (   (R_7 == r)
-                            && (R_8 == rel_rank (C, ek_sq))
-                           )
-                        {
-                            score += RookOn7thBonus;
-                        }
-
                         // Rook piece attacking enemy pawns on the same rank/file
                         Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                         if (pawns != U64 (0))
