@@ -232,8 +232,9 @@ public:
     CRight can_castle   (CRight cr) const;
     CRight can_castle   (Color   c) const;
 
-    Square castle_rook  (CRight cr) const;
-    bool castle_impeded (CRight cr) const;
+    Square   castle_rook (CRight cr) const;
+    Bitboard castle_path (CRight cr) const;
+    bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
     u16     game_ply  () const;
@@ -417,8 +418,9 @@ inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn
 inline CRight Position::can_castle   (CRight cr) const { return _si->castle_rights & cr; }
 inline CRight Position::can_castle   (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
 
-inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
-inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
+inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
+inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
+inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.

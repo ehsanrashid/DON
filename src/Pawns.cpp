@@ -269,8 +269,8 @@ namespace Pawns {
         //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
         //if (dangerous_edge_pawns) safety -= Value(100);
         
-        i08 w_del = 1 + (kf == F_C);
-        i08 e_del = 1 + (kf == F_F);
+        i32 w_del = 1 + (kf == F_C) - (kf == F_F);
+        i32 e_del = 1 - (kf == F_C) + (kf == F_F);
 
         for (File f = kf - w_del; f <= kf + e_del; ++f)
         {
