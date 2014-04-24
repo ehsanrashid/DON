@@ -122,8 +122,8 @@ enum PieceT : i08
     QUEN  , // 100 - QUEEN
     KING  , // 101 - KING
     NONE  , // 110 - NONE
-    TOTL    // 111 - TOTL
-
+    TOTL  , // 111 - TOTL
+    NONPAWN
 };
 
 // Piece needs 4 bits to be stored

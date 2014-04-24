@@ -567,7 +567,7 @@ namespace MoveGenerator {
         SERIALIZE (moves, king_sq, attacks);
 
         // If double check, then only a king move can save the day
-        if (more_than_one (checkers) || pos.count (active) == 1)
+        if (more_than_one (checkers) || pos.count<NONE> (active) == 1)
         {
             return moves;
         }

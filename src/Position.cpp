@@ -315,8 +315,8 @@ bool Position::ok (i08 *step) const
     if (step && ++(*step), test_piece_count)
     {
         if (   pop_count<FULL> (_types_bb[NONE]) > 32
-            || count () > 32
-            || count () != pop_count<FULL> (_types_bb[NONE])
+            || count<NONE> () > 32
+            || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
            )
         {
             return false;

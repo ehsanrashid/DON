@@ -297,9 +297,9 @@ namespace Evaluator {
             ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
             ASSERT (PHASE_ENDGAME <= phase && phase <= PHASE_MIDGAME);
 
-            i32 mg = mg_value (score) * i32 (phase);
+            i32 mg = mg_value (score);
             i32 eg = eg_value (score) * i32 (scale_factor) / SCALE_FACTOR_NORMAL;
-            return Value ((mg + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
+            return Value ((mg * i32 (phase) + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
         }
 
         //  --- init evaluation info --->
@@ -801,7 +801,7 @@ namespace Evaluator {
                     }
 
                     // Increase the bonus if we have more non-pawn pieces
-                    if (pos.count<NONE> (C) > pos.count<NONE> (C_))
+                    if (pos.count<NONPAWN> (C) > pos.count<NONPAWN> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
                     }
