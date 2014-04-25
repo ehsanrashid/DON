@@ -1,11 +1,10 @@
 #include "Engine.h"
-//#include "LeakDetector.h"
 
 using namespace std;
 
 namespace {
 
-    string strarg (i32 argc, const char* const argv[])
+    string strarg (i32 argc, const char *const *argv)
     {
         string args;
         for (i32 i = 1; i < argc; ++i)
@@ -17,7 +16,7 @@ namespace {
 
 }
 
-i32 main (i32 argc, const char* const argv[])
+i32 main (i32 argc, const char *const *argv)
 {
     string args = strarg (argc, argv);
     Engine::run (args);

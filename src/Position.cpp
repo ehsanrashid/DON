@@ -168,7 +168,7 @@ void Position::initialize ()
 {
     _50_move_dist = 2*i32 (Options["50 Move Distance"]);
 
-    for (i08 pt = PAWN; pt <= KING; ++pt)
+    for (u08 pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
@@ -324,7 +324,7 @@ bool Position::ok (i08 *step) const
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
                 if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
                 {
@@ -431,7 +431,7 @@ bool Position::ok (i08 *step) const
     {
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
                 for (i32 i = 0; i < _piece_count[c][pt]; ++i)
                 {
@@ -1088,7 +1088,7 @@ void Position::clear ()
     }
     for (i08 c = WHITE; c <= BLACK; ++c)
     {
-        for (i08 pt = PAWN; pt <= KING; ++pt)
+        for (u08 pt = PAWN; pt <= KING; ++pt)
         {
             for (i08 i = 0; i < 16; ++i)
             {
@@ -1215,7 +1215,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
-    for (i08 pt = NIHT; pt <= QUEN; ++pt)
+    for (u08 pt = NIHT; pt <= QUEN; ++pt)
     {
         value += PieceValue[MG][pt] * i32 (_piece_count[c][pt]);
     }

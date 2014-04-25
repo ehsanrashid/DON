@@ -185,7 +185,7 @@ namespace MemoryHandler {
         Engine::exit (EXIT_FAILURE);
     }
 
-    void free_memory    (void *mem)
+    void   free_memory  (void *mem)
     {
         if (mem == NULL) return;
 
@@ -211,7 +211,7 @@ namespace MemoryHandler {
         ALIGNED_FREE (mem);
     }
     
-    void initialize      ()
+    void initialize     ()
     {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -224,4 +224,4 @@ namespace MemoryHandler {
 
 }
 
-#endif
+#endif // LPAGES

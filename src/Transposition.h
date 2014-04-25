@@ -11,7 +11,6 @@
 
 #include "Type.h"
 #include "MemoryHandler.h"
-//#include "LeakDetector.h"
 
 #ifdef _MSC_VER
 #   pragma warning (push)

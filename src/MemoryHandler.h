@@ -13,7 +13,7 @@ namespace MemoryHandler {
 
     extern void create_memory   (void *&mem_ref, u64 mem_size, u08 align);
 
-    extern void free_memory     (void *mem);
+    extern void   free_memory   (void *mem);
 
     extern void initialize      ();
 
