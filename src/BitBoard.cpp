@@ -220,7 +220,7 @@ namespace BitBoard {
     void initialize ()
     {
 
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        //for (u08 s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
@@ -260,7 +260,7 @@ namespace BitBoard {
             }
         }
 
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
@@ -275,7 +275,7 @@ namespace BitBoard {
             u08 k;
             Delta del;
 
-            for (Color c = WHITE; c <= BLACK; ++c)
+            for (u08 c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
                 while ((del = PawnDeltas[c][k++]) != DEL_O)

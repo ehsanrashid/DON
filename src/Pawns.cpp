@@ -258,15 +258,15 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        const File kf = _file (king_sq);
-        const i32 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
-        const i32 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
-        for (File f = kf - w_del; f <= kf + e_del; ++f)
+        const u08 kf = _file (king_sq);
+        const u08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
+        const u08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
+        for (u08 f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
-            Rank b_rk = (mid_pawns != U64 (0))
+            u08 b_rk = (mid_pawns != U64 (0))
                 ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns))
                 : R_1;
 
@@ -281,11 +281,11 @@ namespace Pawns {
             {
                 mid_pawns = pawns[0] & File_bb[f];
                 
-                Rank w_rk = (mid_pawns != U64 (0))
+                u08 w_rk = (mid_pawns != U64 (0))
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : ((w_rk + 1) != b_rk) ? 1 : 2;
+                u08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : ((w_rk + 1) != b_rk) ? 1 : 2;
                 safety -= (ShelterWeakness[w_rk] + StormDanger[danger][b_rk]);
             }
         }
