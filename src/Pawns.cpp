@@ -214,9 +214,9 @@ namespace Pawns {
     {
         const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
-        for (Rank r = R_1; r < R_8; ++r)
+        for (i08 r = R_1; r < R_8; ++r)
         {
-            for (File f = F_A; f <= F_H; ++f)
+            for (i08 f = F_A; f <= F_H; ++f)
             {
                 i16 bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
                 ConnectedBonus[f][r] = mk_score (bonus, bonus);

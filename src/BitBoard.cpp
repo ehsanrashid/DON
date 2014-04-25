@@ -230,11 +230,11 @@ namespace BitBoard {
         //    MSB_Table[b] = more_than_one (b) ? MSB_Table[b - 1] : scan_lsq (b);
         //}
 
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            for (Rank r = R_1; r <= R_8; ++r)
+            for (i08 r = R_1; r <= R_8; ++r)
             {
-                FileRankDist[f][r] = abs (i08 (f) - i08 (r));
+                FileRankDist[f][r] = abs (f - r);
             }
         }
 

@@ -299,9 +299,9 @@ bool Position::ok (i08 *step) const
     // step 2
     if (step && ++(*step), test_king_count)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            if (1 != std::count (_board, _board + SQ_NO, c|KING))
+            if (1 != std::count (_board, _board + SQ_NO, Color (c)|KING))
             {
                 return false;
             }
@@ -429,14 +429,14 @@ bool Position::ok (i08 *step) const
     // step 5
     if (step && ++(*step), test_piece_list)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (PieceT pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
                 for (i32 i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (   !_ok  (_piece_list[c][pt][i])
-                        || _board[_piece_list[c][pt][i]] != (c | pt)
+                        || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
                         || _index[_piece_list[c][pt][i]] != i
                        )
                     {
@@ -466,16 +466,16 @@ bool Position::ok (i08 *step) const
     // step 7
     if (step && ++(*step), test_castle_rights)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (CSide cs = CS_K; cs <= CS_Q; ++cs)
+            for (i08 cs = CS_K; cs <= CS_Q; ++cs)
             {
-                CRight cr = mk_castle_right (c, cs);
+                CRight cr = mk_castle_right (Color (c), CSide (cs));
 
                 if (!can_castle (cr)) continue;
 
                 if ( (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
-                  || (_board[_castle_rook[cr]] != (c | ROOK))
+                  || (_board[_castle_rook[cr]] != (Color (c) | ROOK))
                   || (_castle_mask[_castle_rook[cr]] != cr)
                    )
                 {
@@ -1612,7 +1612,7 @@ void Position::flip ()
     string fen_, s;
     stringstream ss (fen ());
     // 1. Piece placement
-    for (Rank rank = R_8; rank >= R_1; --rank)
+    for (i08 rank = R_8; rank >= R_1; --rank)
     {
         getline (ss, s, rank > R_1 ? '/' : ' ');
         fen_.insert (0, s + (fen_.empty () ? " " : "/"));
@@ -1642,11 +1642,11 @@ string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
 
-    for (Rank r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            Square s = f | r;
+            Square s = File (f) | Rank (r);
             i16 empty_count = 0;
             while (F_H >= f && empty (s))
             {
