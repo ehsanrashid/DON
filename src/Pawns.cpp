@@ -259,9 +259,10 @@ namespace Pawns {
         };
 
         const File kf = _file (king_sq);
+        //const i08 shift = (kf==F_C || kf==F_H) - (kf==F_F || kf==F_A);
         const i08 shift = (kf==F_C || kf==F_H) - (kf==F_F || kf==F_A);
-        const i32 w_del = 1 + shift;
-        const i32 e_del = 1 - shift;
+        const i32 w_del = 1 + shift + (kf==F_F);
+        const i32 e_del = 1 - shift + (kf==F_C);
         for (File f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
