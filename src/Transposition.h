@@ -205,7 +205,7 @@ public:
     {
         u32 full_count = 0;
         return full_count;      // TODO::
-        TTEntry *tte = _hash_table;
+        const TTEntry *tte = _hash_table;
         u16 total_count = std::min (10000, i32 (entries ()));
         for (u16 i = 0; i < total_count; ++i, ++tte)
         {

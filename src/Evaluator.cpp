@@ -230,7 +230,7 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
 
-        const Score CastleBlockedPenalty    = S(+150,+ 0);
+        //const Score CastleBlockedPenalty    = S(+150,+ 0);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -499,20 +499,20 @@ namespace Evaluator {
                 if (ROOK == PT)
                 {
                     Rank r = rel_rank (C, s);
-                    if (R_5 <= r)
+                    if (R_4 <= r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (pawns != U64 (0))
+                        Bitboard enemy_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
+                        if (enemy_pawns != U64 (0))
                         {
-                            score += RookOnPawnBonus * i32 (pop_count<MAX15> (pawns));
+                            score += RookOnPawnBonus * i32 (pop_count<MAX15> (enemy_pawns));
                         }
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<C> (_file (s)) != 0)
                     {
-                        score += ei.pi->semiopen_file<C_> (_file (s))
+                        score += ei.pi->semiopen_file<C_> (_file (s)) != 0
                                ? RookOpenFileBonus
                                : RookSemiopenFileBonus;
                     }
@@ -667,26 +667,26 @@ namespace Evaluator {
                 score -= KingDanger[Searcher::RootColor == C][attack_units];
             }
 
-            if (pos.can_castle (C))
-            {
-                bool castle_blocked;
-                if (pos.can_castle (Castling<C, CS_K>::Right))// && !pos.castle_impeded (Castling<C, CS_K>::Right))
-                {
-                    castle_blocked = (pos.castle_path (Castling<C, CS_K>::Right) & ei.attacked_by[C_][NONE]);
-                    if (castle_blocked)
-                    {
-                        score -= CastleBlockedPenalty;
-                    }
-                }
-                if (pos.can_castle (Castling<C, CS_Q>::Right))// && !pos.castle_impeded (Castling<C, CS_Q>::Right))
-                {
-                    castle_blocked = (pos.castle_path (Castling<C, CS_Q>::Right) & ei.attacked_by[C_][NONE]);
-                    if (castle_blocked)
-                    {
-                        score -= CastleBlockedPenalty;
-                    }
-                }
-            }
+            //if (pos.can_castle (C))
+            //{
+            //    bool castle_blocked;
+            //    if (pos.can_castle (Castling<C, CS_K>::Right))// && !pos.castle_impeded (Castling<C, CS_K>::Right))
+            //    {
+            //        castle_blocked = (pos.castle_path (Castling<C, CS_K>::Right) & ei.attacked_by[C_][NONE]);
+            //        if (castle_blocked)
+            //        {
+            //            score -= CastleBlockedPenalty;
+            //        }
+            //    }
+            //    if (pos.can_castle (Castling<C, CS_Q>::Right))// && !pos.castle_impeded (Castling<C, CS_Q>::Right))
+            //    {
+            //        castle_blocked = (pos.castle_path (Castling<C, CS_Q>::Right) & ei.attacked_by[C_][NONE]);
+            //        if (castle_blocked)
+            //        {
+            //            score -= CastleBlockedPenalty;
+            //        }
+            //    }
+            //}
 
             if (TRACE)
             {
