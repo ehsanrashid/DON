@@ -71,18 +71,10 @@ namespace Pawns {
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-        //const Value StormDanger[3][R_NO] =
-        //{
-        //    { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-        //    { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
-        //    { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
-        //};
-
-        // Danger of enemy pawns moving toward our king indexed by
-        // [no friendly pawn | friendly pawn][rank of enemy pawn]
-        const Value StormDanger[2][R_NO] =
+        const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 5),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
@@ -297,9 +289,7 @@ namespace Pawns {
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                //i08 danger = (w_rk != R_1 && w_rk < b_rk)
-                //           ? ((w_rk + 1) == b_rk) ? 2 : 1 : 0;
-                i08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : 1;
+                i08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : ((w_rk + 1) != b_rk) ? 1 : 2;
                 safety -= (ShelterWeakness[w_rk] + StormDanger[danger][b_rk]);
             }
         }
