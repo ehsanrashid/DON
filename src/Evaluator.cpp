@@ -222,7 +222,7 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11);
         const Score RookOnPawnBonus         = S(+10,+28);
         const Score RookOpenFileBonus       = S(+43,+21);
-        const Score RookSemiopenFileBonus   = S(+19,+10);
+        const Score RookSemiOpenFileBonus   = S(+19,+10);
         const Score MinorBehindPawnBonus    = S(+16,+ 0);
         const Score PawnUnstoppableBonus    = S(+ 0,+20);
 
@@ -514,7 +514,7 @@ namespace Evaluator {
                     {
                         score += ei.pi->semiopen_file<C_> (_file (s)) != 0
                                ? RookOpenFileBonus
-                               : RookSemiopenFileBonus;
+                               : RookSemiOpenFileBonus;
                     }
                     else
                     {
@@ -528,7 +528,8 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
-                                bool cant_castle = !pos.can_castle (C) || (pos.castle_path (mk_castle_right (C, (s > fk_sq) ? CS_K : CS_Q)) & ei.attacked_by[C_][NONE]);
+                                bool cant_castle = !pos.can_castle (C)
+                                                || (pos.castle_path (mk_castle_right (C, (s > fk_sq) ? CS_K : CS_Q)) & ei.attacked_by[C_][NONE]) != U64 (0);
                                 score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + cant_castle);
                             }
                         }

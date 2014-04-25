@@ -71,13 +71,21 @@ namespace Pawns {
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-        const Value StormDanger[3][R_NO] =
+        //const Value StormDanger[3][R_NO] =
+        //{
+        //    { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
+        //    { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
+        //    { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
+        //};
+
+        // Danger of enemy pawns moving toward our king indexed by
+        // [no friendly pawn | friendly pawn][rank of enemy pawn]
+        const Value StormDanger[2][R_NO] =
         {
             { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
-        
+
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(+263);
@@ -268,10 +276,10 @@ namespace Pawns {
         //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
         //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
         //if (dangerous_edge_pawns) safety -= Value(100);
-        
-        i32 w_del = 1 + (kf == F_C) - (kf == F_F);
-        i32 e_del = 1 - (kf == F_C) + (kf == F_F);
 
+        i08 shift = (kf == F_C) - (kf == F_F);
+        i32 w_del = 1 + shift;
+        i32 e_del = 1 - shift;
         for (File f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
@@ -296,9 +304,9 @@ namespace Pawns {
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk != R_1 && w_rk < b_rk)
-                           ? ((w_rk + 1) == b_rk) ? 2 : 1 : 0;
-                
+                //i08 danger = (w_rk != R_1 && w_rk < b_rk)
+                //           ? ((w_rk + 1) == b_rk) ? 2 : 1 : 0;
+                i08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : 1;
                 safety -= (ShelterWeakness[w_rk] + StormDanger[danger][b_rk]);
             }
         }
