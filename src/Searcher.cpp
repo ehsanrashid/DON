@@ -1640,10 +1640,10 @@ namespace Searcher {
 
         }
         while (tte // Local copy, TT could change
+            && (ply < MAX_PLY)
             && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
-            && (ply < MAX_PLY)
             && (!pos.draw () || ply < 2));
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
