@@ -168,11 +168,11 @@ void Position::initialize ()
 {
     _50_move_dist = 2*i32 (Options["50 Move Distance"]);
 
-    for (u08 pt = PAWN; pt <= KING; ++pt)
+    for (i08 pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
-        for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
             Score psq_score = score + PSQT[pt][s];
             PSQ[WHITE][pt][ Square (s)] = +psq_score;
@@ -322,9 +322,9 @@ bool Position::ok (i08 *step) const
             return false;
         }
 
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
                 if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
                 {
@@ -379,7 +379,7 @@ bool Position::ok (i08 *step) const
             return false;
         }
 
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
             Bitboard colors = _color_bb[c];
 
@@ -445,7 +445,7 @@ bool Position::ok (i08 *step) const
                 }
             }
         }
-        for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
             if (_index[s] >= 16)
             {
@@ -755,7 +755,7 @@ bool Position::pseudo_legal (Move m) const
         dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
 
         Delta step = (king_side ? DEL_W : DEL_E);
-        for (u08 s = dst; s != org; s += step)
+        for (i08 s = dst; s != org; s += step)
         {
             if (attackers_to (Square (s)) & _color_bb[pasive])
             {
@@ -1081,14 +1081,14 @@ void Position::clear ()
 {
     memset (this, 0x00, sizeof (*this));
 
-    for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+    for (i08 s = SQ_A1; s <= SQ_H8; ++s)
     {
         _board[s] = EMPTY;
         _index[s] = -1;
     }
-    for (u08 c = WHITE; c <= BLACK; ++c)
+    for (i08 c = WHITE; c <= BLACK; ++c)
     {
-        for (u08 pt = PAWN; pt <= KING; ++pt)
+        for (i08 pt = PAWN; pt <= KING; ++pt)
         {
             for (i08 i = 0; i < 16; ++i)
             {
@@ -1137,18 +1137,18 @@ void Position::set_castle (Color c, Square org_rook)
     _castle_mask[org_rook] |= cr;
     _castle_rook[cr] = org_rook;
 
-    for (u08 s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
+    for (i08 s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_path[cr] += s;
+            _castle_path[cr] += Square (s);
         }
     }
-    for (u08 s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
+    for (i08 s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_path[cr] += s;
+            _castle_path[cr] += Square (s);
         }
     }
 }
@@ -1215,7 +1215,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
-    for (u08 pt = NIHT; pt <= QUEN; ++pt)
+    for (i08 pt = NIHT; pt <= QUEN; ++pt)
     {
         value += PieceValue[MG][pt] * i32 (_piece_count[c][pt]);
     }

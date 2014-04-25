@@ -258,10 +258,10 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        const u08 kf = _file (king_sq);
-        const u08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
-        const u08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
-        for (u08 f = kf - w_del; f <= kf + e_del; ++f)
+        const i08 kf = _file (king_sq);
+        const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
+        const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
+        for (i08 f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
 

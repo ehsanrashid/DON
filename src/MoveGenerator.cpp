@@ -110,7 +110,7 @@ namespace MoveGenerator {
                     (dst_king > org_king ? DEL_W : DEL_E) :
                     (KingSide            ? DEL_W : DEL_E);
 
-                for (u08 s = dst_king; s != org_king; s += step)
+                for (i08 s = dst_king; s != org_king; s += step)
                 {
                     if (pos.attackers_to (Square (s)) & enemies)
                     {
