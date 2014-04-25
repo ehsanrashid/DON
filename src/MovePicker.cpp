@@ -372,8 +372,8 @@ Move MovePicker::next_move<false> ()
             {
                 move = (cur++)->move;
                 if (   (move != MOVE_NONE)
-                    && (pos.pseudo_legal (move))
                     && (move != tt_move)
+                    && (pos.pseudo_legal (move))
                     && (!pos.capture (move))
                    )
                 {
