@@ -270,16 +270,9 @@ namespace Pawns {
         if (kf < F_B) kf = F_B;
         if (kf > F_G) kf = F_G;
         
-        // TODO::
-        //Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
-        //bool dangerous_edge_pawns = 
-        //       (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
-        //    && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
-        //if (dangerous_edge_pawns) safety -= Value(100);
-
-        i08 shift = (kf == F_C) - (kf == F_F);
-        i32 w_del = 1 + shift;
-        i32 e_del = 1 - shift;
+        const i08 shift = (kf == F_C) - (kf == F_F);
+        const i32 w_del = 1 + shift;
+        const i32 e_del = 1 - shift;
         for (File f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
