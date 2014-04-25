@@ -258,11 +258,8 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        File kf = _file (king_sq);
-        if (kf < F_B) kf = F_B;
-        if (kf > F_G) kf = F_G;
-        
-        const i08 shift = (kf == F_C) - (kf == F_F);
+        const File kf = _file (king_sq);
+        const i08 shift = (kf==F_C || kf==F_H) - (kf==F_F || kf==F_A);
         const i32 w_del = 1 + shift;
         const i32 e_del = 1 - shift;
         for (File f = kf - w_del; f <= kf + e_del; ++f)
@@ -275,7 +272,7 @@ namespace Pawns {
                 : R_1;
 
             if (   (MIDEDGE_bb & (f | b_rk))
-                && (_file (king_sq) == f)
+                && (kf == f)
                 && (rel_rank (C, king_sq) == b_rk - 1)
                )
             {
