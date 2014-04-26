@@ -146,15 +146,14 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 
         // Implement replacement strategy when a collision occurs
 
-        /*
         if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
             - (rte->_gen == _generation)
             - (tte->_depth < rte->_depth)) < 0)
         {
             rte = tte;
         }
-        */
-
+        
+        /*
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
         if (gc != 0)
         {
@@ -172,9 +171,10 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         i16 nc = (rte->_nodes - tte->_nodes);
         if (nc > 0) rte = tte;
         //continue;
+        */
     }
 
-    rte->save (key32, move, depth, bound, (nodes >> 10), value, eval, _generation);
+    rte->save (key32, move, depth, bound, /*(nodes >> 10)*/ 0, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.

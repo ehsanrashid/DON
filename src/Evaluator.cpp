@@ -148,24 +148,24 @@ namespace Evaluator {
             {},
             // Knights
             {
-                S(-75,-50), S(-42,-30), S(- 9,-10), S(+ 3,  0), S(+15,+10),
+                S(-65,-50), S(-42,-30), S(- 9,-10), S(+ 3,  0), S(+15,+10),
                 S(+27,+20), S(+37,+28), S(+42,+31), S(+44,+33)
             },
             // Bishops
             {
-                S(-62,-47), S(-28,-23), S(+ 6,+ 1), S(+20,+15), S(+34,+29),
+                S(-52,-47), S(-28,-23), S(+ 6,+ 1), S(+20,+15), S(+34,+29),
                 S(+48,+43), S(+60,+55), S(+68,+63), S(+74,+68), S(+77,+72),
                 S(+80,+75), S(+82,+77), S(+84,+79), S(+86,+81)
             },
             // Rooks
             {
-                S(-57,- 52), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
+                S(-47,- 52), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
                 S(+13,+ 48), S(+18,+ 64), S(+22,+ 80), S(+26,+ 96), S(+29,+109),
                 S(+31,+115), S(+33,+119), S(+35,+122), S(+36,+123), S(+37,+124),
             },
             // Queens
             {
-                S(-51,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
+                S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
                 S(+10,+19), S(+14,+29), S(+18,+38), S(+20,+40), S(+21,+41),
                 S(+22,+41), S(+22,+41), S(+22,+41), S(+23,+41), S(+24,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
@@ -226,7 +226,7 @@ namespace Evaluator {
         const Score MinorBehindPawnBonus    = S(+16,+ 0);
         const Score PawnUnstoppableBonus    = S(+ 0,+20);
 
-        const Score BishopPawnsPenalty      = S(+ 8,+14);
+        const Score BishopPawnsPenalty      = S(+ 8,+12);
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
 
@@ -534,8 +534,8 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
-                                bool cant_castle = !pos.can_castle (C)
-                                                || (pos.castle_path (mk_castle_right (C, (s > fk_sq) ? CS_K : CS_Q)) & ei.attacked_by[C_][NONE]) != U64 (0);
+                                bool cant_castle = !pos.can_castle (C);
+                                                //|| (pos.castle_path (mk_castle_right (C, (s > fk_sq) ? CS_K : CS_Q)) & ei.attacked_by[C_][NONE]) != U64 (0);
                                 score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + cant_castle);
                             }
                         }

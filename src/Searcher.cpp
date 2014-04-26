@@ -51,7 +51,7 @@ namespace Searcher {
 
         inline Value futility_margin (u16 depth)
         {
-            return Value (depth*100); // TODO::64/100
+            return Value (depth*100);
         }
 
         template<bool PVNode>
@@ -779,7 +779,7 @@ namespace Searcher {
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
                 if (   !((ss)->skip_null_move)
-                    && (depth < (7*ONE_MOVE)) // TODO::
+                    && (depth < (7*ONE_MOVE))
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
@@ -839,7 +839,7 @@ namespace Searcher {
                         (ss)->skip_null_move = true;
                         Value veri_value = (depth-R < ONE_MOVE)
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false); // TODO::
+                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false);
                         (ss)->skip_null_move = false;
                         if (veri_value >= beta)
                         {
@@ -854,7 +854,6 @@ namespace Searcher {
                 // we can (almost) safely prune the previous move.
                 if (   (depth >= (5*ONE_MOVE))
                     && !((ss)->skip_null_move)
-                    //&& (eval >= alpha + 50) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                    )
                 {
@@ -897,7 +896,7 @@ namespace Searcher {
                 && (PVNode || (ss)->static_eval + Value (256) >= beta)
                )
             {
-                Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth>>2)); // TODO::
+                Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth>>2));
 
                 (ss)->skip_null_move = true;
                 search<PVNode ? PV : NonPV> (pos, ss, alpha, beta, d, true);
@@ -1043,7 +1042,7 @@ namespace Searcher {
                 {
                     ASSERT (tt_value != VALUE_NONE);
 
-                    Value rbeta = tt_value - i32 (depth + (depth>>2)); // TODO::depth
+                    Value rbeta = tt_value - i32 (depth);
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1057,7 +1056,7 @@ namespace Searcher {
                     }
                 }
 
-                // Update current move (this must be done after singular extension search)
+                // Update the current move (this must be done after singular extension search)
                 Depth new_depth = depth - ONE_MOVE + ext;
 
                 if (!PVNode)
@@ -1170,7 +1169,7 @@ namespace Searcher {
 
                     if (!PVNode && cut_node)
                     {
-                        (ss)->reduction += ONE_MOVE; // (3*ONE_MOVE)>>2; // TODO::
+                        (ss)->reduction += ONE_MOVE;
                     }
                     else if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
                     {
@@ -1923,7 +1922,7 @@ namespace Threads {
         bool still_at_1stmove =
                 (Signals.root_1stmove)
             && !(Signals.root_failedlow)
-            && (elapsed > TimeMgr.available_time () * (BestMoveChanges < 1.0e-4 ? 2 : 3)>>2); // TODO::
+            && (elapsed > TimeMgr.available_time () * 3/4);
 
         bool no_more_time =
                (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)
