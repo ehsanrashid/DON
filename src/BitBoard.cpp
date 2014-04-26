@@ -349,14 +349,14 @@ namespace BitBoard {
         const string row   = "|. . . . . . . .|\n";
         const u16 row_len = row.length () + 1;
         sbb = " /---------------\\\n";
-        for (Rank r = R_8; r >= R_1; --r)
+        for (i08 r = R_8; r >= R_1; --r)
         {
-            sbb += to_char (r) + row;
+            sbb += to_char (Rank (r)) + row;
         }
         sbb += " \\---------------/\n ";
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            sbb += " "; sbb += to_char (f);
+            sbb += " "; sbb += to_char (File (f));
         }
         sbb += "\n";
 

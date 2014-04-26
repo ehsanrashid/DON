@@ -1715,14 +1715,14 @@ Position::operator string () const
 
     string board = edge;
 
-    for (Rank r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        board += to_char (r) + ((r % 2) ? row_1 : row_2);
+        board += to_char (Rank (r)) + ((r % 2) ? row_1 : row_2);
     }
-    for (File f = F_A; f <= F_H; ++f)
+    for (i08 f = F_A; f <= F_H; ++f)
     {
         board += "   ";
-        board += to_char (f, false);
+        board += to_char (File (f), false);
     }
 
     Bitboard occ = _types_bb[NONE];
@@ -1870,24 +1870,24 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     {
         while ((iss >> ch) && !isspace (ch))
         {
-            Square rook;
+            i08 rook;
             Color c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
                 rook = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[rook]))) --rook;
+                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[Square (rook)]))) --rook;
                 break;
             case 'Q':
                 rook = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[rook]))) ++rook;
+                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[Square (rook)]))) ++rook;
                 break;
             default:
                 continue;
             }
 
             //if (ROOK != ptype (pos[rook])) return false;
-            pos.set_castle (c, rook);
+            pos.set_castle (c, Square (rook));
         }
     }
 
