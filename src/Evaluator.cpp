@@ -1023,7 +1023,7 @@ namespace Evaluator {
                     // certainly a draw or at least two pawns.
                     u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                     sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                          ScaleFactor (min<i32> (4*pawn_diff, SCALE_FACTOR_NORMAL));
+                          ScaleFactor (4 * pawn_diff * i32 (sf) / SCALE_FACTOR_NORMAL);
                 }
                 else
                 {
