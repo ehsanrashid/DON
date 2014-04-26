@@ -467,10 +467,11 @@ namespace Searcher {
 
                     // Detect non-capture evasions that are candidate to be pruned
                     bool evasion_prunable =
-                           IN_CHECK
+                        (  IN_CHECK
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
-                        && !(pos.can_castle (pos.active ()));
+                        && !(pos.can_castle (pos.active ()))
                         && !(pos.capture (move))
+                        );
 
                     // Don't search moves with negative SEE values
                     if (   (!IN_CHECK || evasion_prunable)
@@ -1640,10 +1641,10 @@ namespace Searcher {
 
         }
         while (tte // Local copy, TT could change
-            && (ply < MAX_PLY)
             && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
+            && (ply < MAX_PLY)
             && (!pos.draw () || ply < 2));
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
