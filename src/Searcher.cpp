@@ -469,8 +469,8 @@ namespace Searcher {
                     bool evasion_prunable =
                            IN_CHECK
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
-                        && !(pos.capture (move))
                         && !(pos.can_castle (pos.active ()));
+                        && !(pos.capture (move))
 
                     // Don't search moves with negative SEE values
                     if (   (!IN_CHECK || evasion_prunable)
@@ -1036,9 +1036,9 @@ namespace Searcher {
                 // a margin then we extend tt_move.
                 if (   (singular_ext_node)
                     && (move == tt_move)
+                    && (abs (tt_value) < VALUE_KNOWN_WIN)
                     && (ext == DEPTH_ZERO)
                     && (pos.legal (move, ci.pinneds))
-                    && (abs (tt_value) < VALUE_KNOWN_WIN)
                    )
                 {
                     ASSERT (tt_value != VALUE_NONE);
@@ -1057,7 +1057,7 @@ namespace Searcher {
                     }
                 }
 
-                // Update current move (this must be done after singular extension search)
+                // Update the current move (this must be done after singular extension search)
                 Depth new_depth = depth - ONE_MOVE + ext;
 
                 if (!PVNode)
