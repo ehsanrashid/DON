@@ -13,9 +13,6 @@ namespace Material {
 
     namespace {
 
-        const Value MidgameLimit = Value (15581);
-        const Value EndgameLimit = Value ( 3998);
-
         // Polynomial material balance parameters: P      N      B      R      Q     BP
         const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
 
@@ -296,9 +293,9 @@ namespace Material {
     {
         Value npm = pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK);
 
-        return npm >= MidgameLimit ? PHASE_MIDGAME
-            :  npm <= EndgameLimit ? PHASE_ENDGAME
-            :  Phase (((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
+        return (npm >= VALUE_MIDGAME) ? PHASE_MIDGAME :
+               (npm <= VALUE_ENDGAME) ? PHASE_ENDGAME :
+               Phase (((npm - VALUE_ENDGAME) * PHASE_MIDGAME) / (VALUE_MIDGAME - VALUE_ENDGAME));
     }
 
 } // namespace Material
