@@ -492,14 +492,11 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return _piece_count[WHITE][BSHP] != 0
-    //    && _piece_count[BLACK][BSHP] != 0
-    //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
     return _piece_count[WHITE][BSHP] != 0
         && _piece_count[BLACK][BSHP] != 0
-        && !( ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
-           || ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb))
-            );
+        && ( ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb))
+          || ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
+           );
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 // capture(m) tests move is capture

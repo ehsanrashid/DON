@@ -1009,8 +1009,8 @@ namespace Evaluator {
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (   (ei.mi->game_phase () < PHASE_MIDGAME)
-                && (pos.opposite_bishops ())
                 && (sf <= SCALE_FACTOR_NORMAL)
+                && (pos.opposite_bishops ())
                )
             {
                 // Ignoring any pawns, do both sides only have a single bishop
