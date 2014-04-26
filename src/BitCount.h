@@ -101,7 +101,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #else   // BY Calculation
 
-//#   ifdef FFPOPCNT
+//#   ifdef POP
 //
 //const BitCountT FULL  = CNT_HW_POPCNT;
 //const BitCountT MAX15 = CNT_HW_POPCNT;

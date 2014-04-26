@@ -61,8 +61,8 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
-# abm     = yes/no    --- -DABM            --- Use ABM (Advanced Bit Manipulation) x86_64 asm-instructions
-# bm2     = yes/no    --- -DBMI            --- Use BM2 (Bit Manipulation Instruction) x86_64 asm-instructions
+# abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
+# bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
 # pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -300,7 +300,7 @@ endif
 
 ### 3.10 bm2
 ifeq ($(bm2),yes)
-	CXXFLAGS += -DBMI
+	CXXFLAGS += -DBM2
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
 		CXXFLAGS += -mbmi -mbmi2
 	endif
@@ -328,7 +328,7 @@ ifeq ($(comp),gcc)
 endif
 
 ### 3.13
-# CXXFLAGS += -DFFABM
+# CXXFLAGS += -DPOP
 
 ### ==========================================================================
 ### Section 4. Public targets
