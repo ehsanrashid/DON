@@ -60,9 +60,9 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
 #                                              with GCC and ICC 64-bit)
-# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# popcnt  = yes/no    --- -DPOPCNT         --- Use POPCNT x86_64 asm-instruction
-# bmi     = yes/no    --- -DBMI            --- Use BMI x86_64 asm-instruction
+# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
+# abm     = yes/no    --- -DABM            --- Use ABM (Advanced Bit Manipulation) x86_64 asm-instructions
+# bm2     = yes/no    --- -DBMI            --- Use BM2 (Bit Manipulation Instruction) x86_64 asm-instructions
 # pages   = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -78,8 +78,8 @@ bits    = 32
 prefetch= no
 sse     = no
 bsfq    = no
-popcnt  = no
-bmi     = no
+abm     = no
+bm2     = no
 pages   = no
 
 ### 2.2 Architecture specific
@@ -114,24 +114,24 @@ ifeq ($(ARCH),x86-64)
 	pages   = yes
 endif
 
-ifeq ($(ARCH),x86-64-popcnt)
+ifeq ($(ARCH),x86-64-abm)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
 	sse     = yes
 	bsfq    = yes
-	popcnt  = yes
+	abm     = yes
 	pages   = yes
 endif
 
-ifeq ($(ARCH),x86-64-bmi)
+ifeq ($(ARCH),x86-64-bm2)
 	arch    = x86_64
 	bits    = 64
 	prefetch= yes
 	sse     = yes
 	bsfq    = yes
-	popcnt  = yes
-	bmi     = yes
+	abm     = yes
+	bm2     = yes
 	pages   = yes
 endif
 
@@ -260,7 +260,7 @@ ifeq ($(optimize),yes)
 	ifeq ($(comp),clang)
 		CXXFLAGS += -O3
 		ifeq ($(UNAME),Darwin)
-			ifeq ($(bmi),no)
+			ifeq ($(bm2),no)
 				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
 			endif
@@ -293,13 +293,13 @@ ifeq ($(bsfq),yes)
 	CXXFLAGS += -DBSFQ
 endif
 
-### 3.9 popcnt
-ifeq ($(popcnt),yes)
-	CXXFLAGS += -DPOPCNT -msse3
+### 3.9 abm
+ifeq ($(abm),yes)
+	CXXFLAGS += -DABM -msse3
 endif
 
-### 3.10 bmi
-ifeq ($(bmi),yes)
+### 3.10 bm2
+ifeq ($(bm2),yes)
 	CXXFLAGS += -DBMI
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
 		CXXFLAGS += -mbmi -mbmi2
@@ -328,7 +328,7 @@ ifeq ($(comp),gcc)
 endif
 
 ### 3.13
-# CXXFLAGS += -DFFPOPCNT
+# CXXFLAGS += -DFFABM
 
 ### ==========================================================================
 ### Section 4. Public targets
@@ -355,8 +355,8 @@ help:
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "x86-64-popcnt           > x86 64-bit with POPCNT support"
-	@echo "x86-64-bmi              > x86 64-bit with BMI support"
+	@echo "x86-64-abm              > x86 64-bit with ABM support"
+	@echo "x86-64-bm2              > x86 64-bit with BM2 support"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "ppc-64                  > PPC 64-bit"
 	@echo "armv7                   > ARMv7 32-bit"
@@ -438,8 +438,8 @@ config-sanity:
 	@echo "prefetch: '$(prefetch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "bsfq    : '$(bsfq)'"
-	@echo "popcnt  : '$(popcnt)'"
-	@echo "bmi     : '$(bmi)'"
+	@echo "abm     : '$(abm)'"
+	@echo "bm2     : '$(bm2)'"
 	@echo "pages   : '$(pages)'"
 	@echo ""
 	@echo "Flags:"
@@ -459,8 +459,8 @@ config-sanity:
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(bmi)" = "yes" || test "$(bmi)" = "no"
+	@test "$(abm)" = "yes" || test "$(abm)" = "no"
+	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
 	@test "$(pages)" = "yes" || test "$(pages)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 

@@ -7,7 +7,7 @@
 
 #include "Type.h"
 
-#ifdef BMI
+#ifdef BM2
 #   include <immintrin.h> // Header for _pext_u64() intrinsic
 #endif
 
@@ -158,7 +158,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard    BMask_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard    RMask_bb[SQ_NO];
 
-#ifndef BMI
+#ifndef BM2
     CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
@@ -316,7 +316,7 @@ namespace BitBoard {
     template<>
     INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-#ifdef BMI
+#ifdef BM2
         return u16 (_pext_u64 (occ, BMask_bb[s]));
 #else
 #   ifdef _64BIT
@@ -332,7 +332,7 @@ namespace BitBoard {
     template<>
     INLINE u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-#ifdef BMI
+#ifdef BM2
         return u16 (_pext_u64 (occ, RMask_bb[s]));
 #else
 #   ifdef _64BIT

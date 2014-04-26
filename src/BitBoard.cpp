@@ -37,7 +37,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
 
-#ifndef BMI
+#ifndef BM2
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
@@ -94,7 +94,7 @@ namespace BitBoard {
 
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
-#   ifndef BMI
+#   ifndef BM2
             const u16 MagicBoosters[R_NO] =
 #       ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
@@ -123,7 +123,7 @@ namespace BitBoard {
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
-#           ifndef BMI
+#           ifndef BM2
                 shift[s] =
 #               ifdef _64BIT
                     64
@@ -141,7 +141,7 @@ namespace BitBoard {
                 Bitboard occ = U64 (0);
                 do
                 {
-#               ifdef BMI
+#               ifdef BM2
                     attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
 #               else
                     occupancy[size] = occ;
@@ -160,7 +160,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#           ifndef BMI
+#           ifndef BM2
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -206,7 +206,7 @@ namespace BitBoard {
 
         inline void initialize_sliding ()
         {
-#       ifndef BMI
+#       ifndef BM2
             initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else

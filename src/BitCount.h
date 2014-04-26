@@ -30,7 +30,7 @@ INLINE u08 pop_count (Bitboard bb);
 // the maximum number of nonzero bits to count
 // and if hardware popcnt instruction is available.
 
-#ifdef POPCNT
+#ifdef ABM
 
 const BitCountT FULL  = CNT_HW_POPCNT;
 const BitCountT MAX15 = CNT_HW_POPCNT;

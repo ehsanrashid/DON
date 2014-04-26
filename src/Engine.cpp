@@ -74,11 +74,11 @@ namespace Engine {
         oss << " w32";
 #endif
 
-#ifdef BMI
-        oss << "-BMI";
+#ifdef BM2
+        oss << "-BM2";
 #endif
-#ifdef POPCNT
-        oss << "-POP";
+#ifdef ABM
+        oss << "-ABM";
 #endif
 #ifdef LPAGES
         oss << "-LP";
@@ -95,11 +95,11 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-#ifdef POPCNT
-        //cout << "info string POPCNT available." << endl;
+#ifdef ABM
+        //cout << "info string ABM available." << endl;
 #endif
-#ifdef BMI
-        //cout << "info string BMI available." << endl;
+#ifdef BM2
+        //cout << "info string BM2 available." << endl;
 #endif
 #ifdef LPAGES
         //cout << "info string LARGE PAGES available." << endl;

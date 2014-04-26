@@ -16,10 +16,12 @@
 /// -DPREFETCH  | Enable use of prefetch asm-instruction. Must disable it 
 ///             | if you want the executable to run on some very old machines.
 ///
-/// -DPOPCNT    | Add runtime support for use of popcnt asm-instruction. Works
+/// -DABM       | Add runtime support for use of popcnt asm-instruction. Works
 ///             | only in 64-bit mode. For compiling requires hardware with
 ///             | popcnt support.
-///
+/// -DBM2       | Add runtime support for use of popcnt asm-instruction. Works
+///             | only in 64-bit mode. For compiling requires hardware with
+///             | popcnt support.
 /// -DBSFQ      | Bit scan forward
 /// -DLPAGES    | Enable large pages
 

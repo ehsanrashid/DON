@@ -13,7 +13,6 @@ namespace Material {
 
     namespace {
 
-        // Values modified by Joona Kiiski
         const Value MidgameLimit = Value (15581);
         const Value EndgameLimit = Value ( 3998);
 
@@ -97,7 +96,7 @@ namespace Material {
 
             // "The Evaluation of Material Imbalances in Chess"
 
-            // Second-degree polynomial material imbalance by Tord Romstad
+            // Second-degree polynomial material imbalance
             for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 i32 pc = count[C ][pt1];
@@ -299,7 +298,7 @@ namespace Material {
 
         return npm >= MidgameLimit ? PHASE_MIDGAME
             :  npm <= EndgameLimit ? PHASE_ENDGAME
-            :  Phase (((npm - EndgameLimit) * 0x80) / (MidgameLimit - EndgameLimit));
+            :  Phase (((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
     }
 
 } // namespace Material
