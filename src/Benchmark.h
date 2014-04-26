@@ -10,6 +10,5 @@
 class Position;
 
 extern void benchmark (std::istream &is, const Position &pos);
-extern void benchtest (std::istream &is, const Position &pos);
 
 #endif // _BENCHMARK_H_INC_
