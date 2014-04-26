@@ -62,7 +62,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
-# lps     = yes/no    --- -DLPAGES         --- Use Large Pages
+# lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -79,7 +79,7 @@ sse  = no
 bsfq = no
 abm  = no
 bm2  = no
-lps  = no
+lpg  = no
 
 ### 2.2 Architecture specific
 
@@ -95,13 +95,13 @@ ifeq ($(ARCH),x86-32)
 	arch = i386
 	pfch = yes
 	sse  = yes
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),general-64)
 	arch = any
 	bits = 64
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),x86-64)
@@ -110,7 +110,7 @@ ifeq ($(ARCH),x86-64)
 	pfch = yes
 	sse  = yes
 	bsfq = yes
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),x86-64-abm)
@@ -120,7 +120,7 @@ ifeq ($(ARCH),x86-64-abm)
 	sse  = yes
 	bsfq = yes
 	abm  = yes
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),x86-64-bm2)
@@ -131,18 +131,18 @@ ifeq ($(ARCH),x86-64-bm2)
 	bsfq = yes
 	abm  = yes
 	bm2  = yes
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),ppc-32)
 	arch = ppc
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),ppc-64)
 	arch = ppc64
 	bits = 64
-	lps  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH),armv7)
@@ -307,7 +307,7 @@ ifeq ($(bm2),yes)
 endif
 
 ### 3.11 Large Pages
-ifeq ($(lps),yes)
+ifeq ($(lpg),yes)
 	CXXFLAGS += -DLPAGES
 endif
 
@@ -440,7 +440,7 @@ config-sanity:
 	@echo "bsfq    : '$(bsfq)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
-	@echo "lps     : '$(lps)'"
+	@echo "lpg     : '$(lpg)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "---------"
@@ -461,7 +461,7 @@ config-sanity:
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
-	@test "$(lps)" = "yes" || test "$(lps)" = "no"
+	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 # generating obj file
