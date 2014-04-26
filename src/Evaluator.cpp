@@ -397,7 +397,7 @@ namespace Evaluator {
                 Bitboard attacks =
                     (BSHP == PT) ? attacks_bb<BSHP> (s, occ ^ pos.pieces (C, QUEN, BSHP)) :
                     (ROOK == PT) ? attacks_bb<ROOK> (s, occ ^ pos.pieces (C, QUEN, ROOK)) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, occ ^ pos.pieces (C, QUEN, ROOK))
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, occ ^ pos.pieces (C, QUEN, BSHP))
                                  | attacks_bb<ROOK> (s, occ ^ pos.pieces (C, QUEN, ROOK)) :
                     PieceAttacks[PT][s];
 
@@ -476,10 +476,16 @@ namespace Evaluator {
 
                     }
 
-                    //if (NIHT == PT)
-                    //{
-                    //    
-                    //}
+                    if (NIHT == PT)
+                    {
+                        //Bitboard span = ei.pi->_semiopen_files[C] ^ 0xFF;
+                        //if ( (pos.count<PAWN> (C) > 1)
+                        //  && ((i32 (scan_msq (span)) - i32 (scan_lsq (span))) > 4)
+                        //   )
+                        //{
+                        //    score -= KnightSpan;
+                        //}
+                    }
 
                     // Bishop and knight outposts squares
                     if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))

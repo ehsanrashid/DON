@@ -238,16 +238,16 @@ namespace BitBoard {
             }
         }
 
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
-                    File f1 = _file (s1);
-                    Rank r1 = _rank (s1);
-                    File f2 = _file (s2);
-                    Rank r2 = _rank (s2);
+                    File f1 = _file (Square (s1));
+                    Rank r1 = _rank (Square (s1));
+                    File f2 = _file (Square (s2));
+                    Rank r2 = _rank (Square (s2));
 
                     u08 dFile = FileRankDist[f1][f2];
                     u08 dRank = FileRankDist[r1][r2];
@@ -255,17 +255,17 @@ namespace BitBoard {
                     SquareDist[s1][s2]  = max (dFile , dRank);
                     //TaxicabDist[s1][s2] =     (dFile + dRank);
 
-                    DistanceRings[s1][SquareDist[s1][s2] - 1] += s2;
+                    DistanceRings[s1][SquareDist[s1][s2] - 1] += Square (s2);
                 }
             }
         }
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
+                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
+                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
                 PasserPawnSpan[c][s] =  FrontSqs_bb[c][s]         | PawnAttackSpan[c][s];
             }
         }

@@ -126,8 +126,8 @@ void benchmark (istream &is, const Position &pos)
         ifs.close ();
     }
     
-    bool chess960  = bool (Options["UCI_Chess960"]);
-    u64 nodes      = 0;
+    bool  chess960 = bool (Options["UCI_Chess960"]);
+    u64   nodes    = 0;
     point elapsed  = now ();
 
     StateInfoStackPtr states;

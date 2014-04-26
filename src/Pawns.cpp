@@ -54,33 +54,33 @@ namespace Pawns {
         // Candidate passed pawn bonus by [rank]
         const Score CandidatePassedBonus[R_NO] =
         {
-            S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29),
-            S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0),
+            S(+ 0,+ 0), S(+ 6,+14), S(+ 6,+14), S(+14,+30),
+            S(+34,+68), S(+84,166), S(+ 0,+ 0), S(+ 0,+ 0),
         };
 
         // Bonus for file distance of the two outermost pawns
-        const Score PawnsFileSpanBonus      = S(+ 0,+15);
+        const Score PawnsFileSpanBonus      = S(+ 0,+16);
         // Unsupported pawn penalty
         const Score UnsupportedPawnPenalty  = S(+20,+10);
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] =
         {
-            V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+100), V(+100), V(+ 0)
+            V(+100), V(+  0), V(+ 28), V(+ 72), V(+ 92), V(+100), V(+100), V(+ 0)
         };
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+52), V(+26),  V(+ 5),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+  0), V(+32), V(+16),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+64), V(+128), V(+56), V(+32),  V(+ 4),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+  0), V(+48), V(+16),  V(+ 2),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+168), V(+30), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
-        const Value MaxSafetyBonus = V(+263);
+        const Value MaxSafetyBonus = V(+264);
 
     #undef S
     #undef V
@@ -201,7 +201,7 @@ namespace Pawns {
             if (pos.count<PAWN> (C) > 1)
             {
                 Bitboard b = e->_semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpanBonus * i32 (scan_msq (b) - scan_lsq (b));
+                pawn_score += PawnsFileSpanBonus * (i32 (scan_msq (b)) - i32 (scan_lsq (b)));
             }
 
             return pawn_score;
