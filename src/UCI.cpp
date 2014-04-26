@@ -281,7 +281,8 @@ namespace UCI {
                 << "posi key: " << setw (16) << RootPos.posi_key () << "\n"
                 << "matl key: " << setw (16) << RootPos.matl_key () << "\n"
                 << "pawn key: " << setw (16) << RootPos.pawn_key ()
-                << dec << sync_endl;
+                << dec << nouppercase << setfill (' ')
+                << sync_endl;
         }
 
         inline void exe_allmoves ()

@@ -177,16 +177,20 @@ namespace Threads {
     // we derive all the specialized thread classes.
     class ThreadBase
     {
+    public:
+        Mutex   mutex;
+        Handle  native_handle;
 
     protected:
         Condition     sleep_condition;
         volatile bool  exit;
 
     public:
-        Mutex   mutex;
-        Handle  native_handle;
 
-        ThreadBase () : exit (false) {}
+        ThreadBase ()
+            : native_handle (Handle ())
+            , exit (false)
+        {}
 
         virtual ~ThreadBase () {}
 

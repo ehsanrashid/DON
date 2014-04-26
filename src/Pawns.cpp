@@ -323,9 +323,9 @@ namespace Pawns {
                     bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
                 }
             }
-            else
+            if (bonus < MaxSafetyBonus)
             {
-                bonus = shelter_storm<C> (pos, king_sq);
+                bonus = max (bonus, shelter_storm<C> (pos, king_sq));
             }
         }
 
