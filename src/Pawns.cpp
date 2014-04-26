@@ -309,7 +309,7 @@ namespace Pawns {
         }
 
         Value bonus = VALUE_ZERO;
-        if (rel_rank (C, king_sq) <= R_4)
+        if (rel_rank (C, king_sq) < R_4)
         {
             // If we can castle use the bonus after the castle if is bigger
             if (pos.can_castle (C))
