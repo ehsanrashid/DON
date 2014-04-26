@@ -212,8 +212,9 @@ enum Value : i32
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
     VALUE_MG_BSHP =  836,  VALUE_EG_BSHP =  857,
     VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1278,
-    VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558
+    VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558,
 
+    VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998
 };
 
 // Score enum keeps a midgame and an endgame value in a single integer (enum),
