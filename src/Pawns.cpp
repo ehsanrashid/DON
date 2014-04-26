@@ -54,19 +54,19 @@ namespace Pawns {
         // Candidate passed pawn bonus by [rank]
         const Score CandidatePassedBonus[R_NO] =
         {
-            S(+ 0,+ 0), S(+ 6,+14), S(+ 6,+14), S(+14,+30),
-            S(+34,+68), S(+84,166), S(+ 0,+ 0), S(+ 0,+ 0),
+            S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29),
+            S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0),
         };
 
         // Bonus for file distance of the two outermost pawns
-        const Score PawnsFileSpanBonus      = S(+ 0,+16);
+        const Score PawnsFileSpanBonus      = S(+ 0,+15);
         // Unsupported pawn penalty
         const Score UnsupportedPawnPenalty  = S(+20,+10);
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] =
         {
-            V(+100), V(+  0), V(+ 28), V(+ 72), V(+ 92), V(+100), V(+100), V(+ 0)
+            V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+101), V(+101), V(+ 0)
         };
 
         // Danger of enemy pawns moving toward our king indexed by
@@ -80,7 +80,7 @@ namespace Pawns {
 
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
-        const Value MaxSafetyBonus = V(+264);
+        const Value MaxSafetyBonus = V(+263);
 
     #undef S
     #undef V
