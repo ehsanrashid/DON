@@ -493,12 +493,16 @@ namespace Evaluator {
                         score += evaluate_outposts<C, PT> (pos, ei, s);
                     }
 
-                    // Bishop or knight behind a pawn
-                    if (   (rel_rank (C, s) < R_5)
-                        && (pos.pieces<PAWN> () & (s + pawn_push (C)))
-                       )
+                    if (rel_rank (C, s) <= R_4)
                     {
-                        score += MinorBehindPawnBonus;
+                        Square pawn_sq = s + pawn_push (C);
+                        // Bishop or knight behind a pawn
+                        if (   (pos.pieces<PAWN> () & pawn_sq)
+                            //&& (ei.attacked_by[C][PAWN] & pawn_sq)
+                           )
+                        {
+                            score += MinorBehindPawnBonus;
+                        }
                     }
                 }
 
