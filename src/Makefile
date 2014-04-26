@@ -57,13 +57,12 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # arch    = (name)    --- (-arch)          --- Target architecture
 # os      = (name)    ---                  --- Target operating system
 # bits    = 64/32     --- -D_64BIT         --- 64/32-bit operating system
-# prefetch= yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
-# bsfq    = yes/no    --- -DBSFQ           --- Use bsfq x86_64 asm-instruction (only
-#                                              with GCC and ICC 64-bit)
+# pfch    = yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
+# bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
-# pages   = yes/no    --- -DLPAGES         --- Use Large Pages
+# lps     = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -73,83 +72,83 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 debug   = no
 optimize= yes
 
-os      = any
-bits    = 32
-prefetch= no
-sse     = no
-bsfq    = no
-abm     = no
-bm2     = no
-pages   = no
+os   = any
+bits = 32
+pfch = no
+sse  = no
+bsfq = no
+abm  = no
+bm2  = no
+lps  = no
 
 ### 2.2 Architecture specific
 
 ifeq ($(ARCH),general-32)
-	arch    = any
+	arch = any
 endif
 
 ifeq ($(ARCH),x86-32-old)
-	arch    = i386
+	arch = i386
 endif
 
 ifeq ($(ARCH),x86-32)
-	arch    = i386
-	prefetch= yes
-	sse     = yes
-	pages   = yes
+	arch = i386
+	pfch = yes
+	sse  = yes
+	lps  = yes
 endif
 
 ifeq ($(ARCH),general-64)
-	arch    = any
-	bits    = 64
-	pages   = yes
+	arch = any
+	bits = 64
+	lps  = yes
 endif
 
 ifeq ($(ARCH),x86-64)
-	arch    = x86_64
-	bits    = 64
-	prefetch= yes
-	sse     = yes
-	bsfq    = yes
-	pages   = yes
+	arch = x86_64
+	bits = 64
+	pfch = yes
+	sse  = yes
+	bsfq = yes
+	lps  = yes
 endif
 
 ifeq ($(ARCH),x86-64-abm)
-	arch    = x86_64
-	bits    = 64
-	prefetch= yes
-	sse     = yes
-	bsfq    = yes
-	abm     = yes
-	pages   = yes
+	arch = x86_64
+	bits = 64
+	pfch = yes
+	sse  = yes
+	bsfq = yes
+	abm  = yes
+	lps  = yes
 endif
 
 ifeq ($(ARCH),x86-64-bm2)
-	arch    = x86_64
-	bits    = 64
-	prefetch= yes
-	sse     = yes
-	bsfq    = yes
-	abm     = yes
-	bm2     = yes
-	pages   = yes
+	arch = x86_64
+	bits = 64
+	pfch = yes
+	sse  = yes
+	bsfq = yes
+	abm  = yes
+	bm2  = yes
+	lps  = yes
 endif
 
 ifeq ($(ARCH),ppc-32)
-	arch    = ppc
-	pages   = yes
+	arch = ppc
+	lps  = yes
 endif
 
 ifeq ($(ARCH),ppc-64)
-	arch    = ppc64
-	bits    = 64
-	pages   = yes
+	arch = ppc64
+	bits = 64
+	lps  = yes
 endif
 
 ifeq ($(ARCH),armv7)
-	arch    = armv7
-	prefetch= yes
-	bsfq    = yes
+	arch = armv7
+	pfch = yes
+	bsfq = yes
 endif
 
 
@@ -172,7 +171,8 @@ endif
 ifeq ($(COMP),gcc)
 	comp= gcc
 	CXX = g++
-	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
+	LDFLAGS += -Wl,--no-as-needed
 endif
 
 ifeq ($(COMP),mingw)
@@ -191,7 +191,7 @@ endif
 ifeq ($(COMP),clang)
 	comp= clang
 	CXX = clang++
-	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(comp),icc)
@@ -280,7 +280,7 @@ ifeq ($(bits),64)
 endif
 
 ### 3.7 prefetch
-ifeq ($(prefetch),yes)
+ifeq ($(pfch),yes)
 	CXXFLAGS += -DPREFETCH
 	ifeq ($(sse),yes)
 		CXXFLAGS += -msse
@@ -288,17 +288,17 @@ ifeq ($(prefetch),yes)
 	endif
 endif
 
-### 3.8 bsfq
+### 3.8 Bitscans
 ifeq ($(bsfq),yes)
 	CXXFLAGS += -DBSFQ
 endif
 
-### 3.9 abm
+### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
 	CXXFLAGS += -DABM -msse3
 endif
 
-### 3.10 bm2
+### 3.10 BM2 (Bit Manipulation 2)
 ifeq ($(bm2),yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
@@ -306,8 +306,8 @@ ifeq ($(bm2),yes)
 	endif
 endif
 
-### 3.11 pages
-ifeq ($(pages),yes)
+### 3.11 Large Pages
+ifeq ($(lps),yes)
 	CXXFLAGS += -DLPAGES
 endif
 
@@ -435,12 +435,12 @@ config-sanity:
 	@echo "arch    : '$(arch)'"
 	@echo "os      : '$(os)'"
 	@echo "bits    : '$(bits)'"
-	@echo "prefetch: '$(prefetch)'"
+	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "bsfq    : '$(bsfq)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
-	@echo "pages   : '$(pages)'"
+	@echo "lps     : '$(lps)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "---------"
@@ -456,12 +456,12 @@ config-sanity:
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
 	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
-	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
+	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
-	@test "$(pages)" = "yes" || test "$(pages)" = "no"
+	@test "$(lps)" = "yes" || test "$(lps)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 # generating obj file
