@@ -1021,16 +1021,15 @@ namespace Evaluator {
                 {
                     // Check for KBP vs KB with only a single pawn that is almost
                     // certainly a draw or at least two pawns.
-                    u08 pawn_count = pos.count<PAWN> ();
-                    sf  = (pawn_count == 0) ? SCALE_FACTOR_DRAW :
-                          (pawn_count == 1) ? ScaleFactor (8) :
-                          ScaleFactor (min<i32> (16*pawn_count, SCALE_FACTOR_NORMAL));
+                    u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                    sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
+                          ScaleFactor (min<i32> (4*pawn_diff, SCALE_FACTOR_NORMAL));
                 }
                 else
                 {
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (50 * i32 (sf) / SCALE_FACTOR_NORMAL);
+                    sf = ScaleFactor (16 * i32 (sf) / SCALE_FACTOR_NORMAL);
                 }
             }
 
