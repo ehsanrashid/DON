@@ -404,13 +404,13 @@ namespace MoveGenerator {
         //    //moves.erase (
         //    //    remove_if (moves.begin (), moves.end (), [&] (Move m)
         //    //{
-        //    //    return ((org_sq (m) == king_sq) || pinneds != U64 (0) || (ENPASSANT == mtype (m))) && !pos.legal (m, pinneds); 
+        //    //    return ((ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))) && !pos.legal (m, pinneds); 
         //    //}), moves.end ());
         //
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (   ((org_sq (m) == king_sq) || pinneds != U64 (0) || (ENPASSANT == mtype (m)))
+        //        if (   (ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))
         //            && !pos.legal (m, pinneds))
         //        {
         //            beg->move = (--end)->move;
@@ -596,8 +596,9 @@ namespace MoveGenerator {
         while (cur != end)
         {
             Move m = cur->move;
-            if (  ((org_sq (m) == king_sq) || pinneds  != U64 (0) || ENPASSANT == mtype (m))
-                && !pos.legal (m, pinneds))
+            if (  (ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))
+                && !pos.legal (m, pinneds)
+               )
             {
                 cur->move = (--end)->move;
             }
