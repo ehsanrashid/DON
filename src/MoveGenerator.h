@@ -89,18 +89,21 @@ namespace MoveGenerator {
 
         //template<class charT, class Traits, GenT GT>
         //friend std::basic_ostream<charT, Traits>&
-        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist)
-        //{
-        //    ValMove *curr = movelist.curr;
-        //    for ( ; *movelist; ++movelist)
-        //    {
-        //        os << *movelist << std::endl;
-        //    }
-        //    movelist.curr = curr;
-        //    return os;
-        //}
+        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist);
     };
 
+    //template<class charT, class Traits, GenT GT>
+    //inline std::basic_ostream<charT, Traits>&
+    //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist)
+    //{
+    //    ValMove *curr = movelist.curr;
+    //    for ( ; *movelist; ++movelist)
+    //    {
+    //        os << *movelist << std::endl;
+    //    }
+    //    movelist.curr = curr;
+    //    return os;
+    //}
 }
 
 #endif // _MOVE_GENERATOR_H_INC_
