@@ -138,8 +138,8 @@ void benchmark (istream &is, const Position &pos)
         Position root_pos (fens[i], Threadpool.main (), chess960, false);
 
         cerr
-            << "\n--------------\n" 
-            << "Position: " << (i + 1) << "/" << total << "\n";
+            << "\n---------------\n" 
+            << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
 
         if (limit_type == "perft")
         {

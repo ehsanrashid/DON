@@ -146,7 +146,7 @@ namespace Searcher {
             ASSERT (elapsed >= 0);
             if (elapsed == 0) elapsed = 1;
 
-            ostringstream oss;
+            stringstream ss;
 
             u08 rm_size = min<i32> (Options["MultiPV"], RootMoves.size ());
             u08 sel_depth = 0;
@@ -179,9 +179,9 @@ namespace Searcher {
                 }
 
                 // Not at first line
-                if (oss.rdbuf ()->in_avail ()) oss << "\n";
+                if (ss.rdbuf ()->in_avail ()) ss << "\n";
 
-                oss << "info"
+                ss  << "info"
                     << " multipv "  << u16 (i + 1)
                     << " depth "    << u16 (d)
                     << " seldepth " << u16 (sel_depth)
@@ -193,11 +193,11 @@ namespace Searcher {
                     << " pv";
                 for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
-                    oss << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
+                    ss << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
                 }
             }
 
-            return oss.str ();
+            return ss.str ();
         }
 
         struct Skill
@@ -425,9 +425,6 @@ namespace Searcher {
                 ASSERT (_ok (move));
 
                 bool gives_check= pos.gives_check (move, ci);
-                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
-                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    //: (pos.gives_check (move, ci));
 
                 if (!PVNode)
                 {
@@ -507,7 +504,7 @@ namespace Searcher {
 
                     if (alpha < value)
                     {
-                        if (PVNode && (beta > value)) // Update alpha here! Always alpha < beta
+                        if (PVNode && (value < beta)) // Update alpha here! Always alpha < beta
                         {
                             alpha = value;
                             best_move = move;
@@ -667,10 +664,8 @@ namespace Searcher {
 
             tte      = TT.retrieve (posi_key);
             tt_move  = (ss)->tt_move = RootNode    ? RootMoves[IndexPV].pv[0]
-                                     : tte != NULL ? tte->move ()
-                                     : MOVE_NONE;
-            tt_value = tte ? value_fr_tt (tte->value (), (ss)->ply)
-                     : VALUE_NONE;
+                                     : tte != NULL ? tte->move () : MOVE_NONE;
+            tt_value = tte != NULL ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
             if (!RootNode)
             {
@@ -683,7 +678,7 @@ namespace Searcher {
                     && (tte->depth () >= depth)
                     && (        PVNode ?  tte->bound () == BND_EXACT
                     : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                    :                    (tte->bound () &  BND_UPPER))
+                                       : (tte->bound () &  BND_UPPER))
                    )
                 {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -1013,9 +1008,6 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool gives_check= pos.gives_check (move, ci);
-                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
-                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    //: (pos.gives_check (move, ci));
 
                 bool dangerous  = 
                     (  (gives_check)
@@ -1183,17 +1175,23 @@ namespace Searcher {
 
                     // TODO::
                     Depth red_depth = new_depth - (ss)->reduction;
+                    if (red_depth < ONE_MOVE)
+                    {
+                        red_depth = ONE_MOVE;
+                    }
 
                     if (SPNode)
                     {
                         alpha = splitpoint->alpha;
                     }
 
-                    value = (red_depth < ONE_MOVE)
-                        ? (gives_check
-                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                    value = 
+                        //  (red_depth < ONE_MOVE)
+                        //? (gives_check
+                        //? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
+                        //: -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
+                        //: -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                        -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if ((value > alpha) && ((ss)->reduction >= (4*ONE_MOVE)))
@@ -1219,7 +1217,7 @@ namespace Searcher {
                     }
 
                     value =
-                        (new_depth < ONE_MOVE)
+                          (new_depth < ONE_MOVE)
                         ? (gives_check
                         ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
                         : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
@@ -1235,7 +1233,7 @@ namespace Searcher {
                     if (is_pv_move || ((value > alpha) && (RootNode || (value < beta))))
                     {
                         value =
-                            (new_depth < ONE_MOVE)
+                              (new_depth < ONE_MOVE)
                             ? (gives_check
                             ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                             : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
@@ -1455,8 +1453,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 48 ? 14 + (depth>>3) : 20);
-
+                        window = Value (depth < 32 ? 14 + (depth>>3) : 18);
                         alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
