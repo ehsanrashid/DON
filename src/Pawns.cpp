@@ -275,7 +275,7 @@ namespace Pawns {
                 && (rel_rank (C, king_sq) == b_rk - 1)
                )
             {
-                safety += Value (200);
+                safety += 200;
             }
             else
             {

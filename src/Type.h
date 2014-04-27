@@ -290,7 +290,7 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NONE    = 255
 };
 
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
@@ -310,21 +310,25 @@ inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u
 
 #endif
 
+#undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
+#define BASIC_OPERATORS(T)                                                          \
+    inline T  operator+  (T  d, i32 i) { return T (i32 (d) + i); }                  \
+    inline T  operator-  (T  d, i32 i) { return T (i32 (d) - i); }                  \
+    inline T& operator+= (T &d, i32 i) { d = T (i32 (d) + i); return d; }           \
+    inline T& operator-= (T &d, i32 i) { d = T (i32 (d) - i); return d; }           \
+
 #define ARTHMAT_OPERATORS(T)                                                        \
+    BASIC_OPERATORS(T)                                                              \
     inline T  operator+  (T  d1, T d2) { return T (i32 (d1) + i32 (d2)); }          \
     inline T  operator-  (T  d1, T d2) { return T (i32 (d1) - i32 (d2)); }          \
     inline T  operator*  (T  d, i32 i) { return T (i32 (d) * i); }                  \
-    inline T  operator+  (T  d, i32 i) { return T (i32 (d) + i); }                  \
-    inline T  operator-  (T  d, i32 i) { return T (i32 (d) - i); }                  \
     inline T  operator+  (T  d       ) { return T (+i32 (d)); }                     \
     inline T  operator-  (T  d       ) { return T (-i32 (d)); }                     \
     inline T& operator+= (T &d1, T d2) { d1 = T (i32 (d1) + i32 (d2)); return d1; } \
     inline T& operator-= (T &d1, T d2) { d1 = T (i32 (d1) - i32 (d2)); return d1; } \
-    inline T& operator+= (T &d, i32 i) { d = T (i32 (d) + i); return d; }           \
-    inline T& operator-= (T &d, i32 i) { d = T (i32 (d) - i); return d; }           \
     inline T  operator*  (i32 i, T  d) { return T (i * i32 (d)); }                  \
     inline T& operator*= (T &d, i32 i) { d = T (i32 (d) * i); return d; }
 
@@ -339,18 +343,11 @@ inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u
     inline T& operator++ (T &d     ) { d = T (i32 (d) + 1); return d; }          \
     inline T& operator-- (T &d     ) { d = T (i32 (d) - 1); return d; }
 
-
+BASIC_OPERATORS (File)
 INC_DEC_OPERATORS (File)
-inline File  operator+  (File  f, i32 i) { return File (i32 (f) + i); }
-inline File  operator-  (File  f, i32 i) { return File (i32 (f) - i); }
-inline File& operator+= (File &f, i32 i) { f = File (i32 (f) + i); return f; }
-inline File& operator-= (File &f, i32 i) { f = File (i32 (f) - i); return f; }
 
+BASIC_OPERATORS (Rank)
 INC_DEC_OPERATORS (Rank)
-inline Rank  operator+  (Rank  r, i32 i) { return Rank (i32 (r) + i); }
-inline Rank  operator-  (Rank  r, i32 i) { return Rank (i32 (r) - i); }
-inline Rank& operator+= (Rank &r, i32 i) { r = Rank (i32 (r) + i); return r; }
-inline Rank& operator-= (Rank &r, i32 i) { r = Rank (i32 (r) - i); return r; }
 
 INC_DEC_OPERATORS (Color)
 
@@ -399,16 +396,15 @@ inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 
-//ARTHMAT_OPERATORS (ScaleFactor)
-
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
 inline Depth  operator/  (Depth  d, i32 i) { return Depth (u08 (d) / i); }
 inline Depth  operator*  (Depth  d, double f) { return Depth (i32 (i32 (d) * f)); }
 inline Depth& operator*= (Depth &d, double f) { d = Depth (i32 (i32 (d) * f)); return d; }
 
-#undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
+#undef ARTHMAT_OPERATORS
+#undef BASIC_OPERATORS
 
 extern const std::string PieceChar;
 extern const std::string ColorChar;
@@ -602,7 +598,7 @@ extern Move mk_move (Square org, Square dst);
 template<>
 inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt)
 {
-    return Move (PROMOTE | ((pt - NIHT) << 12) | (org << 6) | (dst << 0));
+    return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0));
 }
 template<MoveT MT>
 inline Move mk_move (Square org, Square dst)

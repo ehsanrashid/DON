@@ -48,7 +48,7 @@ namespace {
         double time_ratio1 = (TMaxRatio * this_moves_importance) / (TMaxRatio * this_moves_importance + other_moves_importance);
         double time_ratio2 = (this_moves_importance + TStealRatio * other_moves_importance) / (this_moves_importance + other_moves_importance);
 
-        return u32 (floor (time * min (time_ratio1, time_ratio2)));
+        return floor (time * min (time_ratio1, time_ratio2));
     }
 
 }

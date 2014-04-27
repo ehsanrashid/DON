@@ -196,14 +196,14 @@ namespace EndGame {
 
         if (probe_kpk (c, sk_sq, sp_sq, wk_sq))
         {
-            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value (_rank (sp_sq));
+            value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
         }
         else
         {
             value = Value ((
-                PushClose[SquareDist[sk_sq][wk_sq]] +
-                PushClose[SquareDist[sp_sq][sk_sq]] +
-                PushAway [SquareDist[sp_sq][wk_sq]]) / 10);
+                    PushClose[SquareDist[sk_sq][wk_sq]]
+                  + PushClose[SquareDist[sp_sq][sk_sq]]
+                  + PushAway [SquareDist[sp_sq][wk_sq]]) / 10);
         }
 
         return (_stong_side == pos.active ()) ? +value : -value;
@@ -274,7 +274,7 @@ namespace EndGame {
                )
            )
         {
-            value = VALUE_EG_ROOK - Value (SquareDist[sk_sq][wp_sq]);
+            value = VALUE_EG_ROOK - i32 (SquareDist[sk_sq][wp_sq]);
         }
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else if ( (_rank (wk_sq) <= R_3)
@@ -287,10 +287,10 @@ namespace EndGame {
         }
         else
         {
-            value = Value (200)
-                  - Value (8 * SquareDist[sk_sq][wp_sq+DEL_S])
-                  + Value (8 * SquareDist[wk_sq][wp_sq+DEL_S])
-                  + Value (8 * SquareDist[wp_sq][queening_sq]);
+            value = Value (200
+                  - 8 * SquareDist[sk_sq][wp_sq+DEL_S]
+                  + 8 * SquareDist[wk_sq][wp_sq+DEL_S]
+                  + 8 * SquareDist[wp_sq][queening_sq]);
         }
 
         return (_stong_side == pos.active ()) ? +value : -value;
