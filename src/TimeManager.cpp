@@ -1,7 +1,6 @@
 #include "TimeManager.h"
 
 #include <cfloat>
-#include <cmath>
 #include <algorithm>
 
 #include "UCI.h"
@@ -48,7 +47,7 @@ namespace {
         double time_ratio1 = (TMaxRatio * this_moves_importance) / (TMaxRatio * this_moves_importance + other_moves_importance);
         double time_ratio2 = (this_moves_importance + TStealRatio * other_moves_importance) / (this_moves_importance + other_moves_importance);
 
-        return floor (time * min (time_ratio1, time_ratio2));
+        return i32 (time * min (time_ratio1, time_ratio2));
     }
 
 }

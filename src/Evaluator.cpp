@@ -987,13 +987,17 @@ namespace Evaluator {
                 score -= evaluate_unstoppable_pawns<BLACK> (pos, ei);
             }
 
-            Score space_weight = ei.mi->space_weight ();
+            Phase game_phase = ei.mi->game_phase ();
             // Evaluate space for both sides, only in middle-game.
-            if (space_weight != 0)
+            if (game_phase <= PHASE_MIDGAME)
             {
-                i32 scr = evaluate_space<WHITE> (pos, ei)
-                        - evaluate_space<BLACK> (pos, ei);
-                score += apply_weight (scr * space_weight, Weights[Space]);
+                Score space_weight = ei.mi->space_weight ();
+                if (space_weight != 0)
+                {
+                    i32 scr = evaluate_space<WHITE> (pos, ei)
+                            - evaluate_space<BLACK> (pos, ei);
+                    score += apply_weight (scr * space_weight, Weights[Space]);
+                }
             }
 
             // Scale winning side if position is more drawish than it appears
@@ -1003,7 +1007,7 @@ namespace Evaluator {
 
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
-            if (   (ei.mi->game_phase () < PHASE_MIDGAME)
+            if (   (game_phase < PHASE_MIDGAME)
                 && (sf <= SCALE_FACTOR_NORMAL)
                 && (pos.opposite_bishops ())
                )
@@ -1028,7 +1032,7 @@ namespace Evaluator {
                 }
             }
 
-            Value value = interpolate (score, ei.mi->game_phase (), sf);
+            Value value = interpolate (score, game_phase, sf);
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
