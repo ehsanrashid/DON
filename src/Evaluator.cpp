@@ -538,9 +538,7 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
-                                bool cant_castle = !pos.can_castle (C);
-                                                //|| (pos.castle_path (mk_castle_right (C, (s > fk_sq) ? CS_K : CS_Q)) & ei.attacked_by[C_][NONE]) != U64 (0);
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + cant_castle);
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + !pos.can_castle (C));
                             }
                         }
                     }
@@ -1028,7 +1026,7 @@ namespace Evaluator {
                 {
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (16 * i32 (sf) / SCALE_FACTOR_NORMAL);
+                    sf = ScaleFactor (20 * i32 (sf) / SCALE_FACTOR_NORMAL);
                 }
             }
 
