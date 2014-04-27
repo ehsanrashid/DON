@@ -771,13 +771,13 @@ namespace Evaluator {
                     Square ek_sq = pos.king_sq (C_);
 
                     // Adjust bonus based on kings proximity
-                    eg_bonus += Value (5 * rr * SquareDist[ek_sq][block_sq])
-                             -  Value (2 * rr * SquareDist[fk_sq][block_sq]);
+                    eg_bonus += (5 * rr * SquareDist[ek_sq][block_sq])
+                             -  (2 * rr * SquareDist[fk_sq][block_sq]);
 
                     // If block_sq is not the queening square then consider also a second push
                     if (rel_rank (C, block_sq) != R_8)
                     {
-                        eg_bonus -= Value (rr * SquareDist[fk_sq][block_sq + pawn_push (C)]);
+                        eg_bonus -= (rr * SquareDist[fk_sq][block_sq + pawn_push (C)]);
                     }
 
                     // If the pawn is free to advance, increase bonus
@@ -820,22 +820,13 @@ namespace Evaluator {
                         // a smaller bonus if at least block square is defended.
                         k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
 
-                        mg_bonus += Value (k * rr);
-                        eg_bonus += Value (k * rr);
+                        mg_bonus += k * rr;
+                        eg_bonus += k * rr;
                     }
                 }
 
                 if (eg_bonus != VALUE_ZERO)
                 {
-                    // Rook pawns are a special case: They are sometimes worse, and
-                    // sometimes better than other passed pawns. It is difficult to find
-                    // good rules for determining whether they are good or bad.
-                    if ((file_bb (s) & (FA_bb | FH_bb)) != U64 (0))
-                    {
-                        i32 npm = pos.non_pawn_material (C) + pos.non_pawn_material (C_);
-                        eg_bonus -= (npm - i32 (2 * VALUE_EG_QUEN)) * eg_bonus / VALUE_INFINITE;
-                    }
-
                     // Increase the bonus if we have more non-pawn pieces
                     if (pos.count<NONPAWN> (C) > pos.count<NONPAWN> (C_))
                     {
