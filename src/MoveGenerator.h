@@ -21,12 +21,12 @@ public:
     // remaining ones so to sort separately the two sets, and with the second sort delayed.
     inline bool operator() (const ValMove &vm) { return (vm.value > VALUE_ZERO); }
 
-    inline friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
-    inline friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
-    inline friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
-    inline friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
-    inline friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
-    inline friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
+    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
+    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
+    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
+    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
+    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
+    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
 
 };
 
@@ -73,8 +73,6 @@ namespace MoveGenerator {
 
         inline void operator++ () { ++curr; }
         inline void operator-- () { --curr; }
-        //inline void begin      () { curr = moves; }
-        //inline void end        () { curr = last-1; }
 
         inline Move operator* () const { return curr->move; }
 
@@ -90,19 +88,22 @@ namespace MoveGenerator {
         }
 
         //template<class charT, class Traits, GenT GT>
-        //inline friend std::basic_ostream<charT, Traits>&
-        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist)
-        //{
-        //    ValMove *curr = movelist.curr;
-        //    for ( ; *movelist; ++movelist)
-        //    {
-        //        os << *movelist << std::endl;
-        //    }
-        //    movelist.curr = curr;
-        //    return os;
-        //}
+        //friend std::basic_ostream<charT, Traits>&
+        //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist);
     };
 
+    //template<class charT, class Traits, GenT GT>
+    //inline std::basic_ostream<charT, Traits>&
+    //    operator<< (std::basic_ostream<charT, Traits> &os, MoveList<GT> &movelist)
+    //{
+    //    ValMove *curr = movelist.curr;
+    //    for ( ; *movelist; ++movelist)
+    //    {
+    //        os << *movelist << std::endl;
+    //    }
+    //    movelist.curr = curr;
+    //    return os;
+    //}
 }
 
 #endif // _MOVE_GENERATOR_H_INC_
