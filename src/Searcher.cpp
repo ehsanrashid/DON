@@ -146,7 +146,7 @@ namespace Searcher {
             ASSERT (elapsed >= 0);
             if (elapsed == 0) elapsed = 1;
 
-            ostringstream oss;
+            stringstream ss;
 
             u08 rm_size = min<i32> (Options["MultiPV"], RootMoves.size ());
             u08 sel_depth = 0;
@@ -179,9 +179,9 @@ namespace Searcher {
                 }
 
                 // Not at first line
-                if (oss.rdbuf ()->in_avail ()) oss << "\n";
+                if (ss.rdbuf ()->in_avail ()) ss << "\n";
 
-                oss << "info"
+                ss  << "info"
                     << " multipv "  << u16 (i + 1)
                     << " depth "    << u16 (d)
                     << " seldepth " << u16 (sel_depth)
@@ -193,11 +193,11 @@ namespace Searcher {
                     << " pv";
                 for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
                 {
-                    oss << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
+                    ss << " " << move_to_can (RootMoves[i].pv[j], pos.chess960 ());
                 }
             }
 
-            return oss.str ();
+            return ss.str ();
         }
 
         struct Skill
