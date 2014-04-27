@@ -104,15 +104,13 @@ namespace MoveGenerator {
 
                 Square dst_king = rel_sq (C, KingSide ? SQ_G1 : SQ_C1);
 
-                Bitboard enemies = pos.pieces (C_);
-
                 Delta step = CHESS960 ? 
                     (dst_king > org_king ? DEL_W : DEL_E) :
                     (KingSide            ? DEL_W : DEL_E);
 
                 for (i08 s = dst_king; s != org_king; s += step)
                 {
-                    if (pos.attackers_to (Square (s)) & enemies)
+                    if (pos.attackers_to (Square (s)) & pos.pieces (C_))
                     {
                         return;
                     }
@@ -123,7 +121,7 @@ namespace MoveGenerator {
                     // Because we generate only legal castling moves we need to verify that
                     // when moving the castling rook we do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (ROOK, QUEN) & enemies)
+                    if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (C_, ROOK, QUEN))
                     {
                         return;
                     }

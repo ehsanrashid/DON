@@ -29,7 +29,7 @@ namespace Zobrist {
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
                 for (u08 pc = 0; pc < pos.count (Color (c), PieceT (pt)); ++pc)
                 {
@@ -79,7 +79,7 @@ namespace Zobrist {
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
                 const Square *pl = pos[(Color (c) | PieceT (pt))];
                 Square s;

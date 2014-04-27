@@ -431,9 +431,9 @@ bool Position::ok (i08 *step) const
     {
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = 0; i < _piece_count[c][pt]; ++i)
+                for (i08 i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (   !_ok  (_piece_list[c][pt][i])
                         || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
@@ -1088,7 +1088,7 @@ void Position::clear ()
     }
     for (i08 c = WHITE; c <= BLACK; ++c)
     {
-        for (u08 pt = PAWN; pt <= KING; ++pt)
+        for (i08 pt = PAWN; pt <= KING; ++pt)
         {
             for (i08 i = 0; i < 16; ++i)
             {
@@ -1168,18 +1168,21 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (pop_count<FULL> (ep_pawns) <= 2);
     if (ep_pawns == U64 (0)) return false;
 
-    vector<Move> ep_mlist;
+    Move ep_moves[3]
+    ,   *curr = ep_moves;
+
+    memset (ep_moves, MOVE_NONE, sizeof (ep_moves));
     while (ep_pawns != U64 (0))
     {
-        ep_mlist.push_back (mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq));
+        *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
     }
 
     // Check en-passant is legal for the position
     Square   ksq = _piece_list[_active][KING][0];
     const Bitboard occ = _types_bb[NONE];
-    for (vector<Move>::const_iterator itr = ep_mlist.begin (); itr != ep_mlist.end (); ++itr)
+    for (curr = ep_moves; *curr != MOVE_NONE; ++curr)
     {
-        Move m = *itr;
+        Move m = *curr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         if (!( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
             || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
@@ -1189,6 +1192,7 @@ bool Position::can_en_passant (Square ep_sq) const
             return true;
         }
     }
+
     return false;
 }
 
@@ -1448,7 +1452,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
         else
         {
-            _si->checkers = attackers_to (_piece_list[pasive][KING][0]) & _color_bb[_active];
+            _si->checkers = attackers_to (_piece_list[pasive][KING][0], _types_bb[NONE]) & _color_bb[_active];
         }
     }
 
