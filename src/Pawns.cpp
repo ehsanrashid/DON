@@ -311,10 +311,8 @@ namespace Pawns {
         Value bonus = VALUE_ZERO;
         if (rel_rank (C, king_sq) <= R_4)
         {
-            bonus = shelter_storm<C> (pos, king_sq);
-
             // If we can castle use the bonus after the castle if is bigger
-            if (pos.can_castle (C))
+            if (rel_rank (C, king_sq) == R_1 && pos.can_castle (C))
             {
                 if (pos.can_castle (Castling<C, CS_K>::Right))
                 {
@@ -324,6 +322,14 @@ namespace Pawns {
                 {
                     bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
                 }
+                if (bonus < MaxSafetyBonus)
+                {
+                    bonus = max (bonus, shelter_storm<C> (pos, king_sq));
+                }
+            }
+            else
+            {
+                bonus = shelter_storm<C> (pos, king_sq);
             }
         }
 
