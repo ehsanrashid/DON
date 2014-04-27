@@ -1179,11 +1179,11 @@ bool Position::can_en_passant (Square ep_sq) const
 
     // Check en-passant is legal for the position
     Square   ksq = _piece_list[_active][KING][0];
-    const Bitboard occ = _types_bb[NONE];
+    const Bitboard occ = _types_bb[NONE] + ep_sq - cap;
     for (curr = ep_moves; *curr != MOVE_NONE; ++curr)
     {
         Move m = *curr;
-        Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
+        Bitboard mocc = occ - org_sq (m);
         if (!( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
             || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
              )
@@ -1219,7 +1219,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
-    for (u08 pt = NIHT; pt <= QUEN; ++pt)
+    for (i08 pt = NIHT; pt <= QUEN; ++pt)
     {
         value += PieceValue[MG][pt] * i32 (_piece_count[c][pt]);
     }
@@ -1463,9 +1463,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
-        u08 iorg = org;
-        u08 idst = dst;
-        if (16 == (idst ^ iorg))
+        i08 iorg = org;
+        i08 idst = dst;
+        if (DEL_NN == (idst ^ iorg))
         {
             Square ep_sq = Square ((idst + iorg) / 2);
             if (can_en_passant (ep_sq))

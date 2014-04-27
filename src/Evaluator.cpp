@@ -395,10 +395,10 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | ei.pinned_pieces[C]) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | ei.pinned_pieces[C]) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | ei.pinned_pieces[C])
-                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | ei.pinned_pieces[C]) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP))) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK))) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ))
+                                 | attacks_bb<ROOK> (s, (occ)) :
                     PieceAttacks[PT][s];
 
                 if (ei.pinned_pieces[C] & s)
