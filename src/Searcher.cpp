@@ -1453,7 +1453,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 32 ? 14 + (depth>>3) : 18);
+                        window = Value (depth >= 32 ? 20 - (depth>>2) : 12);
                         alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
