@@ -35,9 +35,8 @@ ifeq ($(UNAME),Haiku)
 endif
 BINDIR = $(PREFIX)/bin
 
-### Built-in benchmark for pgo-builds and signature
+### Built-in benchmark for pgo-builds
 PGOBENCH  = ./$(EXE) bench 32 1 1 time default
-SIGNBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \

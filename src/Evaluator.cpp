@@ -291,19 +291,6 @@ namespace Evaluator {
             return weight;
         }
 
-        // interpolate() interpolates between a middle game and an endgame score,
-        // based on game phase. It also scales the return value by a ScaleFactor array.
-        inline Value interpolate (const Score &score, Phase phase, ScaleFactor scale_factor)
-        {
-            ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
-            ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-            ASSERT (PHASE_ENDGAME <= phase && phase <= PHASE_MIDGAME);
-
-            i32 mg = mg_value (score);
-            i32 eg = eg_value (score) * i32 (scale_factor) / SCALE_FACTOR_NORMAL;
-            return Value ((mg * i32 (phase) + eg * i32 (PHASE_MIDGAME - phase)) / PHASE_MIDGAME);
-        }
-
         //  --- init evaluation info --->
         template<Color C>
         // init_eval_info() initializes king bitboards for given color adding
@@ -939,7 +926,7 @@ namespace Evaluator {
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             
-            // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+            // Do not include in mobility squares protected by enemy pawns or occupied by our pawns or king
             const Bitboard mobility_area[CLR_NO] =
             {
                 ~(pos.pieces (WHITE, PAWN, KING) | ei.attacked_by[BLACK][PAWN]),
@@ -986,6 +973,8 @@ namespace Evaluator {
             }
 
             Phase game_phase = ei.mi->game_phase ();
+            ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
+
             // Evaluate space for both sides, only in middle-game.
             if (game_phase <= PHASE_MIDGAME)
             {
@@ -1030,7 +1019,13 @@ namespace Evaluator {
                 }
             }
 
-            Value value = interpolate (score, game_phase, sf);
+            // Interpolates between a middle game and a (scaled by 'sf') endgame score, based on game phase.
+            ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
+            ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
+            i32 mg = mg_value (score);
+            i32 eg = eg_value (score) * i32 (sf) / SCALE_FACTOR_NORMAL;
+            
+            Value value = Value ((mg * i32 (game_phase) + eg * i32 (PHASE_MIDGAME - game_phase)) / PHASE_MIDGAME);
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
