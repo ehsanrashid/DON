@@ -1838,8 +1838,8 @@ namespace Searcher {
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? i32 (    pv_red * i32 (ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? i32 (non_pv_red * i32 (ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? u08 (    pv_red * i32 (ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? u08 (non_pv_red * i32 (ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
