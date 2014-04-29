@@ -24,7 +24,6 @@ INLINE u64 system_time_msec ()
 {
     _timeb timebuf;
     _ftime (&timebuf);
-    //_ftime_s (&timebuf);
     return ((timebuf.time * 1000LL) + timebuf.millitm);
 }
 
@@ -94,9 +93,9 @@ namespace Time {
     }
 }
 
-template<typename charT, typename Traits>
+template<class charT, class Traits>
 inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, const Time::point &p)
+    operator<< (std::basic_ostream<charT, Traits> &os, Time::point p)
 {
     os << Time::to_string (p);
     return os;
