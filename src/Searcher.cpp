@@ -540,7 +540,7 @@ namespace Searcher {
                 posi_key,
                 best_move,
                 tt_depth,
-                PVNode && (best_value > old_alpha) ? BND_EXACT : BND_UPPER,
+                PVNode && (old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                 pos.game_nodes (),
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
@@ -1194,13 +1194,13 @@ namespace Searcher {
                         -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
-                    if ((value > alpha) && ((ss)->reduction >= (4*ONE_MOVE)))
+                    if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
                         Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
                         value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = ((value > alpha) && ((ss)->reduction != DEPTH_ZERO));
+                    full_depth_search = ((alpha < value) && ((ss)->reduction != DEPTH_ZERO));
                     (ss)->reduction = DEPTH_ZERO;
                 }
                 else
@@ -1230,7 +1230,7 @@ namespace Searcher {
                     // For PV nodes only, do a full PV search on the first move or after a fail
                     // high (in the latter case search only if value < beta), otherwise let the
                     // parent node fail low with value <= alpha and to try another move.
-                    if (is_pv_move || ((value > alpha) && (RootNode || (value < beta))))
+                    if (is_pv_move || ((alpha < value) && (RootNode || (value < beta))))
                     {
                         value =
                               (new_depth < ONE_MOVE)
@@ -1268,7 +1268,7 @@ namespace Searcher {
                     RootMove &rm = *find (RootMoves.begin (), RootMoves.end (), move);
 
                     // PV move or new best move ?
-                    if (is_pv_move || value > alpha)
+                    if (is_pv_move || alpha < value)
                     {
                         rm.value[0] = value;
                         //rm.nodes = pos.game_nodes ();
@@ -1277,7 +1277,7 @@ namespace Searcher {
                         // We record how often the best move has been changed in each
                         // iteration. This information is used for time management:
                         // When the best move changes frequently, we allocate some more time.
-                        if (!is_pv_move) // (value > alpha)
+                        if (!is_pv_move) // (alpha < value)
                         {
                             ++BestMoveChanges;
                         }
@@ -1291,11 +1291,11 @@ namespace Searcher {
                     }
                 }
 
-                if (value > best_value)
+                if (best_value < value)
                 {
                     best_value = (SPNode) ? splitpoint->best_value = value : value;
 
-                    if (value > alpha)
+                    if (alpha < value)
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
