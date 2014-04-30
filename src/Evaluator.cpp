@@ -230,7 +230,7 @@ namespace Evaluator {
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
         // Hanging[color] contains a bonus for each enemy hanging piece
-        const Score HangingBonus[CLR_NO]    = { S(+23,+20) , S(+35,+45) };
+        const Score PieceHangingBonus       = S(+23,+20);
 
         //const Score CastleBlockedPenalty    = S(+150,+ 0);
 
@@ -733,9 +733,7 @@ namespace Evaluator {
                 attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
                 if (attacked_enemies != U64 (0))
                 {
-                    score += more_than_one (attacked_enemies)
-                           ? HangingBonus[C != pos.active ()] * i32 (pop_count<MAX15> (attacked_enemies))
-                           : HangingBonus[C == pos.active ()];
+                    score += PieceHangingBonus * i32 (pop_count<MAX15> (attacked_enemies));
                 }
             }
 
