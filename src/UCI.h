@@ -97,7 +97,7 @@ namespace UCI {
 
     // ---------------------------------------------
 
-    extern void start (const std::string &args = "");
+    extern void start (const std::string &arg = "");
 
     extern void stop ();
 }

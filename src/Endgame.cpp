@@ -1063,7 +1063,8 @@ namespace EndGame {
     {
         if (EndGames == NULL)
         {
-            EndGames = new Endgames();
+            EndGames = new Endgames ();
+            ASSERT (EndGames != NULL);
         }
     }
 
