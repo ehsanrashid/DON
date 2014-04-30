@@ -27,7 +27,7 @@ namespace Engine {
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "1.5";
+        const string Version   = "";
         const string Author    = "Ehsan Rashid";
 
         const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
