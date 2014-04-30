@@ -219,20 +219,19 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+56,+70), S(+56,+70), S(+76,+99), S(+86,+118), S(+ 0,+ 0)
         };
 
-        const Score TempoBonus              = S(+24,+11);
-        const Score RookOnPawnBonus         = S(+10,+28);
-        const Score RookOpenFileBonus       = S(+43,+21);
-        const Score RookSemiOpenFileBonus   = S(+19,+10);
-        const Score MinorBehindPawnBonus    = S(+16,+ 0);
-        const Score PawnUnstoppableBonus    = S(+ 0,+20);
-
-        const Score BishopPawnsPenalty      = S(+ 8,+14);
-        const Score MinorUndefendedPenalty  = S(+25,+10);
-        const Score RookTrappedPenalty      = S(+90,+ 0);
-        // Hanging[color] contains a bonus for each enemy hanging piece
-        const Score PieceHangingBonus       = S(+23,+20);
-
-        //const Score CastleBlockedPenalty    = S(+150,+ 0);
+        // Bonuses
+        const Score TempoBonus              = S(+24,+11); // Bonus for tempo
+        const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
+        const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
+        const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
+        const Score MinorBehindPawnBonus    = S(+16,+ 0); // Bonus for minor behind friendly pawn
+        const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
+        const Score PieceHangingBonus       = S(+23,+20); // Bonus for each enemy hanging piece
+        // Penalties
+        const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
+        const Score MinorUndefendedPenalty  = S(+25,+10); // Penalty for minor undefended
+        const Score RookTrappedPenalty      = S(+90,+ 0); // Penalty for rook trapped
+        //const Score CastleBlockedPenalty    = S(+150,+ 0); // Penalty for castling blocked by enemy attacks
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
