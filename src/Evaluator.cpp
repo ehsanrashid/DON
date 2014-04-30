@@ -1042,10 +1042,10 @@ namespace Evaluator {
             // Interpolates between a middle game and a (scaled by 'sf') endgame score, based on game phase.
             ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-            i32 mg = mg_value (score);
-            i32 eg = eg_value (score) * i32 (sf) / SCALE_FACTOR_NORMAL;
+            i32 mg = i32 (mg_value (score));
+            i32 eg = i32 (eg_value (score)) * i32 (sf) / i32 (SCALE_FACTOR_NORMAL);
             
-            Value value = Value ((mg * i32 (game_phase) + eg * i32 (PHASE_MIDGAME - game_phase)) / PHASE_MIDGAME);
+            Value value = Value ((mg * i32 (game_phase) + eg * i32 (PHASE_MIDGAME - game_phase)) / i32 (PHASE_MIDGAME));
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
