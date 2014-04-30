@@ -27,7 +27,7 @@ namespace Engine {
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "";
+        const string Version   = "1.5";
         const string Author    = "Ehsan Rashid";
 
         const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
@@ -60,11 +60,12 @@ namespace Engine {
             oss << setfill ('0')
                 << setw (2) << (day) //<< '-'
                 << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
-                << setw (2) << (year.substr (2));
+                << setw (2) << (year.substr (2))
+                << setfill (' ');
         }
         else
         {
-            oss << Version << setfill ('0');
+            oss << Version;
         }
 #endif
 
@@ -84,14 +85,15 @@ namespace Engine {
         oss << "-LP";
 #endif
 
-        oss << "\n" 
-            << ((uci) ? ("id author " + Author)
-            : (Author + " (c) 2014")) << "\n";
+        oss << "\n";
+        if (uci) oss << "id author " << Author;
+        else     oss << Author << " (c) 2014";
+        oss << "\n";
 
         return oss.str ();
     }
 
-    void run (const std::string &args)
+    void run (const std::string &arg)
     {
         cout << Engine::info (false) << endl;
 
@@ -123,14 +125,14 @@ namespace Engine {
 
         cout << endl;
 
-        UCI      ::start (args);
+        UCI      ::start (arg);
 
     }
 
     // Exit from engine with exit code. (in case of some crash)
     void exit (i32 code)
     {
-        UCI       ::stop ();
+        UCI      ::stop ();
         
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();

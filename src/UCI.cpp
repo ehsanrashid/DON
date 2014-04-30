@@ -52,10 +52,10 @@ namespace UCI {
             sync_cout << "readyok" << sync_endl;
         }
 
-        inline void exe_setoption (cmdstream &cstm)
+        inline void exe_setoption (cmdstream &cmds)
         {
             string token;
-            if (cstm >> token)
+            if (cmds >> token)
             {
                 // consume "name" token
                 if (token == "name")
@@ -63,14 +63,14 @@ namespace UCI {
                     string name;
                     // Read option-name (can contain spaces)
                     // consume "value" token
-                    while (cstm >> token && token != "value")
+                    while (cmds >> token && token != "value")
                     {
                         name += string (" ", !name.empty ()) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
-                    while (cstm >> token)
+                    while (cmds >> token)
                     {
                         value += string (" ", !value.empty ()) + token;
                     }
@@ -101,25 +101,25 @@ namespace UCI {
         // Example:
         //   "register later"
         //   "register name Stefan MK code 4359874324"
-        inline void exe_register (cmdstream &cstm)
+        inline void exe_register (cmdstream &cmds)
         {
             string token;
 
-            if (cstm >> token)
+            if (cmds >> token)
             {
                 if (token == "name")
                 {
                     string name;
                     // Read name (can contain spaces)
                     // consume "value" token
-                    while (cstm >> token && token != "code")
+                    while (cmds >> token && token != "code")
                     {
                         name += string (" ", !name.empty ()) + token;
                     }
 
                     string code;
                     // Read code (can contain spaces)
-                    while (cstm >> token)
+                    while (cmds >> token)
                     {
                         code += string (" ", !code.empty ()) + token;
                     }
@@ -140,22 +140,22 @@ namespace UCI {
         //  - fen-string position ("fen")
         // and then makes the moves given in the following move list ("moves")
         // also saving the moves on stack.
-        inline void exe_position (cmdstream &cstm)
+        inline void exe_position (cmdstream &cmds)
         {
             string token;
             string fen;
-            if (cstm >> token)
+            if (cmds >> token)
             {
                 // consume "startpos" or "fen" token
                 if      (token == "startpos")
                 {
                     fen = StartFEN;
-                    cstm >> token; // Consume "moves" token if any
+                    cmds >> token; // Consume "moves" token if any
                 }
                 else if (token == "fen")
                 {
                     // consume "moves" token if any
-                    while (cstm >> token && token != "moves")
+                    while (cmds >> token && token != "moves")
                     {
                         fen += string (" ", !fen.empty ()) + token;
                     }
@@ -181,7 +181,7 @@ namespace UCI {
             // parse and validate game moves (if any)
             if (token == "moves")
             {
-                while (cstm >> token)
+                while (cmds >> token)
                 {
                     Move m = move_from_can (token, RootPos);
                     
@@ -210,29 +210,29 @@ namespace UCI {
         //  - infinite
         //  - ponder
         // Starts the search.
-        inline void exe_go (cmdstream &cstm)
+        inline void exe_go (cmdstream &cmds)
         {
             LimitsT limits;
 
             string  token;
             i32     value;
-            while (cstm >> token)
+            while (cmds >> token)
             {
-                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? +value : -value; }
-                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? +value : -value; }
-                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
-                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
-                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? +value : -value; }
-                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? +value : -value; }
-                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? +value : -value; }
-                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? +value : -value; }
-                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? +value : -value; }
+                if      (token == "wtime")      { cmds >> value; limits.gameclock[WHITE].time = value >= 0 ? +value : -value; }
+                else if (token == "btime")      { cmds >> value; limits.gameclock[BLACK].time = value >= 0 ? +value : -value; }
+                else if (token == "winc")       { cmds >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
+                else if (token == "binc")       { cmds >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
+                else if (token == "movetime")   { cmds >> value; limits.movetime  = value >= 0 ? +value : -value; }
+                else if (token == "movestogo")  { cmds >> value; limits.movestogo = value >= 0 ? +value : -value; }
+                else if (token == "depth")      { cmds >> value; limits.depth = value >= 0 ? +value : -value; }
+                else if (token == "nodes")      { cmds >> value; limits.nodes = value >= 0 ? +value : -value; }
+                else if (token == "mate")       { cmds >> value; limits.mate  = value >= 0 ? +value : -value; }
                 else if (token == "infinite")   { limits.infinite  = true; }
                 else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)
                 else if (token == "searchmoves")
                 {
-                    while (cstm >> token)
+                    while (cmds >> token)
                     {
                         Move m = move_from_can (token, RootPos);
                         if (MOVE_NONE != m)
@@ -251,10 +251,10 @@ namespace UCI {
             Limits.ponder = false;
         }
 
-        inline void exe_io (cmdstream &cstm)
+        inline void exe_io (cmdstream &cmds)
         {
             string token;
-            if (cstm >> token)
+            if (cmds >> token)
             {
                 if      (token == "on")
                 {
@@ -285,7 +285,7 @@ namespace UCI {
                 << sync_endl;
         }
 
-        inline void exe_allmoves ()
+        inline void exe_moves ()
         {
             sync_cout;
 
@@ -365,11 +365,11 @@ namespace UCI {
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
-        inline void exe_perft (cmdstream &cstm)
+        inline void exe_perft (cmdstream &cmds)
         {
             string token;
             // Read perft 'depth'
-            if (cstm >> token)
+            if (cmds >> token)
             {
                 stringstream ss;
                 ss  << i32 (Options["Hash"])    << " "
@@ -380,9 +380,9 @@ namespace UCI {
             }
         }
 
-        inline void exe_bench (cmdstream &cstm)
+        inline void exe_bench (cmdstream &cmds)
         {
-            benchmark (cstm, RootPos);
+            benchmark (cmds, RootPos);
         }
         // Stops the search
         inline void exe_stop ()
@@ -397,29 +397,29 @@ namespace UCI {
     // and call the appropriate functions. Also intercepts EOF from stdin to ensure
     // that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
     // commands, the function also supports a few debug commands.
-    void start (const string &args)
+    void start (const string &arg)
     {
         RootPos.setup (StartFEN, Threadpool.main (), bool (Options["UCI_Chess960"]));
 
-        bool running = args.empty ();
-        string cmd   = args;
+        bool running = arg.empty ();
+        string cmd   = arg;
         string token;
         do
         {
             // Block here waiting for input
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
 
-            cmdstream cstm (cmd);
-            cstm >> skipws >> token;
+            cmdstream cmds (cmd);
+            cmds >> skipws >> token;
 
             if (token.empty ())             continue;
             else if (token == "uci")        exe_uci ();
             else if (token == "ucinewgame") exe_ucinewgame ();
             else if (token == "isready")    exe_isready ();
-            else if (token == "register")   exe_register (cstm);
-            else if (token == "setoption")  exe_setoption (cstm);
-            else if (token == "position")   exe_position (cstm);
-            else if (token == "go")         exe_go (cstm);
+            else if (token == "register")   exe_register (cmds);
+            else if (token == "setoption")  exe_setoption (cmds);
+            else if (token == "position")   exe_position (cmds);
+            else if (token == "go")         exe_go (cmds);
             else if (token == "ponderhit")
             {
                 // GUI sends 'ponderhit' to tell us to ponder on the same move the
@@ -429,14 +429,14 @@ namespace UCI {
                 // switching from pondering to normal search.
                 Signals.stop_ponderhit ? exe_stop () : exe_ponderhit ();
             }
-            else if (token == "io")         exe_io (cstm);
+            else if (token == "io")         exe_io (cmds);
             else if (token == "print")      exe_print ();
             else if (token == "key")        exe_key ();
-            else if (token == "allmoves")   exe_allmoves ();
+            else if (token == "moves")      exe_moves ();
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
-            else if (token == "perft")      exe_perft (cstm);
-            else if (token == "bench")      exe_bench (cstm);
+            else if (token == "perft")      exe_perft (cmds);
+            else if (token == "bench")      exe_bench (cmds);
             else if (token == "cls")        system ("cls");
             else if (token == "stop"
                 ||   token == "quit")       exe_stop ();

@@ -1567,7 +1567,7 @@ namespace Searcher {
                    )
                 {
                     // Take in account some extra time if the best move has changed
-                    if (   (4 < depth && depth < 50)
+                    if (   (4 < depth && depth < MAX_PLY/2)
                         && (1 == MultiPV)
                        )
                     {
