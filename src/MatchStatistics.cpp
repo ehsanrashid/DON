@@ -19,7 +19,7 @@ i32 main (i32 argc, const char *const *argv)
     i32 total = wins + loss + draws;
     printf ("Total games     : %d\n", total);
     i32 score_diff = wins - loss;
-    printf ("Score difference: %d\n", total);
+    printf ("Score difference: %d\n", score_diff);
     double score = wins + 0.5*draws;
     printf ("Score           : %g\n", score);
     double win_ratio = wins / total;
@@ -27,7 +27,7 @@ i32 main (i32 argc, const char *const *argv)
     double draw_ratio = draws / total;
     printf ("Draw ratio      : %g\n", draw_ratio);
 
-    double elo_diff = -log (1.0 / win_ratio - 1.0) *400.0 / log (10.0);
+    double elo_diff = -log (1.0 / win_ratio - 1.0) * 400.0 / log (10.0);
     printf ("ELO difference  : %+g\n", elo_diff);
     //double los = .5 + .5 * std::erf ((score_diff) / sqrt (2.0 * (wins+loss)));
     //printf ("LOS             : %g\n", los);
