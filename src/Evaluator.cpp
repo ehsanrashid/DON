@@ -229,6 +229,8 @@ namespace Evaluator {
         const Score BishopPawnsPenalty      = S(+ 8,+14);
         const Score MinorUndefendedPenalty  = S(+25,+10);
         const Score RookTrappedPenalty      = S(+90,+ 0);
+        // Hanging[color] contains a bonus for each enemy hanging piece
+        const Score HangingBonus[CLR_NO]    = { S(+23,+20) , S(+35,+45) };
 
         //const Score CastleBlockedPenalty    = S(+150,+ 0);
 
@@ -265,6 +267,8 @@ namespace Evaluator {
         const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0 };
 
         const i32 PiecePinnedWeight = + 2;
+
+
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
@@ -707,18 +711,32 @@ namespace Evaluator {
             Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][NONE];
             if (undefended_minors != U64 (0)) score += MinorUndefendedPenalty;
 
-            // Enemy pieces not defended by a pawn and under our attack
+            // Enemies not defended by a pawn and under our attack
             Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][NONE];
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies != U64 (0))
             {
                 Bitboard attacked_enemies;
                 // Minor
-                attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
-                if (attacked_enemies != U64 (0)) score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
+                attacked_enemies = weak_enemies & (ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
+                if (attacked_enemies != U64 (0))
+                {
+                    score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
+                }
                 // Major
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
-                if (attacked_enemies != U64 (0)) score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
+                if (attacked_enemies != U64 (0))
+                {
+                    score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
+                }
+
+                attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
+                if (attacked_enemies != U64 (0))
+                {
+                    score += more_than_one (attacked_enemies)
+                           ? HangingBonus[C != pos.active ()] * i32 (pop_count<MAX15> (attacked_enemies))
+                           : HangingBonus[C == pos.active ()];
+                }
             }
 
             if (TRACE)
