@@ -1253,7 +1253,7 @@ namespace Searcher {
                 // and return immediately without updating best move, PV and TT.
                 if (Signals.stop || thread->cutoff_occurred ())
                 {
-                    return best_value;
+                    return VALUE_ZERO;
                 }
 
                 if (RootNode)
@@ -1324,7 +1324,7 @@ namespace Searcher {
                         
                         if (Signals.stop || thread->cutoff_occurred ())
                         {
-                            return best_value;
+                            return VALUE_ZERO;
                         }
 
                         if (best_value >= beta)
