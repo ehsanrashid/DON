@@ -520,16 +520,16 @@ namespace Evaluator {
                     {
                         if (mob <= 3)
                         {
-                            File f = _file (fk_sq);
-                            Rank r = rel_rank (C, fk_sq);
+                            File fk = _file (fk_sq);
+                            Rank rk = rel_rank (C, fk_sq);
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
-                            if (  ((f < F_E) == (_file (s) < f))
-                               && (_rank (s) == _rank (fk_sq) || R_1 == r)
-                               && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
+                            if (  ((fk < F_E) == (_file (s) < fk))
+                               && (_rank (s) == _rank (fk_sq) || R_1 == rk)
+                               && (ei.pi->semiopen_side<C> (fk, _file (s) < fk) == 0)
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + (R_1 == r && !pos.can_castle (C)));
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + (R_1 == rk && !pos.can_castle (C)));
                             }
                         }
                     }
