@@ -295,20 +295,11 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
-inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x10000); }
 
-// On Intel 64 bit we have a small speed regression with the standard conforming
-// version, so use a faster code in this case that, although not 100% standard
-// compliant it seems to work for Intel and MSVC.
-#if defined(_64BIT) && (!defined(__GNUC__) || defined(__INTEL_COMPILER))
-
-inline Value eg_value (Score s) { return Value (i16 (s & 0xFFFF)); }
-
-#else
+inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) >> 0x10); }
 
 inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u32 (s) & 0x8000U)); }
 
-#endif
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
