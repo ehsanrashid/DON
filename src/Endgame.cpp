@@ -162,8 +162,8 @@ namespace EndGame {
         Value value = pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
             +   PushToEdges[wk_sq] + PushClose[SquareDist[sk_sq][wk_sq]];
 
-        if (  pos.count<QUEN> (_stong_side) != 0
-           || pos.count<ROOK> (_stong_side) != 0
+        if (  pos.count<QUEN> (_stong_side) > 0
+           || pos.count<ROOK> (_stong_side) > 0
            || pos.count<NIHT> (_stong_side) > 2
            || pos.bishops_pair (_stong_side)
            )
