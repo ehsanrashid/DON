@@ -1011,27 +1011,25 @@ namespace Evaluator {
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (   (game_phase < PHASE_MIDGAME)
-                && (sf <= SCALE_FACTOR_NORMAL)
+                && (sf <= SCALE_FACTOR_ONEPAWN)
                 && (pos.opposite_bishops ())
                )
             {
-                // Ignoring any pawns, do both sides only have a single bishop
-                // and no other pieces?
+                // Both sides only have a single bishop and no other pieces?
                 if (   (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
                     && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                    )
                 {
-                    // Check for KBP vs KB with only a single pawn that is almost
-                    // certainly a draw or at least two pawns.
+                    // It is almost certainly a draw even with pawns.
                     u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                     sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                          ScaleFactor (4 * pawn_diff * i32 (sf) / SCALE_FACTOR_NORMAL);
+                          ScaleFactor (pawn_diff * i32 (sf) / 16);
                 }
+                // Both sides with opposite-colored bishops, but also other pieces. 
                 else
                 {
-                    // Endgame with opposite-colored bishops, but also other pieces. Still
-                    // a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (20 * i32 (sf) / SCALE_FACTOR_NORMAL);
+                    // Still a bit drawish, but not as drawish as with only the two bishops.
+                    sf = ScaleFactor (i32 (sf) / 2);
                 }
             }
 
