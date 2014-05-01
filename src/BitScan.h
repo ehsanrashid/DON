@@ -11,6 +11,10 @@
 #   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
 #endif
 
+#ifdef BM2
+#   include <immintrin.h> // Header for bmi2 instructions
+#endif
+
 #ifdef BSFQ
 
 #   ifdef _MSC_VER
@@ -25,7 +29,7 @@ INLINE Square scan_lsq (Bitboard bb)
 #ifdef _64BIT
     _BitScanForward64 (&index, bb);
 #else
-    if (u32 (bb))
+    if (u32 (bb) != 0)
     {
         _BitScanForward (&index, bb);
     }
@@ -46,7 +50,7 @@ INLINE Square scan_msq (Bitboard bb)
 #ifdef _64BIT
     _BitScanReverse64 (&index, bb);
 #else
-    if (u32 (bb >> 32))
+    if (u32 (bb >> 32) != 0)
     {
         _BitScanReverse (&index, bb >> 32);
         index += 32;
@@ -77,7 +81,7 @@ INLINE Square scan_lsq (Bitboard bb)
 #ifdef _64BIT
     return Square (__builtin_clzll (bb));
 #else
-    return Square  (u32 (bb) ?
+    return Square  (u32 (bb) != 0 ?
         scan_lsb32 (u32 (bb      )) :
         scan_lsb32 (u32 (bb >> 32)) + 32);
 #endif
@@ -88,7 +92,7 @@ INLINE Square scan_msq (Bitboard bb)
 #ifdef _64BIT
     return Square (63 - __builtin_clzll (bb));
 #else
-    return Square (63 - (u32 (bb) ?
+    return Square (63 - (u32 (bb) != 0 ?
         __builtin_clz (bb) :
         __builtin_clz (bb >> 32) + 32));
 #endif
@@ -257,7 +261,11 @@ INLINE Square scan_backmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? sc
 INLINE Square pop_lsq (Bitboard &bb)
 {
     Square s = scan_lsq (bb);
+#ifdef BM2
+    bb = _blsr_u64 (bb);
+#else
     bb &= (bb - 1); // reset the LS1B
+#endif
     return s;
 }
 

@@ -122,7 +122,7 @@ namespace Threads {
     {
         ASSERT (pos.ok ());
         ASSERT (searching);
-        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= VALUE_INFINITE);
+        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
         ASSERT (Threadpool.split_depth <= depth);
         ASSERT (splitpoint_threads < MAX_SPLITPOINT_THREADS);
 

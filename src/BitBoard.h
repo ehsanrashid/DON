@@ -8,7 +8,7 @@
 #include "Type.h"
 
 #ifdef BM2
-#   include <immintrin.h> // Header for _pext_u64() intrinsic
+#   include <immintrin.h> // Header for bmi2 instructions
 #endif
 
 namespace BitBoard {
@@ -255,7 +255,14 @@ namespace BitBoard {
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return LineRay_bb[s1][s2] & s3; }
 
-    inline bool more_than_one (Bitboard bb) { return ((bb) & (bb - 1)) != U64 (0); }
+    inline bool more_than_one (Bitboard bb)
+    {
+#ifdef BM2
+        return _blsr_u64 (bb) != U64 (0);
+#else
+        return ((bb) & (bb - 1)) != U64 (0);
+#endif
+    }
 
     // Shift the Bitboard using delta
     template<Delta DEL> inline Bitboard shift_del (Bitboard bb);
@@ -317,6 +324,7 @@ namespace BitBoard {
     INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
 #ifdef BM2
+        // Parallel bits extract (pext)
         return u16 (_pext_u64 (occ, BMask_bb[s]));
 #else
 #   ifdef _64BIT
@@ -333,6 +341,7 @@ namespace BitBoard {
     INLINE u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
 #ifdef BM2
+        // Parallel bits extract (pext)
         return u16 (_pext_u64 (occ, RMask_bb[s]));
 #else
 #   ifdef _64BIT
