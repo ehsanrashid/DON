@@ -1253,7 +1253,7 @@ namespace Searcher {
                 // and return immediately without updating best move, PV and TT.
                 if (Signals.stop || thread->cutoff_occurred ())
                 {
-                    return value;
+                    return best_value;
                 }
 
                 if (RootNode)
@@ -1321,6 +1321,11 @@ namespace Searcher {
                         ASSERT (alpha >= best_value && best_value < beta);
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
+                        
+                        if (Signals.stop || thread->cutoff_occurred ())
+                        {
+                            return best_value;
+                        }
 
                         if (best_value >= beta)
                         {
