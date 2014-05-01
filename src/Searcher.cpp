@@ -504,7 +504,7 @@ namespace Searcher {
 
                     if (alpha < value)
                     {
-                        if (PVNode && (beta > value)) // Update alpha here! Always alpha < beta
+                        if (PVNode && (value < beta)) // Update alpha here! Always alpha < beta
                         {
                             alpha = value;
                             best_move = move;
@@ -664,10 +664,8 @@ namespace Searcher {
 
             tte      = TT.retrieve (posi_key);
             tt_move  = (ss)->tt_move = RootNode    ? RootMoves[IndexPV].pv[0]
-                                     : tte != NULL ? tte->move ()
-                                     : MOVE_NONE;
-            tt_value = tte ? value_fr_tt (tte->value (), (ss)->ply)
-                     : VALUE_NONE;
+                                     : tte != NULL ? tte->move () : MOVE_NONE;
+            tt_value = tte != NULL ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
             if (!RootNode)
             {
@@ -680,7 +678,7 @@ namespace Searcher {
                     && (tte->depth () >= depth)
                     && (        PVNode ?  tte->bound () == BND_EXACT
                     : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                    :                    (tte->bound () &  BND_UPPER))
+                                       : (tte->bound () &  BND_UPPER))
                    )
                 {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -851,7 +849,6 @@ namespace Searcher {
                 // we can (almost) safely prune the previous move.
                 if (   (depth >= (5*ONE_MOVE))
                     && !((ss)->skip_null_move)
-                    //&& (eval >= alpha + 50) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                    )
                 {
@@ -1214,7 +1211,7 @@ namespace Searcher {
                     }
 
                     value =
-                        (new_depth < ONE_MOVE)
+                          (new_depth < ONE_MOVE)
                         ? (gives_check
                         ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
                         : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
@@ -1230,7 +1227,7 @@ namespace Searcher {
                     if (is_pv_move || ((alpha < value) && (RootNode || (value < beta))))
                     {
                         value =
-                            (new_depth < ONE_MOVE)
+                              (new_depth < ONE_MOVE)
                             ? (gives_check
                             ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                             : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
@@ -1428,8 +1425,8 @@ namespace Searcher {
                 // Age out PV variability metric
                 BestMoveChanges *= 0.5;
 
-                // Save last iteration's scores before first PV line is searched and all
-                // the move scores but the (new) PV are set to -VALUE_INFINITE.
+                // Save last iteration's scores before first PV line is searched and
+                // all the move scores but the (new) PV are set to -VALUE_INFINITE.
                 for (u08 i = 0; i < RootMoves.size (); ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
@@ -1440,8 +1437,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 48 ? 14 + (depth>>3) : 20);
-
+                        window = Value (depth < 32 ? 20 - (depth>>2) : 12);
                         alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
@@ -1621,7 +1617,6 @@ namespace Searcher {
 
             pos.do_move (pv[ply++], *si++);
             tte = TT.retrieve (pos.posi_key ());
-
         }
         while (tte // Local copy, TT could change
             && (m = tte->move ()) != MOVE_NONE
@@ -1783,7 +1778,7 @@ namespace Searcher {
         point elapsed = now () - SearchTime;
         if (elapsed == 0) elapsed = 1;
 
-        // When search is stopped this info is not printed
+        // When search is stopped this info is printed
         sync_cout
             << "info"
             << " time "     << elapsed
