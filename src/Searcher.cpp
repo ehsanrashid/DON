@@ -1431,8 +1431,8 @@ namespace Searcher {
                 // Age out PV variability metric
                 BestMoveChanges *= 0.5;
 
-                // Save last iteration's scores before first PV line is searched and all
-                // the move scores but the (new) PV are set to -VALUE_INFINITE.
+                // Save last iteration's scores before first PV line is searched and
+                // all the move scores but the (new) PV are set to -VALUE_INFINITE.
                 for (u08 i = 0; i < RootMoves.size (); ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
@@ -1443,7 +1443,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth >= 32 ? 20 - (depth>>2) : 12);
+                        window = Value (depth < 32 ? 20 - (depth>>2) : 12);
                         alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
@@ -1623,7 +1623,6 @@ namespace Searcher {
 
             pos.do_move (pv[ply++], *si++);
             tte = TT.retrieve (pos.posi_key ());
-
         }
         while (tte // Local copy, TT could change
             && (m = tte->move ()) != MOVE_NONE
@@ -1785,7 +1784,7 @@ namespace Searcher {
         point elapsed = now () - SearchTime;
         if (elapsed == 0) elapsed = 1;
 
-        // When search is stopped this info is not printed
+        // When search is stopped this info is printed
         sync_cout
             << "info"
             << " time "     << elapsed
