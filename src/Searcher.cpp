@@ -436,7 +436,7 @@ namespace Searcher {
                         && !(pos.advanced_pawn_push (move))
                        )
                     {
-                        ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push
+                        ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
                         Value futility_value = futility_base + PieceValue[EG][ptype (pos[dst_sq (move)])];
 
@@ -1253,14 +1253,13 @@ namespace Searcher {
                     best_value = splitpoint->best_value;
                     alpha      = splitpoint->alpha;
                 }
-
-                // Finished searching the move. If Signals.stop is true, the search
-                // was aborted because the user interrupted the search or because we
-                // ran out of time. In this case, the return value of the search cannot
-                // be trusted, and we don't update the best move and/or PV.
+                
+                // Finished searching the move. If a stop or a cutoff occurred,
+                // the return value of the search cannot be trusted,
+                // and return immediately without updating best move, PV and TT.
                 if (Signals.stop || thread->cutoff_occurred ())
                 {
-                    return value; // To avoid returning VALUE_INFINITE
+                    return VALUE_DRAW;
                 }
 
                 if (RootNode)
@@ -1325,7 +1324,7 @@ namespace Searcher {
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
                        )
                     {
-                        ASSERT (best_value < beta);
+                        ASSERT (alpha >= best_value && best_value < beta);
 
                         thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
 
@@ -1341,22 +1340,13 @@ namespace Searcher {
             {
                 // Step 20. Check for mate and stalemate
                 // All legal moves have been searched and if there are no legal moves, it
-                // must be mate or stalemate. Note that we can have a false positive in
-                // case of Signals.stop or thread.cutoff_occurred() are set, but this is
-                // harmless because return value is discarded anyhow in the parent nodes.
-                // If we are in a singular extension search then return a fail low score.
-                // A split node has at least one move, the one tried before to be split.
+                // must be mate or stalemate, so return value accordingly.
+                // If in a singular extension search then return a fail low score.
                 if (0 == moves_count)
                 {
                     return (excluded_move != MOVE_NONE) ? alpha
                         : in_check ? mated_in ((ss)->ply)
                         : DrawValue[pos.active ()];
-                }
-
-                // If we have pruned all the moves without searching return a fail-low score
-                if (best_value == -VALUE_INFINITE)
-                {
-                    best_value = alpha;
                 }
 
                 TT.store (
