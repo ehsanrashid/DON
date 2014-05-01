@@ -296,8 +296,8 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
 
-inline Value mg_value (Score s) { return Value (i16 ((s >> 0x10) & 0xFFFF)); }
-inline Value eg_value (Score s) { return Value (i16 ((s >> 0x00) & 0xFFFF)); }
+inline Value mg_value (Score s) { return Value (i16 (((s + 0x8000) >> 0x10) & 0xFFFF)); }
+inline Value eg_value (Score s) { return Value (i16 (((s)          >> 0x00) & 0xFFFF)); }
 
 
 #undef BASIC_OPERATORS
