@@ -1012,7 +1012,8 @@ namespace Searcher {
                 bool dangerous  = 
                     (  (gives_check)
                     || (NORMAL != mtype (move))
-                    || (pos.advanced_pawn_push (move)));
+                    || (pos.advanced_pawn_push (move))
+                    );
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1057,7 +1058,7 @@ namespace Searcher {
                     if (   !(capture_or_promotion)
                         && !(in_check)
                         && !(dangerous)
-                     // && (move != tt_move) Already implicit in the next condition
+                     // && (move != tt_move) // Already implicit in the next condition
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
                        )
                     {

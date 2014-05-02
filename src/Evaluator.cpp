@@ -1011,7 +1011,7 @@ namespace Evaluator {
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (   (game_phase < PHASE_MIDGAME)
-                && (sf <= SCALE_FACTOR_ONEPAWN)
+                && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
                 && (pos.opposite_bishops ())
                )
             {
@@ -1023,13 +1023,13 @@ namespace Evaluator {
                     // It is almost certainly a draw even with pawns.
                     u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                     sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                          ScaleFactor (pawn_diff * i32 (sf) / 16);
+                          ScaleFactor (pawn_diff * 8);
                 }
                 // Both sides with opposite-colored bishops, but also other pieces. 
                 else
                 {
                     // Still a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (i32 (sf) / 2);
+                    sf = ScaleFactor (50 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
                 }
             }
 
