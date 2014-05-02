@@ -54,7 +54,7 @@ namespace EndGame {
 #ifndef NDEBUG
         inline bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
-            return (pos.non_pawn_material(c) == npm) && (pos.count<PAWN> (c) == num_pawns);
+            return (pos.non_pawn_material (c) == npm) && (pos.count<PAWN> (c) == num_pawns);
         }
 #endif
 
@@ -659,7 +659,7 @@ namespace EndGame {
     // are on the same rook file and are blocked by the defending king, it's a draw.
     ScaleFactor Endgame<KPsK>::operator() (const Position &pos) const
     {
-        ASSERT (pos.non_pawn_material(_stong_side) == VALUE_ZERO);
+        ASSERT (pos.non_pawn_material (_stong_side) == VALUE_ZERO);
         ASSERT (pos.count<PAWN> (_stong_side) >= 2);
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
@@ -940,7 +940,10 @@ namespace EndGame {
         File       wp_f = _file (sp_sq);
 
         // All pawns are on a single rook file ?
-        if ((wp_f == F_A || wp_f == F_H) && !(spawns & ~File_bb[wp_f]))
+        if (   (wp_f == F_A || wp_f == F_H)
+            && !(spawns & ~File_bb[wp_f])
+            && (pos.non_pawn_material (_weak_side) == VALUE_ZERO)
+           )
         {
             Square sb_sq = pos.list<BSHP> (_stong_side)[0];
             Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
@@ -974,7 +977,6 @@ namespace EndGame {
 
                         return ScaleFactor (SquareDist[queening_sq][wk_sq]);
                     }
-
                 }
             }
         }
@@ -982,7 +984,7 @@ namespace EndGame {
         // All pawns on same B or G file? Then potential draw
         if (   (wp_f == F_B || wp_f == F_G)
             && !(pos.pieces<PAWN> () & ~File_bb[wp_f])
-            && (pos.non_pawn_material (_weak_side) == 0)
+            && (pos.non_pawn_material (_weak_side) == VALUE_ZERO)
             && (pos.count<PAWN> (_weak_side) >= 1)
            )
         {
