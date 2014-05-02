@@ -735,7 +735,7 @@ namespace Searcher {
                     BND_NONE,
                     pos.game_nodes (),
                     VALUE_NONE,
-                    (ss)->static_eval);
+                    eval);
             }
 
             // Updates Gains
