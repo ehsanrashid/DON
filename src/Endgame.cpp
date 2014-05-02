@@ -942,7 +942,6 @@ namespace EndGame {
         // All pawns are on a single rook file ?
         if (   (wp_f == F_A || wp_f == F_H)
             && !(spawns & ~File_bb[wp_f])
-            && (pos.non_pawn_material (_weak_side) == VALUE_ZERO)
            )
         {
             Square sb_sq = pos.list<BSHP> (_stong_side)[0];
