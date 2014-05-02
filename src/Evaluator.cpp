@@ -529,7 +529,7 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (fk, _file (s) < fk) == 0)
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + (R_1 == rk && !pos.can_castle (C)));
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + i32 (R_1 == rk && !pos.can_castle (C)));
                             }
                         }
                     }
@@ -992,7 +992,7 @@ namespace Evaluator {
             ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
-            if (game_phase <= PHASE_MIDGAME)
+            //if (game_phase < PHASE_MIDGAME)
             {
                 Score space_weight = ei.mi->space_weight ();
                 if (space_weight != 0)
@@ -1029,7 +1029,7 @@ namespace Evaluator {
                 else
                 {
                     // Still a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (50 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    sf = ScaleFactor (40 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
                 }
             }
 
@@ -1039,7 +1039,7 @@ namespace Evaluator {
             i32 mg = i32 (mg_value (score));
             i32 eg = i32 (eg_value (score)) * i32 (sf) / i32 (SCALE_FACTOR_NORMAL);
             
-            Value value = Value ((mg * i32 (game_phase) + eg * i32 (PHASE_MIDGAME - game_phase)) / i32 (PHASE_MIDGAME));
+            Value value = Value (((mg * i32 (game_phase)) + (eg * i32 (PHASE_MIDGAME - game_phase))) / i32 (PHASE_MIDGAME));
 
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)

@@ -202,13 +202,13 @@ namespace Material {
                )
             {
                 if (      (pos.count<PAWN> (BLACK) == 0)
-                       && (pos.count<PAWN> (WHITE) >= 2)
+                       && (pos.count<PAWN> (WHITE) > 1)
                    )
                 {
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 0)
-                       && (pos.count<PAWN> (BLACK) >= 2)
+                       && (pos.count<PAWN> (BLACK) > 1)
                         )
                 {
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
@@ -273,7 +273,7 @@ namespace Material {
                 }
             };
 
-            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
+            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4);
         }
 
         return e;
@@ -287,7 +287,7 @@ namespace Material {
 
         return (npm >= VALUE_MIDGAME) ? PHASE_MIDGAME :
                (npm <= VALUE_ENDGAME) ? PHASE_ENDGAME :
-               Phase (((npm - VALUE_ENDGAME) * PHASE_MIDGAME) / (VALUE_MIDGAME - VALUE_ENDGAME));
+               Phase (((npm - VALUE_ENDGAME) * i32 (PHASE_MIDGAME)) / i32 (VALUE_MIDGAME - VALUE_ENDGAME));
     }
 
 } // namespace Material
