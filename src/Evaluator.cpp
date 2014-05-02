@@ -1029,7 +1029,7 @@ namespace Evaluator {
                 else
                 {
                     // Still a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (40 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
                 }
             }
 
