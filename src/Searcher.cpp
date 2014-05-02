@@ -56,7 +56,7 @@ namespace Searcher {
         template<bool PVNode>
         inline Depth reduction (bool imp, u08 depth, u08 move_num)
         {
-            depth >>= ONE_PLY;
+            depth /= i32 (ONE_MOVE);
             return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
@@ -735,7 +735,7 @@ namespace Searcher {
                     BND_NONE,
                     pos.game_nodes (),
                     VALUE_NONE,
-                    (ss)->static_eval);
+                    eval);
             }
 
             // Updates Gains
@@ -802,7 +802,7 @@ namespace Searcher {
                     // Null move dynamic (variable) reduction based on depth and value
                     Depth R = Depth (
                             + (3*ONE_MOVE)
-                            + (depth>>2)
+                            + (depth/4)
                             + ((i32 (eval - beta) / VALUE_EG_PAWN)*ONE_MOVE));
 
                     // Do null move
@@ -891,7 +891,7 @@ namespace Searcher {
                 && (PVNode || (ss)->static_eval + 256 >= beta)
                )
             {
-                Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth>>2)); // TODO::
+                Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth/4));
 
                 (ss)->skip_null_move = true;
                 search<PVNode ? PV : NonPV> (pos, ss, alpha, beta, d, true);
@@ -947,7 +947,7 @@ namespace Searcher {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << u16 (depth>>ONE_PLY)
+                            << " depth " << u16 (depth/i32 (ONE_MOVE))
                             << " time "  << elapsed
                             << sync_endl;
                     }
@@ -994,7 +994,7 @@ namespace Searcher {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << u16 (depth>>ONE_PLY)
+                                //<< " depth "          << u16 (depth/i32 (ONE_MOVE))
                                 << " currmovenumber " << setw (2) << u16 (moves_count + IndexPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << " time "           << elapsed
@@ -1012,7 +1012,8 @@ namespace Searcher {
                 bool dangerous  = 
                     (  (gives_check)
                     || (NORMAL != mtype (move))
-                    || (pos.advanced_pawn_push (move)));
+                    || (pos.advanced_pawn_push (move))
+                    );
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1038,7 +1039,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth>>1), cut_node);
+                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth/2), cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
@@ -1057,7 +1058,7 @@ namespace Searcher {
                     if (   !(capture_or_promotion)
                         && !(in_check)
                         && !(dangerous)
-                     // && (move != tt_move) Already implicit in the next condition
+                     // && (move != tt_move) // Already implicit in the next condition
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
                        )
                     {
@@ -1442,7 +1443,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 32 ? 20 - (depth>>2) : 12);
+                        window = Value (depth < 32 ? 12 + (depth/4) : 20);
                         alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
@@ -1717,7 +1718,8 @@ namespace Searcher {
             }
             Move book_move = Book.probe_move (RootPos, bool (Options["Best Book Move"]));
             if (   book_move != MOVE_NONE
-                && count (RootMoves.begin (), RootMoves.end (), book_move))
+                && count (RootMoves.begin (), RootMoves.end (), book_move)
+               )
             {
                 swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
                 goto finish;
@@ -2012,7 +2014,8 @@ namespace Threads {
                 // in case we are the last slave of the splitpoint.
                 if (   Threadpool.idle_sleep
                     && (this != (sp)->master)
-                    && (sp)->slaves_mask.none ())
+                    && (sp)->slaves_mask.none ()
+                   )
                 {
                     ASSERT (!(sp)->master->searching);
                     (sp)->master->notify_one ();

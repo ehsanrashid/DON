@@ -961,9 +961,7 @@ namespace EndGame {
                 }
                 
                 // If the defending king is placed somewhere in front of the frontmost pawn, it's a draw.
-                Rank rank = rel_rank (_stong_side, sp_sq);
-
-                if (rel_rank (_stong_side, wk_sq) >= rank)
+                if (rel_rank (_stong_side, wk_sq) >= rel_rank (_stong_side, sp_sq))
                 {
                     return SCALE_FACTOR_DRAW;
                 }
