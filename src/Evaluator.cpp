@@ -9,6 +9,7 @@
 #include "Position.h"
 #include "Material.h"
 #include "Pawns.h"
+#include "MoveGenerator.h"
 #include "Thread.h"
 #include "UCI.h"
 
@@ -16,6 +17,7 @@ namespace Evaluator {
 
     using namespace std;
     using namespace BitBoard;
+    using namespace MoveGenerator;
     using namespace Threads;
 
     namespace {
@@ -1003,21 +1005,29 @@ namespace Evaluator {
                 }
             }
 
-            // Scale winning side if position is more drawish than it appears
-            ScaleFactor sf = (eg_value (score) > VALUE_DRAW)
-                ? ei.mi->scale_factor<WHITE> (pos)
-                : ei.mi->scale_factor<BLACK> (pos);
+            ScaleFactor sf;
 
-            // If we don't already have an unusual scale factor, check for opposite
-            // colored bishop endgames, and use a lower scale for those.
-            if (   (game_phase < PHASE_MIDGAME)
-                && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
-                && (pos.opposite_bishops ())
+            // Stalemate detection
+            Color stm = pos.active ();
+            if (   (ei.attacked_by[stm][KING] == ei.attacked_by[ stm][NONE])
+                && (ei.attacked_by[stm][KING] & ~ei.attacked_by[~stm][NONE]) == U64 (0)
+                && (MoveList<LEGAL> (pos).size () == 0)
                )
             {
-                // Both sides only have a single bishop and no other pieces?
-                if (   (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
-                    && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
+                sf = SCALE_FACTOR_DRAW;
+            }
+            else
+            {
+                // Scale winning side if position is more drawish than it appears
+                sf = (eg_value (score) > VALUE_DRAW)
+                    ? ei.mi->scale_factor<WHITE> (pos)
+                    : ei.mi->scale_factor<BLACK> (pos);
+
+                // If we don't already have an unusual scale factor, check for opposite
+                // colored bishop endgames, and use a lower scale for those.
+                if (   (game_phase < PHASE_MIDGAME)
+                    && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
+                    && (pos.opposite_bishops ())
                    )
                 {
                     // It is almost certainly a draw even with pawns.
