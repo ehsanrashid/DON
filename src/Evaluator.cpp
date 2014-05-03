@@ -226,12 +226,10 @@ namespace Evaluator {
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
         const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
-        //const Score MinorBehindPawnBonus    = S(+16,+ 0); // Bonus for minor behind friendly pawn
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
         const Score PieceHangingBonus       = S(+23,+20); // Bonus for each enemy hanging piece
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
-        const Score MinorUndefendedPenalty  = S(+25,+10); // Penalty for minor undefended
         const Score RookTrappedPenalty      = S(+90,+ 0); // Penalty for rook trapped
         //const Score CastleBlockedPenalty    = S(+150,+ 0); // Penalty for castling blocked by enemy attacks
 
@@ -268,7 +266,6 @@ namespace Evaluator {
         const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0 };
 
         const i32 PiecePinnedWeight = + 2;
-
 
 
         // KingDanger[Color][attack_units] contains the actual king danger weighted
@@ -470,13 +467,6 @@ namespace Evaluator {
 
                     if (NIHT == PT)
                     {
-                        //Bitboard span = ei.pi->_semiopen_files[C] ^ 0xFF;
-                        //if ( (pos.count<PAWN> (C) > 1)
-                        //  && ((i32 (scan_msq (span)) - i32 (scan_lsq (span))) > 4)
-                        //   )
-                        //{
-                        //    score -= KnightSpan;
-                        //}
                     }
 
                     // Bishop and knight outposts squares
@@ -485,17 +475,6 @@ namespace Evaluator {
                         score += evaluate_outposts<C, PT> (pos, ei, s);
                     }
 
-                    //if (rel_rank (C, s) <= R_4)
-                    //{
-                    //    Square pawn_sq = s + pawn_push (C);
-                    //    // Bishop or knight behind a pawn
-                    //    if (   (pos.pieces<PAWN> () & pawn_sq)
-                    //        //&& (ei.attacked_by[C][PAWN] & pawn_sq)
-                    //       )
-                    //    {
-                    //        score += MinorBehindPawnBonus;
-                    //    }
-                    //}
                 }
 
                 if (ROOK == PT)
@@ -669,27 +648,6 @@ namespace Evaluator {
                 score -= KingDanger[Searcher::RootColor == C][attack_units];
             }
 
-            //if (pos.can_castle (C))
-            //{
-            //    bool castle_blocked;
-            //    if (pos.can_castle (Castling<C, CS_K>::Right))// && !pos.castle_impeded (Castling<C, CS_K>::Right))
-            //    {
-            //        castle_blocked = (pos.castle_path (Castling<C, CS_K>::Right) & ei.attacked_by[C_][NONE]);
-            //        if (castle_blocked)
-            //        {
-            //            score -= CastleBlockedPenalty;
-            //        }
-            //    }
-            //    if (pos.can_castle (Castling<C, CS_Q>::Right))// && !pos.castle_impeded (Castling<C, CS_Q>::Right))
-            //    {
-            //        castle_blocked = (pos.castle_path (Castling<C, CS_Q>::Right) & ei.attacked_by[C_][NONE]);
-            //        if (castle_blocked)
-            //        {
-            //            score -= CastleBlockedPenalty;
-            //        }
-            //    }
-            //}
-
             if (TRACE)
             {
                 Tracer::Terms[C][KING] = score;
@@ -706,10 +664,6 @@ namespace Evaluator {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             Score score = SCORE_ZERO;
-
-            // Enemy undefended minors get penalized even if not under attack
-            Bitboard undefended_minors = pos.pieces (C_, BSHP, NIHT) & ~ei.attacked_by[C_][NONE];
-            if (undefended_minors != U64 (0)) score += MinorUndefendedPenalty;
 
             // Enemies not defended by a pawn and under our attack
             Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][NONE];
@@ -994,22 +948,27 @@ namespace Evaluator {
             ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
-            //if (game_phase < PHASE_MIDGAME)
+            Score space_weight = ei.mi->space_weight ();
+            if (space_weight != 0)
             {
-                Score space_weight = ei.mi->space_weight ();
-                if (space_weight != 0)
-                {
-                    i32 scr = evaluate_space<WHITE> (pos, ei)
-                            - evaluate_space<BLACK> (pos, ei);
-                    score += apply_weight (scr * space_weight, Weights[Space]);
-                }
+                i32 scr = evaluate_space<WHITE> (pos, ei)
+                        - evaluate_space<BLACK> (pos, ei);
+                score += apply_weight (scr * space_weight, Weights[Space]);
             }
+
+            i32 mg = i32 (mg_value (score));
+            i32 eg = i32 (eg_value (score));
+            ASSERT (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
+            ASSERT (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
             ScaleFactor sf;
 
             // Stalemate detection
             Color stm = pos.active ();
-            if (   (ei.attacked_by[stm][KING] == ei.attacked_by[ stm][NONE])
+            if (   (ei.attacked_by[stm][NIHT] == U64 (0))
+                && (ei.attacked_by[stm][BSHP] == U64 (0))
+                && (ei.attacked_by[stm][ROOK] == U64 (0))
+                && (ei.attacked_by[stm][QUEN] == U64 (0))
                 && (ei.attacked_by[stm][KING] & ~ei.attacked_by[~stm][NONE]) == U64 (0)
                 && (MoveList<LEGAL> (pos).size () == 0)
                )
@@ -1019,35 +978,35 @@ namespace Evaluator {
             else
             {
                 // Scale winning side if position is more drawish than it appears
-                sf = (eg_value (score) > VALUE_DRAW)
-                    ? ei.mi->scale_factor<WHITE> (pos)
-                    : ei.mi->scale_factor<BLACK> (pos);
+                sf = (eg > VALUE_DRAW)
+                   ? ei.mi->scale_factor<WHITE> (pos)
+                   : ei.mi->scale_factor<BLACK> (pos);
 
-                // If we don't already have an unusual scale factor, check for opposite
-                // colored bishop endgames, and use a lower scale for those.
-                if (   (game_phase < PHASE_MIDGAME)
-                    && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
-                    && (pos.opposite_bishops ())
-                   )
+                if (game_phase < (PHASE_MIDGAME - 32))
                 {
-                    // It is almost certainly a draw even with pawns.
-                    u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                    sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                          ScaleFactor (pawn_diff * 8);
-                }
-                // Both sides with opposite-colored bishops, but also other pieces. 
-                else
-                {
-                    // Still a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    // If we don't already have an unusual scale factor, check for opposite
+                    // colored bishop endgames, and use a lower scale for those.
+                    if (   (game_phase < (PHASE_MIDGAME - 48))
+                        && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
+                        && (pos.opposite_bishops ())
+                       )
+                    {
+                        // It is almost certainly a draw even with pawns.
+                        u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                        sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
+                              ScaleFactor (pawn_diff * 8);
+                    }
+                    // Both sides with opposite-colored bishops, but also other pieces. 
+                    else
+                    {
+                        // Still a bit drawish, but not as drawish as with only the two bishops.
+                        sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    }
                 }
             }
 
             // Interpolates between a middle game and a (scaled by 'sf') endgame score, based on game phase.
-            ASSERT (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
-            ASSERT (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-            i32 mg = i32 (mg_value (score));
-            i32 eg = i32 (eg_value (score)) * i32 (sf) / i32 (SCALE_FACTOR_NORMAL);
+            eg = eg * i32 (sf) / i32 (SCALE_FACTOR_NORMAL);
             
             Value value = Value (((mg * i32 (game_phase)) + (eg * i32 (PHASE_MIDGAME - game_phase))) / i32 (PHASE_MIDGAME));
 
@@ -1062,15 +1021,9 @@ namespace Evaluator {
                     , apply_weight (mobility[WHITE], Weights[Mobility])
                     , apply_weight (mobility[BLACK], Weights[Mobility]));
 
-                Score scr[CLR_NO] =
-                {
-                    ei.mi->space_weight () * evaluate_space<WHITE> (pos, ei),
-                    ei.mi->space_weight () * evaluate_space<BLACK> (pos, ei)
-                };
-
                 Tracer::add_term (Tracer::SPACE
-                    , apply_weight (scr[WHITE], Weights[Space])
-                    , apply_weight (scr[BLACK], Weights[Space]));
+                    , apply_weight (evaluate_space<WHITE> (pos, ei) * ei.mi->space_weight (), Weights[Space])
+                    , apply_weight (evaluate_space<BLACK> (pos, ei) * ei.mi->space_weight (), Weights[Space]));
 
                 Tracer::add_term (Tracer::TOTAL    , score);
 
