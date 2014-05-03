@@ -1008,6 +1008,15 @@ namespace Evaluator {
                 ? ei.mi->scale_factor<WHITE> (pos)
                 : ei.mi->scale_factor<BLACK> (pos);
 
+            // Stealmate detection
+            Color stm = pos.active ();
+            if (    (ei.attacked_by[stm][NONE] == ei.attacked_by[ stm][KING])
+                && !(ei.attacked_by[stm][KING] & ~ei.attacked_by[~stm][NONE])
+                && !MoveList<LEGAL> (pos).size())
+            {
+                sf = SCALE_FACTOR_DRAW;
+            }
+
             // If we don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (   (game_phase < PHASE_MIDGAME)
