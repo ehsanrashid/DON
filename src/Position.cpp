@@ -1226,6 +1226,26 @@ Value Position::compute_non_pawn_material (Color c) const
     return value;
 }
 
+#undef do_capture
+
+#define do_capture(ct,cap,p_key) {                                           \
+    ASSERT (KING != ct);                                                     \
+    remove_piece (cap);                                                      \
+    if (PAWN == ct)                                                          \
+    {                                                                        \
+        _si->pawn_key ^= Zob._.piecesq[pasive][PAWN][cap];                  \
+    }                                                                        \
+    else                                                                     \
+    {                                                                        \
+        _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];                    \
+    }                                                                        \
+    _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];    \
+    prefetch ((char *) _thread->material_table[_si->matl_key]);              \
+    p_key ^= Zob._.piecesq[pasive][ct][cap];                                 \
+    _si->psq_score -= PSQ[pasive][ct][cap];                                  \
+    _si->clock50 = 0;                                                        \
+}
+
 // do_move() do the move with checking info
 void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 {
@@ -1261,7 +1281,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     Square cap = dst;
     PieceT  ct = NONE;
 
-    // Pick capture piece and check validation
+    // Do move according to move type
     if      (mt == NORMAL)
     {
         ASSERT (PAWN == (promote (m) - NIHT));
@@ -1276,13 +1296,55 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         {
             ct = ptype (_board[cap]);
         }
+
+        ASSERT (KING != ct);   // can't capture the KING
+        if (NONE != ct)
+        {
+            do_capture (ct, cap, p_key);
+        }
+        else
+        {
+            if (PAWN == pt)
+            {
+                _si->clock50 = 0;
+            }
+            else
+            {
+                _si->clock50++;
+            }
+        }
+
+        // Move the piece
+        move_piece (org, dst);
+
+        // Update pawns hash key
+        if (PAWN == pt)
+        {
+            _si->pawn_key ^=
+                Zob._.piecesq[_active][PAWN][org] ^
+                Zob._.piecesq[_active][PAWN][dst];
+        }
+
+        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
+
+        _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
     else if (mt == CASTLE)
     {
         ASSERT (KING == pt);
         ASSERT (ROOK == ptype (_board[dst]));
+        //ct = NONE;
 
-        ct = NONE;
+        Square org_rook, dst_rook;
+        do_castling<true> (org, dst, org_rook, dst_rook);
+
+        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
+        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
+
+        _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
+        _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
+        
+        _si->clock50++;
     }
     else if (mt == ENPASSANT)
     {
@@ -1295,71 +1357,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);
         ct = PAWN;
-    }
-    else if (mt == PROMOTE)
-    {
-        ASSERT (PAWN == pt);        // Moving type must be PAWN
-        ASSERT (R_7 == rel_rank (_active, org));
-        ASSERT (R_8 == rel_rank (_active, dst));
 
-        ct = ptype (_board[cap]);
-        ASSERT (PAWN != ct);
-    }
+        do_capture (ct, cap, p_key);
 
-    ASSERT (KING != ct);   // can't capture the KING
-
-    // ------------------------
-
-    // Handle all captures
-    if (NONE != ct)
-    {
-        // Remove captured piece
-        remove_piece (cap);
-        // If the captured piece is a pawn
-        if (PAWN == ct) // Update pawn hash key
-        {
-            _si->pawn_key ^= Zob._.piecesq[pasive][PAWN][cap];
-        }
-        else            // Update non-pawn material
-        {
-            _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
-        }
-        // Update Hash key of material situation
-        _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];
-
-        // Update prefetch access to material_table
-        prefetch ((char *) _thread->material_table[_si->matl_key]);
-
-        // Update Hash key of position
-        p_key ^= Zob._.piecesq[pasive][ct][cap];
-        // Update incremental scores
-        _si->psq_score -= PSQ[pasive][ct][cap];
-        // Reset Rule-50 draw counter
-        _si->clock50 = 0;
-    }
-    else
-    {
-        if (PAWN == pt)
-        {
-            _si->clock50 = 0;
-        }
-        else
-        {
-            _si->clock50++;
-        }
-    }
-
-    // Reset old en-passant square
-    if (SQ_NO != _si->en_passant_sq)
-    {
-        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
-        _si->en_passant_sq = SQ_NO;
-    }
-
-    // Do move according to move type
-    if      (mt == NORMAL
-        ||   mt == ENPASSANT)
-    {
         // Move the piece
         move_piece (org, dst);
 
@@ -1375,19 +1375,25 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         
         _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
-    else if (mt == CASTLE)
-    {
-        Square org_rook, dst_rook;
-        do_castling<true> (org, dst, org_rook, dst_rook);
-
-        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
-        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
-
-        _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
-        _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
-    }
     else if (mt == PROMOTE)
     {
+        ASSERT (PAWN == pt);        // Moving type must be PAWN
+        ASSERT (R_7 == rel_rank (_active, org));
+        ASSERT (R_8 == rel_rank (_active, dst));
+
+        ct = ptype (_board[cap]);
+        ASSERT (PAWN != ct);
+
+        ASSERT (KING != ct);   // can't capture the KING
+        if (NONE != ct)
+        {
+            do_capture (ct, cap, p_key);
+        }
+        else
+        {
+            _si->clock50 = 0;
+        }
+
         PieceT ppt = promote (m);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
@@ -1460,6 +1466,12 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     _active = pasive;
     p_key ^= Zob._.mover_side;
 
+    // Reset old en-passant square
+    if (SQ_NO != _si->en_passant_sq)
+    {
+        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        _si->en_passant_sq = SQ_NO;
+    }
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
@@ -1492,6 +1504,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     ASSERT (ok ());
 }
+#undef do_capture
 void Position::  do_move (Move m, StateInfo &si)
 {
     CheckInfo ci (*this);
