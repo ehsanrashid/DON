@@ -548,7 +548,7 @@ namespace Searcher {
             return best_value;
         }
 
-        template <NodeT NT>
+        template <NodeT NT, bool SPNode>
         // search<>() is the main search function for both PV and non-PV nodes and for
         // normal and SplitPoint nodes. When called just after a splitpoint the search
         // is simpler because already probed the hash table, done a null move search,
@@ -557,9 +557,8 @@ namespace Searcher {
         // This is taken care of after return from the splitpoint.
         inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
-            const bool RootNode = (NT == Root             || NT == SplitPointRoot);
-            const bool   PVNode = (NT == Root || NT == PV || NT == SplitPointRoot    || NT == SplitPointPV);
-            const bool   SPNode = (NT == SplitPointNonPV  || NT == SplitPointRoot    || NT == SplitPointPV);
+            const bool RootNode = (NT == Root);
+            const bool   PVNode = (NT == Root || NT == PV);
 
             ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
@@ -811,7 +810,7 @@ namespace Searcher {
                     // Null window (alpha, beta) = (beta-1, beta):
                     Value null_value = (depth-R < ONE_MOVE)
                         ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
-                        : -search      <NonPV       > (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
+                        : -search      <NonPV, false> (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
 
                     (ss+1)->skip_null_move = false;
                     // Undo null move
@@ -833,7 +832,7 @@ namespace Searcher {
                         (ss)->skip_null_move = true;
                         Value veri_value = (depth-R < ONE_MOVE)
                             ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                            : search      <NonPV       > (pos, ss, beta-1, beta, depth-R, false);
+                            : search      <NonPV, false> (pos, ss, beta-1, beta, depth-R, false);
                         (ss)->skip_null_move = false;
                         if (veri_value >= beta)
                         {
@@ -873,7 +872,7 @@ namespace Searcher {
 
                         (ss)->current_move = move;
                         pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
-                        Value value = -search<NonPV> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
+                        Value value = -search<NonPV, false> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
                         pos.undo_move ();
                         if (value >= rbeta)
                         {
@@ -893,7 +892,7 @@ namespace Searcher {
                 Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth/4));
 
                 (ss)->skip_null_move = true;
-                search<PVNode ? PV : NonPV> (pos, ss, alpha, beta, d, true);
+                search<PVNode ? PV : NonPV, false> (pos, ss, alpha, beta, d, true);
                 (ss)->skip_null_move = false;
 
                 tte = TT.retrieve (posi_key);
@@ -1035,7 +1034,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-                    value = search<NonPV> (pos, ss, rbeta-1, rbeta, Depth (depth/2), cut_node);
+                    value = search<NonPV, false> (pos, ss, rbeta-1, rbeta, Depth (depth/2), cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
@@ -1187,14 +1186,14 @@ namespace Searcher {
                         //? (gives_check
                         //? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
                         //: -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        //: -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
-                        -search      <NonPV       > (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                        //: -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                        -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Research at intermediate depth if reduction is very high
                     if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
                         Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
-                        value = -search<NonPV> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                        value = -search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
                     }
 
                     full_depth_search = ((alpha < value) && ((ss)->reduction != DEPTH_ZERO));
@@ -1218,7 +1217,7 @@ namespace Searcher {
                         ? (gives_check
                         ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
                         : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
-                        : -search      <NonPV       > (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
+                        : -search      <NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
                 }
 
                 // Principal Variation Search
@@ -1234,7 +1233,7 @@ namespace Searcher {
                             ? (gives_check
                             ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
                             : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
-                            : -search      <PV       > (pos, ss+1, -beta, -alpha, new_depth, false);
+                            : -search      <PV, false> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
@@ -1456,7 +1455,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root> (pos, ss, alpha, beta, depth*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, alpha, beta, depth*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1993,9 +1992,9 @@ namespace Threads {
 
                 switch ((sp)->node_type)
                 {
-                case Root:  search<SplitPointRoot > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case PV:    search<SplitPointPV   > (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case NonPV: search<SplitPointNonPV> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case  Root: search< Root, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case    PV: search<   PV, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case NonPV: search<NonPV, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 default: ASSERT (false);
                 }
 

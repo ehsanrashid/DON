@@ -116,7 +116,7 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
-    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
+    enum NodeT { Root, PV, NonPV };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:

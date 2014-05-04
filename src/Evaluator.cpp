@@ -972,7 +972,8 @@ namespace Evaluator {
 
             // Stalemate detection
             Color stm = pos.active ();
-            if (   (ei.attacked_by[stm][NIHT] == U64 (0))
+            if (   (game_phase < (PHASE_MIDGAME - 48))
+                && (ei.attacked_by[stm][NIHT] == U64 (0))
                 && (ei.attacked_by[stm][BSHP] == U64 (0))
                 && (ei.attacked_by[stm][ROOK] == U64 (0))
                 && (ei.attacked_by[stm][QUEN] == U64 (0))
