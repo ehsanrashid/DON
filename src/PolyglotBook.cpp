@@ -103,10 +103,10 @@ PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    const u08 SIZE = sizeof (t);
-    for (u08 i = 0; i < SIZE && good (); ++i)
+    const u08 Size = sizeof (t);
+    for (u08 i = 0; i < Size && good (); ++i)
     {
-        u08 byte = u08 (t >> (8*(SIZE - 1 - i)));
+        u08 byte = u08 (t >> (8*(Size - 1 - i)));
         put (byte);
     }
     return *this;

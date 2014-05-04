@@ -283,7 +283,7 @@ namespace Searcher {
             return leaf_count;
         }
 
-        template <NodeT NT, bool IN_CHECK>
+        template <NodeT NT, bool InCheck>
         // search_quien() is the quiescence search function, which is called by the main search function
         // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
         inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
@@ -291,7 +291,7 @@ namespace Searcher {
             const bool    PVNode = (NT == PV);
 
             ASSERT (NT == PV || NT == NonPV);
-            ASSERT (IN_CHECK == (pos.checkers () != U64 (0)));
+            ASSERT (InCheck == (pos.checkers () != U64 (0)));
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
             ASSERT (depth <= DEPTH_ZERO);
@@ -302,7 +302,7 @@ namespace Searcher {
             // Check for an instant draw or maximum ply reached
             if (pos.draw () || ((ss)->ply > MAX_PLY))
             {
-                return ((ss)->ply > MAX_PLY && !IN_CHECK) ? evaluate (pos)
+                return ((ss)->ply > MAX_PLY && !InCheck) ? evaluate (pos)
                     : DrawValue[pos.active ()];
             }
 
@@ -322,7 +322,7 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth tt_depth = (IN_CHECK || depth >= DEPTH_QS_CHECKS)
+            Depth tt_depth = (InCheck || depth >= DEPTH_QS_CHECKS)
                 ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             Key posi_key = pos.posi_key ();
@@ -352,7 +352,7 @@ namespace Searcher {
             Value futility_base;
 
             // Evaluate the position statically
-            if (IN_CHECK)
+            if (InCheck)
             {
                 (ss)->static_eval = VALUE_NONE;
                 best_value = futility_base = -VALUE_INFINITE;
@@ -428,7 +428,7 @@ namespace Searcher {
                 if (!PVNode)
                 {
                     // Futility pruning
-                    if (   !(IN_CHECK)
+                    if (   !(InCheck)
                         && !(gives_check)
                         && (futility_base > -VALUE_KNOWN_WIN)
                         && (move != tt_move)
@@ -462,14 +462,14 @@ namespace Searcher {
 
                     // Detect non-capture evasions that are candidate to be pruned
                     bool evasion_prunable =
-                        (  IN_CHECK
+                        (  InCheck
                         && (best_value > VALUE_MATED_IN_MAX_PLY)
                         && !(pos.can_castle (pos.active ()))
                         && !(pos.capture (move))
                         );
 
                     // Don't search moves with negative SEE values
-                    if (   (!IN_CHECK || evasion_prunable)
+                    if (   (!InCheck || evasion_prunable)
                         && (move != tt_move)
                         && (mtype (move) != PROMOTE)
                         && (pos.see_sign (move) < VALUE_ZERO)
@@ -527,7 +527,7 @@ namespace Searcher {
 
             // All legal moves have been searched. A special case: If in check
             // and no legal moves were found, it is checkmate.
-            if (IN_CHECK)
+            if (InCheck)
             {
                 if (best_value == -VALUE_INFINITE)
                 {

@@ -14,7 +14,7 @@
 
 class Position;
 
-template<bool GAIN, class T>
+template<bool Gain, class T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store History, Gains and Countermoves.
 // History records how often different moves have been successful or unsuccessful during the
@@ -50,7 +50,7 @@ public:
 
     inline void update (Piece p, Square s, Value v)
     {
-        if (GAIN)
+        if (Gain)
         {
             _table[p][s] = std::max (v, _table[p][s]);
         }

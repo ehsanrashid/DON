@@ -91,7 +91,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AkoAAwIHAQQACBmwVYepIAEjgbELHoRwDBkwJCAgJSA=</HashCode>
+      <HashCode>AkoAAwIHAQQACBmwVYepIAEjAbELHoRwDBkwJCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -864,7 +864,7 @@
       <Field Name="checking_bb" />
     </ShowAsCollectionAssociation>
   </Struct>
-  <Struct Name="HashTable&lt;Entry, SIZE&gt;">
+  <Struct Name="HashTable&lt;Entry, Size&gt;">
     <Position X="12" Y="19.75" Width="2" />
     <AssociationLine Name="_table" Type="std::vector&lt;_Ty, _Alloc&gt;" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
       <Path>
@@ -1522,7 +1522,7 @@
   <Enum Name="Searcher::NodeT">
     <Position X="20.25" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAACAAgAAAAACBAAAAAAAAAAAQABAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAACAAgAAAAAAAAAAAAAAAAAAQAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Enum>

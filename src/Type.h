@@ -580,20 +580,7 @@ inline void   promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt 
 //}
 
 template<MoveT MT>
-extern Move mk_move (Square org, Square dst, PieceT pt);
-template<MoveT MT>
-extern Move mk_move (Square org, Square dst);
-
-template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt)
-{
-    return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0));
-}
-template<MoveT MT>
-inline Move mk_move (Square org, Square dst)
-{
-    return Move (MT | (org << 6) | (dst << 0));
-}
+inline Move mk_move (Square org, Square dst) { return Move (MT | (org << 6) | (dst << 0)); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
@@ -602,6 +589,12 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 // --------------------------------
 //template<>
 //inline Move mk_move<PROMOTE> (Square org, Square dst) { return mk_move<PROMOTE> (org, dst, QUEN); }
+
+template<MoveT MT>
+inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0)); }
+
 //inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
 
@@ -617,7 +610,7 @@ inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 //}
 
 
-template<class Entry, u32 SIZE>
+template<class Entry, u32 Size>
 struct HashTable
 {
 
@@ -627,10 +620,10 @@ private:
 public:
 
     HashTable ()
-        : _table (SIZE, Entry ())
+        : _table (Size, Entry ())
     {}
 
-    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (SIZE - 1)]; }
+    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (Size - 1)]; }
 
 };
 
