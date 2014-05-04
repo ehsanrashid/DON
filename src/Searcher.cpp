@@ -1984,6 +1984,11 @@ namespace Threads {
                 // Lock splitpoint
                 (sp)->mutex.lock ();
 
+                if (cutoff_occurred ()) // With many threads happens quite enough
+                {
+                    goto skip_search;
+                }
+
                 ASSERT (active_pos == NULL);
 
                 active_pos = &pos;
@@ -1996,8 +2001,8 @@ namespace Threads {
                 default: ASSERT (false);
                 }
 
+skip_search:
                 ASSERT (searching);
-
                 searching  = false;
                 active_pos = NULL;
                 (sp)->slaves_mask.reset (idx);

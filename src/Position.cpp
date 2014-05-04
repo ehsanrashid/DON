@@ -1228,8 +1228,7 @@ Value Position::compute_non_pawn_material (Color c) const
 
 #undef do_capture
 
-#define do_capture(ct,cap,p_key) {                                           \
-    ASSERT (KING != ct);                                                     \
+#define do_capture() {                                                       \
     remove_piece (cap);                                                      \
     if (PAWN == ct)                                                          \
     {                                                                        \
@@ -1300,7 +1299,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT (KING != ct);   // can't capture the KING
         if (NONE != ct)
         {
-            do_capture (ct, cap, p_key);
+            do_capture ();
         }
         else
         {
@@ -1358,7 +1357,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT ((pasive | PAWN) == _board[cap]);
         ct = PAWN;
 
-        do_capture (ct, cap, p_key);
+        do_capture ();
 
         // Move the piece
         move_piece (org, dst);
@@ -1387,7 +1386,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT (KING != ct);   // can't capture the KING
         if (NONE != ct)
         {
-            do_capture (ct, cap, p_key);
+            do_capture ();
         }
         else
         {

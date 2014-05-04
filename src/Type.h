@@ -284,7 +284,7 @@ enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
 
-    SCALE_FACTOR_ONEPAWN =  48,
+    SCALE_FACTOR_PAWNS =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255

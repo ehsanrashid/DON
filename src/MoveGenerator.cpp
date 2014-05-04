@@ -385,10 +385,10 @@ namespace MoveGenerator {
         INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (C) != 0)*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (C) != 0)*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (C) != 0)*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (C) != 0)*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, C, KING>::generate (moves, pos, targets, ci);
 
             return moves;
@@ -447,13 +447,13 @@ namespace MoveGenerator {
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<RELAX>   (ValMove *moves, const Position &pos);
+    template ValMove* generate<RELAX  > (ValMove *moves, const Position &pos);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     // Returns a pointer to the end of the move list.
     template ValMove* generate<CAPTURE> (ValMove *moves, const Position &pos);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<QUIET>   (ValMove *moves, const Position &pos);
+    template ValMove* generate<QUIET  > (ValMove *moves, const Position &pos);
     // --------------------------------
 
     template<>
@@ -488,7 +488,7 @@ namespace MoveGenerator {
     template<>
     // Generates all pseudo-legal check giving moves.
     // Returns a pointer to the end of the move list.
-    ValMove* generate<CHECK>       (ValMove *moves, const Position &pos)
+    ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
         Color active    = pos.active ();
         Bitboard occ    = pos.pieces ();
@@ -515,7 +515,7 @@ namespace MoveGenerator {
     template<>
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
     // Returns a pointer to the end of the move list.
-    ValMove* generate<EVASION>     (ValMove *moves, const Position &pos)
+    ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers != U64 (0)); // If any checker exists
@@ -581,7 +581,7 @@ namespace MoveGenerator {
 
     template<>
     // Generates all legal moves.
-    ValMove* generate<LEGAL>       (ValMove *moves, const Position &pos)
+    ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
         ValMove *end = pos.checkers () != U64 (0)
             ? generate<EVASION> (moves, pos)

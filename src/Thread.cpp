@@ -366,8 +366,9 @@ namespace Threads {
         Signals.root_1stmove   = false;
         Signals.root_failedlow = false;
 
-        main ()->thinking = true;
-        main ()->notify_one ();     // Starts main thread
+        MainThread *main_th = main ();
+        main_th->thinking = true;
+        main_th->notify_one ();     // Starts main thread
     }
 
     // wait_for_think_finished() waits for main thread to go to sleep then returns

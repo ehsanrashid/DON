@@ -229,6 +229,7 @@ namespace Evaluator {
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
         const Score PieceHangingBonus       = S(+23,+20); // Bonus for each enemy hanging piece
+        
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score RookTrappedPenalty      = S(+90,+ 0); // Penalty for rook trapped
@@ -955,12 +956,13 @@ namespace Evaluator {
             ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
-            Score space_weight = ei.mi->space_weight ();
-            if (space_weight != 0)
+            Score sw = ei.mi->space_weight ();
+            if (sw != 0)
             {
-                i32 scr = evaluate_space<WHITE> (pos, ei)
-                        - evaluate_space<BLACK> (pos, ei);
-                score += apply_weight (scr * space_weight, Weights[Space]);
+                i32 space = evaluate_space<WHITE> (pos, ei)
+                          - evaluate_space<BLACK> (pos, ei);
+
+                score += apply_weight (space * sw, Weights[Space]);
             }
 
             i32 mg = i32 (mg_value (score));
@@ -977,7 +979,7 @@ namespace Evaluator {
                 && (ei.attacked_by[stm][BSHP] == U64 (0))
                 && (ei.attacked_by[stm][ROOK] == U64 (0))
                 && (ei.attacked_by[stm][QUEN] == U64 (0))
-                && (ei.attacked_by[stm][KING] & ~ei.attacked_by[~stm][NONE]) == U64 (0)
+                && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
                 && (MoveList<LEGAL> (pos).size () == 0)
                )
             {
@@ -995,14 +997,14 @@ namespace Evaluator {
                     // If don't already have an unusual scale factor, check for opposite
                     // colored bishop endgames, and use a lower scale for those.
                     if (   (game_phase < (PHASE_MIDGAME - 48))
-                        && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
+                        && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
                         && (pos.opposite_bishops ())
                        )
                     {
                         // It is almost certainly a draw even with pawns.
                         u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                         sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                              ScaleFactor (pawn_diff * 8);
+                            ScaleFactor (i32 (SCALE_FACTOR_NORMAL)/2);
                     }
                     // Both sides with opposite-colored bishops, but also other pieces. 
                     else
