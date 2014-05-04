@@ -69,7 +69,6 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
-        Value   Contempt[2]; // [best_value > VALUE_DRAW]
 
         double  BestMoveChanges;
 
@@ -236,9 +235,9 @@ namespace Searcher {
                 Value weakness = Value (120 - 2 * level);
                 Value max_v    = -VALUE_INFINITE;
 
-                // Choose best move. For each move score we add two terms both dependent on
+                // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
-                // then we choose the move with the resulting highest score.
+                // then choose the move with the resulting highest score.
                 for (u08 i = 0; i < MultiPV; ++i)
                 {
                     Value v = RootMoves[i].value[0];
@@ -321,7 +320,7 @@ namespace Searcher {
             }
 
             // Decide whether or not to include checks, this fixes also the type of
-            // TT entry depth that we are going to use. Note that in search_quien we use
+            // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth tt_depth = (IN_CHECK || depth >= DEPTH_QS_CHECKS)
                 ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
@@ -526,7 +525,7 @@ namespace Searcher {
                 }
             }
 
-            // All legal moves have been searched. A special case: If we're in check
+            // All legal moves have been searched. A special case: If in check
             // and no legal moves were found, it is checkmate.
             if (IN_CHECK)
             {
@@ -552,10 +551,10 @@ namespace Searcher {
         template <NodeT NT>
         // search<>() is the main search function for both PV and non-PV nodes and for
         // normal and SplitPoint nodes. When called just after a splitpoint the search
-        // is simpler because we have already probed the hash table, done a null move
-        // search, and searched the first move before splitting, we don't have to repeat
-        // all this work again. We also don't need to store anything to the hash table
-        // here: This is taken care of after we return from the splitpoint.
+        // is simpler because already probed the hash table, done a null move search,
+        // and searched the first move before splitting, don't have to repeat all
+        // this work again. Also don't need to store anything to the hash table here:
+        // This is taken care of after return from the splitpoint.
         inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = (NT == Root             || NT == SplitPointRoot);
@@ -638,10 +637,10 @@ namespace Searcher {
                         : DrawValue[pos.active ()];
                 }
 
-                // Step 3. Mate distance pruning. Even if we mate at the next move our score
+                // Step 3. Mate distance pruning. Even if mate at the next move our score
                 // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
                 // a shorter mate was found upward in the tree then there is no need to search
-                // further, we will never beat current alpha. Same logic but with reversed signs
+                // further, will never beat current alpha. Same logic but with reversed signs
                 // applies also in the opposite condition of being mated instead of giving mate,
                 // in this case return a fail-high score.
                 alpha = max (mated_in ((ss)->ply +0), alpha);
@@ -654,8 +653,8 @@ namespace Searcher {
             }
 
             // Step 4. Transposition table lookup
-            // We don't want the score of a partial search to overwrite a previous full search
-            // TT value, so we use a different position key in case of an excluded move.
+            // Don't want the score of a partial search to overwrite a previous full search
+            // TT value, so use a different position key in case of an excluded move.
             excluded_move = (ss)->excluded_move;
 
             posi_key = (excluded_move != MOVE_NONE)
@@ -669,10 +668,10 @@ namespace Searcher {
 
             if (!RootNode)
             {
-                // At PV nodes we check for exact scores, while at non-PV nodes we check for
+                // At PV nodes check for exact scores, while at non-PV nodes check for
                 // a fail high/low. Biggest advantage at probing at PV nodes is to have a
-                // smooth experience in analysis mode. We don't probe at Root nodes otherwise
-                // we should also update RootMoveList to avoid bogus output.
+                // smooth experience in analysis mode. Don't probe at Root nodes otherwise
+                // should also update RootMoveList to avoid bogus output.
                 if (   (tte != NULL)
                     && (tt_value != VALUE_NONE) // Only in case of TT access race
                     && (tte->depth () >= depth)
@@ -771,8 +770,8 @@ namespace Searcher {
                 }
             
                 // Step 7. Futility pruning: child node
-                // We're betting that the opponent doesn't have a move that will reduce
-                // the score by more than futility_margin (depth) if we do a null move.
+                // Betting that the opponent doesn't have a move that will reduce
+                // the score by more than futility_margin (depth) if do a null move.
                 if (   !((ss)->skip_null_move)
                     && (depth < (7*ONE_MOVE))
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
@@ -844,9 +843,9 @@ namespace Searcher {
                 }
 
                 // Step 9. ProbCut
-                // If we have a very good capture (i.e. SEE > see[captured_piece_type])
+                // If have a very good capture (i.e. SEE > see[captured_piece_type])
                 // and a reduced search returns a value much above beta,
-                // we can (almost) safely prune the previous move.
+                // can (almost) safely prune the previous move.
                 if (   (depth >= (5*ONE_MOVE))
                     && !((ss)->skip_null_move)
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
@@ -922,19 +921,17 @@ namespace Searcher {
             Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
 
             bool improving =
-                (  ((ss  )->static_eval >= (ss-2)->static_eval)
+                   ((ss  )->static_eval >= (ss-2)->static_eval)
                 || ((ss  )->static_eval == VALUE_NONE)
-                || ((ss-2)->static_eval == VALUE_NONE)
-                );
+                || ((ss-2)->static_eval == VALUE_NONE);
 
             bool singular_ext_node =
-                (  (!RootNode && !SPNode)
+                   (!RootNode && !SPNode)
                 && (depth >= (8*ONE_MOVE))
                 && (tt_move != MOVE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
                 && (tte->bound () & BND_LOWER)
-                && (tte->depth () >= depth - (3*ONE_MOVE))
-                );
+                && (tte->depth () >= depth - (3*ONE_MOVE));
 
             point elapsed;
 
@@ -964,7 +961,7 @@ namespace Searcher {
 
                 // At root obey the "searchmoves" option and skip moves not listed in Root
                 // Move List, as a consequence any illegal move is also skipped. In MultiPV
-                // mode we also skip PV moves which have been already searched.
+                // mode also skip PV moves which have been already searched.
                 if (RootNode)
                 {
                     if (!count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
@@ -1010,10 +1007,9 @@ namespace Searcher {
                 bool gives_check= pos.gives_check (move, ci);
 
                 bool dangerous  = 
-                    (  (gives_check)
+                       (gives_check)
                     || (NORMAL != mtype (move))
-                    || (pos.advanced_pawn_push (move))
-                    );
+                    || (pos.advanced_pawn_push (move));
 
                 // Step 12. Extend checks
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1023,9 +1019,9 @@ namespace Searcher {
 
                 // Singular extension(SE) search. If all moves but one fail low on a search of
                 // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
-                // is singular and should be extended. To verify this we do a reduced search
+                // is singular and should be extended. To verify this do a reduced search
                 // on all the other moves but the tt_move, if result is lower than tt_value minus
-                // a margin then we extend tt_move.
+                // a margin then extend tt_move.
                 if (   (singular_ext_node)
                     && (move == tt_move)
                     && (abs (tt_value) < VALUE_KNOWN_WIN)
@@ -1075,7 +1071,7 @@ namespace Searcher {
                         }
 
                         // Value based pruning
-                        // We illogically ignore reduction condition depth >= (3*ONE_MOVE) for predicted depth,
+                        // Illogically ignore reduction condition depth >= (3*ONE_MOVE) for predicted depth,
                         // but fixing this made program slightly weaker.
                         Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, moves_count);
 
@@ -1274,9 +1270,9 @@ namespace Searcher {
                         //rm.nodes = pos.game_nodes ();
                         rm.extract_pv_from_tt (pos);
 
-                        // We record how often the best move has been changed in each
+                        // Record how often the best move has been changed in each
                         // iteration. This information is used for time management:
-                        // When the best move changes frequently, we allocate some more time.
+                        // When the best move changes frequently, allocate some more time.
                         if (!is_pv_move) // (alpha < value)
                         {
                             ++BestMoveChanges;
@@ -1415,9 +1411,9 @@ namespace Searcher {
 
             Skill skill (level);
 
-            // Do we have to play with skill handicap?
+            // Do have to play with skill handicap?
             // In this case enable MultiPV search to MIN_SKILL_MULTIPV
-            // that we will use behind the scenes to retrieve a set of possible moves.
+            // that will use behind the scenes to retrieve a set of possible moves.
             if (skill.enabled ())
             {
                 if (MultiPV < MIN_SKILL_MULTIPV)
@@ -1443,7 +1439,7 @@ namespace Searcher {
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
-                // MultiPV loop. We perform a full root search for each PV line
+                // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; (IndexPV < MultiPV) && !Signals.stop; ++IndexPV)
                 {
                     // Reset Aspiration window starting size
@@ -1462,15 +1458,11 @@ namespace Searcher {
                     {
                         best_value = search<Root> (pos, ss, alpha, beta, depth*ONE_MOVE, false);
 
-                        Value contempt = Contempt[best_value > VALUE_DRAW];
-                        DrawValue[ RootColor] = VALUE_DRAW - contempt;
-                        DrawValue[~RootColor] = VALUE_DRAW + contempt;
-
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
                         // and eventually the new best one are set to -VALUE_INFINITE and
-                        // we want to keep the same order for all the moves but the new
-                        // PV that goes to the front. Note that in case of MultiPV search
+                        // want to keep the same order for all the moves but the new PV
+                        // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
                         stable_sort (RootMoves.begin () + IndexPV, RootMoves.end ());
 
@@ -1556,7 +1548,7 @@ namespace Searcher {
                     Signals.stop = true;
                 }
 
-                // Do we have time for the next iteration? Can we stop searching now?
+                // Do have time for the next iteration? Can stop searching now?
                 if (   Limits.use_timemanager ()
                     && !Signals.stop
                     && !Signals.stop_ponderhit
@@ -1577,7 +1569,7 @@ namespace Searcher {
                         || ((now () - SearchTime) > TimeMgr.available_time ())
                        )
                     {
-                        // If we are allowed to ponder do not stop the search now but
+                        // If allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
                         if (Limits.ponder)
                         {
@@ -1609,8 +1601,8 @@ namespace Searcher {
     PolyglotBook        Book;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
-    // We consider also failing high nodes and not only EXACT nodes so to
-    // allow to always have a ponder move even when we fail high at root node.
+    // Consider also failing high nodes and not only EXACT nodes so to
+    // allow to always have a ponder move even when fail high at root node.
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
@@ -1695,11 +1687,9 @@ namespace Searcher {
     {
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        DrawValue[WHITE] = VALUE_DRAW;
-        DrawValue[BLACK] = VALUE_DRAW;
         i32 contempt = i32 (Options["Contempt Factor"]);
-        Contempt[0] = (contempt+ 0) * VALUE_EG_PAWN / 100;
-        Contempt[1] = (contempt+12) * VALUE_EG_PAWN / 100;
+        DrawValue[ RootColor] = VALUE_DRAW - contempt;
+        DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
         bool write_search_log = bool (Options["Write Search Log"]);
         string search_log_fn  = string (Options["Search Log File"]);
@@ -1800,10 +1790,10 @@ namespace Searcher {
             << " hashfull " << TT.permill_full ()
             << sync_endl;
 
-        // When we reach max depth we arrive here even without Signals.stop is raised,
-        // but if we are pondering or in infinite search, according to UCI protocol,
-        // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
-        // We simply wait here until GUI sends one of those commands (that raise Signals.stop).
+        // When reach max depth arrive here even without Signals.stop is raised,
+        // but if are pondering or in infinite search, according to UCI protocol,
+        // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
+        // Simply wait here until GUI sends one of those commands (that raise Signals.stop).
         if (!Signals.stop && (Limits.ponder || Limits.infinite))
         {
             Signals.stop_ponderhit = true;
@@ -1884,7 +1874,7 @@ namespace Threads {
             Threadpool.mutex.lock ();
 
             nodes = RootPos.game_nodes ();
-            // Loop across all splitpoints and sum accumulated SplitPoint nodes plus
+            // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
@@ -1933,14 +1923,14 @@ namespace Threads {
     // Thread::idle_loop() is where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
-        // Pointer 'splitpoint' is not null only if we are called from split<>(), and not
-        // at the thread creation. So it means we are the splitpoint's master.
+        // Pointer 'splitpoint' is not null only if called from split<>(), and not
+        // at the thread creation. So it means this is the splitpoint's master.
         SplitPoint *splitpoint = ((splitpoint_threads != 0) ? active_splitpoint : NULL);
         ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
 
         do
         {
-            // If we are not searching, wait for a condition to be signaled instead of
+            // If not searching, wait for a condition to be signaled instead of
             // wasting CPU time polling for work.
             while ((!searching && Threadpool.idle_sleep) || exit)
             {
@@ -1953,7 +1943,7 @@ namespace Threads {
                 // Grab the lock to avoid races with Thread::notify_one ()
                 mutex.lock ();
 
-                // If we are master and all slaves have finished then exit idle_loop
+                // If master and all slaves have finished then exit idle_loop
                 if (splitpoint != NULL && splitpoint->slaves_mask.none ())
                 {
                     mutex.unlock ();
@@ -1961,9 +1951,9 @@ namespace Threads {
                 }
 
                 // Do sleep after retesting sleep conditions under lock protection, in
-                // particular we need to avoid a deadlock in case a master thread has,
+                // particular to avoid a deadlock in case a master thread has,
                 // in the meanwhile, allocated us and sent the notify_one () call before
-                // we had the chance to grab the lock.
+                // the chance to grab the lock.
                 if (!searching && !exit)
                 {
                     sleep_condition.wait (mutex);
@@ -2017,7 +2007,7 @@ namespace Threads {
                 (sp)->nodes += pos.game_nodes ();
 
                 // Wake up master thread so to allow it to return from the idle loop
-                // in case we are the last slave of the splitpoint.
+                // in case the last slave of the splitpoint.
                 if (   Threadpool.idle_sleep
                     && (this != (sp)->master)
                     && (sp)->slaves_mask.none ()
@@ -2027,10 +2017,10 @@ namespace Threads {
                     (sp)->master->notify_one ();
                 }
 
-                // After releasing the lock we cannot access anymore any splitpoint
+                // After releasing the lock, cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
                 // our feet by the sp master. Also accessing other Thread objects is
-                // unsafe because if we are exiting there is a chance are already freed.
+                // unsafe because if exiting there is a chance are already freed.
                 (sp)->mutex.unlock ();
             }
 

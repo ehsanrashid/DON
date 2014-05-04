@@ -182,7 +182,7 @@ namespace Threads {
         ASSERT (!searching);
         ASSERT (!active_pos);
 
-        // We have returned from the idle loop, which means that all threads are finished.
+        // Have returned from the idle loop, which means that all threads are finished.
         // Note that setting 'searching' and decreasing splitpoint_threads is
         // done under lock protection to avoid a race with available_to().
         Threadpool.mutex.lock ();
@@ -261,7 +261,7 @@ namespace Threads {
 
     // initialize() is called at startup to create and launch requested threads, that will
     // go immediately to sleep due to 'idle_sleep' set to true.
-    // We cannot use a c'tor becuase Threadpool is a static object and we need a fully initialized
+    // Cannot use a c'tor becuase Threadpool is a static object and need a fully initialized
     // engine at this point due to allocation of Endgames object.
     void ThreadPool::initialize ()
     {
@@ -343,7 +343,7 @@ namespace Threads {
         RootPos     = pos;
         RootColor   = pos.active ();
         Limits      = limits;
-        if (states.get () != NULL) // If we don't set a new position, preserve current state
+        if (states.get () != NULL) // If don't set a new position, preserve current state
         {
             SetupStates = states;   // Ownership transfer here
             ASSERT (states.get () == NULL);

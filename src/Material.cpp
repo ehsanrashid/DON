@@ -122,7 +122,7 @@ namespace Material {
     // Material::probe() takes a position object as input,
     // looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
-    // it is computed and stored there, so we don't have to recompute everything
+    // it is computed and stored there, so don't have to recompute everything
     // when the same material configuration occurs again.
     Entry* probe     (const Position &pos, Table &table)
     {
@@ -130,8 +130,8 @@ namespace Material {
         Entry *e     = table[matl_key];
 
         // If e->_matl_key matches the position's material hash key, it means that
-        // we have analysed this material configuration before, and we can simply
-        // return the information we found the last time instead of recomputing it.
+        // have analysed this material configuration before, and can simply
+        // return the information found the last time instead of recomputing it.
         if (e->_matl_key != matl_key)
         {
             memset (e, 0x00, sizeof (*e));
@@ -139,8 +139,8 @@ namespace Material {
             e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->_game_phase    = game_phase (pos);
 
-            // Let's look if we have a specialized evaluation function for this
-            // particular material configuration. First we look for a fixed
+            // Let's look if have a specialized evaluation function for this
+            // particular material configuration. First look for a fixed
             // configuration one, then a generic one if previous search failed.
             if (EndGames->probe (matl_key, e->evaluation_func))
             {
@@ -158,11 +158,11 @@ namespace Material {
                 return e;
             }
 
-            // OK, we didn't find any special evaluation function for the current
+            // OK, didn't find any special evaluation function for the current
             // material configuration. Is there a suitable scaling function?
             //
-            // We face problems when there are several conflicting applicable
-            // scaling functions and we need to decide which one to use.
+            // Face problems when there are several conflicting applicable
+            // scaling functions and need to decide which one to use.
             EndgameBase<ScaleFactor> *eg_sf;
             if (EndGames->probe (matl_key, eg_sf))
             {
@@ -217,7 +217,7 @@ namespace Material {
                        && (pos.count<PAWN> (BLACK) == 1)
                         )
                 {
-                    // This is a special case because we set scaling functions for both colors instead of only one.
+                    // This is a special case because set scaling functions for both colors instead of only one.
                     e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
                     e->scaling_func[BLACK] = &ScaleKPKP[BLACK];
                 }
@@ -267,7 +267,7 @@ namespace Material {
             }
 
             // Evaluate the material imbalance.
-            // We use KING as a place holder for the bishop pair "extended piece",
+            // Use KING as a place holder for the bishop pair "extended piece",
             // this allow us to be more flexible in defining bishop pair bonuses.
             const i32 count[CLR_NO][NONE] =
             {

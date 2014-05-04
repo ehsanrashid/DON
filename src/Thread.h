@@ -30,7 +30,7 @@
 #   undef NOMINMAX
 
 
-// We use critical sections on Windows to support Windows XP and older versions,
+// Use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.
 typedef CRITICAL_SECTION    Lock;
@@ -174,7 +174,7 @@ namespace Threads {
     };
 
     // ThreadBase class is the base of the hierarchy from where
-    // we derive all the specialized thread classes.
+    // derive all the specialized thread classes.
     class ThreadBase
     {
     protected:
@@ -224,9 +224,9 @@ namespace Threads {
 
     // Thread is derived from ThreadBase class
     // Thread class keeps together all the thread related stuff like locks, state
-    // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
+    // and especially splitpoints. Also use per-thread pawn-hash and material-hash tables
     // so that once get a pointer to a thread entry its life time is unlimited
-    // and we don't have to care about someone changing the entry under our feet.
+    // and don't have to care about someone changing the entry under our feet.
     class Thread
         : public ThreadBase
     {

@@ -118,8 +118,8 @@ namespace MoveGenerator {
 
                 if (CHESS960)
                 {
-                    // Because we generate only legal castling moves we need to verify that
-                    // when moving the castling rook we do not discover some hidden checker.
+                    // Because generate only legal castling moves needed to verify that
+                    // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
                     if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (C_, ROOK, QUEN))
                     {
@@ -304,7 +304,7 @@ namespace MoveGenerator {
                             // pawns which give discovered check
                             Bitboard pawns_chk_dis = pawns_on_Rx & ci->discoverers;
                             // Add pawn pushes which give discovered check. This is possible only
-                            // if the pawn is not on the same file as the enemy king, because we
+                            // if the pawn is not on the same file as the enemy king, because
                             // don't generate captures. Note that a possible discovery check
                             // promotion has been already generated among captures.
                             if (pawns_chk_dis != U64 (0))
@@ -343,7 +343,7 @@ namespace MoveGenerator {
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
-                            // is a discovery check and we are forced to do otherwise.
+                            // is a discovery check and are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
@@ -548,7 +548,7 @@ namespace MoveGenerator {
         check_sq = SQ_NO;
         Bitboard slid_attacks = U64 (0);
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
-        // Find squares attacked by slider checkers, we will remove them from the king
+        // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         while (sliders != U64 (0))
         {

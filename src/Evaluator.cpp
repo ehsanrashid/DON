@@ -208,10 +208,11 @@ namespace Evaluator {
 
         // ThreatBonus[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
-        const Score ThreatBonus[2][NONE] =
+        const Score ThreatBonus[3][NONE] =
         {
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+41,+100), S(+41,+100), S(+ 0,+ 0), }, // Minor
-            { S(+15,+39), S(+15,+45), S(+15,+45), S(+15,+ 45), S(+24,+ 49), S(+ 0,+ 0), }, // Major
+            { S(+15,+48), S(+45,+64), S(+45,+64), S(+75,+128), S(+90,+128), S(+ 0,+ 0) }, // Pawn
+            { S(+ 7,+40), S(+24,+49), S(+24,+49), S(+41,+100), S(+41,+100), S(+ 0,+ 0) }, // Minor
+            { S(+ 5,+36), S(+15,+45), S(+15,+45), S(+15,+ 45), S(+24,+ 49), S(+ 0,+ 0) }  // Major
         };
 
         // PawnThreatenPenalty[PieceT] contains a penalty according to
@@ -307,7 +308,7 @@ namespace Evaluator {
 
             Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
 
-            // Init king safety tables only if we are going to use them
+            // Init king safety tables only if going to use them
             if (   (pos.count<QUEN> (C) > 0) 
                 && (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
                )
@@ -427,8 +428,8 @@ namespace Evaluator {
                 i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility += MobilityBonus[PT][mob];
 
-                // Decrease score if we are attacked by an enemy pawn. Remaining part
-                // of threat evaluation must be done later when we have full attack info.
+                // Decrease score if attacked by an enemy pawn. Remaining part
+                // of threat evaluation must be done later when have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
                 {
                     score -= PawnThreatenPenalty[PT];
@@ -671,17 +672,23 @@ namespace Evaluator {
             if (weak_enemies != U64 (0))
             {
                 Bitboard attacked_enemies;
-                // Minor
-                attacked_enemies = weak_enemies & (ei.attacked_by[C][PAWN] | ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
+                // Pawn
+                attacked_enemies = weak_enemies & (ei.attacked_by[C][PAWN]);
                 if (attacked_enemies != U64 (0))
                 {
                     score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
+                }
+                // Minor
+                attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
+                if (attacked_enemies != U64 (0))
+                {
+                    score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
                 }
                 // Major
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
                 if (attacked_enemies != U64 (0))
                 {
-                    score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
+                    score += ThreatBonus[2][ptype (pos[scan_lsq (attacked_enemies)])];
                 }
 
                 attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
@@ -784,7 +791,7 @@ namespace Evaluator {
 
                 if (eg_bonus != VALUE_ZERO)
                 {
-                    // Increase the bonus if we have more non-pawn pieces
+                    // Increase the bonus if have more non-pawn pieces
                     if (pos.count<NONPAWN> (C) > pos.count<NONPAWN> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
@@ -864,7 +871,7 @@ namespace Evaluator {
             // Probe the material hash table
             ei.mi = Material::probe (pos, thread->material_table);
 
-            // If we have a specialized evaluation function for the current material
+            // If have a specialized evaluation function for the current material
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
@@ -921,16 +928,16 @@ namespace Evaluator {
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
-            // Evaluate kings after all other pieces because we need complete attack
+            // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
             score += evaluate_king<WHITE, TRACE> (pos, ei)
                   -  evaluate_king<BLACK, TRACE> (pos, ei);
 
-            // Evaluate tactical threats, we need full attack information including king
+            // Evaluate tactical threats, needed full attack information including king
             score += evaluate_threats<WHITE, TRACE> (pos, ei)
                   -  evaluate_threats<BLACK, TRACE> (pos, ei);
 
-            // Evaluate passed pawns, we need full attack information including king
+            // Evaluate passed pawns, needed full attack information including king
             score += evaluate_passed_pawns<WHITE, TRACE> (pos, ei)
                   -  evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
 
@@ -984,7 +991,7 @@ namespace Evaluator {
 
                 if (game_phase < (PHASE_MIDGAME - 32))
                 {
-                    // If we don't already have an unusual scale factor, check for opposite
+                    // If don't already have an unusual scale factor, check for opposite
                     // colored bishop endgames, and use a lower scale for those.
                     if (   (game_phase < (PHASE_MIDGAME - 48))
                         && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)

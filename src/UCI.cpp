@@ -395,7 +395,7 @@ namespace UCI {
 
     // Wait for a command from the user, parse this text string as an UCI command,
     // and call the appropriate functions. Also intercepts EOF from stdin to ensure
-    // that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
+    // that exit gracefully if the GUI dies unexpectedly. In addition to the UCI
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
@@ -423,9 +423,9 @@ namespace UCI {
             else if (token == "ponderhit")
             {
                 // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                // opponent has played. In case Signals.stop_ponderhit stream set we are
-                // waiting for 'ponderhit' to stop the search (for instance because we
-                // already ran out of time), otherwise we should continue searching but
+                // opponent has played. In case Signals.stop_ponderhit stream set are
+                // waiting for 'ponderhit' to stop the search (for instance because
+                // already ran out of time), otherwise should continue searching but
                 // switching from pondering to normal search.
                 Signals.stop_ponderhit ? exe_stop () : exe_ponderhit ();
             }

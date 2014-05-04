@@ -13,8 +13,8 @@ namespace {
     enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
     const u08    MoveHorizon = 50;    // Plan time management at most this many moves ahead
-    const double MaxRatio    = 07.00; // When in trouble, we can step over reserved time with this ratio
-    const double StealRatio  = 00.33; // However we must not steal time from remaining moves over this ratio
+    const double MaxRatio    = 07.00; // When in trouble, can step over reserved time with this ratio
+    const double StealRatio  = 00.33; // However must not steal time from remaining moves over this ratio
 
     const double Scale       = 09.30;
     const double Shift       = 59.80;
@@ -55,7 +55,7 @@ namespace {
 void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
 {
     /*
-    We support four different kind of time controls:
+    Support four different kind of time controls:
 
     increment == 0 && moves_to_go == 0 means: x basetime  [sudden death!]
     increment == 0 && moves_to_go != 0 means: x moves in y minutes
@@ -83,7 +83,7 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
     _optimum_search_time = _maximum_search_time = max (limits.gameclock[c].time, minimum_thinking_time);
 
     u08 tot_movestogo = (limits.movestogo != 0 ? min (limits.movestogo, MoveHorizon) : MoveHorizon);
-    // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
+    // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
     {

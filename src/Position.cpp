@@ -530,7 +530,7 @@ bool Position::ok (i08 *step) const
 
 // least_valuable_attacker() is a helper function used by see()
 // to locate the least valuable attacker for the side to move,
-// remove the attacker we just found from the bitboards and
+// remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
@@ -600,16 +600,16 @@ Value Position::see      (Move m) const
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, occupied) & occupied;
 
-    // If the opponent has no attackers we are finished
+    // If the opponent has no attackers are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
     if (stm_attackers != U64 (0))
     {
         // The destination square is defended, which makes things rather more
-        // difficult to compute. We proceed by building up a "swap list" containing
+        // difficult to compute. Proceed by building up a "swap list" containing
         // the material gain or loss at each stop in a sequence of captures to the
         // destination square, where the sides alternately capture, and always
-        // capture with the least valuable piece. After each capture, we look for
+        // capture with the least valuable piece. After each capture, look for
         // new X-ray attacks from behind the capturing piece.
         do
         {
@@ -638,7 +638,7 @@ Value Position::see      (Move m) const
         }
         while (stm_attackers != U64 (0));
 
-        // Having built the swap list, we negamax through it to find the best
+        // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
         while (--depth > 0)
         {
@@ -812,7 +812,7 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (PAWN == pt)
     {
-        // We have already handled promotion moves, so destination
+        // Have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
         if ((R_1 == r_org) || (R_8 == r_org)) return false;
         if ((R_1 == r_dst) || (R_2 == r_dst)) return false;
@@ -899,7 +899,7 @@ bool Position::pseudo_legal (Move m) const
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
-    // and legal() relies on this. So we have to take care that the
+    // and legal() relies on this. So have to take care that the
     // same kind of moves are filtered out here.
     Bitboard chkrs = checkers ();
     if (chkrs != U64 (0))
@@ -964,7 +964,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // If the moving piece is a king.
         if (KING == pt)
         {
-            // In case of king moves under check we have to remove king so to catch
+            // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
             return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive]); // Remove 'org' but not place 'dst'
@@ -985,7 +985,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     else if (mt == ENPASSANT)
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
-        // we do it simply by testing whether the king is attacked after the move is made.
+        // do it simply by testing whether the king is attacked after the move is made.
         Square cap = dst + pawn_push (pasive);
 
         ASSERT (dst == _si->en_passant_sq);
@@ -1025,7 +1025,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     }
 
     MoveT mt  = mtype (m);
-    // Can we skip the ugly special cases ?
+    // Can skip the ugly special cases ?
     if (mt == NORMAL) return false;
 
     const Bitboard occ = _types_bb[NONE];
@@ -1479,7 +1479,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
     }
 
-    // Prefetch TT access as soon as we know the new hash key
+    // Prefetch TT access as soon as know the new hash key
     prefetch ((char*) TT.cluster_entry (p_key));
 
     // Update the key with the final value

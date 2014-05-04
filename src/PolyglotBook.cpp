@@ -317,10 +317,10 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     // Castling moves follow "king captures rook" representation.
     // Promotion moves have promotion piece different then our structure of move
-    // So in case book move is a promotion we have to convert to our representation,
-    // in all the other cases we can directly compare with a Move after having masked out
+    // So in case book move is a promotion have to convert to our representation,
+    // in all the other cases can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
-    // Polyglot use 3 bits while we use 2 bits
+    // Polyglot use 3 bits while use 2 bits
     PieceT pt = PieceT ((move >> 12) & 0x7);
     // Set new type for promotion piece
     if (pt) promote (move, pt);

@@ -117,7 +117,7 @@ namespace BitBoard {
                 // Given a square 's', the mask is the bitboard of sliding attacks from
                 // 's' computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
-                // the number of 1s of the mask. Hence we deduce the size of the shift to
+                // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
                 Bitboard moves = sliding_attacks (deltas, s);
 
@@ -153,7 +153,7 @@ namespace BitBoard {
                 }
                 while (occ);
 
-                // Set the offset for the table_bb of the next square. We have individual
+                // Set the offset for the table_bb of the next square. Have individual
                 // table_bb sizes for each square with "Fancy Magic Bitboards".
                 if (s < SQ_H8)
                 {
@@ -164,7 +164,7 @@ namespace BitBoard {
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
-                // until we find the one that passes the verification test.
+                // until found the one that passes the verification test.
                 u32 i;
 
                 do
@@ -181,7 +181,7 @@ namespace BitBoard {
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
-                    // Note that we build up the database for square 's' as a side
+                    // Note that build up the database for square 's' as a side
                     // effect of verifying the magic.
                     for (i = 0; i < size; ++i)
                     {

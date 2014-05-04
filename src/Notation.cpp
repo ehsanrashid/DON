@@ -72,7 +72,7 @@ namespace Notation {
         Square dst = dst_sq (m);
         Piece p    = pos[org];
 
-        // Disambiguation if we have more then one piece with destination 'dst'
+        // Disambiguation if have more then one piece with destination 'dst'
         // note that for pawns is not needed because starting file is explicit.
 
         Bitboard pinneds = pos.pinneds (pos.active ());
@@ -197,7 +197,7 @@ namespace Notation {
             if (PAWN != pt)
             {
                 san = PieceChar[pt];
-                // Disambiguation if we have more then one piece of type 'pt'
+                // Disambiguation if have more then one piece of type 'pt'
                 // that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
                 {

@@ -184,7 +184,7 @@ enum MoveT : u16
 // bit 14-15: special move flag: (1) CASTLE, (2) EN-PASSANT, (3) PROMOTION
 // NOTE: EN-PASSANT bit is set only when a pawn can be captured
 //
-// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
+// Special cases are MOVE_NONE and MOVE_NULL. Can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
 enum Move : u16
@@ -260,7 +260,7 @@ enum Bound : u08
 
     // EXACT (-) BOUND      - PV_NODE
     // EXACT evaluation, when receive a definite evaluation,
-    // that is we searched all possible moves and received a new best move
+    // that is searched all possible moves and received a new best move
     // (or received an evaluation from quiescent search that was between ALPHA and BETA).
     // if score for max-player was improved (score > alpha), alpha the max so far,
     // while the min-player improved his score as well (score < beta), beta the min so far.
@@ -379,7 +379,7 @@ inline Value  operator*  (Value  v, double f) { return Value (i32 (i32 (v) * f))
 inline Value& operator*= (Value &v, double f) { v = Value (i32 (i32 (v) * f)); return v; }
 
 ARTHMAT_OPERATORS (Score)
-/// Only declared but not defined. We don't want to multiply two scores due to
+/// Only declared but not defined. Don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term

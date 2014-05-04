@@ -150,13 +150,13 @@ namespace Pawns {
                 else
                 {
                     Bitboard b;
-                    // We now know that there are no friendly pawns beside or behind this pawn on adjacent files.
-                    // We now check whether the pawn is backward by looking in the forward direction on the
+                    // Now know that there are no friendly pawns beside or behind this pawn on adjacent files.
+                    // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
                     b = PawnAttackSpan[C][s] & (pawns[0] | pawns[1]);
                     b = PawnAttackSpan[C][s] & rank_bb (scan_backmost_sq (C, b));
 
-                    // If we have an enemy pawn in the same or next rank, the pawn is
+                    // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
                     backward = (b | shift_del<PUSH> (b)) & pawns[1];
                 }
@@ -172,7 +172,7 @@ namespace Pawns {
                     && ((adj_pawns = PawnAttackSpan[C_][s + PUSH] & pawns[0]) != U64 (0))
                     && (pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (PawnAttackSpan[C][s] & pawns[1]));
 
-                // Passed pawns will be properly scored in evaluation because we need
+                // Passed pawns will be properly scored in evaluation because need
                 // full attack info to evaluate passed pawns. Only the frontmost passed
                 // pawn on each file is considered a true passed pawn.
                 if (passed && !doubled) e->_passed_pawns[C] += s;
@@ -225,7 +225,7 @@ namespace Pawns {
     }
 
     // probe() takes a position object as input, computes a Entry object, and returns
-    // a pointer to it. The result is also stored in a hash table, so we don't have
+    // a pointer to it. The result is also stored in a hash table, so don't have
     // to recompute everything when the same pawn structure occurs again.
     Entry* probe (const Position &pos, Table &table)
     {
@@ -311,7 +311,7 @@ namespace Pawns {
         Value bonus = VALUE_ZERO;
         if (rel_rank (C, king_sq) <= R_4)
         {
-            // If we can castle use the bonus after the castle if is bigger
+            // If can castle use the bonus after the castle if is bigger
             if (rel_rank (C, king_sq) == R_1 && pos.can_castle (C))
             {
                 if (pos.can_castle (Castling<C, CS_K>::Right))

@@ -38,15 +38,15 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 
 #else
 
-    // We need to use malloc provided by C.
-    // First we need to allocate memory of mem_size + max (alignment, sizeof (void *)).
-    // We need 'bytes' because user requested it.
-    // We need to add 'alignment' because malloc can give us any address and
-    // we need to find multiple of 'alignment', so at maximum multiple
+    // Need to use malloc provided by C.
+    // First need to allocate memory of mem_size + max (alignment, sizeof (void *)).
+    // Need 'bytes' because user requested it.
+    // Need to add 'alignment' because malloc can give us any address and
+    // Need to find multiple of 'alignment', so at maximum multiple
     // of alignment will be 'alignment' bytes away from any location.
-    // We need 'sizeof(void *)' for implementing 'aligned_free',
-    // since we are returning modified memory pointer, not given by malloc, to the user,
-    // we must free the memory allocated by malloc not anything else.
+    // Need 'sizeof(void *)' for implementing 'aligned_free',
+    // since returning modified memory pointer, not given by malloc, to the user,
+    // must free the memory allocated by malloc not anything else.
     // So storing address given by malloc just above pointer returning to user.
     // Thats why needed extra space to store that address.
     // Then checking for error returned by malloc, if it returns NULL then 

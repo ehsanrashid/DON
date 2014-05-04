@@ -67,7 +67,7 @@ namespace UCI {
 
     // operator=() updates value and triggers on_change() action.
     // It's up to the GUI to check for option's limits,
-    // but we could receive the new value from the user by console window,
+    // but could receive the new value from the user by console window,
     // so let's check the bounds anyway.
     Option& Option::operator= (const string &value)
     {

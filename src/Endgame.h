@@ -96,7 +96,7 @@ namespace EndGame {
     };
 
     // Endgames class stores in two std::map the pointers to endgame evaluation
-    // and scaling base objects. Then we use polymorphism to invoke the actual
+    // and scaling base objects. Then use polymorphism to invoke the actual
     // endgame function calling its operator() that is virtual.
     class Endgames
     {

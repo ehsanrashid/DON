@@ -541,8 +541,8 @@ inline void  Position::remove_piece (Square s)
 {
     ASSERT (EMPTY != _board[s]);
 
-    // WARNING: This is not a reversible operation. If we remove a piece in
-    // do_move() and then replace it in undo_move() we will put it at the end of
+    // WARNING: This is not a reversible operation. If remove a piece in
+    // do_move() and then replace it in undo_move() will put it at the end of
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
