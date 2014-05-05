@@ -51,9 +51,9 @@ public:
 
         operator std::string () const;
 
-        template<class charT, class Traits>
-        friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const PBEntry &pbe)
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
         {
             os << std::string (pbe);
             return os;

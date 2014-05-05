@@ -368,7 +368,7 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color C, PieceT PT, bool TRACE>
+        template<Color C, PieceT PT, bool Trace>
         // evaluate_piece<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility)
         {
@@ -519,7 +519,7 @@ namespace Evaluator {
                 }
             }
 
-            if (TRACE)
+            if (Trace)
             {
                 Tracer::Terms[C][PT] = score;
             }
@@ -528,7 +528,7 @@ namespace Evaluator {
         }
         //  --- init evaluation info <---
 
-        template<Color C, bool TRACE>
+        template<Color C, bool Trace>
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
@@ -650,7 +650,7 @@ namespace Evaluator {
                 score -= KingDanger[Searcher::RootColor == C][attack_units];
             }
 
-            if (TRACE)
+            if (Trace)
             {
                 Tracer::Terms[C][KING] = score;
             }
@@ -658,7 +658,7 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color C, bool TRACE>
+        template<Color C, bool Trace>
         // evaluate_threats<>() assigns bonuses according to the type of attacking piece
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
@@ -699,7 +699,7 @@ namespace Evaluator {
                 }
             }
 
-            if (TRACE)
+            if (Trace)
             {
                 Tracer::Terms[C][Tracer::THREAT] = score;
             }
@@ -707,7 +707,7 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color C, bool TRACE>
+        template<Color C, bool Trace>
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
@@ -808,7 +808,7 @@ namespace Evaluator {
                 score = apply_weight (score, Weights[PassedPawns]);
             }
 
-            if (TRACE)
+            if (Trace)
             {
                 Tracer::Terms[C][Tracer::PASSED] = score;
             }
@@ -861,7 +861,7 @@ namespace Evaluator {
             return pop_count<FULL> (((WHITE == C) ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
         }
 
-        template<bool TRACE>
+        template<bool Trace>
         inline Value evaluate (const Position &pos)
         {
             ASSERT (pos.checkers () == U64 (0));
@@ -876,7 +876,7 @@ namespace Evaluator {
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
-                if (TRACE)
+                if (Trace)
                 {
                     Tracer::Evalinfo    = ei;
                 }
@@ -914,33 +914,33 @@ namespace Evaluator {
             };
 
             score += 
-              + evaluate_piece<WHITE, NIHT, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BLACK, NIHT, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<WHITE, BSHP, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BLACK, BSHP, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<WHITE, ROOK, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BLACK, ROOK, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
             score += 
-              + evaluate_piece<WHITE, QUEN, TRACE> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-              - evaluate_piece<BLACK, QUEN, TRACE> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+              + evaluate_piece<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+              - evaluate_piece<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
 
             // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
-            score += evaluate_king<WHITE, TRACE> (pos, ei)
-                  -  evaluate_king<BLACK, TRACE> (pos, ei);
+            score += evaluate_king<WHITE, Trace> (pos, ei)
+                  -  evaluate_king<BLACK, Trace> (pos, ei);
 
             // Evaluate tactical threats, needed full attack information including king
-            score += evaluate_threats<WHITE, TRACE> (pos, ei)
-                  -  evaluate_threats<BLACK, TRACE> (pos, ei);
+            score += evaluate_threats<WHITE, Trace> (pos, ei)
+                  -  evaluate_threats<BLACK, Trace> (pos, ei);
 
             // Evaluate passed pawns, needed full attack information including king
-            score += evaluate_passed_pawns<WHITE, TRACE> (pos, ei)
-                  -  evaluate_passed_pawns<BLACK, TRACE> (pos, ei);
+            score += evaluate_passed_pawns<WHITE, Trace> (pos, ei)
+                  -  evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
             // If one side has only a king, score for potential unstoppable pawns
             if (pos.non_pawn_material (BLACK) == VALUE_ZERO)
@@ -1020,7 +1020,7 @@ namespace Evaluator {
             Value value = Value (((mg * i32 (game_phase)) + (eg * i32 (PHASE_MIDGAME - game_phase))) / i32 (PHASE_MIDGAME));
 
             // In case of tracing add all single evaluation contributions for both white and black
-            if (TRACE)
+            if (Trace)
             {
                 Tracer::add_term (PAWN             , ei.pi->pawn_score ());
                 Tracer::add_term (Tracer::PST      , pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus));

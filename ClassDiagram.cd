@@ -110,10 +110,10 @@
       <Field Name="_castle_path" />
     </ShowAsCollectionAssociation>
   </Class>
-  <Class Name="std::basic_null_buffer&lt;charT, Traits&gt;">
+  <Class Name="std::basic_null_buffer&lt;CharT, Traits&gt;">
     <Position X="42.5" Y="5" Width="2.5" />
     <NestedTypes>
-      <Typedef Name="std::basic_null_buffer&lt;charT, Traits&gt;::int_type" Collapsed="true">
+      <Typedef Name="std::basic_null_buffer&lt;CharT, Traits&gt;::int_type" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>src\nullstream.h</NewMemberFileName>
         </TypeIdentifier>
@@ -129,9 +129,9 @@
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="std::basic_null_stream&lt;charT, Traits&gt;">
+  <Class Name="std::basic_null_stream&lt;CharT, Traits&gt;">
     <Position X="42.75" Y="7.5" Width="2.5" />
-    <InheritanceLine Type="std::basic_null_buffer&lt;charT, Traits&gt;" FixedFromPoint="true">
+    <InheritanceLine Type="std::basic_null_buffer&lt;CharT, Traits&gt;" FixedFromPoint="true">
       <Path>
         <Point X="44" Y="6.415" />
         <Point X="44" Y="7.5" />
@@ -1278,7 +1278,7 @@
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
-    <AliasOfLine Type="std::basic_null_stream&lt;charT, Traits&gt;" FixedToPoint="true">
+    <AliasOfLine Type="std::basic_null_stream&lt;CharT, Traits&gt;" FixedToPoint="true">
       <Path>
         <Point X="44" Y="8.704" />
         <Point X="44" Y="9.125" />

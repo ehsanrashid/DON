@@ -423,9 +423,9 @@ extern const Value PieceValue[PHASE_NO][TOTL];
 
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color (c^BLACK); }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 //{
 //    os << ColorChar[c];
 //    return os;
@@ -435,9 +435,9 @@ inline bool _ok       (File f) { return !(f & ~i08 (F_H)); }
 inline File operator~ (File f) { return File (f ^ i08 (F_H)); }
 inline File to_file   (char f) { return File (f - 'a'); }
 inline char to_char   (File f, bool lower = true) { return char (i08 (f) - i08 (F_A)) + (lower ? 'a' : 'A'); }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, File f)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, File f)
 //{
 //    os << to_char (f);
 //    return os;
@@ -447,9 +447,9 @@ inline bool _ok       (Rank r) { return !(r & ~i08 (R_8)); }
 inline Rank operator~ (Rank r) { return Rank (r ^ i08 (R_8)); }
 inline Rank to_rank   (char r) { return Rank (r - '1'); }
 inline char to_char   (Rank r) { return char (i08 (r) - i08 (R_1)) + '1'; }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Rank r)
 //{
 //    os << to_char (r);
 //    return os;
@@ -485,9 +485,9 @@ inline std::string to_string (Square s)
     return sq;
     //return { to_char (_file (s)), to_char (_rank (s)), '\0' };
 }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Square s)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Square s)
 //{
 //    os << to_string (s);
 //    return os;
@@ -525,9 +525,9 @@ inline CRight operator~ (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr <<
 //    return scastle;
 //}
 //
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//operator<< (std::basic_ostream<charT, Traits> &os, const CRight cr)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//operator<< (std::basic_ostream<CharT, Traits> &os, const CRight cr)
 //{
 //    os << to_string (cr);
 //    return os;
@@ -552,9 +552,9 @@ inline PieceT ptype (Piece p) { return PieceT (p & TOTL); }
 inline Color  color (Piece p) { return Color (p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece (p ^ (BLACK << 3)); }
 
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const Piece p)
 //{
 //    os << PieceChar[p];
 //    return os;
@@ -622,9 +622,9 @@ inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_list)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const std::vector<Square> &sq_list)
 //{
 //    std::for_each (sq_list.begin (), sq_list.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;

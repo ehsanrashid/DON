@@ -41,9 +41,9 @@ namespace Notation {
     
 }
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, const Move m)
 {
     os << Notation::move_to_can (m);
     return os;

@@ -83,9 +83,9 @@ namespace MoveGenerator {
             Generator () {}
 
             // template<GenT GT, Color C>
-            // template<CSide SIDE, bool CHESS960>
+            // template<CSide SIDE, bool Chess960>
             // void Generator<GT, KING>::generate_castling()
-            template<CRight CR, bool CHESS960>
+            template<CRight CR, bool Chess960>
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
@@ -104,7 +104,7 @@ namespace MoveGenerator {
 
                 Square dst_king = rel_sq (C, KingSide ? SQ_G1 : SQ_C1);
 
-                Delta step = CHESS960 ? 
+                Delta step = Chess960 ? 
                     (dst_king > org_king ? DEL_W : DEL_E) :
                     (KingSide            ? DEL_W : DEL_E);
 
@@ -116,7 +116,7 @@ namespace MoveGenerator {
                     }
                 }
 
-                if (CHESS960)
+                if (Chess960)
                 {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.

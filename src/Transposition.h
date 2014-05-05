@@ -227,37 +227,37 @@ public:
     // retrieve() looks up the entry in the transposition table.
     const TTEntry* retrieve (Key key) const;
 
-    template<class charT, class Traits>
-    friend std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const TranspositionTable &tt)
+    template<class CharT, class Traits>
+    friend std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
     {
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
-            os.write ((const charT *) &mem_size_mb, sizeof (mem_size_mb));
-            os.write ((const charT *) &TTENTRY_SIZE, sizeof (dummy));
-            os.write ((const charT *) &CLUSTER_ENTRIES, sizeof (dummy));
-            os.write ((const charT *) &dummy, sizeof (dummy));
-            os.write ((const charT *) &tt._generation, sizeof (tt._generation));
-            os.write ((const charT *) &tt._hash_mask, sizeof (tt._hash_mask));
-            os.write ((const charT *)  tt._hash_table, u64 (mem_size_mb) << 20);
+            os.write ((const CharT *) &mem_size_mb, sizeof (mem_size_mb));
+            os.write ((const CharT *) &TTENTRY_SIZE, sizeof (dummy));
+            os.write ((const CharT *) &CLUSTER_ENTRIES, sizeof (dummy));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
+            os.write ((const CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
+            os.write ((const CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return os;
     }
 
-    template<class charT, class Traits>
-    friend std::basic_istream<charT, Traits>&
-        operator>> (std::basic_istream<charT, Traits> &is, TranspositionTable &tt)
+    template<class CharT, class Traits>
+    friend std::basic_istream<CharT, Traits>&
+        operator>> (std::basic_istream<CharT, Traits> &is, TranspositionTable &tt)
     {
             u32 mem_size_mb;
-            is.read ((charT *) &mem_size_mb, sizeof (mem_size_mb));
+            is.read ((CharT *) &mem_size_mb, sizeof (mem_size_mb));
             u08 dummy;
-            is.read ((charT *) &dummy, sizeof (dummy));
-            is.read ((charT *) &dummy, sizeof (dummy));
-            is.read ((charT *) &dummy, sizeof (dummy));
-            is.read ((charT *) &dummy, sizeof (dummy));
-            is.read ((charT *) &tt._hash_mask, sizeof (tt._hash_mask));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
             tt.resize (mem_size_mb);
             tt._generation = dummy;
-            is.read ((charT *)  tt._hash_table, u64 (mem_size_mb) << 20);
+            is.read ((CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return is;
     }
 

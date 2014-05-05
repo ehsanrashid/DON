@@ -24,13 +24,13 @@ namespace UCI {
     private:
         typedef void (*OnChange) (const Option&);
 
-        template<class charT, class Traits>
-        friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const Option &opt);
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt);
 
-        template<class charT, class Traits>
-        friend std::basic_ostream<charT, Traits>&
-            operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &optmap);
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
 
         u08 _idx;
         std::string _type;
@@ -61,9 +61,9 @@ namespace UCI {
         std::string operator() ()  const;
     };
 
-    template<class charT, class Traits>
-    inline std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const Option &opt)
+    template<class CharT, class Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt)
     {
         os << opt.operator() ();
         return os;
@@ -71,9 +71,9 @@ namespace UCI {
 
     // operator<<() is used to print all the options default values in chronological
     // insertion order (the idx field) and in the format defined by the UCI protocol.
-    template<class charT, class Traits>
-    inline std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const OptionMap &optmap)
+    template<class CharT, class Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)
     {
         for (u08 idx = 0; idx < optmap.size (); ++idx)
         {

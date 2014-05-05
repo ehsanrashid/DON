@@ -265,7 +265,7 @@ namespace BitBoard {
     }
 
     // Shift the Bitboard using delta
-    template<Delta DEL> inline Bitboard shift_del (Bitboard bb);
+    template<Delta Delta> inline Bitboard shift_del (Bitboard bb);
 
     template<> inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (+DEL_N); }
     template<> inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (-DEL_S); }

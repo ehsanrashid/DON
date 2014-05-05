@@ -23,8 +23,8 @@ namespace std {
             , _prec (prec)
         {}
 
-        template<class charT, class Traits>
-        basic_ostream<charT, Traits>& operator() (basic_ostream<charT, Traits> &os) const
+        template<class CharT, class Traits>
+        basic_ostream<CharT, Traits>& operator() (basic_ostream<CharT, Traits> &os) const
         {
             os.setf (ios_base::fixed, ios_base::floatfield);
             os.width (_width);
@@ -32,9 +32,9 @@ namespace std {
             return os;
         }
 
-        template<class charT, class Traits>
-        friend basic_ostream<charT, Traits>&
-            operator<< (basic_ostream<charT, Traits> &os, const width_prec &wp)
+        template<class CharT, class Traits>
+        friend basic_ostream<CharT, Traits>&
+            operator<< (basic_ostream<CharT, Traits> &os, const width_prec &wp)
         {
             return wp (os);
         }

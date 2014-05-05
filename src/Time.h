@@ -93,9 +93,9 @@ namespace Time {
     }
 }
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-    operator<< (std::basic_ostream<charT, Traits> &os, Time::point p)
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Time::point p)
 {
     os << Time::to_string (p);
     return os;
