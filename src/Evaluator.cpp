@@ -138,7 +138,7 @@ namespace Evaluator {
             S(+289,+344), // Mobility
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
-            S(+ 46,+  0), // Space
+            S(+ 48,+  0), // Space
             S(+271,+  0), // Cowardice
             S(+307,+  0)  // Aggressive
         };
@@ -232,7 +232,7 @@ namespace Evaluator {
         
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
-        const Score RookTrappedPenalty      = S(+90,+ 0); // Penalty for rook trapped
+        const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
         //const Score CastleBlockedPenalty    = S(+150,+ 0); // Penalty for castling blocked by enemy attacks
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
@@ -269,10 +269,10 @@ namespace Evaluator {
 
         const i32 PiecePinnedWeight = + 2;
 
-
+        const u08 MAX_ATTACK_UNITS = 100;
         // KingDanger[Color][attack_units] contains the actual king danger weighted
         // scores, indexed by color and by a calculated integer number.
-        Score KingDanger[CLR_NO][100];
+        Score KingDanger[CLR_NO][MAX_ATTACK_UNITS];
 
 
         // apply_weight() weighs 'score' by factor 'weight' trying to prevent overflow
@@ -512,7 +512,8 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (fk, _file (s) < fk) == 0)
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + i32 (R_1 == rk && !pos.can_castle (C)));
+                                //pos.castle_path () & ei.attacked_by[C_][NONE];
+                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + i32 (R_1 == rk && (!pos.can_castle (C))));
                             }
                         }
                     }
@@ -641,9 +642,9 @@ namespace Evaluator {
                     attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
                 }
 
-                // To index KingDanger[] attack_units must be in [0, 99] range
-                if (attack_units <  0) attack_units =  0;
-                if (attack_units > 99) attack_units = 99;
+                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
+                if (attack_units <  0               ) attack_units =  0;
+                if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
 
                 // Finally, extract the king danger score from the KingDanger[]
                 // array and subtract the score from evaluation.
@@ -992,13 +993,17 @@ namespace Evaluator {
                    ? ei.mi->scale_factor<WHITE> (pos)
                    : ei.mi->scale_factor<BLACK> (pos);
 
-                if (game_phase < (PHASE_MIDGAME - 32))
+                // If don't already have an unusual scale factor, check for opposite
+                // colored bishop endgames, and use a lower scale for those.
+                if (   (game_phase < (PHASE_MIDGAME - 32))
+                    && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
+                    && (pos.opposite_bishops ())
+                   )
                 {
-                    // If don't already have an unusual scale factor, check for opposite
-                    // colored bishop endgames, and use a lower scale for those.
-                    if (   (game_phase < (PHASE_MIDGAME - 48))
-                        && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
-                        && (pos.opposite_bishops ())
+                    // Both sides with opposite-colored bishops only ignoring any pawns.
+                    if (   (game_phase < (PHASE_MIDGAME - 64))
+                        && (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
+                        && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                        )
                     {
                         // It is almost certainly a draw even with pawns.
@@ -1112,7 +1117,7 @@ namespace Evaluator {
         const i32 PeakScore = 1280;
 
         i32 mg = 0;
-        for (u08 i = 1; i < 100; ++i)
+        for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
             mg = min (PeakScore, min (i32 (0.4*i*i), mg + MaxSlope));
 

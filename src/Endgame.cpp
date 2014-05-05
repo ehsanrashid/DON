@@ -1012,9 +1012,6 @@ namespace EndGame {
                 && (opposite_colors (sb_sq, wp_sq) || pos.count<PAWN> (_stong_side) == 1)
                )
             {
-                i32 sk_dist = SquareDist[sk_sq][wp_sq];
-                i32 wk_dist = SquareDist[wk_sq][wp_sq];
-
                 // It's a draw if the weak king is on its back two ranks, within 2
                 // squares of the blocking pawn and the strong king is not
                 // closer. (I think this rule only fails in practically
@@ -1022,8 +1019,8 @@ namespace EndGame {
                 // and positions where qsearch will immediately correct the
                 // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
                 if (   (rel_rank (_stong_side, wk_sq) >= R_7)
-                    && (wk_dist <= 2)
-                    && (wk_dist <= sk_dist)
+                    && (SquareDist[wk_sq][wp_sq] <= 2)
+                    && (SquareDist[wk_sq][wp_sq] <= SquareDist[sk_sq][wp_sq])
                    )
                 {
                     return SCALE_FACTOR_DRAW;

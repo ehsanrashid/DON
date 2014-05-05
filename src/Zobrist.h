@@ -32,7 +32,7 @@ namespace Zobrist {
         Key zobrist[ZOB_SIZE];
 
         //CACHE_ALIGN(64)
-        struct _
+        struct
         {
             Key piecesq     [CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]

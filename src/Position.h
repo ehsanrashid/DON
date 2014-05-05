@@ -233,7 +233,7 @@ public:
     CRight can_castle   (Color   c) const;
 
     Square   castle_rook (CRight cr) const;
-    //Bitboard castle_path (CRight cr) const;
+    Bitboard castle_path (CRight cr) const;
     bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
@@ -419,7 +419,7 @@ inline CRight Position::can_castle   (CRight cr) const { return _si->castle_righ
 inline CRight Position::can_castle   (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
 
 inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
-//inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
+inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
 inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }

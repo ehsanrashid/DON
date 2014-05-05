@@ -284,7 +284,7 @@ enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
 
-    SCALE_FACTOR_PAWNS =  48,
+    SCALE_FACTOR_PAWNS   =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255
@@ -293,14 +293,14 @@ enum ScaleFactor : u08
 union ScoreUnion
 {
     u32 score;
-    struct _ { i16 eg_value, mg_value; } _;
+    struct { i16 eg, mg; } _;
 };
 
 inline Score mk_score (i32 mg, i32 eg)
 {
     ScoreUnion u;
-    u._.mg_value = i16 (mg) - (i16 (eg) >> 15);
-    u._.eg_value = i16 (eg);
+    u._.mg = i16 (mg) - (i16 (eg) >> 15);
+    u._.eg = i16 (eg);
     return Score (u.score);
 }
 
@@ -311,13 +311,13 @@ inline Score mk_score (i32 mg, i32 eg)
 inline Value mg_value (Score s)
 {
     ScoreUnion u = { u32 (s) };
-    return Value (u._.mg_value + (i16 (u._.eg_value) >> 15));
+    return Value (u._.mg + (i16 (u._.eg) >> 15));
 }
 
 inline Value eg_value (Score s)
 {
     ScoreUnion u = { u32 (s) };
-    return Value (u._.eg_value);
+    return Value (u._.eg);
 }
 
 #undef BASIC_OPERATORS
