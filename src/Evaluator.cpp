@@ -1003,8 +1003,7 @@ namespace Evaluator {
                     {
                         // It is almost certainly a draw even with pawns.
                         u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        sf  = (pawn_diff == 0) ? SCALE_FACTOR_DRAW :
-                            ScaleFactor (i32 (SCALE_FACTOR_NORMAL)/2);
+                        sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
                     }
                     // Both sides with opposite-colored bishops, but also other pieces. 
                     else

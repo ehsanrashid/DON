@@ -290,14 +290,35 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NONE    = 255
 };
 
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
+union ScoreUnion
+{
+    u32 score;
+    struct _ { i16 eg_value, mg_value; } _;
+};
+
+inline Score mk_score (i32 mg, i32 eg)
+{
+    ScoreUnion u;
+    u._.mg_value = i16 (mg) - (i16 (eg) >> 15);
+    u._.eg_value = i16 (eg);
+    return Score (u.score);
+}
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
 
-inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) >> 0x10); }
-inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u32 (s) & 0x8000U)); }
+inline Value mg_value (Score s)
+{
+    ScoreUnion u = { u32 (s) };
+    return Value (u._.mg_value + (i16 (u._.eg_value) >> 15));
+}
+
+inline Value eg_value (Score s)
+{
+    ScoreUnion u = { u32 (s) };
+    return Value (u._.eg_value);
+}
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
