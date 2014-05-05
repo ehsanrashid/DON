@@ -1086,9 +1086,9 @@ namespace Evaluator {
 
     }
 
-    // evaluate() is the main evaluation function. It always computes two
-    // values, an endgame score and a middle game score, and interpolates
-    // between them based on the remaining material.
+    // evaluate() is the main evaluation function. It always computes two values,
+    // an endgame value and a middle game value, in score
+    // and interpolates between them based on the remaining material.
     Value evaluate (const Position &pos)
     {
         return evaluate<false> (pos);
