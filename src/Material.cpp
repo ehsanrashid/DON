@@ -235,7 +235,7 @@ namespace Material {
                         SCALE_FACTOR_DRAW : npm[BLACK] <= VALUE_MG_BSHP ? 
                         4 : 12);
                 }
-                else if (pos.count<PAWN> (WHITE) > 0)
+                else if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->_factor[WHITE] = u08 (SCALE_FACTOR_PAWNS);
                 }
@@ -249,7 +249,7 @@ namespace Material {
                         SCALE_FACTOR_DRAW : npm[WHITE] <= VALUE_MG_BSHP ? 
                         4 : 12);
                 }
-                else if (pos.count<PAWN> (BLACK) > 0)
+                else if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->_factor[BLACK] = u08 (SCALE_FACTOR_PAWNS);
                 }

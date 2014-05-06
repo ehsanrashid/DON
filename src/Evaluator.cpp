@@ -539,6 +539,13 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
+            //if (ei.mi->game_phase () < (PHASE_MIDGAME - 96))
+            {
+                // King mobility is good in the endgame
+                Bitboard mobility = ei.attacked_by[C][KING] & ~(pos.pieces (C)|ei.attacked_by[C_][NONE]);
+                score += mk_score (0, 4 * pop_count<MAX15> (mobility));
+            }
+
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] > 0)
             {
@@ -636,7 +643,7 @@ namespace Evaluator {
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * pop_count<MAX15> (safe_check);
 
                 Bitboard pinned_pieces = ei.pinned_pieces[C];
-                // Penalty for pinned pieces 
+                // Penalty for pinned pieces
                 if (pinned_pieces != U64 (0))
                 {
                     attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
@@ -676,21 +683,21 @@ namespace Evaluator {
                 Bitboard attacked_enemies;
                 // Pawn
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][PAWN]);
-                if (attacked_enemies != U64 (0))
+                while (attacked_enemies != U64 (0))
                 {
-                    score += ThreatBonus[0][ptype (pos[scan_lsq (attacked_enemies)])];
+                    score += ThreatBonus[0][ptype (pos[pop_lsq (attacked_enemies)])];
                 }
                 // Minor
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
-                if (attacked_enemies != U64 (0))
+                while (attacked_enemies != U64 (0))
                 {
-                    score += ThreatBonus[1][ptype (pos[scan_lsq (attacked_enemies)])];
+                    score += ThreatBonus[1][ptype (pos[pop_lsq (attacked_enemies)])];
                 }
                 // Major
                 attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
-                if (attacked_enemies != U64 (0))
+                while (attacked_enemies != U64 (0))
                 {
-                    score += ThreatBonus[2][ptype (pos[scan_lsq (attacked_enemies)])];
+                    score += ThreatBonus[2][ptype (pos[pop_lsq (attacked_enemies)])];
                 }
 
                 attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
@@ -823,9 +830,9 @@ namespace Evaluator {
         template<Color C>
         inline Score evaluate_unstoppable_pawns (const Position &pos, const EvalInfo &ei)
         {
+            (void) pos;
             Bitboard unstoppable_pawns = ei.pi->passed_pawns<C> () | ei.pi->candidate_pawns<C> ();
-            return (unstoppable_pawns == U64 (0) || pos.non_pawn_material (~C) > VALUE_ZERO)
-                ? SCORE_ZERO
+            return (unstoppable_pawns == U64 (0)) ? SCORE_ZERO
                 : PawnUnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns)));
         }
 
@@ -910,8 +917,8 @@ namespace Evaluator {
             // Do not include in mobility squares protected by enemy pawns or occupied by our pawns or king
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(pos.pieces (WHITE, PAWN, KING) | ei.attacked_by[BLACK][PAWN]),
-                ~(pos.pieces (BLACK, PAWN, KING) | ei.attacked_by[WHITE][PAWN])
+                ~(pos.pieces (WHITE, PAWN, KING)|ei.attacked_by[BLACK][NONE]),
+                ~(pos.pieces (BLACK, PAWN, KING)|ei.attacked_by[WHITE][NONE])
             };
 
             score += 
@@ -1001,7 +1008,7 @@ namespace Evaluator {
                    )
                 {
                     // Both sides with opposite-colored bishops only ignoring any pawns.
-                    if (   (game_phase < (PHASE_MIDGAME - 64))
+                    if (   (game_phase < (PHASE_MIDGAME - 96))
                         && (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
                         && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                        )

@@ -603,7 +603,7 @@ namespace Searcher {
                 ASSERT (splitpoint->best_value > -VALUE_INFINITE);
                 ASSERT (splitpoint->moves_count > 0);
 
-                goto moves_loop;
+                goto loop_moves;
             }
 
             moves_count  = 0;
@@ -700,7 +700,7 @@ namespace Searcher {
             if (in_check)
             {
                 eval = (ss)->static_eval = VALUE_NONE;
-                goto moves_loop;
+                goto loop_moves;
             }
 
             // Rest of code is skipped when in check
@@ -897,7 +897,7 @@ namespace Searcher {
                 tt_move = tte ? tte->move () : MOVE_NONE;
             }
 
-        moves_loop: // When in check and at SPNode search starts from here
+        loop_moves: // When in check and at SPNode search starts from here
 
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
             Move cm[CLR_NO] =
@@ -1984,10 +1984,10 @@ namespace Threads {
                 // Lock splitpoint
                 (sp)->mutex.lock ();
 
-                if (cutoff_occurred ()) // With many threads happens quite enough
-                {
-                    goto skip_search;
-                }
+                //if (cutoff_occurred ()) // With many threads happens quite enough
+                //{
+                //    goto skip_search;
+                //}
 
                 ASSERT (active_pos == NULL);
 
@@ -2001,7 +2001,7 @@ namespace Threads {
                 default: ASSERT (false);
                 }
 
-skip_search:
+//skip_search:
                 ASSERT (searching);
                 searching  = false;
                 active_pos = NULL;
