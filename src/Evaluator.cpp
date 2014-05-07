@@ -539,7 +539,7 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
-            if (ei.mi->game_phase () < (PHASE_MIDGAME - 96))
+            if (ei.mi->game_phase () < (PHASE_MIDGAME - 64))
             {
                 // King mobility is good in the endgame
                 Bitboard mobility = ei.attacked_by[C][KING] & ~(pos.pieces (C)|ei.attacked_by[C_][NONE]);
@@ -982,7 +982,7 @@ namespace Evaluator {
 
             // Stalemate detection
             Color stm = pos.active ();
-            if (   (game_phase < (PHASE_MIDGAME - 48))
+            if (   (game_phase < (PHASE_MIDGAME - 64))
                 && (ei.attacked_by[stm][NIHT] == U64 (0))
                 && (ei.attacked_by[stm][BSHP] == U64 (0))
                 && (ei.attacked_by[stm][ROOK] == U64 (0))
@@ -1002,7 +1002,7 @@ namespace Evaluator {
 
                 // If don't already have an unusual scale factor, check for opposite
                 // colored bishop endgames, and use a lower scale for those.
-                if (   (game_phase < (PHASE_MIDGAME - 32))
+                if (   (game_phase < (PHASE_MIDGAME - 16))
                     && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
                     && (pos.opposite_bishops ())
                    )
