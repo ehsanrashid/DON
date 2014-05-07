@@ -539,7 +539,7 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
-            //if (ei.mi->game_phase () < (PHASE_MIDGAME - 96))
+            if (ei.mi->game_phase () < (PHASE_MIDGAME - 96))
             {
                 // King mobility is good in the endgame
                 Bitboard mobility = ei.attacked_by[C][KING] & ~(pos.pieces (C)|ei.attacked_by[C_][NONE]);
