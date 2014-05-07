@@ -1313,8 +1313,10 @@ namespace Searcher {
                 // Step 19. Check for splitting the search
                 if (!SPNode)
                 {
-                    if (   (Threadpool.split_depth <= depth)
-                        && (Threadpool.available_slave (thread) != NULL)
+                    if (   (Threadpool.size () > 1)
+                        && (Threadpool.split_depth <= depth)
+                        &&  (  !thread->active_splitpoint
+                            || !thread->active_splitpoint->slave_searching)
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
                        )
                     {
@@ -2006,6 +2008,7 @@ namespace Threads {
                 searching  = false;
                 active_pos = NULL;
                 (sp)->slaves_mask.reset (idx);
+                (sp)->slave_searching = false;
                 (sp)->nodes += pos.game_nodes ();
 
                 // Wake up master thread so to allow it to return from the idle loop
@@ -2024,6 +2027,42 @@ namespace Threads {
                 // our feet by the sp master. Also accessing other Thread objects is
                 // unsafe because if exiting there is a chance are already freed.
                 (sp)->mutex.unlock ();
+
+                // Try to late join to another split point if none of its slaves has
+                // already finished.
+                if (Threadpool.size () > 2)
+                {
+                    for (u08 t = 0; t < Threadpool.size (); ++t)
+                    {
+                        u08 size = Threadpool[t]->splitpoint_threads; // Local copy
+                        sp = (size > 0) ? &Threadpool[t]->splitpoints[size - 1] : NULL;
+
+                        if (   sp != NULL
+                            && sp->slave_searching
+                            && available_to (Threadpool[t])
+                           )
+                        {
+                            // Recheck the conditions under lock protection
+                            Threadpool.mutex.lock ();
+                            sp->mutex.lock ();
+
+                            if (   sp->slave_searching
+                                && available_to (Threadpool[t])
+                               )
+                            {
+                                sp->slaves_mask.set (idx);
+                                active_splitpoint = sp;
+                                searching = true;
+                            }
+
+                            sp->mutex.unlock ();
+                            Threadpool.mutex.unlock ();
+
+                            break; // Just a single attempt
+                        }
+                    }
+                
+                }
             }
 
             // If this thread is the master of a splitpoint and all slaves have finished

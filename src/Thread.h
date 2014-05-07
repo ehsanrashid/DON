@@ -165,6 +165,7 @@ namespace Threads {
 
         // Shared data
         std::bitset<MAX_THREADS> slaves_mask;
+        volatile bool  slave_searching;
         volatile u08   moves_count;
         volatile Value alpha;
         volatile Value best_value;

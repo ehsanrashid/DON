@@ -152,6 +152,7 @@ namespace Threads {
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
 
+        sp.slave_searching = true;
         ++splitpoint_threads;
         active_splitpoint = &sp;
         active_pos = NULL;
