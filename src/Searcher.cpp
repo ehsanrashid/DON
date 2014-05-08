@@ -771,7 +771,7 @@ namespace Searcher {
 
                     if (!((ss)->skip_null_move))
                     {
-                        if (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
+                        if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                         {
                             // Step 7. Futility pruning: child node
                             // Betting that the opponent doesn't have a move that will reduce
@@ -792,7 +792,7 @@ namespace Searcher {
                                 && (eval >= beta)
                                )
                             {
-                                ASSERT (eval >= beta);
+                                //ASSERT (eval >= beta);
 
                                 (ss)->current_move = MOVE_NULL;
 

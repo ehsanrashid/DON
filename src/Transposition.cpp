@@ -132,7 +132,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         if (tte->_key == 0 || tte->_key == key32) // Empty or Old then overwrite
         {
             // Preserve any existing TT move
-            if (move == MOVE_NONE)
+            if (move == MOVE_NONE && tte->_move != MOVE_NONE)
             {
                 move = Move (tte->_move);
             }

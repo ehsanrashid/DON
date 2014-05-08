@@ -799,7 +799,7 @@ namespace Evaluator {
                     }
                 }
 
-                if (eg_bonus != VALUE_ZERO)
+                if (eg_bonus > VALUE_ZERO)
                 {
                     // Increase the bonus if have more non-pawn pieces
                     if (pos.count<NONPAWN> (C) > pos.count<NONPAWN> (C_))
