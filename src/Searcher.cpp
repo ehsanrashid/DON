@@ -83,7 +83,7 @@ namespace Searcher {
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
-        inline void update_stats (Position &pos, Stack *ss, Move move, u08 depth, Move *quiet_moves, u08 quiets_count)
+        inline void update_stats (const Position &pos, Stack *ss, Move move, u08 depth, Move *quiet_moves, u08 quiets_count)
         {
             if ((ss)->killer_moves[0] != move)
             {
@@ -2024,22 +2024,21 @@ namespace Threads {
 
                 // After releasing the lock, cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
-                // our feet by the sp master. Also accessing other Thread objects is
-                // unsafe because if exiting there is a chance are already freed.
+                // our feet by the sp master.
                 (sp)->mutex.unlock ();
 
-                // Try to late join to another split point if none of its slaves has
-                // already finished.
+                // Try to late join to another split point if none of its slaves has already finished.
                 if (Threadpool.size () > 2)
                 {
                     for (u08 t = 0; t < Threadpool.size (); ++t)
                     {
-                        u08 size = Threadpool[t]->splitpoint_threads; // Local copy
-                        sp = (size > 0) ? &Threadpool[t]->splitpoints[size - 1] : NULL;
+                        Thread *thread = Threadpool[t];
+                        u08 size = thread->splitpoint_threads; // Local copy
+                        sp = (size > 0) ? &thread->splitpoints[size - 1] : NULL;
 
                         if (   sp != NULL
                             && sp->slave_searching
-                            && available_to (Threadpool[t])
+                            && available_to (thread)
                            )
                         {
                             // Recheck the conditions under lock protection
@@ -2047,7 +2046,7 @@ namespace Threads {
                             sp->mutex.lock ();
 
                             if (   sp->slave_searching
-                                && available_to (Threadpool[t])
+                                && available_to (thread)
                                )
                             {
                                 sp->slaves_mask.set (idx);

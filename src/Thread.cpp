@@ -273,6 +273,7 @@ namespace Threads {
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
+    // Cannot be done in d'tor because we have to terminate the threads before to free ThreadPool object.
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
