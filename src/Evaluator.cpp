@@ -431,7 +431,7 @@ namespace Evaluator {
                                 );
                 }
 
-                i32 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
+                u08 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
                 mobility += MobilityBonus[PT][mob];
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -518,7 +518,7 @@ namespace Evaluator {
                                )
                             {
                                 //pos.castle_path () & ei.attacked_by[C_][NONE];
-                                score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + i32 (R_1 == rk && (!pos.can_castle (C))));
+                                score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + i32 (R_1 == rk && (!pos.can_castle (C))));
                             }
                         }
                     }
@@ -548,7 +548,7 @@ namespace Evaluator {
             {
                 // King mobility is good in the endgame
                 Bitboard mobility = ei.attacked_by[C][KING] & ~(pos.pieces (C)|ei.attacked_by[C_][NONE]);
-                i32 mob = pop_count<MAX15> (mobility);
+                u08 mob = pop_count<MAX15> (mobility);
                 if (mob < 2) score -= mk_score (0, 8 * (2 - mob));
             }
 
