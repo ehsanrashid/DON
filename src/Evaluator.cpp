@@ -211,8 +211,8 @@ namespace Evaluator {
         const Score ThreatBonus[3][NONE] =
         {
             { S(+15,+48), S(+45,+64), S(+45,+64), S(+75,+120), S(+90,+128), S(+ 0,+ 0) }, // Pawn
-            { S(+ 7,+40), S(+24,+49), S(+24,+49), S(+36,+ 96), S(+41,+100), S(+ 0,+ 0) }, // Minor
-            { S(+ 5,+36), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 49), S(+ 0,+ 0) }  // Major
+            { S(+ 7,+40), S(+24,+49), S(+24,+49), S(+36,+ 96), S(+41,+104), S(+ 0,+ 0) }, // Minor
+            { S(+ 5,+36), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 52), S(+ 0,+ 0) }  // Major
         };
 
         // PawnThreatenPenalty[PieceT] contains a penalty according to
@@ -544,13 +544,10 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
-            if (ei.mi->game_phase () < (PHASE_MIDGAME - 64))
-            {
-                // King mobility is good in the endgame
-                Bitboard mobility = ei.attacked_by[C][KING] & ~(pos.pieces<PAWN> (C)|ei.attacked_by[C_][NONE]);
-                u08 mob = pop_count<MAX15> (mobility);
-                if (mob < 2) score -= mk_score (0, 8 * (2 - mob));
-            }
+            // King mobility is good in the endgame
+            Bitboard mobility = ei.attacked_by[C][KING] & ~(ei.attacked_by[C_][NONE]);
+            u08 mob = pop_count<MAX15> (mobility);
+            if (mob < 3) score -= mk_score (0, 4 * (3 - mob));
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] > 0)
@@ -736,7 +733,7 @@ namespace Evaluator {
 
                 ASSERT (pos.passed_pawn (C, s));
 
-                i32 r = i32 (rel_rank (C, s)) - i32 (R_2);
+                i32 r = i32 (rel_rank (C, s));// - i32 (R_2);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
