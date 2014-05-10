@@ -16,24 +16,25 @@ namespace Material {
         // Polynomial material balance parameters: P      N      B      R      Q     BP
         const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
 
-        const i32 OwnColorQuadraticCoefficient[NONE][NONE] =
+        const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
         {
+            //          OWN PIECES
             //  P     N     B     R     Q    BP
             { +  2, +  0, +  0, +  0, +  0, + 39, }, // P
             { +271, -  4, +  0, +  0, +  0, + 35, }, // N
-            { +105, +  4, +  0, +  0, +  0, +  0, }, // B
+            { +105, +  4, +  0, +  0, +  0, +  0, }, // B     OWN PIECES
             { -  2, + 46, +100, -141, +  0, - 27, }, // R
             { + 25, +129, +142, -137, +  0, -177, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
-        const i32 OppColorQuadraticCoefficient[NONE][NONE] =
+        const i32 OppSideQuadraticCoefficient[NONE][NONE] =
         {
-            //          THEIR PIECES
+            //          OPP PIECES
             //  P     N     B     R     Q    BP
             { +  0, +  0, +  0, +  0, +  0, + 37, }, // P
             { + 62, +  0, +  0, +  0, +  0, + 10, }, // N
-            { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OUR PIECES
+            { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OWN PIECES
             { + 40, + 23, - 22, +  0, +  0, + 50, }, // R
             { +105, - 39, +141, +274, +  0, + 98, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
@@ -103,11 +104,11 @@ namespace Material {
 
                     for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[C ][pt2] * OwnColorQuadraticCoefficient[pt1][pt2]
-                          +  count[C_][pt2] * OppColorQuadraticCoefficient[pt1][pt2];
+                        v += count[C ][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
+                          +  count[C_][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
                     }
-                    v += count[C ][KING] * OwnColorQuadraticCoefficient[pt1][KING]
-                      +  count[C_][KING] * OppColorQuadraticCoefficient[pt1][KING];
+                    v += count[C ][KING] * OwnSideQuadraticCoefficient[pt1][KING]
+                      +  count[C_][KING] * OppSideQuadraticCoefficient[pt1][KING];
 
                     value += pc * v;
                 }

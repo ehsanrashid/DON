@@ -1187,7 +1187,7 @@ namespace Searcher {
                         //: -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
                         -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
-                    // Research at intermediate depth if reduction is very high
+                    // Re-search at intermediate depth if reduction is very high
                     if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
                         Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
