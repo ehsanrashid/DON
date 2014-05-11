@@ -377,6 +377,7 @@ namespace Evaluator {
             const Color  C_    = (WHITE == C) ? BLACK : WHITE;
             const Square fk_sq = pos.king_sq (C );
             const Bitboard occ = pos.pieces ();
+            const Bitboard pinned_pieces = ei.pinned_pieces[C];
 
             ei.attacked_by[C][PT] = U64 (0);
 
@@ -386,13 +387,13 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | ei.pinned_pieces[C]) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | ei.pinned_pieces[C]) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
                     (QUEN == PT) ? attacks_bb<BSHP> (s, (occ))
                                  | attacks_bb<ROOK> (s, (occ)) :
                     PieceAttacks[PT][s];
 
-                if (ei.pinned_pieces[C] & s)
+                if (pinned_pieces & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
@@ -433,7 +434,7 @@ namespace Evaluator {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
                 {
-                    score -= PawnThreatenPenalty[PT];
+                    score -= PawnThreatenPenalty[PT] * ((pinned_pieces & s) ? 2 : 1);
                 }
 
                 // Special extra evaluation for pieces
@@ -512,7 +513,7 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (fk, _file (s) < fk) == 0)
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + i32 (R_1 == rk && (!pos.can_castle (C))));
+                                score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + i32 (R_1 == rk && !pos.can_castle (C)));
                             }
                         }
                     }
@@ -538,13 +539,8 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
-            // King mobility is good in the endgame
-            Bitboard mobility = ei.attacked_by[C][KING] & ~(ei.attacked_by[C_][NONE]);
-            u08 mob = pop_count<MAX15> (mobility);
-            if (mob < 3) score -= mk_score (0, 4 * (3 - mob));
-
             // Main king safety evaluation
-            if (ei.king_attackers_count[C_] > 0)
+            if (ei.king_attackers_count[C_] != 0)
             {
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
@@ -566,6 +562,13 @@ namespace Evaluator {
                     + min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
                     + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
                     - mg_value (score) / 32;
+                
+                Bitboard pinned_pieces = ei.pinned_pieces[C];
+                // Penalty for pinned pieces
+                if (pinned_pieces != U64 (0))
+                {
+                    attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
+                }
 
                 // Undefended squares not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
@@ -639,13 +642,6 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * pop_count<MAX15> (safe_check);
 
-                Bitboard pinned_pieces = ei.pinned_pieces[C];
-                // Penalty for pinned pieces
-                if (pinned_pieces != U64 (0))
-                {
-                    attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
-                }
-
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
                 if (attack_units <  0               ) attack_units =  0;
                 if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
@@ -654,6 +650,11 @@ namespace Evaluator {
                 // array and subtract the score from evaluation.
                 score -= KingDanger[Searcher::RootColor == C][attack_units];
             }
+
+            // King mobility is good in the endgame
+            Bitboard mobility = ei.attacked_by[C][KING] & ~(ei.attacked_by[C_][NONE]);
+            u08 mob = pop_count<MAX15> (mobility);
+            if (mob < 3) score -= mk_score (0, 4 * (3 - mob));
 
             if (Trace)
             {
@@ -979,20 +980,20 @@ namespace Evaluator {
 
             ScaleFactor sf;
 
-            // Stalemate detection
-            Color stm = pos.active ();
-            if (   (game_phase < (PHASE_MIDGAME - 64))
-                && (ei.attacked_by[stm][NIHT] == U64 (0))
-                && (ei.attacked_by[stm][BSHP] == U64 (0))
-                && (ei.attacked_by[stm][ROOK] == U64 (0))
-                && (ei.attacked_by[stm][QUEN] == U64 (0))
-                && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
-                && (MoveList<LEGAL> (pos).size () == 0)
-               )
-            {
-                sf = SCALE_FACTOR_DRAW;
-            }
-            else
+            //// Stalemate detection
+            //Color stm = pos.active ();
+            //if (   (game_phase < (PHASE_MIDGAME - 64))
+            //    && (ei.attacked_by[stm][NIHT] == U64 (0))
+            //    && (ei.attacked_by[stm][BSHP] == U64 (0))
+            //    && (ei.attacked_by[stm][ROOK] == U64 (0))
+            //    && (ei.attacked_by[stm][QUEN] == U64 (0))
+            //    && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
+            //    && (MoveList<LEGAL> (pos).size () == 0)
+            //   )
+            //{
+            //    sf = SCALE_FACTOR_DRAW;
+            //}
+            //else
             {
                 // Scale winning side if position is more drawish than it appears
                 sf = (eg > VALUE_DRAW)
