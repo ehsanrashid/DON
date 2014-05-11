@@ -228,7 +228,7 @@ namespace Evaluator {
         const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
-        const Score PieceHangingBonus       = S(+23,+20); // Bonus for each enemy hanging piece
+        const Score PieceHangingBonus       = S(+18,+24); // Bonus for each enemy hanging piece
         
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
@@ -691,13 +691,13 @@ namespace Evaluator {
                     score += ThreatBonus[0][ptype (pos[pop_lsq (attacked_enemies)])];
                 }
                 // Minor
-                attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT] | ei.attacked_by[C][BSHP]);
+                attacked_enemies = weak_enemies & (ei.attacked_by[C][NIHT]|ei.attacked_by[C][BSHP]);
                 while (attacked_enemies != U64 (0))
                 {
                     score += ThreatBonus[1][ptype (pos[pop_lsq (attacked_enemies)])];
                 }
                 // Major
-                attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK] | ei.attacked_by[C][QUEN]);
+                attacked_enemies = weak_enemies & (ei.attacked_by[C][ROOK]|ei.attacked_by[C][QUEN]);
                 while (attacked_enemies != U64 (0))
                 {
                     score += ThreatBonus[2][ptype (pos[pop_lsq (attacked_enemies)])];
@@ -706,7 +706,8 @@ namespace Evaluator {
                 attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
                 if (attacked_enemies != U64 (0))
                 {
-                    score += PieceHangingBonus * i32 (pop_count<MAX15> (attacked_enemies));
+                    score += PieceHangingBonus
+                          * (C == pos.active () ? 2 : i32 (pop_count<MAX15> (attacked_enemies)));
                 }
             }
 
@@ -733,7 +734,7 @@ namespace Evaluator {
 
                 ASSERT (pos.passed_pawn (C, s));
 
-                i32 r = i32 (rel_rank (C, s));// - i32 (R_2);
+                i32 r = i32 (rel_rank (C, s)) - i32 (R_2);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
