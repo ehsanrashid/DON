@@ -1363,7 +1363,7 @@ namespace Searcher {
                     posi_key,
                     best_move,
                     depth,
-                    best_value >= beta ? BND_LOWER : PVNode && best_move ? BND_EXACT : BND_UPPER,
+                    best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
                     pos.game_nodes (),
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);

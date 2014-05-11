@@ -324,35 +324,8 @@ namespace UCI {
         //
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
-        Options["MultiPV_cp"]                   << Option (0, 0, 999);
-
-        // TODO::
-        //// Level of contempt to avoid draws in game play.
-        //// Default 1, Min 0 (none), Max 2 (aggressive).
-        ////
-        //// The notion of "contempt" implies that engine will try to avoid draws by evaluating its own position slightly too optimistically.
-        //// The Contempt level can be chosen between 0 (none) and 2 (aggressive), the default value of 1 should be a good compromise in most situations.
-        ////
-        //// .    0 = No Contempt
-        //// The evaluations are accurate and identical for both sides. This is recommended for position analysis in which you analyze alternatively for White and Black.
-        //// The starting position evaluates as approx. +0.15.
-        ////
-        //// .    1 = Default Contempt
-        //// Contempt 1 is primarily based on piece value imbalance, engine will value its own pieces higher than the opponent pieces, so will only exchange them if there's a clear positional advantage in doing so.
-        //// This also means that the score is evaluated optimistically for the side to move (at most 0.15 pawn). For example, the starting position evaluates as approx. +0.30 when analyzing for White and +0.00 when viewed from Black.
-        //// This is only recommended for position analysis if you always analyze for the same side.
-        ////
-        //// .    2 = Aggressive
-        //// Contempt 2 adds some king safety imbalance, leading to a more attacking style.
-        //// It would draw less, It will also lose more, especially if your opponent is strong.
-        ////
-        //// The contempt settings are fairly mild and have little impact on the objective strength of the engine.
-        //// It's hard to say which will give the best results against a given opponent,
-        //// it may depend on the style and strength of the opponent.
-        //// One could envisage more pronounced contempt but this would start to degrade the engine's objective strength.
-        //// By default the contempt is only activated during game play, not during infinite analysis.
-        //// If you enable the Analysis Contempt checkbox, engine will also take into account the contempt for infinite analysis.
-        //Options["Contempt"]                     << Option (1,   0,  2);
+        // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        Options["MultiPV_cp"]                   << Option (0, 0, 1000);
 
         // Roughly equivalent to "Optimism."
         // Factor for adjusted contempt. Changes playing style.
@@ -381,7 +354,7 @@ namespace UCI {
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  << Option (  0, 0, 99);
+        Options["Mate Search"]                  << Option (  0, 0, 100);
         // How well you want engine to play.
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);

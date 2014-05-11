@@ -234,8 +234,6 @@ namespace Evaluator {
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
-        //const Score CastleBlockedPenalty    = S(+150,+ 0); // Penalty for castling blocked by enemy attacks
-        //const Score PinnedThreatenPenalty   = S(+28,+35);
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -397,10 +395,6 @@ namespace Evaluator {
                 if (ei.pinned_pieces[C] & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
-                    //if ((ei.pinned_pieces[C] & ei.attacked_by[C_][PAWN]) & s)
-                    //{
-                    //    score -= PinnedThreatenPenalty;
-                    //}
                 }
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
@@ -518,7 +512,6 @@ namespace Evaluator {
                                && (ei.pi->semiopen_side<C> (fk, _file (s) < fk) == 0)
                                )
                             {
-                                //pos.castle_path () & ei.attacked_by[C_][NONE];
                                 score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + i32 (R_1 == rk && (!pos.can_castle (C))));
                             }
                         }
