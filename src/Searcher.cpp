@@ -516,10 +516,10 @@ namespace Searcher {
                                 tt_depth,
                                 BND_LOWER,
                                 pos.game_nodes (),
-                                value_to_tt (value, (ss)->ply),
+                                value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
 
-                            return value;
+                            return best_value;
                         }
                     }
                 }
@@ -1345,9 +1345,18 @@ namespace Searcher {
                 // If in a singular extension search then return a fail low score.
                 if (0 == moves_count)
                 {
-                    return (excluded_move != MOVE_NONE) ? alpha
+                    best_value = (excluded_move != MOVE_NONE) ? alpha
                         : in_check ? mated_in ((ss)->ply)
                         : DrawValue[pos.active ()];
+                }
+                // Quiet best move:
+                else if ((best_value >= beta) && (best_move != MOVE_NONE))
+                {
+                    // Update history, killer, counter & followup moves
+                    if (!in_check && !pos.capture_or_promotion (best_move))
+                    {
+                        update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+                    }
                 }
 
                 TT.store (
@@ -1358,16 +1367,6 @@ namespace Searcher {
                     pos.game_nodes (),
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
-
-                // Quiet best move:
-                if ((best_value >= beta) && (best_move != MOVE_NONE))
-                {
-                    // Update history, killer, counter & followup moves
-                    if (!in_check && !pos.capture_or_promotion (best_move))
-                    {
-                        update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
-                    }
-                }
             }
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1744,14 +1743,12 @@ namespace Searcher {
             Threadpool[t]->max_ply = 0;
         }
 
-        Threadpool.idle_sleep = bool (Options["Idle Threads Sleep"]);
         Threadpool.timer->start ();
 
         Threadpool.timer->notify_one ();// Wake up the recurring timer
         iter_deep_loop (RootPos);       // Let's start searching !
 
         Threadpool.timer->stop ();
-        Threadpool.idle_sleep = true;   // Send idle threads to sleep
 
         if (write_search_log)
         {
@@ -1931,7 +1928,7 @@ namespace Threads {
         {
             // If not searching, wait for a condition to be signaled instead of
             // wasting CPU time polling for work.
-            while ((!searching && Threadpool.idle_sleep) || exit)
+            while (!searching || exit)
             {
                 if (exit)
                 {
@@ -2013,8 +2010,7 @@ namespace Threads {
 
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case the last slave of the splitpoint.
-                if (   Threadpool.idle_sleep
-                    && (this != (sp)->master)
+                if (   (this != (sp)->master)
                     && (sp)->slaves_mask.none ()
                    )
                 {

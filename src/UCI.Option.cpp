@@ -302,13 +302,6 @@ namespace UCI {
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
         Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool);
 
-        // If this is set to true, threads are suspended when there is no work to do.
-        // This saves CPU power consumption, but waking a thread takes a small bit of time.
-        // For maximum performance, set this option to false,
-        // but if you need to reduce power consumption (i.e. on mobile devices) set this option to true.
-        // Default true
-        Options["Idle Threads Sleep"]           << Option (true);
-
         // Game Play Options
         // -----------------
 
@@ -326,12 +319,12 @@ namespace UCI {
         Options["MultiPV"]                      << Option ( 1, 1, 50);
 
         // TODO::
-        //// Limit the multi-PV analysis to moves within a range of the best move.
-        //// Default 0, Min 0, Max 999.
-        ////
-        //// Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
-        //// A value of 0 means that this parameter will not be taken into account.
-        //Options["MultiPV_cp"]                   << Option (0, 0, 999);
+        // Limit the multi-PV analysis to moves within a range of the best move.
+        // Default 0, Min 0, Max 999.
+        //
+        // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
+        // A value of 0 means that this parameter will not be taken into account.
+        Options["MultiPV_cp"]                   << Option (0, 0, 999);
 
         // TODO::
         //// Level of contempt to avoid draws in game play.
@@ -382,6 +375,18 @@ namespace UCI {
         Options["50 Move Distance"]             << Option ( 50, 5,  50, on_50_move_dist);
 
         // TODO::
+        // Maximum search depth for mate search.
+        // Default 0, Min 0, Max 99.
+        //
+        // If set, this option will usually speed-up a mate search.
+        // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
+        // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
+        Options["Mate Search"]                  << Option (  0, 0, 99);
+        // How well you want engine to play.
+        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
+
+        // TODO::
         //// Activate Contempt for position analysis.
         //// Default false.
         ////
@@ -408,18 +413,6 @@ namespace UCI {
         Options["Cowardice"]                    << Option (100, 0, 200, on_change_evaluation);
         // Degree of agressiveness.
         Options["Aggressive"]                   << Option (100, 0, 200, on_change_evaluation);
-
-        // TODO::
-        // Maximum search depth for mate search.
-        // Default 0, Min 0, Max 99.
-        //
-        // If set, this option will usually speed-up a mate search.
-        // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
-        // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  << Option (  0, 0, 99);
-        // How well you want engine to play.
-        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
         Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
         Options["Emergency Base Time"]          << Option ( 60, 0, 30000);

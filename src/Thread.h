@@ -285,7 +285,7 @@ namespace Threads {
     {
 
     public:
-        bool    idle_sleep;
+
         Depth   split_depth;
         Mutex   mutex;
 
