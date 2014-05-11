@@ -701,9 +701,10 @@ namespace Evaluator {
                 attacked_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
                 if (attacked_enemies != U64 (0))
                 {
-                    score += more_than_one (attacked_enemies)
-                        ? PieceHangingBonus[C != pos.active ()] * i32 (pop_count<MAX15> (attacked_enemies))
-                        : PieceHangingBonus[C == pos.active ()];
+                    score += //more_than_one (attacked_enemies)
+                        //? PieceHangingBonus[C != pos.active ()] * i32 (pop_count<MAX15> (attacked_enemies))
+                        //: PieceHangingBonus[C == pos.active ()];
+                        PieceHangingBonus[C == pos.active ()] * i32 (pop_count<MAX15> (attacked_enemies));
                 }
             }
 
