@@ -270,7 +270,7 @@ namespace Threads {
     public:
         volatile bool thinking;
 
-        MainThread () : thinking (true) {} // Avoid a race with start_thinking ()
+        MainThread () : thinking (true) {} // Avoid a race with start_thinking()
 
         virtual void idle_loop ();
 

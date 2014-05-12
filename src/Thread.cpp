@@ -34,7 +34,8 @@ namespace Threads {
             return th;
         }
 
-        inline void delete_thread (ThreadBase *th)
+        template<class T>
+        inline void delete_thread (T *th)
         {
             th->quit ();                // Search must be already finished
             th->notify_one ();
