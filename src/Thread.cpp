@@ -36,7 +36,7 @@ namespace Threads {
 
         inline void delete_thread (ThreadBase *th)
         {
-            th->stop ();                // Search must be already finished
+            th->quit ();                // Search must be already finished
             th->notify_one ();
             thread_join (th->native_handle);   // Wait for thread termination
             delete th;

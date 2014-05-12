@@ -193,7 +193,7 @@ namespace Threads {
 
         virtual ~ThreadBase () {}
 
-        void stop () { exit = true; }
+        void quit () { exit = true; }
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
