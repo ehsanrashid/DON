@@ -654,7 +654,7 @@ namespace Evaluator {
             // King mobility is good in the endgame
             Bitboard mobility = ei.attacked_by[C][KING] & ~(ei.attacked_by[C_][NONE]);
             u08 mob = pop_count<MAX15> (mobility);
-            if (mob < 3) score -= mk_score (0, 4 * (3 - mob));
+            if (mob < 3) score -= mk_score (0, 8 * (3 - mob));
 
             if (Trace)
             {

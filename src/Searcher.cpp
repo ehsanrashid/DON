@@ -1407,7 +1407,8 @@ namespace Searcher {
             Value best_value = -VALUE_INFINITE
                 , alpha      = -VALUE_INFINITE
                 , beta       = +VALUE_INFINITE
-                , window     =  VALUE_ZERO;
+                , a_window   =  VALUE_ZERO
+                , b_window   =  VALUE_ZERO;
 
             i32 depth    =  DEPTH_ZERO;
 
@@ -1450,9 +1451,11 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 32 ? 14 + (depth/4) : 22);
-                        alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
-                        beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
+                        Value window = Value (depth < 32 ? 14 + (depth/4) : 22);
+                        a_window = window;
+                        b_window = window;
+                        alpha  = max (RootMoves[IndexPV].value[1] - a_window, -VALUE_INFINITE);
+                        beta   = min (RootMoves[IndexPV].value[1] + b_window, +VALUE_INFINITE);
                     }
 
                     point elapsed;
@@ -1496,21 +1499,20 @@ namespace Searcher {
                         // research, otherwise exit the loop.
                         if      (best_value <= alpha)
                         {
-                            alpha = max (best_value - window, -VALUE_INFINITE);
-
+                            alpha = max (best_value - a_window, -VALUE_INFINITE);
+                            a_window *= 1.5;
                             Signals.root_failedlow = true;
                             Signals.stop_ponderhit = false;
                         }
                         else if (best_value >= beta)
                         {
-                            beta  = min (best_value + window, +VALUE_INFINITE);
+                            beta  = min (best_value + b_window, +VALUE_INFINITE);
+                            b_window *= 1.5;
                         }
                         else
                         {
                             break;
                         }
-
-                        window *= 1.5;
 
                         ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
                     }
