@@ -758,6 +758,13 @@ namespace Searcher {
                         && (!pos.pawn_on_7thR (pos.active ()))
                        )
                     {
+                        if (   depth <= ONE_MOVE
+                            && eval + razor_margin (3*ONE_MOVE) <= alpha
+                           )
+                        {
+                            return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                        }
+
                         Value ralpha = alpha - razor_margin (depth);
                         if (eval <= ralpha)
                         {
