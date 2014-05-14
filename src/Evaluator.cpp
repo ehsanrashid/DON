@@ -952,7 +952,7 @@ namespace Evaluator {
             score += evaluate_passed_pawns<WHITE, Trace> (pos, ei)
                   -  evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
-            Value npm[CLR_NO] =
+            const Value npm[CLR_NO] =
             {
                 pos.non_pawn_material (WHITE),
                 pos.non_pawn_material (BLACK)
