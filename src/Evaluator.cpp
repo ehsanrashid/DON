@@ -830,9 +830,8 @@ namespace Evaluator {
         // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
         // related to the possibility pawns are unstoppable.
         template<Color C>
-        inline Score evaluate_unstoppable_pawns (const Position &pos, const EvalInfo &ei)
+        inline Score evaluate_unstoppable_pawns (const Position &, const EvalInfo &ei)
         {
-            (void) pos;
             Bitboard unstoppable_pawns = ei.pi->passed_pawns<C> () | ei.pi->candidate_pawns<C> ();
             return (unstoppable_pawns == U64 (0)) ? SCORE_ZERO
                 : PawnUnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns)));
