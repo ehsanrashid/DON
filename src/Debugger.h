@@ -16,7 +16,7 @@ class LogFile
 {
 
 public:
-    LogFile (const std::string& fn = "Log.txt")
+    LogFile (const std::string &fn = "Log.txt")
         : std::ofstream (fn.c_str (), std::ios_base::out|std::ios_base::app)
     {}
     

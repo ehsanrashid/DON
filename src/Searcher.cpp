@@ -220,10 +220,10 @@ namespace Searcher {
 
             stringstream ss;
             
-            u08 pv_count = i32 (Options["MultiPV"]);
-            if (pv_count > RootMoves.size ())
+            MultiPV = i32 (Options["MultiPV"]);
+            if (MultiPV > RootMoves.size ())
             {
-                pv_count = RootMoves.size ();
+                MultiPV = RootMoves.size ();
             }
 
             u08 sel_depth = 0;
@@ -235,7 +235,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < pv_count; ++i)
+            for (u08 i = 0; i < MultiPV; ++i)
             {
                 bool updated = (i <= IndexPV);
 
@@ -1448,9 +1448,12 @@ namespace Searcher {
                 MultiPV = RootMoves.size ();
             }
 
-            // Iterative deepening loop until requested to stop or target depth reached
-            while (++depth <= MAX_PLY && !Signals.stop && (Limits.depth == 0 || depth <= Limits.depth))
+            // Iterative deepening loop until target depth reached
+            while (++depth <= MAX_PLY && (Limits.depth == 0 || depth <= Limits.depth))
             {
+                // Requested to stop?
+                if (Signals.stop) break;
+
                 // Age out PV variability metric
                 BestMoveChanges *= 0.5;
 
@@ -1461,8 +1464,11 @@ namespace Searcher {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
                 // MultiPV loop. Perform a full root search for each PV line
-                for (IndexPV = 0; (IndexPV < MultiPV) && !Signals.stop; ++IndexPV)
+                for (IndexPV = 0; IndexPV < MultiPV; ++IndexPV)
                 {
+                    // Requested to stop?
+                    if (Signals.stop) break;
+
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
@@ -1496,9 +1502,9 @@ namespace Searcher {
                             RootMoves[i].insert_pv_into_tt (pos);
                         }
 
-                        // If search has been stopped break immediately. Sorting and
-                        // writing PV back to TT is safe becuase RootMoves is still
-                        // valid, although refers to previous iteration.
+                        // If search has been stopped break immediately.
+                        // Sorting and writing PV back to TT is safe becuase
+                        // RootMoves is still valid, although refers to previous iteration.
                         if (Signals.stop) break;
 
                         // When failing high/low give some update
@@ -1553,8 +1559,7 @@ namespace Searcher {
                     }
                 }
 
-                bool write_search_log = bool (Options["Write Search Log"]);
-                if (write_search_log)
+                if (bool (Options["Write Search Log"]))
                 {
                     string search_log_fn = string (Options["Search Log File"]);
                     LogFile log (search_log_fn);
