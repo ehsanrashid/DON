@@ -146,7 +146,6 @@ namespace Searcher {
 
         };
 
-        Skill SkillLevel;
 
         GainStats   Gain;
         // History heuristic
@@ -154,29 +153,6 @@ namespace Searcher {
         MoveStats   CounterMoves
             ,       FollowupMoves;
 
-
-        inline void read_multi_pv ()
-        {
-            u08 old_multi_pv = MultiPV;
-            MultiPV   = i32 (Options["MultiPV"]);
-            if (MultiPV != old_multi_pv)
-            {
-                // Do have to play with skill handicap?
-                // In this case enable MultiPV search to MIN_SKILL_MULTIPV
-                // that will use behind the scenes to retrieve a set of possible moves.
-                if (SkillLevel.enabled ())
-                {
-                    if (MultiPV < MIN_SKILL_MULTIPV)
-                    {
-                        MultiPV = MIN_SKILL_MULTIPV;
-                    }
-                }
-                if (MultiPV > RootMoves.size ())
-                {
-                    MultiPV = RootMoves.size ();
-                }
-            }
-        }
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -244,7 +220,11 @@ namespace Searcher {
 
             stringstream ss;
             
-            read_multi_pv ();
+            u08 pv_count = i32 (Options["MultiPV"]);
+            if (pv_count > RootMoves.size ())
+            {
+                pv_count = RootMoves.size ();
+            }
 
             u08 sel_depth = 0;
             for (u08 t = 0; t < Threadpool.size (); ++t)
@@ -255,7 +235,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < MultiPV; ++i)
+            for (u08 i = 0; i < pv_count; ++i)
             {
                 bool updated = (i <= IndexPV);
 
@@ -565,7 +545,7 @@ namespace Searcher {
             {
                 if (best_value == -VALUE_INFINITE)
                 {
-                    return mated_in ((ss)->ply); // Plies to mate from the root
+                    best_value = mated_in ((ss)->ply); // Plies to mate from the root
                 }
             }
 
@@ -1449,9 +1429,24 @@ namespace Searcher {
             i32 depth    =  DEPTH_ZERO;
 
             u08 level = i32 (Options["Skill Level"]);
-            SkillLevel = Skill (level);
+            Skill skill (level);
 
-            read_multi_pv ();
+            MultiPV   = i32 (Options["MultiPV"]);
+            
+            // Do have to play with skill handicap?
+            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
+            // that will use behind the scenes to retrieve a set of possible moves.
+            if (skill.enabled ())
+            {
+                if (MultiPV < MIN_SKILL_MULTIPV)
+                {
+                    MultiPV = MIN_SKILL_MULTIPV;
+                }
+            }
+            if (MultiPV > RootMoves.size ())
+            {
+                MultiPV = RootMoves.size ();
+            }
 
             // Iterative deepening loop until requested to stop or target depth reached
             while (++depth <= MAX_PLY && !Signals.stop && (Limits.depth == 0 || depth <= Limits.depth))
@@ -1507,7 +1502,7 @@ namespace Searcher {
                         if (Signals.stop) break;
 
                         // When failing high/low give some update
-                        // (without cluttering the UI) before to research.
+                        // (without cluttering the UI) before to re-search.
                         if (   ((bound[0] >= best_value) || (best_value >= bound[1]))
                             && ((elapsed = now () - SearchTime) > InfoDuration)
                            )
@@ -1516,7 +1511,7 @@ namespace Searcher {
                         }
 
                         // In case of failing low/high increase aspiration window and
-                        // research, otherwise exit the loop.
+                        // re-search, otherwise exit the loop.
                         if      (best_value <= bound[0])
                         {
                             bound[0] = max (best_value - window[0], -VALUE_INFINITE);
@@ -1549,12 +1544,12 @@ namespace Searcher {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (SkillLevel.enabled () && SkillLevel.time_to_pick (depth))
+                if (skill.enabled () && skill.time_to_pick (depth))
                 {
-                    SkillLevel.pick_move ();
-                    if (MOVE_NONE != SkillLevel.move)
+                    skill.pick_move ();
+                    if (MOVE_NONE != skill.move)
                     {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), SkillLevel.move));
+                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), skill.move));
                     }
                 }
 
