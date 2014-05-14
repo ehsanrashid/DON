@@ -22,9 +22,7 @@ namespace Material {
     // of 4, which will result in scores of absolute value less than one pawn.
     struct Entry
     {
-
     private:
-
 
     public:
 

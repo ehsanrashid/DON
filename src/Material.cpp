@@ -83,7 +83,7 @@ namespace Material {
         }
 
         template<Color C>
-        // imbalance<> () calculates imbalance comparing
+        // imbalance<>() calculates imbalance comparing
         // piece count of each piece type for both colors.
         // KING == BISHOP_PAIR
         inline Value imbalance (const i32 count[][NONE])
@@ -120,7 +120,7 @@ namespace Material {
 
     } // namespace
 
-    // Material::probe() takes a position object as input,
+    // probe() takes a position object as input,
     // looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so don't have to recompute everything
@@ -284,7 +284,7 @@ namespace Material {
         return e;
     }
 
-    // Material::game_phase() calculates the phase given the current position.
+    // game_phase() calculates the phase given the current position.
     // Because the phase is strictly a function of the material, it is stored in MaterialEntry.
     Phase game_phase (const Position &pos)
     {

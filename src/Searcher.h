@@ -99,10 +99,6 @@ namespace Searcher {
             , root_failedlow;   // Failed low at Root
 
         SignalsT ()
-            //: stop           (false)
-            //, stop_ponderhit (false)
-            //, root_1stmove   (false)
-            //, root_failedlow (false)
         {
             memset (this, 0x00, sizeof (*this));
         }
