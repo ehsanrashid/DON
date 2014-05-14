@@ -42,6 +42,8 @@ namespace Searcher {
 
         const point   InfoDuration  = 3000; // 3 sec
 
+        
+
         // Futility lookup tables (initialized at startup) and their access functions
         u08 FutilityMoveCounts[2][32];  // [improving][depth]
 
@@ -75,11 +77,102 @@ namespace Searcher {
         u08     MultiPV
             ,   IndexPV;
 
+        struct Skill
+        {
+            u08  level;
+            Move move;
+
+            Skill ()
+                : level (MAX_SKILL_LEVEL)
+                , move (MOVE_NONE)
+            {}
+
+            Skill (u08 lvl)
+                : level (lvl)
+                , move (MOVE_NONE)
+            {}
+
+           ~Skill ()
+            {
+                if (enabled ()) // Swap best PV line with the sub-optimal one
+                {
+                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end(), move ? move : pick_move ()));
+                }
+            }
+
+            bool enabled () const { return (level < MAX_SKILL_LEVEL); }
+            bool time_to_pick (u08 depth) const { return (depth == (1 + level)); }
+
+            // When playing with strength handicap choose best move among the MultiPV set
+            // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+            Move pick_move ()
+            {
+                static RKISS rk;
+                // PRNG sequence should be not deterministic
+                for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
+
+                move = MOVE_NONE;
+
+                // RootMoves are already sorted by score in descending order
+                Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
+                Value weakness = Value (120 - 2 * level);
+                Value max_v    = -VALUE_INFINITE;
+
+                // Choose best move. For each move score add two terms both dependent on
+                // weakness, one deterministic and bigger for weaker moves, and one random,
+                // then choose the move with the resulting highest score.
+                for (u08 i = 0; i < MultiPV; ++i)
+                {
+                    Value v = RootMoves[i].value[0];
+
+                    // Don't allow crazy blunders even at very low skills
+                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2 * VALUE_MG_PAWN))
+                    {
+                        break;
+                    }
+
+                    // This is our magic formula
+                    v += (weakness * i32 (RootMoves[0].value[0] - v)
+                      +  (variance * i32 (rk.rand<u32> () % weakness)) / 128);
+
+                    if (max_v < v)
+                    {
+                        max_v = v;
+                        move = RootMoves[i].pv[0];
+                    }
+                }
+                return move;
+            }
+
+        };
+
+        Skill SkillLevel;
+
         GainsStats   Gains;
         // History heuristic
         HistoryStats History;
         MovesStats   CounterMoves
             ,        FollowupMoves;
+
+
+        inline void update_multi_pv ()
+        {
+            MultiPV   = i32 (Options["MultiPV"]);
+            // Do have to play with skill handicap?
+            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
+            // that will use behind the scenes to retrieve a set of possible moves.
+            if (SkillLevel.enabled ())
+            {
+                if (MultiPV < MIN_SKILL_MULTIPV)
+                {
+                    MultiPV = MIN_SKILL_MULTIPV;
+                }
+            }
+            if (MultiPV > RootMoves.size ())
+            {
+                MultiPV = RootMoves.size ();
+            }
+        }
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -147,12 +240,7 @@ namespace Searcher {
 
             stringstream ss;
             
-            MultiPV   = i32 (Options["MultiPV"]);
-            u08 pv_count = RootMoves.size ();
-            if (pv_count > MultiPV)
-            {
-                pv_count = MultiPV;
-            }
+            update_multi_pv ();
 
             u08 sel_depth = 0;
             for (u08 t = 0; t < Threadpool.size (); ++t)
@@ -163,7 +251,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < pv_count; ++i)
+            for (u08 i = 0; i < MultiPV; ++i)
             {
                 bool updated = (i <= IndexPV);
 
@@ -205,69 +293,7 @@ namespace Searcher {
             return ss.str ();
         }
 
-        struct Skill
-        {
-            u08  level;
-            Move move;
 
-            Skill (u08 lvl)
-                : level (lvl)
-                , move (MOVE_NONE)
-            {}
-
-           ~Skill ()
-            {
-                if (enabled ()) // Swap best PV line with the sub-optimal one
-                {
-                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end(), move ? move : pick_move ()));
-                }
-            }
-
-            bool enabled () const { return (level < MAX_SKILL_LEVEL); }
-            bool time_to_pick (u08 depth) const { return (depth == (1 + level)); }
-
-            // When playing with strength handicap choose best move among the MultiPV set
-            // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-            Move pick_move ()
-            {
-                static RKISS rk;
-                // PRNG sequence should be not deterministic
-                for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
-
-                move = MOVE_NONE;
-
-                // RootMoves are already sorted by score in descending order
-                Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
-                Value weakness = Value (120 - 2 * level);
-                Value max_v    = -VALUE_INFINITE;
-
-                // Choose best move. For each move score add two terms both dependent on
-                // weakness, one deterministic and bigger for weaker moves, and one random,
-                // then choose the move with the resulting highest score.
-                for (u08 i = 0; i < MultiPV; ++i)
-                {
-                    Value v = RootMoves[i].value[0];
-
-                    // Don't allow crazy blunders even at very low skills
-                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2 * VALUE_MG_PAWN))
-                    {
-                        break;
-                    }
-
-                    // This is our magic formula
-                    v += (weakness * i32 (RootMoves[0].value[0] - v)
-                      +  (variance * i32 (rk.rand<u32> () % weakness)) / 128);
-
-                    if (max_v < v)
-                    {
-                        max_v = v;
-                        move = RootMoves[i].pv[0];
-                    }
-                }
-                return move;
-            }
-
-        };
 
         // _perft() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.
@@ -1420,26 +1446,10 @@ namespace Searcher {
 
             i32 depth    =  DEPTH_ZERO;
 
-            MultiPV   = i32 (Options["MultiPV"]);
             u08 level = i32 (Options["Skill Level"]);
+            SkillLevel = Skill (level);
 
-            Skill skill (level);
-
-            // Do have to play with skill handicap?
-            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
-            // that will use behind the scenes to retrieve a set of possible moves.
-            if (skill.enabled ())
-            {
-                if (MultiPV < MIN_SKILL_MULTIPV)
-                {
-                    MultiPV = MIN_SKILL_MULTIPV;
-                }
-            }
-
-            if (MultiPV > RootMoves.size ())
-            {
-                MultiPV = RootMoves.size ();
-            }
+            update_multi_pv ();
 
             // Iterative deepening loop until requested to stop or target depth reached
             while (++depth <= MAX_PLY && !Signals.stop && (Limits.depth == 0 || depth <= Limits.depth))
@@ -1537,12 +1547,12 @@ namespace Searcher {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill.enabled () && skill.time_to_pick (depth))
+                if (SkillLevel.enabled () && SkillLevel.time_to_pick (depth))
                 {
-                    skill.pick_move ();
-                    if (MOVE_NONE != skill.move)
+                    SkillLevel.pick_move ();
+                    if (MOVE_NONE != SkillLevel.move)
                     {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), skill.move));
+                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), SkillLevel.move));
                     }
                 }
 
