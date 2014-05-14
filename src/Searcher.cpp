@@ -1483,7 +1483,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], Depth (depth*i32 (ONE_MOVE)), false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], depth*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first

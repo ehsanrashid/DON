@@ -228,6 +228,7 @@ namespace Evaluator {
         const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
+        //const Score KnightPawnsBonus        = S(+ 8,+10); // Bonus for good Knight with pawn
         // Bonus for each enemy hanging piece [side to move]
         const Score PieceHangingBonus[2]    = { S(23, 20) , S(35, 45) };
         
@@ -353,7 +354,7 @@ namespace Evaluator {
                 {
                     if (   (pos.pieces<NIHT> (C_) == U64 (0))
                         && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
-                        )
+                       )
                     {
                         bonus += i32 (bonus)*1.5;
                     }
@@ -470,6 +471,7 @@ namespace Evaluator {
 
                     if (NIHT == PT)
                     {
+                        //score += KnightPawnsBonus * i32 (pop_count<MAX15> (pos.pieces<PAWN> (C)&(PieceAttacks[NIHT][s])));
                     }
 
                     // Bishop and knight outposts squares

@@ -266,7 +266,7 @@ namespace BitBoard {
             {
                 FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
-                PasserPawnSpan[c][s] =  FrontSqs_bb[c][s]         | PawnAttackSpan[c][s];
+                PasserPawnSpan[c][s] =  FrontSqs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 
