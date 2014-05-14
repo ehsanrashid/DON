@@ -146,8 +146,14 @@ namespace Searcher {
             if (elapsed == 0) elapsed = 1;
 
             stringstream ss;
+            
+            MultiPV   = i32 (Options["MultiPV"]);
+            u08 pv_size = RootMoves.size ();
+            if (pv_size > MultiPV)
+            {
+                pv_size = MultiPV;
+            }
 
-            u08 rm_size = min<i32> (Options["MultiPV"], RootMoves.size ());
             u08 sel_depth = 0;
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
@@ -157,7 +163,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < rm_size; ++i)
+            for (u08 i = 0; i < pv_size; ++i)
             {
                 bool updated = (i <= IndexPV);
 
@@ -1171,7 +1177,7 @@ namespace Searcher {
 
                     if (move == cm[0] || move == cm[1])
                     {
-                        (ss)->reduction = max (DEPTH_ZERO, (ss)->reduction - ONE_MOVE);
+                        (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
                     }
 
                     // TODO::
@@ -1185,7 +1191,7 @@ namespace Searcher {
                     {
                         alpha = splitpoint->alpha;
                     }
-
+                    // Search with reduced depth
                     value = 
                         //  (red_depth < ONE_MOVE)
                         //? (gives_check
@@ -1197,7 +1203,11 @@ namespace Searcher {
                     // Re-search at intermediate depth if reduction is very high
                     if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
-                        Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
+                        Depth inter_depth = new_depth - (2*ONE_MOVE);
+                        if (inter_depth < ONE_MOVE)
+                        {
+                            inter_depth = ONE_MOVE;
+                        }
                         value = -search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
                     }
 
