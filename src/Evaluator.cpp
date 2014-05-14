@@ -131,8 +131,6 @@ namespace Evaluator {
         // weights read from UCI parameters. The purpose is to be able to change
         // the evaluation weights while keeping the default values of the UCI
         // parameters at 100, which looks prettier.
-        //
-        // Values modified by Joona Kiiski
         const Score InternalWeights[6] =
         {
             S(+289,+344), // Mobility
