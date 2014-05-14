@@ -42,8 +42,6 @@ namespace Searcher {
 
         const point   InfoDuration  = 3000; // 3 sec
 
-        
-
         // Futility lookup tables (initialized at startup) and their access functions
         u08 FutilityMoveCounts[2][32];  // [improving][depth]
 
@@ -72,10 +70,11 @@ namespace Searcher {
 
         Value   DrawValue[CLR_NO];
 
-        double  BestMoveChanges;
-
+        u08     RootMovesCount;
         u08     MultiPV
-            ,   IndexPV;
+            ,   PVIndex;
+
+        double  BestMoveChanges;
 
         struct Skill
         {
@@ -96,7 +95,7 @@ namespace Searcher {
             {
                 if (enabled ()) // Swap best PV line with the sub-optimal one
                 {
-                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end(), move ? move : pick_move ()));
+                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
                 }
             }
 
@@ -146,13 +145,11 @@ namespace Searcher {
 
         };
 
-
         GainStats   Gain;
         // History heuristic
         HistoryStats History;
         MoveStats   CounterMoves
             ,       FollowupMoves;
-
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -221,9 +218,9 @@ namespace Searcher {
             stringstream ss;
             
             MultiPV = i32 (Options["MultiPV"]);
-            if (MultiPV > RootMoves.size ())
+            if (MultiPV > RootMovesCount)
             {
-                MultiPV = RootMoves.size ();
+                MultiPV = RootMovesCount;
             }
 
             u08 sel_depth = 0;
@@ -237,7 +234,7 @@ namespace Searcher {
 
             for (u08 i = 0; i < MultiPV; ++i)
             {
-                bool updated = (i <= IndexPV);
+                bool updated = (i <= PVIndex);
 
                 if (1 == depth && !updated) continue;
 
@@ -262,7 +259,7 @@ namespace Searcher {
                     << " multipv "  << u16 (i + 1)
                     << " depth "    << u16 (d)
                     << " seldepth " << u16 (sel_depth)
-                    << " score "    << ((i == IndexPV) ? score_uci (v, alpha, beta) : score_uci (v))
+                    << " score "    << ((i == PVIndex) ? score_uci (v, alpha, beta) : score_uci (v))
                     << " time "     << elapsed
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * M_SEC / elapsed
@@ -675,7 +672,7 @@ namespace Searcher {
                      : pos.posi_key ();
 
             tte      = TT.retrieve (posi_key);
-            tt_move  = (ss)->tt_move = RootNode    ? RootMoves[IndexPV].pv[0]
+            tt_move  = (ss)->tt_move = RootNode    ? RootMoves[PVIndex].pv[0]
                                      : tte != NULL ? tte->move () : MOVE_NONE;
             tt_value = tte != NULL ? value_fr_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
@@ -982,7 +979,7 @@ namespace Searcher {
                 // mode also skip PV moves which have been already searched.
                 if (RootNode)
                 {
-                    if (!count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
+                    if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
                 }
 
                 if (SPNode)
@@ -1010,7 +1007,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16 (depth/i32 (ONE_MOVE))
-                                << " currmovenumber " << setw (2) << u16 (moves_count + IndexPV)
+                                << " currmovenumber " << setw (2) << u16 (moves_count + PVIndex)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << " time "           << elapsed
                                 << sync_endl;
@@ -1420,13 +1417,14 @@ namespace Searcher {
             CounterMoves.clear ();
             FollowupMoves.clear ();
 
+            RootMovesCount   = RootMoves.size ();
             BestMoveChanges  = 0.0;
 
             Value best_value = -VALUE_INFINITE
                 , bound[2]   = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
-            i32 depth    =  DEPTH_ZERO;
+            i32 depth = DEPTH_ZERO;
 
             u08 level = i32 (Options["Skill Level"]);
             Skill skill (level);
@@ -1443,9 +1441,9 @@ namespace Searcher {
                     MultiPV = MIN_SKILL_MULTIPV;
                 }
             }
-            if (MultiPV > RootMoves.size ())
+            if (MultiPV > RootMovesCount)
             {
-                MultiPV = RootMoves.size ();
+                MultiPV = RootMovesCount;
             }
 
             // Iterative deepening loop until target depth reached
@@ -1459,12 +1457,12 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < RootMoves.size (); ++i)
+                for (u08 i = 0; i < RootMovesCount; ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
                 // MultiPV loop. Perform a full root search for each PV line
-                for (IndexPV = 0; IndexPV < MultiPV; ++IndexPV)
+                for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
                 {
                     // Requested to stop?
                     if (Signals.stop) break;
@@ -1475,8 +1473,8 @@ namespace Searcher {
                         window[0] =
                         window[1] =
                             Value (depth < 32 ? 14 + (depth/4) : 22);
-                        bound[0]  = max (RootMoves[IndexPV].value[1] - window[0], -VALUE_INFINITE);
-                        bound[1]  = min (RootMoves[IndexPV].value[1] + window[1], +VALUE_INFINITE);
+                        bound[0]  = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
+                        bound[1]  = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
 
                     point elapsed;
@@ -1485,7 +1483,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], depth*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], Depth (depth*i32 (ONE_MOVE)), false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1493,11 +1491,11 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        stable_sort (RootMoves.begin () + IndexPV, RootMoves.end ());
+                        stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (u08 i = 0; i <= IndexPV; ++i)
+                        for (u08 i = 0; i <= PVIndex; ++i)
                         {
                             RootMoves[i].insert_pv_into_tt (pos);
                         }
@@ -1540,10 +1538,10 @@ namespace Searcher {
                     while (bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
+                    stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
                     
                     elapsed = now () - SearchTime;
-                    if ((IndexPV + 1) == MultiPV || (elapsed > InfoDuration))
+                    if ((PVIndex + 1) == MultiPV || (elapsed > InfoDuration))
                     {
                         sync_cout << info_pv (pos, depth, bound[0], bound[1], elapsed) << sync_endl;
                     }
@@ -1566,10 +1564,10 @@ namespace Searcher {
                     log << pretty_pv (pos, depth, RootMoves[0].value[0], now () - SearchTime, &RootMoves[0].pv[0]) << endl;
                 }
 
-                // Have found a "mate in x"?
+                // Have found a "mate in <x>"?
                 if (   (Limits.mate != 0)
                     && (best_value >= VALUE_MATES_IN_MAX_PLY)
-                    && (VALUE_MATE - best_value <= (Limits.mate*2))
+                    && (VALUE_MATE - best_value <= (Limits.mate*i32 (ONE_MOVE)))
                    )
                 {
                     Signals.stop = true;
@@ -1582,7 +1580,7 @@ namespace Searcher {
                    )
                 {
                     // Take in account some extra time if the best move has changed
-                    if (   (4 < depth && depth < MAX_PLY/2)
+                    if (   (4 < depth && depth < MAX_PLY/i32 (ONE_MOVE))
                         && (1 == MultiPV)
                        )
                     {
@@ -1592,7 +1590,7 @@ namespace Searcher {
                     // Stop the search early:
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (   (RootMoves.size () == 1)
+                    if (   (RootMovesCount == 1)
                         || ((now () - SearchTime) > TimeMgr.available_time ())
                        )
                     {
@@ -1888,7 +1886,7 @@ namespace Threads {
             Debugger::dbg_print ();
         }
 
-        if (Limits.ponder)
+        if (Limits.ponder || Signals.stop)
         {
             return;
         }

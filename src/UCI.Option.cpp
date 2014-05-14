@@ -349,12 +349,12 @@ namespace UCI {
 
         // TODO::
         // Maximum search depth for mate search.
-        // Default 0, Min 0, Max 99.
+        // Default 0, Min 0, Max MAX_PLY.
         //
         // If set, this option will usually speed-up a mate search.
         // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  << Option (  0, 0, 100);
+        Options["Mate Search"]                  << Option (  0, 0, MAX_PLY);
         // How well you want engine to play.
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
