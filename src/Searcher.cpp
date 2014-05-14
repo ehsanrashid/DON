@@ -1405,10 +1405,8 @@ namespace Searcher {
             BestMoveChanges  = 0.0;
 
             Value best_value = -VALUE_INFINITE
-                , alpha      = -VALUE_INFINITE
-                , beta       = +VALUE_INFINITE
-                , a_window   =  VALUE_ZERO
-                , b_window   =  VALUE_ZERO;
+                , bound[2]   = { -VALUE_INFINITE, +VALUE_INFINITE }
+                , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
             i32 depth    =  DEPTH_ZERO;
 
@@ -1451,11 +1449,11 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        Value window = Value (depth < 32 ? 14 + (depth/4) : 22);
-                        a_window = window;
-                        b_window = window;
-                        alpha  = max (RootMoves[IndexPV].value[1] - a_window, -VALUE_INFINITE);
-                        beta   = min (RootMoves[IndexPV].value[1] + b_window, +VALUE_INFINITE);
+                        window[0] =
+                        window[1] =
+                            Value (depth < 32 ? 14 + (depth/4) : 22);
+                        bound[0]  = max (RootMoves[IndexPV].value[1] - window[0], -VALUE_INFINITE);
+                        bound[1]  = min (RootMoves[IndexPV].value[1] + window[1], +VALUE_INFINITE);
                     }
 
                     point elapsed;
@@ -1464,7 +1462,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, alpha, beta, depth*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], depth*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1488,35 +1486,35 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to research.
-                        if (   ((alpha >= best_value) || (best_value >= beta))
+                        if (   ((bound[0] >= best_value) || (best_value >= bound[1]))
                             && ((elapsed = now () - SearchTime) > InfoDuration)
                            )
                         {
-                            sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
+                            sync_cout << info_pv (pos, depth, bound[0], bound[1], elapsed) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
                         // research, otherwise exit the loop.
-                        if      (best_value <= alpha)
+                        if      (best_value <= bound[0])
                         {
-                            alpha = max (best_value - a_window, -VALUE_INFINITE);
-                            a_window *= 1.5;
+                            bound[0] = max (best_value - window[0], -VALUE_INFINITE);
+                            window[0] *= 1.5;
                             Signals.root_failedlow = true;
                             Signals.stop_ponderhit = false;
                         }
-                        else if (best_value >= beta)
+                        else if (best_value >= bound[1])
                         {
-                            beta  = min (best_value + b_window, +VALUE_INFINITE);
-                            b_window *= 1.5;
+                            bound[1] = min (best_value + window[1], +VALUE_INFINITE);
+                            window[1] *= 1.5;
                         }
                         else
                         {
                             break;
                         }
 
-                        ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
+                        ASSERT (-VALUE_INFINITE <= bound[0] && bound[0] < bound[1] && bound[1] <= +VALUE_INFINITE);
                     }
-                    while (alpha < beta);
+                    while (bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
@@ -1524,7 +1522,7 @@ namespace Searcher {
                     elapsed = now () - SearchTime;
                     if ((IndexPV + 1) == MultiPV || (elapsed > InfoDuration))
                     {
-                        sync_cout << info_pv (pos, depth, alpha, beta, elapsed) << sync_endl;
+                        sync_cout << info_pv (pos, depth, bound[0], bound[1], elapsed) << sync_endl;
                     }
                 }
 
