@@ -226,6 +226,7 @@ namespace Evaluator {
         const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
+        const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
         //const Score KnightPawnsBonus        = S(+ 8,+10); // Bonus for good Knight with pawn
         // Bonus for each enemy hanging piece [side to move]
         const Score PieceHangingBonus[2]    = { S(23, 20) , S(35, 45) };
@@ -951,12 +952,18 @@ namespace Evaluator {
             score += evaluate_passed_pawns<WHITE, Trace> (pos, ei)
                   -  evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
+            Value npm[CLR_NO] =
+            {
+                pos.non_pawn_material (WHITE),
+                pos.non_pawn_material (BLACK)
+            };
+
             // If one side has only a king, score for potential unstoppable pawns
-            if (pos.non_pawn_material (BLACK) == VALUE_ZERO)
+            if (npm[BLACK] == VALUE_ZERO)
             {
                 score += evaluate_unstoppable_pawns<WHITE> (pos, ei);
             }
-            if (pos.non_pawn_material (WHITE) == VALUE_ZERO)
+            if (npm[WHITE] == VALUE_ZERO)
             {
                 score -= evaluate_unstoppable_pawns<BLACK> (pos, ei);
             }
@@ -972,6 +979,12 @@ namespace Evaluator {
                           - evaluate_space<BLACK> (pos, ei);
 
                 score += apply_weight (space * sw, Weights[Space]);
+            }
+
+            Value diff = npm[WHITE] - npm[BLACK];
+            if (abs (diff) >= VALUE_MG_PAWN)
+            {
+                score += ((diff > VALUE_ZERO) - (diff < VALUE_ZERO)) * NonPawnMaterialBonus;
             }
 
             i32 mg = i32 (mg_value (score));
@@ -1010,8 +1023,8 @@ namespace Evaluator {
                 {
                     // Both sides with opposite-colored bishops only ignoring any pawns.
                     if (   (game_phase < (PHASE_MIDGAME - 96))
-                        && (pos.non_pawn_material (WHITE) == VALUE_MG_BSHP)
-                        && (pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
+                        && (npm[WHITE] == VALUE_MG_BSHP)
+                        && (npm[BLACK] == VALUE_MG_BSHP)
                        )
                     {
                         // It is almost certainly a draw even with pawns.
