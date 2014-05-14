@@ -148,10 +148,10 @@ namespace Searcher {
             stringstream ss;
             
             MultiPV   = i32 (Options["MultiPV"]);
-            u08 pv_size = RootMoves.size ();
-            if (pv_size > MultiPV)
+            u08 pv_count = RootMoves.size ();
+            if (pv_count > MultiPV)
             {
-                pv_size = MultiPV;
+                pv_count = MultiPV;
             }
 
             u08 sel_depth = 0;
@@ -163,7 +163,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < pv_size; ++i)
+            for (u08 i = 0; i < pv_count; ++i)
             {
                 bool updated = (i <= IndexPV);
 
