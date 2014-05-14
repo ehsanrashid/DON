@@ -114,10 +114,10 @@ namespace Searcher {
                 move = MOVE_NONE;
 
                 // RootMoves are already sorted by score in descending order
-                Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
-                Value weakness = Value (120 - 2 * level);
+                const Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
+                const Value weakness = Value (120 - 2 * level);
+                
                 Value max_v    = -VALUE_INFINITE;
-
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -148,29 +148,33 @@ namespace Searcher {
 
         Skill SkillLevel;
 
-        GainsStats   Gains;
+        GainStats   Gain;
         // History heuristic
         HistoryStats History;
-        MovesStats   CounterMoves
-            ,        FollowupMoves;
+        MoveStats   CounterMoves
+            ,       FollowupMoves;
 
 
-        inline void update_multi_pv ()
+        inline void read_multi_pv ()
         {
+            u08 old_multi_pv = MultiPV;
             MultiPV   = i32 (Options["MultiPV"]);
-            // Do have to play with skill handicap?
-            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
-            // that will use behind the scenes to retrieve a set of possible moves.
-            if (SkillLevel.enabled ())
+            if (MultiPV != old_multi_pv)
             {
-                if (MultiPV < MIN_SKILL_MULTIPV)
+                // Do have to play with skill handicap?
+                // In this case enable MultiPV search to MIN_SKILL_MULTIPV
+                // that will use behind the scenes to retrieve a set of possible moves.
+                if (SkillLevel.enabled ())
                 {
-                    MultiPV = MIN_SKILL_MULTIPV;
+                    if (MultiPV < MIN_SKILL_MULTIPV)
+                    {
+                        MultiPV = MIN_SKILL_MULTIPV;
+                    }
                 }
-            }
-            if (MultiPV > RootMoves.size ())
-            {
-                MultiPV = RootMoves.size ();
+                if (MultiPV > RootMoves.size ())
+                {
+                    MultiPV = RootMoves.size ();
+                }
             }
         }
 
@@ -240,7 +244,7 @@ namespace Searcher {
 
             stringstream ss;
             
-            update_multi_pv ();
+            read_multi_pv ();
 
             u08 sel_depth = 0;
             for (u08 t = 0; t < Threadpool.size (); ++t)
@@ -292,8 +296,6 @@ namespace Searcher {
 
             return ss.str ();
         }
-
-
 
         // _perft() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.
@@ -768,7 +770,7 @@ namespace Searcher {
                     eval);
             }
 
-            // Updates Gains
+            // Updates Gain
             if (   (pos.capture_type () == NONE)
                 && ((ss  )->static_eval != VALUE_NONE)
                 && ((ss-1)->static_eval != VALUE_NONE)
@@ -777,7 +779,7 @@ namespace Searcher {
                )
             {
                 Square dst = dst_sq (move);
-                Gains.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
+                Gain.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
             }
 
             if (!PVNode) // (is omitted in PV nodes)
@@ -1115,7 +1117,7 @@ namespace Searcher {
                         if (predicted_depth < (7*ONE_MOVE))
                         {
                             Value futility_value = (ss)->static_eval + futility_margin (predicted_depth)
-                                                 + Gains[pos[org_sq (move)]][dst_sq (move)] + 128;
+                                                 + Gain[pos[org_sq (move)]][dst_sq (move)] + 128;
 
                             if (futility_value <= alpha)
                             {
@@ -1433,7 +1435,7 @@ namespace Searcher {
 
             TT.new_gen ();
 
-            Gains.clear ();
+            Gain.clear ();
             History.clear ();
             CounterMoves.clear ();
             FollowupMoves.clear ();
@@ -1449,7 +1451,7 @@ namespace Searcher {
             u08 level = i32 (Options["Skill Level"]);
             SkillLevel = Skill (level);
 
-            update_multi_pv ();
+            read_multi_pv ();
 
             // Iterative deepening loop until requested to stop or target depth reached
             while (++depth <= MAX_PLY && !Signals.stop && (Limits.depth == 0 || depth <= Limits.depth))

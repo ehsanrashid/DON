@@ -91,7 +91,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AkoAAwIHAQQACBmwVYepIAEjAbELHoRwDBkwJCAgJSA=</HashCode>
+      <HashCode>AkoAAwIHAQQACBmwVYepIAEjgbELHoRwDBkwJCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -588,7 +588,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAACAAAAIAAAAgAAAAAAAQEAAgAAAAAABIACAAIAA=</HashCode>
+      <HashCode>AAAAACAAAAIAAAAgAAAAAAAQEAAAAAAAAABJACAAIAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -646,7 +646,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAQAAAAAAAAACCAAAAEAAAICQAAQAAAAAAAIIAAAIAQ=</HashCode>
+      <HashCode>AAQAAAAAAAAACCAAAAEAAAICQAAAAAAAAAAIIAAAIAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -892,7 +892,7 @@
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Stats&lt;GAIN, T&gt;">
+  <Struct Name="Stats&lt;Gain, T&gt;">
     <Position X="2.5" Y="3.75" Width="2.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAAAAAAAgAAAAAAAAAAAAEAAAAAAAAAAAAEAAA=</HashCode>
@@ -1124,7 +1124,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QACCAAAAAMAQAAAAAAAABIAEEAAAAAAQAAAQIAAAYQA=</HashCode>
+      <HashCode>QACCAAAAAMAQAAAAAAAABIAEEBAAAAAQAAAQIAAAYQA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -1338,7 +1338,7 @@
       <FileName>src\Platform.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="GainsStats" Collapsed="true">
+  <Typedef Name="GainStats" Collapsed="true">
     <Position X="1.75" Y="6.25" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
@@ -1351,27 +1351,13 @@
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
-    <AliasOfLine Type="Stats&lt;GAIN, T&gt;" FixedFromPoint="true">
-      <Path>
-        <Point X="3.75" Y="5.405" />
-        <Point X="3.75" Y="5.875" />
-        <Point X="5" Y="5.875" />
-        <Point X="5" Y="6.25" />
-      </Path>
-    </AliasOfLine>
   </Typedef>
-  <Typedef Name="MovesStats" Collapsed="true">
+  <Typedef Name="MoveStats" Collapsed="true">
     <Position X="2.75" Y="7" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
-    <AliasOfLine Type="Stats&lt;GAIN, T&gt;" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="3.75" Y="5.405" />
-        <Point X="3.75" Y="7" />
-      </Path>
-    </AliasOfLine>
   </Typedef>
   <Typedef Name="Material::Table" Collapsed="true">
     <Position X="13.25" Y="21.75" Width="2.5" />
@@ -1585,7 +1571,7 @@
   <Enum Name="ScaleFactor" Collapsed="true">
     <Position X="7.75" Y="3" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
+      <HashCode>AAACAAAAAAACABAAAAAAAAAAAAAAAAAAAAAAAACAgAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>

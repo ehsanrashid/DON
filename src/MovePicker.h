@@ -16,12 +16,13 @@ class Position;
 
 template<bool Gain, class T>
 // The Stats struct stores moves statistics.
-// According to the template parameter the class can store History, Gains and Countermoves.
-// History records how often different moves have been successful or unsuccessful during the
-// current search and is used for reduction and move ordering decisions.
-// Gains records the move's best evaluation gain from one ply to the next and is used
-// for pruning decisions.
-// Countermoves store the move that refute a previous one.
+// According to the template parameter the class can store
+// History, Gain, CounterMoves & FollowupMoves.
+// - History records how often different moves have been successful or unsuccessful during the
+//   current search and is used for reduction and move ordering decisions.
+// - Gain records the move's best evaluation gain from one ply to the next and is used
+//   for pruning decisions.
+// - CounterMoves & FollowupMoves store the move that refute a previous one.
 // Entries are stored according only to moving piece and destination square,
 // in particular two moves with different origin but same destination and same piece will be considered identical.
 struct Stats
@@ -65,9 +66,9 @@ public:
 
 };
 
-typedef Stats< true,                Value  > GainsStats;
+typedef Stats< true,                Value  > GainStats;
 typedef Stats<false,                Value  > HistoryStats;
-typedef Stats<false, std::pair<Move, Move> > MovesStats;
+typedef Stats<false, std::pair<Move, Move> > MoveStats;
 
 // MovePicker class is used to pick one pseudo legal move at a time from the
 // current position. The most important method is next_move(), which returns a
