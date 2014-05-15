@@ -222,12 +222,16 @@ namespace Evaluator {
 
         // Bonuses
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
+
+        const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
+
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
-        const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
-        const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
+        const Score RookOnOpenFileBonus     = S(+43,+21); // Bonus for rook on open file
+        const Score RookOnSemiOpenFileBonus = S(+19,+10); // Bonus for rook on semi-open file
+        const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
+        
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
         //const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
-        const Score KnightPawnsBonus        = S(+ 6,+10); // Bonus for good Knight with pawn
 
         // Bonus for each enemy hanging piece [side to move]
         const Score PieceHangingBonus[2]    = { S(23, 20) , S(35, 45) };
@@ -235,6 +239,7 @@ namespace Evaluator {
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
+        const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -373,14 +378,16 @@ namespace Evaluator {
         // evaluate_piece<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_piece (const Position &pos, EvalInfo &ei, const Bitboard &mobility_area, Score &mobility)
         {
-            Score score = SCORE_ZERO;
-
-            const Color  C_    = (WHITE == C) ? BLACK : WHITE;
-            const Square fk_sq = pos.king_sq (C );
-            const Bitboard occ = pos.pieces ();
+            const Color  C_      = (WHITE == C) ? BLACK : WHITE;
+            const Square fk_sq   = pos.king_sq (C);
+            const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
+            const u08 open_files = ei.pi->_semiopen_files[C]
+                                 & ei.pi->_semiopen_files[C_];
 
             ei.attacked_by[C][PT] = U64 (0);
+            
+            Score score = SCORE_ZERO;
 
             const Square *pl = pos.list<PT> (C);
             Square s;
@@ -397,6 +404,7 @@ namespace Evaluator {
                 if (pinned_pieces & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
+                    //pos.attackers_to (s); > 1
                 }
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
@@ -435,7 +443,7 @@ namespace Evaluator {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
                 {
-                    score -= PawnThreatenPenalty[PT] * ((pinned_pieces & s) ? 2 : 1);
+                    score -= PawnThreatenPenalty[PT];// * ((pinned_pieces & s) ? 2 : 1);
                 }
 
                 // Special extra evaluation for pieces
@@ -471,8 +479,17 @@ namespace Evaluator {
 
                     if (NIHT == PT)
                     {
-                        //score += KnightPawnsBonus * i32 (pop_count<MAX15> (pos.pieces<PAWN> (C)&(PieceAttacks[NIHT][s])));
-                        score += KnightPawnsBonus * i32 (pop_count<MAX15> (pos.pieces<PAWN> (C)));
+                        const Bitboard friendly_pawns = pos.pieces<PAWN> (C);
+                        if (friendly_pawns != U64 (0))
+                        {
+                            score += KnightPawnsBonus * i32 (pop_count<MAX15> (friendly_pawns & (DistanceRings[s][0]|DistanceRings[s][1])));
+                        }
+
+                        if (open_files != 0)
+                        {
+                            score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
+                        }
+                        //score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
                     }
 
                     // Outposts squares for bishop and knight
@@ -489,26 +506,26 @@ namespace Evaluator {
                     if (R_4 <= r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        Bitboard enemy_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (enemy_pawns != U64 (0))
+                        const Bitboard rook_on_enemy_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
+                        if (rook_on_enemy_pawns != U64 (0))
                         {
-                            score += RookOnPawnBonus * i32 (pop_count<MAX15> (enemy_pawns));
+                            score += RookOnPawnBonus * i32 (pop_count<MAX15> (rook_on_enemy_pawns));
                         }
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
-                    if (ei.pi->semiopen_file<C> (_file (s)) > 0)
+                    if (ei.pi->semiopen_file<C > (_file (s)) != 0)
                     {
-                        score += ei.pi->semiopen_file<C_> (_file (s)) > 0
-                               ? RookOpenFileBonus
-                               : RookSemiOpenFileBonus;
+                        score += (ei.pi->semiopen_file<C_> (_file (s)) != 0)
+                               ? RookOnOpenFileBonus
+                               : RookOnSemiOpenFileBonus;
                     }
                     else
                     {
                         if (mob <= 3)
                         {
-                            File fk = _file (fk_sq);
-                            Rank rk = rel_rank (C, fk_sq);
+                            const File fk = _file (fk_sq);
+                            const Rank rk = rel_rank (C, fk_sq);
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
                             if (  ((fk < F_E) == (_file (s) < fk))
@@ -520,6 +537,12 @@ namespace Evaluator {
                             }
                         }
                     }
+
+                    if (open_files != 0)
+                    {
+                        score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
+                    }
+                    //score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
                 }
             }
 
@@ -538,9 +561,9 @@ namespace Evaluator {
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
-            Square king_sq = pos.king_sq (C);
+            Square fk_sq = pos.king_sq (C);
             // King shelter and enemy pawns storm
-            Score score = ei.pi->king_safety<C> (pos, king_sq);
+            Score score = ei.pi->king_safety<C> (pos, fk_sq);
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] != 0)
@@ -602,7 +625,7 @@ namespace Evaluator {
                 // squares around the king attacked by enemy rooks...
                 undefended_attacked = undefended & ei.attacked_by[C_][ROOK];
                 // Consider only squares where the enemy rook gives check
-                undefended_attacked &= PieceAttacks[ROOK][king_sq];
+                undefended_attacked &= PieceAttacks[ROOK][fk_sq];
                 if (undefended_attacked != U64 (0))
                 {
                     // ...and then remove squares not supported by another enemy piece
@@ -625,8 +648,8 @@ namespace Evaluator {
                 // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
                 
-                Bitboard rook_check = attacks_bb<ROOK> (king_sq, occ) & safe_sq;
-                Bitboard bshp_check = attacks_bb<BSHP> (king_sq, occ) & safe_sq;
+                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
+                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
@@ -642,7 +665,7 @@ namespace Evaluator {
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * pop_count<MAX15> (safe_check);
 
                 // Enemy knights safe checks
-                safe_check = PieceAttacks[NIHT][king_sq] & safe_sq & ei.attacked_by[C_][NIHT];
+                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.attacked_by[C_][NIHT];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * pop_count<MAX15> (safe_check);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range

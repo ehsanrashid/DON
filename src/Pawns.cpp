@@ -73,7 +73,7 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+56), V(+32),  V(+ 4),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+64), V(+128), V(+64), V(+36),  V(+ 4),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+  0), V(+48), V(+16),  V(+ 2),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+168), V(+30), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
@@ -99,12 +99,13 @@ namespace Pawns {
                 pos.pieces<PAWN> (C_),
             };
 
-            e->_passed_pawns  [C] = e->_candidate_pawns[C] = U64 (0);
-            e->_king_sq       [C] = SQ_NO;
-            e->_semiopen_files[C] = 0xFF;
-            e->_pawn_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            e->_pawn_count_sq [C][WHITE] = pop_count<MAX15> (pawns[0] & LIHT_bb);
-            e->_pawn_count_sq [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
+            e->_passed_pawns   [C] = U64 (0);
+            e->_candidate_pawns[C] = U64 (0);
+            e->_king_sq        [C] = SQ_NO;
+            e->_semiopen_files [C] = 0xFF;
+            e->_pawn_attacks   [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
+            e->_pawn_count_sq  [C][WHITE] = pop_count<MAX15> (pawns[0] & LIHT_bb);
+            e->_pawn_count_sq  [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
             
             Score pawn_score = SCORE_ZERO;
 
