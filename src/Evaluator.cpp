@@ -226,8 +226,9 @@ namespace Evaluator {
         const Score RookOpenFileBonus       = S(+43,+21); // Bonus for rook on open file
         const Score RookSemiOpenFileBonus   = S(+19,+10); // Bonus for rook on semi-open file
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
-        const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
-        //const Score KnightPawnsBonus        = S(+ 8,+10); // Bonus for good Knight with pawn
+        //const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
+        const Score KnightPawnsBonus        = S(+ 6,+10); // Bonus for good Knight with pawn
+
         // Bonus for each enemy hanging piece [side to move]
         const Score PieceHangingBonus[2]    = { S(23, 20) , S(35, 45) };
         
@@ -471,9 +472,10 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         //score += KnightPawnsBonus * i32 (pop_count<MAX15> (pos.pieces<PAWN> (C)&(PieceAttacks[NIHT][s])));
+                        score += KnightPawnsBonus * i32 (pop_count<MAX15> (pos.pieces<PAWN> (C)));
                     }
 
-                    // Bishop and knight outposts squares
+                    // Outposts squares for bishop and knight
                     if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))
                     {
                         score += evaluate_outposts<C, PT> (pos, ei, s);
@@ -980,11 +982,11 @@ namespace Evaluator {
                 score += apply_weight (space * sw, Weights[Space]);
             }
 
-            Value diff = npm[WHITE] - npm[BLACK];
-            if (abs (diff) >= VALUE_MG_PAWN)
-            {
-                score += ((diff > VALUE_ZERO) - (diff < VALUE_ZERO)) * NonPawnMaterialBonus;
-            }
+            //Value diff = npm[WHITE] - npm[BLACK];
+            //if (abs (diff) >= VALUE_MG_PAWN)
+            //{
+            //    score += ((diff > VALUE_ZERO) - (diff < VALUE_ZERO)) * NonPawnMaterialBonus;
+            //}
 
             i32 mg = i32 (mg_value (score));
             i32 eg = i32 (eg_value (score));
