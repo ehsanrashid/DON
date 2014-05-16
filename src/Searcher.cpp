@@ -769,7 +769,7 @@ namespace Searcher {
                         && (!pos.pawn_on_7thR (pos.active ()))
                        )
                     {
-                        if (   depth <= ONE_MOVE
+                        if (   depth <= (2*ONE_MOVE)
                             && eval + razor_margin (3*ONE_MOVE) <= alpha
                            )
                         {

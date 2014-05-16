@@ -303,7 +303,7 @@ namespace Evaluator {
 
         //  --- init evaluation info --->
         template<Color C>
-        // init_eval_info() initializes king bitboards for given color adding
+        // init_eval_info<>() initializes king bitboards for given color adding
         // pawn attacks. To be done at the beginning of the evaluation.
         inline void init_eval_info (const Position &pos, EvalInfo &ei)
         {
@@ -336,7 +336,7 @@ namespace Evaluator {
         }
 
         template<Color C, PieceT PT>
-        // evaluate_outposts() evaluates bishop and knight outposts squares
+        // evaluate_outposts<>() evaluates bishop and knight outposts squares
         inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
         {
             ASSERT (BSHP == PT || NIHT == PT);
@@ -851,7 +851,7 @@ namespace Evaluator {
             return score;
         }
 
-        // evaluate_unstoppable_pawns() scores the most advanced among the passed and
+        // evaluate_unstoppable_pawns<>() scores the most advanced among the passed and
         // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
         // related to the possibility pawns are unstoppable.
         template<Color C>
@@ -863,7 +863,7 @@ namespace Evaluator {
         }
 
         template<Color C>
-        // evaluate_space() computes the space evaluation for a given side. The
+        // evaluate_space<>() computes the space evaluation for a given side. The
         // space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4. Safe
         // squares one, two or three squares behind a friendly pawn are counted
