@@ -567,7 +567,6 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                  //& ei.attacked_by[C][KING]
                   & (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
@@ -583,10 +582,9 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
-                    //+ 3 * (pop_count<MAX15> (undefended))
                     + 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
                     + 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
-                    + (ei.pinned_pieces [C]!=0 ? 2 * pop_count<MAX15> (ei.pinned_pieces [C]) : 0) // King-pinned piece weight
+                    + (ei.pinned_pieces[C] != U64 (0) ? 2 * pop_count<MAX15> (ei.pinned_pieces[C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
@@ -844,10 +842,10 @@ namespace Evaluator {
             return score;
         }
 
+        template<Color C>
         // evaluate_unstoppable_pawns<>() scores the most advanced among the passed and
         // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
         // related to the possibility pawns are unstoppable.
-        template<Color C>
         inline Score evaluate_unstoppable_pawns (const Position &, const EvalInfo &ei)
         {
             Bitboard unstoppable_pawns = ei.pi->passed_pawns<C> () | ei.pi->candidate_pawns<C> ();

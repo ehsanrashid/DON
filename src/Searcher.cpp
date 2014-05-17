@@ -110,13 +110,12 @@ namespace Searcher {
                 // PRNG sequence should be not deterministic
                 for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
 
-                move = MOVE_NONE;
-
                 // RootMoves are already sorted by score in descending order
                 const Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
                 const Value weakness = Value (120 - 2 * level);
                 
-                Value max_v    = -VALUE_INFINITE;
+                Value max_v = -VALUE_INFINITE;
+                move = MOVE_NONE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -132,7 +131,7 @@ namespace Searcher {
 
                     // This is our magic formula
                     v += (weakness * i32 (RootMoves[0].value[0] - v)
-                      +  (variance * i32 (rk.rand<u32> () % weakness)) / 128);
+                      +   variance * i32 (rk.rand<u32> () % weakness) / 0x80);
 
                     if (max_v < v)
                     {
