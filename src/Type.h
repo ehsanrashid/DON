@@ -405,6 +405,8 @@ ARTHMAT_OPERATORS (Score)
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
+inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)

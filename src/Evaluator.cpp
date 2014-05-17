@@ -124,7 +124,6 @@ namespace Evaluator {
 
         Weight Weights[6];
 
-#define V         Value
 #define S(mg, eg) mk_score (mg, eg)
 
         // Internal evaluation weights. These are applied on top of the evaluation
@@ -136,7 +135,7 @@ namespace Evaluator {
             S(+289,+344), // Mobility
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
-            S(+ 48,+  0), // Space
+            S(+ 46,+  0), // Space
             S(+271,+  0), // Cowardice
             S(+307,+  0)  // Aggressive
         };
@@ -177,30 +176,30 @@ namespace Evaluator {
 
         // OutpostBonus[PieceT][Square] contains bonuses of knights and bishops,
         // indexed by piece type and square (from white's point of view).
-        const Value OutpostBonus[2][SQ_NO] =
-        {       // A       B       C       D       E       F       G       H
+        const Score OutpostBonus[2][SQ_NO] =
+        {       //  A         B         C         D         E         F         G         H
 
             // KNIGHTS
             {
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 4), V( 8), V( 8), V( 4), V( 0), V( 0),
-                V( 0), V( 4), V(17), V(26), V(26), V(17), V( 4), V( 0),
-                V( 0), V( 8), V(26), V(35), V(35), V(26), V( 8), V( 0),
-                V( 0), V( 4), V(17), V(17), V(17), V(17), V( 4), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 4, 4), S( 8, 8), S( 8, 8), S( 4, 4), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 4, 4), S(17,17), S(26,26), S(26,26), S(17,17), S( 4, 4), S( 0, 0),
+                S( 0, 0), S( 8, 8), S(26,26), S(35,35), S(35,35), S(26,26), S( 8, 8), S( 0, 0),
+                S( 0, 0), S( 4, 4), S(17,17), S(17,17), S(17,17), S(17,17), S( 4, 4), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0)
             },
             // BISHOPS
             {
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 5), V( 5), V( 5), V( 5), V( 0), V( 0),
-                V( 0), V( 5), V(10), V(10), V(10), V(10), V( 5), V( 0),
-                V( 0), V(10), V(21), V(21), V(21), V(21), V(10), V( 0),
-                V( 0), V( 5), V( 8), V( 8), V( 8), V( 8), V( 5), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-                V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 5, 5), S( 5, 5), S( 5, 5), S( 5, 5), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 5, 5), S(10,10), S(10,10), S(10,10), S(10,10), S( 5, 5), S( 0, 0),
+                S( 0, 0), S(10,10), S(21,21), S(21,21), S(21,21), S(21,21), S(10,10), S( 0, 0),
+                S( 0, 0), S( 5, 5), S( 8, 8), S( 8, 8), S( 8, 8), S( 8, 8), S( 5, 5), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
+                S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0)
             }
         };
 
@@ -224,30 +223,24 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
+        //const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
+
+        const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
+        const Score BishopTrappedPenalty    = S(+50,+50);
 
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus     = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus = S(+19,+10); // Bonus for rook on semi-open file
         //const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
+        const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
         
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
         //const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
 
         // Bonus for each enemy hanging piece [side to move]
-        const Score PieceHangingBonus[2]    = { S(23, 20) , S(35, 45) };
-        
-        // Penalties
-        const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
-        const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
-        //const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
-
-        // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
-        // a friendly pawn on b2/g2 (b7/g7 for black).
-        // This can obviously only happen in Chess960 games.
-        const Score BishopTrappedA1H1Penalty= S(+50,+50);
+        const Score PieceHangingBonus[CLR_NO] = { S(23, 20) , S(35, 45) };        
 
 #undef S
-#undef V
 
         // The SpaceMask[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
@@ -343,17 +336,15 @@ namespace Evaluator {
 
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
             
-            Score score = SCORE_ZERO;
-
             // Initial bonus based on square
-            Value bonus = 
+            Score score = 
                 (NIHT == PT) ? OutpostBonus[0][rel_sq (C, s)] :
                 (BSHP == PT) ? OutpostBonus[1][rel_sq (C, s)] :
-                VALUE_ZERO;
+                SCORE_ZERO;
 
             // Increase bonus if supported by pawn, especially if the opponent has
             // no minor piece which can exchange the outpost piece.
-            if (bonus != VALUE_ZERO)
+            if (score != SCORE_ZERO)
             {
                 if (ei.attacked_by[C][PAWN] & s)
                 {
@@ -361,14 +352,13 @@ namespace Evaluator {
                         && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
                        )
                     {
-                        bonus += i32 (bonus)*1.5;
+                        score *= 2.5;
                     }
                     else
                     {
-                        bonus += i32 (bonus)*0.5;
+                        score *= 1.5;
                     }
                 }
-                score = mk_score (bonus, bonus);
             }
 
             return score;
@@ -454,22 +444,38 @@ namespace Evaluator {
                     {
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
+                        if (   s == rel_sq (C, SQ_A7)
+                            || s == rel_sq (C, SQ_H7)
+                           )
+                        {
+                            const Piece opp_pawn = (C_ | PAWN);
+                            Delta del = pawn_push (C_) + ((F_A == _file (s)) ? DEL_E : DEL_W);
+                            if (   (pos[s + del] == opp_pawn)
+                                && (ei.attacked_by[C_][PAWN] & ~ei.attacked_by[C][PAWN] & (s + del))
+                               )
+                            {
+                                score -= BishopTrappedPenalty * 2;
+                            }
+                        }
+
                         // An important Chess960 pattern: A cornered bishop blocked by a friendly
                         // pawn diagonally in front of it is a very serious problem, especially
                         // when that pawn is also blocked.
+                        // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
+                        // a friendly pawn on b2/g2 (b7/g7 for black).
                         if (pos.chess960 ())
                         {
                             if (   s == rel_sq (C, SQ_A1)
                                 || s == rel_sq (C, SQ_H1)
                                )
                             {
-                                const Piece pawn = (C | PAWN);
+                                const Piece own_pawn = (C | PAWN);
                                 Delta del = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
-                                if (pos[s + del] == pawn)
+                                if (pos[s + del] == own_pawn)
                                 {
-                                    score -= BishopTrappedA1H1Penalty *
+                                    score -= BishopTrappedPenalty *
                                         ( (pos[s + del + pawn_push (C)]!=EMPTY) ? 4
-                                        : (pos[s + del + del] == pawn)          ? 2 : 1);
+                                        : (pos[s + del + del] == own_pawn)      ? 2 : 1);
                                 }
                             }
                         }
@@ -567,7 +573,7 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                  & (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
+                  & ei.attacked_by[C][KING] //& (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
                     | ei.attacked_by[C][BSHP]
@@ -582,13 +588,14 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
-                    + 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
-                    + 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
+                    + (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
+                    //+ 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
+                    //+ 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
                     + (ei.pinned_pieces[C] != U64 (0) ? 2 * pop_count<MAX15> (ei.pinned_pieces[C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_) ;
+                undefended &= ~pos.pieces (C_) ;
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended

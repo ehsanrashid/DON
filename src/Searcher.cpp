@@ -1632,11 +1632,14 @@ namespace Searcher {
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        i08 ply = 0;
+        i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
+        
         pv.clear ();
+
         StateInfo states[MAX_PLY_6]
                 , *si = states;
+        Value expected_value = value[0];
 
         const TTEntry *tte;
         do
@@ -1647,12 +1650,14 @@ namespace Searcher {
 
             pos.do_move (pv[ply++], *si++);
             tte = TT.retrieve (pos.posi_key ());
+            expected_value = -expected_value;
         }
         while (tte // Local copy, TT could change
+            && expected_value == value_fr_tt (tte->value (), ply+1)
             && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
-            && (ply < MAX_PLY)
+            && ply < MAX_PLY
             && (!pos.draw () || ply < 2));
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
@@ -1669,7 +1674,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        i08 ply = 0;
+        i08 ply = 0; // Ply starts from 1, we need to start from 0
         StateInfo states[MAX_PLY_6]
                 , *si = states;
 
