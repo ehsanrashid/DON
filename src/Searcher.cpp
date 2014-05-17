@@ -769,7 +769,7 @@ namespace Searcher {
                         && (!pos.pawn_on_7thR (pos.active ()))
                        )
                     {
-                        if (   depth <= (2*ONE_MOVE)
+                        if (   depth <= (1*ONE_MOVE)
                             && eval + razor_margin (3*ONE_MOVE) <= alpha
                            )
                         {
@@ -1468,11 +1468,11 @@ namespace Searcher {
                     if (Signals.stop) break;
 
                     // Reset Aspiration window starting size
-                    if (depth > 4)
+                    if (depth > (2*ONE_MOVE))
                     {
                         window[0] =
                         window[1] =
-                            Value (depth < 32 ? 14 + (depth/4) : 22);
+                            Value (depth < (16*ONE_MOVE) ? 14 + (depth/4) : 22);
                         bound[0]  = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound[1]  = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
@@ -1520,6 +1520,7 @@ namespace Searcher {
                         {
                             bound[0] = max (best_value - window[0], -VALUE_INFINITE);
                             window[0] *= 1.5;
+                            window[1] *= 1.1;
                             Signals.root_failedlow = true;
                             Signals.stop_ponderhit = false;
                         }
@@ -1527,6 +1528,7 @@ namespace Searcher {
                         {
                             bound[1] = min (best_value + window[1], +VALUE_INFINITE);
                             window[1] *= 1.5;
+                            window[0] *= 1.1;
                         }
                         else
                         {

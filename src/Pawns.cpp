@@ -73,9 +73,9 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+64), V(+36),  V(+ 4),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+  0), V(+48), V(+16),  V(+ 2),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+168), V(+30), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 3),  V(+ 0),  V(+ 0) },
+            { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 2),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 1),  V(+ 0),  V(+ 0) }
         };
 
         // Max bonus for king safety. Corresponds to start position with all the pawns
@@ -295,8 +295,9 @@ namespace Pawns {
     }
 
     template<Color C>
-    // Entry::king_safety() calculates and caches a bonus for king safety. It is
-    // called only when king square changes, about 20% of total king_safety() calls.
+    // Entry::king_safety() calculates a bonus for king safety.
+    // It is called only when king square changes,
+    // which is about 20% of total king_safety() calls.
     Score Entry::do_king_safety (const Position &pos, Square king_sq)
     {
         _king_sq      [C] = king_sq;

@@ -46,6 +46,8 @@ const BitCountT MAX15 = CNT_HW_POPCNT;
 template<>
 INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
+    //if (bb == U64 (0)) return 0;
+
 #       ifdef _64BIT
     {
         return (_mm_popcnt_u64 (bb));
@@ -64,6 +66,8 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
+    //if (bb == U64 (0)) return 0;
+
 #      ifdef _64BIT
     {
         return (__popcnt64 (bb));
@@ -138,6 +142,8 @@ template<>
 // Pop count of the Bitboard (64-bit)
 INLINE u08 pop_count<CNT_64_FULL> (Bitboard bb)
 {
+    if (bb == U64 (0)) return 0;
+    
     //u64 w0 = (bb & MX_64) + ((bb + bb) & MX_64);
     //u64 w1 = (bb >> 1 & MX_64) + (bb >> 2 & MX_64);
     //w0 = w0 + (w0 >> 4) & M4_64;
@@ -154,6 +160,8 @@ template<>
 // Pop count max 15 of the Bitboard (64-bit)
 INLINE u08 pop_count<CNT_64_MAX15> (Bitboard bb)
 {
+    if (bb == U64 (0)) return 0;
+
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
     return (bb * H4_64) >> 0x3C;            // 60;
@@ -178,6 +186,8 @@ template<>
 // Pop count of the Bitboard (32-bit)
 INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
 {
+    if (bb == U64 (0)) return 0;
+
     //u32 *p = (u32*) (&bb);
     //u32 *w0 = p+0;
     //u32 *w1 = p+1;
@@ -204,6 +214,8 @@ template<>
 // Pop count max 15 of the Bitboard (32-bit)
 INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 {
+    if (bb == U64 (0)) return 0;
+
     //u32 *p = (u32*) (&bb);
     //u32 *w0 = p+0;
     //u32 *w1 = p+1;
