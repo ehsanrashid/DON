@@ -228,7 +228,7 @@ namespace Evaluator {
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus     = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
+        //const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
         
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
         //const Score NonPawnMaterialBonus    = S(+40,+40); // Bonus for non-pawn material
@@ -239,7 +239,7 @@ namespace Evaluator {
         // Penalties
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
-        const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
+        //const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
 
         // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
         // a friendly pawn on b2/g2 (b7/g7 for black).
@@ -272,8 +272,6 @@ namespace Evaluator {
 
         // Bonuses for enemy's contact safe checks
         const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0 };
-
-        const i32 PiecePinnedWeight = + 2;
 
         const u08 MAX_ATTACK_UNITS = 100;
         // KingDanger[Color][attack_units] contains the actual king danger weighted
@@ -309,11 +307,12 @@ namespace Evaluator {
         {
             const Color  C_ = (WHITE == C) ? BLACK : WHITE;
 
+            const Square ek_sq  = pos.king_sq (C_);
             ei.pinned_pieces[C] = pos.pinneds (C);
 
             ei.attacked_by[C][NONE] = ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks<C> ();
 
-            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
+            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
 
             // Init king safety tables only if going to use them
             if (   (pos.count<QUEN> (C) > 0) 
@@ -321,8 +320,9 @@ namespace Evaluator {
                )
             {
                 ei.king_ring              [C_] = attacks | shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks);
+                                                 //DistanceRings[ek_sq][0]|DistanceRings[ek_sq][1];
                 attacks                       &= ei.attacked_by [C ][PAWN];
-                ei.king_attackers_count   [C ] = attacks ? pop_count<MAX15> (attacks) : 0;
+                ei.king_attackers_count   [C ] = attacks != U64 (0) ? pop_count<MAX15> (attacks) : 0;
                 ei.king_zone_attacks_count[C ] = 0;
                 ei.king_attackers_weight  [C ] = 0;
             }
@@ -382,8 +382,7 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
-            const u08 open_files = ei.pi->_semiopen_files[C]
-                                 & ei.pi->_semiopen_files[C_];
+            //const u08 open_files = ei.pi->_semiopen_files[C] & ei.pi->_semiopen_files[C_];
 
             ei.attacked_by[C][PT] = U64 (0);
             
@@ -485,11 +484,9 @@ namespace Evaluator {
                             score += KnightPawnsBonus * i32 (pop_count<MAX15> (friendly_pawns & (DistanceRings[s][0]|DistanceRings[s][1])));
                         }
 
-                        if (open_files != 0)
-                        {
-                            score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
-                        }
-                        //score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
+                        //if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
+                        
+                        //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
                     }
 
                     // Outposts squares for bishop and knight
@@ -538,11 +535,9 @@ namespace Evaluator {
                         }
                     }
 
-                    if (open_files != 0)
-                    {
-                        score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
-                    }
-                    //score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
+                    //if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
+                    
+                    //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
                 }
             }
 
@@ -572,7 +567,8 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                  & ei.attacked_by[C][KING]
+                  //& ei.attacked_by[C][KING]
+                  & (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
                     | ei.attacked_by[C][BSHP]
@@ -585,19 +581,16 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'score' value).
                 i32 attack_units =
-                    + min (20, (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_]) / 2)
-                    + 3 * (ei.king_zone_attacks_count[C_] + pop_count<MAX15> (undefended))
+                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
+                    + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
+                    //+ 3 * (pop_count<MAX15> (undefended))
+                    + 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
+                    + 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
+                    + (ei.pinned_pieces [C]!=0 ? 2 * pop_count<MAX15> (ei.pinned_pieces [C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
-                
-                Bitboard pinned_pieces = ei.pinned_pieces[C];
-                // Penalty for pinned pieces
-                if (pinned_pieces != U64 (0))
-                {
-                    attack_units += PiecePinnedWeight * pop_count<MAX15> (pinned_pieces);
-                }
 
-                // Undefended squares not occupied by enemy's
-                undefended &= ~pos.pieces (C_);
+                // Undefended squares around king not occupied by enemy's
+                undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_) ;
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended
