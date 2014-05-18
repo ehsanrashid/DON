@@ -936,15 +936,16 @@ namespace EndGame {
 
         Bitboard spawns = pos.pieces<PAWN> (_stong_side);
         Square    sp_sq = scan_frntmost_sq (_stong_side, spawns);
-        File       wp_f = _file (sp_sq);
+        File       sp_f = _file (sp_sq);
 
-        // All pawns are on a single rook file ?
-        if (   (wp_f == F_A || wp_f == F_H)
-            && !(spawns & ~File_bb[wp_f])
+        // All pawns on same A or H file? (rook file)
+        // Then potential draw
+        if (   (sp_f == F_A || sp_f == F_H)
+            && !(spawns & ~File_bb[sp_f])
            )
         {
             Square sb_sq = pos.list<BSHP> (_stong_side)[0];
-            Square queening_sq = rel_sq (_stong_side, wp_f | R_8);
+            Square queening_sq = rel_sq (_stong_side, sp_f | R_8);
             Square wk_sq = pos.king_sq (_weak_side);
 
             // The bishop has the wrong color.
@@ -958,7 +959,7 @@ namespace EndGame {
 
                 //// If the defending king has some pawns
                 //Bitboard wpawns = pos.pieces<PAWN> (_weak_side);
-                //if (wpawns && !(wpawns & ~File_bb[wp_f]))
+                //if (wpawns && !(wpawns & ~File_bb[sp_f]))
                 //{
                 //    Square wp_sq = scan_frntmost_sq (_weak_side, wpawns);
                 //    Square sk_sq = pos.king_sq (_stong_side);
@@ -979,16 +980,16 @@ namespace EndGame {
             }
         }
 
-        // All pawns on same B or G file? Then potential draw
-        if (   (wp_f == F_B || wp_f == F_G)
-            && !(pos.pieces<PAWN> () & ~File_bb[wp_f])
+        // All pawns on same B or G file?
+        // Then potential draw
+        if (   (sp_f == F_B || sp_f == F_G)
+            && !(pos.pieces<PAWN> () & ~File_bb[sp_f])
             && (pos.non_pawn_material (_weak_side) == VALUE_ZERO)
             && (pos.count<PAWN> (_weak_side) >= 1)
            )
         {
             // Get _weak_side pawn that is closest to home rank
             Square wp_sq = scan_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
-
             Square sk_sq = pos.king_sq (_stong_side);
             Square wk_sq = pos.king_sq (_weak_side);
             Square sb_sq = pos.list<BSHP> (_stong_side)[0];
@@ -1003,8 +1004,8 @@ namespace EndGame {
             //    return SCALE_FACTOR_DRAW;
             //}
 
-            // There's potential for a draw if our pawn is blocked on the 7th rank
-            // the bishop cannot attack it or they only have one pawn left
+            // There's potential for a draw if weak pawn is blocked on the 7th rank
+            // and the bishop cannot attack it or they only have one pawn left
             if (   (rel_rank (_stong_side, wp_sq) == R_7)
                 && (pos.pieces<PAWN> (_stong_side) & (wp_sq + pawn_push (_weak_side)))
                 && (opposite_colors (sb_sq, wp_sq) || pos.count<PAWN> (_stong_side) == 1)
@@ -1024,7 +1025,18 @@ namespace EndGame {
                     return SCALE_FACTOR_DRAW;
                 }
             }
+
+            Square queening_sq = rel_sq (_stong_side, sp_f | R_8);
+            // If the defending king defends the queening square.
+            if (SquareDist[queening_sq][wk_sq] <= 1)
+            {
+                // if strong pawn attacks and block bishop and King cant be driven away
+
+                //return SCALE_FACTOR_DRAW;
+            }
+
         }
+
         return SCALE_FACTOR_NONE;
     }
 

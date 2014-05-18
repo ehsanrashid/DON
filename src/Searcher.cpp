@@ -69,7 +69,8 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
-
+        
+        Color   RootColor;
         u08     RootMovesCount;
         u08     MultiPV
             ,   PVIndex;
@@ -1416,7 +1417,6 @@ namespace Searcher {
             CounterMoves.clear ();
             FollowupMoves.clear ();
 
-            RootMovesCount   = RootMoves.size ();
             BestMoveChanges  = 0.0;
 
             Value best_value = -VALUE_INFINITE
@@ -1618,7 +1618,6 @@ namespace Searcher {
 
     vector<RootMove>    RootMoves;
     Position            RootPos;
-    Color               RootColor;
     StateInfoStackPtr   SetupStates;
 
     Time::point         SearchTime;
@@ -1712,8 +1711,10 @@ namespace Searcher {
         return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
     }
 
+    // Main searching starts from here
     void think ()
     {
+        RootColor = RootPos.active ();
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
         i32 contempt = i32 (Options["Contempt Factor"]);
@@ -1751,6 +1752,8 @@ namespace Searcher {
             }
         }
         
+        RootMovesCount = RootMoves.size ();
+
         if (write_search_log)
         {
             LogFile log (search_log_fn);
@@ -1763,6 +1766,7 @@ namespace Searcher {
                 << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "movetime:  " << Limits.movetime                  << "\n"
                 << "movestogo: " << u16 (Limits.movestogo)           << "\n"
+                << "totalmoves:" << u16 (RootMovesCount)             << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;

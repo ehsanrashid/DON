@@ -179,7 +179,6 @@ namespace Searcher {
 
     extern std::vector<RootMove> RootMoves;
     extern Position              RootPos;
-    extern Color                 RootColor;
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;

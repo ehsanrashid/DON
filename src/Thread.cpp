@@ -339,7 +339,7 @@ namespace Threads {
         wait_for_think_finished ();
 
         RootPos     = pos;
-        RootColor   = pos.active ();
+        
         Limits      = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {

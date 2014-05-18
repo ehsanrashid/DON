@@ -359,7 +359,6 @@ namespace UCI {
 
         inline void exe_eval ()
         {
-            RootColor = RootPos.active (); // Ensure it is set
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 

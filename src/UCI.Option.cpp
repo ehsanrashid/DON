@@ -382,10 +382,7 @@ namespace UCI {
         Options["Passed Pawns (Endgame)"]       << Option (100, 0, 200, on_change_evaluation);
         
         Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
-        // Degree of cowardice.
-        Options["Cowardice"]                    << Option (100, 0, 200, on_change_evaluation);
-        // Degree of agressiveness.
-        Options["Aggressive"]                   << Option (100, 0, 200, on_change_evaluation);
+        Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
 
         Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
         Options["Emergency Base Time"]          << Option ( 60, 0, 30000);

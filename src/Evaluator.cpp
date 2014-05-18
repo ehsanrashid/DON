@@ -115,11 +115,11 @@ namespace Evaluator {
         // Evaluation weights, initialized from UCI options
         // Cowardice  -> KingDanger to Self
         // Aggressive -> KingDanger to Opponent
-        enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, Cowardice, Aggressive };
+        enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
         
         struct Weight { i32 mg, eg; };
 
-        Weight Weights[6];
+        Weight Weights[5];
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -127,14 +127,13 @@ namespace Evaluator {
         // weights read from UCI parameters. The purpose is to be able to change
         // the evaluation weights while keeping the default values of the UCI
         // parameters at 100, which looks prettier.
-        const Score InternalWeights[6] =
+        const Score InternalWeights[5] =
         {
             S(+289,+344), // Mobility
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
-            S(+ 46,+  0), // Space
-            S(+271,+  0), // Cowardice
-            S(+307,+  0)  // Aggressive
+            S(+ 48,+  0), // Space
+            S(+300,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -216,7 +215,7 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+56,+70), S(+56,+70), S(+76,+99), S(+86,+118), S(+ 0,+ 0)
         };
 
-        // Bonuses
+
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
@@ -264,9 +263,9 @@ namespace Evaluator {
         const i32 ContactCheckWeight[NONE] = { 0, + 0, + 0, +16, +24, 0 };
 
         const u08 MAX_ATTACK_UNITS = 100;
-        // KingDanger[Color][attack_units] contains the actual king danger weighted
-        // scores, indexed by color and by a calculated integer number.
-        Score KingDanger[CLR_NO][MAX_ATTACK_UNITS];
+        // KingDanger[attack_units] contains the king danger weighted score
+        // indexed by a calculated integer number.
+        Score KingDanger[MAX_ATTACK_UNITS];
 
 
         // apply_weight() weighs 'score' by factor 'weight' trying to prevent overflow
@@ -570,7 +569,8 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                  & ei.attacked_by[C][KING] //& (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
+                  //& ei.attacked_by[C][KING]
+                  & (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
                     | ei.attacked_by[C][BSHP]
@@ -585,14 +585,14 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
-                    + (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
-                    //+ 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
-                    //+ 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
+                    //+ (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
+                    + 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
+                    + 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
                     + (ei.pinned_pieces[C] != U64 (0) ? 2 * pop_count<MAX15> (ei.pinned_pieces[C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= ~pos.pieces (C_) ;
+                undefended &= DistanceRings[fk_sq][0] & ~pos.pieces (C_);
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended
@@ -669,7 +669,7 @@ namespace Evaluator {
 
                 // Finally, extract the king danger score from the KingDanger[]
                 // array and subtract the score from evaluation.
-                score -= KingDanger[Searcher::RootColor == C][attack_units];
+                score -= KingDanger[attack_units];
             }
 
             // King mobility is good in the endgame
@@ -1014,20 +1014,20 @@ namespace Evaluator {
 
             ScaleFactor sf;
 
-            //// Stalemate detection
-            //Color stm = pos.active ();
-            //if (   (game_phase < (PHASE_MIDGAME - 64))
-            //    && (ei.attacked_by[stm][NIHT] == U64 (0))
-            //    && (ei.attacked_by[stm][BSHP] == U64 (0))
-            //    && (ei.attacked_by[stm][ROOK] == U64 (0))
-            //    && (ei.attacked_by[stm][QUEN] == U64 (0))
-            //    && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
-            //    && (MoveList<LEGAL> (pos).size () == 0)
-            //   )
-            //{
-            //    sf = SCALE_FACTOR_DRAW;
-            //}
-            //else
+            // Stalemate detection
+            Color stm = pos.active ();
+            if (   (game_phase < (PHASE_MIDGAME - 64))
+                && (ei.attacked_by[stm][NIHT] == U64 (0))
+                && (ei.attacked_by[stm][BSHP] == U64 (0))
+                && (ei.attacked_by[stm][ROOK] == U64 (0))
+                && (ei.attacked_by[stm][QUEN] == U64 (0))
+                && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
+                && (MoveList<LEGAL> (pos).size () == 0)
+               )
+            {
+                sf = SCALE_FACTOR_DRAW;
+            }
+            else
             {
                 // Scale winning side if position is more drawish than it appears
                 sf = (eg > VALUE_DRAW)
@@ -1127,8 +1127,8 @@ namespace Evaluator {
 
     }
 
-    // evaluate() is the main evaluation function. It always computes two values,
-    // an endgame value and a middle game value, in score
+    // evaluate() is the main evaluation function.
+    // It always computes two values, an endgame value and a middle game value, in score
     // and interpolates between them based on the remaining material.
     Value evaluate (const Position &pos)
     {
@@ -1151,8 +1151,7 @@ namespace Evaluator {
         Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
         Weights[PassedPawns  ] = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
         Weights[Space        ] = weight_option ("Space"                    , "Space"                   , InternalWeights[Space        ]);
-        Weights[Cowardice    ] = weight_option ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
-        Weights[Aggressive   ] = weight_option ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
+        Weights[KingSafety   ] = weight_option ("KingSafety"               , "KingSafety"              , InternalWeights[KingSafety   ]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
@@ -1162,8 +1161,7 @@ namespace Evaluator {
         {
             mg = min (PeakScore, min (i32 (0.4*i*i), mg + MaxSlope));
 
-            KingDanger[1][i] = apply_weight (mk_score (mg, 0), Weights[Cowardice ]);
-            KingDanger[0][i] = apply_weight (mk_score (mg, 0), Weights[Aggressive]);
+            KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KingSafety]);
         }
     }
 
