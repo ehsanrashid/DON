@@ -78,7 +78,7 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
     u32 minimum_thinking_time  = i32 (Options["Minimum Thinking Time"]);
     u16 slow_mover             = i32 (Options["Slow Mover"]);
 
-    // Initialize to maximum values but unstable_pv_extra_time that is reset
+    // Initialize unstable pv factor to 1 and search times to maximum values
     _unstable_pv_factor  = 1.0;
     _optimum_search_time = _maximum_search_time = max (limits.gameclock[c].time, minimum_thinking_time);
 
