@@ -1934,7 +1934,7 @@ namespace Threads {
         bool still_at_1stmove =
                 (Signals.root_1stmove)
             && !(Signals.root_failedlow)
-            && (elapsed > TimeMgr.available_time () * 3/4);
+            && (elapsed > TimeMgr.available_time () * 75/100);
 
         bool no_more_time =
                (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)

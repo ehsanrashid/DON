@@ -894,6 +894,7 @@ namespace Evaluator {
         }
 
         template<bool Trace>
+        // evaluate()
         inline Value evaluate (const Position &pos)
         {
             ASSERT (pos.checkers () == U64 (0));

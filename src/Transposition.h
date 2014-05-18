@@ -71,7 +71,7 @@ public:
 };
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of CLUSTER_ENTRIES number of entry.
+// and each cluster consists of NUM_CLUSTER_ENTRY number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -112,7 +112,7 @@ private:
 
 public:
     // Number of entries in a cluster
-    static const u08 CLUSTER_ENTRIES;
+    static const u08 NUM_CLUSTER_ENTRY;
 
     // Total size for Transposition entry in byte
     static const u08 TTENTRY_SIZE;
@@ -152,7 +152,7 @@ public:
 
     inline u64 entries () const
     {
-        return (_hash_mask + CLUSTER_ENTRIES);
+        return (_hash_mask + NUM_CLUSTER_ENTRY);
     }
 
     // Returns size in MB
@@ -235,7 +235,7 @@ public:
             u08 dummy = 0;
             os.write ((const CharT *) &mem_size_mb, sizeof (mem_size_mb));
             os.write ((const CharT *) &TTENTRY_SIZE, sizeof (dummy));
-            os.write ((const CharT *) &CLUSTER_ENTRIES, sizeof (dummy));
+            os.write ((const CharT *) &NUM_CLUSTER_ENTRY, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
             os.write ((const CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
