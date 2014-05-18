@@ -72,7 +72,7 @@ namespace Evaluator {
             EvalInfo    Evalinfo;
             ScaleFactor Scalefactor;
 
-            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_EG_PAWN); }
+            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
 
             inline void add_term (u08 term, Score w_score, Score b_score = SCORE_ZERO)
             {
@@ -113,8 +113,6 @@ namespace Evaluator {
         }
 
         // Evaluation weights, initialized from UCI options
-        // Cowardice  -> KingDanger to Self
-        // Aggressive -> KingDanger to Opponent
         enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
         
         struct Weight { i32 mg, eg; };
@@ -406,24 +404,6 @@ namespace Evaluator {
                     }
                 }
 
-                if (ROOK == PT)
-                {
-                    attacks &= ~( ei.attacked_by[C_][NIHT]
-                                | ei.attacked_by[C_][BSHP]
-                                );
-                }
-
-                if (QUEN == PT)
-                {
-                    attacks &= ~( ei.attacked_by[C_][NIHT]
-                                | ei.attacked_by[C_][BSHP]
-                                | ei.attacked_by[C_][ROOK]
-                                );
-                }
-
-                u08 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
-                mobility += MobilityBonus[PT][mob];
-
                 // Decrease score if attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
@@ -433,11 +413,26 @@ namespace Evaluator {
 
                 // Special extra evaluation for pieces
 
-                if (BSHP == PT || NIHT == PT)
+                if (NIHT == PT || BSHP == PT)
                 {
+                    if (NIHT == PT)
+                    {
+                        const Bitboard knight_pawns = pos.pieces<PAWN> (C) & (DistanceRings[s][0]|DistanceRings[s][1]);
+                        if (knight_pawns != U64 (0))
+                        {
+                            score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
+                        }
+
+                        //if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
+                        
+                        //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
+                    }
+
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
+                        attacks &= ~( ei.attacked_by[C_][NIHT] );
+
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
                         if (   s == rel_sq (C, SQ_A7)
@@ -478,20 +473,7 @@ namespace Evaluator {
 
                     }
 
-                    if (NIHT == PT)
-                    {
-                        const Bitboard friendly_pawns = pos.pieces<PAWN> (C);
-                        if (friendly_pawns != U64 (0))
-                        {
-                            score += KnightPawnsBonus * i32 (pop_count<MAX15> (friendly_pawns & (DistanceRings[s][0]|DistanceRings[s][1])));
-                        }
-
-                        //if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
-                        
-                        //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
-                    }
-
-                    // Outposts squares for bishop and knight
+                    // Outposts squares for knight and bishop 
                     if ((pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s]) == U64 (0))
                     {
                         score += evaluate_outposts<C, PT> (pos, ei, s);
@@ -501,6 +483,10 @@ namespace Evaluator {
 
                 if (ROOK == PT)
                 {
+                    attacks &= ~( ei.attacked_by[C_][NIHT]
+                                | ei.attacked_by[C_][BSHP]
+                                );
+
                     Rank r = rel_rank (C, s);
                     if (R_4 <= r)
                     {
@@ -512,6 +498,24 @@ namespace Evaluator {
                         }
                     }
 
+                    //if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
+                    
+                    //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
+                }
+
+                if (QUEN == PT)
+                {
+                    attacks &= ~( ei.attacked_by[C_][NIHT]
+                                | ei.attacked_by[C_][BSHP]
+                                | ei.attacked_by[C_][ROOK]
+                                );
+                }
+
+                u08 mob = pop_count<(QUEN != PT) ? MAX15 : FULL> (attacks & mobility_area);
+                mobility += MobilityBonus[PT][mob];
+
+                if (ROOK == PT)
+                {
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<C > (_file (s)) != 0)
                     {
@@ -537,9 +541,6 @@ namespace Evaluator {
                         }
                     }
 
-                    //if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
-                    
-                    //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
                 }
             }
 
@@ -592,7 +593,7 @@ namespace Evaluator {
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= DistanceRings[fk_sq][0] & ~pos.pieces (C_);
+                undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_);
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended
@@ -1151,7 +1152,7 @@ namespace Evaluator {
         Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
         Weights[PassedPawns  ] = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
         Weights[Space        ] = weight_option ("Space"                    , "Space"                   , InternalWeights[Space        ]);
-        Weights[KingSafety   ] = weight_option ("KingSafety"               , "KingSafety"              , InternalWeights[KingSafety   ]);
+        Weights[KingSafety   ] = weight_option ("King Safety"              , "King Safety"             , InternalWeights[KingSafety   ]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;

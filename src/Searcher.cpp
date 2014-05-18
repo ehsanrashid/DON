@@ -818,7 +818,7 @@ namespace Searcher {
                                 Depth R = Depth (
                                         + (3*ONE_MOVE)
                                         + (depth/4)
-                                        + ((i32 (eval - beta) / VALUE_EG_PAWN)*ONE_MOVE));
+                                        + ((i32 (eval - beta) / VALUE_MG_PAWN)*ONE_MOVE));
 
                                 // Do null move
                                 pos.do_null_move (si);
