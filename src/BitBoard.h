@@ -138,7 +138,7 @@ namespace BitBoard {
         }
     };
 
-    CACHE_ALIGN(64) extern Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];
@@ -221,14 +221,14 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Square s) { return Rank_bb[rel_rank (c, s)]; }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
-    //inline Bitboard front_ranks_bb   (Color c, Rank   r) { return FrontRank_bb[c][r]; }
+    //inline Bitboard front_rank_bb (Color c, Rank   r) { return FrontRank_bb[c][r]; }
     // Bitboard of squares along the line in front of the square, from the point of view of the given color.
-    //inline Bitboard front_sqs_bb (Color c, Square s) { return FrontSqs_bb[c][s]; }
+    //inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
     //inline Bitboard distance_rings   (Square s, u08 d) { return DistanceRings[s][d]; }
 
-    // Edges of the board
+    // board_edges() returns a bitboard of edges of the board
     inline Bitboard board_edges (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.

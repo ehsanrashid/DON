@@ -783,14 +783,14 @@ namespace Evaluator {
                     {
                         const Bitboard occ = pos.pieces ();
                         // squares to queen
-                        Bitboard queen_squares = FrontSqs_bb[C][s];
+                        Bitboard queen_squares = FrontSqrs_bb[C][s];
                         
                         Bitboard unsafe_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
-                                  && (FrontSqs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
+                        if (UNLIKELY (FrontSqrs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN))
+                                  && (FrontSqrs_bb[C_][s] & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
                         {
                             unsafe_squares = queen_squares;
                         }
@@ -800,8 +800,8 @@ namespace Evaluator {
                         }
 
                         Bitboard defended_squares;
-                        if (UNLIKELY (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
-                                  && (FrontSqs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
+                        if (UNLIKELY (FrontSqrs_bb[C_][s] & pos.pieces (C, ROOK, QUEN))
+                                  && (FrontSqrs_bb[C_][s] & pos.pieces (C, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)))
                         {
                             defended_squares = queen_squares;
                         }

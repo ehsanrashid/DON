@@ -12,7 +12,7 @@ namespace BitBoard {
     using namespace std;
 
     // FRONT SQUARES
-    CACHE_ALIGN(64) Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
@@ -92,7 +92,7 @@ namespace BitBoard {
 
         typedef u16 (*Indexer) (Square s, Bitboard occ);
 
-        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
+        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
 #   ifndef BM2
             const u16 MagicBoosters[R_NO] =
@@ -207,11 +207,11 @@ namespace BitBoard {
         inline void initialize_sliding ()
         {
 #       ifndef BM2
-            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMask_bb, BMagic_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMask_bb, RMagic_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else
-            initialize_table (BTable_bb, BAttack_bb, NULL, BMask_bb, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, NULL, RMask_bb, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMask_bb, NULL, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMask_bb, NULL, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
 #       endif
         }
 
@@ -253,8 +253,6 @@ namespace BitBoard {
                     u08 dRank = FileRankDist[r1][r2];
 
                     SquareDist[s1][s2]  = max (dFile , dRank);
-                    //TaxicabDist[s1][s2] =     (dFile + dRank);
-
                     DistanceRings[s1][SquareDist[s1][s2] - 1] += Square (s2);
                 }
             }
@@ -264,9 +262,9 @@ namespace BitBoard {
         {
             for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
+                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
-                PasserPawnSpan[c][s] =  FrontSqs_bb[c][s] | PawnAttackSpan[c][s];
+                PasserPawnSpan[c][s] = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 

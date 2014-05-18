@@ -137,8 +137,8 @@ namespace Pawns {
                 bool connected   =  (pawns[0] & AdjFile_bb[f] & rr_bb);
                 bool unsupported = !(pawns[0] & AdjFile_bb[f] & pr_bb);
                 bool isolated    = !(pawns[0] & AdjFile_bb[f]);
-                Bitboard doubled =   pawns[0] & FrontSqs_bb[C][s];
-                bool opposed     =   pawns[1] & FrontSqs_bb[C][s];
+                Bitboard doubled =   pawns[0] & FrontSqrs_bb[C][s];
+                bool opposed     =   pawns[1] & FrontSqrs_bb[C][s];
                 bool passed      = !(pawns[1] & PasserPawnSpan[C][s]);
 
                 bool backward;

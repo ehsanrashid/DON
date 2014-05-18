@@ -774,7 +774,7 @@ namespace EndGame {
                 return SCALE_FACTOR_DRAW;
             }
             
-            Bitboard path = FrontSqs_bb[_stong_side][sp_sq];
+            Bitboard path = FrontSqrs_bb[_stong_side][sp_sq];
             if (   (path & pos.pieces<KING> (_weak_side))
                || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) && SquareDist[wb_sq][sp_sq] >= 3)
                )
@@ -911,7 +911,7 @@ namespace EndGame {
         
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if (FrontSqs_bb[_stong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ()))
+        if (FrontSqrs_bb[_stong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ()))
         {
             return ScaleFactor (SquareDist[wk_sq][sp_sq]);
         }
