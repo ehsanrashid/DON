@@ -171,7 +171,7 @@ public:
         {
             memset (_hash_table, 0x00, entries () * TTENTRY_SIZE);
             _generation = 0;
-            std::cout << "info string Hash cleared." << std::endl;
+            sync_cout << "info string Hash cleared." << sync_endl;
         }
         clear_hash = false;
     }

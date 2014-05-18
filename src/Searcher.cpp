@@ -1659,15 +1659,14 @@ namespace Searcher {
             && pos.legal (m)
             && ply < MAX_PLY
             && (!pos.draw () || ply < 2));
-
-        pv.push_back (MOVE_NONE); // Must be zero-terminating
-
         do
         {
             pos.undo_move ();
             --ply;
         }
         while (ply != 0);
+
+        pv.push_back (MOVE_NONE); // Must be zero-terminating
     }
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
@@ -1700,7 +1699,6 @@ namespace Searcher {
             pos.do_move (pv[ply++], *si++);
         }
         while (MOVE_NONE != pv[ply]);
-
         do
         {
             pos.undo_move ();

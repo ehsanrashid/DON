@@ -12,11 +12,11 @@
 #include "BitBoard.h"
 #include "Zobrist.h"
 
-class Position;
-
 namespace Threads {
     class Thread;
 }
+
+class Position;
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.

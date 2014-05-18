@@ -359,11 +359,6 @@ inline u32 cpu_count ()
 #endif
 }
 
-enum SyncT { IO_LOCK, IO_UNLOCK };
-
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
-
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {

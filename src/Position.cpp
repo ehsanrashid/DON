@@ -1671,7 +1671,7 @@ string Position::fen (bool c960, bool full) const
             if (F_H >= f)  oss << PieceChar[_board[s]];
         }
 
-        if (R_1 < r) oss << '/';
+        if (R_1 < r) oss << "/";
     }
 
     oss << " " << ColorChar[_active] << " ";
@@ -1695,19 +1695,19 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_WK)) oss << 'K';
-                if (can_castle (CR_WQ)) oss << 'Q';
+                if (can_castle (CR_WK)) oss << "K";
+                if (can_castle (CR_WQ)) oss << "Q";
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_BK)) oss << 'k';
-                if (can_castle (CR_BQ)) oss << 'q';
+                if (can_castle (CR_BK)) oss << "k";
+                if (can_castle (CR_BQ)) oss << "q";
             }
         }
     }
     else
     {
-        oss << '-';
+        oss << "-";
     }
 
     oss << " " << ((SQ_NO == _si->en_passant_sq) ? "-" : to_string (_si->en_passant_sq)) << " ";

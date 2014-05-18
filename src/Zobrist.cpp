@@ -114,7 +114,7 @@ namespace Zobrist {
     {
         if (fen.empty ()) return U64 (0);
         Key fen_key = U64 (0);
-        File king[CLR_NO] = {F_NO};
+        File king[CLR_NO] = {F_NO, F_NO};
 
         istringstream iss (fen);
         u08 ch;

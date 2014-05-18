@@ -16,6 +16,57 @@ namespace Notation {
 
     namespace {
 
+        // Type of the Ambiguity
+        enum AmbiguityT
+        {
+            AMB_NONE = 0,
+            AMB_RANK = 1,
+            AMB_FILE = 2,
+            AMB_SQR  = 3,
+
+        };
+
+        // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
+        // NOTE: for pawns it is not needed because 'org' file is explicit.
+        AmbiguityT ambiguity (Move m, const Position &pos)
+        {
+            ASSERT (pos.legal (m));
+
+            Square org = org_sq (m);
+            Square dst = dst_sq (m);
+            Piece p    = pos[org];
+
+            // Disambiguation if have more then one piece with destination 'dst'
+            // note that for pawns is not needed because starting file is explicit.
+
+            Bitboard pinneds = pos.pinneds (pos.active ());
+
+            Bitboard amb, pcs;
+            amb = pcs = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
+            while (pcs != U64 (0))
+            {
+                Square amb_org = pop_lsq (pcs);
+                Move move = mk_move<NORMAL> (amb_org, dst);
+                if (!pos.legal (move, pinneds))
+                {
+                    amb -= amb_org;
+                }
+            }
+
+            //if (!(amb)) return AMB_NONE;
+            //if (!(amb & file_bb (org))) return AMB_RANK;
+            //if (!(amb & rank_bb (org))) return AMB_FILE;
+            //return AMB_SQR;
+
+            if (amb != U64 (0))
+            {
+                if (!(amb & file_bb (org))) return AMB_RANK;
+                if (!(amb & rank_bb (org))) return AMB_FILE;
+                return AMB_SQR;
+            }
+            return AMB_NONE;
+        }
+
         // value to string
         const string pretty_value (Value v)
         {
@@ -52,55 +103,14 @@ namespace Notation {
 
             ostringstream oss;
 
-            if (hours) oss << hours << ':';
+            if (hours) oss << hours << ":";
             oss << setfill ('0')
-                << setw (2) << minutes << ':'
+                << setw (2) << minutes << ":"
                 << setw (2) << seconds;
 
             return oss.str ();
         }
 
-    }
-
-    // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
-    // NOTE: for pawns it is not needed because 'org' file is explicit.
-    AmbiguityT ambiguity (Move m, const Position &pos)
-    {
-        ASSERT (pos.legal (m));
-
-        Square org = org_sq (m);
-        Square dst = dst_sq (m);
-        Piece p    = pos[org];
-
-        // Disambiguation if have more then one piece with destination 'dst'
-        // note that for pawns is not needed because starting file is explicit.
-
-        Bitboard pinneds = pos.pinneds (pos.active ());
-
-        Bitboard amb, pcs;
-        amb = pcs = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
-        while (pcs != U64 (0))
-        {
-            Square amb_org = pop_lsq (pcs);
-            Move move = mk_move<NORMAL> (amb_org, dst);
-            if (!pos.legal (move, pinneds))
-            {
-                amb -= amb_org;
-            }
-        }
-
-        //if (!(amb)) return AMB_NONE;
-        //if (!(amb & file_bb (org))) return AMB_RANK;
-        //if (!(amb & rank_bb (org))) return AMB_FILE;
-        //return AMB_SQR;
-
-        if (amb != U64 (0))
-        {
-            if (!(amb & file_bb (org))) return AMB_RANK;
-            if (!(amb & rank_bb (org))) return AMB_FILE;
-            return AMB_SQR;
-        }
-        return AMB_NONE;
     }
 
     // move_from_can(can, pos) takes a position and a string representing a move in
@@ -211,12 +221,12 @@ namespace Notation {
             if (pos.capture (m))
             {
                 if (PAWN == pt) san = to_char (_file (org));
-                san += 'x';
+                san += "x";
             }
             san += to_string (dst);
             if (PROMOTE == mt && PAWN == pt)
             { 
-                san += '=';
+                san += "=";
                 san += PieceChar[promote (m)];
             }
         }
@@ -227,7 +237,7 @@ namespace Notation {
         {
             StateInfo si;
             pos.do_move (m, si, &ci);
-            san += ((MoveList<LEGAL> (pos).size () != 0) ? '+' : '#');
+            san += ((MoveList<LEGAL> (pos).size () != 0) ? "+" : "#");
             pos.undo_move ();
         }
 
@@ -306,7 +316,7 @@ namespace Notation {
         const Move *m = pv;
         while (*m != MOVE_NONE)
         {
-            string san = move_to_san (*m, pos) + ' ';
+            string san = move_to_san (*m, pos) + " ";
             if ((spv.length () + san.length ()) % 80 <= san.length ()) // Exceed 80 cols
             {
                 spv += "\n" + padding;

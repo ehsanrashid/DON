@@ -650,4 +650,11 @@ public:
 
 };
 
+enum SyncT { IO_LOCK, IO_UNLOCK };
+
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
+
+extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
+
 #endif // _TYPE_H_INC_

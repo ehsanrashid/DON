@@ -61,7 +61,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
         Engine::exit (EXIT_FAILURE);
     }
 
-    std::cout << "info string Hash " << (mem_size >> 20) << " MB." << std::endl;
+    sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
     void **ptr =
         //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));

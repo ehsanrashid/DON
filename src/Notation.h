@@ -13,18 +13,6 @@ class Position;
 
 namespace Notation {
 
-    // Type of the Ambiguity
-    enum AmbiguityT : u08
-    {
-        AMB_NONE = 0,
-        AMB_RANK = 1,
-        AMB_FILE = 2,
-        AMB_SQR  = 3,
-
-    };
-
-    extern AmbiguityT ambiguity (Move m, const Position &pos);
-
     extern Move move_from_can (const std::string &can, const Position &pos);
     extern Move move_from_san (const std::string &san, Position &pos);
     //extern Move move_from_lan (const std::string &lan, const Position &pos);

@@ -131,7 +131,7 @@ namespace MemoryHandler {
             if (mem_ref != NULL)
             {
                 UsePages = true;
-                cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << endl;
+                sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
 
@@ -144,7 +144,7 @@ namespace MemoryHandler {
             if (mem_ref != NULL)
             {
                 UsePages = true;
-                cout << "info string Page Hash " << (mem_size >> 20) << " MB." << endl;
+                sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
 
@@ -158,7 +158,7 @@ namespace MemoryHandler {
                 {
                     UsePages = true;
                     memset (mem_ref, 0x00, SHMSZ);
-                    cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << endl;
+                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
                 //perror ("shmat: Shared memory attach failure");
@@ -177,7 +177,7 @@ namespace MemoryHandler {
         if (mem_ref != NULL)
         {
             memset (mem_ref, 0x00, mem_size);
-            cout << "info string Hash " << (mem_size >> 20) << " MB." << endl;
+            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
             return;
         }
 

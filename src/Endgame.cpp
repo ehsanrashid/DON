@@ -85,14 +85,14 @@ namespace EndGame {
 
             string sides[CLR_NO] =
             {
-                code.substr (   code.find('K', 1)), // Weak
-                code.substr (0, code.find('K', 1)), // Strong
+                code.substr (   code.find ('K', 1)), // Weak
+                code.substr (0, code.find ('K', 1)), // Strong
             };
 
             transform (sides[C].begin (), sides[C].end (), sides[C].begin (), ::tolower);
             
-            string fen = sides[0] + char (8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
-                       + sides[1] + char (8 - sides[1].length() + '0') + " w - - 0 1";
+            string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
+                       + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
 
             return Position (fen).matl_key ();
         }

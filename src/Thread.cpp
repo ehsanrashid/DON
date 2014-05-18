@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "Position.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"
 #include "Endgame.h"

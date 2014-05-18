@@ -123,9 +123,7 @@ namespace UCI {
                     {
                         code += string (" ", !code.empty ()) + token;
                     }
-
-                    
-                    cout << name << "\n" << code << endl;
+                    //cout << name << "\n" << code << endl;
                 }
                 else if (token == "later")
                 {
