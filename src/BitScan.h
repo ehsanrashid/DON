@@ -119,16 +119,11 @@ INLINE Square scan_msq (Bitboard bb)
 
 #else   // ifndef BSFQ
 
-INLINE Square  scan_lsq (Bitboard bb)
-{
-
 #ifdef _64BIT
 
     // * @author Kim Walisch (2012)
     // * DeBruijn(U32(0x4000000)) = U64 (0X03F79D71B4CB0A89)
-    if (bb == U64 (0)) return SQ_NO;
-    CACHE_ALIGN(8)
-        const u08 BSF_Table[SQ_NO] =
+    CACHE_ALIGN(8) const u08 BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
         57, 49, 41, 37, 28, 16, 03, 61,
@@ -139,15 +134,10 @@ INLINE Square  scan_lsq (Bitboard bb)
         25, 39, 14, 33, 19, 30,  9, 24,
         13, 18,  8, 12, 07, 06, 05, 63
     };
-    const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
-    u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
-    u08 index = (x * DeBruijn_64) >> 0x3A; // 58
-    return Square (BSF_Table[index]);
 
 #else
 
-    CACHE_ALIGN(8)
-        const u08 BSF_Table[SQ_NO] =
+    CACHE_ALIGN(8) const u08 BSF_Table[SQ_NO] =
     {
         63, 30, 03, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -158,54 +148,8 @@ INLINE Square  scan_lsq (Bitboard bb)
         07, 39, 48, 24, 59, 14, 12, 55,
         38, 28, 58, 20, 37, 17, 36,  8
     };
-    // Use Matt Taylor's folding trick for 32-bit
-    const u32 DeBruijn_32 = U32 (0x783A9B23);
-    u64 x = bb ^ (bb - 1);
-    u32 fold = u32 (x ^ (x >> 32));
-    u08 index = (fold * DeBruijn_32) >> 0x1A; // 26
-    return Square (BSF_Table[index]);
 
-#endif
-
-}
-
-inline Square  scan_msq (Bitboard bb)
-{
-
-#ifdef _64BIT
-
-    // * @authors Kim Walisch, Mark Dickinson (2012)
-    // * DeBruijn(U32(0x4000000)) = U64 (0X03F79D71B4CB0A89)
-    if (bb == U64 (0)) return SQ_NO;
-    CACHE_ALIGN(8)
-        const u08 BSF_Table[SQ_NO] =
-    {
-        00, 47, 01, 56, 48, 27, 02, 60,
-        57, 49, 41, 37, 28, 16, 03, 61,
-        54, 58, 35, 52, 50, 42, 21, 44,
-        38, 32, 29, 23, 17, 11, 04, 62,
-        46, 55, 26, 59, 40, 36, 15, 53,
-        34, 51, 20, 43, 31, 22, 10, 45,
-        25, 39, 14, 33, 19, 30,  9, 24,
-        13, 18,  8, 12, 07, 06, 05, 63
-    };
-
-    const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
-    // set all bits including the MS1B and below
-    bb |= bb >> 0x01;
-    bb |= bb >> 0x02;
-    bb |= bb >> 0x04;
-    bb |= bb >> 0x08;
-    bb |= bb >> 0x10;
-    bb |= bb >> 0x20;
-
-    u08 index = (bb * DeBruijn_64) >> 0x3A; // 58
-    return (Square) BSF_Table[index];
-
-#else
-
-    CACHE_ALIGN(8)
-        const u08 MSB_Table[_UI8_MAX + 1] =
+    CACHE_ALIGN(8) const u08 MSB_Table[_UI8_MAX + 1] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -224,6 +168,52 @@ inline Square  scan_msq (Bitboard bb)
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
     };
+
+#endif
+
+INLINE Square  scan_lsq (Bitboard bb)
+{
+
+#ifdef _64BIT
+
+    if (bb == U64 (0)) return SQ_NO;
+    const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
+    u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
+    u08 index = (x * DeBruijn_64) >> 0x3A; // 58
+    return Square (BSF_Table[index]);
+
+#else
+
+    // Use Matt Taylor's folding trick for 32-bit
+    const u32 DeBruijn_32 = U32 (0x783A9B23);
+    u64 x = bb ^ (bb - 1);
+    u32 fold = u32 (x ^ (x >> 32));
+    u08 index = (fold * DeBruijn_32) >> 0x1A; // 26
+    return Square (BSF_Table[index]);
+
+#endif
+
+}
+
+inline Square  scan_msq (Bitboard bb)
+{
+
+#ifdef _64BIT
+
+    if (bb == U64 (0)) return SQ_NO;
+    const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
+    // set all bits including the MS1B and below
+    bb |= bb >> 0x01;
+    bb |= bb >> 0x02;
+    bb |= bb >> 0x04;
+    bb |= bb >> 0x08;
+    bb |= bb >> 0x10;
+    bb |= bb >> 0x20;
+
+    u08 index = (bb * DeBruijn_64) >> 0x3A; // 58
+    return (Square) BSF_Table[index];
+
+#else
 
     if (bb == U64 (0)) return SQ_NO;
     u08 msb = 0;
