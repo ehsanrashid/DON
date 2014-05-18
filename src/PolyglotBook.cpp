@@ -321,9 +321,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     // in all the other cases can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
     // Polyglot use 3 bits while use 2 bits
-    PieceT pt = PieceT ((move >> 12) & 0x7);
+    PieceT pt = PieceT ((move >> 12) & TOTL);
     // Set new type for promotion piece
-    if (pt) promote (move, pt);
+    if (pt != PAWN) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
     for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)

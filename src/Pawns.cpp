@@ -12,7 +12,8 @@ namespace Pawns {
 
     namespace {
 
-    #define V Value
+        const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+
     #define S(mg, eg) mk_score(mg, eg)
 
         // Doubled pawn penalty by file
@@ -63,6 +64,10 @@ namespace Pawns {
         // Unsupported pawn penalty
         const Score UnsupportedPawnPenalty  = S(+20,+10);
 
+    #undef S
+
+    #define V Value
+
         // Weakness of our pawn shelter in front of the king indexed by [rank]
         const Value ShelterWeakness[R_NO] =
         {
@@ -82,7 +87,6 @@ namespace Pawns {
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(+263);
 
-    #undef S
     #undef V
 
         template<Color C>
@@ -213,8 +217,6 @@ namespace Pawns {
     // Initializes some tables by formula instead of hard-coding their values
     void initialize ()
     {
-        const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
-
         for (i08 r = R_1; r < R_8; ++r)
         {
             for (i08 f = F_A; f <= F_H; ++f)

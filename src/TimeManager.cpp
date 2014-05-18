@@ -88,7 +88,8 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
-        i32 hyp_time = limits.gameclock[c].time
+        i32 hyp_time =
+            + limits.gameclock[c].time
             + limits.gameclock[c].inc * (hyp_movestogo - 1)
             - emergency_base_time
             - emergency_move_time * min (hyp_movestogo, emergency_move_horizon);
