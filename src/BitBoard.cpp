@@ -3,8 +3,6 @@
 #include <cstring>
 #include <algorithm>
 
-#include "BitCount.h"
-#include "BitScan.h"
 #include "RKISS.h"
 
 namespace BitBoard {

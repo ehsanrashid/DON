@@ -3,8 +3,6 @@
 #include <algorithm>
 
 #include "Position.h"
-#include "BitBoard.h"
-#include "BitCount.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
 

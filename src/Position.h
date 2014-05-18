@@ -10,7 +10,6 @@
 #include <stack>
 
 #include "BitBoard.h"
-#include "BitScan.h"
 #include "Zobrist.h"
 
 class Position;

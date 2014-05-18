@@ -3,19 +3,16 @@
 #include <sstream>
 #include <iomanip>
 
-#include "BitBoard.h"
+#include "UCI.h"
 #include "BitBases.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "TB_Syzygy.h"
 #include "Debugger.h"
 #include "Thread.h"
-#include "UCI.h"
 #include "Notation.h"
-#include "Tester.h"
 
 namespace Engine {
 

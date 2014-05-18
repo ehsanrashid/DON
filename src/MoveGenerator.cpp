@@ -1,7 +1,6 @@
 #include "MoveGenerator.h"
 
 #include "Position.h"
-#include "BitCount.h"
 
 #ifdef _MSC_VER
 #   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced

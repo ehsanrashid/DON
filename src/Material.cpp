@@ -203,13 +203,13 @@ namespace Material {
                )
             {
                 if (      (pos.count<PAWN> (BLACK) == 0)
-                       && (pos.count<PAWN> (WHITE) > 1)
+                       && (pos.count<PAWN> (WHITE) >  1)
                    )
                 {
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 0)
-                       && (pos.count<PAWN> (BLACK) > 1)
+                       && (pos.count<PAWN> (BLACK) >  1)
                         )
                 {
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
@@ -232,9 +232,9 @@ namespace Material {
             {
                 if      (pos.count<PAWN> (WHITE) == 0)
                 {
-                    e->_factor[WHITE] = u08 (npm[WHITE] < VALUE_MG_ROOK ?
-                        SCALE_FACTOR_DRAW : npm[BLACK] <= VALUE_MG_BSHP ? 
-                        4 : 12);
+                    e->_factor[WHITE] = u08 (
+                        npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else if (pos.count<PAWN> (WHITE) == 1)
                 {
@@ -246,9 +246,9 @@ namespace Material {
             {
                 if      (pos.count<PAWN> (BLACK) == 0)
                 {
-                    e->_factor[BLACK] = u08 (npm[BLACK] < VALUE_MG_ROOK ?
-                        SCALE_FACTOR_DRAW : npm[WHITE] <= VALUE_MG_BSHP ? 
-                        4 : 12);
+                    e->_factor[BLACK] = u08 (
+                        npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else if (pos.count<PAWN> (BLACK) == 1)
                 {

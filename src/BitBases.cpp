@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "BitBoard.h"
-#include "BitScan.h"
 
 namespace BitBases {
 

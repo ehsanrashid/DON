@@ -6,7 +6,6 @@
 #define _PAWNS_H_INC_
 
 #include "Type.h"
-#include "BitBoard.h"
 #include "Position.h"
 
 namespace Pawns {

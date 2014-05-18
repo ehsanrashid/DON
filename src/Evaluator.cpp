@@ -4,9 +4,6 @@
 #include <sstream>
 #include <algorithm>
 
-#include "BitBoard.h"
-#include "BitCount.h"
-#include "Position.h"
 #include "Material.h"
 #include "Pawns.h"
 #include "MoveGenerator.h"

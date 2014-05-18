@@ -6,6 +6,8 @@
 #define _BITBOARD_H_INC_
 
 #include "Type.h"
+#include "BitCount.h"
+#include "BitScan.h"
 
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions
@@ -373,12 +375,13 @@ namespace BitBoard {
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
         PieceT pt = ptype (p);
-        return (PAWN == pt) ? PawnAttacks[color (p)][s]
-             : (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
-             : (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
-             : (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
-             : (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
-             : U64 (0);
+        return (PAWN == pt) ? PawnAttacks[color (p)][s] :
+               (BSHP == pt) ? attacks_bb<BSHP> (s, occ) :
+               (ROOK == pt) ? attacks_bb<ROOK> (s, occ) :
+               (QUEN == pt) ? attacks_bb<BSHP> (s, occ)
+                            | attacks_bb<ROOK> (s, occ) :
+               (NIHT == pt || KING == pt) ? PieceAttacks[pt][s] :
+               U64 (0);
     }
 
     extern void initialize ();

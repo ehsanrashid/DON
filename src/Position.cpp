@@ -5,9 +5,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "BitBoard.h"
-#include "BitScan.h"
-#include "BitCount.h"
 #include "MoveGenerator.h"
 #include "Transposition.h"
 #include "Thread.h"

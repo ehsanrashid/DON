@@ -2,9 +2,6 @@
 
 #include <algorithm>
 
-#include "BitBoard.h"
-#include "BitCount.h"
-
 namespace Pawns {
 
     using namespace std;
