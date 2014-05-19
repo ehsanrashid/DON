@@ -72,7 +72,7 @@ namespace Evaluator {
             EvalInfo    Evalinfo;
             ScaleFactor Scalefactor;
 
-            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_MG_PAWN); }
+            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_EG_PAWN); }
 
             inline void add_term (u08 term, Score w_score, Score b_score = SCORE_ZERO)
             {
@@ -131,7 +131,7 @@ namespace Evaluator {
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
             S(+ 48,+  0), // Space
-            S(+300,+  0)  // KingSafety
+            S(+289,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -217,7 +217,7 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
-        //const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
+        const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
 
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score BishopTrappedPenalty    = S(+50,+50);
@@ -225,7 +225,7 @@ namespace Evaluator {
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus     = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus = S(+19,+10); // Bonus for rook on semi-open file
-        //const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
+        const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
         const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
         
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
@@ -366,7 +366,7 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
-            //const u08 open_files = ei.pi->_semiopen_files[C] & ei.pi->_semiopen_files[C_];
+            const u08 open_files = ei.pi->_semiopen_files[C] & ei.pi->_semiopen_files[C_];
 
             ei.attacked_by[C][PT] = U64 (0);
             
@@ -423,7 +423,7 @@ namespace Evaluator {
                             score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
                         }
 
-                        //if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
+                        if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
                         
                         //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
                     }
@@ -431,7 +431,7 @@ namespace Evaluator {
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
-                        attacks &= ~( ei.attacked_by[C_][NIHT] );
+                        //attacks &= ~( ei.attacked_by[C_][NIHT] );
 
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
@@ -498,7 +498,7 @@ namespace Evaluator {
                         }
                     }
 
-                    //if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
+                    if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
                     
                     //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
                 }
@@ -570,8 +570,8 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
-                  //& ei.attacked_by[C][KING]
-                  & (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
+                  & ei.attacked_by[C][KING]
+                  //& (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
                     | ei.attacked_by[C][BSHP]
@@ -586,14 +586,15 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
-                    //+ (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
-                    + 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
-                    + 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
+                    + (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
+                    //+ 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
+                    //+ 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
                     + (ei.pinned_pieces[C] != U64 (0) ? 2 * pop_count<MAX15> (ei.pinned_pieces[C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_);
+                undefended &= ~pos.pieces (C_);
+                //undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_);
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended

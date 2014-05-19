@@ -156,7 +156,7 @@ private:
 
 public:
 
-    static u08 _50_move_dist;
+    static u08 _fifty_move_dist;
 
     static void initialize ();
 

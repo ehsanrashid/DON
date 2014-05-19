@@ -71,7 +71,7 @@ namespace Searcher {
         Value   DrawValue[CLR_NO];
         
         Color   RootColor;
-        u08     RootMovesCount;
+        u08     RootCount;
         u08     MultiPV
             ,   PVIndex;
 
@@ -218,9 +218,9 @@ namespace Searcher {
             stringstream ss;
             
             MultiPV = i32 (Options["MultiPV"]);
-            if (MultiPV > RootMovesCount)
+            if (MultiPV > RootCount)
             {
-                MultiPV = RootMovesCount;
+                MultiPV = RootCount;
             }
 
             u08 sel_depth = 0;
@@ -818,7 +818,7 @@ namespace Searcher {
                                 Depth R = Depth (
                                         + (3*ONE_MOVE)
                                         + (depth/4)
-                                        + ((i32 (eval - beta) / VALUE_MG_PAWN)*ONE_MOVE));
+                                        + ((i32 (eval - beta) / VALUE_EG_PAWN)*ONE_MOVE));
 
                                 // Do null move
                                 pos.do_null_move (si);
@@ -1440,9 +1440,9 @@ namespace Searcher {
                     MultiPV = MIN_SKILL_MULTIPV;
                 }
             }
-            if (MultiPV > RootMovesCount)
+            if (MultiPV > RootCount)
             {
-                MultiPV = RootMovesCount;
+                MultiPV = RootCount;
             }
 
             // Iterative deepening loop until target depth reached
@@ -1456,7 +1456,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < RootMovesCount; ++i)
+                for (u08 i = 0; i < RootCount; ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
@@ -1591,7 +1591,7 @@ namespace Searcher {
                     // Stop the search early:
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (   (RootMovesCount == 1)
+                    if (   (RootCount == 1)
                         || ((now () - SearchTime) > TimeMgr.available_time ())
                        )
                     {
@@ -1717,7 +1717,7 @@ namespace Searcher {
         RootColor = RootPos.active ();
         TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
 
-        i32 contempt = i32 (Options["Contempt Factor"]);
+        i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns;
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
@@ -1752,7 +1752,7 @@ namespace Searcher {
             }
         }
         
-        RootMovesCount = RootMoves.size ();
+        RootCount = RootMoves.size ();
 
         if (write_search_log)
         {
@@ -1766,7 +1766,7 @@ namespace Searcher {
                 << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "movetime:  " << Limits.movetime                  << "\n"
                 << "movestogo: " << u16 (Limits.movestogo)           << "\n"
-                << "totalmoves:" << u16 (RootMovesCount)             << "\n"
+                << "totalmoves:" << u16 (RootCount)             << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;

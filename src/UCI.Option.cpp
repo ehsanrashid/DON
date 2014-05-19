@@ -174,7 +174,7 @@ namespace UCI {
 
         void on_50_move_dist (const Option &opt)
         {
-            Position::_50_move_dist = 2 * i32 (opt);
+            Position::_fifty_move_dist = 2 * i32 (opt);
         }
 
         void on_io_log (const Option &opt)
@@ -343,9 +343,9 @@ namespace UCI {
         // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
         // - End games with a material advantage that is insufficient for winning (fortress).
         //
-        // By setting 50 Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
+        // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["50 Move Distance"]             << Option ( 50, 5,  50, on_50_move_dist);
+        Options["Fifty Move Distance"]          << Option ( 50, 5,  50, on_50_move_dist);
 
         // TODO::
         // Maximum search depth for mate search.

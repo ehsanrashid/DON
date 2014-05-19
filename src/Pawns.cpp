@@ -75,8 +75,8 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 3),  V(+ 0),  V(+ 0) },
-            { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 2),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+64), V(+128), V(+54), V(+36),  V(+ 3),  V(+ 0),  V(+ 0) },
+            { V(+26),  V(+32), V(+ 96), V(+48), V(+20),  V(+ 2),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 1),  V(+ 0),  V(+ 0) }
         };
 
