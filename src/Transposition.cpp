@@ -120,7 +120,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u16 nodes, Value value, Value eval)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u16 /*nodes*/, Value value, Value eval)
 {
     u32 key32 = (key >> 32); // 32 upper-bit of key inside cluster
     TTEntry *tte = cluster_entry (key);
@@ -145,15 +145,15 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         if (0 == i) continue;
 
         // Implement replacement strategy when a collision occurs
-        /*
+        
         if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
             - (rte->_gen == _generation)
             - (tte->_depth < rte->_depth)) < 0)
         {
             rte = tte;
         }
-        */
-       
+        
+       /*
         i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
         if (gc != 0)
         {
@@ -162,19 +162,19 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         }
         // gc == 0
         i16 dc = (rte->_depth - tte->_depth);
-        if (dc != 0)
+        //if (dc != 0)
         {
             if (dc > 0) rte = tte;
             continue;
         }
         // dc == 0
-        i16 nc = (rte->_nodes - tte->_nodes);
-        if (nc > 0) rte = tte;
+        //i16 nc = (rte->_nodes - tte->_nodes);
+        //if (nc > 0) rte = tte;
         //continue;
-        
+        */
     }
 
-    rte->save (key32, move, depth, bound, (nodes >> 10), value, eval, _generation);
+    rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.

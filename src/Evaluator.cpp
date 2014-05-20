@@ -217,7 +217,7 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
-        const Score KnightOpenFilesPenalty  = S(+ 1,+ 2); // Penalty for knight with open files
+        const Score KnightOpenFilesPenalty  = S(+ 5,+ 15); // Penalty for knight with open files
 
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score BishopTrappedPenalty    = S(+50,+50);
@@ -225,7 +225,7 @@ namespace Evaluator {
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus     = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookOpenFilesBonus      = S(+ 2,+ 1); // Bonus for rook with open files
+        const Score RookOpenFilesBonus      = S(+10,+ 4); // Bonus for rook with open files
         const Score RookTrappedPenalty      = S(+90,+ 5); // Penalty for rook trapped
         
         const Score PawnUnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
@@ -366,7 +366,6 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
-            const u08 open_files = ei.pi->_semiopen_files[C] & ei.pi->_semiopen_files[C_];
 
             ei.attacked_by[C][PT] = U64 (0);
             
@@ -387,7 +386,7 @@ namespace Evaluator {
                 if (pinned_pieces & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
-                    //pos.attackers_to (s); > 1
+                    //pos.attackers_to (s) > 1
                 }
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
@@ -422,16 +421,12 @@ namespace Evaluator {
                         {
                             score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
                         }
-
-                        if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
-                        
-                        //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
                     }
 
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
-                        //attacks &= ~( ei.attacked_by[C_][NIHT] );
+                        attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
 
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
@@ -478,7 +473,6 @@ namespace Evaluator {
                     {
                         score += evaluate_outposts<C, PT> (pos, ei, s);
                     }
-
                 }
 
                 if (ROOK == PT)
@@ -497,10 +491,6 @@ namespace Evaluator {
                             score += RookOnPawnBonus * i32 (pop_count<MAX15> (rook_on_enemy_pawns));
                         }
                     }
-
-                    if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
-                    
-                    //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
                 }
 
                 if (QUEN == PT)
@@ -543,6 +533,20 @@ namespace Evaluator {
 
                 }
             }
+
+            //const u08 open_files = ei.pi->_semiopen_files[C] & ei.pi->_semiopen_files[C_];
+
+            //if (NIHT == PT && pos.count<NIHT>(C) > 0)
+            //{
+            //    if (open_files != 0) score -= KnightOpenFilesPenalty * i32 (pop_count<MAX15> (open_files));
+            //    //if (ei.pi->_semiopen_files[C] != 0) score += KnightOpenFilesPenalty * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C_])) / 2;
+            //}
+
+            //if (ROOK == PT && pos.count<ROOK>(C) > 0)
+            //{
+            //    if (open_files != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (open_files));
+            //    //if (ei.pi->_semiopen_files[C] != 0) score += RookOpenFilesBonus * i32 (pop_count<MAX15> (ei.pi->_semiopen_files[C])) / 2;
+            //}
 
             if (Trace)
             {

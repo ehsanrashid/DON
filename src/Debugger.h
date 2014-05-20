@@ -28,7 +28,8 @@ public:
 };
 
 // Singleton I/O logger class
-class IOLogger : std::noncopyable
+class IOLogger
+    : public std::noncopyable
 {
 
 private:

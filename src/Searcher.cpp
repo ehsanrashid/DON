@@ -916,20 +916,24 @@ namespace Searcher {
             }
 
         loop_moves: // When in check and at SPNode search starts from here
+            
+            Move cm[2] = { MOVE_NONE, MOVE_NONE }
+            ,    fm[2] = { MOVE_NONE, MOVE_NONE };
 
-            Square opp_move_sq = dst_sq ((ss-1)->current_move);
-            Move cm[CLR_NO] =
+            Move opp_move = (ss-1)->current_move;
+            if (_ok (opp_move))
             {
-                CounterMoves[pos[opp_move_sq]][opp_move_sq].first,
-                CounterMoves[pos[opp_move_sq]][opp_move_sq].second,
-            };
-
-            Square own_move_sq = dst_sq ((ss-2)->current_move);
-            Move fm[CLR_NO] =
+                Square opp_move_sq = dst_sq (opp_move);
+                cm[0] = CounterMoves[pos[opp_move_sq]][opp_move_sq].first;
+                cm[1] = CounterMoves[pos[opp_move_sq]][opp_move_sq].second;
+            }
+            Move own_move = (ss-2)->current_move;
+            if (_ok (own_move))
             {
-                FollowupMoves[pos[own_move_sq]][own_move_sq].first,
-                FollowupMoves[pos[own_move_sq]][own_move_sq].second,
-            };
+                Square own_move_sq = dst_sq (own_move);
+                fm[0] = FollowupMoves[pos[own_move_sq]][own_move_sq].first;
+                fm[1] = FollowupMoves[pos[own_move_sq]][own_move_sq].second;
+            }
 
             MovePicker mp (pos, History, tt_move, depth, cm, fm, ss);
 
@@ -1182,10 +1186,13 @@ namespace Searcher {
 
                     if (move == cm[0] || move == cm[1])
                     {
-                        (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
+                        (ss)->reduction -= ONE_MOVE;
+                        if ((ss)->reduction < DEPTH_ZERO)
+                        {
+                            (ss)->reduction = DEPTH_ZERO;
+                        }
                     }
 
-                    // TODO::
                     Depth red_depth = new_depth - (ss)->reduction;
                     if (red_depth < ONE_MOVE)
                     {
@@ -1367,9 +1374,10 @@ namespace Searcher {
                 // If in a singular extension search then return a fail low score.
                 if (0 == moves_count)
                 {
-                    best_value = (excluded_move != MOVE_NONE) ? alpha
-                        : in_check ? mated_in ((ss)->ply)
-                        : DrawValue[pos.active ()];
+                    best_value = 
+                        (excluded_move != MOVE_NONE) ? alpha :
+                        in_check ? mated_in ((ss)->ply) :
+                        DrawValue[pos.active ()];
                 }
                 // Quiet best move:
                 else if ((best_value >= beta) && (best_move != MOVE_NONE))
