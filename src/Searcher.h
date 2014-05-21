@@ -123,11 +123,11 @@ namespace Searcher {
     struct RootMove
     {
         Value value[2];
-        //u64   nodes;
+        u64   nodes;
         std::vector<Move> pv;
 
         RootMove (Move m = MOVE_NONE)
-            //: nodes (U64 (0))
+            : nodes (U64 (0))
         {
             value[0] = -VALUE_INFINITE;
             value[1] = -VALUE_INFINITE;

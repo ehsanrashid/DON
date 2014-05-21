@@ -425,7 +425,13 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, History, tt_move, depth, dst_sq ((ss-1)->current_move));
+            Square dst = SQ_NO;
+            if (_ok ((ss-1)->current_move))
+            {
+                dst = dst_sq ((ss-1)->current_move);
+            }
+
+            MovePicker mp (pos, History, tt_move, depth, dst);
             CheckInfo  ci (pos);
 
             Move move;
@@ -514,7 +520,9 @@ namespace Searcher {
 
                     if (alpha < value)
                     {
-                        if (PVNode && (value < beta)) // Update alpha here! Always alpha < beta
+                         // Update alpha here! Always alpha < beta
+                        //if (PVNode && (value < beta))s
+                        if (value < beta)
                         {
                             alpha = value;
                             best_move = move;
@@ -542,7 +550,7 @@ namespace Searcher {
             {
                 if (best_value == -VALUE_INFINITE)
                 {
-                    best_value = mated_in ((ss)->ply); // Plies to mate from the root
+                    return mated_in ((ss)->ply); // Plies to mate from the root
                 }
             }
 
@@ -999,8 +1007,12 @@ namespace Searcher {
                     ++moves_count;
                 }
 
+                //u64 nodes = U64 (0);
+                
                 if (RootNode)
                 {
+                    //nodes = pos.game_nodes ();
+
                     Signals.root_1stmove = (1 == moves_count);
 
                     if (Threadpool.main () == thread)
@@ -1293,7 +1305,7 @@ namespace Searcher {
                     if (is_pv_move || alpha < value)
                     {
                         rm.value[0] = value;
-                        //rm.nodes = pos.game_nodes ();
+                        //rm.nodes += pos.game_nodes () - nodes;
                         rm.extract_pv_from_tt (pos);
 
                         // Record how often the best move has been changed in each

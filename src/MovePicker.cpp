@@ -138,7 +138,6 @@ void MovePicker::value<CAPTURE> ()
         {
             itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
         }
-
     }
 }
 
@@ -434,11 +433,16 @@ Move MovePicker::next_move<false> ()
             break;
 
         case CAPTURES_S6:
+            if (recapture_sq == SQ_NO)
+            {
+                cur = end;
+                break;
+            }
             do
             {
                 pick_best ();
                 move = (cur++)->move;
-                if (dst_sq (move) == recapture_sq)
+                if (recapture_sq == dst_sq (move))
                 {
                     return move;
                 }

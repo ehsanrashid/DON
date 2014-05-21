@@ -426,7 +426,7 @@ namespace Evaluator {
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
-                        attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
+                        //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
 
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
