@@ -75,9 +75,9 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+54), V(+36),  V(+ 3),  V(+ 0),  V(+ 0) },
-            { V(+26),  V(+32), V(+ 96), V(+48), V(+20),  V(+ 2),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 1),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+66), V(+130), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+  0), V(+41), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+162), V(+25), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
         // Max bonus for king safety. Corresponds to start position with all the pawns
@@ -97,7 +97,7 @@ namespace Pawns {
             const Bitboard pawns[CLR_NO] =
             {
                 pos.pieces<PAWN> (C ),
-                pos.pieces<PAWN> (C_),
+                pos.pieces<PAWN> (C_)
             };
 
             e->_passed_pawns   [C] = U64 (0);

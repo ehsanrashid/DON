@@ -523,16 +523,9 @@ namespace Searcher {
                         best_move = move;
 
                         // Update alpha here! Always alpha < beta
-                        if (value < beta)
+                        if (PVNode && (value < beta))
                         {
-                            if (PVNode)
-                            {
-                                alpha = value;
-                            }
-                            else
-                            {
-                                if (depth < DEPTH_ZERO) break;
-                            }
+                            alpha = value;
                         }
                         else // Fail high
                         {
@@ -1341,16 +1334,9 @@ namespace Searcher {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
                         
                         // Update alpha! Always alpha < beta
-                        if (value < beta)
+                        if (PVNode && (value < beta))
                         {
-                            if (PVNode)
-                            {
-                                alpha = (SPNode) ? splitpoint->alpha = value : value;
-                            }
-                            else
-                            {
-                                if (depth >= (ONE_MOVE)) break;
-                            }
+                            alpha = (SPNode) ? splitpoint->alpha = value : value;
                         }
                         else
                         {
