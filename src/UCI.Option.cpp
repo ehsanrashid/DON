@@ -20,6 +20,8 @@ namespace UCI {
 
     Option::Option (OnChange on_change)
         : _type ("button")
+        , _default ("")
+        , _value ("")
         , _minimum (0)
         , _maximum (0)
         , _on_change (on_change)

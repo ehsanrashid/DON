@@ -520,18 +520,25 @@ namespace Searcher {
 
                     if (alpha < value)
                     {
-                         // Update alpha here! Always alpha < beta
-                        //if (PVNode && (value < beta))s
+                        best_move = move;
+
+                        // Update alpha here! Always alpha < beta
                         if (value < beta)
                         {
-                            alpha = value;
-                            best_move = move;
+                            if (PVNode)
+                            {
+                                alpha = value;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                         else // Fail high
                         {
                             TT.store (
                                 posi_key,
-                                move,
+                                best_move,
                                 tt_depth,
                                 BND_LOWER,
                                 pos.game_nodes (),
@@ -1332,10 +1339,18 @@ namespace Searcher {
                     if (alpha < value)
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
-
-                        if (PVNode && (value < beta)) // Update alpha! Always alpha < beta
+                        
+                        // Update alpha! Always alpha < beta
+                        if (value < beta)
                         {
-                            alpha = (SPNode) ? splitpoint->alpha = value : value;
+                            if (PVNode)
+                            {
+                                alpha = (SPNode) ? splitpoint->alpha = value : value;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                         else
                         {
