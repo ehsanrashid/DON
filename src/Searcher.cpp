@@ -531,7 +531,7 @@ namespace Searcher {
                             }
                             else
                             {
-                                break;
+                                if (depth < DEPTH_ZERO) break;
                             }
                         }
                         else // Fail high
@@ -1349,7 +1349,7 @@ namespace Searcher {
                             }
                             else
                             {
-                                break;
+                                if (depth >= (ONE_MOVE)) break;
                             }
                         }
                         else
