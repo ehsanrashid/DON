@@ -217,7 +217,8 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for good knight with pawns
-        const Score KnightOpenFilesPenalty  = S(+ 5,+ 15); // Penalty for knight with open files
+        const Score KnightPawnSpanPenalty   = S(+ 1,+ 2); // Penalty for bad knight with large pawnspan
+        const Score KnightOpenFilesPenalty  = S(+ 5,+15); // Penalty for knight with open files
 
         const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bad bishop with pawn
         const Score BishopTrappedPenalty    = S(+50,+50);
@@ -366,6 +367,7 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
+            const Bitboard pawn_span     = ei.pi->_semiopen_files[C_] ^ 0xFF;
 
             ei.attacked_by[C][PT] = U64 (0);
             
@@ -416,11 +418,16 @@ namespace Evaluator {
                 {
                     if (NIHT == PT)
                     {
-                        const Bitboard knight_pawns = pos.pieces<PAWN> (C) & (DistanceRings[s][0]|DistanceRings[s][1]);
-                        if (knight_pawns != U64 (0))
-                        {
-                            score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
-                        }
+                        //const Bitboard knight_pawns = pos.pieces<PAWN> (C) & (DistanceRings[s][0]|DistanceRings[s][1]);
+                        //if (knight_pawns != U64 (0))
+                        //{
+                        //    score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
+                        //}
+
+                        //if (pos.count<PAWN> (C_) > 1)
+                        //{
+                        //    score -= KnightPawnSpanPenalty * (i32 (scan_msq (pawn_span)) - i32 (scan_lsq (pawn_span)));
+                        //}
                     }
 
                     // Penalty for bishop with same coloured pawns

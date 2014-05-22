@@ -140,12 +140,14 @@ namespace Pawns {
 
                 bool backward;
                 // Test for backward pawn.
-                // If the pawn is passed, isolated, or connected it cannot be backward.
-                // If there are friendly pawns behind on adjacent files or
-                // If it can capture an enemy pawn it cannot be backward either.
+                // If the pawn is passed, isolated, or connected.
+                // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
+                // If it can capture an enemy pawn.
+                // Then it cannot be backward either.
                 if (   (passed || isolated || connected)
-                    || (pawns[0] & PawnAttackSpan[C_][s])
-                    || (pawns[1] & PawnAttacks[C][s]))
+                    || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & PawnAttackSpan[C_][s]))
+                    || (pawns[1] & PawnAttacks[C][s])
+                   )
                 {
                     backward = false;
                 }
@@ -198,12 +200,12 @@ namespace Pawns {
                 }
             }
 
-            // In endgame it's better to have pawns on both wings. So give a bonus according
-            // to file distance between left and right outermost pawns.
+            // In endgame it's better to have pawns on both wings.
+            // So give a bonus according to file distance between left and right outermost pawns span.
             if (pos.count<PAWN> (C) > 1)
             {
-                Bitboard b = e->_semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpanBonus * (i32 (scan_msq (b)) - i32 (scan_lsq (b)));
+                Bitboard span = e->_semiopen_files[C] ^ 0xFF;
+                pawn_score += PawnsFileSpanBonus * (i32 (scan_msq (span)) - i32 (scan_lsq (span)));
             }
 
             return pawn_score;
