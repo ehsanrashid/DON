@@ -210,10 +210,10 @@ namespace Searcher {
         // info_pv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        inline string info_pv (const Position &pos, u08 depth, Value alpha, Value beta, point elapsed)
+        inline string info_pv (const Position &pos, u08 depth, Value alpha, Value beta, point time)
         {
-            ASSERT (elapsed >= 0);
-            if (elapsed == 0) elapsed = 1;
+            ASSERT (time >= 0);
+            if (time == 0) time = 1;
 
             stringstream ss;
             
@@ -260,9 +260,9 @@ namespace Searcher {
                     << " depth "    << u16 (d)
                     << " seldepth " << u16 (sel_depth)
                     << " score "    << ((i == PVIndex) ? score_uci (v, alpha, beta) : score_uci (v))
-                    << " time "     << elapsed
+                    << " time "     << time
                     << " nodes "    << pos.game_nodes ()
-                    << " nps "      << pos.game_nodes () * M_SEC / elapsed
+                    << " nps "      << pos.game_nodes () * M_SEC / time
                     << " hashfull " << TT.permill_full ()
                     << " pv";
                 for (u08 j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
@@ -310,11 +310,20 @@ namespace Searcher {
             (ss)->ply = (ss-1)->ply + 1;
             (ss)->current_move = MOVE_NONE;
 
-            // Check for an instant draw or maximum ply reached
-            if (pos.draw () || ((ss)->ply > MAX_PLY))
+            // Check for maximum ply reached
+            if ((ss)->ply > MAX_PLY)
             {
-                return ((ss)->ply > MAX_PLY && !InCheck) ?
-                    evaluate (pos) : DrawValue[pos.active ()];
+                return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
+            }
+            // Check for immediate draw
+            if (pos.draw ())
+            {
+                return DrawValue[pos.active ()];
+            }
+            // Check for aborted search
+            if (Signals.stop)
+            {
+                return VALUE_ZERO;
             }
 
             StateInfo si;
@@ -647,11 +656,21 @@ namespace Searcher {
 
             if (!RootNode)
             {
-                // Step 2. Check for aborted search and immediate draw
-                if (Signals.stop || pos.draw () || ((ss)->ply > MAX_PLY))
+                // Step 2. Check end condition
+                // Check for maximum ply reached
+                if ((ss)->ply > MAX_PLY)
                 {
-                    return ((ss)->ply > MAX_PLY && !in_check) ? 
-                        evaluate (pos) : DrawValue[pos.active ()];
+                    return in_check ? DrawValue[pos.active ()] : evaluate (pos);
+                }
+                // Check for immediate draw
+                if (pos.draw ())
+                {
+                    return DrawValue[pos.active ()];
+                }
+                // Check for aborted search
+                if (Signals.stop)
+                {
+                    return VALUE_ZERO;
                 }
 
                 // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -711,7 +730,6 @@ namespace Searcher {
 
                     return tt_value;
                 }
-
             }
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -777,7 +795,7 @@ namespace Searcher {
                        )
                     {
                         if (   depth <= (1*ONE_MOVE)
-                            && eval + razor_margin (3*ONE_MOVE) <= alpha
+                            && eval <= alpha - razor_margin (3*ONE_MOVE)
                            )
                         {
                             return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
@@ -959,19 +977,19 @@ namespace Searcher {
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - (3*ONE_MOVE));
 
-            point elapsed;
+            point time;
 
             if (RootNode)
             {
                 if (Threadpool.main () == thread)
                 {
-                    elapsed = now () - SearchTime;
-                    if (elapsed > InfoDuration)
+                    time = now () - SearchTime;
+                    if (time > InfoDuration)
                     {
                         sync_cout
                             << "info"
                             << " depth " << u16 (depth/i32 (ONE_MOVE))
-                            << " time "  << elapsed
+                            << " time "  << time
                             << sync_endl;
                     }
                 }
@@ -1016,15 +1034,15 @@ namespace Searcher {
 
                     if (Threadpool.main () == thread)
                     {
-                        elapsed = now () - SearchTime;
-                        if (elapsed > InfoDuration)
+                        time = now () - SearchTime;
+                        if (time > InfoDuration)
                         {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16 (depth/i32 (ONE_MOVE))
                                 << " currmovenumber " << setw (2) << u16 (moves_count + PVIndex)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
-                                << " time "           << elapsed
+                                << " time "           << time
                                 << sync_endl;
                         }
                     }
@@ -1496,7 +1514,7 @@ namespace Searcher {
                         bound[1]  = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
 
-                    point elapsed;
+                    point time;
 
                     // Start with a small aspiration window and, in case of fail high/low,
                     // research with bigger window until not failing high/low anymore.
@@ -1527,10 +1545,10 @@ namespace Searcher {
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
                         if (   ((bound[0] >= best_value) || (best_value >= bound[1]))
-                            && ((elapsed = now () - SearchTime) > InfoDuration)
+                            && ((time = now () - SearchTime) > InfoDuration)
                            )
                         {
-                            sync_cout << info_pv (pos, depth, bound[0], bound[1], elapsed) << sync_endl;
+                            sync_cout << info_pv (pos, depth, bound[0], bound[1], time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1561,10 +1579,10 @@ namespace Searcher {
                     // Sort the PV lines searched so far and update the GUI
                     stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
                     
-                    elapsed = now () - SearchTime;
-                    if ((PVIndex + 1) == MultiPV || (elapsed > InfoDuration))
+                    time = now () - SearchTime;
+                    if ((PVIndex + 1) == MultiPV || (time > InfoDuration))
                     {
-                        sync_cout << info_pv (pos, depth, bound[0], bound[1], elapsed) << sync_endl;
+                        sync_cout << info_pv (pos, depth, bound[0], bound[1], time) << sync_endl;
                     }
                 }
 
@@ -1809,12 +1827,12 @@ namespace Searcher {
         {
             LogFile log (search_log_fn);
 
-            point elapsed = now () - SearchTime;
-            if (elapsed == 0) elapsed = 1;
+            point time = now () - SearchTime;
+            if (time == 0) time = 1;
 
-            log << "Time:        " << elapsed                                   << "\n"
+            log << "Time:        " << time                                      << "\n"
                 << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
-                << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / elapsed   << "\n"
+                << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / time      << "\n"
                 << "Hash-full:   " << TT.permill_full ()                        << "\n"
                 << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (RootMoves[0].pv[0] != MOVE_NONE)
@@ -1829,15 +1847,15 @@ namespace Searcher {
 
     finish:
         
-        point elapsed = now () - SearchTime;
-        if (elapsed == 0) elapsed = 1;
+        point time = now () - SearchTime;
+        if (time == 0) time = 1;
 
         // When search is stopped this info is printed
         sync_cout
             << "info"
-            << " time "     << elapsed
+            << " time "     << time
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * M_SEC / elapsed
+            << " nps "      << RootPos.game_nodes () * M_SEC / time
             << " hashfull " << TT.permill_full ()
             << sync_endl;
 
@@ -1906,7 +1924,7 @@ namespace Threads {
     void check_time ()
     {
         static point last_time = now ();
-
+        
         point now_time = now ();
         if ((now_time - last_time) >= M_SEC)
         {
@@ -1951,20 +1969,20 @@ namespace Threads {
             Threadpool.mutex.unlock ();
         }
 
-        point elapsed = now_time - SearchTime;
+        point time = now_time - SearchTime;
 
         bool still_at_1stmove =
                 (Signals.root_1stmove)
             && !(Signals.root_failedlow)
-            && (elapsed > TimeMgr.available_time () * 75/100);
+            && (time > TimeMgr.available_time () * 75/100);
 
         bool no_more_time =
-               (elapsed > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)
+               (time > TimeMgr.maximum_time () - 2 * TimerThread::Resolution)
             || (still_at_1stmove);
 
         if (   (Limits.use_timemanager () && no_more_time)
-            || (Limits.movetime != 0 && (elapsed >= Limits.movetime))
-            || (Limits.nodes    != 0 && (nodes   >= Limits.nodes))
+            || (Limits.movetime != 0 && (time  >= Limits.movetime))
+            || (Limits.nodes    != 0 && (nodes >= Limits.nodes))
            )
         {
             Signals.stop = true;
@@ -1983,7 +2001,7 @@ namespace Threads {
         {
             // If not searching, wait for a condition to be signaled instead of
             // wasting CPU time polling for work.
-            while (!searching || exit)
+            while (!searching)
             {
                 if (exit)
                 {
@@ -1991,7 +2009,7 @@ namespace Threads {
                     return;
                 }
 
-                // Grab the lock to avoid races with Thread::notify_one ()
+                // Grab the lock to avoid races with Thread::notify_one()
                 mutex.lock ();
 
                 // If master and all slaves have finished then exit idle_loop

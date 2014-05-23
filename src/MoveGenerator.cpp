@@ -431,14 +431,14 @@ namespace MoveGenerator {
         Color active = pos.active ();
 
         Bitboard targets = 
-              CAPTURE == GT ?  pos.pieces (~active)
-            : QUIET   == GT ? ~pos.pieces ()
-            : RELAX   == GT ? ~pos.pieces (active)
-            : U64 (0);
+            CAPTURE == GT ?  pos.pieces (~active) :
+            QUIET   == GT ? ~pos.pieces () :
+            RELAX   == GT ? ~pos.pieces (active) :
+            U64 (0);
 
-        return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets)
-            :  BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets)
-            :  moves;
+        return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
+               BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets) :
+               moves;
     }
 
     // --------------------------------
@@ -479,9 +479,9 @@ namespace MoveGenerator {
             SERIALIZE (moves, org, attacks);
         }
 
-        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci)
-            :  BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci)
-            :  moves;
+        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
+               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci) :
+               moves;
     }
 
     template<>
@@ -506,9 +506,9 @@ namespace MoveGenerator {
             SERIALIZE (moves, org, attacks);
         }
 
-        return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci)
-            :  BLACK == active ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci)
-            :  moves;
+        return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
+               BLACK == active ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci) :
+               moves;
     }
 
     template<>
@@ -573,18 +573,18 @@ namespace MoveGenerator {
         // Generates blocking evasions or captures of the checking piece
         Bitboard targets = Between_bb[check_sq][king_sq] + check_sq;
 
-        return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets)
-            :  BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets)
-            :  moves;
+        return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
+               BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
+               moves;
     }
 
     template<>
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () != U64 (0)
-            ? generate<EVASION> (moves, pos)
-            : generate<RELAX  > (moves, pos);
+        ValMove *end = pos.checkers () != U64 (0) ?
+            generate<EVASION> (moves, pos) :
+            generate<RELAX  > (moves, pos);
 
         Square   king_sq = pos.king_sq (pos.active ());
         Bitboard pinneds = pos.pinneds (pos.active ());

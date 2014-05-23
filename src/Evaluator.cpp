@@ -367,7 +367,7 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
-            const Bitboard pawn_span     = ei.pi->_semiopen_files[C_] ^ 0xFF;
+            //const Bitboard pawn_span     = ei.pi->_semiopen_files[C_] ^ 0xFF;
 
             ei.attacked_by[C][PT] = U64 (0);
             

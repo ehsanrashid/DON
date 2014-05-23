@@ -131,12 +131,12 @@ private:
     {
         for (ValMove *p = cur + 1; p < end; ++p)
         {
-            ValMove tmp = *p, *q;
-            for (q = p; q != cur && *(q-1) < tmp; --q)
+            ValMove t = *p, *q;
+            for (q = p; q != cur && *(q-1) < t; --q)
             {
                 *q = *(q-1);
             }
-            *q = tmp;
+            *q = t;
         }
     }
 
