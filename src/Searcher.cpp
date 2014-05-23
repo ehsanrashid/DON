@@ -313,8 +313,8 @@ namespace Searcher {
             // Check for an instant draw or maximum ply reached
             if (pos.draw () || ((ss)->ply > MAX_PLY))
             {
-                return ((ss)->ply > MAX_PLY && !InCheck) ? evaluate (pos)
-                    : DrawValue[pos.active ()];
+                return ((ss)->ply > MAX_PLY && !InCheck) ?
+                    evaluate (pos) : DrawValue[pos.active ()];
             }
 
             StateInfo si;
@@ -333,9 +333,8 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth tt_depth = (InCheck || depth >= DEPTH_QS_CHECKS)
-                ?  DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
-
+            Depth tt_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
+                              DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
             Key posi_key = pos.posi_key ();
 
             // Transposition table lookup
@@ -350,9 +349,9 @@ namespace Searcher {
             if (   (tte != NULL)
                 && (tte->depth () >= tt_depth)
                 && (tt_value != VALUE_NONE) // Only in case of TT access race
-                && (        PVNode ?  tte->bound () == BND_EXACT
-                : tt_value >= beta ? (tte->bound () &  BND_LOWER)
-                :                    (tte->bound () &  BND_UPPER)
+                && (        PVNode ? (tte->bound () == BND_EXACT) :
+                  tt_value >= beta ? (tte->bound () &  BND_LOWER) :
+                                     (tte->bound () &  BND_UPPER)
                    )
                )
             {
@@ -505,9 +504,9 @@ namespace Searcher {
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? &ci : NULL);
 
-                Value value = gives_check
-                    ? -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth - ONE_MOVE)
-                    : -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
+                Value value = gives_check ?
+                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth - ONE_MOVE) :
+                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth - ONE_MOVE);
 
                 pos.undo_move ();
 
@@ -544,8 +543,8 @@ namespace Searcher {
                 }
             }
 
-            // All legal moves have been searched. A special case: If in check
-            // and no legal moves were found, it is checkmate.
+            // All legal moves have been searched.
+            // A special case: If in check and no legal moves were found, it is checkmate.
             if (InCheck)
             {
                 if (best_value == -VALUE_INFINITE)
@@ -651,8 +650,8 @@ namespace Searcher {
                 // Step 2. Check for aborted search and immediate draw
                 if (Signals.stop || pos.draw () || ((ss)->ply > MAX_PLY))
                 {
-                    return ((ss)->ply > MAX_PLY && !in_check) ? evaluate (pos)
-                        : DrawValue[pos.active ()];
+                    return ((ss)->ply > MAX_PLY && !in_check) ? 
+                        evaluate (pos) : DrawValue[pos.active ()];
                 }
 
                 // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -675,9 +674,9 @@ namespace Searcher {
             // TT value, so use a different position key in case of an excluded move.
             excluded_move = (ss)->excluded_move;
 
-            posi_key = (excluded_move != MOVE_NONE)
-                     ? pos.posi_key_excl ()
-                     : pos.posi_key ();
+            posi_key = (excluded_move != MOVE_NONE) ?
+                    pos.posi_key_excl () :
+                    pos.posi_key ();
 
             tte      = TT.retrieve (posi_key);
             tt_move  = (ss)->tt_move = RootNode    ? RootMoves[PVIndex].pv[0]
@@ -833,9 +832,9 @@ namespace Searcher {
                                 (ss+1)->skip_null_move = true;
 
                                 // Null window (alpha, beta) = (beta-1, beta):
-                                Value null_value = (depth-R < ONE_MOVE)
-                                    ? -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO)
-                                    : -search      <NonPV, false> (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
+                                Value null_value = (depth-R < ONE_MOVE) ?
+                                    -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO) :
+                                    -search      <NonPV, false> (pos, ss+1, -beta, -(beta-1), depth-R, !cut_node);
 
                                 (ss+1)->skip_null_move = false;
                                 // Undo null move
@@ -855,9 +854,9 @@ namespace Searcher {
 
                                     // Do verification search at high depths
                                     (ss)->skip_null_move = true;
-                                    Value veri_value = (depth-R < ONE_MOVE)
-                                        ? search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO)
-                                        : search      <NonPV, false> (pos, ss, beta-1, beta, depth-R, false);
+                                    Value veri_value = (depth-R < ONE_MOVE) ?
+                                        search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        search      <NonPV, false> (pos, ss, beta-1, beta, depth-R, false);
                                     (ss)->skip_null_move = false;
                                     if (veri_value >= beta)
                                     {
@@ -1217,11 +1216,11 @@ namespace Searcher {
                     }
                     // Search with reduced depth
                     value = 
-                        //  (red_depth < ONE_MOVE)
-                        //? (gives_check
-                        //? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)
-                        //: -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO))
-                        //: -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                        //(red_depth < ONE_MOVE) ?
+                        //(gives_check ?
+                        //-search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO) :
+                        //-search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO)) :
+                        //-search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
                         -search      <NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
 
                     // Re-search at intermediate depth if reduction is very high
@@ -1252,11 +1251,11 @@ namespace Searcher {
                     }
 
                     value =
-                          (new_depth < ONE_MOVE)
-                        ? (gives_check
-                        ? -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)
-                        : -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO))
-                        : -search      <NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
+                        (new_depth < ONE_MOVE) ?
+                        (gives_check ?
+                        -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO) :
+                        -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)) :
+                        -search      <NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
                 }
 
                 // Principal Variation Search
@@ -1268,11 +1267,11 @@ namespace Searcher {
                     if (is_pv_move || ((alpha < value) && (RootNode || (value < beta))))
                     {
                         value =
-                              (new_depth < ONE_MOVE)
-                            ? (gives_check
-                            ? -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO)
-                            : -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO))
-                            : -search      <PV, false> (pos, ss+1, -beta, -alpha, new_depth, false);
+                            (new_depth < ONE_MOVE) ?
+                            (gives_check ?
+                            -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                            -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)) :
+                            -search      <PV, false> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
