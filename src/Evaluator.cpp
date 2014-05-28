@@ -217,9 +217,10 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         //const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for knight with pawns
-        //const Score KnightPawnSpanPenalty   = S(+ 1,+ 2); // Penalty for knight with large pawnspan
+        const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
 
-        const Score BishopPawnsPenalty      = S(+ 8,+14); // Penalty for bishop with pawn
+        const Score BishopColorPawnsPenalty = S(+ 8,+14); // Penalty for bishop with pawns on color
+        const Score BishopWingPawnsBonus    = S(+ 5,+15); // Bonus for bishop with pawns on wing
         const Score BishopTrappedPenalty    = S(+50,+40);
 
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
@@ -422,10 +423,17 @@ namespace Evaluator {
                         //    score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
                         //}
 
-                        //if (pos.count<PAWN> (C_) > 1)
-                        //{
-                        //    score -= KnightPawnSpanPenalty * (i32 (scan_msq (pawn_span)) - i32 (scan_lsq (pawn_span)));
-                        //}
+                        if (pos.count<PAWN> (C) > 1)
+                        {
+                            Bitboard pawns = pos.pieces<PAWN> (C);
+                            if (     pawns & WingABC_bb
+                                &&   pawns & WingFGH_bb
+                                && !(pawns & (FD_bb|FE_bb))
+                               )
+                            {
+                                score -= KnightWingPawnsPenalty;
+                            }
+                        }
                     }
 
                     // Penalty for bishop with same coloured pawns
@@ -433,8 +441,19 @@ namespace Evaluator {
                     {
                         //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
 
-                        score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
+                        score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
                         
+                        if (pos.count<PAWN> (C) > 1)
+                        {
+                            Bitboard pawns = pos.pieces<PAWN> (C);
+                            if (   pawns & WingABC_bb
+                                && pawns & WingFGH_bb
+                               )
+                            {
+                                score += BishopWingPawnsBonus;
+                            }
+                        }
+
                         Square rsq = rel_sq (C, s);
 
                         if (   rsq == SQ_A7

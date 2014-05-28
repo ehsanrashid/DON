@@ -97,8 +97,8 @@ namespace Pawns {
 
             e->king_sq        [C] = SQ_NO;
             e->pawn_attacks   [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            e->pawns_on_sq    [C][WHITE] = pop_count<MAX15> (pawns[0] & LIHT_bb);
-            e->pawns_on_sq    [C][BLACK] = pop_count<MAX15> (pawns[0] & DARK_bb);
+            e->pawns_on_sq    [C][WHITE] = pop_count<MAX15> (pawns[0] & Liht_bb);
+            e->pawns_on_sq    [C][BLACK] = pop_count<MAX15> (pawns[0] & Dark_bb);
 
             e->passed_pawns   [C] = U64 (0);
             e->candidate_pawns[C] = U64 (0);
@@ -288,7 +288,7 @@ namespace Pawns {
                 ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns))
                 : R_1;
 
-            if (   (MIDEDGE_bb & (f | br))
+            if (   (MidEdge_bb & (f | br))
                 && (kf == f)
                 && (rel_rank (C, k_sq) == br - 1)
                )
