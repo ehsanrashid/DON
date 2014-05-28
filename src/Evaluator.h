@@ -13,7 +13,7 @@ namespace Evaluator {
 
     extern void initialize ();
 
-    extern Value evaluate (const Position &pos);
+    extern Value evaluate    (const Position &pos);
 
     extern std::string trace (const Position &pos);
 

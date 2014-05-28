@@ -1184,7 +1184,7 @@ namespace Evaluator {
     // evaluate() is the main evaluation function.
     // It always computes two values, an endgame value and a middle game value, in score
     // and interpolates between them based on the remaining material.
-    Value evaluate (const Position &pos)
+    Value evaluate  (const Position &pos)
     {
         return evaluate<false> (pos);
     }
@@ -1192,7 +1192,7 @@ namespace Evaluator {
     // trace() is like evaluate() but instead of a value returns a string suitable
     // to be print on stdout with the detailed descriptions and values of each
     // evaluation term. Used mainly for debugging.
-    string trace (const Position &pos)
+    string trace    (const Position &pos)
     {
         return Tracer::trace (pos);
     }
