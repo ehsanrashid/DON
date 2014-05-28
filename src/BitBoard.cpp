@@ -15,7 +15,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN (64) Bitboard DistanceRings[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard DistanceRings[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
