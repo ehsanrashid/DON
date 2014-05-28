@@ -115,7 +115,7 @@ namespace Engine {
         MemoryHandler::initialize ();
 #endif
 
-        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
+        //cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
