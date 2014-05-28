@@ -44,11 +44,12 @@ namespace BitBoard {
     const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
     const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
-    const Bitboard CRNR_bb = U64 (0x8100000000000081);            // 04 CORNER squares.
+    const Bitboard Corner_bb = U64 (0x8100000000000081);            // 04 CORNER squares.
     const Bitboard RimEdge_bb = (R1_bb | R8_bb | FA_bb | FH_bb);
     const Bitboard MidEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
     const Bitboard WingABC_bb = (FA_bb | FB_bb | FC_bb);
     const Bitboard WingFGH_bb = (FF_bb | FG_bb | FH_bb);
+    const Bitboard WingDE_bb  = (FD_bb | FE_bb);
 
     const Delta PawnDeltas[CLR_NO][3] =
     {

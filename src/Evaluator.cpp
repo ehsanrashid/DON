@@ -428,7 +428,7 @@ namespace Evaluator {
                             Bitboard pawns = pos.pieces<PAWN> (C);
                             if (     pawns & WingABC_bb
                                 &&   pawns & WingFGH_bb
-                                && !(pawns & (FD_bb|FE_bb))
+                                && !(pawns & WingDE_bb)
                                )
                             {
                                 score -= KnightWingPawnsPenalty;
@@ -440,11 +440,11 @@ namespace Evaluator {
                     if (BSHP == PT)
                     {
                         //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
-
-                        score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
                         
                         if (pos.count<PAWN> (C) > 1)
                         {
+                            score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
+
                             Bitboard pawns = pos.pieces<PAWN> (C);
                             if (   pawns & WingABC_bb
                                 && pawns & WingFGH_bb
