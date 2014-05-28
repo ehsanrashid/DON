@@ -9,7 +9,7 @@ namespace Pawns {
 
     namespace {
 
-        const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const i16 PawnFileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
     #define S(mg, eg) mk_score(mg, eg)
 
@@ -132,7 +132,7 @@ namespace Pawns {
                 bool isolated    = !(adj_pawns);
                 Bitboard doubled =   pawns[0] & FrontSqrs_bb[C][s];
                 bool opposed     =   pawns[1] & FrontSqrs_bb[C][s];
-                bool passed      = !(pawns[1] & PasserPawnSpan[C][s]);
+                bool passed      = !(pawns[1] & PawnPassSpan[C][s]);
 
                 bool backward = false;
                 // Test for backward pawn.
@@ -152,7 +152,7 @@ namespace Pawns {
                         // Now know that there are no friendly pawns beside or behind this pawn on adjacent files.
                         // Now check whether the pawn is backward by looking in the forward direction on the
                         // adjacent files, and picking the closest pawn there.
-                        b = PawnAttackSpan[C][s] & (pawns[0] | pawns[1]);
+                        b = PawnAttackSpan[C][s] & (pos.pieces<PAWN> ());
                         b = PawnAttackSpan[C][s] & rank_bb (scan_backmost_sq (C, b));
 
                         // If have an enemy pawn in the same or next rank, the pawn is
@@ -202,7 +202,7 @@ namespace Pawns {
                 }
                 if (doubled)
                 {
-                    pawn_score -= DoubledPenalty[f] / i32 (rank_dist (s, scan_backmost_sq (C, doubled)));
+                    pawn_score -= DoubledPenalty[f] * i32 (pop_count<MAX15> (doubled)) / i32 (rank_dist (s, scan_backmost_sq (C, doubled)));
                 }
                 else
                 {
@@ -235,7 +235,7 @@ namespace Pawns {
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
-                i16 bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
+                i16 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
                 ConnectedBonus[f][r] = mk_score (bonus, bonus);
             }
         }

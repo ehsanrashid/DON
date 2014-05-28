@@ -148,7 +148,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     // attacks of the pawns & pieces
     CACHE_ALIGN(64) extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
@@ -246,7 +246,7 @@ namespace BitBoard {
     // bitboard mask which can be used to test if a pawn of the given color on
     // the given square is a passed pawn. Definition of the table is:
     // PassedPawnMask[c][s] = PawnAttackSpan[c][s] | forward_bb(c, s)
-    //inline Bitboard passer_pawn_span (Color c, Square s) { return PasserPawnSpan[c][s]; }
+    //inline Bitboard passer_pawn_span (Color c, Square s) { return PawnPassSpan[c][s]; }
 
     // between_bb() returns a bitboard representing all squares between two squares.
     // For instance,

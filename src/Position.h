@@ -469,11 +469,11 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(pieces<PAWN> (~c) & BitBoard::PasserPawnSpan[c][s]);
+    return !((_color_bb[~c]&_types_bb[PAWN]) & BitBoard::PawnPassSpan[c][s]);
 }
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return pieces<PAWN> (c) & BitBoard::Rank_bb[rel_rank (c, R_7)];
+    return (_color_bb[c]&_types_bb[PAWN]) & BitBoard::Rank_bb[rel_rank (c, R_7)];
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const

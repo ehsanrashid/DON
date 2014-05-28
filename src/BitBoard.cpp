@@ -21,7 +21,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     // Attacks of the pawns
     CACHE_ALIGN(64) Bitboard PawnAttacks[CLR_NO][SQ_NO];
@@ -262,7 +262,7 @@ namespace BitBoard {
             {
                 FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
-                PasserPawnSpan[c][s] = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
+                PawnPassSpan[c][s]   = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 

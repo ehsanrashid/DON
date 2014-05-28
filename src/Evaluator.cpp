@@ -131,7 +131,7 @@ namespace Evaluator {
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
             S(+ 48,+  0), // Space
-            S(+289,+  0)  // KingSafety
+            S(+300,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
