@@ -434,9 +434,11 @@ namespace Evaluator {
                         //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
 
                         score -= BishopPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
+                        
+                        Square rsq = rel_sq (C, s);
 
-                        if (   s == rel_sq (C, SQ_A7)
-                            || s == rel_sq (C, SQ_H7)
+                        if (   rsq == SQ_A7
+                            || rsq == SQ_H7
                            )
                         {
                             const Piece opp_pawn = (C_ | PAWN);
@@ -448,8 +450,8 @@ namespace Evaluator {
                                 score -= BishopTrappedPenalty * 2;
                             }
                         }
-                        if (   s == rel_sq (C, SQ_A6)
-                            || s == rel_sq (C, SQ_H6)
+                        if (   rsq == SQ_A6
+                            || rsq == SQ_H6
                            )
                         {
                             const Piece opp_pawn = (C_ | PAWN);
@@ -469,8 +471,8 @@ namespace Evaluator {
                         // a friendly pawn on b2/g2 (b7/g7 for black).
                         if (pos.chess960 ())
                         {
-                            if (   s == rel_sq (C, SQ_A1)
-                                || s == rel_sq (C, SQ_H1)
+                            if (   rsq == SQ_A1
+                                || rsq == SQ_H1
                                )
                             {
                                 const Piece own_pawn = (C | PAWN);
