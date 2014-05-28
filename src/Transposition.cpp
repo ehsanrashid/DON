@@ -12,9 +12,9 @@ const u08  TranspositionTable::NUM_CLUSTER_ENTRY = 4;
 const u08  TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
 
 #ifdef _64BIT
-const u32 TranspositionTable::MAX_HASH_BIT  = 32; // 36
+const u08 TranspositionTable::MAX_HASH_BIT  = 36;
 #else
-const u32 TranspositionTable::MAX_HASH_BIT  = 32;
+const u08 TranspositionTable::MAX_HASH_BIT  = 32;
 #endif
 
 const u32 TranspositionTable::MIN_TT_SIZE   = 4;

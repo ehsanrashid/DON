@@ -28,7 +28,7 @@
 //  Value        2
 //  Eval Value   2
 // ----------------
-//  total        16 byte
+//  Total        16 byte
 struct TTEntry
 {
 
@@ -47,16 +47,16 @@ private:
 
 public:
 
-    u32   key   () const { return u32   (_key);   }
+    //u32   key   () const { return u32   (_key);   }
     Move  move  () const { return Move  (_move);  }
     Depth depth () const { return Depth (_depth); }
     Bound bound () const { return Bound (_bound); }
     u08   gen   () const { return u08   (_gen);   }
-    u16   nodes () const { return u16   (_nodes); }
+    //u16   nodes () const { return u16   (_nodes); }
     Value value () const { return Value (_value); }
     Value eval  () const { return Value (_eval);  }
 
-    void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
+    INLINE void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
     {
         _key   = u32 (k);
         _move  = u16 (m);
@@ -118,7 +118,7 @@ public:
     static const u08 TTENTRY_SIZE;
 
     // Maximum bit of hash for cluster
-    static const u32 MAX_HASH_BIT;
+    static const u08 MAX_HASH_BIT;
 
     // Minimum size for Transposition table in mega-byte
     static const u32 MIN_TT_SIZE;

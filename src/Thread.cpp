@@ -74,7 +74,6 @@ namespace Threads {
     Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
         : active_pos (NULL)
         , idx (Threadpool.size ())  // Starts from 0
-        , max_ply (0)
         , active_splitpoint (NULL)
         , splitpoint_threads (0)
         , searching (false)
@@ -267,6 +266,7 @@ namespace Threads {
     // Cannot use a c'tor becuase Threadpool is a static object and need a fully initialized engine.
     void ThreadPool::initialize ()
     {
+        max_ply = 0;
         timer = new_thread<TimerThread> ();
         push_back (new_thread<MainThread> ());
         configure ();
@@ -329,7 +329,7 @@ namespace Threads {
         }
         return NULL;
     }
-
+    
     // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)

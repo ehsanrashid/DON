@@ -18,6 +18,8 @@ namespace Pawns {
 
     private:
         
+        u08    _kp_min_dist   [CLR_NO];
+        u08    _castle_rights [CLR_NO];
         Score  _king_safety   [CLR_NO];
 
         template<Color C>
@@ -25,53 +27,41 @@ namespace Pawns {
 
     public:
 
-        Key     _pawn_key;
-        Score   _pawn_score;
+        Key     pawn_key;
+        Score   pawn_score;
 
-        Bitboard _pawn_attacks   [CLR_NO];
-        Bitboard _passed_pawns   [CLR_NO];
-        Bitboard _candidate_pawns[CLR_NO];
-        
-        Square _king_sq       [CLR_NO];
-        u08    _kp_min_dist   [CLR_NO];
-        u08    _castle_rights [CLR_NO];
-        u08    _semiopen_files[CLR_NO];
+        Square   king_sq        [CLR_NO];
+        Bitboard pawn_attacks   [CLR_NO];
+
+        Bitboard passed_pawns   [CLR_NO];
+        Bitboard candidate_pawns[CLR_NO];
+
+        u08    semiopen_files[CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08    _pawn_count_sq [CLR_NO][CLR_NO]; // [color][light/dark squares]       
-
-        inline Score    pawn_score      () const { return _pawn_score; }
-
-        template<Color C>
-        inline Bitboard pawn_attacks    () const { return _pawn_attacks[C]; }
-
-        template<Color C>
-        inline Bitboard passed_pawns    () const { return _passed_pawns[C]; }
-        
-        template<Color C>
-        inline Bitboard candidate_pawns () const { return _candidate_pawns[C]; }
+        u08    pawns_on_sq [CLR_NO][CLR_NO]; // [color][light/dark squares]       
 
         template<Color C>
         inline i32  pawns_on_same_color_squares (Square s) const
         {
-            return _pawn_count_sq[C][!!(BitBoard::DARK_bb & s)];
+            return pawns_on_sq[C][!!(BitBoard::DARK_bb & s)];
         }
 
         template<Color C>
         inline u08  semiopen_file (File f) const
         {
-            return _semiopen_files[C] & (1 << f);
+            return semiopen_files[C] & (1 << f);
         }
 
         template<Color C>
         inline u08  semiopen_side (File f, bool left) const
         {
-            return _semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
         template<Color C>
         inline Score king_safety (const Position &pos, Square k_sq)
         {
-            return (_king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
+            return (king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
                 ? _king_safety[C] : (_king_safety[C] = do_king_safety<C> (pos, k_sq));
         }
 

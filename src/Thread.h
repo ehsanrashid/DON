@@ -238,10 +238,9 @@ namespace Threads {
         Material::Table  material_table;
         Pawns   ::Table  pawns_table;
 
-        Position        *active_pos;
+        Position *active_pos;
 
-        u08              idx
-            ,            max_ply;
+        u08     idx;
 
         SplitPoint* volatile active_splitpoint;
         volatile    u08      splitpoint_threads;
@@ -285,13 +284,13 @@ namespace Threads {
     {
 
     public:
+        Mutex       mutex;
+        Condition   sleep_condition;
+        TimerThread *timer;
 
         Depth   split_depth;
-        Mutex   mutex;
-
-        Condition   sleep_condition;
+        u08     max_ply;
         
-        TimerThread *timer;
         MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
         // No c'tor and d'tor, threads rely on globals that should

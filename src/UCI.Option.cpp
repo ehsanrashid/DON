@@ -121,7 +121,7 @@ namespace UCI {
         return oss.str ();
     }
 
-    // Option Events
+    // Option Actions
     namespace {
 
 #   ifdef LPAGES
@@ -184,13 +184,6 @@ namespace UCI {
             log_io (bool (opt));
         }
 
-        //// TODO::
-        //void on_query (const Option &opt)
-        //{
-        //    
-        //    (void) opt;
-        //}
-
     }
 
     void   initialize ()
@@ -201,7 +194,7 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default 128, Min 4, Max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
+        // Default 64, Min 4, Max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
@@ -211,7 +204,7 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (128, TranspositionTable::MIN_TT_SIZE, TranspositionTable::MAX_TT_SIZE, on_resize_hash);
+        Options["Hash"]                         << Option (64, TranspositionTable::MIN_TT_SIZE, TranspositionTable::MAX_TT_SIZE, on_resize_hash);
 #ifdef LPAGES
         Options["Large Pages"]                  << Option (true, on_large_pages);
 #endif
@@ -361,19 +354,6 @@ namespace UCI {
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
-        // TODO::
-        //// Activate Contempt for position analysis.
-        //// Default false.
-        ////
-        //// It is usually not recommended to activate the contempt for analyzing positions.
-        //// When contempt is active, the score of the analysis will be optimistic (over-evaluated) for the side that is to move.
-        //// That means that if you use Analysis Contempt the evaluations will change depending on whether White or Black has the move.
-        //// For example, from the start position, when you do an analysis with Analysis Contempt (and Contempt value 1)
-        //// you could find a best move e2-e4 scoring about +0.3 for White.
-        //// If you then play e2-e4 and analyze for Black you could find a score close to +0.0.
-        //// If you do the same without Analysis Contempt, you should find a consistent +0.15 score whether it's White or Black to move.
-        //Options["Analysis Contempt"]            << Option (false);
-
         Options["Mobility (Midgame)"]           << Option (100, 0, 200, on_change_evaluation);
         Options["Mobility (Endgame)"]           << Option (100, 0, 200, on_change_evaluation);
 
@@ -410,23 +390,6 @@ namespace UCI {
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
         Options["UCI_Chess960"]                 << Option (false);
-
-        // TODO::
-        //// Activate the strength limit specified in the UCI_Elo parameter.
-        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //// Default false.
-        ////
-        //Options["UCI_LimitStrength"]            << Option (false);
-
-        //// UCI-protocol compliant version of Strength parameter.
-        //// Internally the UCI_ELO value will be converted to a Strength value according to the table given above.
-        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //// Default 3000, Min 1200, Max 3000.
-        //Options["UCI_ELO"]                      << Option (3000, 1200, 3000);
-
-        // TODO::
-        //// This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["UCI_Query"]                    << Option (on_query);
 
     }
 

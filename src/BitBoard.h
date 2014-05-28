@@ -266,15 +266,15 @@ namespace BitBoard {
 #endif
     }
 
-    // Shift the Bitboard using delta
+    // Shift the bitboard using delta
     template<Delta Delta> inline Bitboard shift_del (Bitboard bb);
 
     template<> inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (+DEL_N); }
     template<> inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (-DEL_S); }
     template<> inline Bitboard shift_del<DEL_NN> (Bitboard bb) { return (bb) << (+DEL_NN); }
     template<> inline Bitboard shift_del<DEL_SS> (Bitboard bb) { return (bb) >> (-DEL_SS); }
-    //template<> inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (+DEL_E); }
-    //template<> inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_W); }
+    template<> inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (+DEL_E); }
+    template<> inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_W); }
     template<> inline Bitboard shift_del<DEL_NE> (Bitboard bb) { return (bb & FH_bb_) << (+DEL_NE); } //(bb << +DEL_NE) & FA_bb_;
     template<> inline Bitboard shift_del<DEL_SE> (Bitboard bb) { return (bb & FH_bb_) >> (-DEL_SE); } //(bb >> -DEL_SE) & FA_bb_;
     template<> inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (+DEL_NW); } //(bb << +DEL_NW) & FH_bb_;

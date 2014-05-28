@@ -299,7 +299,7 @@ union ScoreUnion
 inline Score mk_score (i32 mg, i32 eg)
 {
     ScoreUnion u;
-    u._.mg = i16 (mg) - (i16 (eg) >> 15);
+    u._.mg = i16 (mg - (i16 (eg) >> 15));
     u._.eg = i16 (eg);
     return Score (u.score);
 }

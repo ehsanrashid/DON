@@ -364,14 +364,28 @@ namespace UCI {
 
         inline void exe_perft (cmdstream &cmds)
         {
-            string token;
+            i32 depth;
             // Read perft 'depth'
-            if (cmds >> token)
+            if (cmds >> depth)
             {
                 stringstream ss;
                 ss  << i32 (Options["Hash"])    << " "
                     << i32 (Options["Threads"]) << " "
-                    << token << " perft current";
+                    << depth << " perft current";
+
+                benchmark (ss, RootPos);
+            }
+        }
+        inline void exe_perftdiv (cmdstream &cmds)
+        {
+            i32 depth;
+            // Read perft 'depth'
+            if (cmds >> depth)
+            {
+                stringstream ss;
+                ss  << i32 (Options["Hash"])    << " "
+                    << i32 (Options["Threads"]) << " "
+                    << depth << " perftdiv current";
 
                 benchmark (ss, RootPos);
             }
@@ -433,6 +447,7 @@ namespace UCI {
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
             else if (token == "perft")      exe_perft (cmds);
+            else if (token == "perftdiv")   exe_perftdiv (cmds);
             else if (token == "bench")      exe_bench (cmds);
             else if (token == "cls")        system ("cls");
             else if (token == "stop"

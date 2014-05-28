@@ -433,11 +433,6 @@ Move MovePicker::next_move<false> ()
             break;
 
         case CAPTURES_S6:
-            if (recapture_sq == SQ_NO)
-            {
-                cur = end;
-                break;
-            }
             do
             {
                 pick_best ();

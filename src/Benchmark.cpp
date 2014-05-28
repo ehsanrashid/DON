@@ -4,17 +4,20 @@
 #include <fstream>
 #include <vector>
 
+#include "UCI.h"
 #include "Position.h"
 #include "Searcher.h"
 #include "Transposition.h"
 #include "Thread.h"
-#include "UCI.h"
+#include "Notation.h"
 #include "Debugger.h"
 
 using namespace std;
 using namespace Searcher;
+using namespace MoveGenerator;
 using namespace Time;
 using namespace Threads;
+using namespace Notation;
 
 namespace {
 
@@ -128,7 +131,7 @@ void benchmark (istream &is, const Position &pos)
     
     bool  chess960 = bool (Options["UCI_Chess960"]);
     u64   nodes    = 0;
-    point elapsed  = now ();
+    point time     = now ();
 
     StateInfoStackPtr states;
 
@@ -141,11 +144,25 @@ void benchmark (istream &is, const Position &pos)
             << "\n---------------\n" 
             << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
 
-        if (limit_type == "perft")
+        if      (limit_type == "perft")
         {
             u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
-            cerr << "\nPerft " << u16 (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
+            cerr << "\nDepth " << u16 (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
             nodes += leaf_count;
+        }
+        else if (limit_type == "perftdiv")
+        {
+            StateInfo si;
+            CheckInfo ci (root_pos);
+            cerr << "\nDepth " << u16 (limits.depth) << "\n";
+            for (MoveList<LEGAL> ms (root_pos); *ms != MOVE_NONE; ++ms)
+            {
+                root_pos.do_move (*ms, si, root_pos.gives_check (*ms, ci) ? &ci : NULL);
+                u64 leaf_count = limits.depth > 1 ? perft (root_pos, (limits.depth - 1)*ONE_MOVE) : 1;
+                root_pos.undo_move ();
+                cerr << move_to_can (*ms, root_pos.chess960 ()) << ": " << leaf_count << "\n";
+                nodes += leaf_count;
+            }
         }
         else
         {
@@ -160,14 +177,14 @@ void benchmark (istream &is, const Position &pos)
 
     Debugger::dbg_print (); // Just before to exit
 
-    elapsed = now () - elapsed;
+    time = now () - time;
     // Ensure non-zero to avoid a 'divide by zero'
-    if (elapsed == 0) elapsed = 1;
+    if (time == 0) time = 1;
 
     cerr
         << "\n===========================\n"
-        << "Total time (ms) : " << elapsed << "\n"
+        << "Total time (ms) : " << time << "\n"
         << "Nodes searched  : " << nodes   << "\n"
-        << "Nodes/second    : " << nodes * M_SEC / elapsed
+        << "Nodes/second    : " << nodes * M_SEC / time
         << "\n---------------------------\n" << endl;
 }
