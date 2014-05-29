@@ -131,7 +131,7 @@ namespace Evaluator {
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
             S(+ 48,+  0), // Space
-            S(+300,+  0)  // KingSafety
+            S(+295,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -220,7 +220,7 @@ namespace Evaluator {
         const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
 
         const Score BishopColorPawnsPenalty = S(+ 8,+14); // Penalty for bishop with pawns on color
-        const Score BishopWingPawnsBonus    = S(+ 5,+15); // Bonus for bishop with pawns on wing
+        const Score BishopWingPawnsBonus    = S(+ 5,+20); // Bonus for bishop with pawns on wing
         const Score BishopTrappedPenalty    = S(+50,+40);
 
         const Score RookOnPawnBonus         = S(+10,+28); // Bonus for rook on pawns
