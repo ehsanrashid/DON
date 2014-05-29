@@ -131,7 +131,7 @@ namespace Evaluator {
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
             S(+ 48,+  0), // Space
-            S(+295,+  0)  // KingSafety
+            S(+290,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -219,7 +219,7 @@ namespace Evaluator {
         //const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for knight with pawns
         const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
 
-        const Score BishopOnPawnsPenalty    = S(+ 8,+14); // Penalty for bishop with pawns on color
+        const Score BishopPawnsPenalty      = S(+16,+28); // Penalty for bishop with pawns on color
         const Score BishopWingPawnsBonus    = S(+ 5,+20); // Bonus for bishop with pawns on wing
         const Score BishopTrappedPenalty    = S(+50,+40);
 
@@ -387,7 +387,6 @@ namespace Evaluator {
                 if (pinned_pieces & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
-                    //pos.attackers_to (s) > 1
                 }
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
@@ -408,7 +407,7 @@ namespace Evaluator {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.attacked_by[C_][PAWN] & s)
                 {
-                    score -= PawnThreatenPenalty[PT];// * ((pinned_pieces & s) ? 2 : 1);
+                    score -= PawnThreatenPenalty[PT];
                 }
 
                 // Special extra evaluation for pieces
@@ -423,12 +422,11 @@ namespace Evaluator {
                         //    score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
                         //}
 
-                        if (pos.count<PAWN> (C) > 1)
+                        if (pos.count<PAWN> (C_) > 1)
                         {
-                            Bitboard pawns = pos.pieces<PAWN> (C);
+                            Bitboard pawns = pos.pieces<PAWN> (C_);
                             if (     pawns & WingABC_bb
                                 &&   pawns & WingFGH_bb
-                                && !(pawns & WingDE_bb)
                                )
                             {
                                 score -= KnightWingPawnsPenalty;
@@ -439,21 +437,14 @@ namespace Evaluator {
                     // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
-                        //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
-                        
-                        Bitboard bishop_att = PieceAttacks[BSHP][s];
-                        i32 att_pawn_diff = pop_count<MAX15> (pos.pieces<PAWN>(C ) & bishop_att)
-                                           - pop_count<MAX15> (pos.pieces<PAWN>(C_) & bishop_att);
-
-                        if (att_pawn_diff != 0)
-                        {
-                            score -= BishopOnPawnsPenalty * att_pawn_diff;
-                        }
-
-                        //score -= BishopOnPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
-
                         if (pos.count<PAWN> (C) > 1)
                         {
+                            Bitboard bishop_front_pawns = PieceAttacks[BSHP][s] & FrontRank_bb[C][_rank (s)] & pos.pieces <PAWN> (C);
+                            if (bishop_front_pawns != U64 (0))
+                            {
+                                score -= BishopPawnsPenalty * i32 (pop_count<MAX15> (bishop_front_pawns & attacks_bb<BSHP> (s, pos.pieces <PAWN> ())));
+                            }
+
                             Bitboard pawns = pos.pieces<PAWN> (C);
                             if (   pawns & WingABC_bb
                                 && pawns & WingFGH_bb
@@ -1077,20 +1068,20 @@ namespace Evaluator {
 
             ScaleFactor sf;
 
-            // Stalemate detection
-            Color stm = pos.active ();
-            if (   (game_phase < (PHASE_MIDGAME - 64))
-                && (ei.attacked_by[stm][NIHT] == U64 (0))
-                && (ei.attacked_by[stm][BSHP] == U64 (0))
-                && (ei.attacked_by[stm][ROOK] == U64 (0))
-                && (ei.attacked_by[stm][QUEN] == U64 (0))
-                && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
-                && (MoveList<LEGAL> (pos).size () == 0)
-               )
-            {
-                sf = SCALE_FACTOR_DRAW;
-            }
-            else
+            //// Stalemate detection
+            //Color stm = pos.active ();
+            //if (   (game_phase < (PHASE_MIDGAME - 64))
+            //    && (ei.attacked_by[stm][NIHT] == U64 (0))
+            //    && (ei.attacked_by[stm][BSHP] == U64 (0))
+            //    && (ei.attacked_by[stm][ROOK] == U64 (0))
+            //    && (ei.attacked_by[stm][QUEN] == U64 (0))
+            //    && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
+            //    && (MoveList<LEGAL> (pos).size () == 0)
+            //   )
+            //{
+            //    sf = SCALE_FACTOR_DRAW;
+            //}
+            //else
             {
                 // Scale winning side if position is more drawish than it appears
                 sf = (eg > VALUE_DRAW)
