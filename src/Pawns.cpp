@@ -97,8 +97,8 @@ namespace Pawns {
 
             e->king_sq        [C] = SQ_NO;
             e->pawn_attacks   [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            e->pawns_on_sq    [C][WHITE] = pop_count<MAX15> (pawns[0] & Liht_bb);
-            e->pawns_on_sq    [C][BLACK] = pop_count<MAX15> (pawns[0] & Dark_bb);
+            //e->pawns_on_sq    [C][WHITE] = pop_count<MAX15> (pawns[0] & Liht_bb);
+            //e->pawns_on_sq    [C][BLACK] = pop_count<MAX15> (pawns[0] & Dark_bb);
 
             e->passed_pawns   [C] = U64 (0);
             e->candidate_pawns[C] = U64 (0);

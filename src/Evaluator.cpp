@@ -440,11 +440,22 @@ namespace Evaluator {
                     if (BSHP == PT)
                     {
                         //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
-                        
+                        if (pos.count<PAWN> (C_) > 0)
+                        {
+                            Bitboard bishop_att = attacks_bb<BSHP> (s, occ); //PieceAttacks[BSHP][s];
+                            i32 att_pawn_diff = pop_count<MAX15> (pos.pieces<PAWN>(C ) & bishop_att)
+                                               - pop_count<MAX15> (pos.pieces<PAWN>(C_) & bishop_att);
+
+                            if (att_pawn_diff > 0)
+                            {
+                                score -= BishopColorPawnsPenalty * att_pawn_diff;
+                            }
+
+                            //score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
+                        }
+
                         if (pos.count<PAWN> (C) > 1)
                         {
-                            score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
-
                             Bitboard pawns = pos.pieces<PAWN> (C);
                             if (   pawns & WingABC_bb
                                 && pawns & WingFGH_bb
