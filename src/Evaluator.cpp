@@ -130,8 +130,8 @@ namespace Evaluator {
             S(+289,+344), // Mobility
             S(+233,+201), // PawnStructure
             S(+221,+273), // PassedPawns
-            S(+ 48,+  0), // Space
-            S(+290,+  0)  // KingSafety
+            S(+ 46,+  0), // Space
+            S(+289,+  0)  // KingSafety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -217,7 +217,7 @@ namespace Evaluator {
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
 
         //const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for knight with pawns
-        const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
+        //const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
 
         const Score BishopPawnsPenalty      = S(+16,+28); // Penalty for bishop with pawns on color
         const Score BishopWingPawnsBonus    = S(+ 5,+20); // Bonus for bishop with pawns on wing
@@ -422,16 +422,16 @@ namespace Evaluator {
                         //    score += KnightPawnsBonus * i32 (pop_count<MAX15> (knight_pawns));
                         //}
 
-                        if (pos.count<PAWN> (C_) > 1)
-                        {
-                            Bitboard pawns = pos.pieces<PAWN> (C_);
-                            if (     pawns & WingABC_bb
-                                &&   pawns & WingFGH_bb
-                               )
-                            {
-                                score -= KnightWingPawnsPenalty;
-                            }
-                        }
+                        //if (pos.count<PAWN> (C_) > 1)
+                        //{
+                        //    Bitboard pawns = pos.pieces<PAWN> (C_);
+                        //    if (     pawns & WingABC_bb
+                        //        &&   pawns & WingFGH_bb
+                        //       )
+                        //    {
+                        //        score -= KnightWingPawnsPenalty;
+                        //    }
+                        //}
                     }
 
                     // Penalty for bishop with same coloured pawns
