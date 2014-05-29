@@ -219,7 +219,7 @@ namespace Evaluator {
         //const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for knight with pawns
         const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
 
-        const Score BishopColorPawnsPenalty = S(+ 8,+14); // Penalty for bishop with pawns on color
+        const Score BishopOnPawnsPenalty    = S(+ 8,+14); // Penalty for bishop with pawns on color
         const Score BishopWingPawnsBonus    = S(+ 5,+20); // Bonus for bishop with pawns on wing
         const Score BishopTrappedPenalty    = S(+50,+40);
 
@@ -440,19 +440,17 @@ namespace Evaluator {
                     if (BSHP == PT)
                     {
                         //attacks &= ~(ei.attacked_by[C_][NIHT] & SpaceMask[C]);
-                        if (pos.count<PAWN> (C_) > 0)
+                        
+                        Bitboard bishop_att = PieceAttacks[BSHP][s];
+                        i32 att_pawn_diff = pop_count<MAX15> (pos.pieces<PAWN>(C ) & bishop_att)
+                                           - pop_count<MAX15> (pos.pieces<PAWN>(C_) & bishop_att);
+
+                        if (att_pawn_diff != 0)
                         {
-                            Bitboard bishop_att = attacks_bb<BSHP> (s, occ); //PieceAttacks[BSHP][s];
-                            i32 att_pawn_diff = pop_count<MAX15> (pos.pieces<PAWN>(C ) & bishop_att)
-                                               - pop_count<MAX15> (pos.pieces<PAWN>(C_) & bishop_att);
-
-                            if (att_pawn_diff > 0)
-                            {
-                                score -= BishopColorPawnsPenalty * att_pawn_diff;
-                            }
-
-                            //score -= BishopColorPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
+                            score -= BishopOnPawnsPenalty * att_pawn_diff;
                         }
+
+                        //score -= BishopOnPawnsPenalty * ei.pi->pawns_on_same_color_squares<C> (s);
 
                         if (pos.count<PAWN> (C) > 1)
                         {
