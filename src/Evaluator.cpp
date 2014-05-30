@@ -199,11 +199,14 @@ namespace Evaluator {
 
         // ThreatBonus[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
-        const Score ThreatBonus[3][TOTL] =
+        const Score ThreatBonus[NONE][TOTL] =
         {
             { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Pawn
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Minor
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52), S(+ 0,+ 0), S(+ 0,+ 0) }  // Major
+            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Knight
+            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Bishop
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52), S(+ 0,+ 0), S(+ 0,+ 0) }, // Rook
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52), S(+ 0,+ 0), S(+ 0,+ 0) }, // Queen
+            {}
         };
 
         // PawnThreatenPenalty[PieceT] contains a penalty according to
@@ -600,7 +603,6 @@ namespace Evaluator {
                 Bitboard undefended =
                     ei.attacked_by[C_][NONE]
                   & ei.attacked_by[C][KING]
-                  //& (DistanceRings[fk_sq][0]|DistanceRings[fk_sq][1])
                   & ~(ei.attacked_by[C][PAWN]
                     | ei.attacked_by[C][NIHT]
                     | ei.attacked_by[C][BSHP]
@@ -616,14 +618,11 @@ namespace Evaluator {
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                      // King-zone attacker piece weight
                     + (undefended != U64 (0) ? 3 * (pop_count<MAX15> (undefended)) : 0) // King-zone undefended piece weight
-                    //+ 3 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][0]) // King-zone[0] undefended piece weight
-                    //+ 1 * pop_count<MAX15> (undefended&DistanceRings[fk_sq][1]) // King-zone[1] undefended piece weight
                     + (ei.pinned_pieces[C] != U64 (0) ? 2 * pop_count<MAX15> (ei.pinned_pieces[C]) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
-                //undefended &= ei.attacked_by[C][KING] & ~pos.pieces (C_);
 
                 Bitboard undefended_attacked;
                 // Analyse enemy's safe queen contact checks. First find undefended
@@ -738,47 +737,20 @@ namespace Evaluator {
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies != U64 (0))
             {
-                Bitboard threaten_enemies;
-                // Threaten by pawns
-                threaten_enemies = weak_enemies & ei.attacked_by[C][PAWN];
-                while (threaten_enemies != U64 (0))
+                for (i08 pt = PAWN; pt < KING; ++pt)
                 {
-                    score += ThreatBonus[0][ptype (pos[pop_lsq (threaten_enemies)])];
+                    Bitboard threaten_enemies = weak_enemies & ei.attacked_by[C][pt];
+                    while (threaten_enemies != U64 (0))
+                    {
+                        score += ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])];
+                    }
                 }
-                // Threaten by minors
-                threaten_enemies = weak_enemies & ei.attacked_by[C][NIHT];
-                while (threaten_enemies != U64 (0))
-                {
-                    score += ThreatBonus[1][ptype (pos[pop_lsq (threaten_enemies)])];
-                }
-                threaten_enemies = weak_enemies & ei.attacked_by[C][BSHP];
-                while (threaten_enemies != U64 (0))
-                {
-                    score += ThreatBonus[1][ptype (pos[pop_lsq (threaten_enemies)])];
-                }
-                // Threaten by majors
-                threaten_enemies = weak_enemies & ei.attacked_by[C][ROOK];
-                while (threaten_enemies != U64 (0))
-                {
-                    score += ThreatBonus[2][ptype (pos[pop_lsq (threaten_enemies)])];
-                }
-                threaten_enemies = weak_enemies & ei.attacked_by[C][QUEN];
-                while (threaten_enemies != U64 (0))
-                {
-                    score += ThreatBonus[2][ptype (pos[pop_lsq (threaten_enemies)])];
-                }
-                // Threaten by king
-                //threaten_enemies = weak_enemies & ei.attacked_by[C][KING];
-                //while (threaten_enemies != U64 (0))
-                //{
-                //    score += ThreatBonus[1][ptype (pos[pop_lsq (threaten_enemies)])];
-                //}
 
                 // Hanging piece
-                threaten_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
-                if (threaten_enemies != U64 (0))
+                Bitboard hanging_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
+                if (hanging_enemies != U64 (0))
                 {
-                    score += PieceHangingBonus[C == pos.active ()] * i32 (pop_count<MAX15> (threaten_enemies));
+                    score += PieceHangingBonus[C == pos.active ()] * i32 (pop_count<MAX15> (hanging_enemies));
                 }
             }
 
@@ -809,8 +781,8 @@ namespace Evaluator {
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                Value mg_bonus = Value (17 * rr);
-                Value eg_bonus = Value (7 * (rr + r + 1));
+                Value mg_bonus = Value (20 * rr);
+                Value eg_bonus = Value (10 * (rr + r + 1));
 
                 if (rr != 0)
                 {
@@ -870,6 +842,21 @@ namespace Evaluator {
 
                         mg_bonus += k * rr;
                         eg_bonus += k * rr;
+                    }
+                }
+
+                // Increase the bonus if the passed pawn is supported by a friendly pawn
+                // on the same rank and a bit smaller if it's on the previous rank.
+                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
+                if (supporting_pawns != U64 (0))
+                {
+                    if (supporting_pawns & rank_bb (s))
+                    {
+                        eg_bonus += Value (r * 20);
+                    }
+                    else if (supporting_pawns & rank_bb (s - pawn_push (C)))
+                    {
+                        eg_bonus += Value (r * 12);
                     }
                 }
 
