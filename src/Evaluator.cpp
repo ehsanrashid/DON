@@ -434,9 +434,9 @@ namespace Evaluator {
                         //}
                     }
 
-                    // Penalty for bishop with same coloured pawns
                     if (BSHP == PT)
                     {
+                        // Penalty for bishop with same coloured front pawns
                         if (pos.count<PAWN> (C) > 1)
                         {
                             Bitboard bishop_front_pawns = PieceAttacks[BSHP][s] & FrontRank_bb[C][_rank (s)] & pos.pieces <PAWN> (C);

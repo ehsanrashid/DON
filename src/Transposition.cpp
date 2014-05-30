@@ -68,7 +68,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
         (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
 
     ptr[-1]     = mem;
-    _hash_table = (TTEntry *) (ptr[0]);
+    _hash_table = (TTEntry *) (ptr);
 
 #endif
 
