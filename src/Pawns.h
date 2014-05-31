@@ -36,7 +36,7 @@ namespace Pawns {
         Bitboard passed_pawns   [CLR_NO];
         Bitboard candidate_pawns[CLR_NO];
 
-        u08    semiopen_files[CLR_NO];
+        u08       semiopen_files[CLR_NO];
 
         template<Color C>
         inline u08  semiopen_file (File f) const

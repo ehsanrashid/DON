@@ -235,7 +235,7 @@ namespace UCI {
                         Move m = move_from_can (token, RootPos);
                         if (MOVE_NONE != m)
                         {
-                            limits.searchmoves.push_back (m);
+                            limits.root_moves.push_back (m);
                         }
                     }
                 }

@@ -347,12 +347,12 @@ namespace Threads {
         }
         
         RootMoves.clear ();
-        bool all_rootmoves = limits.searchmoves.empty ();
+        bool all_rootmoves = limits.root_moves.empty ();
         for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
         {
             Move m = *itr;
             if (   all_rootmoves
-                || count (limits.searchmoves.begin (), limits.searchmoves.end (), m))
+                || count (limits.root_moves.begin (), limits.root_moves.end (), m))
             {
                 RootMoves.push_back (RootMove (m));
             }

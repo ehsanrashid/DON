@@ -1012,11 +1012,11 @@ namespace Searcher {
                     ++moves_count;
                 }
 
-                //u64 nodes = U64 (0);
+                u64 nodes = U64 (0);
                 
                 if (RootNode)
                 {
-                    //nodes = pos.game_nodes ();
+                    nodes = pos.game_nodes ();
 
                     Signals.root_1stmove = (1 == moves_count);
 
@@ -1305,12 +1305,12 @@ namespace Searcher {
                 if (RootNode)
                 {
                     RootMove &rm = *find (RootMoves.begin (), RootMoves.end (), move);
+                    rm.nodes += pos.game_nodes () - nodes;
 
                     // PV move or new best move ?
                     if (is_move_pv || alpha < value)
                     {
                         rm.value[0] = value;
-                        //rm.nodes += pos.game_nodes () - nodes;
                         rm.extract_pv_from_tt (pos);
 
                         // Record how often the best move has been changed in each

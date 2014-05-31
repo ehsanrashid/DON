@@ -59,7 +59,7 @@ namespace Searcher {
     public:
 
         GameClock gameclock[CLR_NO];
-        std::vector<Move>  searchmoves;   // search these moves only restrict
+        std::vector<Move> root_moves;   // search these moves only restrict
 
         u32  movetime;  // search <x> time in milli-seconds
         u08  movestogo; // search <x> moves to the next time control
