@@ -201,11 +201,11 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Pawn
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Knight
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104), S(+ 0,+ 0), S(+ 0,+ 0) }, // Bishop
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52), S(+ 0,+ 0), S(+ 0,+ 0) }, // Rook
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52), S(+ 0,+ 0), S(+ 0,+ 0) }, // Queen
+            { S(+ 0,+ 0), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Pawn
+            { S(+ 7,+39), S(+ 0,+ 0), S(+25,+49), S(+36,+96), S(+41,+104) }, // Knight
+            { S(+ 7,+39), S(+23,+49), S(+ 0,+ 0), S(+36,+96), S(+41,+104) }, // Bishop
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+ 0,+ 0), S(+24,+ 52) }, // Rook
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+ 0,+  0) }, // Queen
             {}
         };
 
@@ -218,6 +218,8 @@ namespace Evaluator {
 
 
         const Score TempoBonus              = S(+24,+11); // Bonus for tempo
+
+        const Score CenterAttacksBonus      = S(+ 2,+ 0); // Bonus for center attacks
 
         //const Score KnightPawnsBonus        = S(+ 1,+ 2); // Bonus for knight with pawns
         //const Score KnightWingPawnsPenalty  = S(+ 5,+15); // Penalty for knight with pawns on wing
@@ -394,6 +396,8 @@ namespace Evaluator {
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
+                score += CenterAttacksBonus * i32 (pop_count <MAX15> (Center_bb[C] & attacks));
+
                 if (attacks & ei.king_ring[C_])
                 {
                     ei.king_attackers_count [C]++;
@@ -439,18 +443,20 @@ namespace Evaluator {
 
                     if (BSHP == PT)
                     {
-                        // Penalty for bishop with same coloured front pawns
                         if (pos.count<PAWN> (C) > 1)
                         {
-                            Bitboard bishop_front_pawns = PieceAttacks[BSHP][s] & FrontRank_bb[C][_rank (s)] & pos.pieces <PAWN> (C);
+                            Bitboard pawns = pos.pieces<PAWN> (C);
+
+                            // Penalty for bishop with same coloured front pawns
+                            Bitboard bishop_front_pawns = PieceAttacks[BSHP][s] & FrontRank_bb[C][_rank (s)] & pawns;
                             if (bishop_front_pawns != U64 (0))
                             {
                                 score -= BishopPawnsPenalty * i32 (pop_count<MAX15> (bishop_front_pawns & attacks_bb<BSHP> (s, pos.pieces <PAWN> ())));
                             }
-
-                            Bitboard pawns = pos.pieces<PAWN> (C);
+                            
                             if (   pawns & WingABC_bb
                                 && pawns & WingFGH_bb
+                                && !(pawns & WingDE_bb)
                                )
                             {
                                 score += BishopWingPawnsBonus;
