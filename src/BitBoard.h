@@ -50,7 +50,7 @@ namespace BitBoard {
     const Bitboard WingABC_bb = (FA_bb | FB_bb | FC_bb);
     const Bitboard WingFGH_bb = (FF_bb | FG_bb | FH_bb);
     const Bitboard WingDE_bb  = (FD_bb | FE_bb);
-    const Bitboard Center_bb[CLR_NO]  =
+    const Bitboard Center_bb[CLR_NO] =
     {
         (FC_bb | FD_bb | FE_bb | FF_bb)&(R4_bb | R5_bb | R6_bb | R7_bb | R8_bb),
         (FC_bb | FD_bb | FE_bb | FF_bb)&(R5_bb | R4_bb | R3_bb | R2_bb | R1_bb)

@@ -9,20 +9,26 @@
 
 // TimeManager class computes the optimal time to think depending on the
 // maximum available time, the move game number and other parameters.
+//Support four different kind of time controls:
+//
+//increment == 0 && moves_to_go == 0 means: x basetime  [sudden death!]
+//increment == 0 && moves_to_go != 0 means: x moves in y minutes
+//increment >  0 && moves_to_go == 0 means: x basetime + z increment
+//increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
 class TimeManager
 {
 
 private:
 
-    u32    _optimum_search_time;
-    u32    _maximum_search_time;
+    u32    _optimum_time;
+    u32    _maximum_time;
     double _unstable_pv_factor;
 
 public:
 
-    inline u32 available_time () const { return _optimum_search_time * _unstable_pv_factor * 0.71; }
+    inline u32 available_time () const { return _optimum_time * _unstable_pv_factor * 0.71; }
     
-    inline u32 maximum_time   () const { return _maximum_search_time; }
+    inline u32 maximum_time   () const { return _maximum_time; }
 
     inline void pv_instability (double best_move_changes)
     {

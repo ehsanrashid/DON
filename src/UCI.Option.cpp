@@ -366,11 +366,11 @@ namespace UCI {
         Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
         Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
 
-        Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
-        Options["Emergency Base Time"]          << Option ( 60, 0, 30000);
-        Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
-        // The minimum amount of time to analyze, in milliseconds.
-        Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
+        //Options["Clock Time"]                   << Option ( 60, 0, 30000);
+        //Options["Move Horizon"]                 << Option ( 40, 0, 50);
+        //Options["Move Time"]                    << Option ( 30, 0, 5000);
+        //// The minimum amount of time to analyze, in milliseconds.
+        //Options["Thinking Time"]                << Option ( 20, 0, 5000);
         // Move fast if small value, 100 is neutral
         Options["Slow Mover"]                   << Option ( 80, 10, 1000);
 
