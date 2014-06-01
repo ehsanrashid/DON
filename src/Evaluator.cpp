@@ -396,7 +396,7 @@ namespace Evaluator {
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
-                score += CenterAttacksBonus * i32 (pop_count <MAX15> (Center_bb[C] & attacks));
+                if (QUEN != PT) score += CenterAttacksBonus * i32 (pop_count <MAX15> (Center_bb[C] & attacks));
 
                 if (attacks & ei.king_ring[C_])
                 {
