@@ -604,7 +604,6 @@
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
-    <ClCompile Include="src\TriLogger.cpp" />
     <ClCompile Include="src\UCI.cpp" />
     <ClCompile Include="src\UCI.Option.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
@@ -639,7 +638,6 @@
     <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
-    <ClInclude Include="src\TriLogger.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
     <ClInclude Include="src\Zobrist.h" />

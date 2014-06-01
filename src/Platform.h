@@ -130,36 +130,10 @@ typedef        uint64_t    u64;
 
 #else
 
-//#define TRI_LOGGER
+#   include <cassert>
 
-//#define CLEANTLOG
-//#define OTLOG
-//#define ETLOG
-#define FTLOG   ExceptLog
-
-#   ifdef TRI_LOGGER
-
-#       include "TriLogger.h"
-
-#       define ASSERT(condition)                \
-    do {                                        \
-    if (!(condition)) {                         \
-    TRI_LOG_MSG ("ASSERT: \'" #condition "\'"); \
-    } } while (false)
-
-#       define ASSERT_MSG(condition, msg)       \
-    do {                                        \
-    if (!(condition)) {                         \
-    TRI_LOG_MSG ("ASSERT: \'" msg "\'");        \
-    } } while (false)
-
-#   else
-#       include <cassert>
-
-#       define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
-#       define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
-
-#   endif
+#   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
+#   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
 
 #endif
 

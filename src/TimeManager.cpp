@@ -41,16 +41,16 @@ namespace {
         const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
 
-        double  this_moves_importance = (move_importance (game_ply) * SlowMover) / 100;
-        double other_moves_importance = 0.0;
+        double  this_move_imp = (move_importance (game_ply) * SlowMover) / 100;
+        double other_move_imp = 0.0;
 
         for (u08 i = 1; i < moves_to_go; ++i)
         {
-            other_moves_importance += move_importance (game_ply + 2 * i);
+            other_move_imp += move_importance (game_ply + 2 * i);
         }
 
-        double time_ratio1 = (TMaxRatio * this_moves_importance) / (TMaxRatio * this_moves_importance + other_moves_importance);
-        double time_ratio2 = (this_moves_importance + TStealRatio * other_moves_importance) / (this_moves_importance + other_moves_importance);
+        double time_ratio1 = (TMaxRatio * this_move_imp) / (TMaxRatio * this_move_imp + other_move_imp);
+        double time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
 
         return i32 (time * min (time_ratio1, time_ratio2));
     }
