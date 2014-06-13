@@ -1180,7 +1180,7 @@ namespace Searcher {
                         && ptype (pos[dst_sq (move)]) != PAWN
                        )
                     {
-                        Move rev_move = mk_move (dst_sq (move), org_sq (move));
+                        Move rev_move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
                         if (pos.see (rev_move) < VALUE_ZERO)
                         {
                             (ss)->reduction -= ONE_MOVE;

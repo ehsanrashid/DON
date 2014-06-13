@@ -821,7 +821,7 @@ namespace Evaluator {
                         if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.attacked_by[C_][ROOK] & s))
                                || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.attacked_by[C_][QUEN] & s))
                                )
-                            && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()) /*& ~ei.attacked_by[C ][NONE]*/)
+                            && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
                            )
                         {
                             unsafe_squares = queen_squares;
@@ -835,7 +835,7 @@ namespace Evaluator {
                         if (   (  ((back_squares & pos.pieces<ROOK> (C)) && (ei.attacked_by[C][ROOK] & s))
                                || ((back_squares & pos.pieces<QUEN> (C)) && (ei.attacked_by[C][QUEN] & s))
                                )
-                            && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()) /*& ~ei.attacked_by[C_][NONE]*/)
+                            && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
                            )
                         {
                             defended_squares = queen_squares;
