@@ -58,7 +58,7 @@ public:
     {
         // Guaranteed to be destroyed.
         // Instantiated on first use.
-        static IOLogger _instance ("IO_Log.txt");
+        static IOLogger _instance ("DebugLog.txt");
         return _instance;
     }
 

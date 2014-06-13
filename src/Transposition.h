@@ -106,7 +106,6 @@ private:
             _hash_table = NULL;
             _hash_mask  = 0;
             _generation = 0;
-            clear_hash  = false;
         }
     }
 
@@ -127,20 +126,18 @@ public:
     // 032768 MB = 032 GB   -> 32 Bit
     static const u32 MAX_TT_SIZE;
 
-    bool clear_hash;
+    static bool Clear_Hash;
 
     TranspositionTable ()
         : _hash_table (NULL)
         , _hash_mask (0)
         , _generation (0)
-        , clear_hash (false)
     {}
 
     TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
         , _hash_mask (0)
         , _generation (0)
-        , clear_hash (false)
     {
         resize (mem_size_mb, true);
     }
@@ -167,19 +164,12 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (clear_hash && _hash_table != NULL)
+        if (Clear_Hash && _hash_table != NULL)
         {
             memset (_hash_table, 0x00, entries () * TTENTRY_SIZE);
             _generation = 0;
             sync_cout << "info string Hash cleared." << sync_endl;
         }
-        clear_hash = false;
-    }
-
-    inline void master_clear ()
-    {
-        clear_hash = true;
-        clear ();
     }
 
     // new_gen() is called at the beginning of every new search.

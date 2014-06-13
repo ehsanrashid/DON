@@ -53,7 +53,7 @@ namespace MoveGenerator {
                             {
                                 continue;
                             }
-                            if (UNLIKELY (ci->discoverers) && (ci->discoverers & s))
+                            if (ci->discoverers && (ci->discoverers & s))
                             {
                                 continue;
                             }
@@ -130,7 +130,7 @@ namespace MoveGenerator {
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                    if (UNLIKELY (ci) && !pos.gives_check (m, *ci))
+                    if (ci != NULL && !pos.gives_check (m, *ci))
                     {
                         return;
                     }

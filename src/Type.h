@@ -13,8 +13,6 @@
 
 #include "Platform.h"
 
-#define UNLIKELY(x) (x) // For code annotation purposes
-
 typedef u64     Key;
 typedef u64     Bitboard;
 
@@ -95,8 +93,7 @@ enum CSide : i08
     CS_NO
 };
 
-// Castle Right
-// Defined as in PolyGlot book hash key
+// Castle Right defined as in PolyGlot book hash key
 enum CRight : u08
 {
     CR_NO ,               // 0000
@@ -290,35 +287,16 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NONE    = 255
 };
 
-union ScoreUnion
-{
-    u32 score;
-    struct { i16 eg, mg; } _;
-};
-
-inline Score mk_score (i32 mg, i32 eg)
-{
-    ScoreUnion u;
-    u._.mg = i16 (mg - (i16 (eg) >> 15));
-    u._.eg = i16 (eg);
-    return Score (u.score);
-}
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
 
-inline Value mg_value (Score s)
-{
-    ScoreUnion u = { u32 (s) };
-    return Value (u._.mg + (i16 (u._.eg) >> 15));
-}
+inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x10000); }
 
-inline Value eg_value (Score s)
-{
-    ScoreUnion u = { u32 (s) };
-    return Value (u._.eg);
-}
+inline Value eg_value (Score s) { return Value ((i32) (u32 (s) & 0x7FFFU) - (i32) (u32 (s) & 0x8000U)); }
+
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
@@ -418,10 +396,10 @@ inline Depth& operator*= (Depth &d, double f) { d = Depth (i32 (i32 (d) * f)); r
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
+CACHE_ALIGN(32) extern const Value PieceValue[PHASE_NO][TOTL];
+
 extern const std::string PieceChar;
 extern const std::string ColorChar;
-
-extern const Value PieceValue[PHASE_NO][TOTL];
 
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color (c^BLACK); }
@@ -461,7 +439,7 @@ inline Square operator| (File f, Rank r) { return Square (( r << 3) | i08 (f)); 
 inline Square operator| (Rank r, File f) { return Square ((~r << 3) | i08 (f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 inline bool _ok     (Square s) { return !(s & ~i08 (SQ_H8)); }
-inline File _file   (Square s) { return File (s & i08 (SQ_H1)); }
+inline File _file   (Square s) { return File (s & i08 (F_H)); }
 inline Rank _rank   (Square s) { return Rank (s >> 3); }
 inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & i08 (SQ_H1)) + i08 (SQ_H1)); } // R - F + 7
 inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & i08 (SQ_H1))); }               // R + F
@@ -471,7 +449,7 @@ inline Square operator~ (Square s) { return Square (s ^ i08 (SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
 inline Square operator! (Square s) { return Square (s ^ i08 (SQ_H1)); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * i08 (SQ_H1))); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * i08 (R_8))); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
 inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * i08 (SQ_A8))); }
 
@@ -590,8 +568,8 @@ inline bool   _ok     (Move m)
     return (org_sq (m) != dst_sq (m));
 }
 
-//inline void org_sq    (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
-//inline void dst_sq    (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
+inline void org_sq    (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
+inline void dst_sq    (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
 inline void   promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12); }
 //inline void mtype     (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
 //inline Move operator~ (Move m)
@@ -618,7 +596,7 @@ inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
 inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0)); }
 
-//inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
+inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
 
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }

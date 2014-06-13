@@ -17,15 +17,14 @@ using namespace MoveGenerator;
 using namespace Threads;
 using namespace Notation;
 
-const string PieceChar ("PNBRQK  pnbrqk");
-const string ColorChar ("wb-");
-
-const Value PieceValue[PHASE_NO][TOTL] =
+CACHE_ALIGN(32) const Value PieceValue[PHASE_NO][TOTL] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
+const string PieceChar ("PNBRQK  pnbrqk");
+const string ColorChar ("wb-");
 const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 bool _ok (const string &fen, bool c960, bool full)
@@ -1016,7 +1015,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     if (ci.checking_bb[pt] & dst) return true;
 
     // Discovery check ?
-    if (UNLIKELY (ci.discoverers) && ci.discoverers & org)
+    if (ci.discoverers && (ci.discoverers & org))
     {
         if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
@@ -1435,7 +1434,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
             // Discovery check ?
             if (QUEN != pt)
             {
-                if (UNLIKELY(ci->discoverers) && (ci->discoverers & org))
+                if (ci->discoverers && (ci->discoverers & org))
                 {
                     if (ROOK != pt)
                     {
@@ -1816,14 +1815,12 @@ Position::operator string () const
 bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
 {
     if (fen.empty ()) return false;
-
-    pos.clear ();
-
     istringstream iss (fen);
-    unsigned char ch;
-
     iss >> noskipws;
 
+    pos.clear ();
+    
+    u08 ch;
     // 1. Piece placement on Board
     size_t idx;
     Square s = SQ_A8;
@@ -1905,7 +1902,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
-    char col, row;
+    u08 col, row;
     if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
         && ((iss >> row) && (row == '3' || row == '6')))
     {

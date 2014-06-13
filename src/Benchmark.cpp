@@ -85,8 +85,10 @@ void benchmark (istream &is, const Position &pos)
     string limit_val  = (is >> token) ? token : "13";
     string limit_type = (is >> token) ? token : "depth";
     string fen_fn     = (is >> token) ? token : "default";
+    string boolean    = "false";
 
     Options["Hash"]    = hash;
+    Options["Never Clear Hash"] = boolean;
     Options["Threads"] = threads;
 
     i32 value = abs (atoi (limit_val.c_str ()));
@@ -166,7 +168,7 @@ void benchmark (istream &is, const Position &pos)
         }
         else
         {
-            TT.master_clear ();
+            TT.clear ();
             Threadpool.start_thinking (root_pos, limits, states);
             Threadpool.wait_for_think_finished ();
             nodes += RootPos.game_nodes ();

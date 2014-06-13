@@ -104,7 +104,7 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        u08 size = splitpoint_threads;
+        const u08 size = splitpoint_threads;
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.

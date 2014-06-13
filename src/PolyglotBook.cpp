@@ -205,10 +205,10 @@ u64 PolyglotBook::find_index (const string &fen, bool c960)
 
 Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
-    if (!fstream::is_open () || !(_mode & ios_base::in))
-    {
-        if (!open (_fn_book, ios_base::in)) return MOVE_NONE;
-    }
+    //if (!fstream::is_open () || !(_mode & ios_base::in))
+    //{
+    //    if (!open (_fn_book, ios_base::in)) return MOVE_NONE;
+    //}
 
     Key key = ZobPG.compute_posi_key (pos);
 

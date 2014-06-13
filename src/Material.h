@@ -26,18 +26,14 @@ namespace Material {
 
     public:
 
-        Key     _matl_key;
-        i16     _value;
-        u08     _factor[CLR_NO];
-        Score   _space_weight;
-        Phase   _game_phase;
+        Key     matl_key;
+        Score   matl_score;
+        u08     factor[CLR_NO];
+        Score   space_weight;
+        Phase   game_phase;
 
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
-
-        inline Score material_score () const { return mk_score (_value, _value); }
-        inline Score space_weight   () const { return _space_weight; }
-        inline Phase game_phase     () const { return _game_phase; }
 
         inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
         inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
@@ -56,7 +52,7 @@ namespace Material {
                 ScaleFactor sf = (*scaling_func[C]) (pos);
                 if (SCALE_FACTOR_NONE != sf) return sf;
             }
-            return ScaleFactor (_factor[C]);
+            return ScaleFactor (factor[C]);
         }
 
     };

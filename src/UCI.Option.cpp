@@ -76,21 +76,22 @@ namespace UCI {
         ASSERT (!_type.empty ());
 
         if (!( (_type != "button" && value.empty ())
-            || (_type == "check" && value != "true" && value != "false")
-            || (_type == "spin" && (atoi (value.c_str ()) < _minimum || atoi (value.c_str ()) > _maximum))
+            || (_type == "check"  && value != "true" && value != "false")
+            || (_type == "spin"   && (_minimum > atoi (value.c_str ()) || atoi (value.c_str ()) > _maximum))
              )
            )
         {
-            if (_value != value)
+            if (_type != "button")
             {
-                if (_type != "button")
+                if (_value != value)
                 {
                     _value = value;
+                    if (_on_change != NULL) _on_change (*this);
                 }
-                if (_on_change != NULL)
-                {
-                    _on_change (*this);
-                }
+            }
+            else
+            {
+                if (_on_change != NULL) _on_change (*this);
             }
         }
         return *this;
@@ -133,7 +134,12 @@ namespace UCI {
 
         void on_clear_hash  (const Option &)
         {
-            TT.master_clear ();
+            TT.clear ();
+        }
+
+        void on_never_clear_hash (const Option &opt)
+        {
+            TranspositionTable::Clear_Hash = !bool (opt);
         }
 
         void on_resize_hash (const Option &opt)
@@ -167,11 +173,6 @@ namespace UCI {
         void on_config_threadpool (const Option &)
         {
             Threadpool.configure ();
-        }
-
-        void on_change_evaluation (const Option &)
-        {
-            Evaluator::initialize ();
         }
 
         void on_50_move_dist (const Option &opt)
@@ -218,7 +219,7 @@ namespace UCI {
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Never Clear Hash"]             << Option (false);
+        Options["Never Clear Hash"]             << Option (false, on_never_clear_hash);
 
         // Persistent Hash Options
         // -----------------------
@@ -354,34 +355,22 @@ namespace UCI {
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
-        Options["Mobility (Midgame)"]           << Option (100, 0, 200, on_change_evaluation);
-        Options["Mobility (Endgame)"]           << Option (100, 0, 200, on_change_evaluation);
-
-        Options["Pawn Structure (Midgame)"]     << Option (100, 0, 200, on_change_evaluation);
-        Options["Pawn Structure (Endgame)"]     << Option (100, 0, 200, on_change_evaluation);
-
-        Options["Passed Pawns (Midgame)"]       << Option (100, 0, 200, on_change_evaluation);
-        Options["Passed Pawns (Endgame)"]       << Option (100, 0, 200, on_change_evaluation);
-        
-        Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
-        Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
-
-        //Options["Clock Time"]                   << Option ( 60, 0, 30000);
-        //Options["Move Horizon"]                 << Option ( 40, 0, 50);
-        //Options["Move Time"]                    << Option ( 30, 0, 5000);
+        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
+        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
+        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Thinking Time"]                << Option ( 20, 0, 5000);
+        //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // Move fast if small value, 100 is neutral
         Options["Slow Mover"]                   << Option ( 80, 10, 1000);
 
         // Debug Options
         // -------------
         // Whether or not to write a debug log.
-        Options["Write IO Log"]                 << Option (false, on_io_log);
+        Options["Write DebugLog"]               << Option (false, on_io_log);
         // Whether or not to write a search log.
-        Options["Write Search Log"]             << Option (false);
+        Options["Write SearchLog"]              << Option (false);
         // The filename of the search log.
-        Options["Search Log File"]              << Option ("SearchLog.txt");
+        Options["SearchLog File"]               << Option ("SearchLog.txt");
 
         /// ---------------------------------------------------------------------------------------
 

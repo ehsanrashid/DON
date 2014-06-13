@@ -42,11 +42,6 @@ namespace UCI {
                 << sync_endl;
         }
 
-        inline void exe_ucinewgame ()
-        {
-            TT.clear_hash = !bool (Options["Never Clear Hash"]);
-        }
-
         inline void exe_isready ()
         {
             sync_cout << "readyok" << sync_endl;
@@ -165,17 +160,9 @@ namespace UCI {
             }
             else return;
             
-            Key posi_key = RootPos.posi_key ();
-
             RootPos.setup (fen, Threadpool.main (), bool (Options["UCI_Chess960"]));
             
-            if (posi_key != RootPos.posi_key ())
-            {
-                TT.clear ();
-            }
-
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
-
             // parse and validate game moves (if any)
             if (token == "moves")
             {
@@ -425,7 +412,7 @@ namespace UCI {
 
             if (token.empty ())             continue;
             else if (token == "uci")        exe_uci ();
-            else if (token == "ucinewgame") exe_ucinewgame ();
+            else if (token == "ucinewgame") { /*TT.clear ();*/ } // Obsolete command
             else if (token == "isready")    exe_isready ();
             else if (token == "register")   exe_register (cmds);
             else if (token == "setoption")  exe_setoption (cmds);
@@ -454,7 +441,7 @@ namespace UCI {
                 ||   token == "quit")       exe_stop ();
             else
             {
-                sync_cout << "WHAT??? No such command: \'" << cmd << "\'" << sync_endl;
+                sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
 
         }

@@ -21,6 +21,8 @@ const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 
 const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTENTRY_SIZE;
 
+bool TranspositionTable::Clear_Hash = true;
+
 void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 {
 
@@ -107,11 +109,12 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 // store() writes a new entry in the transposition table.
 // It contains folowing valuable information.
 //  - Key
-//  - Move.
-//  - Score.
-//  - Depth.
-//  - Bound.
-//  - Nodes.
+//  - Move
+//  - Depth
+//  - Bound
+//  - Nodes
+//  - Value
+//  - Eval Value
 // The lower order bits of position key are used to decide on which cluster the position will be placed.
 // The upper order bits of position key are used to store in entry.
 // When a new entry is written and there are no empty entries available in cluster,
@@ -124,57 +127,44 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 {
     u32 key32 = (key >> 32); // 32 upper-bit of key inside cluster
     TTEntry *tte = cluster_entry (key);
-    // By default replace first entry
+    TTEntry *lte = tte + NUM_CLUSTER_ENTRY - 1;
     TTEntry *rte = tte;
-
-    for (u08 i = 0; i < NUM_CLUSTER_ENTRY; ++i, ++tte)
+    bool replace = false;
+    for ( ; tte <= lte; ++tte)
     {
-        if (tte->_key == 0 || tte->_key == key32) // Empty or Old then overwrite
+        if (tte->_key == 0)     // Empty entry? then write
+        {
+            tte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+            return;
+        }
+        if (tte->_key == key32) // Old entry? then overwrite
         {
             // Preserve any existing TT move
             if (move == MOVE_NONE && tte->_move != MOVE_NONE)
             {
                 move = Move (tte->_move);
             }
-
-            rte = tte;
-            break;
+            tte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+            return;
         }
 
         // Replace would be a no-op in this common case
-        if (0 == i) continue;
-
-        // Implement replacement strategy when a collision occurs
-        
-        if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
-            - (rte->_gen == _generation)
-            - (tte->_depth < rte->_depth)) < 0)
+        if (rte != tte)
         {
-            rte = tte;
+            // Implement replacement strategy when a collision occurs
+            if ( ((tte->_gen == _generation || tte->_bound == BND_EXACT)
+                - (rte->_gen == _generation)
+                - (tte->_depth < rte->_depth)) < 0)
+            {
+                rte = tte;
+                replace = true;
+            }
         }
-        
-       /*
-        i08 gc = (rte->_gen == _generation) - ((tte->_gen == _generation) || (tte->_bound == BND_EXACT));
-        if (gc != 0)
-        {
-            if (gc > 0) rte = tte;
-            continue;
-        }
-        // gc == 0
-        i16 dc = (rte->_depth - tte->_depth);
-        //if (dc != 0)
-        {
-            if (dc > 0) rte = tte;
-            continue;
-        }
-        // dc == 0
-        //i16 nc = (rte->_nodes - tte->_nodes);
-        //if (nc > 0) rte = tte;
-        //continue;
-        */
     }
-
-    rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+    // By default replace last entry
+    (replace) ?
+        rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation) :
+        lte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -183,8 +173,10 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u32 key32 = (key >> 32);
     TTEntry *tte = cluster_entry (key);
-    for (u08 i = 0; i < NUM_CLUSTER_ENTRY; ++i, ++tte)
+    TTEntry *lte = tte + NUM_CLUSTER_ENTRY - 1;
+    for ( ; tte <= lte; ++tte)
     {
+        if (tte->_key == 0) return NULL;
         if (tte->_key == key32)
         {
             tte->_gen = _generation;

@@ -13,31 +13,40 @@ namespace Material {
 
     namespace {
 
-        // Polynomial material balance parameters: P      N      B      R      Q     BP
-        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
+        // Polynomial material balance parameters:
+
+        const i32 OwnSideLinearCoefficient[NONE] =
+        {
+            - 162, // P
+            -1122, // N
+            - 183, // B 
+            + 249, // R
+            - 154, // Q
+            +1852  // BP
+        };
 
         const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
         {
             //          OWN PIECES
             //  P     N     B     R     Q    BP
-            { +  2, +  0, +  0, +  0, +  0, + 39, }, // P
-            { +271, -  4, +  0, +  0, +  0, + 35, }, // N
-            { +105, +  4, +  0, +  0, +  0, +  0, }, // B     OWN PIECES
-            { -  2, + 46, +100, -141, +  0, - 27, }, // R
-            { + 25, +129, +142, -137, +  0, -177, }, // Q
-            { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
+            { +  2, +  0, +  0, +  0, +  0, + 39 }, // P
+            { +271, -  4, +  0, +  0, +  0, + 35 }, // N
+            { +105, +  4, +  0, +  0, +  0, +  0 }, // B     OWN PIECES
+            { -  2, + 46, +100, -141, +  0, - 27 }, // R
+            { + 25, +129, +142, -137, +  0, -177 }, // Q
+            { +  0, +  0, +  0, +  0, +  0, +  0 }  // BP
         };
 
         const i32 OppSideQuadraticCoefficient[NONE][NONE] =
         {
             //          OPP PIECES
             //  P     N     B     R     Q    BP
-            { +  0, +  0, +  0, +  0, +  0, + 37, }, // P
-            { + 62, +  0, +  0, +  0, +  0, + 10, }, // N
-            { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OWN PIECES
-            { + 40, + 23, - 22, +  0, +  0, + 50, }, // R
-            { +105, - 39, +141, +274, +  0, + 98, }, // Q
-            { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
+            { +  0, +  0, +  0, +  0, +  0, + 37 }, // P
+            { + 62, +  0, +  0, +  0, +  0, + 10 }, // N
+            { + 64, + 39, +  0, +  0, +  0, + 57 }, // B     OWN PIECES
+            { + 40, + 23, - 22, +  0, +  0, + 50 }, // R
+            { +105, - 39, +141, +274, +  0, + 98 }, // Q
+            { +  0, +  0, +  0, +  0, +  0, +  0 }  // BP
         };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
@@ -100,7 +109,7 @@ namespace Material {
                 i32 pc = count[C ][pt1];
                 if (pc > 0)
                 {
-                    i32 v = LinearCoefficient[pt1];
+                    i32 v = OwnSideLinearCoefficient[pt1];
 
                     for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
@@ -113,7 +122,7 @@ namespace Material {
                     value += pc * v;
                 }
             }
-            value += count[C ][KING] * LinearCoefficient[KING];
+            value += count[C ][KING] * OwnSideLinearCoefficient[KING];
 
             return Value (value);
         }
@@ -133,12 +142,12 @@ namespace Material {
         // If e->_matl_key matches the position's material hash key, it means that
         // have analysed this material configuration before, and can simply
         // return the information found the last time instead of recomputing it.
-        if (e->_matl_key != matl_key)
+        if (e->matl_key != matl_key)
         {
             memset (e, 0x00, sizeof (*e));
-            e->_matl_key      = matl_key;
-            e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
-            e->_game_phase    = game_phase (pos);
+            e->matl_key      = matl_key;
+            e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
+            e->game_phase    = game_phase (pos);
 
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed
@@ -192,7 +201,7 @@ namespace Material {
                 e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
             }
 
-            Value npm[CLR_NO] = 
+            const Value npm[CLR_NO] = 
             {
                 pos.non_pawn_material (WHITE),
                 pos.non_pawn_material (BLACK),
@@ -232,13 +241,13 @@ namespace Material {
             {
                 if      (pos.count<PAWN> (WHITE) == 0)
                 {
-                    e->_factor[WHITE] = u08 (
+                    e->factor[WHITE] = u08 (
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else if (pos.count<PAWN> (WHITE) == 1)
                 {
-                    e->_factor[WHITE] = u08 (SCALE_FACTOR_PAWNS);
+                    e->factor[WHITE] = u08 (SCALE_FACTOR_PAWNS);
                 }
             }
 
@@ -246,13 +255,13 @@ namespace Material {
             {
                 if      (pos.count<PAWN> (BLACK) == 0)
                 {
-                    e->_factor[BLACK] = u08 (
+                    e->factor[BLACK] = u08 (
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else if (pos.count<PAWN> (BLACK) == 1)
                 {
-                    e->_factor[BLACK] = u08 (SCALE_FACTOR_PAWNS);
+                    e->factor[BLACK] = u08 (SCALE_FACTOR_PAWNS);
                 }
             }
 
@@ -260,7 +269,7 @@ namespace Material {
             if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
             {
                 i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
-                e->_space_weight = mk_score (minor_count * minor_count, 0);
+                e->space_weight = mk_score (minor_count * minor_count, 0);
             }
 
             // Evaluate the material imbalance.
@@ -278,7 +287,8 @@ namespace Material {
                 }
             };
 
-            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4);
+            Value value = Value (i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));
+            e->matl_score = mk_score (value, value);
         }
 
         return e;
