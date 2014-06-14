@@ -1,7 +1,6 @@
 ﻿#include "BitBoard.h"
 
 #include <cstring>
-#include <algorithm>
 
 #include "RKISS.h"
 

@@ -5,7 +5,6 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
-#include <algorithm>
 #include <memory>
 #include <stack>
 

@@ -1,7 +1,6 @@
 #include "TimeManager.h"
 
 #include <cfloat>
-#include <algorithm>
 
 #include "UCI.h"
 

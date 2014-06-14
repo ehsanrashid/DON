@@ -5,7 +5,6 @@
 #ifndef _MOVE_PICKER_H_INC_
 #define _MOVE_PICKER_H_INC_
 
-#include <algorithm> 
 #include <cstring>
 
 #include "Type.h"

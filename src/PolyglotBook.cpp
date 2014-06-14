@@ -1,6 +1,5 @@
 #include "PolyglotBook.h"
 
-#include <algorithm>
 #include <vector>
 #include <iomanip>
 

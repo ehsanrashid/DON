@@ -38,6 +38,9 @@ namespace Pawns {
         Bitboard candidate_pawns[CLR_NO];
 
         u08       semiopen_files[CLR_NO];
+        u08       pawn_span     [CLR_NO];
+        // Count of pawns on LIGHT and DARK squares
+        u08       num_pawns_on_sqrs[CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         template<Color C>
         inline u08  semiopen_file (File f) const
@@ -49,6 +52,12 @@ namespace Pawns {
         inline u08  semiopen_side (File f, bool left) const
         {
             return semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+        }
+
+        template<Color C>
+        inline i32 num_pawns_on_squares (Square s) const
+        {
+            return num_pawns_on_sqrs[C][!!(BitBoard::Dark_bb & s)];
         }
 
         template<Color C>

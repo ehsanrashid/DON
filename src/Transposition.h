@@ -7,10 +7,10 @@
 
 #include <cstring>
 #include <cstdlib>
-#include <algorithm>
 
 #include "Type.h"
 #include "MemoryHandler.h"
+#include "UCI.h"
 
 #ifdef _MSC_VER
 #   pragma warning (push)
@@ -19,16 +19,16 @@
 
 // Transposition Entry needs the 16 byte to be stored
 //
-//  Key          4
-//  Move         2
-//  Depth        2
-//  Bound        1
-//  Generation   1
-//  Nodes        2
-//  Value        2
-//  Eval Value   2
+//  Key--------->4
+//  Move-------->2
+//  Depth------->2
+//  Bound------->1
+//  Generation-->1
+//  Nodes------->2
+//  Value------->2
+//  Eval Value-->2
 // ----------------
-//  Total        16 byte
+//  Total------->16 byte
 struct TTEntry
 {
 

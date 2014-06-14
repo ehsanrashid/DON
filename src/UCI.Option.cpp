@@ -150,6 +150,7 @@ namespace UCI {
         void on_save_hash   (const Option &)
         {
             string hash_fn = string (Options["Hash File"]);
+            convert_path (hash_fn);
             ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
             ofhash << TT;
             ofhash.close ();
@@ -159,6 +160,7 @@ namespace UCI {
         void on_load_hash   (const Option &)
         {
             string hash_fn = string (Options["Hash File"]);
+            convert_path (hash_fn);
             ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
             ifhash >> TT;
             ifhash.close ();

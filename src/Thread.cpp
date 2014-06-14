@@ -1,7 +1,5 @@
 #include "Thread.h"
 
-#include <algorithm>
-
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"

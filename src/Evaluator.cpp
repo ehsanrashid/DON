@@ -2,7 +2,6 @@
 
 #include <iomanip>
 #include <sstream>
-#include <algorithm>
 
 #include "Material.h"
 #include "Pawns.h"
@@ -196,7 +195,9 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        const Score BishopPawnsPenalty            = S(+15,+10); // Penalty for bishop with pawns on color
+        const Score KnightSpanPenalty             = S(+ 0,+ 5);
+
+        const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on color
         const Score BishopTrappedPenalty          = S(+50,+40);
 
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
@@ -302,7 +303,9 @@ namespace Evaluator {
             // no minor piece which can exchange the outpost piece.
             if (score != SCORE_ZERO)
             {
-                if ((ei.attacked_by[C][PAWN] & s) != U64 (0))
+                // Supporting pawns
+                Bitboard supporters = ei.attacked_by[C][PAWN] & s; //PawnAttacks[C_][s] & pos.pieces<PAWN> (C);
+                if (supporters != U64 (0))
                 {
                     if (   ((pos.pieces<NIHT> (C_) == U64 (0)))
                         && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
@@ -312,14 +315,7 @@ namespace Evaluator {
                     }
                     else
                     {
-                        if (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_) & ~ei.pinned_pieces[C_])
-                        {
-                            score *= 1.33;
-                        }
-                        else
-                        {
-                            score *= 1.50;
-                        }
+                        score *= 1.50;
                     }
                 }
             }
@@ -380,6 +376,8 @@ namespace Evaluator {
 
                 if (NIHT == PT)
                 {
+                    //score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
+
                     // Outposts bonus for knight 
                     if ((PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_)) == U64 (0))
                     {
@@ -389,21 +387,7 @@ namespace Evaluator {
 
                 if (BSHP == PT)
                 {
-                    Bitboard center_pawns = ExtCntr_bb & pos.pieces<PAWN> (C);
-                    if (center_pawns != U64 (0))
-                    {
-                        Bitboard bishop_pawns = center_pawns & PieceAttacks[BSHP][s];
-                        if (bishop_pawns != U64 (0))
-                        {
-                            score -= BishopPawnsPenalty * (more_than_one (bishop_pawns) ? pop_count<MAX15> (bishop_pawns) : 1);
-
-                            Bitboard bishop_front_block_pawns = bishop_pawns & FrontRank_bb[C][_rank (s)] & ei.pi->blocked_pawns[C];
-                            if (bishop_front_block_pawns != U64 (0))
-                            {
-                                score -= BishopPawnsPenalty * (more_than_one (bishop_front_block_pawns) ? pop_count<MAX15> (bishop_front_block_pawns) : 1);
-                            }
-                        }
-                    }
+                    score -= BishopPawnsPenalty * ei.pi->num_pawns_on_squares<C> (s);
 
                     Square rsq = rel_sq (C, s);
 
@@ -624,7 +608,7 @@ namespace Evaluator {
 
                         if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][KING]) & sq)
                            || (  pos.count<QUEN> (C_) > 1
-                              && more_than_one (pos.pieces<QUEN> (C_) & (PieceAttacks[ROOK][sq]|PieceAttacks[BSHP][sq]) & ~ei.pinned_pieces[C_])
+                              && more_than_one (pos.pieces<QUEN> (C_) & (PieceAttacks[ROOK][sq]|PieceAttacks[BSHP][sq]))
                               )
                            )
                         {
@@ -645,7 +629,7 @@ namespace Evaluator {
 
                         if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
                            || (  pos.count<ROOK> (C_) > 1
-                              && more_than_one (pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq] & ~ei.pinned_pieces[C_])
+                              && more_than_one (pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq])
                               )
                            )
                         {
@@ -666,7 +650,8 @@ namespace Evaluator {
 
                         if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
                            || (  pos.count<BSHP> (C_) > 1
-                              && more_than_one (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][sq] & ~ei.pinned_pieces[C_])
+                              && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq))
+                              && more_than_one (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][sq])
                               )
                            )
                         {
@@ -735,8 +720,8 @@ namespace Evaluator {
 
             // Enemies under our attack and not defended by a pawn
             const Bitboard weak_enemies = 
-                  pos.pieces (C_) 
-                & ei.attacked_by[C][NONE] 
+                   pos.pieces (C_) 
+                &  ei.attacked_by[C ][NONE] 
                 & ~ei.attacked_by[C_][PAWN];
             
             Score score = SCORE_ZERO;
@@ -801,7 +786,7 @@ namespace Evaluator {
                     eg_bonus += (5 * rr * SquareDist[ek_sq][block_sq])
                              -  (2 * rr * SquareDist[fk_sq][block_sq]);
 
-                    // If block_sq is not the queening square then consider also a second push
+                    // If block square is not the queening square then consider also a second push
                     if (rel_rank (C, block_sq) != R_8)
                     {
                         eg_bonus -= (rr * SquareDist[fk_sq][block_sq + pawn_push (C)]);
@@ -821,7 +806,8 @@ namespace Evaluator {
                         if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.attacked_by[C_][ROOK] & s))
                                || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.attacked_by[C_][QUEN] & s))
                                )
-                            && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                            && ((back_squares & ei.attacked_by[C ][NONE]) != back_squares)
+                            && ((back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
                            )
                         {
                             unsafe_squares = queen_squares;
@@ -832,57 +818,43 @@ namespace Evaluator {
                         }
 
                         Bitboard defended_squares;
-                        if (   (  ((back_squares & pos.pieces<ROOK> (C)) && (ei.attacked_by[C][ROOK] & s))
-                               || ((back_squares & pos.pieces<QUEN> (C)) && (ei.attacked_by[C][QUEN] & s))
+                        if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.attacked_by[C ][ROOK] & s))
+                               || ((back_squares & pos.pieces<QUEN> (C )) && (ei.attacked_by[C ][QUEN] & s))
                                )
-                            && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                            && ((back_squares & ei.attacked_by[C_][NONE]) != back_squares)
+                            && ((back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
                            )
                         {
                             defended_squares = queen_squares;
                         }
                         else
                         {
-                            defended_squares = queen_squares & ei.attacked_by[C][NONE];
+                            defended_squares = queen_squares & ei.attacked_by[C ][NONE];
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
                         // a smaller bonus if block square is not attacked.
-                        i32 k = (unsafe_squares == U64 (0)) ? 15 : !(unsafe_squares & block_sq) ? 9 : 0;
+                        i32 k = (unsafe_squares != U64 (0)) ? (unsafe_squares & block_sq) ? 0 : 9 : 15;
 
                         if (defended_squares != U64 (0))
                         {
                             // Give a big bonus if the path to queen is fully defended,
                             // a smaller bonus if at least block square is defended.
                             k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
-
-                            // If the some squares to queen are defended by a pawn add more small bonus.
-                            //if (ei.attacked_by[C][PAWN] & queen_squares) k += 2;
                         }
+
+                        // If the block square is defended by a pawn add more small bonus.
+                        if (ei.attacked_by[C][PAWN] & block_sq) k += 2;
 
                         mg_bonus += k * rr;
                         eg_bonus += k * rr;
                     }
                 }
 
-                //// Increase the bonus if the passed pawn is supported by a friendly pawn
-                //// on the same rank and a bit smaller if it's on the previous rank.
-                //Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
-                //if (supporting_pawns != U64 (0))
-                //{
-                //    if (supporting_pawns & rank_bb (s))
-                //    {
-                //        eg_bonus += Value (r * 20);
-                //    }
-                //    else if (supporting_pawns & rank_bb (s - pawn_push (C)))
-                //    {
-                //        eg_bonus += Value (r * 12);
-                //    }
-                //}
-
-                if (eg_bonus > VALUE_ZERO)
+                if (eg_bonus != VALUE_ZERO)
                 {
                     // Increase the bonus if have more non-pawn pieces
-                    if (pos.count<NONPAWN> (C) > pos.count<NONPAWN> (C_))
+                    if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
                     {
                         eg_bonus += eg_bonus / 4;
                     }

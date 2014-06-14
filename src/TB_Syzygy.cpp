@@ -3146,7 +3146,7 @@ namespace TBSyzygy {
         if (path.empty ()) return;
         
         u32 length = path.length ();
-        replace (path.begin (), path.end (), '\\', '/');
+        convert_path (path);
         PathString = strdup (path.c_str ());
         
         NumPaths = 0;

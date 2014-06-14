@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 #include "Platform.h"
 
@@ -634,5 +635,10 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 #define sync_endl std::endl << IO_UNLOCK
 
 extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
+
+inline void convert_path (std::string &path)
+{
+    std::replace (path.begin (), path.end (), '\\', '/');
+}
 
 #endif // _TYPE_H_INC_

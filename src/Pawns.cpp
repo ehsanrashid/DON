@@ -1,7 +1,5 @@
 #include "Pawns.h"
 
-#include <algorithm>
-
 namespace Pawns {
 
     using namespace std;
@@ -108,7 +106,22 @@ namespace Pawns {
             e->passed_pawns   [C] = U64 (0);
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;
-            
+
+            Bitboard center_pawns = ExtCntr_bb & pawns[0];
+            if (center_pawns != U64 (0))
+            {
+                Bitboard color_pawns;
+                color_pawns = center_pawns & Liht_bb;
+                e->num_pawns_on_sqrs[C][WHITE] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+                color_pawns = center_pawns & Dark_bb;
+                e->num_pawns_on_sqrs[C][BLACK] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+            }
+            else
+            {
+                e->num_pawns_on_sqrs[C][WHITE] = 0;
+                e->num_pawns_on_sqrs[C][BLACK] = 0;
+            }
+
             Score pawn_score = SCORE_ZERO;
 
             const Square *pl = pos.list<PAWN> (C);
@@ -129,12 +142,12 @@ namespace Pawns {
                 // Our rank plus previous one, for connected pawn detection
                 Bitboard rr_bb = rank_bb (s) | pr_bb;
 
-                Bitboard adj_pawns = pawns[0] & AdjFile_bb[f];
+                Bitboard friend_adj_pawns = pawns[0] & AdjFile_bb[f];
                 // Flag the pawn as passed, isolated, doubled,
                 // unsupported or connected (but not the backward one).
-                bool connected   =  (adj_pawns & rr_bb);
-                bool unsupported = !(adj_pawns & pr_bb);
-                bool isolated    = !(adj_pawns);
+                bool connected   =  (friend_adj_pawns & rr_bb);
+                bool unsupported = !(friend_adj_pawns & pr_bb);
+                bool isolated    = !(friend_adj_pawns);
                 bool passed      = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
                 bool lever       = (pawns[1] & PawnAttacks[C][s]);
                 Bitboard doubled = (pawns[0] & FrontSqrs_bb[C][s]);
@@ -174,9 +187,13 @@ namespace Pawns {
                 bool candidate = false;
                 if (!(opposed || passed || backward || isolated))
                 {
-                    adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH];
-                    
-                    candidate = adj_pawns != U64 (0) && (pop_count<MAX15> (adj_pawns) >= pop_count<MAX15> (pawns[1] & PawnAttackSpan[C][s]));
+                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH];
+                    Bitboard enemy_adj_pawns = pawns[1] & PawnAttackSpan[C][s];
+                    candidate = (friend_adj_pawns != U64 (0)) 
+                             && (
+                                   (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
+                                >= (enemy_adj_pawns != U64 (0) ? more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1 : 0)
+                                );
                 }
 
                 // Score this pawn
@@ -213,7 +230,9 @@ namespace Pawns {
                 
                 if (doubled)
                 {
-                    pawn_score -= DoubledPenalty[f] * i32 (pop_count<MAX15> (doubled)) / i32 (rank_dist (s, scan_frntmost_sq (C, doubled)));
+                    pawn_score -= DoubledPenalty[f]
+                                * (more_than_one (doubled) ? 2 : 1)
+                                / i32 (rank_dist (s, scan_frntmost_sq (C, doubled)));
                 }
                 else
                 {
@@ -225,13 +244,12 @@ namespace Pawns {
                 }
             }
 
+            Bitboard span = e->semiopen_files[C] ^ 0xFF;
+            e->pawn_span[C] = (span != U64 (0)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
+
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
-            if (pos.count<PAWN> (C) > 1)
-            {
-                Bitboard span = e->semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpanBonus * (i32 (scan_msq (span)) - i32 (scan_lsq (span)));
-            }
+            pawn_score += PawnsFileSpanBonus * i32 (e->pawn_span[C]);
 
             return pawn_score;
         }

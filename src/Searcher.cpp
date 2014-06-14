@@ -1,7 +1,6 @@
 ﻿#include "Searcher.h"
 
 #include <cfloat>
-#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -1552,6 +1551,8 @@ namespace Searcher {
                 if (bool (Options["Write SearchLog"]))
                 {
                     string search_log_fn = string (Options["SearchLog File"]);
+                    convert_path (search_log_fn);
+
                     LogFile log (search_log_fn);
                     log << pretty_pv (pos, depth, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
@@ -1720,6 +1721,7 @@ namespace Searcher {
 
         bool write_search_log = bool (Options["Write SearchLog"]);
         string search_log_fn  = string (Options["SearchLog File"]);
+        convert_path (search_log_fn);
 
         if (RootMoves.empty ())
         {
@@ -1736,6 +1738,7 @@ namespace Searcher {
         if (!Limits.infinite && Limits.mate == 0 && bool (Options["Own Book"]))
         {
             string fn_book = string (Options["Book File"]);
+            convert_path (fn_book);
 
             if (!Book.is_open ())
             {
@@ -1771,7 +1774,7 @@ namespace Searcher {
                 << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "movetime:  " << Limits.movetime                  << "\n"
                 << "movestogo: " << u16 (Limits.movestogo)           << "\n"
-                << "totalmoves:" << u16 (RootCount)             << "\n"
+                << "totalmoves:" << u16 (RootCount)                  << "\n"
                 << "  d   score   time    nodes  pv\n"
                 << "-----------------------------------------------------------"
                 << endl;

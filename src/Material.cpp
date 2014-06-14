@@ -1,6 +1,5 @@
 #include "Material.h"
 
-#include <algorithm>
 #include <cstring>
 
 #include "Position.h"
