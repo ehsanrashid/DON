@@ -179,7 +179,7 @@ namespace UCI {
 
         void on_50_move_dist (const Option &opt)
         {
-            Position::_fifty_move_dist = 2 * i32 (opt);
+            Position::_fifty_move_dist = u08 (2 * i32 (opt));
         }
 
         void on_io_log (const Option &opt)

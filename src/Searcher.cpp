@@ -21,10 +21,6 @@ using namespace std;
 using namespace Time;
 using namespace Searcher;
 
-#ifdef _MSC_VER
-#   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
-#endif
-
 namespace Searcher {
 
     using namespace BitBoard;
@@ -53,14 +49,14 @@ namespace Searcher {
         }
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, u08 depth, u08 move_num)
+        inline Depth reduction (bool imp, i32 depth, u08 move_num)
         {
             depth /= i32 (ONE_MOVE);
             return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
         // Dynamic razoring margin based on depth
-        inline Value razor_margin (u08 depth)
+        inline Value razor_margin (i32 depth)
         {
             return Value (512 + (depth<<4));
         }
@@ -100,7 +96,7 @@ namespace Searcher {
             }
 
             bool enabled () const { return (level < MAX_SKILL_LEVEL); }
-            bool time_to_pick (u08 depth) const { return (depth == (1 + level)); }
+            bool time_to_pick (i32 depth) const { return (depth == (1 + level)); }
 
             // When playing with strength handicap choose best move among the MultiPV set
             // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -152,7 +148,7 @@ namespace Searcher {
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
-        inline void update_stats (const Position &pos, Stack *ss, Move move, u08 depth, Move *quiet_moves, u08 quiets_count)
+        inline void update_stats (const Position &pos, Stack *ss, Move move, i32 depth, Move *quiet_moves, u08 quiets_count)
         {
             if ((ss)->killer_moves[0] != move)
             {
@@ -161,7 +157,7 @@ namespace Searcher {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value bonus = Value (1 * depth * depth);
+            Value bonus = Value (depth * depth);
             History.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (u08 i = 0; i < quiets_count; ++i)
             {
@@ -206,20 +202,20 @@ namespace Searcher {
                    v;
         }
 
-        // info_pv() formats PV information according to UCI protocol.
+        // info_multipv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        inline string info_pv (const Position &pos, u08 depth, Value alpha, Value beta, point time)
+        inline string info_multipv (const Position &pos, i32 depth, Value alpha, Value beta, point time)
         {
             ASSERT (time >= 0);
             if (time == 0) time = 1;
 
             stringstream ss;
             
-            MultiPV = i32 (Options["MultiPV"]);
+            MultiPV = u08 (i32 (Options["MultiPV"]));
             if (MultiPV > RootCount) MultiPV = RootCount;
 
-            u08 sel_depth = Threadpool.max_ply;
+            i32 sel_depth = Threadpool.max_ply;
 
             for (u08 i = 0; i < MultiPV; ++i)
             {
@@ -227,7 +223,7 @@ namespace Searcher {
 
                 if (1 == depth && !updated) continue;
 
-                u08   d;
+                i32   d;
                 Value v;
                 
                 if (updated)
@@ -246,8 +242,8 @@ namespace Searcher {
 
                 ss  << "info"
                     << " multipv "  << u16 (i + 1)
-                    << " depth "    << u16 (d)
-                    << " seldepth " << u16 (sel_depth)
+                    << " depth "    << d
+                    << " seldepth " << sel_depth
                     << " score "    << ((i == PVIndex) ? score_uci (v, alpha, beta) : score_uci (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
@@ -470,7 +466,7 @@ namespace Searcher {
                         );
 
                     // Don't search moves with negative SEE values
-                    if (   (!InCheck || evasion_prunable)
+                    if (   (evasion_prunable || !InCheck)
                         && (move != tt_move)
                         && (mtype (move) != PROMOTE)
                         && (pos.see_sign (move) < VALUE_ZERO)
@@ -782,7 +778,8 @@ namespace Searcher {
                     // Step 7,8,9.
                     if (!((ss)->skip_null_move))
                     {
-                        //ASSERT ((ss-1)->current_move != MOVE_NONE || (ss-1)->current_move != MOVE_NULL);
+                        //ASSERT ((ss-1)->current_move != MOVE_NONE);
+                        //ASSERT ((ss-1)->current_move != MOVE_NULL);
 
                         if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                         {
@@ -855,7 +852,7 @@ namespace Searcher {
                         if (depth >= (5*ONE_MOVE))
                         {
                             Depth rdepth = depth - (4*ONE_MOVE);
-                            Value rbeta  = beta + VALUE_EG_PAWN;
+                            Value rbeta  = beta + 200;
                             if (rbeta > VALUE_INFINITE) rbeta = VALUE_INFINITE;
                             //ASSERT (rdepth >= ONE_MOVE);
                             //ASSERT (rbeta <= VALUE_INFINITE);
@@ -1416,10 +1413,10 @@ namespace Searcher {
 
             i32 depth = DEPTH_ZERO;
 
-            u08 level = i32 (Options["Skill Level"]);
+            u08 level = u08 (i32 (Options["Skill Level"]));
             Skill skill (level);
 
-            MultiPV   = i32 (Options["MultiPV"]);
+            MultiPV   = u08 (i32 (Options["MultiPV"]));
             // Do have to play with skill handicap?
             // In this case enable MultiPV search to MIN_SKILL_MULTIPV
             // that will use behind the scenes to retrieve a set of possible moves.
@@ -1460,7 +1457,8 @@ namespace Searcher {
                     {
                         window[0] =
                         window[1] =
-                            Value (depth < (16*ONE_MOVE) ? 14 + (depth/4) : 22);
+                            //Value (depth < (16*ONE_MOVE) ? 14 + (depth/4) : 22);
+                            Value (16);
                         bound[0]  = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound[1]  = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
@@ -1499,7 +1497,7 @@ namespace Searcher {
                             && (iteration_time > InfoDuration)
                            )
                         {
-                            sync_cout << info_pv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1532,7 +1530,7 @@ namespace Searcher {
                     
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
-                        sync_cout << info_pv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
                     }
                 }
 
@@ -1550,10 +1548,10 @@ namespace Searcher {
 
                 if (bool (Options["Write SearchLog"]))
                 {
-                    string search_log_fn = string (Options["SearchLog File"]);
-                    convert_path (search_log_fn);
+                    string searchlog_fn = string (Options["SearchLog File"]);
+                    convert_path (searchlog_fn);
 
-                    LogFile log (search_log_fn);
+                    LogFile log (searchlog_fn);
                     log << pretty_pv (pos, depth, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
 
@@ -1713,15 +1711,19 @@ namespace Searcher {
     void think ()
     {
         RootColor = RootPos.active ();
-        TimeMgr.initialize (Limits, RootPos.game_ply (), RootColor);
+        TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
 
         i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns;
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
-        bool write_search_log = bool (Options["Write SearchLog"]);
-        string search_log_fn  = string (Options["SearchLog File"]);
-        convert_path (search_log_fn);
+        bool write_searchlog = bool (Options["Write SearchLog"]);
+        string searchlog_fn  = "";
+        if (write_searchlog)
+        {
+            searchlog_fn = string (Options["SearchLog File"]);
+            convert_path (searchlog_fn);
+        }
 
         if (RootMoves.empty ())
         {
@@ -1762,9 +1764,9 @@ namespace Searcher {
         
         RootCount = RootMoves.size ();
 
-        if (write_search_log)
+        if (write_searchlog)
         {
-            LogFile log (search_log_fn);
+            LogFile log (searchlog_fn);
 
             log << "----------->\n" << boolalpha
                 << "fen:       " << RootPos.fen ()                   << "\n"
@@ -1790,9 +1792,9 @@ namespace Searcher {
 
         Threadpool.timer->stop ();
 
-        if (write_search_log)
+        if (write_searchlog)
         {
-            LogFile log (search_log_fn);
+            LogFile log (searchlog_fn);
 
             point time = now () - SearchTime;
             if (time == 0) time = 1;
@@ -1876,8 +1878,8 @@ namespace Searcher {
         // Init futility move count array
         for (u08 d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
-            FutilityMoveCounts[0][d] = 2.40 + 0.222 * pow (d + 0.00, 1.80);
-            FutilityMoveCounts[1][d] = 3.00 + 0.300 * pow (d + 0.98, 1.80);
+            FutilityMoveCounts[0][d] = u08 (2.40 + 0.222 * pow (d + 0.00, 1.80));
+            FutilityMoveCounts[1][d] = u08 (3.00 + 0.300 * pow (d + 0.98, 1.80));
         }
     }
 

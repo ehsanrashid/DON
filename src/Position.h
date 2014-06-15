@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
@@ -131,7 +127,7 @@ private:
     // "b" - BLACK
     Color    _active;
     // Ply of the game, incremented after every move.
-    u16      _game_ply;
+    i32      _game_ply;
     bool     _chess960;
 
     u64      _game_nodes;
@@ -235,8 +231,8 @@ public:
     bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
-    u16     game_ply  () const;
-    u16     game_move () const;
+    i32     game_ply  () const;
+    i32     game_move () const;
     bool    chess960  () const;
     bool    draw      () const;
     bool    repeated  () const;
@@ -423,10 +419,10 @@ inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-inline u16  Position::game_ply  () const { return _game_ply; }
+inline i32  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline u16  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
 inline bool Position::chess960  () const { return _chess960; }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }

@@ -11,11 +11,7 @@ const u08  TranspositionTable::NUM_CLUSTER_ENTRY = 4;
 
 const u08  TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
 
-#ifdef _64BIT
-const u08 TranspositionTable::MAX_HASH_BIT  = 36;
-#else
 const u08 TranspositionTable::MAX_HASH_BIT  = 32;
-#endif
 
 const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 
@@ -87,12 +83,12 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
     u64 mem_size      = u64 (mem_size_mb) << 20;
-    u64 cluster_count = (mem_size) / sizeof (TTEntry[NUM_CLUSTER_ENTRY]);
-    u64   entry_count = u64 (NUM_CLUSTER_ENTRY) << scan_msq (cluster_count);
+    u32 cluster_count = u32 ((mem_size) / sizeof (TTEntry[NUM_CLUSTER_ENTRY]));
+    u32   entry_count = u32 (NUM_CLUSTER_ENTRY) << scan_msq (cluster_count);
 
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
 
-    mem_size  = entry_count * TTENTRY_SIZE;
+    mem_size  = u64 (entry_count) * TTENTRY_SIZE;
 
     if (force || entry_count != entries ())
     {
@@ -103,7 +99,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
         _hash_mask = (entry_count - NUM_CLUSTER_ENTRY);
     }
 
-    return (mem_size >> 20);
+    return u32 (mem_size >> 20);
 }
 
 // store() writes a new entry in the transposition table.
@@ -126,45 +122,48 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u16 /*nodes*/, Value value, Value eval)
 {
     u32 key32 = (key >> 32); // 32 upper-bit of key inside cluster
-    TTEntry *tte = cluster_entry (key);
-    TTEntry *lte = tte + NUM_CLUSTER_ENTRY - 1;
-    TTEntry *rte = tte;
-    bool replace = false;
-    for ( ; tte <= lte; ++tte)
+    TTEntry *fte = cluster_entry (key);
+    TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
+    TTEntry *rte = fte;
+    for (TTEntry *ite = fte; ite <= lte; ++ite)
     {
-        if (tte->_key == 0)     // Empty entry? then write
+        if (ite->_key == 0)     // Empty entry? then write
         {
-            tte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+            ite->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
             return;
         }
-        if (tte->_key == key32) // Old entry? then overwrite
+        if (ite->_key == key32) // Old entry? then overwrite
         {
             // Preserve any existing TT move
-            if (move == MOVE_NONE && tte->_move != MOVE_NONE)
+            if (move == MOVE_NONE && ite->_move != MOVE_NONE)
             {
-                move = Move (tte->_move);
+                move = Move (ite->_move);
             }
-            tte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+            ite->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
             return;
         }
+        
+        if (ite == fte) continue;
 
-        // Replace would be a no-op in this common case
-        if (rte != tte)
+        // Implement replacement strategy when a collision occurs
+        if ( ((ite->_gen == _generation || ite->_bound == BND_EXACT)
+            - (rte->_gen == _generation)
+            - (ite->_depth < rte->_depth)) < 0)
         {
-            // Implement replacement strategy when a collision occurs
-            if ( (((tte->_gen == _generation) || (tte->_bound == BND_EXACT))
-                - (rte->_gen == _generation)
-                - (tte->_depth < rte->_depth)) < 0)
-            {
-                rte = tte;
-                replace = true;
-            }
+            rte = ite;
         }
     }
-    // By default replace last entry
-    (replace) ?
-        rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation) :
+
+    // By default replace first entry shifting up
+    if (rte != fte)
+    {
+        rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+    }
+    else
+    {
+        memmove (fte, fte+1, (NUM_CLUSTER_ENTRY - 1)*TTENTRY_SIZE);
         lte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
+    }
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -172,16 +171,16 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u32 key32 = (key >> 32);
-    TTEntry *tte = cluster_entry (key);
-    TTEntry *lte = tte + NUM_CLUSTER_ENTRY - 1;
-    for ( ; tte <= lte; ++tte)
+    TTEntry *fte = cluster_entry (key);
+    TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
+    for (TTEntry *ite = fte; ite <= lte; ++ite)
     {
-        if (tte->_key == 0) return NULL;
-        if (tte->_key == key32)
+        if (ite->_key == key32)
         {
-            tte->_gen = _generation;
-            return tte;
+            ite->_gen = _generation;
+            return ite;
         }
+        if (ite->_key == 0) return NULL;
     }
     return NULL;
 }

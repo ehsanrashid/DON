@@ -1,15 +1,7 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _BITSCAN_H_INC_
 #define _BITSCAN_H_INC_
 
 #include "Type.h"
-
-#ifdef _MSC_VER
-#   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
-#endif
 
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions

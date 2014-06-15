@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _BITBASES_H_INC_
 #define _BITBASES_H_INC_
 

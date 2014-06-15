@@ -1,3 +1,6 @@
+#ifndef _NULLSTREAM_H_INC_
+#define _NULLSTREAM_H_INC_
+
 // Copyright (c) 2006 - 2010
 // Seweryn Habdank-Wojewodzki
 //
@@ -11,22 +14,11 @@
 // This software is provided "as is" without express or implied
 // warranty, and with no claim as to its suitability for any purpose.
 
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
-#ifndef _NULLSTREAM_H_INC_
-#define _NULLSTREAM_H_INC_
-
 #include <streambuf>
 #include <ostream>
 #include "noncopyable.h"
 
 namespace std {
-
-#ifdef _MSC_VER
-#   pragma warning (disable: 4355)
-#endif
 
     // generic null stream buffer class
     template <class CharT, class Traits = char_traits<CharT> >

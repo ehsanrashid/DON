@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _GAME_H_INC_
 #define _GAME_H_INC_
 

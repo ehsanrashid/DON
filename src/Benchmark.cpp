@@ -97,9 +97,9 @@ void benchmark (istream &is, const Position &pos)
     LimitsT limits;
     if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
     else if (limit_type == "nodes") limits.nodes    = value;
-    else if (limit_type == "mate")  limits.mate     = value;
+    else if (limit_type == "mate")  limits.mate     = u08 (value);
     //else if (limit_type == "depth")
-    else                            limits.depth    = value;
+    else                            limits.depth    = u08 (value);
 
     if      (fen_fn == "default")
     {

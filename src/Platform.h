@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _PLATFORM_H_INC_
 #define _PLATFORM_H_INC_
 

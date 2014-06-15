@@ -151,7 +151,7 @@ namespace Zobrist {
             while ((iss >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
-                u08 sym = tolower (ch);
+                u08 sym = u08 (tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
                     fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];

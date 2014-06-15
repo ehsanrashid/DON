@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _TB_SYZYGY_H_INC
 #define _TB_SYZYGY_H_INC
 

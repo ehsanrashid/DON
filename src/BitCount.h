@@ -1,15 +1,7 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _BITCOUNT_H_INC_
 #define _BITCOUNT_H_INC_
 
 #include "Type.h"
-
-#ifdef _MSC_VER
-#   pragma warning (disable: 4244) // 'argument' : conversion from '-' to '-', possible loss of data
-#endif
 
 enum BitCountT
 {
@@ -50,11 +42,11 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #       ifdef _64BIT
     {
-        return (_mm_popcnt_u64 (bb));
+        return u08 (_mm_popcnt_u64 (bb));
     }
 #       else
     {
-        return (_mm_popcnt_u32 (bb) + _mm_popcnt_u32 (bb >> 32));
+        return u08 (_mm_popcnt_u32 (bb) + _mm_popcnt_u32 (bb >> 32));
     }
 #       endif
 }
@@ -70,11 +62,11 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #      ifdef _64BIT
     {
-        return (__popcnt64 (bb));
+        return u08 (__popcnt64 (bb));
     }
 #      else
     {
-        return (__popcnt (bb) + __popcnt (bb >> 32));
+        return u08 (__popcnt (bb) + __popcnt (bb >> 32));
     }
 #      endif
 }
@@ -88,7 +80,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //template<>
 //INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //{
-//    return (__m64_popcnt (bb));
+//    return u08 (__m64_popcnt (bb));
 //}
 
 #else

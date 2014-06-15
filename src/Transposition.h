@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _TRANSPOSITION_H_INC_
 #define _TRANSPOSITION_H_INC_
 
@@ -11,11 +7,6 @@
 #include "Type.h"
 #include "MemoryHandler.h"
 #include "UCI.h"
-
-#ifdef _MSC_VER
-#   pragma warning (push)
-#   pragma warning (disable : 4244)
-#endif
 
 // Transposition Entry needs the 16 byte to be stored
 //
@@ -85,7 +76,7 @@ private:
 #endif
 
     TTEntry *_hash_table;
-    u64      _hash_mask;
+    u32      _hash_mask;
     u08      _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
@@ -155,7 +146,7 @@ public:
     // Returns size in MB
     inline u32 size () const
     {
-        return ((entries () * TTENTRY_SIZE) >> 20);
+        return u32 ((entries () * TTENTRY_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -181,7 +172,7 @@ public:
     // The upper order bits of the key are used to get the index of the cluster.
     inline TTEntry* cluster_entry (const Key key) const
     {
-        return _hash_table + (key & _hash_mask);
+        return _hash_table + (u32 (key) & _hash_mask);
     }
 
     // permill_full() returns an approximation of the per-mille of the 
@@ -190,13 +181,13 @@ public:
     // It is used to display the "info hashfull ..." information in UCI.
     // "the hash is <x> permill full", the engine should send this info regularly.
     // hash, are using <x>%. of the state of full.
-    inline u16 permill_full () const
+    inline u32 permill_full () const
     {
         u32 full_count = 0;
         return full_count;      // TODO::
         const TTEntry *tte = _hash_table;
-        u16 total_count = std::min (10000, i32 (entries ()));
-        for (u16 i = 0; i < total_count; ++i, ++tte)
+        u32 total_count = std::min (10000, i32 (entries ()));
+        for (u32 i = 0; i < total_count; ++i, ++tte)
         {
             if (tte->_gen == _generation)
             {
@@ -204,7 +195,7 @@ public:
             }
         }
 
-        return (full_count * 1000) / total_count;
+        return u32 ((full_count * 1000) / total_count);
     }
 
     u32 resize (u32 mem_size_mb, bool force = false);
@@ -223,12 +214,16 @@ public:
     {
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
-            os.write ((const CharT *) &mem_size_mb, sizeof (mem_size_mb));
-            os.write ((const CharT *) &TTENTRY_SIZE, sizeof (dummy));
-            os.write ((const CharT *) &NUM_CLUSTER_ENTRY, sizeof (dummy));
+            os.write ((const CharT *) &mem_size_mb   , sizeof (mem_size_mb));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &tt._hash_mask , sizeof (tt._hash_mask));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
+            os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            os.write ((const CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
             os.write ((const CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return os;
     }
@@ -238,24 +233,25 @@ public:
         operator>> (std::basic_istream<CharT, Traits> &is, TranspositionTable &tt)
     {
             u32 mem_size_mb;
-            is.read ((CharT *) &mem_size_mb, sizeof (mem_size_mb));
+            u08 generation;
             u08 dummy;
+            is.read ((CharT *) &mem_size_mb  , sizeof (mem_size_mb));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &dummy, sizeof (dummy));
+            is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
-            tt._generation = dummy;
+            tt._generation = generation;
             is.read ((CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
             return is;
     }
 
 };
-
-#ifdef _MSC_VER
-#   pragma warning (pop)
-#endif
 
 
 extern TranspositionTable TT; // Global Transposition Table

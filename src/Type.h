@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _TYPE_H_INC_
 #define _TYPE_H_INC_
 
@@ -611,6 +607,19 @@ inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 //    return os;
 //}
 
+
+// GameClock stores the available time and time-gain per move
+struct GameClock
+{
+    // unit: milli-seconds
+    u32 time;   // Time left
+    u32 inc;    // Time gain
+
+    GameClock ()
+        : time (0)
+        , inc  (0)
+    {}
+};
 
 template<class Entry, u32 Size>
 struct HashTable

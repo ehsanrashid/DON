@@ -23,6 +23,7 @@ namespace BitBases {
             LOSE    = 8
         };
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
+        //inline Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
 
         // Each u32 stores results of 32 positions, one per bit
         u32 KPKBitbase[MAX_INDEX / 32];
@@ -153,9 +154,11 @@ namespace BitBases {
                 }
             }
 
-            return result = (WHITE == C)
-                ? (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW)
-                : (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
+            result = (WHITE == C) ?
+                     (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW) :
+                     (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
+
+            return result;
         }
 
     }

@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef SEARCHER_H_INC_
 #define SEARCHER_H_INC_
 
@@ -13,11 +9,6 @@
 #include "Time.h"
 #include "Position.h"
 #include "PolyglotBook.h"
-
-#ifdef _MSC_VER
-#   pragma warning (push)
-#   pragma warning (disable: 4805)
-#endif
 
 namespace Threads {
     struct SplitPoint;
@@ -43,18 +34,6 @@ namespace Searcher {
     {
 
     private:
-        // GameClock stores the available time and time-gain per move
-        struct GameClock
-        {
-            // unit: milli-seconds
-            u32 time;   // Time left
-            u32 inc;    // Time gain
-
-            GameClock ()
-                : time (0)
-                , inc  (0)
-            {}
-        };
 
     public:
 
@@ -192,9 +171,5 @@ namespace Searcher {
     extern void initialize ();
 
 }
-
-#ifdef _MSC_VER
-#   pragma warning (pop)
-#endif
 
 #endif // SEARCHER_H_INC_

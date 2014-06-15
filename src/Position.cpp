@@ -161,7 +161,7 @@ u08 Position::_fifty_move_dist;
 
 void Position::initialize ()
 {
-    _fifty_move_dist = 2 * i32 (Options["Fifty Move Distance"]);
+    _fifty_move_dist = u08 (2 * i32 (Options["Fifty Move Distance"]));
 
     for (i08 pt = PAWN; pt <= KING; ++pt)
     {
@@ -1742,7 +1742,7 @@ Position::operator string () const
         Square s = pop_lsq (occ);
         i08 r = _rank (s);
         i08 f = _file (s);
-        board[3 + row_len * (7.5 - r) + 4 * f] = PieceChar[_board[s]];
+        board[3 + i32 (row_len * (7.5 - r) + 4 * f)] = PieceChar[_board[s]];
     }
 
     ostringstream oss;
@@ -1862,7 +1862,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         {
             Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
-            char sym = tolower (ch);
+            u08 sym = u08 (tolower (ch));
             if ('a' <= sym && sym <= 'h')
             {
                 rook = (to_file (sym) | rel_rank (c, R_1));
@@ -1928,7 +1928,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    pos._si->clock50 = (SQ_NO != pos._si->en_passant_sq) ? 0 : clk50;
+    pos._si->clock50 = u08 ((SQ_NO != pos._si->en_passant_sq) ? 0 : clk50);
     pos._game_ply = max (2 * (g_move - 1), 0) + (BLACK == pos._active);
 
     pos._si->matl_key = Zob.compute_matl_key (pos);

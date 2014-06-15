@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _NOTATION_H_INC_
 #define _NOTATION_H_INC_
 
@@ -25,7 +21,7 @@ namespace Notation {
 
     extern const std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
-    extern const std::string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move pv[]);
+    extern const std::string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[]);
     
 }
 

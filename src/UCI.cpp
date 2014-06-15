@@ -208,10 +208,10 @@ namespace UCI {
                 else if (token == "winc")       { cmds >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
                 else if (token == "binc")       { cmds >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
                 else if (token == "movetime")   { cmds >> value; limits.movetime  = value >= 0 ? +value : -value; }
-                else if (token == "movestogo")  { cmds >> value; limits.movestogo = value >= 0 ? +value : -value; }
-                else if (token == "depth")      { cmds >> value; limits.depth = value >= 0 ? +value : -value; }
+                else if (token == "movestogo")  { cmds >> value; limits.movestogo = u08 (value >= 0 ? +value : -value); }
+                else if (token == "depth")      { cmds >> value; limits.depth = u08 (value >= 0 ? +value : -value); }
                 else if (token == "nodes")      { cmds >> value; limits.nodes = value >= 0 ? +value : -value; }
-                else if (token == "mate")       { cmds >> value; limits.mate  = value >= 0 ? +value : -value; }
+                else if (token == "mate")       { cmds >> value; limits.mate  = u08 (value >= 0 ? +value : -value); }
                 else if (token == "infinite")   { limits.infinite  = true; }
                 else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)

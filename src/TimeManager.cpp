@@ -5,7 +5,6 @@
 #include "UCI.h"
 
 using namespace std;
-using namespace Searcher;
 
 namespace {
 
@@ -18,13 +17,13 @@ namespace {
     const double Shift       = 59.80;
     const double SkewFactor  = 00.172;
 
-    const u08 MaxMoveHorizon = 50; // Plan time management at most this many moves ahead
+    const u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
 
     const u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time (in ms) at clock
     const u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves
     const u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time (in ms) for each remaining move
-    const u32 MinimumThinkingTime   = 25; // No matter what, use at least this much time (in ms) before doing the move
-          u16 SlowMover             = 80; // Move fast if small value, in %age.
+    const u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time (in ms) before doing the move
+          i32 SlowMover             = 80; // Move fast if small value, in %age.
 
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after n half-moves".
@@ -37,7 +36,7 @@ namespace {
 
     template<TimeT TT>
     // remaining_time<>() calculate the time remaining
-    inline u32 remaining_time (u32 time, u08 movestogo, u16 game_ply)
+    inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
     {
         const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
@@ -57,7 +56,7 @@ namespace {
 
 }
 
-void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
+void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
 {
     // Read uci parameters
     //EmergencyClockTime   = i32 (Options["Emergency Clock Time"]);
@@ -68,17 +67,17 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
 
     // Initialize unstable pv factor to 1 and search times to maximum values
     _unstable_pv_factor  = 1.0;
-    _optimum_time = _maximum_time = max (limits.gameclock[c].time, MinimumThinkingTime);
+    _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
-    u08 tot_movestogo = (limits.movestogo != 0) ? min (limits.movestogo, MaxMoveHorizon) : MaxMoveHorizon;
+    u08 tot_movestogo = (movestogo != 0) ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"-value
         i32 hyp_time =
-            + limits.gameclock[c].time
-            + limits.gameclock[c].inc * (hyp_movestogo - 1)
+            + gameclock.time
+            + gameclock.inc * (hyp_movestogo - 1)
             - EmergencyClockTime
             - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon);
 
@@ -96,3 +95,4 @@ void TimeManager::initialize (const LimitsT &limits, u16 game_ply, Color c)
     // Make sure that _optimum_time is not over _maximum_time
     if (_optimum_time > _maximum_time) _optimum_time = _maximum_time;
 }
+

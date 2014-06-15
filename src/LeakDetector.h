@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _LEAK_DETECTOR_H_INC_
 #define _LEAK_DETECTOR_H_INC_
 

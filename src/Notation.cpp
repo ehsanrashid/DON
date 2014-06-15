@@ -97,7 +97,7 @@ namespace Notation {
             const u32 MSecMinute = M_SEC * 60;
             const u32 MSecHour   = MSecMinute * 60;
 
-            u32 hours   =   msecs / MSecHour;
+            u32 hours   = u32 (msecs / MSecHour);
             u32 minutes =  (msecs % MSecHour) / MSecMinute;
             u32 seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
 
@@ -285,14 +285,14 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file. It uses the two helpers below to pretty
     // format the time and score respectively.
-    const string pretty_pv (Position &pos, u08 depth, Value value, u64 msecs, const Move pv[])
+    const string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
     {
         const u64 K = 1000;
         const u64 M = 1000000;
 
         ostringstream oss;
 
-        oss << setw (3) << u32 (depth)
+        oss << setw (3) << depth
             << setw (8) << pretty_value (value)
             << setw (8) << pretty_time (msecs);
 

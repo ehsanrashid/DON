@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _NON_COPYABLE_H_INC_
 #define _NON_COPYABLE_H_INC_
 

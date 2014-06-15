@@ -1,11 +1,7 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _TIME_MANAGER_H_INC_
 #define _TIME_MANAGER_H_INC_
 
-#include "Searcher.h"
+#include "Type.h"
 
 // TimeManager class computes the optimal time to think depending on the
 // maximum available time, the move game number and other parameters.
@@ -26,7 +22,7 @@ private:
 
 public:
 
-    inline u32 available_time () const { return _optimum_time * _unstable_pv_factor * 0.71; }
+    inline u32 available_time () const { return u32 (_optimum_time * _unstable_pv_factor * 0.71); }
     
     inline u32 maximum_time   () const { return _maximum_time; }
 
@@ -35,7 +31,7 @@ public:
         _unstable_pv_factor = 1 + best_move_changes;
     }
 
-    void initialize (const Searcher::LimitsT &limits, u16 game_ply, Color c);
+    void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     
 };
 

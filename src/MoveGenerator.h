@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _MOVE_GENERATOR_H_INC_
 #define _MOVE_GENERATOR_H_INC_
 
@@ -76,7 +72,7 @@ namespace MoveGenerator {
 
         inline Move operator* () const { return curr->move; }
 
-        inline u16 size       () const { return last - moves; }
+        inline u16 size       () const { return u16 (last - moves); }
 
         bool contains (Move m) const
         {

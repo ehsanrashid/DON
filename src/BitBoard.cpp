@@ -231,7 +231,7 @@ namespace BitBoard {
         {
             for (i08 r = R_1; r <= R_8; ++r)
             {
-                FileRankDist[f][r] = abs (f - r);
+                FileRankDist[f][r] = u08 (abs (f - r));
             }
         }
 

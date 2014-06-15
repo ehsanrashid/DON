@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _ENDGAME_H_INC_
 #define _ENDGAME_H_INC_
 
@@ -68,11 +64,6 @@ namespace EndGame {
         virtual T operator() (const Position &pos) const = 0;
 
     };
-
-#ifdef _MSC_VER
-// Disable some silly and noisy warning from MSVC compiler
-#   pragma warning (disable: 4512) // Assignment operator could not be generated
-#endif
 
     template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
     class Endgame

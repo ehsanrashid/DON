@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _POLYGLOT_BOOK_H_INC_
 #define _POLYGLOT_BOOK_H_INC_
 
@@ -12,11 +8,6 @@
 #include "noncopyable.h"
 
 class Position;
-
-#ifdef _MSC_VER
-#   pragma warning (push)
-#   pragma warning (disable: 4250)
-#endif
 
 // A Polyglot book is a series of entries of 16 bytes.
 // All integers are stored in big-endian format,
@@ -133,9 +124,5 @@ public:
     //void info ();
 
 };
-
-#ifdef _MSC_VER
-#   pragma warning (pop)
-#endif
 
 #endif // _POLYGLOT_BOOK_H_INC_

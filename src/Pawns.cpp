@@ -245,7 +245,7 @@ namespace Pawns {
             }
 
             Bitboard span = e->semiopen_files[C] ^ 0xFF;
-            e->pawn_span[C] = (span != U64 (0)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
+            e->pawn_span[C] = (span != U64 (0) && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
 
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
@@ -310,6 +310,8 @@ namespace Pawns {
         const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
         for (i08 f = kf - w_del; f <= kf + e_del; ++f)
         {
+            ASSERT (F_A <= f && f <= F_H);
+
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
@@ -327,7 +329,6 @@ namespace Pawns {
             else
             {
                 mid_pawns = pawns[0] & File_bb[f];
-                
                 u08 wr = (mid_pawns != U64 (0))
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;

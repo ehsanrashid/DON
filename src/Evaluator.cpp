@@ -331,7 +331,6 @@ namespace Evaluator {
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
-            //const Bitboard pawn_span     = ei.pi->semiopen_files[C_] ^ 0xFF;
 
             ei.attacked_by[C][PT] = U64 (0);
             
@@ -349,7 +348,7 @@ namespace Evaluator {
                     (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
                     (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
                                  | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                    PieceAttacks[PT][s];
+                                   PieceAttacks[PT][s];
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
@@ -376,7 +375,7 @@ namespace Evaluator {
 
                 if (NIHT == PT)
                 {
-                    //score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
+                    score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
 
                     // Outposts bonus for knight 
                     if ((PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_)) == U64 (0))
@@ -1074,7 +1073,7 @@ namespace Evaluator {
                        )
                     {
                         // It is almost certainly a draw even with pawns.
-                        u08 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                        i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                         sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
                     }
                     // Both sides with opposite-colored bishops, but also other pieces. 
