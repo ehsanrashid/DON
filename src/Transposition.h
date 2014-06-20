@@ -104,8 +104,12 @@ public:
     // Number of entries in a cluster
     static const u08 NUM_CLUSTER_ENTRY;
 
-    // Total size for Transposition entry in byte
+    // Size for Transposition entry in byte
     static const u08 TTENTRY_SIZE;
+    // Size for Transposition Cluster in byte  
+    static const u08 TTCLUSTER_SIZE;
+
+    static const u32 BUFFER_SIZE;
 
     // Maximum bit of hash for cluster
     static const u08 MAX_HASH_BIT;
@@ -208,6 +212,9 @@ public:
     // retrieve() looks up the entry in the transposition table.
     const TTEntry* retrieve (Key key) const;
 
+    void save (std::string &hash_fn);
+    void load (std::string &hash_fn);
+
     template<class CharT, class Traits>
     friend std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
@@ -224,7 +231,11 @@ public:
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            os.write ((const CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
+            u32 clusters = tt.entries () / NUM_CLUSTER_ENTRY / BUFFER_SIZE;
+            for (u32 i = 0; i < clusters; ++i)
+            {
+                os.write ((const CharT *) (tt._hash_table+i*NUM_CLUSTER_ENTRY*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+            }
             return os;
     }
 
@@ -246,8 +257,12 @@ public:
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
-            tt._generation = generation;
-            is.read ((CharT *)  tt._hash_table, u64 (mem_size_mb) << 20);
+            tt._generation = (generation > 0 ? generation - 1 : 0);
+            u32 clusters = tt.entries () / NUM_CLUSTER_ENTRY / BUFFER_SIZE;
+            for (u32 i = 0; i < clusters; ++i)
+            {
+                is.read ((CharT *) (tt._hash_table+i*NUM_CLUSTER_ENTRY*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+            }
             return is;
     }
 

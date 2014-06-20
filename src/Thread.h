@@ -197,23 +197,25 @@ namespace Threads {
         virtual void idle_loop () = 0;
     };
 
+    const i32 TimerResolution = 5;
+
     // TimerThread is derived from ThreadBase class
     // It's used for special purpose: the recurring timer.
     class TimerThread
         : public ThreadBase
     {
     private:
-        bool run;
 
     public:
         // This is the minimum interval in msec between two check_time() calls
-        static const i32 Resolution = 5;
+        bool run;
+        i32 resolution;
+        void (*task) ();
 
         TimerThread () : run (false) {}
 
         void start () { run = true ; }
         void stop  () { run = false; }
-        bool running () const { return run; }
 
         virtual void idle_loop ();
 
@@ -283,6 +285,7 @@ namespace Threads {
         Mutex       mutex;
         Condition   sleep_condition;
         TimerThread *timer;
+        TimerThread *autosave;
 
         Depth   split_depth;
         u08     max_ply;

@@ -17,19 +17,19 @@ namespace {
     const double Shift       = 59.80;
     const double SkewFactor  = 00.172;
 
-    const u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
+    u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
 
-    const u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time (in ms) at clock
-    const u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves
-    const u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time (in ms) for each remaining move
-    const u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time (in ms) before doing the move
-          i32 SlowMover             = 80; // Move fast if small value, in %age.
+    u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time (in ms) at clock
+    u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves
+    u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time (in ms) for each remaining move
+    u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time (in ms) before doing the move
+    i32 Slowness              = 80; // Slowliness, in %age.
 
     // move_importance() is a skew-logistic function based on naive statistical
-    // analysis of "how many games are still undecided after n half-moves".
+    // analysis of "how many games are still undecided after 'n' half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    inline double move_importance (u16 ply)
+    inline double move_importance (i32 ply)
     {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
@@ -41,7 +41,7 @@ namespace {
         const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
         const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
 
-        double  this_move_imp = move_importance (game_ply) * SlowMover / 100;
+        double  this_move_imp = move_importance (game_ply) * Slowness / 100;
         double other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -63,7 +63,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     //EmergencyMoveHorizon = i32 (Options["Emergency Move Horizon"]);
     //EmergencyMoveTime    = i32 (Options["Emergency Move Time"]);
     //MinimumThinkingTime  = i32 (Options["Minimum Thinking Time"]);
-    SlowMover            = i32 (Options["Slow Mover"]);
+    Slowness             = i32 (Options["Slowness"]);
 
     // Initialize unstable pv factor to 1 and search times to maximum values
     _unstable_pv_factor  = 1.0;

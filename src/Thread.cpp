@@ -15,6 +15,7 @@ namespace Threads {
     using namespace Searcher;
 
     extern void check_time ();
+    extern void autosave_hash ();
 
     namespace {
 
@@ -218,13 +219,13 @@ namespace Threads {
             mutex.lock ();
             if (!exit)
             {
-                sleep_condition.wait_for (mutex, run ? Resolution : INT_MAX);
+                sleep_condition.wait_for (mutex, run ? resolution : INT_MAX);
             }
             mutex.unlock ();
 
             if (run)
             {
-                check_time ();
+                task ();
             }
         }
         while (!exit);
@@ -266,6 +267,10 @@ namespace Threads {
     {
         max_ply = 0;
         timer = new_thread<TimerThread> ();
+        timer->resolution = TimerResolution;
+        timer->task = check_time;
+        autosave = new_thread<TimerThread> ();
+        autosave->task = autosave_hash;
         push_back (new_thread<MainThread> ());
         configure ();
     }
@@ -275,6 +280,7 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
+        delete_thread (autosave);
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);
@@ -344,17 +350,7 @@ namespace Threads {
             ASSERT (states.get () == NULL);
         }
         
-        RootMoves.clear ();
-        bool all_rootmoves = limits.root_moves.empty ();
-        for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
-        {
-            Move m = *itr;
-            if (   all_rootmoves
-                || count (limits.root_moves.begin (), limits.root_moves.end (), m))
-            {
-                RootMoves.push_back (RootMove (m));
-            }
-        }
+        RootMoves.initialize (pos, limits.root_moves);
         
         Signals.stop           = false;
         Signals.stop_ponderhit = false;

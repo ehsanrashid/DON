@@ -192,7 +192,7 @@ enum Value : i32
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
     
-    VALUE_NONE      = SHRT_MAX,
+    VALUE_NONE      = 0x7FFF, //SHRT_MAX,
     VALUE_INFINITE  = +i16 (VALUE_NONE) - 1,
     VALUE_INFINITE_ = -i16 (VALUE_INFINITE),
 

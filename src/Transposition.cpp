@@ -1,5 +1,6 @@
 #include "Transposition.h"
 
+#include <fstream>
 #include "BitScan.h"
 #include "Engine.h"
 
@@ -7,9 +8,13 @@ TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 
-const u08  TranspositionTable::NUM_CLUSTER_ENTRY = 4;
+const u08 TranspositionTable::NUM_CLUSTER_ENTRY = 4;
 
-const u08  TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
+const u08 TranspositionTable::TTENTRY_SIZE = sizeof (TTEntry);  // 16
+
+const u08 TranspositionTable::TTCLUSTER_SIZE = NUM_CLUSTER_ENTRY*TTENTRY_SIZE;
+
+const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
 
 const u08 TranspositionTable::MAX_HASH_BIT  = 32;
 
@@ -83,7 +88,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
     u64 mem_size      = u64 (mem_size_mb) << 20;
-    u32 cluster_count = u32 ((mem_size) / sizeof (TTEntry[NUM_CLUSTER_ENTRY]));
+    u32 cluster_count = u32 ((mem_size) / TTCLUSTER_SIZE);
     u32   entry_count = u32 (NUM_CLUSTER_ENTRY) << scan_msq (cluster_count);
 
     ASSERT (scan_msq (entry_count) < MAX_HASH_BIT);
@@ -183,4 +188,22 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
         if (ite->_key == 0) return NULL;
     }
     return NULL;
+}
+
+void TranspositionTable::save (string &hash_fn)
+{
+    convert_path (hash_fn);
+    ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
+    ofhash << (*this);
+    ofhash.close ();
+    sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+}
+
+void TranspositionTable::load (string &hash_fn)
+{
+    convert_path (hash_fn);
+    ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
+    ifhash >> (*this);
+    ifhash.close ();
+    sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
 }

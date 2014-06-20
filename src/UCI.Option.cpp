@@ -150,21 +150,13 @@ namespace UCI {
         void on_save_hash   (const Option &)
         {
             string hash_fn = string (Options["Hash File"]);
-            convert_path (hash_fn);
-            ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
-            ofhash << TT;
-            ofhash.close ();
-            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+            TT.save (hash_fn);
         }
 
         void on_load_hash   (const Option &)
         {
             string hash_fn = string (Options["Hash File"]);
-            convert_path (hash_fn);
-            ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
-            ifhash >> TT;
-            ifhash.close ();
-            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+            TT.load (hash_fn);
         }
 
         void on_change_book (const Option &)
@@ -248,6 +240,8 @@ namespace UCI {
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option ("Hash.dat");
+
+        Options["Auto-Save Hash (mins)"]         << Option ( 0, 0, 60);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -362,8 +356,8 @@ namespace UCI {
         //Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
-        // Move fast if small value, 100 is neutral
-        Options["Slow Mover"]                   << Option ( 80, 10, 1000);
+        // How slow you want engine to play, 100 is neutral
+        Options["Slowness"]                     << Option ( 80, 10, 1000);
 
         // Debug Options
         // -------------

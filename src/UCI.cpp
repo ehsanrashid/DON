@@ -12,9 +12,10 @@
 #include "Notation.h"
 #include "Debugger.h"
 
+using namespace std;
+
 namespace UCI {
 
-    using namespace std;
     using namespace Searcher;
     using namespace MoveGenerator;
     using namespace Threads;
@@ -457,6 +458,16 @@ namespace UCI {
         Threadpool.wait_for_think_finished ();
         // Close book if open
         Book.close ();
+    }
+
+}
+
+namespace Threads {
+
+    void autosave_hash ()
+    {
+        string hash_fn = string (Options["Hash File"]);
+        TT.save (hash_fn);
     }
 
 }

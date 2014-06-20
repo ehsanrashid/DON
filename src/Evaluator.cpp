@@ -328,6 +328,7 @@ namespace Evaluator {
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
         {
             const Color  C_      = (WHITE == C) ? BLACK : WHITE;
+            const Delta PUSH     = (WHITE == C) ? DEL_N  : DEL_S;
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
@@ -377,8 +378,8 @@ namespace Evaluator {
                 {
                     score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
 
-                    // Outposts bonus for knight 
-                    if ((PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_)) == U64 (0))
+                    // Outpost bonus for knight 
+                    if ((PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_) & ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])) == U64 (0))
                     {
                         score += evaluate_outpost<C> (pos, ei, s);
                     }
@@ -457,7 +458,7 @@ namespace Evaluator {
                         score += (ei.pi->semiopen_file<C_> (f) != 0)
                                ? RookOnOpenFileBonus
                                : RookOnSemiOpenFileBonus;
-
+                        /*
                         // Give more if the rook is doubled
                         if (pos.count<ROOK> (C) > 1 && (File_bb[f] & pos.pieces<ROOK> (C) & attacks))
                         {
@@ -465,6 +466,7 @@ namespace Evaluator {
                                    ? RookDoubledOnOpenFileBonus
                                    : RookDoubledOnSemiopenFileBonus;
                         }
+                        */
                     }
 
                     Bitboard passed_pawn;
@@ -848,6 +850,14 @@ namespace Evaluator {
                         mg_bonus += k * rr;
                         eg_bonus += k * rr;
                     }
+                    else
+                    {
+                        if (pos.pieces (C) & block_sq)
+                        {
+ 				            mg_bonus += rr;
+                            eg_bonus += rr;
+                        }
+                    }
                 }
 
                 if (eg_bonus != VALUE_ZERO)
@@ -880,7 +890,7 @@ namespace Evaluator {
         // evaluate_unstoppable_pawns<>() scores the most advanced among the passed and
         // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
         // related to the possibility pawns are unstoppable.
-        inline Score evaluate_unstoppable_pawns (const Position &, const EvalInfo &ei)
+        inline Score evaluate_unstoppable_pawns (const EvalInfo &ei)
         {
             Bitboard unstoppable_pawns = ei.pi->passed_pawns[C] | ei.pi->candidate_pawns[C];
             return (unstoppable_pawns != U64 (0)) ?
@@ -1012,11 +1022,11 @@ namespace Evaluator {
             // If one side has only a king, score for potential unstoppable pawns
             if (npm[BLACK] == VALUE_ZERO)
             {
-                score += evaluate_unstoppable_pawns<WHITE> (pos, ei);
+                score += evaluate_unstoppable_pawns<WHITE> (ei);
             }
             if (npm[WHITE] == VALUE_ZERO)
             {
-                score -= evaluate_unstoppable_pawns<BLACK> (pos, ei);
+                score -= evaluate_unstoppable_pawns<BLACK> (ei);
             }
 
             Phase game_phase = ei.mi->game_phase;
@@ -1039,49 +1049,33 @@ namespace Evaluator {
 
             ScaleFactor sf;
 
-            //// Stalemate detection
-            //Color stm = pos.active ();
-            //if (   (game_phase < (PHASE_MIDGAME - 64))
-            //    && (ei.attacked_by[stm][NIHT] == U64 (0))
-            //    && (ei.attacked_by[stm][BSHP] == U64 (0))
-            //    && (ei.attacked_by[stm][ROOK] == U64 (0))
-            //    && (ei.attacked_by[stm][QUEN] == U64 (0))
-            //    && (ei.attacked_by[stm][KING] & ~(pos.pieces (stm) | ei.attacked_by[~stm][NONE])) == U64 (0)
-            //    && (MoveList<LEGAL> (pos).size () == 0)
-            //   )
-            //{
-            //    sf = SCALE_FACTOR_DRAW;
-            //}
-            //else
-            {
-                // Scale winning side if position is more drawish than it appears
-                sf = (eg > VALUE_DRAW)
-                   ? ei.mi->scale_factor<WHITE> (pos)
-                   : ei.mi->scale_factor<BLACK> (pos);
+            // Scale winning side if position is more drawish than it appears
+            sf = (eg > VALUE_DRAW) ?
+                ei.mi->scale_factor<WHITE> (pos) :
+                ei.mi->scale_factor<BLACK> (pos);
 
-                // If don't already have an unusual scale factor, check for opposite
-                // colored bishop endgames, and use a lower scale for those.
-                if (   (game_phase < (PHASE_MIDGAME - 16))
-                    && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
-                    && (pos.opposite_bishops ())
-                   )
+            // If don't already have an unusual scale factor, check for opposite
+            // colored bishop endgames, and use a lower scale for those.
+            if (   (game_phase < (PHASE_MIDGAME - 8))
+                && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
+                && (pos.opposite_bishops ())
+                )
+            {
+                // Both sides with opposite-colored bishops only ignoring any pawns.
+                if (   (game_phase < (PHASE_MIDGAME - 96))
+                    && (npm[WHITE] == VALUE_MG_BSHP)
+                    && (npm[BLACK] == VALUE_MG_BSHP)
+                    )
                 {
-                    // Both sides with opposite-colored bishops only ignoring any pawns.
-                    if (   (game_phase < (PHASE_MIDGAME - 96))
-                        && (npm[WHITE] == VALUE_MG_BSHP)
-                        && (npm[BLACK] == VALUE_MG_BSHP)
-                       )
-                    {
-                        // It is almost certainly a draw even with pawns.
-                        i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
-                    }
-                    // Both sides with opposite-colored bishops, but also other pieces. 
-                    else
-                    {
-                        // Still a bit drawish, but not as drawish as with only the two bishops.
-                        sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
-                    }
+                    // It is almost certainly a draw even with pawns.
+                    i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                    sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
+                }
+                // Both sides with opposite-colored bishops, but also other pieces. 
+                else
+                {
+                    // Still a bit drawish, but not as drawish as with only the two bishops.
+                    sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
                 }
             }
 

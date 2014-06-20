@@ -72,8 +72,11 @@ namespace Material {
         template<Color C> 
         inline bool is_KBPsKs (const Position &pos)
         {
+            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+
             return pos.non_pawn_material (C ) == VALUE_MG_BSHP
-                && pos.count<BSHP> (C ) == 1
+                && pos.non_pawn_material (C_) == VALUE_ZERO
+                //&& pos.count<BSHP> (C ) == 1
                 && pos.count<PAWN> (C ) >= 1;
         }
 
@@ -83,10 +86,10 @@ namespace Material {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) == VALUE_MG_QUEN
-                //&& pos.non_pawn_material (C_) == VALUE_MG_ROOK
-                && pos.count<QUEN> (C ) == 1
+                && pos.non_pawn_material (C_) == VALUE_MG_ROOK
+                //&& pos.count<QUEN> (C ) == 1
+                //&& pos.count<ROOK> (C_) == 1
                 && pos.count<PAWN> (C ) == 0
-                && pos.count<ROOK> (C_) == 1
                 && pos.count<PAWN> (C_) >= 1;
         }
 

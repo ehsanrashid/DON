@@ -111,8 +111,18 @@ namespace Searcher {
             value[0] = -VALUE_INFINITE;
             value[1] = -VALUE_INFINITE;
             pv.push_back (m);
-            pv.push_back (MOVE_NONE);
+            if (m != MOVE_NONE) pv.push_back (MOVE_NONE);
         }
+        
+        //RootMove (const RootMove &rm) { *this = rm; }
+        //RootMove& RootMove::operator= (const RootMove &rm)
+        //{
+        //    nodes    = rm.nodes;
+        //    value[0] = rm.value[0];
+        //    value[1] = rm.value[1];
+        //    pv       = rm.pv;
+        //    return *this;
+        //}
 
         // Ascending Sort
 
@@ -129,6 +139,23 @@ namespace Searcher {
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
 
+        std::string info_pv (const Position &pos) const;
+    };
+
+    class RootMoveList
+        : public std::vector<RootMove>
+    {
+
+    public:
+        double best_move_changes;
+
+        void initialize (const Position &pos, const std::vector<Move> root_moves);
+
+        inline void sort_full ()           { std::stable_sort (begin (), end ()); }
+        inline void sort_multipv (i32 n)   { std::stable_sort (begin (), begin () + n); }
+        inline void sort_nonmultipv (i32 n){ std::stable_sort (begin () + n, end ()); }
+        
+        u64 game_nodes () const;
     };
 
     // The Stack struct keeps track of the information needed to remember from
@@ -156,7 +183,7 @@ namespace Searcher {
     extern LimitsT               Limits;
     extern SignalsT volatile     Signals;
 
-    extern std::vector<RootMove> RootMoves;
+    extern RootMoveList          RootMoves;
     extern Position              RootPos;
     extern StateInfoStackPtr     SetupStates;
 
@@ -164,7 +191,7 @@ namespace Searcher {
 
     extern PolyglotBook          Book;
 
-    extern u64 perft (Position &pos, const Depth &depth);
+    extern u64 perft (Position &pos, Depth depth);
 
     extern void think ();
 
