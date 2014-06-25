@@ -57,8 +57,6 @@ namespace Material {
 
     Entry* probe     (const Position &pos, Table &table);
     
-    Phase game_phase (const Position &pos);
-
 }
 
 #endif // _MATERIAL_H_INC_

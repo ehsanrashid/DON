@@ -359,7 +359,7 @@ namespace Searcher {
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
                     {
-                        if (tte->bound () & (tt_value > eval_ ? BND_LOWER : BND_UPPER))
+                        if (tte->bound () & (tt_value >= best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
                         }
@@ -377,7 +377,7 @@ namespace Searcher {
                     if (tte == NULL)
                     {
                         TT.store (
-                            pos.posi_key (),
+                            posi_key,
                             MOVE_NONE,
                             DEPTH_NONE,
                             BND_LOWER,
@@ -497,23 +497,14 @@ namespace Searcher {
                     {
                         best_move = move;
 
-                        // Update alpha here! Always alpha < beta
-                        if (PVNode && (value < beta))
+                        if (value >= beta)  // Fail high
                         {
-                            alpha = value;
+                            goto beta_cutoff;
                         }
-                        else // Fail high
+                        else
                         {
-                            TT.store (
-                                posi_key,
-                                best_move,
-                                tt_depth,
-                                BND_LOWER,
-                                0,//pos.game_nodes (),
-                                value_to_tt (best_value, (ss)->ply),
-                                (ss)->static_eval);
-
-                            return best_value;
+                            // Update alpha here! always alpha < beta
+                            if (PVNode) alpha = value;
                         }
                     }
                 }
@@ -529,11 +520,12 @@ namespace Searcher {
                 }
             }
 
+        beta_cutoff:
             TT.store (
                 posi_key,
                 best_move,
                 tt_depth,
-                PVNode && (old_alpha < best_value) ? BND_EXACT : BND_UPPER,
+                (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                 0,//pos.game_nodes (),
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
@@ -596,7 +588,6 @@ namespace Searcher {
 
                 ASSERT (splitpoint->best_value > -VALUE_INFINITE);
                 ASSERT (splitpoint->moves_count > 0);
-
                 goto loop_moves;
             }
 
@@ -708,7 +699,7 @@ namespace Searcher {
                 // Can tt_value be used as a better position evaluation?
                 if (VALUE_NONE != tt_value)
                 {
-                    if (tte->bound () & (tt_value > eval_ ? BND_LOWER : BND_UPPER))
+                    if (tte->bound () & (tt_value >= eval ? BND_LOWER : BND_UPPER))
                     {
                         eval = tt_value;
                     }
@@ -922,6 +913,7 @@ namespace Searcher {
                    (!RootNode && !SPNode)
                 && (depth >= (8*ONE_MOVE))
                 && (tt_move != MOVE_NONE)
+                && (tt_value != VALUE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - (3*ONE_MOVE))
@@ -1026,8 +1018,6 @@ namespace Searcher {
                     && (pos.legal (move, ci.pinneds))
                    )
                 {
-                    ASSERT (tt_value != VALUE_NONE);
-
                     Value rbeta = tt_value - i32 (depth);
 
                     (ss)->excluded_move  = move;
@@ -1301,22 +1291,22 @@ namespace Searcher {
                     if (alpha < value)
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
-                        
-                        // Update alpha! Always alpha < beta
-                        if (PVNode && (value < beta))
+
+                        if (value >= beta)  // Fail high
                         {
-                            alpha = (SPNode) ? splitpoint->alpha = value : value;
+                            if (SPNode) splitpoint->cut_off = true;
+
+                            break;
                         }
                         else
                         {
-                            ASSERT (value >= beta); // Fail high
-
-                            if (SPNode)
+                            // Update alpha here! always alpha < beta
+                            if (PVNode)
                             {
-                                splitpoint->cut_off = true;
+                                alpha = (SPNode) ? splitpoint->alpha = value : value;
                             }
-                            break;
                         }
+
                     }
                 }
 
@@ -1325,8 +1315,9 @@ namespace Searcher {
                 {
                     if (   Threadpool.split_depth <= depth
                         && Threadpool.available_slave (thread)
-                        &&  (   thread->active_splitpoint == NULL
-                            || !thread->active_splitpoint->slave_searching)
+                        && (    thread->active_splitpoint == NULL
+                            || !thread->active_splitpoint->slave_searching
+                           )
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
                        )
                     {
@@ -1347,7 +1338,7 @@ namespace Searcher {
                 }
             }
 
-            // Step 20. Check for mate and stalemate
+            // Step 20. Check for checkmate and stalemate
             if (!SPNode)
             {
                 // All legal moves have been searched and if there are no legal moves, it
@@ -1361,10 +1352,10 @@ namespace Searcher {
                         DrawValue[pos.active ()];
                 }
                 // Quiet best move:
-                else if ((best_value >= beta) /*&& _ok (best_move)*/)
+                else
                 {
                     // Update history, killer, counter & followup moves
-                    if (!in_check && !pos.capture_or_promotion (best_move))
+                    if ((best_value >= beta) && !in_check && !pos.capture_or_promotion (best_move))
                     {
                         update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                     }
@@ -1374,7 +1365,7 @@ namespace Searcher {
                     posi_key,
                     best_move,
                     depth,
-                    best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
+                    (best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
                     0,//pos.game_nodes (),
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
@@ -1445,6 +1436,7 @@ namespace Searcher {
                 const bool aspiration = depth > (2*ONE_MOVE);
 
                 // MultiPV loop. Perform a full root search for each PV line
+                //for (PVIndex = 0; PVIndex < (aspiration ? MultiPV : (RootCount < 4 ? RootCount : 4)); ++PVIndex)
                 for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
                 {
                     // Requested to stop?
@@ -1614,7 +1606,7 @@ namespace Searcher {
     Position            RootPos;
     StateInfoStackPtr   SetupStates;
 
-    Time::point         SearchTime;
+    point               SearchTime;
 
     // initialize the PRNG only once
     PolyglotBook        Book;
@@ -1759,6 +1751,7 @@ namespace Searcher {
         {
             searchlog_fn = string (Options["SearchLog File"]);
             convert_path (searchlog_fn);
+            write_searchlog = !searchlog_fn.empty ();
         }
         
         i32 autosave_time;

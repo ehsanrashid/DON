@@ -556,6 +556,14 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
     return KING; // No need to update bitboards, it is the last cycle
 }
 
+// game_phase() calculates the phase interpolating total
+// non-pawn material between endgame and midgame limits.
+Phase Position::game_phase () const
+{
+    Value npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
+    return Phase (((npm - VALUE_ENDGAME) * PHASE_MIDGAME) / (VALUE_MIDGAME - VALUE_ENDGAME));
+}
+
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
 Value Position::see      (Move m) const

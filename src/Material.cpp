@@ -108,8 +108,7 @@ namespace Material {
             // Second-degree polynomial material imbalance
             for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
             {
-                i32 pc = count[C ][pt1];
-                if (pc > 0)
+                if (count[C ][pt1] > 0)
                 {
                     i32 v = OwnSideLinearCoefficient[pt1];
 
@@ -121,7 +120,7 @@ namespace Material {
                     v += count[C ][KING] * OwnSideQuadraticCoefficient[pt1][KING]
                       +  count[C_][KING] * OppSideQuadraticCoefficient[pt1][KING];
 
-                    value += pc * v;
+                    value += count[C ][pt1] * v;
                 }
             }
             value += count[C ][KING] * OwnSideLinearCoefficient[KING];
@@ -149,7 +148,7 @@ namespace Material {
             memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
             e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-            e->game_phase    = game_phase (pos);
+            e->game_phase    = pos.game_phase ();
 
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed
@@ -294,17 +293,6 @@ namespace Material {
         }
 
         return e;
-    }
-
-    // game_phase() calculates the phase given the current position.
-    // Because the phase is strictly a function of the material, it is stored in MaterialEntry.
-    Phase game_phase (const Position &pos)
-    {
-        Value npm = pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK);
-
-        return (npm >= VALUE_MIDGAME) ? PHASE_MIDGAME :
-               (npm <= VALUE_ENDGAME) ? PHASE_ENDGAME :
-               Phase (((npm - VALUE_ENDGAME) * i32 (PHASE_MIDGAME)) / i32 (VALUE_MIDGAME - VALUE_ENDGAME));
     }
 
 } // namespace Material

@@ -239,6 +239,7 @@ public:
 
     u64  game_nodes ()   const;
     void game_nodes (u64 nodes);
+    Phase game_phase ()  const;
 
     Threads::Thread* thread () const;
 
@@ -247,6 +248,7 @@ public:
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
     Value see_sign (Move m) const;
+    
 
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;

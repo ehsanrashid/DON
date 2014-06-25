@@ -13,13 +13,13 @@ namespace Pawns {
     {
 
     private:
-        
-        u08    _kp_min_dist   [CLR_NO];
+
         u08    _castle_rights [CLR_NO];
+        u08    _kp_min_dist   [CLR_NO];
         Score  _king_safety   [CLR_NO];
 
         template<Color C>
-        Score do_king_safety (const Position &pos, Square k_sq);
+        Score _evaluate_king_safety (const Position &pos, Square k_sq);
 
     public:
 
@@ -36,7 +36,7 @@ namespace Pawns {
         u08       semiopen_files[CLR_NO];
         u08       pawn_span     [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08       num_pawns_on_sqrs[CLR_NO][CLR_NO]; // [color][light/dark squares]
+        u08       pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         template<Color C>
         inline u08  semiopen_file (File f) const
@@ -51,20 +51,28 @@ namespace Pawns {
         }
 
         template<Color C>
-        inline i32 num_pawns_on_squares (Square s) const
+        inline i32 pawns_on_squares (Square s) const
         {
-            return num_pawns_on_sqrs[C][!!(BitBoard::Dark_bb & s)];
+            return pawns_on_sqrs[C][!!(BitBoard::Dark_bb & s)];
         }
 
         template<Color C>
-        inline Score king_safety (const Position &pos, Square k_sq)
+        inline Score evaluate_king_safety (const Position &pos, Square k_sq)
         {
-            return (king_sq[C] == k_sq && _castle_rights[C] == pos.can_castle (C))
-                ? _king_safety[C] : (_king_safety[C] = do_king_safety<C> (pos, k_sq));
+            if (king_sq[C] != k_sq || _castle_rights[C] != pos.can_castle (C))
+            {
+                king_sq       [C] = k_sq;
+                _castle_rights[C] = pos.can_castle (C);
+                _king_safety  [C] = _evaluate_king_safety<C> (pos, k_sq);
+            }
+            return _king_safety[C];
         }
 
         template<Color C>
-        Value shelter_storm (const Position &pos, Square k_sq);
+        Value shelter_storm (const Position &pos, Square k_sq) const;
+
+        template<Color C>
+        Score evaluate_unstoppable_pawns () const;
 
     };
 

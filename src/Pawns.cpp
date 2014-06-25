@@ -54,10 +54,10 @@ namespace Pawns {
             S(+ 0,+ 0), S(+ 0,+ 0), S(+ 0,+ 0), S(+0,+ 0), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+0,+ 0)
         };
 
-        // Bonus for file distance of the two outermost pawns
-        const Score PawnsFileSpanBonus      = S(+ 0,+15);
-        // Unsupported pawn penalty
-        const Score UnsupportedPawnPenalty  = S(+20,+10);
+        const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
+        const Score UnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
+
+        const Score UnsupportedPenalty  = S(+20,+10); // Penalty for Unsupported pawn
 
     #undef S
 
@@ -112,14 +112,14 @@ namespace Pawns {
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & Liht_bb;
-                e->num_pawns_on_sqrs[C][WHITE] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+                e->pawns_on_sqrs[C][WHITE] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
                 color_pawns = center_pawns & Dark_bb;
-                e->num_pawns_on_sqrs[C][BLACK] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+                e->pawns_on_sqrs[C][BLACK] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
             }
             else
             {
-                e->num_pawns_on_sqrs[C][WHITE] = 0;
-                e->num_pawns_on_sqrs[C][BLACK] = 0;
+                e->pawns_on_sqrs[C][WHITE] = 0;
+                e->pawns_on_sqrs[C][BLACK] = 0;
             }
 
             Score pawn_score = SCORE_ZERO;
@@ -216,7 +216,7 @@ namespace Pawns {
                 {
                     if (unsupported)
                     {
-                        pawn_score -= UnsupportedPawnPenalty;
+                        pawn_score -= UnsupportedPenalty;
                     }
                     if (backward)
                     {
@@ -249,7 +249,7 @@ namespace Pawns {
 
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
-            pawn_score += PawnsFileSpanBonus * i32 (e->pawn_span[C]);
+            pawn_score += FileSpanBonus * i32 (e->pawn_span[C]);
 
             return pawn_score;
         }
@@ -292,7 +292,7 @@ namespace Pawns {
     template<Color C>
     // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
-    Value Entry::shelter_storm (const Position &pos, Square k_sq)
+    Value Entry::shelter_storm (const Position &pos, Square k_sq) const
     {
         const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -342,13 +342,11 @@ namespace Pawns {
     }
 
     template<Color C>
-    // Entry::king_safety() calculates a bonus for king safety.
+    // Entry::evaluate_king_safety() calculates a bonus for king safety.
     // It is called only when king square changes,
-    // which is about 20% of total king_safety() calls.
-    Score Entry::do_king_safety (const Position &pos, Square k_sq)
+    // which is about 20% of total evaluate_king_safety() calls.
+    Score Entry::_evaluate_king_safety (const Position &pos, Square k_sq)
     {
-        king_sq       [C] = k_sq;
-        _castle_rights[C] = pos.can_castle (C);
         _kp_min_dist  [C] = 0;
 
         Bitboard pawns = pos.pieces<PAWN> (C);
@@ -387,7 +385,24 @@ namespace Pawns {
 
     // Explicit template instantiation
     // -------------------------------
-    template Score Entry::do_king_safety<WHITE> (const Position &pos, Square k_sq);
-    template Score Entry::do_king_safety<BLACK> (const Position &pos, Square k_sq);
+    template Score Entry::_evaluate_king_safety<WHITE> (const Position &pos, Square k_sq);
+    template Score Entry::_evaluate_king_safety<BLACK> (const Position &pos, Square k_sq);
+
+    template<Color C>
+    // evaluate_unstoppable_pawns<>() scores the most advanced among the passed and
+    // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
+    // related to the possibility pawns are unstoppable.
+    Score Entry::evaluate_unstoppable_pawns () const
+    {
+        Bitboard unstoppable_pawns = passed_pawns[C] | candidate_pawns[C];
+        return (unstoppable_pawns != U64 (0)) ?
+            UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns))) :
+            SCORE_ZERO;
+    }
+
+    // Explicit template instantiation
+    // -------------------------------
+    template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
+    template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
 } // namespace Pawns
