@@ -168,6 +168,11 @@ namespace UCI {
         {
             Threadpool.configure ();
         }
+        
+        void on_change_evaluation (const Option &)
+        {
+            Evaluator::initialize ();
+        }
 
         void on_50_move_dist (const Option &opt)
         {
@@ -189,7 +194,7 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default 64, Min 4, Max 1024 (32-bit) or 4096 (64-bit Standard) or 262144 (64-bit Pro).
+        // Default 64, Min 4, Max 32768 MB = 032 GB.
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
@@ -352,6 +357,9 @@ namespace UCI {
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
+
+        Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
+        Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
 
         //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
         //Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);

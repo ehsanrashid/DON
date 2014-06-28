@@ -117,16 +117,22 @@ namespace Evaluator {
         
         struct Weight { i32 mg, eg; };
 
-        const Weight Weights[5] =
-        {
-            {+289,+344}, // Mobility
-            {+233,+201}, // PawnStructure
-            {+221,+273}, // PassedPawns
-            {+ 46,+  0}, // Space
-            {+318,+  0}  // KingSafety
-        };
+        Weight Weights[5];
 
 #define S(mg, eg) mk_score (mg, eg)
+
+        // Internal evaluation weights. These are applied on top of the evaluation
+        // weights read from UCI parameters. The purpose is to be able to change
+        // the evaluation weights while keeping the default values of the UCI
+        // parameters at 100, which looks prettier.
+        const Score InternalWeights[5] =
+        {
+            S(+289,+344), // Mobility
+            S(+233,+201), // PawnStructure
+            S(+221,+273), // PassedPawns
+            S(+ 46,+  0), // Space
+            S(+318,+  0)  // KingSafety
+        };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
         // indexed by piece type and number of attacked squares not occupied by friendly pieces.
@@ -245,6 +251,17 @@ namespace Evaluator {
         // indexed by a calculated integer number.
         Score KingDanger[MAX_ATTACK_UNITS];
 
+        // weight_option() computes the value of an evaluation weight, by combining
+        // two UCI-configurable weights (midgame and endgame) with an internal weight.
+        inline Weight weight_option (i32 opt_value, const Score &internal_weight)
+        {
+            Weight weight =
+            {
+                opt_value * mg_value (internal_weight) / 100, // =mg
+                opt_value * eg_value (internal_weight) / 100  // =eg
+            };
+            return weight;
+        }
 
         // apply_weight() weighs 'score' by factor 'weight' trying to prevent overflow
         inline Score apply_weight (const Score &score, const Weight &weight)
@@ -1173,6 +1190,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
+        Weights[Mobility     ] = weight_option (100                         , InternalWeights[Mobility     ]);
+        Weights[PawnStructure] = weight_option (100                         , InternalWeights[PawnStructure]);
+        Weights[PassedPawns  ] = weight_option (100                         , InternalWeights[PassedPawns  ]);
+        Weights[Space        ] = weight_option (i32 (Options["Space"      ]), InternalWeights[Space        ]);
+        Weights[KingSafety   ] = weight_option (i32 (Options["King Safety"]), InternalWeights[KingSafety   ]);
+
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
 
