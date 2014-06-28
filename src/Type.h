@@ -514,9 +514,9 @@ template<Color C, CSide CS>
 struct Castling
 {
     static const CRight
-    Right = (C == WHITE)
-      ? (CS == CS_Q) ? CR_WQ : CR_WK
-      : (CS == CS_Q) ? CR_BQ : CR_BK;
+    Right = (C == WHITE) ?
+            (CS == CS_Q) ? CR_WQ : CR_WK :
+            (CS == CS_Q) ? CR_BQ : CR_BK;
 };
 
 inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }

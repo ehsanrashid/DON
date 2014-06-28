@@ -188,7 +188,6 @@ public:
     inline u32 permill_full () const
     {
         u32 full_count = 0;
-        return full_count;      // TODO::
         const TTEntry *tte = _hash_table;
         u32 total_count = std::min (10000, i32 (entries ()));
         for (u32 i = 0; i < total_count; ++i, ++tte)

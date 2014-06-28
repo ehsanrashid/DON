@@ -260,23 +260,26 @@ namespace Threads {
 
     // ------------------------------------
 
-    // initialize() is called at startup to create and launch requested threads, that will
-    // go immediately to sleep.
-    // Cannot use a c'tor becuase Threadpool is a static object and need a fully initialized engine.
+    // initialize() is called at startup to create and launch requested threads,
+    // that will go immediately to sleep.
+    // Cannot use a c'tor becuase Threadpool is a static object
+    // and need a fully initialized engine.
     void ThreadPool::initialize ()
     {
         max_ply = 0;
-        timer = new_thread<TimerThread> ();
-        timer->resolution = TimerResolution;
-        timer->task = check_time;
-        autosave = new_thread<TimerThread> ();
-        autosave->task = autosave_hash;
         push_back (new_thread<MainThread> ());
         configure ();
+        timer           = new_thread<TimerThread> ();
+        timer->task     = check_time;
+        timer->resolution = TimerResolution;
+        autosave        = new_thread<TimerThread> ();
+        autosave->task  = autosave_hash;
+        autosave->resolution = INT_MAX;
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
-    // Cannot be done in d'tor because we have to terminate the threads before to free ThreadPool object.
+    // Cannot be done in d'tor because have to terminate
+    // the threads before to free ThreadPool object.
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data

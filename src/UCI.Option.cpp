@@ -241,7 +241,7 @@ namespace UCI {
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option ("Hash.dat");
 
-        Options["Auto-Save Hash (mins)"]         << Option ( 0, 0, 60);
+        Options["Auto-Save Hash (mins)"]        << Option ( 0, 0, 60);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -348,6 +348,8 @@ namespace UCI {
         // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
         Options["Mate Search"]                  << Option (  0, 0, MAX_PLY);
         // How well you want engine to play.
+        // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
+        //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
@@ -375,6 +377,12 @@ namespace UCI {
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
         Options["UCI_Chess960"]                 << Option (false);
+        
+        // Weaken engine.
+        //Options["UCI_LimitStrength"]            << Option (false);
+
+        // Ignored if UCI_LimitStrength = false.
+        //Options["UCI_ELO"]                      << Option ( 0, 0, 3000);
 
     }
 

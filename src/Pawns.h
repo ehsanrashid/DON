@@ -19,12 +19,15 @@ namespace Pawns {
         Score  _king_safety   [CLR_NO];
 
         template<Color C>
+        Value _shelter_storm (const Position &pos, Square k_sq) const;
+
+        template<Color C>
         Score _evaluate_king_safety (const Position &pos, Square k_sq);
 
     public:
 
-        Key     pawn_key;
-        Score   pawn_score;
+        Key      pawn_key;
+        Score    pawn_score;
 
         Square   king_sq        [CLR_NO];
         Bitboard pawn_attacks   [CLR_NO];
@@ -33,10 +36,10 @@ namespace Pawns {
         Bitboard passed_pawns   [CLR_NO];
         Bitboard candidate_pawns[CLR_NO];
 
-        u08       semiopen_files[CLR_NO];
-        u08       pawn_span     [CLR_NO];
+        u08      semiopen_files [CLR_NO];
+        u08      pawn_span      [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08       pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][light/dark squares]
+        u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         template<Color C>
         inline u08  semiopen_file (File f) const
@@ -67,9 +70,6 @@ namespace Pawns {
             }
             return _king_safety[C];
         }
-
-        template<Color C>
-        Value shelter_storm (const Position &pos, Square k_sq) const;
 
         template<Color C>
         Score evaluate_unstoppable_pawns () const;

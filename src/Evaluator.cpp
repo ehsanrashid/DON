@@ -230,13 +230,15 @@ namespace Evaluator {
         // is used as an index to KingDanger[].
         //
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { +1, + 2, + 2, + 3, + 5, 0 };
+        const i32   KingAttackWeight[NONE] = { + 1, + 2, + 2, + 3, + 5, 0 };
 
         // Bonuses for enemy's safe checks
-        const i32    SafeCheckWeight[NONE] = { 0, + 3, + 2, + 8, +12, 0 };
+        const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
 
         // Bonuses for enemy's contact safe checks
-        const i32 ContactCheckWeight[NONE] = { 0, + 0, + 3, +16, +24, 0 };
+        const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
+
+        const i32 PawnSpanScale[2]         = { +38, +56 };
 
         const u08 MAX_ATTACK_UNITS = 100;
         // KingDanger[attack_units] contains the king danger weighted score
@@ -394,7 +396,7 @@ namespace Evaluator {
 
                     if (   rsq == SQ_A7
                         || rsq == SQ_H7
-                        )
+                       )
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
@@ -406,7 +408,7 @@ namespace Evaluator {
                     }
                     if (   rsq == SQ_A6
                         || rsq == SQ_H6
-                        )
+                       )
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
@@ -500,9 +502,9 @@ namespace Evaluator {
                     }
                     */
 
-                    attacks &= (~( ei.attacked_by[C_][NIHT]
-                                 | ei.attacked_by[C_][BSHP]
-                                 ) | occ);
+                    attacks &= (~(ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP])
+                               | (ei.attacked_by[C ][NONE])
+                               | occ);
                 }
 
                 if (QUEN == PT)
@@ -512,13 +514,13 @@ namespace Evaluator {
                         && more_than_one (pos.pieces (C, NIHT, BSHP) & rel_rank_bb (C, R_1))
                        )
                     {
-                        score -= QueenEarlyPenalty;
+                        score -= QueenEarlyPenalty; //pop_count<MAX15> (pos.pieces (C, NIHT, BSHP) & rel_rank_bb (C, R_1));
                     }
                     */
-                    attacks &= (~( ei.attacked_by[C_][NIHT]
-                                 | ei.attacked_by[C_][BSHP]
-                                 | ei.attacked_by[C_][ROOK]
-                                 ) | occ);
+
+                    attacks &= (~(ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK])
+                               | (ei.attacked_by[C ][NONE])
+                               | occ);
                 }
 
                 if (pinned_pieces & s)
@@ -547,7 +549,7 @@ namespace Evaluator {
                                )
                             {
                                 if (   (kf >= F_E && f > kf)
-                                    || (kf <= F_E && f < kf)
+                                    || (kf <= F_D && f < kf)
                                    )
                                 {
                                     score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + !pos.can_castle (C));
@@ -737,7 +739,7 @@ namespace Evaluator {
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies != U64 (0))
             {
-                for (i08 pt = NIHT; pt < KING; ++pt)
+                for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
                     Bitboard threaten_enemies = weak_enemies & ei.attacked_by[C][pt];
                     while (threaten_enemies != U64 (0))
@@ -850,22 +852,15 @@ namespace Evaluator {
                             // Give a big bonus if the path to queen is fully defended,
                             // a smaller bonus if at least block square is defended.
                             k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
-                        }
 
-                        // If the block square is defended by a pawn add more small bonus.
-                        if (ei.attacked_by[C][PAWN] & block_sq) k += 2;
+                            // If the block square is defended by a pawn add more small bonus.
+                            if (ei.attacked_by[C][PAWN] & block_sq) k += 1;
+                        }
 
                         mg_bonus += k * rr;
                         eg_bonus += k * rr;
                     }
-                    else
-                    {
-                        if (pos.pieces (C) & block_sq)
-                        {
- 				            mg_bonus += rr;
-                            eg_bonus += rr;
-                        }
-                    }
+                    
                 }
 
                 if (eg_bonus != VALUE_ZERO)
@@ -1045,33 +1040,44 @@ namespace Evaluator {
 
             ScaleFactor sf;
 
+            Color strong_side = (eg > VALUE_DRAW) ? WHITE : BLACK;
+
             // Scale winning side if position is more drawish than it appears
-            sf = (eg > VALUE_DRAW) ?
+            sf = (strong_side == WHITE) ?
                 ei.mi->scale_factor<WHITE> (pos) :
                 ei.mi->scale_factor<BLACK> (pos);
 
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
-            if (   (game_phase < (PHASE_MIDGAME - 8))
+            if (   (game_phase < PHASE_MIDGAME)
                 && (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_PAWNS)
-                && (pos.opposite_bishops ())
                )
             {
-                // Both sides with opposite-colored bishops only ignoring any pawns.
-                if (   (game_phase < (PHASE_MIDGAME - 96))
-                    && (npm[WHITE] == VALUE_MG_BSHP)
-                    && (npm[BLACK] == VALUE_MG_BSHP)
-                   )
+                if (pos.opposite_bishops ())
                 {
-                    // It is almost certainly a draw even with pawns.
-                    i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                    sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
+                    // Both sides with opposite-colored bishops only ignoring any pawns.
+                    if (   (npm[WHITE] == VALUE_MG_BSHP)
+                        && (npm[BLACK] == VALUE_MG_BSHP)
+                       )
+                    {
+                        // It is almost certainly a draw even with pawns.
+                        i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                        sf  = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
+                    }
+                    // Both sides with opposite-colored bishops, but also other pieces. 
+                    else
+                    {
+                        // Still a bit drawish, but not as drawish as with only the two bishops.
+                        sf = ScaleFactor (50 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    }
                 }
-                // Both sides with opposite-colored bishops, but also other pieces. 
-                else
+                else if (    abs (eg) <= VALUE_EG_BSHP
+                         &&  ei.pi->pawn_span[strong_side] <= 1
+                         && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
+                        )
                 {
-                    // Still a bit drawish, but not as drawish as with only the two bishops.
-                    sf = ScaleFactor (48 * i32 (sf) / i32 (SCALE_FACTOR_NORMAL));
+                    // Endings where weaker side can place his king in front of the strong side pawns are drawish.
+                    sf = ScaleFactor (PawnSpanScale[ei.pi->pawn_span[strong_side]]);
                 }
             }
 

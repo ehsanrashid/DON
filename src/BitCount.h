@@ -136,12 +136,6 @@ INLINE u08 pop_count<CNT_64_FULL> (Bitboard bb)
 {
     if (bb == U64 (0)) return 0;
     
-    //u64 w0 = (bb & MX_64) + ((bb + bb) & MX_64);
-    //u64 w1 = (bb >> 1 & MX_64) + (bb >> 2 & MX_64);
-    //w0 = w0 + (w0 >> 4) & M4_64;
-    //w1 = w1 + (w1 >> 4) & M4_64;
-    //return ((w0 + w1) * H8_64) >> 0x39;     // 57;
-
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
     bb = ((bb >> 4) + bb) & M4_64;
@@ -180,17 +174,6 @@ INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
 {
     if (bb == U64 (0)) return 0;
 
-    //u32 *p = (u32*) (&bb);
-    //u32 *w0 = p+0;
-    //u32 *w1 = p+1;
-    //*w0 -= (*w0 >> 1) & M1_32;                 // 0-2 in 2 bits
-    //*w1 -= (*w1 >> 1) & M1_32;
-    //*w0 = ((*w0 >> 2) & M2_32) + (*w0 & M2_32);// 0-4 in 4 bits
-    //*w1 = ((*w1 >> 2) & M2_32) + (*w1 & M2_32);
-    //*w0 = ((*w0 >> 4) + *w0) & M4_32;
-    //*w1 = ((*w1 >> 4) + *w1) & M4_32;
-    //return ((*w0 + *w1) * H8_32) >> 0x18;      // 24;
-
     u32 w0 = u32 (bb);
     u32 w1 = u32 (bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
@@ -207,15 +190,6 @@ template<>
 INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 {
     if (bb == U64 (0)) return 0;
-
-    //u32 *p = (u32*) (&bb);
-    //u32 *w0 = p+0;
-    //u32 *w1 = p+1;
-    //*w0 -= (*w0 >> 1) & M1_32;                 // 0-2 in 2 bits
-    //*w1 -= (*w1 >> 1) & M1_32;
-    //*w0 = ((*w0 >> 2) & M2_32) + (*w0 & M2_32);// 0-4 in 4 bits
-    //*w1 = ((*w1 >> 2) & M2_32) + (*w1 & M2_32);
-    //return ((*w0 + *w1) * H4_32) >> 0x1C;      // 28;
 
     u32 w0 = u32 (bb);
     u32 w1 = u32 (bb >> 32);

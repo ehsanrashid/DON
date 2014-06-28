@@ -290,9 +290,9 @@ namespace Pawns {
     }
 
     template<Color C>
-    // Entry::shelter_storm() calculates shelter and storm penalties for the file
+    // Entry::_shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
-    Value Entry::shelter_storm (const Position &pos, Square k_sq) const
+    Value Entry::_shelter_storm (const Position &pos, Square k_sq) const
     {
         const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -363,20 +363,20 @@ namespace Pawns {
             {
                 if (pos.can_castle (Castling<C, CS_K>::Right))
                 {
-                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
+                    bonus = max (bonus, _shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
                 }
                 if (pos.can_castle (Castling<C, CS_Q>::Right))
                 {
-                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
+                    bonus = max (bonus, _shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
                 }
                 if (bonus < MaxSafetyBonus)
                 {
-                    bonus = max (bonus, shelter_storm<C> (pos, k_sq));
+                    bonus = max (bonus, _shelter_storm<C> (pos, k_sq));
                 }
             }
             else
             {
-                bonus = shelter_storm<C> (pos, k_sq);
+                bonus = _shelter_storm<C> (pos, k_sq);
             }
         }
 

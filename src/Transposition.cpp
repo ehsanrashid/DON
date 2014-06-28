@@ -66,10 +66,8 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 
     sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-    void **ptr =
-        //(void **) (uintptr_t (mem) + sizeof (void *) + (alignment - ((uintptr_t (mem) + sizeof (void *)) & uintptr_t (alignment - 1))));
-        (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
-
+    void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
+    
     ptr[-1]     = mem;
     _hash_table = (TTEntry *) (ptr);
 
@@ -159,16 +157,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
         }
     }
 
-    // By default replace first entry shifting up
-    if (rte != fte)
-    {
-        rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
-    }
-    else
-    {
-        memmove (fte, fte+1, (NUM_CLUSTER_ENTRY - 1)*TTENTRY_SIZE);
-        lte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
-    }
+    // By default replace first entry
+    rte->save (key32, move, depth, bound, 0/*(nodes >> 10)*/, value, eval, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -193,7 +183,9 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 void TranspositionTable::save (string &hash_fn)
 {
     convert_path (hash_fn);
+    if (hash_fn.empty ()) return;
     ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
+    if (!ofhash.is_open ()) return;
     ofhash << (*this);
     ofhash.close ();
     sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
@@ -202,7 +194,9 @@ void TranspositionTable::save (string &hash_fn)
 void TranspositionTable::load (string &hash_fn)
 {
     convert_path (hash_fn);
+    if (hash_fn.empty ()) return;
     ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
+    if (!ifhash.is_open ()) return;
     ifhash >> (*this);
     ifhash.close ();
     sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
