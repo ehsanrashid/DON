@@ -289,7 +289,7 @@ namespace Evaluator {
 
             // Init king safety tables only if going to use them
             if (   (pos.count<QUEN> (C) > 0)
-                || (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+                || (pos.non_pawn_material (C) > VALUE_MG_QUEN + 2*VALUE_MG_PAWN)
                )
             {
                 Rank rk                        = rel_rank (C_, ek_sq);
@@ -954,7 +954,7 @@ namespace Evaluator {
 
             EvalInfo ei;
             // Probe the material hash table
-            ei.mi = Material::probe (pos, thread->material_table);
+            ei.mi  = Material::probe (pos, thread->material_table);
 
             // If have a specialized evaluation function for the current material
             // configuration, call it and return.
@@ -977,7 +977,7 @@ namespace Evaluator {
             score += ei.mi->matl_score;
 
             // Probe the pawn hash table
-            ei.pi = Pawns::probe (pos, thread->pawns_table);
+            ei.pi  = Pawns::probe (pos, thread->pawns_table);
             score += apply_weight (ei.pi->pawn_score, Weights[PawnStructure]);
 
             // Initialize attack and king safety bitboards
