@@ -277,7 +277,7 @@ namespace Evaluator {
             {
                 Rank rk                        = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = attacks | (rk < R_4 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
+                ei.king_ring              [C_] = attacks | (rk < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
                                                                        shift_del<DEL_N> (attacks) | shift_del<DEL_S> (attacks));
                 
                 Bitboard attackers;
