@@ -194,7 +194,7 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default 64, Min 4, Max 32768 MB = 032 GB.
+        // Default 64, Min 4, Max 65536 MB = 064 GB.
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //

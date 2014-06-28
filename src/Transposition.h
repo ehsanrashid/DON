@@ -10,55 +10,61 @@
 
 // Transposition Entry needs the 16 byte to be stored
 //
-//  Key--------->4
-//  Move-------->2
-//  Depth------->2
-//  Bound------->1
-//  Generation-->1
-//  Nodes------->2
-//  Value------->2
-//  Eval Value-->2
+//  Key--------->16 bits
+//  Move-------->16 bits
+//  Depth------->08 bits
+//  Bound------->02 bits
+//  Generation-->06 bits
+//  Value------->16 bits
+//  Eval Value-->16 bits
 // ----------------
-//  Total------->16 byte
+//  Total------->80 bits = 10 bytes
 struct TTEntry
 {
 
 private:
 
-    u32 _key;
+    u16 _key;
     u16 _move;
-    i16 _depth;
-    u08 _bound;
-    u08 _gen;
-    u16 _nodes;
     i16 _value;
     i16 _eval;
+    u08 _depth;
+    u08 _gen_bnd;
 
     friend class TranspositionTable;
 
 public:
 
-    //u32   key   () const { return u32   (_key);   }
-    Move  move  () const { return Move  (_move);  }
-    Depth depth () const { return Depth (_depth); }
-    Bound bound () const { return Bound (_bound); }
-    u08   gen   () const { return u08   (_gen);   }
-    //u16   nodes () const { return u16   (_nodes); }
-    Value value () const { return Value (_value); }
-    Value eval  () const { return Value (_eval);  }
+    inline Move  move  () const { return Move  (_move);  }
+    inline Value value () const { return Value (_value); }
+    inline Value eval  () const { return Value (_eval);  }
+    inline Depth depth () const { return Depth (_depth) + DEPTH_NONE; }
+    inline Bound bound () const { return Bound (_gen_bnd & 0x03); }
+    inline u08   gen   () const { return u08   (_gen_bnd & 0xFC); }
 
-    INLINE void save (u32 k, Move m, Depth d, Bound b, u16 n, Value v, Value e, u08 g)
+    inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
     {
-        _key   = u32 (k);
+        _key   = u16 (k);
         _move  = u16 (m);
-        _depth = u16 (d);
-        _bound = u08 (b);
-        _nodes = u16 (n);
         _value = u16 (v);
         _eval  = u16 (e);
-        _gen   = u08 (g);
+        _depth = u08 (d - DEPTH_NONE);
+        _gen_bnd = g | u08 (b);
     }
 
+};
+
+// Number of entries in a cluster
+const u08 NUM_CLUSTER_ENTRY = 3;
+
+// TTCluster is a 32 bytes cluster of TT entries consisting of:
+//
+// 3 x TTEntry (3 x 10 bytes)
+// padding     (2 bytes)
+struct TTCluster
+{
+    TTEntry entry[NUM_CLUSTER_ENTRY];
+    u08     padding[2];
 };
 
 // A Transposition Table consists of a 2^power number of clusters
@@ -75,9 +81,9 @@ private:
     void    *_mem;
 #endif
 
-    TTEntry *_hash_table;
-    u32      _hash_mask;
-    u08      _generation;
+    TTCluster *_hash_table;
+    u32        _cluster_count;
+    u08        _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
 
@@ -94,15 +100,13 @@ private:
             free (((void **) _hash_table)[-1]);
 #   endif
 
-            _hash_table = NULL;
-            _hash_mask  = 0;
-            _generation = 0;
+            _hash_table     = NULL;
+            _cluster_count  = 0;
+            _generation     = 0;
         }
     }
 
 public:
-    // Number of entries in a cluster
-    static const u08 NUM_CLUSTER_ENTRY;
 
     // Size for Transposition entry in byte
     static const u08 TTENTRY_SIZE;
@@ -125,13 +129,13 @@ public:
 
     TranspositionTable ()
         : _hash_table (NULL)
-        , _hash_mask (0)
+        , _cluster_count (0)
         , _generation (0)
     {}
 
     TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
-        , _hash_mask (0)
+        , _cluster_count (0)
         , _generation (0)
     {
         resize (mem_size_mb, true);
@@ -142,15 +146,15 @@ public:
         free_aligned_memory ();
     }
 
-    inline u64 entries () const
-    {
-        return (_hash_mask + NUM_CLUSTER_ENTRY);
-    }
+    //inline u64 entries () const
+    //{
+    //    return (_cluster_count * NUM_CLUSTER_ENTRY);
+    //}
 
     // Returns size in MB
     inline u32 size () const
     {
-        return u32 ((entries () * TTENTRY_SIZE) >> 20);
+        return u32 ((_cluster_count * TTCLUSTER_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -161,7 +165,7 @@ public:
     {
         if (Clear_Hash && _hash_table != NULL)
         {
-            memset (_hash_table, 0x00, entries () * TTENTRY_SIZE);
+            memset (_hash_table, 0x00, _cluster_count * TTCLUSTER_SIZE);
             _generation = 0;
             sync_cout << "info string Hash cleared." << sync_endl;
         }
@@ -170,13 +174,13 @@ public:
     // new_gen() is called at the beginning of every new search.
     // It increments the "Generation" variable, which is used to distinguish
     // transposition table entries from previous searches from entries from the current search.
-    inline void new_gen () { ++_generation; }
+    inline void new_gen () { _generation += 4; }
 
     // cluster_entry() returns a pointer to the first entry of a cluster given a position.
-    // The upper order bits of the key are used to get the index of the cluster.
+    // The upper order bits of the key are used to get the index of the cluster inside the table.
     inline TTEntry* cluster_entry (const Key key) const
     {
-        return _hash_table + (u32 (key) & _hash_mask);
+        return _hash_table[u32 (key) & (_cluster_count - 1)].entry;
     }
 
     // permill_full() returns an approximation of the per-mille of the 
@@ -188,11 +192,12 @@ public:
     inline u32 permill_full () const
     {
         u32 full_count = 0;
-        const TTEntry *tte = _hash_table;
-        u32 total_count = std::min (10000, i32 (entries ()));
-        for (u32 i = 0; i < total_count; ++i, ++tte)
+        const TTCluster *ttc = _hash_table;
+        u32 total_count = std::min<u32> (10000, _cluster_count);
+        for (u32 i = 0; i < total_count; ++i, ++ttc)
         {
-            if (tte->_gen == _generation)
+            const TTEntry *tte = ttc->entry;
+            if (tte->_gen_bnd == _generation)
             {
                 ++full_count;
             }
@@ -225,15 +230,15 @@ public:
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &tt._hash_mask , sizeof (tt._hash_mask));
+            os.write ((const CharT *) &tt._cluster_count , sizeof (tt._cluster_count));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            u32 clusters = tt.entries () / NUM_CLUSTER_ENTRY / BUFFER_SIZE;
-            for (u32 i = 0; i < clusters; ++i)
+            u32 cluster_bulk = tt._cluster_count / BUFFER_SIZE;
+            for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                os.write ((const CharT *) (tt._hash_table+i*NUM_CLUSTER_ENTRY*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+                os.write ((const CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
             }
             return os;
     }
@@ -250,17 +255,17 @@ public:
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &tt._hash_mask, sizeof (tt._hash_mask));
+            is.read ((CharT *) &tt._cluster_count, sizeof (tt._cluster_count));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
             tt._generation = (generation > 0 ? generation - 1 : 0);
-            u32 clusters = tt.entries () / NUM_CLUSTER_ENTRY / BUFFER_SIZE;
-            for (u32 i = 0; i < clusters; ++i)
+            u32 cluster_bulk = tt._cluster_count / BUFFER_SIZE;
+            for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                is.read ((CharT *) (tt._hash_table+i*NUM_CLUSTER_ENTRY*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+                is.read ((CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
             }
             return is;
     }

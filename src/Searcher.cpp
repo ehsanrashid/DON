@@ -908,7 +908,6 @@ namespace Searcher {
                 && (tt_move != MOVE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
                 && (abs (tt_value) < VALUE_KNOWN_WIN)
-                && (abs (beta)     < VALUE_KNOWN_WIN)
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - (3*ONE_MOVE));
 
