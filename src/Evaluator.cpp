@@ -262,18 +262,23 @@ namespace Evaluator {
         {
             const Color  C_ = (WHITE == C) ? BLACK : WHITE;
 
+            Square ek_sq = pos.king_sq (C_);
+
             ei.pinned_pieces[C] = pos.pinneds (C);
+            ei.attacked_by  [C][NONE] =
+            ei.attacked_by  [C][PAWN] = ei.pi->pawn_attacks[C];
 
-            ei.attacked_by[C][NONE] = ei.attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
-
-            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][pos.king_sq (C_)];
+            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
 
             // Init king safety tables only if going to use them
             if (   (pos.count<QUEN> (C) > 0)
                 || (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
                )
             {
-                ei.king_ring              [C_] = attacks | shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks);
+                Rank rk                        = rel_rank (C_, ek_sq);
+
+                ei.king_ring              [C_] = attacks | (rk < R_4 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
+                                                                       shift_del<DEL_N> (attacks) | shift_del<DEL_S> (attacks));
                 
                 Bitboard attackers;
                 attackers                      = ei.king_ring[C_] & ei.attacked_by [C ][PAWN];
@@ -548,8 +553,8 @@ namespace Evaluator {
                                 && (ei.pi->semiopen_side<C> (kf, f < kf) == 0)
                                )
                             {
-                                if (   (kf >= F_E && f > kf)
-                                    || (kf <= F_D && f < kf)
+                                if (   (kf > F_E && f > kf)
+                                    || (kf < F_D && f < kf)
                                    )
                                 {
                                     score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + !pos.can_castle (C));
@@ -586,13 +591,13 @@ namespace Evaluator {
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
-                    ei.attacked_by[C_][NONE]
-                  & ei.attacked_by[C][KING]
-                  & ~(ei.attacked_by[C][PAWN]
-                    | ei.attacked_by[C][NIHT]
-                    | ei.attacked_by[C][BSHP]
-                    | ei.attacked_by[C][ROOK]
-                    | ei.attacked_by[C][QUEN]);
+                    ei.attacked_by[C ][KING] // king region
+                  & ei.attacked_by[C_][NONE]
+                  & ~(ei.attacked_by[C ][PAWN]
+                    | ei.attacked_by[C ][NIHT]
+                    | ei.attacked_by[C ][BSHP]
+                    | ei.attacked_by[C ][ROOK]
+                    | ei.attacked_by[C ][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the

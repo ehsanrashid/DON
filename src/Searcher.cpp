@@ -38,22 +38,22 @@ namespace Searcher {
         const point   InfoDuration  = 3000; // 3 sec
 
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   FutilityMoveCounts[2][32];    // [improving][depth]
+        CACHE_ALIGN(16) u08   FutilityMoveCount[2][32]; // [improving][depth]
         
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value FutilityMargin[32];           // [depth]
+        CACHE_ALIGN(16) Value FutilityMargin[32];       // [depth]
 
-        // Dynamic razoring margin based on depth (initialized at startup)
-        CACHE_ALIGN(16) Value RazorMargin   [32];           // [depth]
+        // Razoring margin lookup table (initialized at startup)
+        CACHE_ALIGN(16) Value RazorMargin   [32];       // [depth]
 
         // Reduction lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   Reductions[2][2][64][64];     // [pv][improving][depth][move_num]
+        CACHE_ALIGN(16) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, i16 depth, u08 move_num)
         {
             depth /= i32 (ONE_MOVE);
-            return Depth (Reductions[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
+            return Depth (Reduction[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
         }
 
         TimeManager TimeMgr;
@@ -155,7 +155,6 @@ namespace Searcher {
             for (u08 i = 0; i < quiets_count; ++i)
             {
                 Move m = quiet_moves[i];
-                //if (m != move)
                 History.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
@@ -507,13 +506,12 @@ namespace Searcher {
             }
 
             // All legal moves have been searched.
-            // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck)
+            if (best_value == -VALUE_INFINITE)
             {
-                if (best_value == -VALUE_INFINITE)
-                {
-                    best_value = mated_in ((ss)->ply); // Plies to mate from the root
-                }
+                // A special case: If in check and no legal moves were found, it is checkmate.
+                best_value = (InCheck) ?
+                    mated_in ((ss)->ply) :       // Plies to mate from the root
+                    DrawValue[pos.active ()];
             }
 
             TT.store (
@@ -1042,7 +1040,7 @@ namespace Searcher {
                     {
                         // Move count based pruning
                         if (   (depth < (16*ONE_MOVE))
-                            && (moves_count >= FutilityMoveCounts[improving][depth])
+                            && (moves_count >= FutilityMoveCount[improving][depth])
                            )
                         {
                             if (SPNode) splitpoint->mutex.lock ();
@@ -1873,12 +1871,13 @@ namespace Searcher {
         // Initialize lookup tables
         for (u08 d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
         {
-            FutilityMoveCounts[0][d] = u08 (2.40 + 0.222 * pow (double (d) + 0.00, 1.80));
-            FutilityMoveCounts[1][d] = u08 (3.00 + 0.300 * pow (double (d) + 0.98, 1.80));
-            FutilityMargin       [d] = Value (40 + i32 (100 * double (d) /*pow (double (d), 0.90)*/));
-            RazorMargin          [d] = Value (512 + (i32 (d)<<4));
+            FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
+            FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
+            FutilityMargin      [d] = Value (i32 ( 20 + (95 - 1*d)*d));
+            RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
+        Reduction[0][0][0][0] = Reduction[0][1][0][0] = Reduction[1][0][0][0] = Reduction[1][1][0][0] = 0;
         // Initialize reductions lookup table
         for (u08 hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
         {
@@ -1886,19 +1885,19 @@ namespace Searcher {
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? u08 (    pv_red * i32 (ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? u08 (non_pv_red * i32 (ONE_MOVE)) : 0;
+                Reduction[1][1][hd][mc] = u08 (    pv_red >= 1.0 ?     pv_red * i32 (ONE_MOVE) : 0);
+                Reduction[0][1][hd][mc] = u08 (non_pv_red >= 1.0 ? non_pv_red * i32 (ONE_MOVE) : 0);
 
-                Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
-                Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
+                Reduction[1][0][hd][mc] = Reduction[1][1][hd][mc];
+                Reduction[0][0][hd][mc] = Reduction[0][1][hd][mc];
                 // Smoother transition for LMR
-                if      (Reductions[0][0][hd][mc] > (2*ONE_MOVE))
+                if      (Reduction[0][0][hd][mc] > (2*ONE_MOVE))
                 {
-                    Reductions[0][0][hd][mc] += ONE_MOVE;
+                    Reduction[0][0][hd][mc] += ONE_MOVE;
                 }
-                else if (Reductions[0][0][hd][mc] > (1*ONE_MOVE))
+                else if (Reduction[0][0][hd][mc] > (1*ONE_MOVE))
                 {
-                    Reductions[0][0][hd][mc] += ONE_PLY;
+                    Reduction[0][0][hd][mc] += ONE_PLY;
                 }
             }
         }
