@@ -101,8 +101,6 @@ typedef        uint64_t    u64;
 
 #endif
 
-#define CACHE_LINE_SIZE 64
-
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   define CACHE_ALIGN(x)     __declspec(align(x))

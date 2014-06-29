@@ -67,7 +67,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
     void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
     
     ptr[-1]     = mem;
-    _hash_table = (TTEntry *) (ptr);
+    _hash_table = (TTCluster *) (ptr);
 
 #endif
 
@@ -96,7 +96,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     {
         free_aligned_memory ();
 
-        alloc_aligned_memory (mem_size, CACHE_LINE_SIZE);
+        alloc_aligned_memory (mem_size, TTCLUSTER_SIZE); // Cache Line Size
 
         _cluster_count = cluster_count;
     }
@@ -123,7 +123,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 // * if the depth of e1 is bigger than the depth of e2.
 void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u16 /*nodes*/, Value value, Value eval)
 {
-    u16 key16    = (key >> 48); // 16 upper-bit of key inside cluster
+    u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
     TTEntry *fte = cluster_entry (key);
     TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
     TTEntry *rte = fte;
@@ -172,7 +172,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u1
 // Returns a pointer to the entry found or NULL if not found.
 const TTEntry* TranspositionTable::retrieve (Key key) const
 {
-    u16 key16    = (key >> 48);
+    u16 key16    = (key >> (64-16));
     TTEntry *fte = cluster_entry (key);
     TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
     for (TTEntry *ite = fte; ite <= lte; ++ite)

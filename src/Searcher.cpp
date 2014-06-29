@@ -907,6 +907,7 @@ namespace Searcher {
                 && (depth >= (8*ONE_MOVE))
                 && (tt_move != MOVE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
+                && (abs (beta) < VALUE_KNOWN_WIN)
                 && (abs (tt_value) < VALUE_KNOWN_WIN)
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - (3*ONE_MOVE));
@@ -1011,6 +1012,7 @@ namespace Searcher {
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
+                    if (rbeta < -VALUE_INFINITE+1) rbeta = -VALUE_INFINITE+1;
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1374,7 +1376,7 @@ namespace Searcher {
                 , bound[2]   = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
-            i32 depth = DEPTH_ZERO;
+            i16 depth = DEPTH_ZERO;
 
             u08 level = u08 (i32 (Options["Skill Level"]));
             Skill skill (level);
@@ -1431,7 +1433,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], depth*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], i32 (depth)*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1461,7 +1463,7 @@ namespace Searcher {
                             && (iteration_time > InfoDuration)
                            )
                         {
-                            sync_cout << info_multipv (pos, i16 (depth), bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1494,12 +1496,12 @@ namespace Searcher {
                     
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
-                        sync_cout << info_multipv (pos, i16 (depth), bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
                     }
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill.enabled () && skill.time_to_pick (i16 (depth)))
+                if (skill.enabled () && skill.time_to_pick (depth))
                 {
                     skill.pick_move ();
                     if (MOVE_NONE != skill.move)

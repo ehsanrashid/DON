@@ -197,7 +197,7 @@ public:
         for (u32 i = 0; i < total_count; ++i, ++ttc)
         {
             const TTEntry *tte = ttc->entry;
-            if (tte->_gen_bnd == _generation)
+            if (tte->gen () == _generation)
             {
                 ++full_count;
             }

@@ -211,7 +211,6 @@ namespace Evaluator {
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
         const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for double rook on open file
         const Score RookDoubledOnSemiopenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
-        //const Score RookBehindPassedPawnBonus     = S(+ 5,+12); // Bonus for rook behind passed pawn
         const Score RookTrappedPenalty            = S(+90,+ 5); // Penalty for rook trapped
         
         //const Score QueenEarlyPenalty             = S(+10,+ 0); // Penalty for queen moved early
@@ -494,36 +493,6 @@ namespace Evaluator {
                         
                     }
                     
-                    /*
-                    Bitboard passed_pawn;
-                    // Friend passed pawn
-                    passed_pawn = File_bb[f] & FrontRank_bb[C ][rel_rank (C , R_4)] & ei.pi->passed_pawns[C ];
-                    if (passed_pawn != U64 (0))
-                    {
-                        Square pawn_sq = scan_lsq (passed_pawn);
-                        if (   (attacks & pawn_sq) != U64 (0)
-                            && (FrontSqrs_bb[C_][pawn_sq] & s) != U64 (0)
-                            && pos.empty (pawn_sq + PUSH)
-                           )
-                        {
-                            score += RookBehindPassedPawnBonus;
-                        }
-                    }
-                    // Enemy passed pawn
-                    passed_pawn = File_bb[f] & FrontRank_bb[C_][rel_rank (C_, R_4)] & ei.pi->passed_pawns[C_];
-                    if (passed_pawn != U64 (0))
-                    {
-                        Square pawn_sq = scan_lsq (passed_pawn);
-                        if (   (attacks & pawn_sq) != U64 (0)
-                            && (FrontSqrs_bb[C ][pawn_sq] & s) != U64 (0)
-                            && pos.empty (pawn_sq + PULL)
-                           )
-                        {
-                            score += RookBehindPassedPawnBonus;
-                        }
-                    }
-                    */
-
                     attacks &= (~(ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP])
                                | (ei.attacked_by[C ][NONE])
                                | occ);
