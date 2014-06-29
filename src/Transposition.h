@@ -8,12 +8,12 @@
 #include "MemoryHandler.h"
 #include "UCI.h"
 
-// Transposition Entry needs the 16 byte to be stored
+// Transposition Entry needs 10 byte to be stored
 //
 //  Key--------->16 bits
 //  Move-------->16 bits
 //  Value------->16 bits
-//  Eval Value-->16 bits
+//  Evaluation-->16 bits
 //  Depth------->08 bits
 //  Generation-->06 bits
 //  Bound------->02 bits

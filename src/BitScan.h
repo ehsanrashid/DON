@@ -176,6 +176,7 @@ INLINE Square  scan_lsq (Bitboard bb)
 
 #else
 
+    if (bb == U64 (0)) return SQ_NO;
     // Use Matt Taylor's folding trick for 32-bit
     const u32 DeBruijn_32 = U32 (0x783A9B23);
     u64 x = bb ^ (bb - 1);
