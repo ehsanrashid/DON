@@ -12,11 +12,11 @@
 //
 //  Key--------->16 bits
 //  Move-------->16 bits
-//  Depth------->08 bits
-//  Bound------->02 bits
-//  Generation-->06 bits
 //  Value------->16 bits
 //  Eval Value-->16 bits
+//  Depth------->08 bits
+//  Generation-->06 bits
+//  Bound------->02 bits
 // ----------------
 //  Total------->80 bits = 10 bytes
 struct TTEntry
@@ -121,8 +121,6 @@ public:
     // Minimum size for Transposition table in mega-byte
     static const u32 MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
-    // 524288 MB = 512 GB   -> 64 Bit
-    // 032768 MB = 032 GB   -> 32 Bit
     static const u32 MAX_TT_SIZE;
 
     static bool Clear_Hash;
@@ -211,7 +209,7 @@ public:
     inline u32 resize () { return resize (size (), true); }
 
     // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, u16 nodes, Value value, Value eval);
+    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
 
     // retrieve() looks up the entry in the transposition table.
     const TTEntry* retrieve (Key key) const;

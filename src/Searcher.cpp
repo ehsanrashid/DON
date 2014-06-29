@@ -374,7 +374,6 @@ namespace Searcher {
                                 MOVE_NONE,
                                 DEPTH_NONE,
                                 BND_LOWER,
-                                0,//pos.game_nodes (),
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
                         }
@@ -492,7 +491,6 @@ namespace Searcher {
                                 best_move,
                                 tt_depth,
                                 BND_LOWER,
-                                0,//pos.game_nodes (),
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
 
@@ -519,7 +517,6 @@ namespace Searcher {
                 best_move,
                 tt_depth,
                 (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
-                0,//pos.game_nodes (),
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -688,7 +685,6 @@ namespace Searcher {
                             MOVE_NONE,
                             DEPTH_NONE,
                             BND_NONE,
-                            0,//pos.game_nodes (),
                             VALUE_NONE,
                             eval);
                     }
@@ -1342,7 +1338,6 @@ namespace Searcher {
                     best_move,
                     depth,
                     (best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
-                    0,//pos.game_nodes (),
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
@@ -1651,7 +1646,6 @@ namespace Searcher {
                     pv[ply],
                     DEPTH_NONE,
                     BND_NONE,
-                    0,//pos.game_nodes (),
                     VALUE_NONE,
                     VALUE_NONE);
             }

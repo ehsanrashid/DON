@@ -15,9 +15,9 @@ const u08 TranspositionTable::TTCLUSTER_SIZE = sizeof (TTCluster);
 const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
 
 const u08 TranspositionTable::MAX_HASH_BIT  = 32;
-
+// 4 MB
 const u32 TranspositionTable::MIN_TT_SIZE   = 4;
-
+// 65536 MB (64 GB)
 const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
 
 bool TranspositionTable::Clear_Hash = true;
@@ -121,7 +121,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
 // * if e1 is from the current search and e2 is from a previous search.
 // * if e1 & e2 is from a current search then EXACT bound is valuable.
 // * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, u16 /*nodes*/, Value value, Value eval)
+void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
 {
     u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
     TTEntry *fte = cluster_entry (key);
