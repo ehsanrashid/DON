@@ -90,7 +90,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     
     u32 cluster_count = 1 << hash_bit;
 
-    mem_size  = cluster_count * TTCLUSTER_SIZE;
+    mem_size  = u64 (cluster_count) * TTCLUSTER_SIZE;
 
     if (force || cluster_count != _cluster_count)
     {
