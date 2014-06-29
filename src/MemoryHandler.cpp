@@ -164,12 +164,11 @@ namespace MemoryHandler {
                 //perror ("shmat: Shared memory attach failure");
                 //shmctl (shmid1, IPC_RMID, NULL);
                 //Engine::exit (EXIT_FAILURE);
+                return;
             }
-            else
-            {
-                //perror ("shmget: Shared memory get failure");
-                //Engine::exit (EXIT_FAILURE);
-            }
+            //perror ("shmget: Shared memory get failure");
+            //Engine::exit (EXIT_FAILURE);
+
 #   endif
         }
 

@@ -1868,7 +1868,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 ( 20 + (95 - 1*d)*d));
+            FutilityMargin      [d] = Value (i32 ( 20 + (90 - 1*d)*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 

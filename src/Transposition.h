@@ -152,7 +152,7 @@ public:
     // Returns size in MB
     inline u32 size () const
     {
-        return u32 ((_cluster_count * TTCLUSTER_SIZE) >> 20);
+        return u32 (u64 (_cluster_count) * TTCLUSTER_SIZE >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -163,7 +163,7 @@ public:
     {
         if (Clear_Hash && _hash_table != NULL)
         {
-            memset (_hash_table, 0x00, _cluster_count * TTCLUSTER_SIZE);
+            memset (_hash_table, 0x00, u64 (_cluster_count) * TTCLUSTER_SIZE);
             _generation = 0;
             sync_cout << "info string Hash cleared." << sync_endl;
         }
@@ -259,7 +259,7 @@ public:
             is.read ((CharT *) &dummy, sizeof (dummy));
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
-            tt._generation = (generation > 0 ? generation - 1 : 0);
+            tt._generation = (generation > 0 ? generation - 4 : 0);
             u32 cluster_bulk = tt._cluster_count / BUFFER_SIZE;
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
