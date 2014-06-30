@@ -1008,7 +1008,6 @@ namespace Searcher {
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
-                    if (rbeta < -VALUE_INFINITE+1) rbeta = -VALUE_INFINITE+1;
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1016,10 +1015,7 @@ namespace Searcher {
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
-                    if (value < rbeta)
-                    {
-                        ext = ONE_MOVE;
-                    }
+                    if (value < rbeta) ext = ONE_MOVE;
                 }
 
                 // Update the current move (this must be done after singular extension search)
@@ -1286,10 +1282,7 @@ namespace Searcher {
                 {
                     if (   Threadpool.split_depth <= depth
                         && Threadpool.size () > 1
-                        //&& Threadpool.available_slave (thread)
-                        && (    thread->active_splitpoint == NULL
-                            || !thread->active_splitpoint->slave_searching
-                           )
+                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
                        )
                     {

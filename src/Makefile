@@ -31,7 +31,7 @@ EXE = DON
 PREFIX = /usr/local
 # Haiku has a non-standard filesystem layout
 ifeq ($(UNAME),Haiku)
-	PREFIX = /boot/common
+	PREFIX = /boot/system/non-packaged
 endif
 BINDIR = $(PREFIX)/bin
 
