@@ -29,7 +29,7 @@ namespace Evaluator {
             // attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
             // attacked_by[Color][NONE] contains all squares attacked by the given color.
             Bitboard attacked_by[CLR_NO][TOTL];
-
+            // pin_attacked_by[CLR_NO][TOTL] contains all squares attacked by a given color and piece type with pinned removed,
             Bitboard pin_attacked_by[CLR_NO][TOTL];
 
             // pinned_pieces[Color] is the pinned pieces
@@ -584,11 +584,11 @@ namespace Evaluator {
                 Bitboard undefended =
                     ei.attacked_by[C ][KING] // king region
                   & ei.attacked_by[C_][NONE]
-                  & ~(ei.attacked_by[C ][PAWN]
-                    | ei.attacked_by[C ][NIHT]
-                    | ei.attacked_by[C ][BSHP]
-                    | ei.attacked_by[C ][ROOK]
-                    | ei.attacked_by[C ][QUEN]);
+                  & ~(ei.pin_attacked_by[C ][PAWN]
+                    | ei.pin_attacked_by[C ][NIHT]
+                    | ei.pin_attacked_by[C ][BSHP]
+                    | ei.pin_attacked_by[C ][ROOK]
+                    | ei.pin_attacked_by[C ][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
@@ -827,7 +827,7 @@ namespace Evaluator {
                         if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.attacked_by[C_][ROOK] & s))
                                || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.attacked_by[C_][QUEN] & s))
                                )
-                            && ((back_squares & ei.attacked_by[C ][NONE]) != back_squares)
+                            && ((back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares)
                             && ((back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
                            )
                         {
@@ -835,14 +835,14 @@ namespace Evaluator {
                         }
                         else
                         {
-                            unsafe_squares = queen_squares & (ei.attacked_by[C_][NONE]|pos.pieces (C_));
+                            unsafe_squares = queen_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
                         }
 
                         Bitboard defended_squares;
                         if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.attacked_by[C ][ROOK] & s))
                                || ((back_squares & pos.pieces<QUEN> (C )) && (ei.attacked_by[C ][QUEN] & s))
                                )
-                            && ((back_squares & ei.attacked_by[C_][NONE]) != back_squares)
+                            && ((back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares)
                             && ((back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
                            )
                         {
@@ -850,7 +850,7 @@ namespace Evaluator {
                         }
                         else
                         {
-                            defended_squares = queen_squares & ei.attacked_by[C ][NONE];
+                            defended_squares = queen_squares & ei.pin_attacked_by[C ][NONE];
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
@@ -917,8 +917,8 @@ namespace Evaluator {
                   SpaceMask[C]
                 & ~pos.pieces<PAWN> (C)
                 & ~ei.attacked_by[C_][PAWN]
-                & (ei.attacked_by[C ][NONE]
-                | ~ei.attacked_by[C_][NONE]);
+                & (ei.pin_attacked_by[C ][NONE]
+                | ~ei.pin_attacked_by[C_][NONE]);
 
             // Since SpaceMask[C] is fully on our half of the board
             ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
