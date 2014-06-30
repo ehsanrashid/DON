@@ -30,6 +30,8 @@ namespace Evaluator {
             // attacked_by[Color][NONE] contains all squares attacked by the given color.
             Bitboard attacked_by[CLR_NO][TOTL];
 
+            Bitboard pin_attacked_by[CLR_NO][TOTL];
+
             // pinned_pieces[Color] is the pinned pieces
             Bitboard pinned_pieces[CLR_NO];
 
@@ -186,11 +188,11 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            {},                                                              // Pawn
-            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+96), S(+41,+104) }, // Knight
-            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Bishop
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Rook
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Queen
+            { S(+ 0,+ 0), S(+15,+45), S(+15,+45), S(+41,+100), S(+41,+100) }, // Protected attacked by Minor
+            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+ 96), S(+41,+104) }, // Un-Protected attacked by Knight
+            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+ 96), S(+41,+104) }, // Un-Protected attacked by Bishop
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 52) }, // Un-Protected attacked by Rook
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 52) }, // Un-Protected attacked by Queen
             {}
         };
 
@@ -281,10 +283,10 @@ namespace Evaluator {
             Square ek_sq = pos.king_sq (C_);
 
             ei.pinned_pieces[C] = pos.pinneds (C);
-            ei.attacked_by  [C][NONE] =
-            ei.attacked_by  [C][PAWN] = ei.pi->pawn_attacks[C];
+            ei.attacked_by    [C][NONE] = ei.attacked_by    [C][PAWN] =
+            ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
 
-            Bitboard attacks = ei.attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
+            Bitboard attacks = ei.attacked_by[C_][KING] = ei.pin_attacked_by[C][KING] = PieceAttacks[KING][ek_sq];
 
             // Init king safety tables only if going to use them
             if (   (pos.count<QUEN> (C) > 0)
@@ -358,7 +360,8 @@ namespace Evaluator {
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
 
             ei.attacked_by[C][PT] = U64 (0);
-            
+            ei.pin_attacked_by[C][PT] = U64 (0);
+
             Score score = SCORE_ZERO;
 
             const Square *pl = pos.list<PT> (C);
@@ -493,8 +496,8 @@ namespace Evaluator {
                         
                     }
                     
-                    attacks &= (~(ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP])
-                               | (ei.attacked_by[C ][NONE])
+                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP])
+                               | (ei.pin_attacked_by[C ][NONE])
                                | occ);
                 }
 
@@ -509,8 +512,8 @@ namespace Evaluator {
                     }
                     */
 
-                    attacks &= (~(ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK])
-                               | (ei.attacked_by[C ][NONE])
+                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])
+                               | (ei.pin_attacked_by[C ][NONE])
                                | occ);
                 }
 
@@ -518,6 +521,8 @@ namespace Evaluator {
                 {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
+
+                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
 
                 Bitboard mobile = attacks & mobility_area;
                 
@@ -607,7 +612,7 @@ namespace Evaluator {
                 {
                     // Analyse enemy's safe queen contact checks. First find undefended
                     // squares around the king attacked by enemy queen...
-                    undefended_attacked = undefended & ei.attacked_by[C_][QUEN];
+                    undefended_attacked = undefended & ei.pin_attacked_by[C_][QUEN];
                     while (undefended_attacked != U64 (0))
                     {
                         Square sq = pop_lsq (undefended_attacked);
@@ -626,7 +631,7 @@ namespace Evaluator {
                 {
                     // Analyse enemy's safe rook contact checks. First find undefended
                     // squares around the king attacked by enemy rooks...
-                    undefended_attacked = undefended & ei.attacked_by[C_][ROOK];
+                    undefended_attacked = undefended & ei.pin_attacked_by[C_][ROOK];
                     // Consider only squares where the enemy rook gives check
                     undefended_attacked &= PieceAttacks[ROOK][fk_sq];
                     while (undefended_attacked != U64 (0))
@@ -647,7 +652,7 @@ namespace Evaluator {
                 {
                     // Analyse enemy's safe rook contact checks. First find undefended
                     // squares around the king attacked by enemy bishop...
-                    undefended_attacked = undefended & ei.attacked_by[C_][BSHP];
+                    undefended_attacked = undefended & ei.pin_attacked_by[C_][BSHP];
                     // Consider only squares where the enemy bishop gives check
                     undefended_attacked &= PieceAttacks[BSHP][fk_sq];
                     while (undefended_attacked != U64 (0))
@@ -668,26 +673,26 @@ namespace Evaluator {
 
                 const Bitboard occ = pos.pieces ();
                 // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_sq = ~(pos.pieces (C_) | ei.attacked_by[C][NONE]);
+                Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
                 
                 Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
                 Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
-                safe_check = (rook_check | bshp_check) & ei.attacked_by[C_][QUEN];
+                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // Enemy rooks safe checks
-                safe_check = rook_check & ei.attacked_by[C_][ROOK];
+                safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // Enemy bishops safe checks
-                safe_check = bshp_check & ei.attacked_by[C_][BSHP];
+                safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // Enemy knights safe checks
-                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.attacked_by[C_][NIHT];
+                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
@@ -719,20 +724,34 @@ namespace Evaluator {
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
+            Bitboard enemies = pos.pieces (C_);
+
+            // Protected enemies
+            Bitboard protected_enemies = 
+                   enemies
+                & ~pos.pieces<PAWN>(C_)
+                & ei.attacked_by[C_][PAWN]
+                & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C][BSHP]);
+
             // Enemies under our attack and not defended by a pawn
-            const Bitboard weak_enemies = 
-                   pos.pieces (C_) 
-                &  ei.attacked_by[C ][NONE] 
-                & ~ei.attacked_by[C_][PAWN];
+            Bitboard weak_enemies = 
+                   enemies
+                & ~ei.attacked_by[C_][PAWN]
+                &  ei.pin_attacked_by[C ][NONE];
             
             Score score = SCORE_ZERO;
+
+            while (protected_enemies != U64 (0))
+            {
+                score += ThreatBonus[0][ptype (pos[pop_lsq (protected_enemies)])];
+            }
 
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies != U64 (0))
             {
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
-                    Bitboard threaten_enemies = weak_enemies & ei.attacked_by[C][pt];
+                    Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
                     while (threaten_enemies != U64 (0))
                     {
                         score += ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])];
@@ -740,7 +759,7 @@ namespace Evaluator {
                 }
 
                 // Hanging piece
-                Bitboard hanging_enemies = weak_enemies & ~ei.attacked_by[C_][NONE];
+                Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
                 if (hanging_enemies != U64 (0))
                 {
                     score += PieceHangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
@@ -953,8 +972,10 @@ namespace Evaluator {
             init_eval_info<WHITE> (pos, ei);
             init_eval_info<BLACK> (pos, ei);
 
-            ei.attacked_by[WHITE][NONE] |= ei.attacked_by[WHITE][KING];
-            ei.attacked_by[BLACK][NONE] |= ei.attacked_by[BLACK][KING];
+            ei.attacked_by    [WHITE][NONE] |= ei.attacked_by    [WHITE][KING];
+            ei.attacked_by    [BLACK][NONE] |= ei.attacked_by    [BLACK][KING];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };

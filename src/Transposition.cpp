@@ -125,9 +125,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
 {
     u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
     TTEntry *fte = cluster_entry (key);
-    TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
     TTEntry *rte = fte;
-    for (TTEntry *ite = fte; ite <= lte; ++ite)
+    for (TTEntry *ite = fte; ite < fte + NUM_CLUSTER_ENTRY; ++ite)
     {
         if (ite->_key == 0)     // Empty entry? then write
         {
@@ -156,16 +155,8 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
         }
     }
 
-    // By default replace first entry shifting up
-    if (rte != fte)
-    {
-        rte->save (key16, move, value, eval, depth, bound, _generation);
-    }
-    else
-    {
-        memmove (fte, fte+1, (NUM_CLUSTER_ENTRY - 1)*TTENTRY_SIZE);
-        lte->save (key16, move, value, eval, depth, bound, _generation);
-    }
+    // By default replace first entry
+    rte->save (key16, move, value, eval, depth, bound, _generation);
 }
 
 // retrieve() looks up the entry in the transposition table.
@@ -174,8 +165,7 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u16 key16    = (key >> (64-16));
     TTEntry *fte = cluster_entry (key);
-    TTEntry *lte = fte + NUM_CLUSTER_ENTRY - 1;
-    for (TTEntry *ite = fte; ite <= lte; ++ite)
+    for (TTEntry *ite = fte; ite < fte + NUM_CLUSTER_ENTRY; ++ite)
     {
         if (ite->_key == key16)
         {

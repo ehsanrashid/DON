@@ -903,7 +903,7 @@ namespace Searcher {
                 && (depth >= (8*ONE_MOVE))
                 && (tt_move != MOVE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
-                && (abs (beta) < VALUE_KNOWN_WIN)
+                && (abs (beta)     < VALUE_KNOWN_WIN)
                 && (abs (tt_value) < VALUE_KNOWN_WIN)
                 && (tte->bound () & BND_LOWER)
                 && (tte->depth () >= depth - (3*ONE_MOVE));
@@ -1861,7 +1861,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 ( 20 + (90 - 1*d)*d));
+            FutilityMargin      [d] = Value (i32 ( 20 + (85 + 1*d)*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
@@ -1871,10 +1871,10 @@ namespace Searcher {
         {
             for (u08 mc = 1; mc < 64; ++mc) // move-count
             {
-                double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
-                double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reduction[1][1][hd][mc] = u08 (    pv_red >= 1.0 ?     pv_red * i32 (ONE_MOVE) : 0);
-                Reduction[0][1][hd][mc] = u08 (non_pv_red >= 1.0 ? non_pv_red * i32 (ONE_MOVE) : 0);
+                double    pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
+                double nonpv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
+                Reduction[1][1][hd][mc] = u08 (   pv_red >= 1.0 ?    pv_red * i32 (ONE_MOVE) : 0);
+                Reduction[0][1][hd][mc] = u08 (nonpv_red >= 1.0 ? nonpv_red * i32 (ONE_MOVE) : 0);
 
                 Reduction[1][0][hd][mc] = Reduction[1][1][hd][mc];
                 Reduction[0][0][hd][mc] = Reduction[0][1][hd][mc];

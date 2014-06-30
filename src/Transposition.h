@@ -10,15 +10,15 @@
 
 // Transposition Entry needs 10 byte to be stored
 //
-//  Key--------->16 bits
-//  Move-------->16 bits
-//  Value------->16 bits
-//  Evaluation-->16 bits
-//  Depth------->08 bits
-//  Generation-->06 bits
-//  Bound------->02 bits
-// ----------------
-//  Total------->80 bits = 10 bytes
+//  Key--------- 16 bits
+//  Move-------- 16 bits
+//  Value------- 16 bits
+//  Evaluation-- 16 bits
+//  Depth------- 08 bits
+//  Generation-- 06 bits
+//  Bound------- 02 bits
+//  ====================
+//  Total------- 80 bits = 10 bytes
 struct TTEntry
 {
 
@@ -146,7 +146,7 @@ public:
 
     //inline u64 entries () const
     //{
-    //    return (_cluster_count * NUM_CLUSTER_ENTRY);
+    //    return (u64 (_cluster_count) * NUM_CLUSTER_ENTRY);
     //}
 
     // Returns size in MB
@@ -175,7 +175,7 @@ public:
     inline void new_gen () { _generation += 4; }
 
     // cluster_entry() returns a pointer to the first entry of a cluster given a position.
-    // The upper order bits of the key are used to get the index of the cluster inside the table.
+    // The lower order bits of the key are used to get the index of the cluster inside the table.
     inline TTEntry* cluster_entry (const Key key) const
     {
         return _hash_table[u32 (key) & (_cluster_count - 1)].entry;
@@ -190,11 +190,10 @@ public:
     inline u32 permill_full () const
     {
         u32 full_count = 0;
-        const TTCluster *ttc = _hash_table;
-        u32 total_count = std::min<u32> (10000, _cluster_count);
-        for (u32 i = 0; i < total_count; ++i, ++ttc)
+        u32 total_count = std::min (10000U, _cluster_count);
+        for (const TTCluster *itc = _hash_table; itc < _hash_table + total_count; ++itc)
         {
-            const TTEntry *tte = ttc->entry;
+            const TTEntry *tte = itc->entry;
             if (tte->gen () == _generation)
             {
                 ++full_count;
