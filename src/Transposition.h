@@ -150,9 +150,9 @@ public:
     //}
 
     // Returns size in MB
-    inline u32 size () const
+    inline u64 size () const
     {
-        return u32 (_cluster_count * TTCLUSTER_SIZE >> 20);
+        return (_cluster_count * TTCLUSTER_SIZE) >> 20;
     }
 
     // clear() overwrites the entire transposition table with zeroes.
