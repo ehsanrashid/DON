@@ -14,11 +14,11 @@ const u08 TranspositionTable::TTCLUSTER_SIZE = sizeof (TTCluster);
 
 const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
 
-const u08 TranspositionTable::MAX_HASH_BIT  = 32;
+const u08 TranspositionTable::MAX_HASH_BIT  = 36;
 // 4 MB
-const u32 TranspositionTable::MIN_TT_SIZE   = 4;
-// 65536 MB (64 GB)
-const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
+const u64 TranspositionTable::MIN_TT_SIZE   = 4;
+// 1048576 MB (1024 GB) (1 TB)
+const u64 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
 
 bool TranspositionTable::Clear_Hash = true;
 
@@ -78,19 +78,19 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
 // each cluster consists of NUM_CLUSTER_ENTRY number of entry.
-u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
+u64 TranspositionTable::resize (u64 mem_size_mb, bool force)
 {
     if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
 
-    u64 mem_size      = u64 (mem_size_mb) << 20;
+    u64 mem_size      = mem_size_mb << 20;
     u08 hash_bit      = scan_msq ((mem_size) / TTCLUSTER_SIZE);
     
     ASSERT (hash_bit < MAX_HASH_BIT);
     
-    u32 cluster_count = 1 << hash_bit;
+    u64 cluster_count = 1 << hash_bit;
 
-    mem_size  = u64 (cluster_count) * TTCLUSTER_SIZE;
+    mem_size  = cluster_count * TTCLUSTER_SIZE;
 
     if (force || cluster_count != _cluster_count)
     {
@@ -101,7 +101,7 @@ u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
         _cluster_count = cluster_count;
     }
 
-    return u32 (mem_size >> 20);
+    return (mem_size >> 20);
 }
 
 // store() writes a new entry in the transposition table.

@@ -85,20 +85,20 @@ INLINE Square scan_msq (Bitboard bb)
 // Assembly code by Heinz van Saanen
 INLINE Square scan_lsq (Bitboard bb)
 {
-    //Bitboard sq;
-    //__asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
-    //return Square (sq);
-    if (bb == U64 (0)) return SQ_NO;
-    return Square (__builtin_ctzll (bb));
+    Bitboard sq;
+    __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
+    return Square (sq);
+    //if (bb == U64 (0)) return SQ_NO;
+    //return Square (__builtin_ctzll (bb));
 }
 
 INLINE Square scan_msq (Bitboard bb)
 {
-    //Bitboard sq;
-    //__asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
-    //return Square (sq);
-    if (bb == U64 (0)) return SQ_NO;
-    return Square (63 ^ __builtin_clzll (bb));
+    Bitboard sq;
+    __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
+    return Square (sq);
+    //if (bb == U64 (0)) return SQ_NO;
+    //return Square (63 ^ __builtin_clzll (bb));
 }
 
 #   endif

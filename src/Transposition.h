@@ -82,7 +82,7 @@ private:
 #endif
 
     TTCluster *_hash_table;
-    u32        _cluster_count;
+    u64        _cluster_count;
     u08        _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
@@ -119,9 +119,9 @@ public:
     static const u08 MAX_HASH_BIT;
 
     // Minimum size for Transposition table in mega-byte
-    static const u32 MIN_TT_SIZE;
+    static const u64 MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
-    static const u32 MAX_TT_SIZE;
+    static const u64 MAX_TT_SIZE;
 
     static bool Clear_Hash;
 
@@ -146,13 +146,13 @@ public:
 
     //inline u64 entries () const
     //{
-    //    return (u64 (_cluster_count) * NUM_CLUSTER_ENTRY);
+    //    return (_cluster_count * NUM_CLUSTER_ENTRY);
     //}
 
     // Returns size in MB
     inline u32 size () const
     {
-        return u32 (u64 (_cluster_count) * TTCLUSTER_SIZE >> 20);
+        return u32 (_cluster_count * TTCLUSTER_SIZE >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -163,7 +163,7 @@ public:
     {
         if (Clear_Hash && _hash_table != NULL)
         {
-            memset (_hash_table, 0x00, u64 (_cluster_count) * TTCLUSTER_SIZE);
+            memset (_hash_table, 0x00, _cluster_count * TTCLUSTER_SIZE);
             _generation = 0;
             sync_cout << "info string Hash cleared." << sync_endl;
         }
@@ -178,7 +178,7 @@ public:
     // The lower order bits of the key are used to get the index of the cluster inside the table.
     inline TTEntry* cluster_entry (const Key key) const
     {
-        return _hash_table[u32 (key) & (_cluster_count - 1)].entry;
+        return _hash_table[key & (_cluster_count - 1)].entry;
     }
 
     // permill_full() returns an approximation of the per-mille of the 
@@ -190,7 +190,7 @@ public:
     inline u32 permill_full () const
     {
         u32 full_count = 0;
-        u32 total_count = std::min (10000U, _cluster_count);
+        u32 total_count = std::min (10000ULL, _cluster_count);
         for (const TTCluster *itc = _hash_table; itc < _hash_table + total_count; ++itc)
         {
             const TTEntry *tte = itc->entry;
@@ -203,7 +203,7 @@ public:
         return u32 ((full_count * 1000) / total_count);
     }
 
-    u32 resize (u32 mem_size_mb, bool force = false);
+    u64 resize (u64 mem_size_mb, bool force = false);
 
     inline u32 resize () { return resize (size (), true); }
 

@@ -294,7 +294,7 @@ endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
-	CXXFLAGS += -DABM -msse4.2
+	CXXFLAGS += -DABM -msse3
 endif
 
 ### 3.10 BM2 (Bit Manipulation 2)
