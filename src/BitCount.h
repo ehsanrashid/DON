@@ -89,8 +89,9 @@ template<>
 INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
-    __asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
-    return bb;
+    //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
+    //return bb;
+    return __builtin_popcountll (bb);
 }
 
 #endif

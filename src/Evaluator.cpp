@@ -282,7 +282,7 @@ namespace Evaluator {
 
             Square ek_sq = pos.king_sq (C_);
 
-            ei.pinned_pieces[C] = pos.pinneds (C);
+            ei.pinned_pieces  [C]       = pos.pinneds (C);
             ei.attacked_by    [C][NONE] = ei.attacked_by    [C][PAWN] = ei.pi->pawn_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
 
@@ -407,7 +407,9 @@ namespace Evaluator {
                 }
 
                 // Special extra evaluation for pieces
-
+                
+                //if (NIHT == PT || BSHP == PT)
+                {
                 if (NIHT == PT)
                 {
                     score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
@@ -473,6 +475,8 @@ namespace Evaluator {
                     }
                 }
 
+                }
+
                 if (ROOK == PT)
                 {
                     Rank r = rel_rank (C, s);
@@ -532,24 +536,21 @@ namespace Evaluator {
 
                 if (ROOK == PT)
                 {
-                    if (ei.pi->semiopen_file<C > (f) == 0)
+                    if (mob <= 3 && ei.pi->semiopen_file<C > (f) == 0)
                     {
-                        if (mob <= 3)
+                        const File kf = _file (fk_sq);
+                        const Rank kr = rel_rank (C, fk_sq);
+                        // Penalize rooks which are trapped by a king.
+                        // Penalize more if the king has lost its castling capability.
+                        if (   (kr == R_1 || kr == rel_rank (C, s))
+                            && (ei.pi->semiopen_side<C> (kf, f < kf) == 0)
+                           )
                         {
-                            const File kf = _file (fk_sq);
-                            const Rank kr = rel_rank (C, fk_sq);
-                            // Penalize rooks which are trapped by a king.
-                            // Penalize more if the king has lost its castling capability.
-                            if (   (kr == R_1 || kr == rel_rank (C, s))
-                                && (ei.pi->semiopen_side<C> (kf, f < kf) == 0)
+                            if (   (kf > F_E && f > kf)
+                                || (kf < F_D && f < kf)
                                )
                             {
-                                if (   (kf > F_E && f > kf)
-                                    || (kf < F_D && f < kf)
-                                   )
-                                {
-                                    score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + !pos.can_castle (C));
-                                }
+                                score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + !pos.can_castle (C));
                             }
                         }
                     }
@@ -730,13 +731,13 @@ namespace Evaluator {
             Bitboard protected_enemies = 
                    enemies
                 & ~pos.pieces<PAWN>(C_)
-                & ei.attacked_by[C_][PAWN]
+                &  ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C][BSHP]);
 
             // Enemies under our attack and not defended by a pawn
             Bitboard weak_enemies = 
                    enemies
-                & ~ei.attacked_by[C_][PAWN]
+                & ~ei.pin_attacked_by[C_][PAWN]
                 &  ei.pin_attacked_by[C ][NONE];
             
             Score score = SCORE_ZERO;
@@ -824,8 +825,8 @@ namespace Evaluator {
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.attacked_by[C_][ROOK] & s))
-                               || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.attacked_by[C_][QUEN] & s))
+                        if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.pin_attacked_by[C_][ROOK] & s))
+                               || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
                                )
                             && ((back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares)
                             && ((back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
@@ -839,8 +840,8 @@ namespace Evaluator {
                         }
 
                         Bitboard defended_squares;
-                        if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.attacked_by[C ][ROOK] & s))
-                               || ((back_squares & pos.pieces<QUEN> (C )) && (ei.attacked_by[C ][QUEN] & s))
+                        if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.pin_attacked_by[C ][ROOK] & s))
+                               || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
                                )
                             && ((back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares)
                             && ((back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ())) != U64 (0))
@@ -864,7 +865,7 @@ namespace Evaluator {
                             k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
 
                             // If the block square is defended by a pawn add more small bonus.
-                            if (ei.attacked_by[C][PAWN] & block_sq) k += 1;
+                            if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
                         }
 
                         mg_bonus += k * rr;

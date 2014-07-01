@@ -303,7 +303,7 @@ namespace Pawns {
             front_pawns & pos.pieces (C_)
         };
         
-        Value safety = MaxSafetyBonus;
+        Value bonus = MaxSafetyBonus;
 
         const i08 kf = _file (k_sq);
         const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
@@ -324,7 +324,7 @@ namespace Pawns {
                 && (rel_rank (C, k_sq) == br - 1)
                )
             {
-                safety += 200;
+                bonus += 200;
             }
             else
             {
@@ -334,11 +334,11 @@ namespace Pawns {
                     : R_1;
 
                 u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
-                safety -= (ShelterWeakness[wr] + StormDanger[danger][br]);
+                bonus -= (ShelterWeakness[wr] + StormDanger[danger][br]);
             }
         }
 
-        return safety;
+        return bonus;
     }
 
     template<Color C>
