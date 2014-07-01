@@ -742,9 +742,12 @@ namespace Evaluator {
             
             Score score = SCORE_ZERO;
 
-            while (protected_enemies != U64 (0))
+            //while (protected_enemies != U64 (0))
+            if (protected_enemies != U64 (0))
             {
-                score += ThreatBonus[0][ptype (pos[pop_lsq (protected_enemies)])];
+                score += 
+                    //ThreatBonus[0][ptype (pos[pop_lsq (protected_enemies)])];
+                    ThreatBonus[0][ptype (pos[scan_frntmost_sq (C, protected_enemies)])];
             }
 
             // Add a bonus according if the attacking pieces are minor or major
@@ -753,9 +756,12 @@ namespace Evaluator {
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
                     Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
-                    while (threaten_enemies != U64 (0))
+                    //while (threaten_enemies != U64 (0))
+                    if (threaten_enemies != U64 (0))
                     {
-                        score += ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])];
+                        score += 
+                            //ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])];
+                            ThreatBonus[pt][ptype (pos[scan_frntmost_sq (C, threaten_enemies)])];
                     }
                 }
 

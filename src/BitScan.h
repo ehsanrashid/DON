@@ -58,35 +58,25 @@ INLINE Square scan_msq (Bitboard bb)
 
 #   elif __arm__
 
-#ifndef _64BIT
-
-INLINE u08 scan_lsb32 (u32 w)
-{
-    __asm__ ("rbit %0, %1" : "=r" (w) : "r" (w));
-    return __builtin_clz (w);
-}
-
-#endif
-
 INLINE Square scan_lsq (Bitboard bb)
 {
 #ifdef _64BIT
-    return Square (__builtin_clzll (bb));
+    return Square (__builtin_ctzll (bb));
 #else
-    return Square  (u32 (bb) != 0 ?
-        scan_lsb32 (u32 (bb      )) :
-        scan_lsb32 (u32 (bb >> 32)) + 32);
+    return Square  ((bb & 0x00000000FFFFFFFF) != 0 ?
+        __builtin_ctz (bb) :
+        __builtin_ctz (bb >> 32) + 32);
 #endif
 }
 
 INLINE Square scan_msq (Bitboard bb)
 {
 #ifdef _64BIT
-    return Square (63 - __builtin_clzll (bb));
+    return Square (63 ^ __builtin_clzll (bb));
 #else
-    return Square (63 - (u32 (bb) != 0 ?
-        __builtin_clz (bb) :
-        __builtin_clz (bb >> 32) + 32));
+    return Square (63 ^ ((bb & 0xFFFFFFFF00000000) != 0 ?
+        __builtin_clz (bb >> 32) :
+        __builtin_clz (bb) + 32));
 #endif
 }
 
@@ -95,16 +85,20 @@ INLINE Square scan_msq (Bitboard bb)
 // Assembly code by Heinz van Saanen
 INLINE Square scan_lsq (Bitboard bb)
 {
-    Bitboard sq;
-    __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
-    return Square (sq);
+    //Bitboard sq;
+    //__asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
+    //return Square (sq);
+    if (bb == U64 (0)) return SQ_NO;
+    return Square (__builtin_ctzll (bb));
 }
 
 INLINE Square scan_msq (Bitboard bb)
 {
-    Bitboard sq;
-    __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
-    return Square (sq);
+    //Bitboard sq;
+    //__asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
+    //return Square (sq);
+    if (bb == U64 (0)) return SQ_NO;
+    return Square (63 ^ __builtin_clzll (bb));
 }
 
 #   endif
