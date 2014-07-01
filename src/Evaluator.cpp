@@ -283,7 +283,7 @@ namespace Evaluator {
             Square ek_sq = pos.king_sq (C_);
 
             ei.pinned_pieces[C] = pos.pinneds (C);
-            ei.attacked_by    [C][NONE] = ei.attacked_by    [C][PAWN] =
+            ei.attacked_by    [C][NONE] = ei.attacked_by    [C][PAWN] = ei.pi->pawn_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
 
             Bitboard attacks = ei.attacked_by[C_][KING] = ei.pin_attacked_by[C][KING] = PieceAttacks[KING][ek_sq];
@@ -391,6 +391,13 @@ namespace Evaluator {
                         ei.king_zone_attacks_count[C] += more_than_one (attacks_king) ? pop_count<MAX15> (attacks_king) : 1;
                     }
                 }
+
+                if (pinned_pieces & s)
+                {
+                    attacks &= LineRay_bb[fk_sq][s];
+                }
+
+                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when have full attack info.
@@ -516,13 +523,6 @@ namespace Evaluator {
                                | (ei.pin_attacked_by[C ][NONE])
                                | occ);
                 }
-
-                if (pinned_pieces & s)
-                {
-                    attacks &= LineRay_bb[fk_sq][s];
-                }
-
-                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
 
                 Bitboard mobile = attacks & mobility_area;
                 
