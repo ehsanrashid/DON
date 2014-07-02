@@ -188,11 +188,11 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            { S(+ 0,+ 0), S(+15,+45), S(+15,+45), S(+41,+100), S(+41,+100) }, // Protected attacked by Minor
-            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+ 96), S(+41,+104) }, // Un-Protected attacked by Knight
-            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+ 96), S(+41,+104) }, // Un-Protected attacked by Bishop
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 52) }, // Un-Protected attacked by Rook
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 48), S(+24,+ 52) }, // Un-Protected attacked by Queen
+            { S(+ 0,+ 0), S(+15,+45), S(+15,+45), S(+36,+96), S(+41,+104) }, // Protected attacked by Minor
+            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Knight
+            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Bishop
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Un-Protected attacked by Rook
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Un-Protected attacked by Queen
             {}
         };
 
@@ -213,7 +213,7 @@ namespace Evaluator {
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
         const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for double rook on open file
         const Score RookDoubledOnSemiopenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
-        const Score RookTrappedPenalty            = S(+90,+ 5); // Penalty for rook trapped
+        const Score RookTrappedPenalty            = S(+92,+ 5); // Penalty for rook trapped
         
         //const Score QueenEarlyPenalty             = S(+10,+ 0); // Penalty for queen moved early
 
@@ -245,7 +245,7 @@ namespace Evaluator {
         // Bonuses for enemy's contact safe checks
         const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
 
-        const i32 PawnSpanScale[2]         = { +38, +56 };
+        const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
 
         const u08 MAX_ATTACK_UNITS = 100;
         // KingDanger[attack_units] contains the king danger weighted score
@@ -359,7 +359,7 @@ namespace Evaluator {
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinned_pieces = ei.pinned_pieces[C];
 
-            ei.attacked_by[C][PT] = U64 (0);
+            ei.attacked_by    [C][PT] = U64 (0);
             ei.pin_attacked_by[C][PT] = U64 (0);
 
             Score score = SCORE_ZERO;
@@ -550,7 +550,7 @@ namespace Evaluator {
                                 || (kf < F_D && f < kf)
                                )
                             {
-                                score -= (RookTrappedPenalty - mk_score (8 * mob, 0)) * (1 + !pos.can_castle (C));
+                                score -= (RookTrappedPenalty - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
                             }
                         }
                     }
@@ -598,9 +598,9 @@ namespace Evaluator {
                 // the pawn shelter (current 'score' value).
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
-                    + 3 * (ei.king_zone_attacks_count[C_])                                                       // King-zone attacker piece weight
+                    + 3 * (ei.king_zone_attacks_count[C_])                                                        // King-zone attacker piece weight
                     + (undefended != U64 (0) ?
-                      3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                  // King-zone undefended piece weight
+                      3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                   // King-zone undefended piece weight
                     + (ei.pinned_pieces[C] != U64 (0) ?
                       2 * (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
                     - mg_value (score) / 32;
@@ -727,14 +727,15 @@ namespace Evaluator {
 
             Bitboard enemies = pos.pieces (C_);
 
-            // Protected enemies
+            // Enemies protected by pawn and attacked by minors
             Bitboard protected_enemies = 
                    enemies
                 & ~pos.pieces<PAWN>(C_)
                 &  ei.pin_attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C][BSHP]);
+                & (ei.pin_attacked_by[C ][NIHT]
+                  |ei.pin_attacked_by[C ][BSHP]);
 
-            // Enemies under our attack and not defended by a pawn
+            // Enemies not defended by pawn and attacked by any piece
             Bitboard weak_enemies = 
                    enemies
                 & ~ei.pin_attacked_by[C_][PAWN]
@@ -1090,7 +1091,7 @@ namespace Evaluator {
                         )
                 {
                     // Endings where weaker side can place his king in front of the strong side pawns are drawish.
-                    sf = ScaleFactor (PawnSpanScale[ei.pi->pawn_span[strong_side]]);
+                    sf = PawnSpanScale[ei.pi->pawn_span[strong_side]];
                 }
             }
 
