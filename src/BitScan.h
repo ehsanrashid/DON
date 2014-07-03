@@ -88,8 +88,7 @@ INLINE Square scan_lsq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
     return Square (sq);
-    //if (bb == U64 (0)) return SQ_NO;
-    //return Square (__builtin_ctzll (bb));
+    //return bb != U64 (0) ? Square (__builtin_ctzll (bb)) : SQ_NO;
 }
 
 INLINE Square scan_msq (Bitboard bb)
@@ -97,8 +96,7 @@ INLINE Square scan_msq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
     return Square (sq);
-    //if (bb == U64 (0)) return SQ_NO;
-    //return Square (63 ^ __builtin_clzll (bb));
+    //return bb != U64 (0) ? Square (63 ^ __builtin_clzll (bb)) : SQ_NO;
 }
 
 #   endif

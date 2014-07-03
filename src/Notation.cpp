@@ -296,17 +296,18 @@ namespace Notation {
             << setw (8) << pretty_value (value)
             << setw (8) << pretty_time (msecs);
 
-        if      (pos.game_nodes () < M)
+        u64 game_nodes = pos.game_nodes ();
+        if      (game_nodes < M)
         {
-            oss << setw (8) << pos.game_nodes () / 1 << "  ";
+            oss << setw (8) << game_nodes / 1 << "  ";
         }
-        else if (pos.game_nodes () < K * M)
+        else if (game_nodes < K * M)
         {
-            oss << setw (7) << pos.game_nodes () / K << "K  ";
+            oss << setw (7) << game_nodes / K << "K  ";
         }
         else
         {
-            oss << setw (7) << pos.game_nodes () / M << "M  ";
+            oss << setw (7) << game_nodes / M << "M  ";
         }
 
         string spv = oss.str ();

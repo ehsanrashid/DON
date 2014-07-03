@@ -74,8 +74,8 @@ optimize= yes
 os   = any
 bits = 32
 pfch = no
-sse  = no
 bsfq = no
+sse  = no
 abm  = no
 bm2  = no
 lpg  = no
@@ -107,8 +107,8 @@ ifeq ($(ARCH),x86-64)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	sse  = yes
 	bsfq = yes
+	sse  = yes
 	lpg  = yes
 endif
 
@@ -116,8 +116,8 @@ ifeq ($(ARCH),x86-64-abm)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	sse  = yes
 	bsfq = yes
+	sse  = yes
 	abm  = yes
 	lpg  = yes
 endif
@@ -126,8 +126,8 @@ ifeq ($(ARCH),x86-64-bm2)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	sse  = yes
 	bsfq = yes
+	sse  = yes
 	abm  = yes
 	bm2  = yes
 	lpg  = yes
@@ -171,7 +171,7 @@ ifeq ($(COMP),gcc)
 	comp= gcc
 	CXX = g++
 	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
-	LDFLAGS += -Wl,--no-as-needed
+	LDFLAGS  += -Wl,--no-as-needed
 endif
 
 ifeq ($(COMP),mingw)
@@ -281,20 +281,20 @@ endif
 ### 3.7 Prefetch
 ifeq ($(pfch),yes)
 	CXXFLAGS += -DPREFETCH
-	ifeq ($(sse),yes)
-		CXXFLAGS += -msse
-		DEPENDFLAGS += -msse
-	endif
 endif
 
 ### 3.8 Bitscans
 ifeq ($(bsfq),yes)
 	CXXFLAGS += -DBSFQ
 endif
+ifeq ($(sse),yes)
+	CXXFLAGS += -msse
+	DEPENDFLAGS += -msse
+endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
-	CXXFLAGS += -DABM -msse3
+	CXXFLAGS += -DABM -msse3 -mpopcnt
 endif
 
 ### 3.10 BM2 (Bit Manipulation 2)

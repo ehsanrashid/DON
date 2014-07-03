@@ -112,7 +112,7 @@ u64 TranspositionTable::resize (u64 mem_size_mb, bool force)
 //  - Bound
 //  - Nodes
 //  - Value
-//  - Eval Value
+//  - Evaluation
 // The lower order bits of position key are used to decide on which cluster the position will be placed.
 // The upper order bits of position key are used to store in entry.
 // When a new entry is written and there are no empty entries available in cluster,

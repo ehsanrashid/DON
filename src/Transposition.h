@@ -189,8 +189,8 @@ public:
     // hash, are using <x>%. of the state of full.
     inline u32 permill_full () const
     {
-        u32 full_count = 0;
-        u32 total_count = std::min (10000ULL, _cluster_count);
+        u64 full_count = 0;
+        u64 total_count = std::min (10000ULL, _cluster_count);
         for (const TTCluster *itc = _hash_table; itc < _hash_table + total_count; ++itc)
         {
             const TTEntry *tte = itc->entry;
@@ -205,7 +205,7 @@ public:
 
     u64 resize (u64 mem_size_mb, bool force = false);
 
-    inline u32 resize () { return resize (size (), true); }
+    inline u64 resize () { return resize (size (), true); }
 
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
@@ -232,7 +232,7 @@ public:
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            u32 cluster_bulk = tt._cluster_count / BUFFER_SIZE;
+            u32 cluster_bulk = u32 (tt._cluster_count / BUFFER_SIZE);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 os.write ((const CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
@@ -259,7 +259,7 @@ public:
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
             tt._generation = (generation > 0 ? generation - 4 : 0);
-            u32 cluster_bulk = tt._cluster_count / BUFFER_SIZE;
+            u32 cluster_bulk = u32 (tt._cluster_count / BUFFER_SIZE);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 is.read ((CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);

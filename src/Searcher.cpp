@@ -65,6 +65,9 @@ namespace Searcher {
         u08     MultiPV
             ,   PVIndex;
 
+        bool    WriteSearchLog;
+        string  SearchLogFilename;
+
         struct Skill
         {
             u08  level;
@@ -285,11 +288,11 @@ namespace Searcher {
             (ss)->current_move = MOVE_NONE;
 
             // Check for maximum ply reached
-            if ((ss)->ply > MAX_PLY) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
+            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
             // Check for immediate draw
-            if (pos.draw ())         return DrawValue[pos.active ()];
+            if (pos.draw ())           return DrawValue[pos.active ()];
             // Check for aborted search
-            if (Signals.stop)        return VALUE_ZERO;
+            if (Signals.stop)          return VALUE_ZERO;
 
             StateInfo si;
 
@@ -324,6 +327,7 @@ namespace Searcher {
                   tt_value >= beta ? (tte->bound () &  BND_LOWER) :
                                      (tte->bound () &  BND_UPPER)
                    )
+                //&& pos.pseudo_legal (tt_move) // TODO::
                )
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -593,11 +597,11 @@ namespace Searcher {
                 {
                     // Step 2. Check end condition
                     // Check for maximum ply reached
-                    if ((ss)->ply > MAX_PLY) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
+                    if ((ss)->ply > MAX_DEPTH) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
                     // Check for immediate draw
-                    if (pos.draw ())         return DrawValue[pos.active ()];
+                    if (pos.draw ())           return DrawValue[pos.active ()];
                     // Check for aborted search
-                    if (Signals.stop)        return VALUE_ZERO;
+                    if (Signals.stop)          return VALUE_ZERO;
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
@@ -616,9 +620,7 @@ namespace Searcher {
                 // TT value, so use a different position key in case of an excluded move.
                 excluded_move = (ss)->excluded_move;
 
-                posi_key = (excluded_move != MOVE_NONE) ?
-                        pos.posi_key_excl () :
-                        pos.posi_key ();
+                posi_key = (excluded_move != MOVE_NONE) ? pos.posi_key_excl () : pos.posi_key ();
 
                 tte      = TT.retrieve (posi_key);
                 tt_move  = (ss)->tt_move = RootNode    ? RootMoves[PVIndex].pv[0]
@@ -638,6 +640,7 @@ namespace Searcher {
                           tt_value >= beta ? (tte->bound () &  BND_LOWER) :
                                              (tte->bound () &  BND_UPPER)
                            )
+                        //&& pos.pseudo_legal (tt_move) // TODO::
                        )
                     {
                         (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -741,7 +744,7 @@ namespace Searcher {
                                 if (   (depth < (7*ONE_MOVE))
                                     && (abs (eval) < VALUE_KNOWN_WIN)
                                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
-                                    )
+                                   )
                                 {
                                     Value fut_eval = eval - FutilityMargin[depth];
 
@@ -751,7 +754,7 @@ namespace Searcher {
                                 // Step 8. Null move search with verification search
                                 if (   (depth >= (2*ONE_MOVE))
                                     && (eval >= beta)
-                                    )
+                                   )
                                 {
                                     (ss)->current_move = MOVE_NULL;
 
@@ -1111,6 +1114,7 @@ namespace Searcher {
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   !(pv_1st_move)
+                    //&& (moves_count > 1)
                     && (depth >= (3*ONE_MOVE))
                     && !(capture_or_promotion)
                     && (move != tt_move)
@@ -1129,8 +1133,8 @@ namespace Searcher {
                         (ss)->reduction += ONE_PLY;
                     }
 
-                    if (    (ss)->reduction > DEPTH_ZERO
-                        && (move == cm[0] || move == cm[1])
+                    if (   (ss)->reduction > DEPTH_ZERO
+                        && (moves_count == 1 || move == cm[0] || move == cm[1])
                        )
                     {
                         (ss)->reduction -= ONE_MOVE;
@@ -1280,8 +1284,8 @@ namespace Searcher {
                 // Step 19. Check for splitting the search (at non splitpoint node)
                 if (!SPNode)
                 {
-                    if (   Threadpool.split_depth <= depth
-                        && Threadpool.size () > 1
+                    if (   (Threadpool.split_depth <= depth)
+                        && (Threadpool.size () > 1)
                         && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
                        )
@@ -1348,7 +1352,7 @@ namespace Searcher {
         // you want the computer to think rather than how deep you want it to think. 
         inline void iter_deep_loop (Position &pos)
         {
-            Stack stack[MAX_PLY_6]
+            Stack stack[MAX_DEPTH_6]
                 , *ss = stack+2; // To allow referencing (ss-2)
 
             memset (ss-2, 0x00, 5*sizeof (*ss));
@@ -1361,10 +1365,10 @@ namespace Searcher {
             FollowupMoves.clear ();
 
             Value best_value = -VALUE_INFINITE
-                , bound[2]   = { -VALUE_INFINITE, +VALUE_INFINITE }
+                , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
-            i16 depth = DEPTH_ZERO;
+            i16 itr = DEPTH_ZERO;
 
             u08 level = u08 (i32 (Options["Skill Level"]));
             Skill skill (level);
@@ -1382,7 +1386,7 @@ namespace Searcher {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++depth <= MAX_PLY && (Limits.depth == 0 || depth <= Limits.depth))
+            while (++itr <= MAX_DEPTH && (Limits.depth == 0 || itr <= Limits.depth))
             {
                 // Requested to stop?
                 if (Signals.stop) break;
@@ -1397,7 +1401,7 @@ namespace Searcher {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
                 
-                const bool aspiration = depth > (2*ONE_MOVE);
+                const bool aspiration = itr > (2*ONE_MOVE);
 
                 // MultiPV loop. Perform a full root search for each PV line
                 //for (PVIndex = 0; PVIndex < (aspiration ? MultiPV : (RootCount < 4 ? RootCount : 4)); ++PVIndex)
@@ -1421,7 +1425,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], i32 (depth)*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], i32 (itr)*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1451,7 +1455,7 @@ namespace Searcher {
                             && (iteration_time > InfoDuration)
                            )
                         {
-                            sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (pos, itr, bound[0], bound[1], iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1484,12 +1488,12 @@ namespace Searcher {
                     
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
-                        sync_cout << info_multipv (pos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (pos, itr, bound[0], bound[1], iteration_time) << sync_endl;
                     }
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill.enabled () && skill.time_to_pick (depth))
+                if (skill.enabled () && skill.time_to_pick (itr))
                 {
                     skill.pick_move ();
                     if (MOVE_NONE != skill.move)
@@ -1500,13 +1504,10 @@ namespace Searcher {
 
                 iteration_time = now () - SearchTime;
 
-                if (bool (Options["Write SearchLog"]))
+                if (WriteSearchLog)
                 {
-                    string searchlog_fn = string (Options["SearchLog File"]);
-                    convert_path (searchlog_fn);
-
-                    LogFile log (searchlog_fn);
-                    log << pretty_pv (pos, depth, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    LogFile log (SearchLogFilename);
+                    log << pretty_pv (pos, itr, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Have found a "mate in <x>"?
@@ -1525,9 +1526,7 @@ namespace Searcher {
                    )
                 {
                     // Take in account some extra time if the best move has changed
-                    if (   (4 < depth && depth < MAX_PLY/i32 (ONE_MOVE))
-                        && (1 == MultiPV)
-                       )
+                    if ((4 < itr) && (1 == MultiPV))
                     {
                         TimeMgr.pv_instability (RootMoves.best_move_changes);
                     }
@@ -1587,7 +1586,7 @@ namespace Searcher {
         
         pv.clear ();
 
-        StateInfo states[MAX_PLY_6]
+        StateInfo states[MAX_DEPTH_6]
                 , *si = states;
         Value expected_value = value[0];
 
@@ -1607,7 +1606,7 @@ namespace Searcher {
             && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
-            && ply < MAX_PLY
+            && ply < MAX_DEPTH
             && (!pos.draw () || ply < 2));
         do
         {
@@ -1624,7 +1623,7 @@ namespace Searcher {
     void RootMove::insert_pv_into_tt (Position &pos)
     {
         i08 ply = 0; // Ply starts from 1, we need to start from 0
-        StateInfo states[MAX_PLY_6]
+        StateInfo states[MAX_DEPTH_6]
                 , *si = states;
 
         const TTEntry *tte;
@@ -1708,13 +1707,13 @@ namespace Searcher {
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
-        bool write_searchlog = bool (Options["Write SearchLog"]);
-        string searchlog_fn  = "";
-        if (write_searchlog)
+        WriteSearchLog    = bool (Options["Write SearchLog"]);
+        SearchLogFilename = "";
+        if (WriteSearchLog)
         {
-            searchlog_fn = string (Options["SearchLog File"]);
-            convert_path (searchlog_fn);
-            write_searchlog = !searchlog_fn.empty ();
+            SearchLogFilename = string (Options["SearchLog File"]);
+            convert_path (SearchLogFilename);
+            WriteSearchLog = !SearchLogFilename.empty ();
         }
         
         i32 autosave_time;
@@ -1745,9 +1744,9 @@ namespace Searcher {
 
             RootCount = RootMoves.size ();
 
-            if (write_searchlog)
+            if (WriteSearchLog)
             {
-                LogFile log (searchlog_fn);
+                LogFile log (SearchLogFilename);
 
                 log << "----------->\n" << boolalpha
                     << "fen:       " << RootPos.fen ()                   << "\n"
@@ -1758,7 +1757,7 @@ namespace Searcher {
                     << "movetime:  " << Limits.movetime                  << "\n"
                     << "movestogo: " << u16 (Limits.movestogo)           << "\n"
                     << "rootcount: " << u16 (RootCount)                  << "\n"
-                    << "  d   score   time    nodes  pv\n"
+                    << " depth score   time    nodes  pv\n"
                     << "-----------------------------------------------------------"
                     << endl;
             }
@@ -1786,9 +1785,9 @@ namespace Searcher {
                 Threadpool.autosave->stop ();
             }
 
-            if (write_searchlog)
+            if (WriteSearchLog)
             {
-                LogFile log (searchlog_fn);
+                LogFile log (SearchLogFilename);
 
                 point time = now () - SearchTime;
                 if (time == 0) time = 1;
@@ -1818,6 +1817,19 @@ namespace Searcher {
                 << sync_endl;
 
             RootMoves.push_back (RootMove (MOVE_NONE));
+
+            if (WriteSearchLog)
+            {
+                LogFile log (SearchLogFilename);
+
+                log << "Time:        " << 0      << "\n"
+                    << "Nodes:       " << 0      << "\n"
+                    << "Nodes/sec.:  " << 0      << "\n"
+                    << "Hash-full:   " << 0      << "\n"
+                    << "Best move:   " << "none" << "\n";
+                log << endl;
+            }
+
         }
 
     finish:
@@ -2023,7 +2035,7 @@ namespace Threads {
 
                 Threadpool.mutex.unlock ();
 
-                Stack stack[MAX_PLY_6]
+                Stack stack[MAX_DEPTH_6]
                     , *ss = stack+2; // To allow referencing (ss-2)
 
                 Position pos (*(sp)->pos, this);
