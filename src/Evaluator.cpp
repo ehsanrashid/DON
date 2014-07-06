@@ -188,7 +188,7 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            { S(+ 0,+ 0), S(+15,+45), S(+15,+45), S(+36,+96), S(+41,+104) }, // Protected attacked by Minor
+            { S(+ 0,+ 0), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Protected attacked by Minor
             { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Knight
             { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Bishop
             { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Un-Protected attacked by Rook
@@ -203,10 +203,10 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        const Score KnightSpanPenalty             = S(+ 0,+ 5);
+        const Score KnightSpanPenalty             = S(+ 0,+ 5); // Penalty for knight with pawns span
 
-        const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on color
-        const Score BishopTrappedPenalty          = S(+50,+40);
+        const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
+        const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
@@ -239,10 +239,10 @@ namespace Evaluator {
         // KingAttackWeight[PieceT] contains king attack weights by piece type
         const i32   KingAttackWeight[NONE] = { + 1, + 2, + 2, + 3, + 5, 0 };
 
-        // Bonuses for enemy's safe checks
+        // Bonuses for safe checks
         const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
 
-        // Bonuses for enemy's contact safe checks
+        // Bonuses for contact safe checks
         const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
 
         const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
@@ -329,8 +329,8 @@ namespace Evaluator {
             if (score != SCORE_ZERO)
             {
                 // Supporting pawns
-                Bitboard supporters = ei.attacked_by[C][PAWN] & s; //PawnAttacks[C_][s] & pos.pieces<PAWN> (C);
-                if (supporters != U64 (0))
+                Bitboard supporting_pawns = ei.attacked_by[C][PAWN] & s; //PawnAttacks[C_][s] & pos.pieces<PAWN> (C);
+                if (supporting_pawns != U64 (0))
                 {
                     if (   ((pos.pieces<NIHT> (C_) == U64 (0)))
                         && ((pos.pieces<BSHP> (C_) & squares_of_color (s)) == U64 (0))
@@ -371,25 +371,12 @@ namespace Evaluator {
                 const File f = _file (s);
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                Bitboard attacks;
-                if (pinned_pieces != U64 (0))
-                {
-                    attacks =
-                        (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
-                        (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                        (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
-                                     | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                                       PieceAttacks[PT][s];
-                }
-                else
-                {
-                    attacks =
-                        (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP))) :
-                        (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK))) :
-                        (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)))
-                                     | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK))) :
-                                       PieceAttacks[PT][s];
-                }
+                Bitboard attacks =
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
+                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
+                                   PieceAttacks[PT][s];
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
@@ -590,6 +577,7 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->evaluate_king_safety<C> (pos, fk_sq);
 
+            i32 attack_units = 0;
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] != 0)
             {
@@ -609,7 +597,7 @@ namespace Evaluator {
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'score' value).
-                i32 attack_units =
+                attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                        // King-zone attacker piece weight
                     + (undefended != U64 (0) ?
@@ -684,39 +672,39 @@ namespace Evaluator {
                     }
                 }
                 // Knight can't give contact check but safe distance check
-
-                const Bitboard occ = pos.pieces ();
-                // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
-                
-                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
-                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
-
-                Bitboard safe_check;
-                // Enemy queen safe checks
-                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
-                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy rooks safe checks
-                safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
-                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy bishops safe checks
-                safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
-                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy knights safe checks
-                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
-                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
-                if (attack_units <  0               ) attack_units =  0;
-                if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
-
-                // Finally, extract the king danger score from the KingDanger[]
-                // array and subtract the score from evaluation.
-                score -= KingDanger[attack_units];
             }
+
+            const Bitboard occ = pos.pieces ();
+            // Analyse the enemy's safe distance checks for sliders and knights
+            Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
+
+            Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
+            Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
+
+            Bitboard safe_check;
+            // Enemy queen safe checks
+            safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
+            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+            // Enemy rooks safe checks
+            safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
+            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+            // Enemy bishops safe checks
+            safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
+            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+            // Enemy knights safe checks
+            safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
+            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+            // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
+            if (attack_units <  0               ) attack_units =  0;
+            if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
+
+            // Finally, extract the king danger score from the KingDanger[]
+            // array and subtract the score from evaluation.
+            score -= KingDanger[attack_units];
 
             // King mobility is good in the endgame
             //Bitboard mobile = ei.attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.attacked_by[C_][NONE]);
@@ -783,7 +771,8 @@ namespace Evaluator {
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
                 if (hanging_enemies != U64 (0))
                 {
-                    score += PieceHangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                    //score += PieceHangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                    score += PieceHangingBonus;
                 }
             }
 
