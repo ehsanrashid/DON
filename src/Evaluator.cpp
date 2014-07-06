@@ -577,7 +577,6 @@ namespace Evaluator {
             // King shelter and enemy pawns storm
             Score score = ei.pi->evaluate_king_safety<C> (pos, fk_sq);
 
-            i32 attack_units = 0;
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] != 0)
             {
@@ -597,7 +596,7 @@ namespace Evaluator {
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'score' value).
-                attack_units =
+                i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                        // King-zone attacker piece weight
                     + (undefended != U64 (0) ?
@@ -608,103 +607,105 @@ namespace Evaluator {
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
-
-                Bitboard undefended_attacked;
-                if (pos.count<QUEN> (C_) > 0)
+                if (undefended != U64 (0))
                 {
-                    // Analyse enemy's safe queen contact checks. First find undefended
-                    // squares around the king attacked by enemy queen...
-                    undefended_attacked = undefended & ei.pin_attacked_by[C_][QUEN];
-                    while (undefended_attacked != U64 (0))
+                    Bitboard undefended_attacked;
+                    if (pos.count<QUEN> (C_) > 0)
                     {
-                        Square sq = pop_lsq (undefended_attacked);
-
-                        if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][KING]) & sq)
-                           || (  pos.count<QUEN> (C_) > 1
-                              && more_than_one (pos.pieces<QUEN> (C_) & (PieceAttacks[ROOK][sq]|PieceAttacks[BSHP][sq]))
-                              )
-                           )
+                        // Analyse enemy's safe queen contact checks. First find undefended
+                        // squares around the king attacked by enemy queen...
+                        undefended_attacked = undefended & ei.pin_attacked_by[C_][QUEN];
+                        while (undefended_attacked != U64 (0))
                         {
-                            attack_units += ContactCheckWeight[QUEN];
+                            Square sq = pop_lsq (undefended_attacked);
+
+                            if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][KING]) & sq)
+                               || (  pos.count<QUEN> (C_) > 1
+                                  && more_than_one (pos.pieces<QUEN> (C_) & (PieceAttacks[ROOK][sq]|PieceAttacks[BSHP][sq]))
+                                  )
+                               )
+                            {
+                                attack_units += ContactCheckWeight[QUEN];
+                            }
                         }
                     }
-                }
-                if (pos.count<ROOK> (C_) > 0)
-                {
-                    // Analyse enemy's safe rook contact checks. First find undefended
-                    // squares around the king attacked by enemy rooks...
-                    undefended_attacked = undefended & ei.pin_attacked_by[C_][ROOK];
-                    // Consider only squares where the enemy rook gives check
-                    undefended_attacked &= PieceAttacks[ROOK][fk_sq];
-                    while (undefended_attacked != U64 (0))
+                    if (pos.count<ROOK> (C_) > 0)
                     {
-                        Square sq = pop_lsq (undefended_attacked);
-
-                        if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
-                           || (  pos.count<ROOK> (C_) > 1
-                              && more_than_one (pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq])
-                              )
-                           )
+                        // Analyse enemy's safe rook contact checks. First find undefended
+                        // squares around the king attacked by enemy rooks...
+                        undefended_attacked = undefended & ei.pin_attacked_by[C_][ROOK];
+                        // Consider only squares where the enemy rook gives check
+                        undefended_attacked &= PieceAttacks[ROOK][fk_sq];
+                        while (undefended_attacked != U64 (0))
                         {
-                            attack_units += ContactCheckWeight[ROOK];
+                            Square sq = pop_lsq (undefended_attacked);
+
+                            if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
+                               || (  pos.count<ROOK> (C_) > 1
+                                  && more_than_one (pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq])
+                                  )
+                               )
+                            {
+                                attack_units += ContactCheckWeight[ROOK];
+                            }
                         }
                     }
-                }
-                if (pos.count<BSHP> (C_) > 0)
-                {
-                    // Analyse enemy's safe rook contact checks. First find undefended
-                    // squares around the king attacked by enemy bishop...
-                    undefended_attacked = undefended & ei.pin_attacked_by[C_][BSHP];
-                    // Consider only squares where the enemy bishop gives check
-                    undefended_attacked &= PieceAttacks[BSHP][fk_sq];
-                    while (undefended_attacked != U64 (0))
+                    if (pos.count<BSHP> (C_) > 0)
                     {
-                        Square sq = pop_lsq (undefended_attacked);
-
-                        if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
-                           || (  pos.count<BSHP> (C_) > 1
-                              && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq) & PieceAttacks[BSHP][sq])
-                              )
-                           )
+                        // Analyse enemy's safe rook contact checks. First find undefended
+                        // squares around the king attacked by enemy bishop...
+                        undefended_attacked = undefended & ei.pin_attacked_by[C_][BSHP];
+                        // Consider only squares where the enemy bishop gives check
+                        undefended_attacked &= PieceAttacks[BSHP][fk_sq];
+                        while (undefended_attacked != U64 (0))
                         {
-                            attack_units += ContactCheckWeight[BSHP];
+                            Square sq = pop_lsq (undefended_attacked);
+
+                            if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
+                               || (  pos.count<BSHP> (C_) > 1
+                                  && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq) & PieceAttacks[BSHP][sq])
+                                  )
+                               )
+                            {
+                                attack_units += ContactCheckWeight[BSHP];
+                            }
                         }
                     }
+                    // Knight can't give contact check but safe distance check
                 }
-                // Knight can't give contact check but safe distance check
+
+                const Bitboard occ = pos.pieces ();
+                // Analyse the enemy's safe distance checks for sliders and knights
+                Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
+
+                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
+                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
+
+                Bitboard safe_check;
+                // Enemy queen safe checks
+                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
+                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+                // Enemy rooks safe checks
+                safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
+                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+                // Enemy bishops safe checks
+                safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
+                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+                // Enemy knights safe checks
+                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
+                if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+
+                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
+                if (attack_units <  0               ) attack_units =  0;
+                if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
+
+                // Finally, extract the king danger score from the KingDanger[]
+                // array and subtract the score from evaluation.
+                score -= KingDanger[attack_units];
             }
-
-            const Bitboard occ = pos.pieces ();
-            // Analyse the enemy's safe distance checks for sliders and knights
-            Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
-
-            Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
-            Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
-
-            Bitboard safe_check;
-            // Enemy queen safe checks
-            safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
-            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-            // Enemy rooks safe checks
-            safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
-            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-            // Enemy bishops safe checks
-            safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
-            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-            // Enemy knights safe checks
-            safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
-            if (safe_check != U64 (0)) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-            // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
-            if (attack_units <  0               ) attack_units =  0;
-            if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
-
-            // Finally, extract the king danger score from the KingDanger[]
-            // array and subtract the score from evaluation.
-            score -= KingDanger[attack_units];
 
             // King mobility is good in the endgame
             //Bitboard mobile = ei.attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.attacked_by[C_][NONE]);
