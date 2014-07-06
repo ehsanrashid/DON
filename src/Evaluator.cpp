@@ -580,6 +580,7 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_attackers_count[C_] != 0)
             {
+                const Bitboard occ = pos.pieces ();
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
@@ -621,7 +622,7 @@ namespace Evaluator {
 
                             if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][KING]) & sq)
                                || (  pos.count<QUEN> (C_) > 1
-                                  && more_than_one (pos.pieces<QUEN> (C_) & (PieceAttacks[ROOK][sq]|PieceAttacks[BSHP][sq]))
+                                  && more_than_one (pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_))))
                                   )
                                )
                             {
@@ -642,7 +643,7 @@ namespace Evaluator {
 
                             if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][BSHP]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
                                || (  pos.count<ROOK> (C_) > 1
-                                  && more_than_one (pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq])
+                                  && more_than_one (pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_)))
                                   )
                                )
                             {
@@ -663,7 +664,8 @@ namespace Evaluator {
 
                             if (  ((ei.attacked_by[C_][PAWN]|ei.attacked_by[C_][NIHT]|ei.attacked_by[C_][ROOK]|ei.attacked_by[C_][QUEN]|ei.attacked_by[C_][KING]) & sq)
                                || (  pos.count<BSHP> (C_) > 1
-                                  && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq) & PieceAttacks[BSHP][sq])
+                                  && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq))
+                                  && more_than_one (pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_)))
                                   )
                                )
                             {
@@ -674,7 +676,7 @@ namespace Evaluator {
                     // Knight can't give contact check but safe distance check
                 }
 
-                const Bitboard occ = pos.pieces ();
+                
                 // Analyse the enemy's safe distance checks for sliders and knights
                 Bitboard safe_sq = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
 
