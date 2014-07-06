@@ -1134,7 +1134,7 @@ namespace Searcher {
                     }
 
                     if (   (ss)->reduction > DEPTH_ZERO
-                        && (move == cm[0] || move == cm[1] /*|| moves_count == 1*/)
+                        && (move == cm[0] || move == cm[1])
                        )
                     {
                         (ss)->reduction -= ONE_MOVE;
@@ -1519,7 +1519,7 @@ namespace Searcher {
                    )
                 {
                     // Take in account some extra time if the best move has changed
-                    if (itr > 4 && MultiPV == 1)
+                    if (aspiration && MultiPV == 1)
                     {
                         TimeMgr.pv_instability (RootMoves.best_move_changes);
                     }
@@ -1558,7 +1558,7 @@ namespace Searcher {
                     {
                         Signals.stop           = true;
                     }
-                }        
+                }
             }
 
         }

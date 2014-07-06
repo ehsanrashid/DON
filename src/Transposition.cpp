@@ -16,9 +16,9 @@ const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
 
 const u08 TranspositionTable::MAX_HASH_BIT  = 36;
 // 4 MB
-const u64 TranspositionTable::MIN_TT_SIZE   = 4;
+const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 // 1048576 MB (1024 GB) (1 TB)
-const u64 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
+const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
 
 bool TranspositionTable::Clear_Hash = true;
 

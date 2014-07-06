@@ -371,12 +371,25 @@ namespace Evaluator {
                 const File f = _file (s);
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
-                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                                   PieceAttacks[PT][s];
+                Bitboard attacks;
+                if (pinned_pieces != U64 (0))
+                {
+                    attacks =
+                        (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
+                        (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
+                        (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
+                                     | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
+                                       PieceAttacks[PT][s];
+                }
+                else
+                {
+                    attacks =
+                        (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP))) :
+                        (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK))) :
+                        (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)))
+                                     | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK))) :
+                                       PieceAttacks[PT][s];
+                }
 
                 ei.attacked_by[C][NONE] |= ei.attacked_by[C][PT] |= attacks;
 
@@ -743,10 +756,14 @@ namespace Evaluator {
             
             Score score = SCORE_ZERO;
 
+            Score s;
+            
+            s = SCORE_ZERO;
             while (protected_enemies != U64 (0))
             {
-                score += ThreatBonus[0][ptype (pos[pop_lsq (protected_enemies)])];
+                s = max (ThreatBonus[0][ptype (pos[pop_lsq (protected_enemies)])], s);
             }
+            score += s;
 
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies != U64 (0))
@@ -754,10 +771,12 @@ namespace Evaluator {
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
                     Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
+                    s = SCORE_ZERO;
                     while (threaten_enemies != U64 (0))
                     {
-                        score += ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])];
+                        s = max (ThreatBonus[pt][ptype (pos[pop_lsq (threaten_enemies)])], s);
                     }
+                    score += s;
                 }
 
                 // Hanging piece
