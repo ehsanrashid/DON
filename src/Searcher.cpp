@@ -1134,7 +1134,7 @@ namespace Searcher {
                     }
 
                     if (   (ss)->reduction > DEPTH_ZERO
-                        && (moves_count == 1 || move == cm[0] || move == cm[1])
+                        && (move == cm[0] || move == cm[1] /*|| moves_count == 1*/)
                        )
                     {
                         (ss)->reduction -= ONE_MOVE;
@@ -1404,7 +1404,6 @@ namespace Searcher {
                 const bool aspiration = itr > (2*ONE_MOVE);
 
                 // MultiPV loop. Perform a full root search for each PV line
-                //for (PVIndex = 0; PVIndex < (aspiration ? MultiPV : (RootCount < 4 ? RootCount : 4)); ++PVIndex)
                 for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
                 {
                     // Requested to stop?
@@ -1417,8 +1416,8 @@ namespace Searcher {
                         window[1] =
                             //Value (depth < (16*ONE_MOVE) ? 14 + (depth/4) : 22);
                             Value (16);
-                        bound[0]  = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
-                        bound[1]  = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
+                        bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
+                        bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
@@ -1495,10 +1494,10 @@ namespace Searcher {
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
                 if (skill.enabled () && skill.time_to_pick (itr))
                 {
-                    skill.pick_move ();
-                    if (MOVE_NONE != skill.move)
+                    Move m = skill.pick_move ();
+                    if (MOVE_NONE != m)
                     {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), skill.move));
+                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), m));
                     }
                 }
 
@@ -1509,15 +1508,9 @@ namespace Searcher {
                     LogFile log (SearchLogFilename);
                     log << pretty_pv (pos, itr, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
-
-                // Have found a "mate in <x>"?
-                if (   (Limits.mate != 0)
-                    && (best_value >= VALUE_MATES_IN_MAX_PLY)
-                    && (VALUE_MATE - best_value <= (Limits.mate*i32 (ONE_MOVE)))
-                   )
-                {
-                    Signals.stop = true;
-                }
+                
+                // Stop the search early:
+                bool stop = false;
 
                 // Do have time for the next iteration? Can stop searching now?
                 if (   Limits.use_timemanager ()
@@ -1526,36 +1519,46 @@ namespace Searcher {
                    )
                 {
                     // Take in account some extra time if the best move has changed
-                    if ((4 < itr) && (1 == MultiPV))
+                    if (itr > 4 && MultiPV == 1)
                     {
                         TimeMgr.pv_instability (RootMoves.best_move_changes);
                     }
 
-                    // Stop the search early:
-                    bool stop = false;
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (   (RootCount == 1)
-                        || (iteration_time > TimeMgr.available_time ())
+                    if (   RootCount == 1
+                        || iteration_time > TimeMgr.available_time ()
+                       )
+                    {
+                        stop = true;
+                    }
+                }
+                else
+                {
+                    // Have found a "mate in <x>"?
+                    if (   (Limits.mate != 0)
+                        && (best_value >= VALUE_MATES_IN_MAX_PLY)
+                        && (VALUE_MATE - best_value <= (Limits.mate*i32 (ONE_MOVE)))
                        )
                     {
                         stop = true;
                     }
 
-                    if (stop)
-                    {
-                        // If allowed to ponder do not stop the search now but
-                        // keep pondering until GUI sends "ponderhit" or "stop".
-                        if (Limits.ponder)
-                        {
-                            Signals.stop_ponderhit = true;
-                        }
-                        else
-                        {
-                            Signals.stop           = true;
-                        }
-                    }
                 }
+
+                if (stop)
+                {
+                    // If allowed to ponder do not stop the search now but
+                    // keep pondering until GUI sends "ponderhit" or "stop".
+                    if (Limits.ponder)
+                    {
+                        Signals.stop_ponderhit = true;
+                    }
+                    else
+                    {
+                        Signals.stop           = true;
+                    }
+                }        
             }
 
         }
@@ -1749,15 +1752,15 @@ namespace Searcher {
                 LogFile log (SearchLogFilename);
 
                 log << "----------->\n" << boolalpha
-                    << "fen:       " << RootPos.fen ()                   << "\n"
-                    << "infinite:  " << Limits.infinite                  << "\n"
-                    << "ponder:    " << Limits.ponder                    << "\n"
-                    << "time:      " << Limits.gameclock[RootColor].time << "\n"
-                    << "increment: " << Limits.gameclock[RootColor].inc  << "\n"
-                    << "movetime:  " << Limits.movetime                  << "\n"
-                    << "movestogo: " << u16 (Limits.movestogo)           << "\n"
-                    << "rootcount: " << u16 (RootCount)                  << "\n"
-                    << " depth score   time    nodes  pv\n"
+                    << "FEN:       " << RootPos.fen ()                   << "\n"
+                    << "Infinite:  " << Limits.infinite                  << "\n"
+                    << "Ponder:    " << Limits.ponder                    << "\n"
+                    << "Time:      " << Limits.gameclock[RootColor].time << "\n"
+                    << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
+                    << "MoveTime:  " << Limits.movetime                  << "\n"
+                    << "MovesToGo: " << u16 (Limits.movestogo)           << "\n"
+                    << "RootCount: " << u16 (RootCount)                  << "\n"
+                    << " Depth Score   Time    Nodes  PV\n"
                     << "-----------------------------------------------------------"
                     << endl;
             }
@@ -1822,11 +1825,11 @@ namespace Searcher {
             {
                 LogFile log (SearchLogFilename);
 
-                log << "Time:        " << 0      << "\n"
-                    << "Nodes:       " << 0      << "\n"
-                    << "Nodes/sec.:  " << 0      << "\n"
-                    << "Hash-full:   " << 0      << "\n"
-                    << "Best move:   " << "none" << "\n";
+                log << "Time:        " << 0        << "\n"
+                    << "Nodes:       " << 0        << "\n"
+                    << "Nodes/sec.:  " << 0        << "\n"
+                    << "Hash-full:   " << 0        << "\n"
+                    << "Best move:   " << "(none)" << "\n";
                 log << endl;
             }
 
