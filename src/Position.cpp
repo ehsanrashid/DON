@@ -196,8 +196,7 @@ bool Position::draw () const
 {
     // Draw by Material?
     if (   (_types_bb[PAWN] == U64 (0))
-        && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK]
-          <= VALUE_MG_BSHP)
+        && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP)
        )
     {
         return true;
