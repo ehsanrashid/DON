@@ -205,8 +205,7 @@ namespace Searcher {
 
             stringstream ss;
             
-            MultiPV = u08 (i32 (Options["MultiPV"]));
-            if (MultiPV > RootCount) MultiPV = RootCount;
+            MultiPV = min (u08 (i32 (Options["MultiPV"])), RootCount);
 
             i32 sel_depth = Threadpool.max_ply;
 
@@ -554,7 +553,8 @@ namespace Searcher {
 
             Value best_value
                 , tt_value
-                , eval;
+                , eval
+                , old_alpha;
 
             u08   moves_count
                 , quiets_count;
@@ -567,6 +567,9 @@ namespace Searcher {
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
             bool   in_check = pos.checkers () != U64 (0);
+
+            // To flag EXACT a node with eval above alpha and no available moves
+            if (PVNode) old_alpha = alpha;
 
             if (!SPNode)
             {
@@ -812,8 +815,7 @@ namespace Searcher {
                                )
                             {
                                 Depth rdepth = depth - (4*ONE_MOVE);
-                                Value rbeta  = beta + 200;
-                                if (rbeta > VALUE_INFINITE) rbeta = VALUE_INFINITE;
+                                Value rbeta  = min (beta + 200, VALUE_INFINITE);
                                 //ASSERT (rdepth >= ONE_MOVE);
                                 //ASSERT (rbeta <= VALUE_INFINITE);
                             
@@ -1135,8 +1137,7 @@ namespace Searcher {
                         && (move == cm[0] || move == cm[1])
                        )
                     {
-                        (ss)->reduction -= ONE_MOVE;
-                        if ((ss)->reduction < DEPTH_ZERO) (ss)->reduction = DEPTH_ZERO;
+                        (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
                     }
 
                     // Decrease reduction for moves that escape a capture
@@ -1148,13 +1149,11 @@ namespace Searcher {
                         Move rev_move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
                         if (pos.see (rev_move) < VALUE_ZERO)
                         {
-                            (ss)->reduction -= ONE_MOVE;
-                            if ((ss)->reduction < DEPTH_ZERO) (ss)->reduction = DEPTH_ZERO;
+                            (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
                         }
                     }
 
-                    Depth red_depth = new_depth - (ss)->reduction;
-                    if (red_depth < ONE_MOVE) red_depth = ONE_MOVE;
+                    Depth red_depth = max (new_depth - (ss)->reduction, ONE_MOVE);
 
                     if (SPNode) alpha = splitpoint->alpha;
 
@@ -1164,8 +1163,7 @@ namespace Searcher {
                     // Re-search at intermediate depth if reduction is very high
                     if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
-                        Depth inter_depth = new_depth - (2*ONE_MOVE);
-                        if (inter_depth < ONE_MOVE) inter_depth = ONE_MOVE;
+                        Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
                         
                         value = -search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
                     }
@@ -1332,7 +1330,7 @@ namespace Searcher {
                     posi_key,
                     best_move,
                     depth,
-                    (best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
+                    (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
@@ -1377,9 +1375,9 @@ namespace Searcher {
             // that will use behind the scenes to retrieve a set of possible moves.
             if (skill.enabled ())
             {
-                if (MultiPV < MIN_SKILL_MULTIPV) MultiPV = MIN_SKILL_MULTIPV;
+                MultiPV = max (MultiPV, MIN_SKILL_MULTIPV);
             }
-            if (MultiPV > RootCount) MultiPV = RootCount;
+            MultiPV = min (MultiPV, RootCount);
 
             point iteration_time;
 
