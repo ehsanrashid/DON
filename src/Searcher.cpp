@@ -553,7 +553,8 @@ namespace Searcher {
 
             Value best_value
                 , tt_value
-                , eval;
+                , eval
+                , old_alpha;
 
             u08   moves_count
                 , quiets_count;
@@ -566,6 +567,8 @@ namespace Searcher {
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
             bool   in_check = pos.checkers () != U64 (0);
+
+            if (PVNode) old_alpha = alpha;
 
             if (!SPNode)
             {
@@ -1331,7 +1334,8 @@ namespace Searcher {
                     posi_key,
                     best_move,
                     depth,
-                    (best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
+                    //(best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
+                    (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
