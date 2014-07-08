@@ -354,6 +354,7 @@ namespace Searcher {
                         if (tte->bound () & (tt_value >= best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
+                            if (alpha < best_value) best_move = tt_move;
                         }
                     }
                 }

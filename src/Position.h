@@ -78,7 +78,7 @@ public:
     Bitboard discoverers;       // Check discoverer pieces
     Square   king_sq;           // Enemy king square
 
-    CheckInfo () {}
+    CheckInfo () { /*memset (this, 0x00, sizeof (*this));*/ }
     explicit CheckInfo (const Position &pos);
 };
 
