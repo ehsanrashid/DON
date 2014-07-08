@@ -252,7 +252,6 @@ namespace Threads {
 
         bool available_to (const Thread *master) const;
 
-        template <bool FAKE>
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
             Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 

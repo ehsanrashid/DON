@@ -116,7 +116,6 @@ namespace Threads {
     // and then helper threads are told that they have been assigned work. This causes them to instantly
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
-    template <bool FAKE>
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
@@ -157,16 +156,13 @@ namespace Threads {
         active_splitpoint = &sp;
         active_pos = NULL;
 
-        if (!FAKE)
+        Thread *slave;
+        while ((slave = Threadpool.available_slave (this)) != NULL)
         {
-            Thread *slave;
-            while ((slave = Threadpool.available_slave (this)) != NULL)
-            {
-                sp.slaves_mask.set (slave->idx);
-                slave->active_splitpoint = &sp;
-                slave->searching = true;        // Leaves idle_loop()
-                slave->notify_one ();           // Notifies could be sleeping
-            }
+            sp.slaves_mask.set (slave->idx);
+            slave->active_splitpoint = &sp;
+            slave->searching = true;        // Leaves idle_loop()
+            slave->notify_one ();           // Notifies could be sleeping
         }
 
         // Everything is set up. The master thread enters the idle-loop, from which
@@ -203,10 +199,6 @@ namespace Threads {
         sp.mutex.unlock ();
         Threadpool.mutex.unlock ();
     }
-
-    // Explicit template instantiations
-    template void Thread::split<false> (Position&, const Stack*, Value, Value, Value&, Move&, Depth, u08, MovePicker&, NodeT, bool);
-    template void Thread::split<true > (Position&, const Stack*, Value, Value, Value&, Move&, Depth, u08, MovePicker&, NodeT, bool);
 
     // ------------------------------------
 

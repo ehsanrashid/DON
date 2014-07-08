@@ -30,9 +30,6 @@ namespace Searcher {
 
     namespace {
 
-        // Set to true to force running with one thread. Used for debugging
-        const bool    FakeSplit     = false;
-
         const u08     MAX_QUIETS    = 64;
 
         const point   InfoDuration  = 3000; // 3 sec
@@ -1292,7 +1289,7 @@ namespace Searcher {
                     {
                         ASSERT (alpha >= best_value && best_value < beta);
 
-                        thread->split<FakeSplit> (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
+                        thread->split (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
                         
                         if (Signals.stop || thread->cutoff_occurred ())
                         {
