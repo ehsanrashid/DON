@@ -353,7 +353,7 @@ namespace Searcher {
                         if (tte->bound () & (tt_value >= best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
-                            if (alpha < best_value) best_move = tt_move;
+                            //if (alpha < best_value) best_move = tt_move;
                         }
                     }
                 }
@@ -676,6 +676,7 @@ namespace Searcher {
                             if (tte->bound () & (tt_value >= eval ? BND_LOWER : BND_UPPER))
                             {
                                 eval = tt_value;
+                                //if (alpha < eval) best_move = tt_move;
                             }
                         }
                     }
@@ -894,7 +895,7 @@ namespace Searcher {
 
             MovePicker mp (pos, History, tt_move, depth, cm, fm, ss);
 
-            Value value = best_value; // Workaround a bogus 'uninitialized' warning under gcc
+            Value value = best_value;
 
             bool improving =
                    ((ss  )->static_eval >= (ss-2)->static_eval)
@@ -1014,7 +1015,7 @@ namespace Searcher {
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
-                    value = search<NonPV, false> (pos, ss, rbeta-1, rbeta, Depth (depth/2), cut_node);
+                    value = search<NonPV, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
                     (ss)->skip_null_move = false;
                     (ss)->excluded_move  = MOVE_NONE;
 
