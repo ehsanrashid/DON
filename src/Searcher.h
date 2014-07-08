@@ -149,11 +149,11 @@ namespace Searcher {
     public:
         double best_move_changes;
 
-        void initialize (const Position &pos, const std::vector<Move> root_moves);
+        void initialize (const Position &pos, const std::vector<Move> &root_moves);
 
-        inline void sort_full ()           { std::stable_sort (begin (), end ()); }
-        inline void sort_multipv (i32 n)   { std::stable_sort (begin (), begin () + n); }
-        inline void sort_nonmultipv (i32 n){ std::stable_sort (begin () + n, end ()); }
+        inline void sort_full ()     { std::stable_sort (begin (), end ()); }
+        inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }
+        inline void sort_end (i32 n) { std::stable_sort (begin () + n, end ()); }
         
         u64 game_nodes () const;
     };

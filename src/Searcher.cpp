@@ -1429,7 +1429,7 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        RootMoves.sort_nonmultipv (PVIndex);
+                        RootMoves.sort_end (PVIndex);
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
@@ -1480,7 +1480,7 @@ namespace Searcher {
                     while (bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    RootMoves.sort_multipv (PVIndex + 1);
+                    RootMoves.sort_beg (PVIndex + 1);
                     
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
@@ -1556,6 +1556,7 @@ namespace Searcher {
                         Signals.stop           = true;
                     }
                 }
+
             }
 
         }
@@ -1665,7 +1666,7 @@ namespace Searcher {
         return ss.str ();
     }
 
-    void RootMoveList::initialize (const Position &pos, const vector<Move> root_moves)
+    void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
     {
         best_move_changes = 0.0;
         clear ();
