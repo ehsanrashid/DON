@@ -1365,7 +1365,7 @@ namespace Searcher {
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
-            i16 itr = DEPTH_ZERO;
+            i16 dep = DEPTH_ZERO;
 
             u08 level = u08 (i32 (Options["Skill Level"]));
             Skill skill (level);
@@ -1383,7 +1383,7 @@ namespace Searcher {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++itr <= MAX_DEPTH && (Limits.depth == 0 || itr <= Limits.depth))
+            while (++dep <= MAX_DEPTH && (Limits.depth == 0 || dep <= Limits.depth))
             {
                 // Requested to stop?
                 if (Signals.stop) break;
@@ -1398,7 +1398,7 @@ namespace Searcher {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
                 
-                const bool aspiration = itr > (2*ONE_MOVE);
+                const bool aspiration = dep > (2*ONE_MOVE);
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
@@ -1421,7 +1421,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], i32 (itr)*ONE_MOVE, false);
+                        best_value = search<Root, false> (pos, ss, bound[0], bound[1], i32 (dep)*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1451,7 +1451,7 @@ namespace Searcher {
                             && (iteration_time > InfoDuration)
                            )
                         {
-                            sync_cout << info_multipv (pos, itr, bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1484,12 +1484,12 @@ namespace Searcher {
                     
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
-                        sync_cout << info_multipv (pos, itr, bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
                     }
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill.enabled () && skill.time_to_pick (itr))
+                if (skill.enabled () && skill.time_to_pick (dep))
                 {
                     Move m = skill.pick_move ();
                     if (MOVE_NONE != m)
@@ -1503,7 +1503,7 @@ namespace Searcher {
                 if (WriteSearchLog)
                 {
                     LogFile log (SearchLogFilename);
-                    log << pretty_pv (pos, itr, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
                 
                 // Stop the search early:
