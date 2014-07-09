@@ -94,12 +94,14 @@ namespace Notation {
         // time to string
         const string pretty_time (u64 msecs)
         {
-            const u32 MSecMinute = M_SEC * 60;
-            const u32 MSecHour   = MSecMinute * 60;
+            const u32 MinuteMSec = M_SEC * 60;
+            const u32 HourMSec   = MinuteMSec * 60;
 
-            u32 hours   = u32 (msecs / MSecHour);
-            u32 minutes =  (msecs % MSecHour) / MSecMinute;
-            u32 seconds = ((msecs % MSecHour) % MSecMinute) / M_SEC;
+            u32 hours   = u32 (msecs / HourMSec);
+            msecs      %= HourMSec;
+            u32 minutes =  u32 (msecs / MinuteMSec);
+            msecs      %= MinuteMSec;
+            u32 seconds = u32 (msecs / M_SEC);
 
             ostringstream oss;
 
@@ -193,8 +195,7 @@ namespace Notation {
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
-        Piece  p   = pos[org];
-        PieceT pt  = ptype (p);
+        PieceT pt  = ptype (pos[org]);
 
         MoveT mt = mtype (m);
 

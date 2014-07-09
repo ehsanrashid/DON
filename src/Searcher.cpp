@@ -403,7 +403,7 @@ namespace Searcher {
             {
                 ASSERT (_ok (move));
 
-                bool gives_check= pos.gives_check (move, ci);
+                bool gives_check = pos.gives_check (move, ci);
 
                 if (!PVNode)
                 {
@@ -442,11 +442,9 @@ namespace Searcher {
 
                     // Detect non-capture evasions that are candidate to be pruned
                     bool evasion_prunable =
-                        (  InCheck
-                        && (best_value > VALUE_MATED_IN_MAX_PLY)
+                           (best_value > VALUE_MATED_IN_MAX_PLY)
                         && !(pos.can_castle (pos.active ()))
-                        && !(pos.capture (move))
-                        );
+                        && !(pos.capture (move));
 
                     // Don't search moves with negative SEE values
                     if (   (evasion_prunable || !InCheck)
@@ -487,15 +485,7 @@ namespace Searcher {
 
                         if (value >= beta)  // Fail high
                         {
-                            TT.store (
-                                posi_key,
-                                best_move,
-                                tt_depth,
-                                BND_LOWER,
-                                value_to_tt (best_value, (ss)->ply),
-                                (ss)->static_eval);
-
-                            return best_value;
+                            break;
                         }
                         
                         // Update alpha here! always alpha < beta
@@ -505,7 +495,7 @@ namespace Searcher {
             }
 
             // All legal moves have been searched.
-            if (best_value == -VALUE_INFINITE)
+            if (best_value == -VALUE_INFINITE && best_move == MOVE_NONE)
             {
                 // A special case: If in check and no legal moves were found, it is checkmate.
                 best_value = (InCheck) ?
@@ -517,7 +507,7 @@ namespace Searcher {
                 posi_key,
                 best_move,
                 tt_depth,
-                (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
+                (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -1115,7 +1105,6 @@ namespace Searcher {
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   !(pv_1st_move)
-                    //&& (moves_count > 1)
                     && (depth >= (3*ONE_MOVE))
                     && !(capture_or_promotion)
                     && (move != tt_move)
@@ -1197,7 +1186,7 @@ namespace Searcher {
                     // Do a full PV search on the first move or after a fail high
                     // (in the latter case search only if value < beta), otherwise let the
                     // parent node fail low with value <= alpha and to try another move.
-                    if (pv_1st_move || ((alpha < value) && (RootNode || (value < beta))))
+                    if (pv_1st_move || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
                             (new_depth < ONE_MOVE) ?
@@ -1321,7 +1310,7 @@ namespace Searcher {
                 else
                 {
                     // Update history, killer, counter & followup moves
-                    if ((best_value >= beta) && !in_check && !pos.capture_or_promotion (best_move))
+                    if (best_value >= beta && !in_check && !pos.capture_or_promotion (best_move))
                     {
                         update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                     }
