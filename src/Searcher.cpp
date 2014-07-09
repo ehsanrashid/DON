@@ -789,8 +789,8 @@ namespace Searcher {
 
                                     // Null window (alpha, beta) = (beta-1, beta):
                                     Value null_value = (rdepth < ONE_MOVE) ?
-                                        -search_quien<NonPV, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO) :
-                                        -search      <NonPV, false> (pos, ss+1, -beta, -(beta-1), rdepth, !cut_node);
+                                        -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                        -search      <NonPV, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
                                     (ss+1)->skip_null_move = false;
                                     // Undo null move
@@ -847,7 +847,7 @@ namespace Searcher {
 
                                     (ss)->current_move = move;
                                     pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
-                                    Value value = -search<NonPV, false> (pos, ss+1, -rbeta, -(rbeta-1), rdepth, !cut_node);
+                                    Value value = -search<NonPV, false> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
 
                                     if (value >= rbeta) return value;
@@ -1159,14 +1159,14 @@ namespace Searcher {
                     if (SPNode) alpha = splitpoint->alpha;
 
                     // Search with reduced depth
-                    value = -search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, red_depth, true);
+                    value = -search<NonPV, false> (pos, ss+1, -alpha-1, -alpha, red_depth, true);
 
                     // Re-search at intermediate depth if reduction is very high
                     if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
                     {
                         Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
                         
-                        value = -search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, inter_depth, true);
+                        value = -search<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true);
                     }
 
                     full_depth_search = ((alpha < value) && ((ss)->reduction != DEPTH_ZERO));
@@ -1185,9 +1185,9 @@ namespace Searcher {
                     value =
                         (new_depth < ONE_MOVE) ?
                         (gives_check ?
-                        -search_quien<NonPV, true > (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO) :
-                        -search_quien<NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), DEPTH_ZERO)) :
-                        -search      <NonPV, false> (pos, ss+1, -(alpha+1), -(alpha), new_depth, !cut_node);
+                        -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                        -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO)) :
+                        -search      <NonPV, false> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                 }
 
                 // Principal Variation Search
