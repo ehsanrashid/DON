@@ -1400,8 +1400,8 @@ namespace Searcher {
                     {
                         window[0] =
                         window[1] =
-                            //Value (depth < (16*ONE_MOVE) ? 14 + (depth/4) : 22);
-                            Value (16);
+                            Value (dep < (16*ONE_MOVE) ? 14 + (dep/4) : 22);
+                            //Value (16);
                         bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
@@ -1583,11 +1583,11 @@ namespace Searcher {
         const TTEntry *tte;
         do
         {
+            ASSERT (MoveList<LEGAL> (pos).contains (m));
+
             pv.push_back (m);
-
-            ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
-
-            pos.do_move (pv[ply++], *si++);
+            ++ply;
+            pos.do_move (m, *si++);
             tte = TT.retrieve (pos.posi_key ());
             expected_value = -expected_value;
         }
@@ -1616,27 +1616,30 @@ namespace Searcher {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
 
+        Move m = pv[ply];
         const TTEntry *tte;
         do
         {
+            ASSERT (MoveList<LEGAL> (pos).contains (m));
+
             tte = TT.retrieve (pos.posi_key ());
+            
             // Don't overwrite correct entries
-            if (tte == NULL || tte->move () != pv[ply])
+            if (tte == NULL || tte->move () != m)
             {
                 TT.store (
                     pos.posi_key (),
-                    pv[ply],
+                    m,
                     depth,
                     BND_NONE,//(value[0] >= beta) ? BND_LOWER : (alpha < value[0]) ? BND_EXACT : BND_UPPER,
                     value_to_tt (value[0], ply),//VALUE_NONE,
                     VALUE_NONE);
             }
-
-            ASSERT (MoveList<LEGAL> (pos).contains (pv[ply]));
-
-            pos.do_move (pv[ply++], *si++);
+            ++ply;
+            pos.do_move (m, *si++);
+            m = pv[ply];
         }
-        while (MOVE_NONE != pv[ply]);
+        while (MOVE_NONE != m);
         do
         {
             pos.undo_move ();
