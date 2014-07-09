@@ -137,7 +137,7 @@ namespace Searcher {
         friend bool operator!= (const RootMove &rm, const Move &m) { return (rm.pv[0] != m); }
 
         void extract_pv_from_tt (Position &pos);
-        void  insert_pv_into_tt (Position &pos, Depth depth);
+        void  insert_pv_into_tt (Position &pos);
 
         std::string info_pv (const Position &pos) const;
     };

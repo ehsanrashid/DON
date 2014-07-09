@@ -323,7 +323,6 @@ namespace Searcher {
                   tt_value >= beta ? (tte->bound () &  BND_LOWER) :
                                      (tte->bound () &  BND_UPPER)
                    )
-                //&& pos.pseudo_legal (tt_move) // TODO::
                )
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -485,7 +484,15 @@ namespace Searcher {
 
                         if (value >= beta)  // Fail high
                         {
-                            break;
+                            TT.store (
+                                posi_key,
+                                best_move,
+                                tt_depth,
+                                BND_LOWER,
+                                value_to_tt (best_value, (ss)->ply),
+                                (ss)->static_eval);
+
+                            return best_value;
                         }
                         
                         // Update alpha here! always alpha < beta
@@ -495,7 +502,7 @@ namespace Searcher {
             }
 
             // All legal moves have been searched.
-            if (best_value == -VALUE_INFINITE && best_move == MOVE_NONE)
+            if (best_value == -VALUE_INFINITE /*&& best_move == MOVE_NONE*/)
             {
                 // A special case: If in check and no legal moves were found, it is checkmate.
                 best_value = (InCheck) ?
@@ -507,7 +514,7 @@ namespace Searcher {
                 posi_key,
                 best_move,
                 tt_depth,
-                (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
+                (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -543,8 +550,7 @@ namespace Searcher {
 
             Value best_value
                 , tt_value
-                , eval
-                , old_alpha;
+                , eval;
 
             u08   moves_count
                 , quiets_count;
@@ -557,9 +563,6 @@ namespace Searcher {
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
             bool   in_check = pos.checkers () != U64 (0);
-
-            // To flag EXACT a node with eval above alpha and no available moves
-            if (PVNode) old_alpha = alpha;
 
             if (SPNode)
             {
@@ -644,7 +647,6 @@ namespace Searcher {
                           tt_value >= beta ? (tte->bound () &  BND_LOWER) :
                                              (tte->bound () &  BND_UPPER)
                            )
-                        //&& pos.pseudo_legal (tt_move) // TODO::
                        )
                     {
                         (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -1320,7 +1322,7 @@ namespace Searcher {
                     posi_key,
                     best_move,
                     depth,
-                    (best_value >= beta) ? BND_LOWER : (PVNode && old_alpha < best_value) ? BND_EXACT : BND_UPPER,
+                    (best_value >= beta) ? BND_LOWER : (PVNode && best_move != MOVE_NONE) ? BND_EXACT : BND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
@@ -1424,7 +1426,7 @@ namespace Searcher {
                         // entries have been overwritten during the search.
                         for (i08 i = PVIndex; i >= 0; --i)
                         {
-                            RootMoves[i].insert_pv_into_tt (pos, i32 (dep)*ONE_MOVE);
+                            RootMoves[i].insert_pv_into_tt (pos);
                         }
 
                         iteration_time = now () - SearchTime;
@@ -1610,34 +1612,42 @@ namespace Searcher {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void RootMove::insert_pv_into_tt (Position &pos, Depth depth)
+    void RootMove::insert_pv_into_tt (Position &pos)
     {
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
 
         Move m = pv[ply];
+        Value expected_value = value[0];
         const TTEntry *tte;
+        Depth tt_depth = DEPTH_ZERO;
         do
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
             tte = TT.retrieve (pos.posi_key ());
-            
             // Don't overwrite correct entries
-            if (tte == NULL || tte->move () != m)
+            if (tte != NULL && tte->move () == m)
             {
+                tt_depth = tte->depth ();
+            }
+            else //if (tte == NULL || tte->move () != m)
+            {
+                tt_depth = max (tt_depth - ONE_MOVE, DEPTH_ZERO);
+
                 TT.store (
                     pos.posi_key (),
                     m,
-                    depth,
-                    BND_NONE,//(value[0] >= beta) ? BND_LOWER : (alpha < value[0]) ? BND_EXACT : BND_UPPER,
-                    value_to_tt (value[0], ply),//VALUE_NONE,
+                    tt_depth,
+                    BND_NONE, //(value[0] >= beta) ? BND_LOWER : (alpha < value[0]) ? BND_EXACT : BND_UPPER,
+                    value_to_tt (expected_value, ply),//VALUE_NONE,
                     VALUE_NONE);
             }
             ++ply;
             pos.do_move (m, *si++);
             m = pv[ply];
+            expected_value = -expected_value;
         }
         while (MOVE_NONE != m);
         do
@@ -1667,7 +1677,8 @@ namespace Searcher {
         {
             Move m = *itr;
             if (   all_rootmoves
-                || count (root_moves.begin (), root_moves.end (), m))
+                || count (root_moves.begin (), root_moves.end (), m)
+               )
             {
                 push_back (RootMove (m));
             }
@@ -1677,13 +1688,14 @@ namespace Searcher {
     u64 RootMoveList::game_nodes () const
     {
         u64 nodes = U64 (0);
-        for (const_iterator itr = begin (); itr < end (); ++itr)
+        for (const_iterator itr = begin (); itr != end (); ++itr)
         {
             nodes += itr->nodes;
         }
         return nodes;
     }
 
+    // ------------------------------------
 
     u64 perft (Position &pos, Depth depth)
     {
@@ -1866,8 +1878,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 ( 10 + (85 + 1.5*d)*d));
-            //FutilityMargin      [d] = Value (i32 ( 10 + 80*d));
+            FutilityMargin      [d] = Value (i32 ( 10 + (90 + 1*d)*d)); // Value (i32 ( 10 + 80*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
