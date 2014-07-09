@@ -1422,9 +1422,9 @@ namespace Searcher {
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (u08 i = 0; i <= PVIndex; ++i)
+                        for (i08 i = PVIndex; i >= 0; --i)
                         {
-                            RootMoves[i].insert_pv_into_tt (pos);
+                            RootMoves[i].insert_pv_into_tt (pos, i32 (dep)*ONE_MOVE);
                         }
 
                         iteration_time = now () - SearchTime;
@@ -1610,7 +1610,7 @@ namespace Searcher {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void RootMove::insert_pv_into_tt (Position &pos)
+    void RootMove::insert_pv_into_tt (Position &pos, Depth depth)
     {
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         StateInfo states[MAX_DEPTH_6]
@@ -1626,9 +1626,9 @@ namespace Searcher {
                 TT.store (
                     pos.posi_key (),
                     pv[ply],
-                    DEPTH_NONE,
-                    BND_NONE,
-                    VALUE_NONE,
+                    depth,
+                    BND_NONE,//(value[0] >= beta) ? BND_LOWER : (alpha < value[0]) ? BND_EXACT : BND_UPPER,
+                    value_to_tt (value[0], ply),//VALUE_NONE,
                     VALUE_NONE);
             }
 
