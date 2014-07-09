@@ -571,7 +571,20 @@ namespace Searcher {
             // To flag EXACT a node with eval above alpha and no available moves
             if (PVNode) old_alpha = alpha;
 
-            if (!SPNode)
+            if (SPNode)
+            {
+                splitpoint = (ss)->splitpoint;
+                best_move  = splitpoint->best_move;
+                best_value = splitpoint->best_value;
+
+                tte      = NULL;
+                tt_move  = excluded_move = MOVE_NONE;
+                tt_value = VALUE_NONE;
+
+                ASSERT (splitpoint->best_value > -VALUE_INFINITE);
+                ASSERT (splitpoint->moves_count > 0);
+            }
+            else
             {
                 moves_count  = 0;
                 quiets_count = 0;
@@ -661,7 +674,11 @@ namespace Searcher {
                 }
 
                 // Step 5. Evaluate the position statically and update parent's gain statistics
-                if (!in_check)
+                if (in_check)
+                {
+                    eval = (ss)->static_eval = VALUE_NONE;
+                }
+                else
                 {
                     if (tte != NULL)
                     {
@@ -858,23 +875,6 @@ namespace Searcher {
                     }
 
                 }
-                else
-                {
-                    eval = (ss)->static_eval = VALUE_NONE;
-                }
-            }
-            else
-            {
-                splitpoint = (ss)->splitpoint;
-                best_move  = splitpoint->best_move;
-                best_value = splitpoint->best_value;
-
-                tte      = NULL;
-                tt_move  = excluded_move = MOVE_NONE;
-                tt_value = VALUE_NONE;
-
-                ASSERT (splitpoint->best_value > -VALUE_INFINITE);
-                ASSERT (splitpoint->moves_count > 0);
             }
 
         //loop_moves: // When in check and at SPNode search starts from here
