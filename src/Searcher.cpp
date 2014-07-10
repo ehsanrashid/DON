@@ -288,7 +288,7 @@ namespace Searcher {
             // Check for immediate draw
             if (pos.draw ())           return DrawValue[pos.active ()];
             // Check for aborted search
-            if (Signals.stop)          return VALUE_ZERO;
+            if (Signals.force_stop)    return VALUE_ZERO;
 
             StateInfo si;
 
@@ -608,7 +608,7 @@ namespace Searcher {
                     // Check for immediate draw
                     if (pos.draw ())           return DrawValue[pos.active ()];
                     // Check for aborted search
-                    if (Signals.stop)          return VALUE_ZERO;
+                    if (Signals.force_stop)    return VALUE_ZERO;
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
@@ -1129,7 +1129,7 @@ namespace Searcher {
                     }
 
                     if (   (ss)->reduction > DEPTH_ZERO
-                        && (move == cm[0] || move == cm[1] || (moves_count == 1 && depth <= (10*ONE_MOVE)))
+                        && (move == cm[0] || move == cm[1])
                        )
                     {
                         (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
@@ -1188,9 +1188,11 @@ namespace Searcher {
                 // For PV nodes only
                 if (PVNode)
                 {
-                    // Do a full PV search on the first move or after a fail high
-                    // (in the latter case search only if value < beta), otherwise let the
-                    // parent node fail low with value <= alpha and to try another move.
+                    // Do a full PV search on:
+                    // - pv first move
+                    // - fail high move (search only if value < beta)
+                    // otherwise let the parent node fail low with
+                    // alpha >= value and to try another better move.
                     if (pv_1st_move || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
@@ -1218,7 +1220,7 @@ namespace Searcher {
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
-                if (Signals.stop || thread->cutoff_occurred ())
+                if (Signals.force_stop || thread->cutoff_occurred ())
                 {
                     return VALUE_ZERO;
                 }
@@ -1285,7 +1287,7 @@ namespace Searcher {
 
                         thread->split (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
                         
-                        if (Signals.stop || thread->cutoff_occurred ())
+                        if (Signals.force_stop || thread->cutoff_occurred ())
                         {
                             return VALUE_ZERO;
                         }
@@ -1380,7 +1382,7 @@ namespace Searcher {
             while (++dep <= MAX_DEPTH && (!Limits.depth || dep <= Limits.depth))
             {
                 // Requested to stop?
-                if (Signals.stop) break;
+                if (Signals.force_stop) break;
                 
                 // Age out PV variability metric
                 RootMoves.best_move_changes *= 0.5;
@@ -1398,7 +1400,7 @@ namespace Searcher {
                 for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
                 {
                     // Requested to stop?
-                    if (Signals.stop) break;
+                    if (Signals.force_stop) break;
 
                     // Reset Aspiration window starting size
                     if (aspiration)
@@ -1437,7 +1439,7 @@ namespace Searcher {
                         // If search has been stopped break immediately.
                         // Sorting and writing PV back to TT is safe becuase
                         // RootMoves is still valid, although refers to previous iteration.
-                        if (Signals.stop) break;
+                        if (Signals.force_stop) break;
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
@@ -1456,7 +1458,7 @@ namespace Searcher {
                             window[0] *= 1.5;
                             //window[1] *= 1.1;
                             Signals.root_failedlow = true;
-                            Signals.stop_ponderhit = false;
+                            Signals.ponderhit_stop = false;
                         }
                         else if (best_value >= bound[1])
                         {
@@ -1501,13 +1503,13 @@ namespace Searcher {
                 }
                 
                 // Requested to stop?
-                if (Signals.stop) break;
+                if (Signals.force_stop) break;
 
                 // Stop the search early:
                 bool stop = false;
 
                 // Do have time for the next iteration? Can stop searching now?
-                if (!Signals.stop_ponderhit && Limits.use_timemanager ())
+                if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Take in account some extra time if the best move has changed
                     if (aspiration && MultiPV == 1)
@@ -1517,8 +1519,8 @@ namespace Searcher {
 
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (   RootCount == 1
-                        || iteration_time > TimeMgr.available_time ()
+                    if (   (RootCount == 1)
+                        || (iteration_time > TimeMgr.available_time ())
                        )
                     {
                         stop = true;
@@ -1529,7 +1531,7 @@ namespace Searcher {
                     // Have found a "mate in <x>"?
                     if (   (Limits.mate)
                         && (best_value >= VALUE_MATES_IN_MAX_PLY)
-                        && (VALUE_MATE - best_value <= (Limits.mate*i32 (ONE_MOVE)))
+                        && (VALUE_MATE - best_value <= Limits.mate*i32 (ONE_MOVE))
                        )
                     {
                         stop = true;
@@ -1542,11 +1544,11 @@ namespace Searcher {
                     // keep pondering until GUI sends "ponderhit" or "stop".
                     if (Limits.ponder)
                     {
-                        Signals.stop_ponderhit = true;
+                        Signals.ponderhit_stop = true;
                     }
                     else
                     {
-                        Signals.stop           = true;
+                        Signals.force_stop     = true;
                     }
                 }
 
@@ -1642,8 +1644,8 @@ namespace Searcher {
                     pos.posi_key (),
                     m,
                     tt_depth,
-                    BND_NONE, //(value[0] >= beta) ? BND_LOWER : (alpha < value[0]) ? BND_EXACT : BND_UPPER,
-                    value_to_tt (expected_value, ply),//VALUE_NONE,
+                    BND_NONE,
+                    value_to_tt (expected_value, ply),
                     VALUE_NONE);
             }
             ++ply;
@@ -1741,7 +1743,7 @@ namespace Searcher {
                     Move book_move = Book.probe_move (RootPos, bool (Options["Best Book Move"]));
                     if (   book_move != MOVE_NONE
                         && count (RootMoves.begin (), RootMoves.end (), book_move)
-                        )
+                       )
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
                         goto finish;
@@ -1852,14 +1854,14 @@ namespace Searcher {
             << " hashfull " << 0//TT.permill_full ()
             << sync_endl;
 
-        // When reach max depth arrive here even without Signals.stop is raised,
+        // When reach max depth arrive here even without Signals.force_stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
-        // Simply wait here until GUI sends one of those commands (that raise Signals.stop).
-        if (!Signals.stop && (Limits.ponder || Limits.infinite))
+        // Simply wait here until GUI sends one of those commands (that raise Signals.force_stop).
+        if (!Signals.force_stop && (Limits.ponder || Limits.infinite))
         {
-            Signals.stop_ponderhit = true;
-            RootPos.thread ()->wait_for (Signals.stop);
+            Signals.ponderhit_stop = true;
+            RootPos.thread ()->wait_for (Signals.force_stop);
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
@@ -1928,7 +1930,7 @@ namespace Threads {
             Debugger::dbg_print ();
         }
 
-        if (Limits.ponder || Signals.stop)
+        if (Limits.ponder || Signals.force_stop)
         {
             return;
         }
@@ -1979,7 +1981,7 @@ namespace Threads {
             || (Limits.nodes    && (nodes >= Limits.nodes))
            )
         {
-            Signals.stop = true;
+            Signals.force_stop = true;
         }
     }
 

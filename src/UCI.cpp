@@ -386,7 +386,7 @@ namespace UCI {
         // Stops the search
         inline void exe_stop ()
         {
-            Signals.stop = true;
+            Signals.force_stop = true;
             Threadpool.main ()->notify_one (); // Could be sleeping
         }
 
@@ -422,11 +422,11 @@ namespace UCI {
             else if (token == "ponderhit")
             {
                 // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                // opponent has played. In case Signals.stop_ponderhit stream set are
+                // opponent has played. In case Signals.ponderhit_stop stream set are
                 // waiting for 'ponderhit' to stop the search (for instance because
                 // already ran out of time), otherwise should continue searching but
                 // switching from pondering to normal search.
-                Signals.stop_ponderhit ? exe_stop () : exe_ponderhit ();
+                Signals.ponderhit_stop ? exe_stop () : exe_ponderhit ();
             }
             else if (token == "io")         exe_io (cmds);
             else if (token == "print")      exe_print ();

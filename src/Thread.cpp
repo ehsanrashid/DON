@@ -347,8 +347,8 @@ namespace Threads {
         
         RootMoves.initialize (pos, limits.root_moves);
         
-        Signals.stop           = false;
-        Signals.stop_ponderhit = false;
+        Signals.force_stop     = false;
+        Signals.ponderhit_stop = false;
         Signals.root_1stmove   = false;
         Signals.root_failedlow = false;
 

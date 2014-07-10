@@ -66,16 +66,16 @@ namespace Searcher {
 
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
-    //  - Stop search (to stop the search by the GUI).
+    //  - Stop search on request.
     //  - Stop search on ponderhit.
     //  - First root move.
     //  - Falied low at root.
     struct SignalsT
     {
-        bool  stop              // Stop any way
-            , stop_ponderhit    // Stop on Ponder hit
-            , root_1stmove      // First RootMove
-            , root_failedlow;   // Failed low at Root
+        bool  force_stop        // Stop on request
+            , ponderhit_stop    // Stop on ponder-hit
+            , root_1stmove      // First move at root
+            , root_failedlow;   // Failed-low move at root
 
         SignalsT ()
         {
