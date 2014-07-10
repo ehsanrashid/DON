@@ -88,7 +88,7 @@ INLINE Square scan_lsq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
     return Square (sq);
-    //return bb != U64 (0) ? Square (__builtin_ctzll (bb)) : SQ_NO;
+    //return bb ? Square (__builtin_ctzll (bb)) : SQ_NO;
 }
 
 INLINE Square scan_msq (Bitboard bb)
@@ -96,7 +96,7 @@ INLINE Square scan_msq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
     return Square (sq);
-    //return bb != U64 (0) ? Square (63 ^ __builtin_clzll (bb)) : SQ_NO;
+    //return bb ? Square (63 ^ __builtin_clzll (bb)) : SQ_NO;
 }
 
 #   endif
@@ -160,7 +160,7 @@ INLINE Square  scan_lsq (Bitboard bb)
 
 #ifdef _64BIT
 
-    if (bb == U64 (0)) return SQ_NO;
+    if (!bb) return SQ_NO;
     const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
     u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
     u08 index = (x * DeBruijn_64) >> 0x3A; // 58
@@ -168,7 +168,7 @@ INLINE Square  scan_lsq (Bitboard bb)
 
 #else
 
-    if (bb == U64 (0)) return SQ_NO;
+    if (!bb) return SQ_NO;
     // Use Matt Taylor's folding trick for 32-bit
     const u32 DeBruijn_32 = U32 (0x783A9B23);
     u64 x = bb ^ (bb - 1);
@@ -185,7 +185,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #ifdef _64BIT
 
-    if (bb == U64 (0)) return SQ_NO;
+    if (!bb) return SQ_NO;
     const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
     // set all bits including the MS1B and below
     bb |= bb >> 0x01;
@@ -200,7 +200,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #else
 
-    if (bb == U64 (0)) return SQ_NO;
+    if (!bb) return SQ_NO;
     u08 msb = 0;
     if (bb > 0xFFFFFFFF)
     {

@@ -43,7 +43,7 @@ namespace Notation {
 
             Bitboard amb, pcs;
             amb = pcs = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
-            while (pcs != U64 (0))
+            while (pcs)
             {
                 Square amb_org = pop_lsq (pcs);
                 Move move = mk_move<NORMAL> (amb_org, dst);
@@ -58,7 +58,7 @@ namespace Notation {
             //if (!(amb & rank_bb (org))) return AMB_FILE;
             //return AMB_SQR;
 
-            if (amb != U64 (0))
+            if (amb)
             {
                 if (!(amb & file_bb (org))) return AMB_RANK;
                 if (!(amb & rank_bb (org))) return AMB_FILE;

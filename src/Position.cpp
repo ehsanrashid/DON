@@ -195,7 +195,7 @@ Position& Position::operator= (const Position &pos)
 bool Position::draw () const
 {
     // Draw by Material?
-    if (   (_types_bb[PAWN] == U64 (0))
+    if (   (!_types_bb[PAWN])
         && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP)
        )
     {
@@ -205,7 +205,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _fifty_move_dist <  _si->clock50
         || (_fifty_move_dist == _si->clock50
-          && (_si->checkers == U64 (0) || MoveList<LEGAL> (*this).size () != 0)
+          && (!_si->checkers || MoveList<LEGAL> (*this).size () != 0)
            )
        )
     {
@@ -414,7 +414,7 @@ bool Position::ok (i08 *step) const
 
             // There should be one and only one KING of color
             Bitboard kings = colors & _types_bb[KING];
-            if (kings == U64 (0) || more_than_one (kings))
+            if (!kings || more_than_one (kings))
             {
                 return false;
             }
@@ -530,7 +530,7 @@ template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
     Bitboard bb = stm_attackers & _types_bb[PT];
-    if (bb != U64 (0))
+    if (bb)
     {
         occupied ^= (bb & ~(bb - 1));
 
@@ -605,7 +605,7 @@ Value Position::see      (Move m) const
     // If the opponent has no attackers are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
-    if (stm_attackers != U64 (0))
+    if (stm_attackers)
     {
         // The destination square is defended, which makes things rather more
         // difficult to compute. Proceed by building up a "swap list" containing
@@ -638,7 +638,7 @@ Value Position::see      (Move m) const
 
             ++depth;
         }
-        while (stm_attackers != U64 (0));
+        while (stm_attackers);
 
         // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
@@ -681,7 +681,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
         ) &  _color_bb[~king_c];
 
     Bitboard chk_blockers = U64 (0);
-    while (pinners != U64 (0))
+    while (pinners)
     {
         Bitboard blocker = Between_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (!more_than_one (blocker))
@@ -904,7 +904,7 @@ bool Position::pseudo_legal (Move m) const
     // and legal() relies on this. So have to take care that the
     // same kind of moves are filtered out here.
     Bitboard chkrs = checkers ();
-    if (chkrs != U64 (0))
+    if (chkrs)
     {
         if (KING == pt)
         {
@@ -975,7 +975,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return  (pinned == U64 (0))
+        return !(pinned)
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
@@ -1168,13 +1168,13 @@ bool Position::can_en_passant (Square ep_sq) const
 
     Bitboard ep_pawns = PawnAttacks[pasive][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
     ASSERT (pop_count<FULL> (ep_pawns) <= 2);
-    if (ep_pawns == U64 (0)) return false;
+    if (!ep_pawns) return false;
 
     Move ep_moves[3]
     ,   *curr = ep_moves;
 
     memset (ep_moves, MOVE_NONE, sizeof (ep_moves));
-    while (ep_pawns != U64 (0))
+    while (ep_pawns)
     {
         *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
     }
@@ -1206,7 +1206,7 @@ Score Position::compute_psq_score () const
 {
     Score score  = SCORE_ZERO;
     Bitboard occ = _types_bb[NONE];
-    while (occ != U64 (0))
+    while (occ)
     {
         Square s = pop_lsq (occ);
         score += PSQ[color (_board[s])][ptype (_board[s])][s];
@@ -1420,7 +1420,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     {
         Bitboard b = cr;
         _si->castle_rights &= ~cr;
-        while (b != U64 (0))
+        while (b)
         {
             p_key ^= Zob._.castle_right[0][pop_lsq (b)];
         }
@@ -1744,7 +1744,7 @@ Position::operator string () const
     }
 
     Bitboard occ = _types_bb[NONE];
-    while (occ != U64 (0))
+    while (occ)
     {
         Square s = pop_lsq (occ);
         i08 r = _rank (s);
@@ -1762,9 +1762,9 @@ Position::operator string () const
 
     oss << "Checkers: ";
     Bitboard chkrs = checkers ();
-    if (chkrs != U64 (0))
+    if (chkrs)
     {
-        while (chkrs != U64 (0))
+        while (chkrs)
         {
             Square chk = pop_lsq (chkrs);
             oss << PieceChar[ptype (_board[chk])] << to_string (chk) << " ";

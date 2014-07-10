@@ -184,12 +184,12 @@ namespace BitBoard {
                     {
                         Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
 
-                        if ((attacks != U64 (0)) && (attacks != reference[i]))
+                        if (attacks && (attacks != reference[i]))
                         {
                             break;
                         }
 
-                        ASSERT (reference[i] != U64 (0));
+                        ASSERT (reference[i]);
                         attacks = reference[i];
                     }
                 }
@@ -356,7 +356,7 @@ namespace BitBoard {
         }
         sbb += "\n";
 
-        while (bb != U64 (0))
+        while (bb)
         {
             Square s = pop_lsq (bb);
             i08 r = _rank (s);

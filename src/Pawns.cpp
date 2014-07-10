@@ -108,7 +108,7 @@ namespace Pawns {
             e->semiopen_files [C] = 0xFF;
 
             Bitboard center_pawns = ExtCntr_bb & pawns[0];
-            if (center_pawns != U64 (0))
+            if (center_pawns)
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & Liht_bb;
@@ -189,10 +189,10 @@ namespace Pawns {
                 {
                     friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH];
                     Bitboard enemy_adj_pawns = pawns[1] & PawnAttackSpan[C][s];
-                    candidate = (friend_adj_pawns != U64 (0)) 
+                    candidate = (friend_adj_pawns) 
                              && (
                                    (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
-                                >= (enemy_adj_pawns != U64 (0) ? more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1 : 0)
+                                >= (enemy_adj_pawns ? more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1 : 0)
                                 );
                 }
 
@@ -245,7 +245,7 @@ namespace Pawns {
             }
 
             Bitboard span = e->semiopen_files[C] ^ 0xFF;
-            e->pawn_span[C] = (span != U64 (0) && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
+            e->pawn_span[C] = (span && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
 
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
@@ -315,9 +315,9 @@ namespace Pawns {
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
-            u08 br = (mid_pawns != U64 (0))
-                ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns))
-                : R_1;
+            u08 br = (mid_pawns) ?
+                rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) :
+                R_1;
 
             if (   (MidEdge_bb & (f | br))
                 && (kf == f)
@@ -329,9 +329,9 @@ namespace Pawns {
             else
             {
                 mid_pawns = pawns[0] & File_bb[f];
-                u08 wr = (mid_pawns != U64 (0))
-                    ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
-                    : R_1;
+                u08 wr = (mid_pawns) ?
+                    rel_rank (C, scan_backmost_sq (C , mid_pawns)) :
+                    R_1;
 
                 u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
                 bonus -= (ShelterWeakness[wr] + StormDanger[danger][br]);
@@ -350,9 +350,9 @@ namespace Pawns {
         _kp_min_dist  [C] = 0;
 
         Bitboard pawns = pos.pieces<PAWN> (C);
-        if (pawns != U64 (0))
+        if (pawns)
         {
-            while ((DistanceRings[k_sq][_kp_min_dist[C]++] & pawns) == U64 (0)) {}
+            while (!(DistanceRings[k_sq][_kp_min_dist[C]++] & pawns)) {}
         }
 
         Value bonus = VALUE_ZERO;
@@ -395,7 +395,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C] | candidate_pawns[C];
-        return (unstoppable_pawns != U64 (0)) ?
+        return (unstoppable_pawns) ?
             UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns))) :
             SCORE_ZERO;
     }

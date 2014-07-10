@@ -275,7 +275,7 @@ namespace Searcher {
             const bool    PVNode = (NT == PV);
 
             ASSERT (NT == PV || NT == NonPV);
-            ASSERT (InCheck == (pos.checkers () != U64 (0)));
+            ASSERT (InCheck == !!pos.checkers ());
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || (alpha == beta-1));
             ASSERT (depth <= DEPTH_ZERO);
@@ -562,7 +562,7 @@ namespace Searcher {
 
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
-            bool   in_check = pos.checkers () != U64 (0);
+            bool   in_check = pos.checkers ();
 
             if (SPNode)
             {
@@ -998,8 +998,8 @@ namespace Searcher {
                 // on all the other moves but the tt_move, if result is lower than tt_value minus
                 // a margin then extend tt_move.
                 if (   (singular_ext_node)
-                    && (move == tt_move)
                     && (ext == DEPTH_ZERO)
+                    && (move == tt_move)
                     && (pos.legal (move, ci.pinneds))
                    )
                 {
@@ -1116,17 +1116,20 @@ namespace Searcher {
                 {
                     (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
 
-                    if (!PVNode && cut_node)
+                    if (PVNode || !cut_node)
+                    {
+                        if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
+                        {
+                            (ss)->reduction += ONE_PLY;
+                        }
+                    }
+                    else
                     {
                         (ss)->reduction += ONE_MOVE;
                     }
-                    else if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
-                    {
-                        (ss)->reduction += ONE_PLY;
-                    }
 
                     if (   (ss)->reduction > DEPTH_ZERO
-                        && (move == cm[0] || move == cm[1])
+                        && (move == cm[0] || move == cm[1] || (moves_count == 1 && depth <= (10*ONE_MOVE)))
                        )
                     {
                         (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
@@ -1153,14 +1156,14 @@ namespace Searcher {
                     value = -search<NonPV, false> (pos, ss+1, -alpha-1, -alpha, red_depth, true);
 
                     // Re-search at intermediate depth if reduction is very high
-                    if ((alpha < value) && ((ss)->reduction >= (4*ONE_MOVE)))
+                    if (alpha < value && (ss)->reduction >= (4*ONE_MOVE))
                     {
                         Depth inter_depth = max (new_depth - (2*ONE_MOVE), ONE_MOVE);
                         
                         value = -search<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = ((alpha < value) && ((ss)->reduction != DEPTH_ZERO));
+                    full_depth_search = (alpha < value && (ss)->reduction > DEPTH_ZERO);
                     (ss)->reduction = DEPTH_ZERO;
                 }
                 else
@@ -1497,14 +1500,14 @@ namespace Searcher {
                     log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
                 
+                // Requested to stop?
+                if (Signals.stop) break;
+
                 // Stop the search early:
                 bool stop = false;
 
                 // Do have time for the next iteration? Can stop searching now?
-                if (   Limits.use_timemanager ()
-                    && !Signals.stop
-                    && !Signals.stop_ponderhit
-                   )
+                if (!Signals.stop_ponderhit && Limits.use_timemanager ())
                 {
                     // Take in account some extra time if the best move has changed
                     if (aspiration && MultiPV == 1)
@@ -1531,7 +1534,6 @@ namespace Searcher {
                     {
                         stop = true;
                     }
-
                 }
 
                 if (stop)

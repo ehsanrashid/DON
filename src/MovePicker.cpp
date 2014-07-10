@@ -26,7 +26,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     bad_captures_end = moves+MAX_MOVES-1;
 
-    stage = (pos.checkers () != U64 (0) ? EVASIONS : MAIN_STAGE);
+    stage = (pos.checkers () ? EVASIONS : MAIN_STAGE);
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
@@ -44,7 +44,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 {
     ASSERT (d <= DEPTH_ZERO);
 
-    if (pos.checkers () != U64 (0))
+    if (pos.checkers ())
     {
         stage = EVASIONS;
     }
@@ -87,7 +87,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     , followup_moves (NULL)
     , depth (DEPTH_ZERO)
 {
-    ASSERT (pos.checkers () == U64 (0));
+    ASSERT (!pos.checkers ());
 
     stage = PROBCUT;
 

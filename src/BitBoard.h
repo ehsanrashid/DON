@@ -257,9 +257,9 @@ namespace BitBoard {
     inline bool more_than_one (Bitboard bb)
     {
 #ifdef BM2
-        return _blsr_u64 (bb) != U64 (0);
+        return _blsr_u64 (bb);
 #else
-        return ((bb) & (bb - 1)) != U64 (0);
+        return (bb) & (bb - 1);
 #endif
     }
 

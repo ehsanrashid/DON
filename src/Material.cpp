@@ -209,7 +209,7 @@ namespace Material {
             };
 
             if (   (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
-                && (pos.pieces<PAWN> () != U64 (0))
+                && (pos.pieces<PAWN> ())
                )
             {
                 if (      (pos.count<PAWN> (BLACK) == 0)

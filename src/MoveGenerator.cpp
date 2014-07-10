@@ -11,9 +11,9 @@ namespace MoveGenerator {
 #undef SERIALIZE_PAWNS
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(moves, org, attacks)         while (attacks != U64 (0)) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+#define SERIALIZE(moves, org, attacks)         while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define SERIALIZE_PAWNS(moves, delta, attacks) while (attacks != U64 (0)) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
+#define SERIALIZE_PAWNS(moves, delta, attacks) while (attacks) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
 
     namespace {
 
@@ -85,10 +85,10 @@ namespace MoveGenerator {
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
                 ASSERT (EVASION != GT);
-                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64 (0));
+                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
                 
                 if (EVASION == GT) return;
-                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers () != U64 (0)) return;
+                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ()) return;
 
                 const bool KingSide = (CR == CR_WK || CR == CR_BK);
                 const Color C_ = (WHITE == C) ? BLACK : WHITE;
@@ -153,7 +153,7 @@ namespace MoveGenerator {
 
                 if (CAPTURE != GT)
                 {
-                    if (pos.can_castle (C) && pos.checkers () == U64 (0))
+                    if (pos.can_castle (C) && !pos.checkers ())
                     {
                         CheckInfo cc;
                         if (ci == NULL)
@@ -200,7 +200,7 @@ namespace MoveGenerator {
                 ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
 
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
-                while (promotes != U64 (0))
+                while (promotes)
                 {
                     Square dst = pop_lsq (promotes);
                     Square org = dst - D;
@@ -302,7 +302,7 @@ namespace MoveGenerator {
                             // if the pawn is not on the same file as the enemy king, because
                             // don't generate captures. Note that a possible discovery check
                             // promotion has been already generated among captures.
-                            if (pawns_chk_dis != U64 (0))
+                            if (pawns_chk_dis)
                             {
                                 Bitboard push_cd_1 = shift_del<PUSH> (pawns_chk_dis     ) & empties;
                                 Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & RR3_bb) & empties;
@@ -334,7 +334,7 @@ namespace MoveGenerator {
                         ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
                         // RR5_bb
                         Bitboard pawns_on_R5 = pawns_on_Rx & rel_rank_bb (C, R_5);
-                        if (pawns_on_R5 != U64 (0))
+                        if (pawns_on_R5)
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
@@ -343,10 +343,10 @@ namespace MoveGenerator {
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
                                 Bitboard pawns_ep = PawnAttacks[C_][ep_sq] & pawns_on_R5;
-                                ASSERT (pawns_ep != U64 (0));
+                                ASSERT (pawns_ep);
                                 ASSERT (pop_count<MAX15> (pawns_ep) <= 2);
 
-                                while (pawns_ep != U64 (0))
+                                while (pawns_ep)
                                 {
                                     (moves++)->move = mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq);
                                 }
@@ -356,7 +356,7 @@ namespace MoveGenerator {
                 }
 
                 // Promotions (queening and under-promotions)
-                if (pawns_on_R7 != U64 (0))
+                if (pawns_on_R7)
                 {
                     Bitboard RR8_bb = rel_rank_bb (C, R_8);
                     
@@ -397,13 +397,13 @@ namespace MoveGenerator {
         //    //moves.erase (
         //    //    remove_if (moves.begin (), moves.end (), [&] (Move m)
         //    //{
-        //    //    return ((ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))) && !pos.legal (m, pinneds); 
+        //    //    return ((ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))) && !pos.legal (m, pinneds); 
         //    //}), moves.end ());
         //
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (   (ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))
+        //        if (   (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
         //            && !pos.legal (m, pinneds))
         //        {
         //            beg->move = (--end)->move;
@@ -422,7 +422,7 @@ namespace MoveGenerator {
     ValMove* generate (ValMove *moves, const Position &pos)
     {
         ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
-        ASSERT (pos.checkers () == U64 (0));
+        ASSERT (!pos.checkers ());
 
         Color active = pos.active ();
 
@@ -456,7 +456,7 @@ namespace MoveGenerator {
     // Returns a pointer to the end of the move list.
     ValMove* generate<QUIET_CHECK> (ValMove *moves, const Position &pos)
     {
-        ASSERT (pos.checkers () == U64 (0));
+        ASSERT (!pos.checkers ());
 
         Color active    = pos.active ();
         Bitboard occ    = pos.pieces ();
@@ -464,7 +464,7 @@ namespace MoveGenerator {
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers != U64 (0))
+        while (discovers)
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
@@ -491,7 +491,7 @@ namespace MoveGenerator {
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers != U64 (0))
+        while (discovers)
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
@@ -513,7 +513,7 @@ namespace MoveGenerator {
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         Bitboard checkers = pos.checkers ();
-        ASSERT (checkers != U64 (0)); // If any checker exists
+        ASSERT (checkers); // If any checker exists
 
         Color active = pos.active ();
 
@@ -545,7 +545,7 @@ namespace MoveGenerator {
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
-        while (sliders != U64 (0))
+        while (sliders)
         {
             check_sq = pop_lsq (sliders);
 
@@ -578,7 +578,7 @@ namespace MoveGenerator {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () != U64 (0) ?
+        ValMove *end = pos.checkers () ?
             generate<EVASION> (moves, pos) :
             generate<RELAX  > (moves, pos);
 
@@ -589,7 +589,7 @@ namespace MoveGenerator {
         while (cur != end)
         {
             Move m = cur->move;
-            if (  (ENPASSANT == mtype (m) || pinneds != U64 (0) || (org_sq (m) == king_sq))
+            if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
                 && !pos.legal (m, pinneds)
                )
             {
