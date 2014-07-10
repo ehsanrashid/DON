@@ -492,16 +492,16 @@ namespace Evaluator {
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
-                    if (ei.pi->semiopen_file<C > (f) != 0)
+                    if (ei.pi->semiopen_file<C > (f))
                     {
-                        score += (ei.pi->semiopen_file<C_> (f) != 0) ?
+                        score += (ei.pi->semiopen_file<C_> (f)) ?
                                  RookOnOpenFileBonus :
                                  RookOnSemiOpenFileBonus;
                         
                         // Give more if the rook is doubled
                         if (pos.count<ROOK> (C) > 1 && (File_bb[f] & pos.pieces<ROOK> (C) & attacks))
                         {
-                            score += (ei.pi->semiopen_file<C_> (f) != 0) ?
+                            score += (ei.pi->semiopen_file<C_> (f)) ?
                                      RookDoubledOnOpenFileBonus :
                                      RookDoubledOnSemiopenFileBonus;
                         }
@@ -537,14 +537,14 @@ namespace Evaluator {
 
                 if (ROOK == PT)
                 {
-                    if (mob <= 3 && ei.pi->semiopen_file<C > (f) == 0)
+                    if (mob <= 3 && !ei.pi->semiopen_file<C > (f))
                     {
                         const File kf = _file (fk_sq);
                         const Rank kr = rel_rank (C, fk_sq);
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
                         if (   (kr == R_1 || kr == rel_rank (C, s))
-                            && (ei.pi->semiopen_side<C> (kf, f < kf) == 0)
+                            && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
                         {
                             if (   (kf > F_E && f > kf)
@@ -579,7 +579,7 @@ namespace Evaluator {
             Score score = ei.pi->evaluate_king_safety<C> (pos, fk_sq);
 
             // Main king safety evaluation
-            if (ei.king_attackers_count[C_] != 0)
+            if (ei.king_attackers_count[C_])
             {
                 const Bitboard occ = pos.pieces ();
                 // Find the attacked squares around the king which has no defenders
@@ -704,8 +704,7 @@ namespace Evaluator {
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
-                if (attack_units <  0               ) attack_units =  0;
-                if (attack_units >= MAX_ATTACK_UNITS) attack_units = MAX_ATTACK_UNITS-1;
+                attack_units = min (MAX_ATTACK_UNITS-1, max (0, attack_units));
 
                 // Finally, extract the king danger score from the KingDanger[]
                 // array and subtract the score from evaluation.
@@ -813,7 +812,7 @@ namespace Evaluator {
                 Value mg_bonus = Value (17 * rr);
                 Value eg_bonus = Value ( 7 * (rr + r + 1));
 
-                if (rr != 0)
+                if (rr)
                 {
                     Square block_sq = s + PUSH;
                     Square fk_sq = pos.king_sq (C );
@@ -1053,7 +1052,7 @@ namespace Evaluator {
 
             // Evaluate space for both sides, only in middle-game.
             Score space_weight = ei.mi->space_weight;
-            if (space_weight != 0)
+            if (space_weight)
             {
                 i32 space = evaluate_space<WHITE> (pos, ei)
                           - evaluate_space<BLACK> (pos, ei);

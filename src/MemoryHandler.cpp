@@ -199,7 +199,7 @@ namespace MemoryHandler {
 
 #   else   // Linux - Unix
 
-            if (shmdt (mem) != 0) { cerr << "Could not close memory segment." << endl; }
+            if (shmdt (mem)) { cerr << "Could not close memory segment." << endl; }
             shmctl (Num, IPC_RMID, NULL);
             
 #   endif

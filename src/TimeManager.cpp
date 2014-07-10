@@ -69,7 +69,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     _unstable_pv_factor  = 1.0;
     _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
-    u08 tot_movestogo = (movestogo != 0) ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
+    u08 tot_movestogo = (movestogo) ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)

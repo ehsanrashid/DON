@@ -205,7 +205,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _fifty_move_dist <  _si->clock50
         || (_fifty_move_dist == _si->clock50
-          && (!_si->checkers || MoveList<LEGAL> (*this).size () != 0)
+          && (!_si->checkers || MoveList<LEGAL> (*this).size ())
            )
        )
     {

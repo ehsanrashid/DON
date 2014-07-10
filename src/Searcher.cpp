@@ -935,7 +935,7 @@ namespace Searcher {
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (RootNode)
                 {
-                    if (count (RootMoves.begin () + PVIndex, RootMoves.end (), move) == 0) continue;
+                    if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
                 }
 
                 if (SPNode)
@@ -1377,7 +1377,7 @@ namespace Searcher {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++dep <= MAX_DEPTH && (Limits.depth == 0 || dep <= Limits.depth))
+            while (++dep <= MAX_DEPTH && (!Limits.depth || dep <= Limits.depth))
             {
                 // Requested to stop?
                 if (Signals.stop) break;
@@ -1527,7 +1527,7 @@ namespace Searcher {
                 else
                 {
                     // Have found a "mate in <x>"?
-                    if (   (Limits.mate != 0)
+                    if (   (Limits.mate)
                         && (best_value >= VALUE_MATES_IN_MAX_PLY)
                         && (VALUE_MATE - best_value <= (Limits.mate*i32 (ONE_MOVE)))
                        )
@@ -1607,7 +1607,7 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
-        while (ply != 0);
+        while (ply);
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
     }
@@ -1657,7 +1657,7 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
-        while (ply != 0);
+        while (ply);
     }
 
     string RootMove::info_pv (const Position &pos) const
@@ -1727,7 +1727,7 @@ namespace Searcher {
 
         if (!RootMoves.empty ())
         {
-            if (bool (Options["Own Book"]) && !Limits.infinite && Limits.mate == 0)
+            if (bool (Options["Own Book"]) && !Limits.infinite && !Limits.mate)
             {
                 string fn_book = string (Options["Book File"]);
                 convert_path (fn_book);
@@ -1740,7 +1740,7 @@ namespace Searcher {
                 {
                     Move book_move = Book.probe_move (RootPos, bool (Options["Best Book Move"]));
                     if (   book_move != MOVE_NONE
-                        && count (RootMoves.begin (), RootMoves.end (), book_move) != 0
+                        && count (RootMoves.begin (), RootMoves.end (), book_move)
                         )
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
@@ -1773,7 +1773,7 @@ namespace Searcher {
             Threadpool.max_ply = 0;
 
             autosave_time = i32 (Options["Auto-Save Hash (mins)"]);
-            if (autosave_time != 0)
+            if (autosave_time)
             {
                 Threadpool.autosave->resolution = autosave_time*60*M_SEC;
                 Threadpool.autosave->start ();
@@ -1787,7 +1787,7 @@ namespace Searcher {
 
             Threadpool.timer->stop ();
 
-            if (autosave_time != 0)
+            if (autosave_time)
             {
                 Threadpool.autosave->stop ();
             }
@@ -1934,7 +1934,7 @@ namespace Threads {
         }
 
         u64 nodes = 0;
-        if (Limits.nodes != 0)
+        if (Limits.nodes)
         {
             Threadpool.mutex.lock ();
 
@@ -1967,18 +1967,16 @@ namespace Threads {
 
         point time = now_time - SearchTime;
 
-        bool still_at_1stmove =
-                (Signals.root_1stmove)
-            && !(Signals.root_failedlow)
-            && (time > TimeMgr.available_time () * 75/100);
-
-        bool no_more_time =
-               (time > TimeMgr.maximum_time () - 2 * TimerResolution)
-            || (still_at_1stmove);
-
-        if (   (Limits.use_timemanager () && no_more_time)
-            || (Limits.movetime != 0 && (time  >= Limits.movetime))
-            || (Limits.nodes    != 0 && (nodes >= Limits.nodes))
+        if (   (   Limits.use_timemanager ()
+                && (  time > TimeMgr.maximum_time () - 2 * TimerResolution // No more time
+                   || (    (Signals.root_1stmove)                           // Still at first move
+                       && !(Signals.root_failedlow)
+                       && (time > TimeMgr.available_time () * 75/100)
+                      )
+                   ) 
+               )
+            || (Limits.movetime && (time  >= Limits.movetime))
+            || (Limits.nodes    && (nodes >= Limits.nodes))
            )
         {
             Signals.stop = true;
@@ -1990,7 +1988,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = ((splitpoint_threads != 0) ? active_splitpoint : NULL);
+        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : NULL);
         ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
 
         do
