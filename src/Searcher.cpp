@@ -1372,7 +1372,7 @@ namespace Searcher {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            MultiPV = max (MultiPV, skill.candidates_size ());
+            MultiPV = min (max (MultiPV, skill.candidates_size ()), RootCount);
 
             Value best_value = -VALUE_INFINITE
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
