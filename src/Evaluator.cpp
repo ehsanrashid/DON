@@ -930,10 +930,9 @@ namespace Evaluator {
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
                   SpaceMask[C]
-                & ~pos.pieces<PAWN> (C)
-                & ~ei.attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NONE]
-                | ~ei.pin_attacked_by[C_][NONE]);
+                & ~ei.pi->blocked_pawns[C]
+                & ~ei.pin_attacked_by[C_][PAWN]
+                & (ei.pin_attacked_by[C ][NONE] | ~ei.pin_attacked_by[C_][NONE]);
 
             // Since SpaceMask[C] is fully on our half of the board
             ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);

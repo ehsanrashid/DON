@@ -1368,11 +1368,10 @@ namespace Searcher {
             u08 level = u08 (i32 (Options["Skill Level"]));
             Skill skill (level);
 
-            MultiPV   = u08 (i32 (Options["MultiPV"]));
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            MultiPV = min (max (MultiPV, skill.candidates_size ()), RootCount);
+            MultiPV = min (max (u08 (i32 (Options["MultiPV"])), skill.candidates_size ()), RootCount);
 
             Value best_value = -VALUE_INFINITE
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
