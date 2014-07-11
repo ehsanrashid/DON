@@ -67,7 +67,12 @@ namespace Searcher {
 
         struct Skill
         {
+        private:
+
             u08  level;
+            u08  candidates;
+
+        public:
             Move move;
 
             Skill ()
@@ -75,24 +80,26 @@ namespace Searcher {
                 , move (MOVE_NONE)
             {}
 
-            Skill (u08 lvl)
+            Skill (u08 lvl, u08 root_count)
                 : level (lvl)
+                , candidates (lvl < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, root_count) : 0)
                 , move (MOVE_NONE)
             {}
 
            ~Skill ()
             {
-                if (enabled ()) // Swap best PV line with the sub-optimal one
+                if (candidates) // Swap best PV line with the sub-optimal one
                 {
                     swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
                 }
             }
 
-            bool enabled () const { return (level < MAX_SKILL_LEVEL); }
+            u08 candidates_size() const { return candidates; }
+
             bool time_to_pick (i16 depth) const { return (depth == (1 + level)); }
 
-            // When playing with strength handicap choose best move among the MultiPV set
-            // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+            // When playing with a strength handicap, choose best move among the first 'candidates'
+            // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
             Move pick_move ()
             {
                 static RKISS rk;
@@ -100,7 +107,7 @@ namespace Searcher {
                 for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
 
                 // RootMoves are already sorted by score in descending order
-                const Value variance = min (RootMoves[0].value[0] - RootMoves[MultiPV - 1].value[0], VALUE_MG_PAWN);
+                const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
                 const Value weakness = Value (120 - 2 * level);
                 
                 Value max_v = -VALUE_INFINITE;
@@ -108,7 +115,7 @@ namespace Searcher {
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
-                for (u08 i = 0; i < MultiPV; ++i)
+                for (u08 i = 0; i < candidates; ++i)
                 {
                     Value v = RootMoves[i].value[0];
 
@@ -1364,13 +1371,13 @@ namespace Searcher {
             i16 dep = DEPTH_ZERO;
 
             u08 level = u08 (i32 (Options["Skill Level"]));
-            Skill skill (level);
+            Skill skill (level, RootCount);
 
             MultiPV   = u08 (i32 (Options["MultiPV"]));
             // Do have to play with skill handicap?
             // In this case enable MultiPV search to MIN_SKILL_MULTIPV
             // that will use behind the scenes to retrieve a set of possible moves.
-            if (skill.enabled ())
+            if (skill.candidates_size ())
             {
                 MultiPV = max (MultiPV, MIN_SKILL_MULTIPV);
             }
@@ -1485,7 +1492,7 @@ namespace Searcher {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill.enabled () && skill.time_to_pick (dep))
+                if (skill.candidates_size () && skill.time_to_pick (dep))
                 {
                     Move m = skill.pick_move ();
                     if (MOVE_NONE != m)
