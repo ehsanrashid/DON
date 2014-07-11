@@ -41,7 +41,7 @@ namespace BitBoard {
     const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
     const Bitboard Corner_bb  = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
-    const Bitboard ExtCntr_bb = ((FC_bb | FD_bb | FE_bb | FF_bb) & (R3_bb | R4_bb | R5_bb | R6_bb));
+    const Bitboard ExtCntr_bb = (FC_bb | FD_bb | FE_bb | FF_bb) & (R3_bb | R4_bb | R5_bb | R6_bb);
     const Bitboard RimEdge_bb = (FA_bb | FH_bb | R1_bb | R8_bb);
     const Bitboard MidEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
 
@@ -317,7 +317,7 @@ namespace BitBoard {
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
-    extern INLINE u16 magic_index(Square s, Bitboard occ);
+    extern INLINE u16 magic_index (Square s, Bitboard occ);
 
     template<>
     INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
@@ -360,11 +360,11 @@ namespace BitBoard {
     // Attacks of the ROOK with occupancy
     INLINE Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RAttack_bb[s][magic_index<ROOK> (s, occ)]; }
     template<>
-    // QUEEN Attacks with occ
+    // Attacks of the QUEEN with occupancy
     INLINE Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return BAttack_bb[s][magic_index<BSHP> (s, occ)]
-            |  RAttack_bb[s][magic_index<ROOK> (s, occ)];
+             | RAttack_bb[s][magic_index<ROOK> (s, occ)];
     }
     // --------------------------------
 

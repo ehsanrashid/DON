@@ -243,7 +243,7 @@ namespace Threads {
             if (exit) return;
 
             searching = true;
-            Searcher::think ();
+            think ();   // Start thinking
             ASSERT (searching);
             searching = false;
         }

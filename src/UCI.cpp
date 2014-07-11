@@ -140,7 +140,7 @@ namespace UCI {
             string fen;
             if (cmds >> token)
             {
-                // consume "startpos" or "fen" token
+                // Consume "startpos" or "fen" token
                 if      (token == "startpos")
                 {
                     fen = StartFEN;
@@ -148,7 +148,7 @@ namespace UCI {
                 }
                 else if (token == "fen")
                 {
-                    // consume "moves" token if any
+                    // Consume "moves" token if any
                     while (cmds >> token && token != "moves")
                     {
                         fen += string (" ", !fen.empty ()) + token;
@@ -164,13 +164,12 @@ namespace UCI {
             RootPos.setup (fen, Threadpool.main (), bool (Options["UCI_Chess960"]));
             
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
-            // parse and validate game moves (if any)
+            // Parse and validate game moves (if any)
             if (token == "moves")
             {
                 while (cmds >> token)
                 {
                     Move m = move_from_can (token, RootPos);
-                    
                     if (MOVE_NONE == m)
                     {
                         cerr << "ERROR: Illegal Move '" + token << "'" << endl;
@@ -178,7 +177,6 @@ namespace UCI {
                     }
                     
                     SetupStates->push (StateInfo ());
-                    
                     RootPos.do_move (m, SetupStates->top ());
                 }
             }
@@ -201,18 +199,18 @@ namespace UCI {
             LimitsT limits;
 
             string  token;
-            i32     value;
+            i64     value;
             while (cmds >> token)
             {
-                if      (token == "wtime")      { cmds >> value; limits.gameclock[WHITE].time = value >= 0 ? +value : -value; }
-                else if (token == "btime")      { cmds >> value; limits.gameclock[BLACK].time = value >= 0 ? +value : -value; }
-                else if (token == "winc")       { cmds >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
-                else if (token == "binc")       { cmds >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
-                else if (token == "movetime")   { cmds >> value; limits.movetime  = value >= 0 ? +value : -value; }
+                if      (token == "wtime")      { cmds >> value; limits.gameclock[WHITE].time = u32 (value >= 0 ? +value : -value); }
+                else if (token == "btime")      { cmds >> value; limits.gameclock[BLACK].time = u32 (value >= 0 ? +value : -value); }
+                else if (token == "winc")       { cmds >> value; limits.gameclock[WHITE].inc  = u32 (value >= 0 ? +value : -value); }
+                else if (token == "binc")       { cmds >> value; limits.gameclock[BLACK].inc  = u32 (value >= 0 ? +value : -value); }
+                else if (token == "movetime")   { cmds >> value; limits.movetime  = u32 (value >= 0 ? +value : -value); }
                 else if (token == "movestogo")  { cmds >> value; limits.movestogo = u08 (value >= 0 ? +value : -value); }
-                else if (token == "depth")      { cmds >> value; limits.depth = u08 (value >= 0 ? +value : -value); }
-                else if (token == "nodes")      { cmds >> value; limits.nodes = value >= 0 ? +value : -value; }
-                else if (token == "mate")       { cmds >> value; limits.mate  = u08 (value >= 0 ? +value : -value); }
+                else if (token == "depth")      { cmds >> value; limits.depth     = u08 (value >= 0 ? +value : -value); }
+                else if (token == "nodes")      { cmds >> value; limits.nodes     = u64 (value >= 0 ? +value : -value); }
+                else if (token == "mate")       { cmds >> value; limits.mate      = u08 (value >= 0 ? +value : -value); }
                 else if (token == "infinite")   { limits.infinite  = true; }
                 else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)
@@ -263,7 +261,7 @@ namespace UCI {
         {
             sync_cout
                 << hex << uppercase << setfill ('0')
-                << "fen: " << RootPos.fen () << "\n"
+                << "fen: "                   << RootPos.fen () << "\n"
                 << "posi key: " << setw (16) << RootPos.posi_key () << "\n"
                 << "matl key: " << setw (16) << RootPos.matl_key () << "\n"
                 << "pawn key: " << setw (16) << RootPos.pawn_key ()

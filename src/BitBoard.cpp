@@ -111,8 +111,8 @@ namespace BitBoard {
                 // Board edges are not considered in the relevant occupancies
                 Bitboard edges = board_edges (s);
 
-                // Given a square 's', the mask is the bitboard of sliding attacks from
-                // 's' computed on an empty board. The index must be big enough to contain
+                // Given a square 's', the mask is the bitboard of sliding attacks from 's'
+                // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
@@ -138,11 +138,11 @@ namespace BitBoard {
                 Bitboard occ = U64 (0);
                 do
                 {
-#               ifdef BM2
-                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
-#               else
+#               ifndef BM2
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
+#               else
+                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
@@ -313,13 +313,12 @@ namespace BitBoard {
         }
 
         initialize_sliding ();
-
+        
+        // NOTE:: must be after initialize_sliding()
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                // NOTE:: must be called after initialize_sliding()
-
                 PieceT pt =  
                     (PieceAttacks[BSHP][s1] & s2) ? BSHP :
                     (PieceAttacks[ROOK][s1] & s2) ? ROOK :
@@ -342,7 +341,7 @@ namespace BitBoard {
     {
         string sbb;
 
-        const string row   = "|. . . . . . . .|\n";
+        const string row  = "|. . . . . . . .|\n";
         const u16 row_len = row.length () + 1;
         sbb = " /---------------\\\n";
         for (i08 r = R_8; r >= R_1; --r)

@@ -51,13 +51,12 @@ namespace Pawns {
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 4,+ 3), S(+ 5,+ 5), S(+15,+14), S(+21,+20), S(+42,+40), S(+46,+46), S(+0,+ 0)
+            S(+ 0,+ 0), S(+ 4,+ 3), S(+ 5,+ 5), S(+15,+14), S(+21,+20), S(+42,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
         const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
-        const Score UnstoppableBonus    = S(+ 0,+20); // Bonus for pawn going to promote
-
-        const Score UnsupportedPenalty  = S(+20,+10); // Penalty for Unsupported pawn
+        const Score UnstoppableBonus   = S(+ 0,+20); // Bonus for pawn going to promote
+        const Score UnsupportedPenalty = S(+20,+10); // Penalty for Unsupported pawn
 
     #undef S
 
@@ -244,7 +243,7 @@ namespace Pawns {
                 }
             }
 
-            Bitboard span = e->semiopen_files[C] ^ 0xFF;
+            u08 span = e->semiopen_files[C] ^ 0xFF;
             e->pawn_span[C] = (span && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
 
             // In endgame it's better to have pawns on both wings.
@@ -253,7 +252,6 @@ namespace Pawns {
 
             return pawn_score;
         }
-        
 
     } // namespace
 
@@ -281,7 +279,6 @@ namespace Pawns {
         if (e->pawn_key != pawn_key)
         {
             e->pawn_key    = pawn_key;
-
             e->pawn_score  = evaluate<WHITE> (pos, e)
                            - evaluate<BLACK> (pos, e);
         }
@@ -334,7 +331,7 @@ namespace Pawns {
                     R_1;
 
                 u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
-                bonus -= (ShelterWeakness[wr] + StormDanger[danger][br]);
+                bonus -= ShelterWeakness[wr] + StormDanger[danger][br];
             }
         }
 

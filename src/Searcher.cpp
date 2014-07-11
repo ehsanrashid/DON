@@ -71,18 +71,19 @@ namespace Searcher {
 
             u08  level;
             u08  candidates;
+            Move move;
 
         public:
-            Move move;
 
             Skill ()
                 : level (MAX_SKILL_LEVEL)
+                , candidates (0)
                 , move (MOVE_NONE)
             {}
 
-            Skill (u08 lvl, u08 root_count)
-                : level (lvl)
-                , candidates (lvl < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, root_count) : 0)
+            Skill (u08 lvl)
+                : level (lvl < MAX_SKILL_LEVEL ? lvl : MAX_SKILL_LEVEL)
+                , candidates (lvl < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootCount) : 0)
                 , move (MOVE_NONE)
             {}
 
@@ -94,7 +95,7 @@ namespace Searcher {
                 }
             }
 
-            u08 candidates_size() const { return candidates; }
+            u08 candidates_size () const { return candidates; }
 
             bool time_to_pick (i16 depth) const { return (depth == (1 + level)); }
 
@@ -111,7 +112,7 @@ namespace Searcher {
                 const Value weakness = Value (120 - 2 * level);
                 
                 Value max_v = -VALUE_INFINITE;
-                move = MOVE_NONE;
+                move        = MOVE_NONE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -1364,24 +1365,20 @@ namespace Searcher {
             CounterMoves.clear ();
             FollowupMoves.clear ();
 
+            u08 level = u08 (i32 (Options["Skill Level"]));
+            Skill skill (level);
+
+            MultiPV   = u08 (i32 (Options["MultiPV"]));
+            // Do have to play with skill handicap?
+            // In this case enable MultiPV search by skill candidates size
+            // that will use behind the scenes to retrieve a set of possible moves.
+            MultiPV = max (MultiPV, skill.candidates_size ());
+
             Value best_value = -VALUE_INFINITE
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
             i16 dep = DEPTH_ZERO;
-
-            u08 level = u08 (i32 (Options["Skill Level"]));
-            Skill skill (level, RootCount);
-
-            MultiPV   = u08 (i32 (Options["MultiPV"]));
-            // Do have to play with skill handicap?
-            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
-            // that will use behind the scenes to retrieve a set of possible moves.
-            if (skill.candidates_size ())
-            {
-                MultiPV = max (MultiPV, MIN_SKILL_MULTIPV);
-            }
-            MultiPV = min (MultiPV, RootCount);
 
             point iteration_time;
 
