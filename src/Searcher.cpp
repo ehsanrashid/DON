@@ -212,9 +212,6 @@ namespace Searcher {
             if (time == 0) time = 1;
 
             stringstream ss;
-            
-            MultiPV = min (u08 (i32 (Options["MultiPV"])), RootCount);
-
             i32 sel_depth = Threadpool.max_ply;
 
             for (u08 i = 0; i < MultiPV; ++i)
