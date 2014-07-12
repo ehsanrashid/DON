@@ -528,11 +528,14 @@ namespace Searcher {
         }
 
         template <NodeT NT, bool SPNode>
-        // search<>() is the main search function for both PV and non-PV nodes and for
-        // normal and SplitPoint nodes. When called just after a splitpoint the search
-        // is simpler because already probed the hash table, done a null move search,
-        // and searched the first move before splitting, don't have to repeat all
-        // this work again. Also don't need to store anything to the hash table here:
+        // search<>() is the main search function for both PV and non-PV nodes and
+        // for normal and splitpoint nodes.
+        // It calls itself recursively with decreasing (remaining) depth
+        // until we run out of depth, and then drops into search_quien.
+        // When called just after a splitpoint the search is simpler because
+        // already probed the hash table, done a null move search, and searched
+        // the first move before splitting, don't have to repeat all this work again.
+        // Also don't need to store anything to the hash table here:
         // This is taken care of after return from the splitpoint.
         inline Value search        (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
