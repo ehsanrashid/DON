@@ -190,8 +190,8 @@ namespace Pawns {
                     Bitboard enemy_adj_pawns = pawns[1] & PawnAttackSpan[C][s];
                     candidate = (friend_adj_pawns) 
                              && (
-                                   (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
-                                >= (enemy_adj_pawns ? more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1 : 0)
+                                                         (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
+                                >= ((enemy_adj_pawns) ? (more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1) : 0)
                                 );
                 }
 
@@ -244,7 +244,7 @@ namespace Pawns {
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;
-            e->pawn_span[C] = (span && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
+            e->pawn_span[C] = more_than_one (span) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
 
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
@@ -282,7 +282,6 @@ namespace Pawns {
             e->pawn_score  = evaluate<WHITE> (pos, e)
                            - evaluate<BLACK> (pos, e);
         }
-
         return e;
     }
 
@@ -393,17 +392,23 @@ namespace Pawns {
     {
         Score score = SCORE_ZERO;
         Bitboard unstoppable_pawns;
-        unstoppable_pawns = passed_pawns[C];
-        while (unstoppable_pawns)
+        if (passed_pawns[C])
         {
-            Square sq = pop_lsq (unstoppable_pawns);
-            score += UnstoppableBonus * i32 (rel_rank (C, sq));
+            unstoppable_pawns = passed_pawns[C];
+            while (unstoppable_pawns)
+            {
+                Square sq = pop_lsq (unstoppable_pawns);
+                score += UnstoppableBonus * i32 (rel_rank (C, sq));
+            }
         }
-        unstoppable_pawns = candidate_pawns[C];
-        while (unstoppable_pawns)
+        if (candidate_pawns[C])
         {
-            Square sq = pop_lsq (unstoppable_pawns);
-            score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 2;
+            unstoppable_pawns = candidate_pawns[C];
+            while (unstoppable_pawns)
+            {
+                Square sq = pop_lsq (unstoppable_pawns);
+                score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 4;
+            }
         }
         return score;
     }

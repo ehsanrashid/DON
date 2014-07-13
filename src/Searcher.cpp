@@ -109,7 +109,7 @@ namespace Searcher {
 
                 // RootMoves are already sorted by score in descending order
                 const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
-                const Value weakness = Value (120 - 2 * level);
+                const Value weakness = Value (MAX_DEPTH - 2 * level);
                 
                 Value max_v = -VALUE_INFINITE;
                 move        = MOVE_NONE;

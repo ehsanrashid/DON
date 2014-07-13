@@ -789,7 +789,7 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color C, bool Trace>
+        template<Color C>
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
@@ -888,27 +888,17 @@ namespace Evaluator {
                     
                 }
 
-                if (eg_bonus != VALUE_ZERO)
+                // Increase the bonus if have more non-pawn pieces
+                if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
                 {
-                    // Increase the bonus if have more non-pawn pieces
-                    if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
-                    {
-                        eg_bonus += eg_bonus / 4;
-                    }
+                    eg_bonus += eg_bonus / 4;
+                }
+                else
+                {
+                    //mg_bonus += mg_bonus / 4;
                 }
 
                 score += mk_score (mg_bonus, eg_bonus);
-            }
-            
-            if (score != SCORE_ZERO)
-            {
-                // Add the scores to the middle game and endgame eval
-                score = apply_weight (score, Weights[PassedPawns]);
-            }
-
-            if (Trace)
-            {
-                Tracer::Terms[C][Tracer::PASSED] = score;
             }
             
             return score;
@@ -1027,8 +1017,13 @@ namespace Evaluator {
                   -  evaluate_threats<BLACK, Trace> (pos, ei);
 
             // Evaluate passed pawns, needed full attack information including king
-            score += evaluate_passed_pawns<WHITE, Trace> (pos, ei)
-                  -  evaluate_passed_pawns<BLACK, Trace> (pos, ei);
+            Score passed_pawn[CLR_NO] =
+            {
+                evaluate_passed_pawns<WHITE> (pos, ei),
+                evaluate_passed_pawns<BLACK> (pos, ei)
+            };
+
+            score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PassedPawns]);
 
             const Value npm[CLR_NO] =
             {
@@ -1050,13 +1045,14 @@ namespace Evaluator {
             ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
+            i32 space[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             Score space_weight = ei.mi->space_weight;
             if (space_weight)
             {
-                i32 space = evaluate_space<WHITE> (pos, ei)
-                          - evaluate_space<BLACK> (pos, ei);
+                space[WHITE] = evaluate_space<WHITE> (pos, ei);
+                space[BLACK] = evaluate_space<BLACK> (pos, ei);
 
-                score += apply_weight (space * space_weight, Weights[Space]);
+                score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[Space]);
             }
 
             i32 mg = i32 (mg_value (score));
@@ -1123,9 +1119,13 @@ namespace Evaluator {
                     , apply_weight (mobility[WHITE], Weights[Mobility])
                     , apply_weight (mobility[BLACK], Weights[Mobility]));
 
+                Tracer::add_term (Tracer::PASSED
+                    , apply_weight (passed_pawn[WHITE], Weights[PassedPawns])
+                    , apply_weight (passed_pawn[BLACK], Weights[PassedPawns]));
+
                 Tracer::add_term (Tracer::SPACE
-                    , apply_weight (evaluate_space<WHITE> (pos, ei) * space_weight, Weights[Space])
-                    , apply_weight (evaluate_space<BLACK> (pos, ei) * space_weight, Weights[Space]));
+                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[Space])
+                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[Space]));
 
                 Tracer::add_term (Tracer::TOTAL    , score);
 
