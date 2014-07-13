@@ -391,10 +391,21 @@ namespace Pawns {
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        Bitboard unstoppable_pawns = passed_pawns[C] | candidate_pawns[C];
-        return (unstoppable_pawns) ?
-            UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns))) :
-            SCORE_ZERO;
+        Score score = SCORE_ZERO;
+        Bitboard unstoppable_pawns;
+        unstoppable_pawns = passed_pawns[C];
+        while (unstoppable_pawns)
+        {
+            Square sq = pop_lsq (unstoppable_pawns);
+            score += UnstoppableBonus * i32 (rel_rank (C, sq));
+        }
+        unstoppable_pawns = candidate_pawns[C];
+        while (unstoppable_pawns)
+        {
+            Square sq = pop_lsq (unstoppable_pawns);
+            score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 2;
+        }
+        return score;
     }
 
     // Explicit template instantiation

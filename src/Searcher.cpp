@@ -779,7 +779,7 @@ namespace Searcher {
 
                                     // Null move dynamic (variable) reduction based on depth and value
                                     Depth rdepth = depth - Depth (
-                                                    + (3*ONE_MOVE)
+                                                    + ((2 + (pos.non_pawn_material (pos.active ()) > VALUE_MG_BSHP)) * ONE_MOVE)
                                                     + (depth/4)
                                                     + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
 
@@ -1897,8 +1897,8 @@ namespace Searcher {
             {
                 double    pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double nonpv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reduction[1][1][hd][mc] = u08 (   pv_red >= 1.0 ?    pv_red * i32 (ONE_MOVE) : 0);
-                Reduction[0][1][hd][mc] = u08 (nonpv_red >= 1.0 ? nonpv_red * i32 (ONE_MOVE) : 0);
+                Reduction[1][1][hd][mc] = u08 (   pv_red >= 1.0 ?    pv_red*i32 (ONE_MOVE) : 0);
+                Reduction[0][1][hd][mc] = u08 (nonpv_red >= 1.0 ? nonpv_red*i32 (ONE_MOVE) : 0);
 
                 Reduction[1][0][hd][mc] = Reduction[1][1][hd][mc];
                 Reduction[0][0][hd][mc] = Reduction[0][1][hd][mc];

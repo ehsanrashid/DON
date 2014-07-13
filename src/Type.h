@@ -13,7 +13,7 @@
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u08   MAX_DEPTH     = 120;          // Maximum Depth
+const u08   MAX_DEPTH     = 120;          // Maximum Depth (Ply)
 const u08   MAX_DEPTH_6   = MAX_DEPTH + 6;// Maximum Stack size
 
 // File of Square
