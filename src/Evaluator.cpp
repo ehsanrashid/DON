@@ -289,10 +289,7 @@ namespace Evaluator {
             Bitboard attacks = ei.attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
 
             // Init king safety tables only if going to use them
-            if (   (pos.count<QUEN> (C) > 0)
-                //|| (pos.non_pawn_material (C) > VALUE_MG_QUEN + 2*VALUE_MG_PAWN)
-                || (pos.non_pawn_material (C) >= VALUE_MG_NIHT + VALUE_MG_BSHP) // TODO::
-               )
+            if (pos.non_pawn_material (C) >= VALUE_MG_NIHT + VALUE_MG_BSHP) // TODO::
             {
                 Rank rk                        = rel_rank (C_, ek_sq);
 
@@ -402,7 +399,7 @@ namespace Evaluator {
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when have full attack info.
-                if (ei.attacked_by[C_][PAWN] & s)
+                if (ei.pin_attacked_by[C_][PAWN] & s)
                 {
                     score -= PawnThreatenPenalty[PT];
                 }
@@ -543,16 +540,12 @@ namespace Evaluator {
                         const Rank kr = rel_rank (C, fk_sq);
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
-                        if (   (kr == R_1 || kr == rel_rank (C, s))
+                        if (   ((kf < F_E) == (f < kf))
+                            && (kr == R_1 || kr == rel_rank (C, s))
                             && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
                         {
-                            if (   (kf >= F_E && f > kf)
-                                || (kf <= F_D && f < kf)
-                               )
-                            {
-                                score -= (RookTrappedPenalty - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
-                            }
+                            score -= (RookTrappedPenalty - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
                         }
                     }
                 }
@@ -586,7 +579,7 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.attacked_by[C ][KING] // king region
-                  & ei.attacked_by[C_][NONE]
+                  & ei.pin_attacked_by[C_][NONE]
                   & ~(ei.pin_attacked_by[C ][PAWN]
                     | ei.pin_attacked_by[C ][NIHT]
                     | ei.pin_attacked_by[C ][BSHP]

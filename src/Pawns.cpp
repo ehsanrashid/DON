@@ -392,7 +392,7 @@ namespace Pawns {
     {
         Score score = SCORE_ZERO;
         Bitboard unstoppable_pawns;
-        if (passed_pawns[C])
+        //if (passed_pawns[C])
         {
             unstoppable_pawns = passed_pawns[C];
             while (unstoppable_pawns)
@@ -401,13 +401,13 @@ namespace Pawns {
                 score += UnstoppableBonus * i32 (rel_rank (C, sq));
             }
         }
-        if (candidate_pawns[C])
+        //if (candidate_pawns[C])
         {
             unstoppable_pawns = candidate_pawns[C];
             while (unstoppable_pawns)
             {
                 Square sq = pop_lsq (unstoppable_pawns);
-                score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 4;
+                score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 2;
             }
         }
         return score;
