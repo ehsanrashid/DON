@@ -99,7 +99,7 @@ namespace Evaluator {
                     break;
 
                 default:
-                    ss  << setw (20) << name << " | " << showpos
+                    ss  << setw (15) << name << " | " << showpos
                         << setw ( 5) << value_to_cp (mg_value (score[WHITE])) << " "
                         << setw ( 5) << value_to_cp (eg_value (score[WHITE])) << " | "
                         << setw ( 5) << value_to_cp (mg_value (score[BLACK])) << " "
@@ -203,7 +203,7 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        const Score KnightSpanPenalty             = S(+ 0,+ 5); // Penalty for knight with pawns span
+        //const Score KnightSpanPenalty             = S(+ 0,+ 5); // Penalty for knight with pawns span
 
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
@@ -413,7 +413,7 @@ namespace Evaluator {
                 {
                 if (NIHT == PT)
                 {
-                    score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
+                    //score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
 
                     // Outpost bonus for knight 
                     if (!(PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_) & ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])))
@@ -547,8 +547,8 @@ namespace Evaluator {
                             && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
                         {
-                            if (   (kf > F_E && f > kf)
-                                || (kf < F_D && f < kf)
+                            if (   (kf >= F_E && f > kf)
+                                || (kf <= F_D && f < kf)
                                )
                             {
                                 score -= (RookTrappedPenalty - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
@@ -1142,15 +1142,15 @@ namespace Evaluator {
             {
                 memset (Terms, 0x00, sizeof (Terms));
 
-                Value value = evaluate<true> (pos) + TempoBonus;
+                Value value = evaluate<true> (pos);// + TempoBonus;    // Tempo bonus = 0.07
                 value = (WHITE == pos.active ()) ? +value : -value; // White's point of view
 
                 stringstream ss;
 
                 ss  << showpoint << showpos << setprecision (2) << fixed
-                    << "           Eval term |    White    |    Black    |     Total    \n"
-                    << "                     |   MG    EG  |   MG    EG  |   MG    EG   \n"
-                    << "---------------------+-------------+-------------+--------------\n";
+                    << "      Eval term |    White    |    Black    |     Total    \n"
+                    << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
+                    << "----------------+-------------+-------------+--------------\n";
                 format_row (ss, "Material"      , MATERIAL);
                 format_row (ss, "Imbalance"     , IMBALANCE);
                 format_row (ss, "Pawns"         , PAWN);

@@ -106,7 +106,7 @@ namespace Pawns {
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;
 
-            Bitboard center_pawns = ExtCntr_bb & pawns[0];
+            Bitboard center_pawns = ExtCntr_bb[C] & pawns[0];
             if (center_pawns)
             {
                 Bitboard color_pawns;
