@@ -878,7 +878,11 @@ namespace Evaluator {
                         mg_bonus += k * rr;
                         eg_bonus += k * rr;
                     }
-                    
+                    else if (pos.pieces (C) & block_sq)
+                    {
+                        mg_bonus += rr * 3 + r * 2 + 3;
+                        eg_bonus += rr + r * 2;
+                    }
                 }
 
                 // Increase the bonus if have more non-pawn pieces
