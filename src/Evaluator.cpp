@@ -28,7 +28,7 @@ namespace Evaluator {
 
             // attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
             // attacked_by[Color][NONE] contains all squares attacked by the given color.
-            Bitboard attacked_by[CLR_NO][TOTL];
+            Bitboard     attacked_by[CLR_NO][TOTL];
             // pin_attacked_by[CLR_NO][TOTL] contains all squares attacked by a given color and piece type with pinned removed,
             Bitboard pin_attacked_by[CLR_NO][TOTL];
 

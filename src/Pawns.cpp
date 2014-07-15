@@ -407,7 +407,7 @@ namespace Pawns {
             while (unstoppable_pawns)
             {
                 Square sq = pop_lsq (unstoppable_pawns);
-                score += UnstoppableBonus * i32 (rel_rank (C, sq)) / 2;
+                score += UnstoppableBonus * 0.5 * i32 (rel_rank (C, sq));
             }
         }
         return score;

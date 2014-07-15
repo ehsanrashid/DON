@@ -342,13 +342,9 @@ namespace Threads {
         Limits      = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {
-            SetupStates = states;   // Ownership transfer here
+            SetupStates = states;  // Ownership transfer here
             ASSERT (states.get () == NULL);
         }
-        //else
-        //{
-        //    SetupStates = StateInfoStackPtr (new StateInfoStack ());
-        //}
 
         Signals.force_stop     = false;
         Signals.ponderhit_stop = false;
