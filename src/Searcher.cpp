@@ -727,7 +727,7 @@ namespace Searcher {
 
                     if (!PVNode) // (is omitted in PV nodes)
                     {
-                
+
                         // Step 6. Razoring
                         if (   (depth < (4*ONE_MOVE))
                             && (tt_move == MOVE_NONE)
@@ -748,7 +748,7 @@ namespace Searcher {
                                 if (ver_value <= ralpha) return ver_value;
                             }
                         }
-                    
+
                         // Step 7,8,9.
                         if (!((ss)->skip_null_move))
                         {
@@ -779,7 +779,8 @@ namespace Searcher {
 
                                     // Null move dynamic (variable) reduction based on depth and value
                                     Depth rdepth = depth - Depth (
-                                                    + ((2 + (pos.non_pawn_material (pos.active ()) > VALUE_MG_BSHP)) * ONE_MOVE)
+                                                    + (3 * ONE_MOVE)
+                                                    //+ ((2 + (pos.non_pawn_material (pos.active ()) > VALUE_MG_BSHP)) * ONE_MOVE)
                                                     + (depth/4)
                                                     + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
 
@@ -836,7 +837,7 @@ namespace Searcher {
                                 Value rbeta  = min (beta + 200, VALUE_INFINITE);
                                 //ASSERT (rdepth >= ONE_MOVE);
                                 //ASSERT (rbeta <= VALUE_INFINITE);
-                            
+
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
                                 MovePicker mp (pos, History, tt_move, pos.capture_type ());
@@ -855,7 +856,7 @@ namespace Searcher {
                             }
 
                         }
-                
+
                     }
 
                     // Step 10. Internal iterative deepening (skipped when in check)
@@ -1885,7 +1886,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 ( 10 + (90 + 1*d)*d)); // Value (i32 ( 10 + 80*d));
+            FutilityMargin      [d] = Value (i32 ( 10 + (80 + 1*d)*d)); // Value (i32 ( 10 + 80*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 

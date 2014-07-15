@@ -880,8 +880,8 @@ namespace Evaluator {
                     }
                     else if (pos.pieces (C) & block_sq)
                     {
-                        mg_bonus += rr * 3 + r * 2 + 3;
-                        eg_bonus += rr + r * 2;
+                        mg_bonus += 3 * rr + 2 * r + 3;
+                        eg_bonus += 1 * rr + 2 * r;
                     }
                 }
 
