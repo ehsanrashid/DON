@@ -338,15 +338,18 @@ namespace Threads {
         wait_for_think_finished ();
 
         RootPos     = pos;
+        RootMoves.initialize (pos, limits.root_moves);
         Limits      = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {
             SetupStates = states;   // Ownership transfer here
             ASSERT (states.get () == NULL);
         }
-        
-        RootMoves.initialize (pos, limits.root_moves);
-        
+        //else
+        //{
+        //    SetupStates = StateInfoStackPtr (new StateInfoStack ());
+        //}
+
         Signals.force_stop     = false;
         Signals.ponderhit_stop = false;
         Signals.root_1stmove   = false;
