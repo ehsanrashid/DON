@@ -338,7 +338,7 @@ namespace Pawns {
     }
 
     template<Color C>
-    // Entry::evaluate_king_safety() calculates a bonus for king safety.
+    // Entry::_evaluate_king_safety() calculates a bonus for king safety.
     // It is called only when king square changes,
     // which is about 20% of total evaluate_king_safety() calls.
     Score Entry::_evaluate_king_safety (const Position &pos, Square k_sq)
@@ -385,8 +385,8 @@ namespace Pawns {
     template Score Entry::_evaluate_king_safety<BLACK> (const Position &pos, Square k_sq);
 
     template<Color C>
-    // evaluate_unstoppable_pawns<>() scores the most advanced among the passed and
-    // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
+    // Entry::evaluate_unstoppable_pawns<>() scores the passed and candidate pawns.
+    // In case opponent has no pieces but pawns, this is somewhat
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {

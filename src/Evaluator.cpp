@@ -481,7 +481,7 @@ namespace Evaluator {
                     if (R_4 <= r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        const Bitboard rook_on_enemy_pawns = pos.pieces<PAWN> (C_) & attacks;
+                        const Bitboard rook_on_enemy_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                         if (rook_on_enemy_pawns)
                         {
                             score += RookOnPawnBonus * (more_than_one (rook_on_enemy_pawns) ? pop_count<MAX15> (rook_on_enemy_pawns) : 1);
