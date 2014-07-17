@@ -18,7 +18,7 @@ namespace Pawns {
         };
 
         // Isolated pawn penalty by opposed flag and file
-        const Score IsolatedPenalty[CLR_NO][F_NO] =
+        const Score IsolatedPenalty[2][F_NO] =
         {
             {
                 S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)
@@ -29,7 +29,7 @@ namespace Pawns {
         };
 
         // Backward pawn penalty by opposed flag and file
-        const Score BackwardPenalty[CLR_NO][F_NO] =
+        const Score BackwardPenalty[2][F_NO] =
         {
             {
                 S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)
@@ -148,22 +148,25 @@ namespace Pawns {
                 bool unsupported = !(friend_adj_pawns & pr_bb);
                 bool isolated    = !(friend_adj_pawns);
                 bool passed      = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
-                bool lever       = (pawns[1] & PawnAttacks[C][s]);
-                Bitboard doubled = (pawns[0] & FrontSqrs_bb[C][s]);
+                bool levered     = (pawns[1] & PawnAttacks[C][s]);
                 bool opposed     = (pawns[1] & FrontSqrs_bb[C][s]);
+                Bitboard doubled = (pawns[0] & FrontSqrs_bb[C][s]);
 
-                bool backward = false;
+                bool backward;
                 // Test for backward pawn.
                 // If the pawn is passed, connected, or isolated.
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // If it can capture an enemy pawn.
                 // Then it cannot be backward either.
-                if ( !(  (passed || connected || isolated)
-                      || (r >= R_6)
-                      || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s - PUSH)))
-                      ||  (pawns[1] & PawnAttacks[C][s])
-                      )
+                if (  (passed || connected || isolated)
+                   || (r >= R_6)
+                   || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s - PUSH)))
+                   ||  (pawns[1] & PawnAttacks[C][s])
                    )
+                {
+                    backward = false;
+                }
+                else
                 {
                     Bitboard b;
                     // Now know that there are no friendly pawns beside or behind this pawn on adjacent files.
@@ -177,23 +180,28 @@ namespace Pawns {
                     backward = (b | shift_del<PUSH> (b)) & pawns[1];
                 }
 
-                ASSERT (opposed || passed || (PawnAttackSpan[C][s] & pawns[1]));
-
                 // A not passed pawn is a candidate to become passed, if it is free to
                 // advance and if the number of friendly pawns beside or behind this
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
-                bool candidate = false;
-                if (!(opposed || passed || backward || isolated))
+                bool candidate;
+                if (opposed || passed || backward || isolated)
                 {
+                    candidate = false;
+                }
+                else
+                {
+                    Bitboard enemy_adj_pawns;
                     friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH];
-                    Bitboard enemy_adj_pawns = pawns[1] & PawnAttackSpan[C][s];
+                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];
                     candidate = (friend_adj_pawns) 
                              && (
                                                          (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
                                 >= ((enemy_adj_pawns) ? (more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1) : 0)
                                 );
                 }
+
+                ASSERT (opposed || passed || (pawns[1] & PawnAttackSpan[C][s]));
 
                 // Score this pawn
                 
@@ -202,7 +210,7 @@ namespace Pawns {
                     pawn_score += ConnectedBonus[f][r];
                 }
                 
-                if (lever)
+                if (levered)
                 {
                     pawn_score += LeverBonus[r];
                 }
@@ -230,7 +238,7 @@ namespace Pawns {
                 if (doubled)
                 {
                     pawn_score -= DoubledPenalty[f]
-                                * (more_than_one (doubled) ? 2 : 1)
+                                * (more_than_one (doubled) ? pop_count<MAX15> (doubled) : 1)
                                 / i32 (rank_dist (s, scan_frntmost_sq (C, doubled)));
                 }
                 else
