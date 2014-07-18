@@ -39,9 +39,6 @@ namespace Pawns {
             }
         };
 
-        // Connected pawn bonus by [file] and [rank] (initialized by formula)
-        /**/  Score ConnectedBonus[F_NO][R_NO];
-
         // Candidate passed pawn bonus by [rank]
         const Score CandidateBonus[R_NO] =
         {
@@ -53,6 +50,11 @@ namespace Pawns {
         {
             S(+ 0,+ 0), S(+ 4,+ 3), S(+ 5,+ 5), S(+15,+14), S(+21,+20), S(+42,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
+        
+        // Connected pawn bonus by [file] and [rank] (initialized by formula)
+        /**/  Score ConnectedBonus[F_NO][R_NO];
+
+        //const Score SneakerBonus       = S(+ 0,+15);
 
         const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
         const Score UnstoppableBonus   = S(+ 0,+20); // Bonus for pawn going to promote
@@ -249,6 +251,15 @@ namespace Pawns {
                     if (passed)     e->passed_pawns   [C] += s;
                     if (candidate)  e->candidate_pawns[C] += s;
                 }
+
+                //if (   (r > R_4)
+                //    && !(levered || unsupported)
+                //    && (e->blocked_pawns[C] & s)
+                //    && !(pawns[1] & PawnPassSpan[C][s + PUSH])
+                //   )
+                //{
+                //    // sneaker - hidden passer bonus 
+                //}
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;
