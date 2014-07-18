@@ -43,7 +43,7 @@ namespace Pawns {
         /**/  Score ConnectedBonus[F_NO][R_NO];
 
         // Candidate passed pawn bonus by [rank]
-        const Score CandidatePassedBonus[R_NO] =
+        const Score CandidateBonus[R_NO] =
         {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
@@ -192,9 +192,9 @@ namespace Pawns {
                 else
                 {
                     Bitboard enemy_adj_pawns;
-                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH];
-                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];
-                    candidate = (friend_adj_pawns) 
+                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH]; // only behind friend adj pawns
+                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];         // only front enemy adj pawns
+                    candidate = (friend_adj_pawns)
                              && (
                                                          (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
                                 >= ((enemy_adj_pawns) ? (more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1) : 0)
@@ -231,7 +231,7 @@ namespace Pawns {
                     }
                     if (candidate)
                     {
-                        pawn_score += CandidatePassedBonus[r];
+                        pawn_score += CandidateBonus[r];
                     }
                 }
                 
