@@ -212,7 +212,7 @@ namespace Evaluator {
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
         const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for double rook on open file
-        const Score RookDoubledOnSemiopenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
+        const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 5); // Penalty for rook trapped
         
         //const Score QueenEarlyPenalty             = S(+10,+ 0); // Penalty for queen moved early
@@ -501,7 +501,7 @@ namespace Evaluator {
                         {
                             score += (ei.pi->semiopen_file<C_> (f)) ?
                                      RookDoubledOnOpenFileBonus :
-                                     RookDoubledOnSemiopenFileBonus;
+                                     RookDoubledOnSemiOpenFileBonus;
                         }
                         
                     }
