@@ -670,15 +670,15 @@ namespace Evaluator {
                 }
 
                 // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_sq = ~(pos.pieces (C_)
+                Bitboard safe_area = ~(pos.pieces (C_)
                                    | ei.pin_attacked_by[C][PAWN]
                                    | ei.pin_attacked_by[C][NIHT]
                                    | ei.pin_attacked_by[C][BSHP]
                                    | ei.pin_attacked_by[C][ROOK]
                                    | ei.pin_attacked_by[C][QUEN]); // TODO:: ei.pin_attacked_by[C][NONE]
 
-                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_sq;
-                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_sq;
+                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
+                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
@@ -694,7 +694,7 @@ namespace Evaluator {
                 if (safe_check) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // Enemy knights safe checks
-                safe_check = PieceAttacks[NIHT][fk_sq] & safe_sq & ei.pin_attacked_by[C_][NIHT];
+                safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range

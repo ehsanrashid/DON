@@ -48,7 +48,7 @@ namespace Pawns {
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 5,+ 5), S(+14,+14), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
+            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 7,+ 7), S(+14,+14), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
@@ -150,8 +150,8 @@ namespace Pawns {
                 bool unsupported = !(friend_adj_pawns & pr_bb);
                 bool isolated    = !(friend_adj_pawns);
                 bool passed      = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
-                bool levered     = (pawns[1] & PawnAttacks[C][s]);
                 bool opposed     = (pawns[1] & FrontSqrs_bb[C][s]);
+                Bitboard levered = (pawns[1] & PawnAttacks[C][s]);
                 Bitboard doubled = (pawns[0] & FrontSqrs_bb[C][s]);
 
                 bool backward;
@@ -214,7 +214,17 @@ namespace Pawns {
                 
                 if (levered)
                 {
-                    pawn_score += LeverBonus[r];
+                    //if (more_than_one (levered))
+                    //{
+                    //    pawn_score += LeverBonus[r];
+                    //}
+                    //else
+                    //{
+                    //    if (r > R_4) pawn_score += LeverBonus[r];
+                    //}
+                    
+                    if (r > R_4) pawn_score += LeverBonus[r];
+
                 }
 
                 if (isolated)

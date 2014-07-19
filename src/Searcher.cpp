@@ -1338,8 +1338,8 @@ namespace Searcher {
             return best_value;
         }
 
-        // iter_deep_loop() is the main iterative deepening loop. It calls search() repeatedly
-        // with increasing depth until:
+        // iter_deep_loop() is the main iterative deepening loop.
+        // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
         // - the user stops the search,
         // - the maximum search depth is reached.
