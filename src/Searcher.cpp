@@ -1013,7 +1013,6 @@ namespace Searcher {
                 if (   (singular_ext_node)
                     && (ext == DEPTH_ZERO)
                     && (move == tt_move)
-                    && (pos.legal (move, ci.pinneds))
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
