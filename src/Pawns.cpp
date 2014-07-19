@@ -48,7 +48,7 @@ namespace Pawns {
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 4,+ 3), S(+ 5,+ 5), S(+15,+14), S(+21,+20), S(+42,+40), S(+ 0,+ 0), S(+ 0,+ 0)
+            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 5,+ 5), S(+14,+14), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
@@ -108,7 +108,7 @@ namespace Pawns {
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;
 
-            Bitboard center_pawns = ExtCntr_bb[C] & pawns[0];
+            Bitboard center_pawns = pawns[0] & ExtCntr_bb[C];
             if (center_pawns)
             {
                 Bitboard color_pawns;

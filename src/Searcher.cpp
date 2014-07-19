@@ -33,15 +33,17 @@ namespace Searcher {
         const u08     MAX_QUIETS    = 64;
 
         const point   InfoDuration  = 3000; // 3 sec
-
+        
+        const u08     FutilityDepth = 16;
+        
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   FutilityMoveCount[2][32]; // [improving][depth]
+        CACHE_ALIGN(16) u08   FutilityMoveCount[2][FutilityDepth*i32(ONE_MOVE)]; // [improving][depth]
         
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value FutilityMargin[32];       // [depth]
+        CACHE_ALIGN(16) Value FutilityMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
 
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value RazorMargin   [32];       // [depth]
+        CACHE_ALIGN(16) Value    RazorMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
 
         // Reduction lookup table (initialized at startup)
         CACHE_ALIGN(16) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
@@ -946,12 +948,14 @@ namespace Searcher {
                 {
                     if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
                 }
-
-                if (SPNode)
+                else
                 {
                     // Shared counter cannot be decremented later if move turns out to be illegal
                     if (!pos.legal (move, ci.pinneds)) continue;
+                }
 
+                if (SPNode)
+                {
                     moves_count = ++splitpoint->moves_count;
                     splitpoint->mutex.unlock ();
                 }
@@ -1037,7 +1041,7 @@ namespace Searcher {
                        )
                     {
                         // Move count based pruning
-                        if (   (depth < (16*ONE_MOVE))
+                        if (   (depth < (FutilityDepth*i32(ONE_MOVE)))
                             && (moves_count >= FutilityMoveCount[improving][depth])
                            )
                         {
@@ -1084,19 +1088,9 @@ namespace Searcher {
                     }
                 }
 
-                // Check for legality only before to do the move
+                // Save the quiet move
                 if (!SPNode)
                 {
-                    if (!RootNode)
-                    {
-                        // Not legal decrement move-count & continue
-                        if (!pos.legal (move, ci.pinneds))
-                        {
-                            --moves_count;
-                            continue;
-                        }
-                    }
-
                     if (   !(capture_or_promotion)
                         && (quiets_count < MAX_QUIETS)
                        )
@@ -1882,7 +1876,7 @@ namespace Searcher {
     void initialize ()
     {
         // Initialize lookup tables
-        for (u08 d = 0; d < 32; ++d)    // depth (ONE_MOVE == 2)
+        for (u08 d = 0; d < FutilityDepth*i32(ONE_MOVE); ++d)    // depth (ONE_MOVE == 2)
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));

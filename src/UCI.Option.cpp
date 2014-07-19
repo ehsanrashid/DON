@@ -329,7 +329,7 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -50, Max +50.
-        Options["Contempt Factor"]              << Option (+20, -100, +100);
+        Options["Contempt Factor"]              << Option (0, -100, +100);
         
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.

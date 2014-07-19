@@ -367,6 +367,7 @@ namespace Evaluator {
             while ((s = *pl++) != SQ_NO)
             {
                 const File f = _file (s);
+                Rank r ;
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
@@ -431,7 +432,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.ful_attacked_by[C_][PAWN] & ~ei.ful_attacked_by[C][PAWN] & (s + del))
+                            && (ei.pin_attacked_by[C_][PAWN] & ~ei.pin_attacked_by[C][PAWN] & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty * 2;
@@ -443,7 +444,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.ful_attacked_by[C_][PAWN] & ~ei.ful_attacked_by[C][PAWN] & (s + del))
+                            && (ei.pin_attacked_by[C_][PAWN] & ~ei.pin_attacked_by[C][PAWN] & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty;
@@ -477,7 +478,7 @@ namespace Evaluator {
 
                 if (ROOK == PT)
                 {
-                    Rank r = rel_rank (C, s);
+                    r = rel_rank (C, s);
                     if (R_4 <= r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
@@ -541,7 +542,7 @@ namespace Evaluator {
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
                         if (   ((kf < F_E) == (f < kf))
-                            && (kr == R_1 || kr == rel_rank (C, s))
+                            && (kr == R_1 || kr == r)
                             && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
                         {
