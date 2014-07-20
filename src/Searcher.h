@@ -167,17 +167,16 @@ namespace Searcher {
 
         Move    current_move
             ,   tt_move
-            ,   excluded_move;
+            ,   excluded_move
+            ,   killer_moves[2];
+
+        Value   static_eval;
 
         Depth   reduction;
 
-        Move    killer_moves[2];
-        
         u08     ply;
 
-        Value   static_eval;
         bool    skip_null_move;
-
     };
 
     extern LimitsT               Limits;

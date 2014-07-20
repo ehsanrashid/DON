@@ -63,6 +63,7 @@ namespace Searcher {
         u08     RootCount;
         u08     MultiPV
             ,   PVIndex;
+        bool    MateSearch;
 
         bool    WriteSearchLog;
         string  SearchLogFilename;
@@ -411,7 +412,7 @@ namespace Searcher {
 
                 bool gives_check = pos.gives_check (move, ci);
 
-                if (!PVNode)
+                if (!PVNode && !MateSearch)
                 {
                     // Futility pruning
                     if (   !(InCheck)
@@ -727,7 +728,7 @@ namespace Searcher {
                         Gain.update (pos[dst], dst, -((ss-1)->static_eval + (ss)->static_eval));
                     }
 
-                    if (!PVNode) // (is omitted in PV nodes)
+                    if (!PVNode && !MateSearch) // (is omitted in PV nodes)
                     {
 
                         // Step 6. Razoring
@@ -1030,7 +1031,7 @@ namespace Searcher {
                 Depth new_depth = depth - ONE_MOVE + ext;
 
                 // Step 13. Pruning at shallow depth (exclude PV nodes)
-                if (!PVNode)
+                if (!PVNode && !MateSearch)
                 {
                     if (   !(capture_or_promotion)
                         && !(in_check)
@@ -1367,7 +1368,7 @@ namespace Searcher {
             // that will use behind the scenes to retrieve a set of possible moves.
             MultiPV = min (max (u08 (i32 (Options["MultiPV"])), skill.candidates_size ()), RootCount);
 
-            Value best_value = -VALUE_INFINITE
+            Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
                 , window[2]  = { VALUE_ZERO, VALUE_ZERO };
 
@@ -1526,7 +1527,7 @@ namespace Searcher {
                 else
                 {
                     // Have found a "mate in <x>"?
-                    if (   (Limits.mate)
+                    if (   (MateSearch)
                         && (best_value >= VALUE_MATES_IN_MAX_PLY)
                         && (VALUE_MATE - best_value <= Limits.mate*i32 (ONE_MOVE))
                        )
@@ -1713,6 +1714,8 @@ namespace Searcher {
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
+        MateSearch        = bool (Limits.mate);
+
         WriteSearchLog    = bool (Options["Write SearchLog"]);
         SearchLogFilename = "";
         if (WriteSearchLog)
@@ -1726,7 +1729,7 @@ namespace Searcher {
 
         if (!RootMoves.empty ())
         {
-            if (bool (Options["Own Book"]) && !Limits.infinite && !Limits.mate)
+            if (bool (Options["Own Book"]) && !Limits.infinite && !MateSearch)
             {
                 string fn_book = string (Options["Book File"]);
                 convert_path (fn_book);

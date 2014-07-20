@@ -343,15 +343,7 @@ namespace UCI {
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option ( 50, 5,  50, on_50_move_dist);
-
-        // TODO::
-        // Maximum search depth for mate search.
-        // Default 0, Min 0, Max MAX_DEPTH.
-        //
-        // If set, this option will usually speed-up a mate search.
-        // If you know that a position is "mate in <x>", you can use <x> or a value slightly larger than <x> in the Mate Search option.
-        // This will prevent DON from going too deep in variations that don't lead to mate in the required number of moves.
-        Options["Mate Search"]                  << Option (  0, 0, MAX_DEPTH);
+        
         // How well you want engine to play.
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
