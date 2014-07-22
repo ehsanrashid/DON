@@ -114,7 +114,7 @@ namespace Zobrist {
     {
         if (fen.empty ()) return U64 (0);
         Key fen_key = U64 (0);
-        File king[CLR_NO] = {F_NO, F_NO};
+        File kf[CLR_NO] = {F_NO, F_NO};
 
         istringstream iss (fen);
         u08 ch;
@@ -125,14 +125,14 @@ namespace Zobrist {
         Square s = SQ_A8;
         while ((iss >> ch) && !isspace (ch))
         {
-            if (isdigit (ch))
+            if      (isdigit (ch))
             {
                 s += Delta (ch - '0'); // Advance the given number of files
             }
             else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
-                if (KING == ptype (p))  king[color (p)] = _file (s);
+                if (KING == ptype (p))  kf[color (p)] = _file (s);
                 fen_key ^= _.piecesq[color (p)][ptype (p)][s];
                 ++s;
             }
@@ -141,6 +141,9 @@ namespace Zobrist {
                 s += DEL_SS;
             }
         }
+
+        ASSERT (kf[WHITE] != F_NO);
+        ASSERT (kf[BLACK] != F_NO);
 
         iss >> ch;
         if ('w' == ch) fen_key ^= _.mover_side;
@@ -154,7 +157,7 @@ namespace Zobrist {
                 u08 sym = u08 (tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
-                    fen_key ^= _.castle_right[c][(king[c] < to_file (sym)) ? CS_K : CS_Q];
+                    fen_key ^= _.castle_right[c][(kf[c] < to_file (sym)) ? CS_K : CS_Q];
                 }
                 else
                 {

@@ -431,7 +431,7 @@ bool Position::ok (i08 *step) const
                 {
                     if (   !_ok  (_piece_list[c][pt][i])
                         || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
-                        || _index[_piece_list[c][pt][i]] != i
+                        || _piece_index[_piece_list[c][pt][i]] != i
                        )
                     {
                         return false;
@@ -441,7 +441,7 @@ bool Position::ok (i08 *step) const
         }
         for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
-            if (_index[s] >= 16)
+            if (_piece_index[s] >= 16)
             {
                 return false;
             }
@@ -1084,7 +1084,7 @@ void Position::clear ()
     for (i08 s = SQ_A1; s <= SQ_H8; ++s)
     {
         _board[s] = EMPTY;
-        _index[s] = -1;
+        _piece_index[s] = -1;
     }
     for (i08 c = WHITE; c <= BLACK; ++c)
     {
@@ -1099,8 +1099,6 @@ void Position::clear ()
 
     //fill (_castle_rook, _castle_rook + sizeof (_castle_rook) / sizeof (*_castle_rook), SQ_NO);
     memset (_castle_rook, SQ_NO, sizeof (_castle_rook));
-
-    //_game_ply   = 1;
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;
@@ -1830,7 +1828,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     Square s = SQ_A8;
     while ((iss >> ch) && !isspace (ch))
     {
-        if (isdigit (ch))
+        if      (isdigit (ch))
         {
             s += Delta (ch - '0'); // Advance the given number of files
         }
@@ -1850,6 +1848,9 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
         }
     }
 
+    ASSERT (pos._piece_list[WHITE][KING][0] != SQ_NO);
+    ASSERT (pos._piece_list[BLACK][KING][0] != SQ_NO);
+
     // 2. Active color
     iss >> ch;
     pos._active = Color (ColorChar.find (ch));
@@ -1865,14 +1866,13 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     {
         while ((iss >> ch) && !isspace (ch))
         {
-            Square rook;
             Color c = isupper (ch) ? WHITE : BLACK;
             u08 sym = u08 (tolower (ch));
             if ('a' <= sym && sym <= 'h')
             {
-                rook = (to_file (sym) | rel_rank (c, R_1));
-                //if (ROOK != ptype (pos[rook])) return false;
-                pos.set_castle (c, rook);
+                Square rsq = (to_file (sym) | rel_rank (c, R_1));
+                //if (ROOK != ptype (pos[rsq])) return false;
+                pos.set_castle (c, rsq);
             }
             else
             {
@@ -1884,24 +1884,24 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     {
         while ((iss >> ch) && !isspace (ch))
         {
-            i08 rook;
+            i08 rsq; // Rook Square
             Color c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
-                rook = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[Square (rook)]))) --rook;
+                rsq = rel_sq (c, SQ_H1);
+                while ((rel_sq (c, SQ_A1) <= rsq) && (ROOK != ptype (pos[Square (rsq)]))) --rsq;
                 break;
             case 'Q':
-                rook = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[Square (rook)]))) ++rook;
+                rsq = rel_sq (c, SQ_A1);
+                while ((rel_sq (c, SQ_H1) >= rsq) && (ROOK != ptype (pos[Square (rsq)]))) ++rsq;
                 break;
             default:
                 continue;
             }
 
-            //if (ROOK != ptype (pos[rook])) return false;
-            pos.set_castle (c, Square (rook));
+            //if (ROOK != ptype (pos[Square (rsq)])) return false;
+            pos.set_castle (c, Square (rsq));
         }
     }
 

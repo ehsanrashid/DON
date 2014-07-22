@@ -113,7 +113,7 @@ private:
 
     Square   _piece_list [CLR_NO][NONE][16];
     u08      _piece_count[CLR_NO][NONE];
-    i08      _index   [SQ_NO];
+    i08      _piece_index[SQ_NO];
 
     StateInfo  _sb; // Object for base status information
     StateInfo *_si; // Pointer for current status information
@@ -526,11 +526,12 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
     _types_bb[NONE] |= bb;
 
     // Update piece list, put piece at [s] index
-    _index[s]  = _piece_count[c][pt]++;
-    _piece_list[c][pt][_index[s]] = s;
+    _piece_index[s]  = _piece_count[c][pt]++;
+    _piece_list[c][pt][_piece_index[s]] = s;
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
+    ASSERT (_ok (p));
     place_piece (s, color (p), ptype (p));
 }
 inline void  Position::remove_piece (Square s)
@@ -558,17 +559,17 @@ inline void  Position::remove_piece (Square s)
     Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     if (s != last_sq)
     {
-        _index[last_sq] = _index[s];
-        _piece_list[c][pt][_index[last_sq]] = last_sq;
+        _piece_index[last_sq] = _piece_index[s];
+        _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     }
-    _index[s] = -1;
-    _piece_list[c][pt][_piece_count[c][pt]]   = SQ_NO;
+    _piece_index[s] = -1;
+    _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
     ASSERT (EMPTY != _board[s1]);
     ASSERT (EMPTY == _board[s2]);
-    ASSERT (_index[s1] != -1);
+    ASSERT (_piece_index[s1] != -1);
 
     Piece  p  = _board[s1];
     Color  c  = color (p);
@@ -582,11 +583,11 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
 
-    // _index[s1] is not updated and becomes stale. This works as long
-    // as _index[] is accessed just by known occupied squares.
-    _index[s2] = _index[s1];
-    _index[s1] = -1;
-    _piece_list[c][pt][_index[s2]] = s2;
+    // _piece_index[s1] is not updated and becomes stale. This works as long
+    // as _piece_index[] is accessed just by known occupied squares.
+    _piece_index[s2] = _piece_index[s1];
+    _piece_index[s1] = -1;
+    _piece_list[c][pt][_piece_index[s2]] = s2;
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.

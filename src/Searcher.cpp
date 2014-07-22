@@ -1471,7 +1471,7 @@ namespace Searcher {
 
                         ASSERT (-VALUE_INFINITE <= bound[0] && bound[0] < bound[1] && bound[1] <= +VALUE_INFINITE);
                     }
-                    while (bound[0] < bound[1]);
+                    while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
                     RootMoves.sort_beg (PVIndex + 1);
