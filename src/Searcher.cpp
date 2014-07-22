@@ -144,9 +144,11 @@ namespace Searcher {
 
         };
 
+        // Gain statistics
         GainStats   Gain;
-        // History heuristic
+        // History heuristic statistics
         HistoryStats History;
+
         MoveStats   CounterMoves
             ,       FollowupMoves;
 
@@ -276,8 +278,9 @@ namespace Searcher {
         }
 
         template <NodeT NT, bool InCheck>
-        // search_quien() is the quiescence search function, which is called by the main search function
-        // when the remaining depth is zero (or, to be more precise, less than ONE_MOVE).
+        // search_quien() is the quiescence search function,
+        // which is called by the main depth limited search function
+        // when the remaining depth is ZERO (to be more precise, less than ONE_MOVE).
         inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = (NT == PV);
@@ -1339,7 +1342,7 @@ namespace Searcher {
             return best_value;
         }
 
-        // search_iter_deepening() is the main iterative deepening search.
+        // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
         // - the user stops the search,
@@ -1636,7 +1639,7 @@ namespace Searcher {
             }
             else //if (tte == NULL || tte->move () != m)
             {
-                tt_depth = max (tt_depth - ONE_MOVE, DEPTH_ZERO);
+                tt_depth = max (tt_depth - ONE_MOVE, DEPTH_QS_NO_CHECKS);
 
                 TT.store (
                     pos.posi_key (),
