@@ -1489,7 +1489,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     // Prefetch TT access as soon as know the new hash key
-    prefetch ((char*) TT.cluster_entry (p_key));
+    prefetch ((char *) TT.cluster_entry (p_key));
 
     // Update the key with the final value
     _si->posi_key     = p_key;
