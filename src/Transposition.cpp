@@ -8,9 +8,9 @@ TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 
-const u08 TranspositionTable::TTENTRY_SIZE   = sizeof (TTEntry);  // 16
+const u08 TranspositionTable::TTENTRY_SIZE   = sizeof (TTEntry);   // 10
 
-const u08 TranspositionTable::TTCLUSTER_SIZE = sizeof (TTCluster);
+const u08 TranspositionTable::TTCLUSTER_SIZE = sizeof (TTCluster); // 32
 
 const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
 
@@ -146,7 +146,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
         
         if (ite == fte) continue;
 
-        // Implement replacement strategy when a collision occurs
+        // Implementation of replacement strategy when a collision occurs
         if ( ((ite->gen () == _generation || ite->bound () == BND_EXACT)
             - (rte->gen () == _generation)
             - (ite->_depth < rte->_depth)) < 0)

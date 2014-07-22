@@ -203,8 +203,6 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        //const Score KnightSpanPenalty             = S(+ 0,+ 5); // Penalty for knight with pawns span
-
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
@@ -215,8 +213,6 @@ namespace Evaluator {
         const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 5); // Penalty for rook trapped
         
-        //const Score QueenEarlyPenalty             = S(+10,+ 0); // Penalty for queen moved early
-
         const Score PieceHangingBonus             = S(+23,+20); // Bonus for each enemy hanging piece       
 
 #undef S
@@ -391,13 +387,6 @@ namespace Evaluator {
                     }
                 }
 
-                if (pinned_pieces & s)
-                {
-                    attacks &= LineRay_bb[fk_sq][s];
-                }
-
-                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
-
                 // Decrease score if attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.pin_attacked_by[C_][PAWN] & s)
@@ -411,8 +400,6 @@ namespace Evaluator {
                 {
                 if (NIHT == PT)
                 {
-                    //score -= KnightSpanPenalty * max (max (ei.pi->pawn_span[C] - 5, ei.pi->pawn_span[C_] - 4), 0);
-
                     // Outpost bonus for knight 
                     if (!(PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_) & ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])))
                     {
@@ -507,26 +494,22 @@ namespace Evaluator {
                     }
                     
                     attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP])
-                               | (ei.pin_attacked_by[C ][NONE])
-                               | occ);
+                               | (ei.pin_attacked_by[C ][NONE]));
                 }
 
                 if (QUEN == PT)
                 {
-                    /*
-                    if (   rel_rank (C, s) > R_2
-                        && more_than_one (pos.pieces (C, NIHT, BSHP) & rel_rank_bb (C, R_1))
-                       )
-                    {
-                        score -= QueenEarlyPenalty; //pop_count<MAX15> (pos.pieces (C, NIHT, BSHP) & rel_rank_bb (C, R_1));
-                    }
-                    */
-
                     attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])
-                               | (ei.pin_attacked_by[C ][NONE])
-                               | occ);
+                               | (ei.pin_attacked_by[C ][NONE]));
                 }
 
+                if (pinned_pieces & s)
+                {
+                    attacks &= LineRay_bb[fk_sq][s];
+                }
+
+                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
+                
                 Bitboard mobile = attacks & mobility_area;
                 
                 u08 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
@@ -985,8 +968,8 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by our pawns or king or protected by enemy pawns 
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
-                ~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
+                ~(pos.pieces (WHITE)|ei.pin_attacked_by[BLACK][PAWN]),
+                ~(pos.pieces (BLACK)|ei.pin_attacked_by[WHITE][PAWN])
             };
 
             score += 
