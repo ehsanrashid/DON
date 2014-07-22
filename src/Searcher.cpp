@@ -294,12 +294,12 @@ namespace Searcher {
             (ss)->ply = (ss-1)->ply + 1;
             (ss)->current_move = MOVE_NONE;
 
-            // Check for maximum ply reached
-            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
-            // Check for immediate draw
-            if (pos.draw ())           return DrawValue[pos.active ()];
             // Check for aborted search
             if (Signals.force_stop)    return VALUE_ZERO;
+            // Check for immediate draw
+            if (pos.draw ())           return DrawValue[pos.active ()];
+            // Check for maximum ply reached
+            if ((ss)->ply > MAX_DEPTH) return DrawValue[pos.active ()] + (InCheck ? VALUE_ZERO : evaluate (pos));
 
             StateInfo si;
 
@@ -360,7 +360,7 @@ namespace Searcher {
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
                     {
-                        if (tte->bound () & (tt_value >= best_value ? BND_LOWER : BND_UPPER))
+                        if (tte->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
                             //if (alpha < best_value) best_move = tt_move;
@@ -605,7 +605,7 @@ namespace Searcher {
                 (ss+2)->killer_moves[0] = MOVE_NONE;
                 (ss+2)->killer_moves[1] = MOVE_NONE;
 
-                // Used to send sel_depth info to GUI
+                // Used to send 'seldepth' info to GUI
                 if (PVNode)
                 {
                     if (Threadpool.max_ply < (ss)->ply)
@@ -617,12 +617,13 @@ namespace Searcher {
                 if (!RootNode)
                 {
                     // Step 2. Check end condition
-                    // Check for maximum ply reached
-                    if ((ss)->ply > MAX_DEPTH) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
-                    // Check for immediate draw
-                    if (pos.draw ())           return DrawValue[pos.active ()];
+                    
                     // Check for aborted search
                     if (Signals.force_stop)    return VALUE_ZERO;
+                    // Check for immediate draw
+                    if (pos.draw ())           return DrawValue[pos.active ()];
+                    // Check for maximum ply reached
+                    if ((ss)->ply > MAX_DEPTH) return DrawValue[pos.active ()] + (in_check ? VALUE_ZERO : evaluate (pos));
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
@@ -696,7 +697,7 @@ namespace Searcher {
                         // Can tt_value be used as a better position evaluation?
                         if (VALUE_NONE != tt_value)
                         {
-                            if (tte->bound () & (tt_value >= eval ? BND_LOWER : BND_UPPER))
+                            if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
                             {
                                 eval = tt_value;
                                 //if (alpha < eval) best_move = tt_move;
