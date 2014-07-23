@@ -719,8 +719,7 @@ namespace Evaluator {
                    enemies
                 & ~pos.pieces<PAWN>(C_)
                 &  ei.pin_attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NIHT]
-                  |ei.pin_attacked_by[C ][BSHP]);
+                & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]);
 
             // Enemies not defended by pawn and attacked by any piece
             Bitboard weak_enemies = 
