@@ -331,15 +331,15 @@ namespace Evaluator {
                 Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s;
                 if (supporting_pawns)
                 {
-                    if (   (!pos.count<NIHT> (C_) || !(ei.pin_attacked_by[C_][NIHT] & s))
-                        && (!pos.count<BSHP> (C_) || !(ei.pin_attacked_by[C_][BSHP] & s))
+                    if (  (pos.count<NIHT> (C_) && (ei.pin_attacked_by[C_][NIHT] & s))
+                       || (pos.count<BSHP> (C_) && (ei.pin_attacked_by[C_][BSHP] & s))
                        )
                     {
-                        value *= 2.50;
+                        value *= 1.50;
                     }
                     else
                     {
-                        value *= 1.50;
+                        value *= 2.50;
                     }
                 }
                 score = mk_score (value * 2, value / 2);
