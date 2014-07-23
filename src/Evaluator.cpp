@@ -115,11 +115,11 @@ namespace Evaluator {
         }
 
         // Evaluation weights, initialized from UCI options
-        enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
+        enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, KingSafety, Eval_NO };
         
         struct Weight { i32 mg, eg; };
 
-        Weight Weights[5];
+        Weight Weights[Eval_NO];
 
     #define S(mg, eg) mk_score (mg, eg)
 
@@ -127,13 +127,13 @@ namespace Evaluator {
         // weights read from UCI parameters. The purpose is to be able to change
         // the evaluation weights while keeping the default values of the UCI
         // parameters at 100, which looks prettier.
-        const Score InternalWeights[5] =
+        const Score InternalWeights[Eval_NO] =
         {
             S(+289,+344), // Mobility
-            S(+233,+201), // PawnStructure
-            S(+221,+273), // PassedPawns
+            S(+233,+201), // Pawn Structure
+            S(+221,+273), // Passed Pawns
             S(+ 46,+  0), // Space
-            S(+318,+  0)  // KingSafety
+            S(+318,+  0)  // King Safety
         };
 
         // MobilityBonus[PieceT][attacked] contains bonuses for middle and end game,
@@ -1077,8 +1077,8 @@ namespace Evaluator {
                         scale_fac = ScaleFactor (50 * i32 (scale_fac) / i32 (SCALE_FACTOR_NORMAL));
                     }
                 }
-                else if (    abs (eg) <= VALUE_EG_BSHP
-                         &&  ei.pi->pawn_span[strong_side] <= 1
+                else if (    (abs (eg) <= VALUE_EG_BSHP)
+                         &&  (ei.pi->pawn_span[strong_side] <= 1)
                          && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
                         )
                 {
