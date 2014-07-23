@@ -198,7 +198,7 @@ namespace Pawns {
                     enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];         // only front enemy adj pawns
                     candidate = (friend_adj_pawns)
                              && (
-                                                         (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
+                                                        (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
                                 >= ((enemy_adj_pawns) ? (more_than_one (enemy_adj_pawns) ? pop_count<MAX15> (enemy_adj_pawns) : 1) : 0)
                                 );
                 }

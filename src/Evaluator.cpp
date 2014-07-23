@@ -121,7 +121,7 @@ namespace Evaluator {
 
         Weight Weights[5];
 
-#define S(mg, eg) mk_score (mg, eg)
+    #define S(mg, eg) mk_score (mg, eg)
 
         // Internal evaluation weights. These are applied on top of the evaluation
         // weights read from UCI parameters. The purpose is to be able to change
@@ -201,9 +201,9 @@ namespace Evaluator {
         
         const Score PieceHangingBonus             = S(+23,+20); // Bonus for each enemy hanging piece       
 
-#undef S
+    #undef S
 
-        typedef Value V;
+    #define V Value
 
         // OutpostValue[Square] contains bonus of outpost,
         // indexed by square (from white's point of view).
@@ -219,6 +219,7 @@ namespace Evaluator {
             V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
         };
 
+    #undef V
 
         // The SpaceMask[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
@@ -330,8 +331,8 @@ namespace Evaluator {
                 Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s;
                 if (supporting_pawns)
                 {
-                    if (   (pos.count<NIHT> (C_) == 0 || !(ei.pin_attacked_by[C_][NIHT] & s))
-                        && (pos.count<BSHP> (C_) == 0 || !(ei.pin_attacked_by[C_][BSHP] & s))
+                    if (   (!pos.count<NIHT> (C_) || !(ei.pin_attacked_by[C_][NIHT] & s))
+                        && (!pos.count<BSHP> (C_) || !(ei.pin_attacked_by[C_][BSHP] & s))
                        )
                     {
                         value *= 2.50;
@@ -906,7 +907,7 @@ namespace Evaluator {
                   SpaceMask[C]
                 & ~ei.pi->blocked_pawns[C]
                 & ~ei.pin_attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NONE] | ~ei.pin_attacked_by[C_][NONE]);
+                & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
             // Since SpaceMask[C] is fully on our half of the board
             ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
