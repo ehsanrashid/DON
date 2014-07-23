@@ -331,8 +331,8 @@ namespace Evaluator {
                 Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s;
                 if (supporting_pawns)
                 {
-                    if (  (pos.count<NIHT> (C_) && (ei.pin_attacked_by[C_][NIHT] & s))
-                       || (pos.count<BSHP> (C_) && (ei.pin_attacked_by[C_][BSHP] & s))
+                    if (  (ei.pin_attacked_by[C_][NIHT] & s)
+                       || (ei.pin_attacked_by[C_][BSHP] & s)
                        )
                     {
                         value *= 1.50;
@@ -790,8 +790,8 @@ namespace Evaluator {
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                Value mg_bonus = Value (17 * rr);
-                Value eg_bonus = Value ( 7 * (rr + r + 1));
+                Value mg_value = Value (17 * rr);
+                Value eg_value = Value ( 7 * (rr + r + 1));
 
                 if (rr)
                 {
@@ -800,13 +800,13 @@ namespace Evaluator {
                     Square ek_sq = pos.king_sq (C_);
 
                     // Adjust bonus based on kings proximity
-                    eg_bonus += (5 * rr * SquareDist[ek_sq][block_sq])
+                    eg_value += (5 * rr * SquareDist[ek_sq][block_sq])
                              -  (2 * rr * SquareDist[fk_sq][block_sq]);
 
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (C, block_sq) != R_8)
                     {
-                        eg_bonus -= (rr * SquareDist[fk_sq][block_sq + PUSH]);
+                        eg_value -= (rr * SquareDist[fk_sq][block_sq + PUSH]);
                     }
 
                     // If the pawn is free to advance, increase bonus
@@ -863,27 +863,27 @@ namespace Evaluator {
                             if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
                         }
 
-                        mg_bonus += k * rr;
-                        eg_bonus += k * rr;
+                        mg_value += k * rr;
+                        eg_value += k * rr;
                     }
                     else if (pos.pieces (C) & block_sq)
                     {
-                        mg_bonus += 3 * rr + 2 * r + 3;
-                        eg_bonus += 1 * rr + 2 * r;
+                        mg_value += 3 * rr + 2 * r + 3;
+                        eg_value += 1 * rr + 2 * r;
                     }
                 }
 
                 // Increase the bonus if have more non-pawn pieces
                 if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
                 {
-                    eg_bonus += eg_bonus / 4;
+                    eg_value += eg_value / 4;
                 }
                 else
                 {
-                    //mg_bonus += mg_bonus / 4;
+                    //mg_value += mg_value / 4;
                 }
 
-                score += mk_score (mg_bonus, eg_bonus);
+                score += mk_score (mg_value, eg_value);
             }
             
             return score;
