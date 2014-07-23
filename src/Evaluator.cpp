@@ -199,7 +199,7 @@ namespace Evaluator {
         const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 5); // Penalty for rook trapped
         
-        const Score PieceHangingBonus             = S(+23,+20); // Bonus for each enemy hanging piece       
+        const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
 
     #undef S
 
@@ -742,6 +742,7 @@ namespace Evaluator {
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies)
             {
+                // Threaten enemies
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
                     Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
@@ -753,12 +754,11 @@ namespace Evaluator {
                     score += s;
                 }
 
-                // Hanging piece
+                // Hanging enemies
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
                 if (hanging_enemies)
                 {
-                    //score += PieceHangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
-                    score += PieceHangingBonus;
+                    score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
                 }
             }
 
