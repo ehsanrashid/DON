@@ -170,20 +170,6 @@ namespace Evaluator {
             {}
         };
 
-        // OutpostBonus[Square] contains bonuses of knights,
-        // indexed by piece type and square (from white's point of view).
-        const Score OutpostBonus[SQ_NO] =
-        {   //  A         B         C         D         E         F         G         H
-            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
-            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
-            S( 0, 0), S( 0, 0), S( 4, 4), S( 8, 8), S( 8, 8), S( 4, 4), S( 0, 0), S( 0, 0),
-            S( 0, 0), S( 4, 4), S(17,17), S(26,26), S(26,26), S(17,17), S( 4, 4), S( 0, 0),
-            S( 0, 0), S( 8, 8), S(26,26), S(35,35), S(35,35), S(26,26), S( 8, 8), S( 0, 0),
-            S( 0, 0), S( 4, 4), S(17,17), S(17,17), S(17,17), S(17,17), S( 4, 4), S( 0, 0),
-            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0),
-            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0)
-        };
-
         // ThreatBonus[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
@@ -216,6 +202,23 @@ namespace Evaluator {
         const Score PieceHangingBonus             = S(+23,+20); // Bonus for each enemy hanging piece       
 
 #undef S
+
+        typedef Value V;
+
+        // OutpostValue[Square] contains bonus of outpost,
+        // indexed by square (from white's point of view).
+        const Value OutpostValue[SQ_NO] =
+        {   // A      B      C      D      E      F      G      H
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 4), V( 8), V( 8), V( 4), V( 0), V( 0),
+            V( 0), V( 4), V(17), V(26), V(26), V(17), V( 4), V( 0),
+            V( 0), V( 8), V(26), V(35), V(35), V(26), V( 8), V( 0),
+            V( 0), V( 4), V(17), V(17), V(17), V(17), V( 4), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
+        };
+
 
         // The SpaceMask[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
@@ -315,28 +318,30 @@ namespace Evaluator {
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
             
+            Score score = SCORE_ZERO;
             // Initial bonus based on square
-            Score score = OutpostBonus[rel_sq (C, s)];
+            Value value = OutpostValue[rel_sq (C, s)];
 
             // Increase bonus if supported by pawn, especially if the opponent has
             // no minor piece which can exchange the outpost piece.
-            if (score != SCORE_ZERO)
+            if (value != VALUE_ZERO)
             {
                 // Supporting pawns
-                Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s; //PawnAttacks[C_][s] & pos.pieces<PAWN> (C);
+                Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s;
                 if (supporting_pawns)
                 {
                     if (   (pos.count<NIHT> (C_) == 0 || !(ei.pin_attacked_by[C_][NIHT] & s))
                         && (pos.count<BSHP> (C_) == 0 || !(ei.pin_attacked_by[C_][BSHP] & s))
                        )
                     {
-                        score *= 2.50;
+                        value *= 2.50;
                     }
                     else
                     {
-                        score *= 1.50;
+                        value *= 1.50;
                     }
                 }
+                score = mk_score (value * 2, value / 2);
             }
 
             return score;
@@ -493,14 +498,12 @@ namespace Evaluator {
                         
                     }
                     
-                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP])
-                               | (ei.pin_attacked_by[C ][NONE]));
+                    attacks &= ~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]);
                 }
 
                 if (QUEN == PT)
                 {
-                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])
-                               | (ei.pin_attacked_by[C ][NONE]));
+                    attacks &= ~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK]);
                 }
 
                 if (pinned_pieces & s)
@@ -658,7 +661,7 @@ namespace Evaluator {
                                    | ei.pin_attacked_by[C][NIHT]
                                    | ei.pin_attacked_by[C][BSHP]
                                    | ei.pin_attacked_by[C][ROOK]
-                                   | ei.pin_attacked_by[C][QUEN]); // TODO:: ei.pin_attacked_by[C][NONE]
+                                   | ei.pin_attacked_by[C][QUEN]); // ei.pin_attacked_by[C][NONE]
 
                 Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
                 Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
@@ -968,8 +971,8 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by our pawns or king or protected by enemy pawns 
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(pos.pieces (WHITE)|ei.pin_attacked_by[BLACK][PAWN]),
-                ~(pos.pieces (BLACK)|ei.pin_attacked_by[WHITE][PAWN])
+                ~(pos.pieces (WHITE)|ei.pin_attacked_by[BLACK][NONE]),
+                ~(pos.pieces (BLACK)|ei.pin_attacked_by[WHITE][NONE])
             };
 
             score += 

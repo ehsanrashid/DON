@@ -299,7 +299,7 @@ namespace Searcher {
             // Check for immediate draw
             if (pos.draw ())           return DrawValue[pos.active ()];
             // Check for maximum ply reached
-            if ((ss)->ply > MAX_DEPTH) return DrawValue[pos.active ()] + (InCheck ? VALUE_ZERO : evaluate (pos));
+            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             StateInfo si;
 
@@ -623,7 +623,7 @@ namespace Searcher {
                     // Check for immediate draw
                     if (pos.draw ())           return DrawValue[pos.active ()];
                     // Check for maximum ply reached
-                    if ((ss)->ply > MAX_DEPTH) return DrawValue[pos.active ()] + (in_check ? VALUE_ZERO : evaluate (pos));
+                    if ((ss)->ply > MAX_DEPTH) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
