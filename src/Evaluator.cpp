@@ -692,9 +692,9 @@ namespace Evaluator {
             }
 
             // King mobility is good in the endgame
-            //Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.ful_attacked_by[C_][NONE]);
-            //u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-            //if (mob < 3) score -= mk_score (0, 6 * (3 - mob));
+            Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
+            u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+            if (mob < 3) score -= mk_score (0, 8 * (3 - mob));
 
             if (Trace)
             {
