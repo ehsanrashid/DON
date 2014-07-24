@@ -226,6 +226,7 @@ namespace Evaluator {
             ((FC_bb | FD_bb | FE_bb | FF_bb) & (R7_bb | R6_bb | R5_bb))
         };
 
+
         // King danger constants and variables. The king danger scores are taken
         // from the KingDanger[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
@@ -240,12 +241,12 @@ namespace Evaluator {
         // Bonuses for contact safe checks
         const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
 
-        const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
-
         const u08 MAX_ATTACK_UNITS = 100;
         // KingDanger[attack_units] contains the king danger weighted score
         // indexed by a calculated integer number.
         Score KingDanger[MAX_ATTACK_UNITS];
+
+        const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
@@ -552,7 +553,45 @@ namespace Evaluator {
 
             Square fk_sq = pos.king_sq (C);
             // King shelter and enemy pawns storm
-            Score score = ei.pi->evaluate_king_safety<C> (pos, fk_sq);
+            u08 kp_min_dist = 0;
+
+            Bitboard pawns = pos.pieces<PAWN> (C);
+            if (pawns)
+            {
+                while (!(DistanceRings[fk_sq][kp_min_dist++] & pawns)) {}
+            }
+
+            Value value = VALUE_ZERO;
+            Rank kr = rel_rank (C, fk_sq);
+            if (kr <= R_4)
+            {
+                // If can castle use the value after the castle if is bigger
+                if (kr == R_1 && pos.can_castle (C))
+                {
+                    if (    pos.can_castle (Castling<C, CS_K>::Right)
+                        && !pos.castle_impeded (Castling<C, CS_K>::Right)
+                        && !(pos.castle_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
+                       )
+                    {
+                        value = max (value, ei.pi->shelter_storm[C][CS_K]);
+                    }
+                    if (    pos.can_castle (Castling<C, CS_Q>::Right)
+                        && !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                        && !(pos.castle_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
+                       )
+                    {
+                        value = max (value, ei.pi->shelter_storm[C][CS_Q]);
+                    }
+                    
+                    value = max (value, ei.pi->shelter_storm[C][CS_NO]);
+                }
+                else
+                {
+                    value = ei.pi->shelter_storm[C][CS_NO];
+                }
+            }
+
+            Score score = mk_score (value, -16 * kp_min_dist);
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])
@@ -579,7 +618,7 @@ namespace Evaluator {
                     + 3 * (ei.king_zone_attacks_count[C_])                                                                                 // King-zone attacker piece weight
                     + (undefended ? 3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                             // King-zone undefended piece weight
                     + (ei.pinned_pieces[C] ? 2 * (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
-                    - mg_value (score) / 32;
+                    - value / 32;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);

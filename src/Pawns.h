@@ -12,22 +12,11 @@ namespace Pawns {
     struct Entry
     {
 
-    private:
-
-        u08    _castle_rights [CLR_NO];
-        u08    _kp_min_dist   [CLR_NO];
-        Score  _king_safety   [CLR_NO];
-
-
-        template<Color C>
-        Score _evaluate_king_safety (const Position &pos, Square k_sq);
-
     public:
 
         Key      pawn_key;
         Score    pawn_score;
 
-        Square   king_sq        [CLR_NO];
         Bitboard pawn_attacks   [CLR_NO];
 
         Bitboard blocked_pawns  [CLR_NO];
@@ -38,6 +27,8 @@ namespace Pawns {
         u08      pawn_span      [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
         u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
+
+        Value    shelter_storm  [CLR_NO][3];
 
         template<Color C>
         inline u08  semiopen_file (File f) const
@@ -58,22 +49,7 @@ namespace Pawns {
         }
 
         template<Color C>
-        Value shelter_storm (const Position &pos, Square k_sq) const;
-
-        template<Color C>
         Score evaluate_unstoppable_pawns () const;
-
-        template<Color C>
-        inline Score evaluate_king_safety (const Position &pos, Square k_sq)
-        {
-            if (king_sq[C] != k_sq || _castle_rights[C] != pos.can_castle (C))
-            {
-                king_sq       [C] = k_sq;
-                _castle_rights[C] = pos.can_castle (C);
-                _king_safety  [C] = _evaluate_king_safety<C> (pos, k_sq);
-            }
-            return _king_safety[C];
-        }
 
     };
 
