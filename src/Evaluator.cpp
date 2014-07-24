@@ -109,11 +109,11 @@ namespace Evaluator {
 
         }
 
-        // Evaluation weights, initialized from UCI options
         enum EvalWeightT { MOBILITY, PAWN_STRUCTURE, PASSED_PAWNS, SPACE, KING_SAFETY, EVAL_NO };
         
         struct Weight { i32 mg, eg; };
-
+        
+        // Evaluation weights, initialized from UCI options
         Weight Weights[EVAL_NO];
 
     #define S(mg, eg) mk_score (mg, eg)
