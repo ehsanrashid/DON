@@ -29,6 +29,7 @@ namespace Pawns {
         u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         Value    shelter_storm  [CLR_NO][3];
+        u08      kp_min_dist    [CLR_NO];
 
         template<Color C>
         inline u08  semiopen_file (File f) const

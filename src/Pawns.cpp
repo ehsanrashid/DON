@@ -168,7 +168,15 @@ namespace Pawns {
                 e->shelter_storm[C][CS_K ] = VALUE_ZERO; 
                 e->shelter_storm[C][CS_Q ] = VALUE_ZERO; 
             }
-            e->shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, pos.king_sq (C));
+
+            Square fk_sq = pos.king_sq (C);
+            e->shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, fk_sq);
+
+            e->kp_min_dist  [C] = 0;
+            if (pawns[0])
+            {
+                while (!(DistanceRings[fk_sq][e->kp_min_dist[C]++] & pawns[0])) {}
+            }
 
             Bitboard center_pawns = pawns[0] & ExtCntr_bb[C];
             if (center_pawns)
