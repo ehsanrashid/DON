@@ -69,12 +69,7 @@ namespace Evaluator {
                 MATERIAL = 6, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NO
             };
 
-            Score       Terms[CLR_NO][TERM_NO];
-
-            EvalInfo    Evalinfo;
-            ScaleFactor Scalefactor;
-
-            inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_EG_PAWN); }
+            Score Terms[CLR_NO][TERM_NO];
 
             inline void add_term (u08 term, Score w_score, Score b_score = SCORE_ZERO)
             {
@@ -315,7 +310,7 @@ namespace Evaluator {
 
         template<Color C>
         // evaluate_outpost<>() evaluates knight outposts squares
-        inline Score evaluate_outpost (const Position &pos, const EvalInfo &ei, Square s)
+        inline Score evaluate_outpost (const EvalInfo &ei, Square s)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
             
@@ -409,7 +404,7 @@ namespace Evaluator {
                     // Outpost bonus for knight 
                     if (!(PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_) & ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])))
                     {
-                        score += evaluate_outpost<C> (pos, ei, s);
+                        score += evaluate_outpost<C> (ei, s);
                     }
                 }
 
@@ -936,11 +931,6 @@ namespace Evaluator {
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
-                if (Trace)
-                {
-                    Tracer::Evalinfo    = ei;
-                }
-
                 return ei.mi->evaluate (pos);
             }
 
@@ -1039,6 +1029,31 @@ namespace Evaluator {
                 score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[Space]);
             }
 
+            // In case of tracing add each evaluation contributions for both white and black
+            if (Trace)
+            {
+                Tracer::add_term (PAWN             , ei.pi->pawn_score);
+                Tracer::add_term (Tracer::MATERIAL , pos.psq_score ());
+                Tracer::add_term (Tracer::IMBALANCE, ei.mi->matl_score);
+
+                Tracer::add_term (Tracer::MOBILITY
+                    , apply_weight (mobility[WHITE], Weights[Mobility])
+                    , apply_weight (mobility[BLACK], Weights[Mobility]));
+
+                Tracer::add_term (Tracer::PASSED
+                    , apply_weight (passed_pawn[WHITE], Weights[PassedPawns])
+                    , apply_weight (passed_pawn[BLACK], Weights[PassedPawns]));
+
+                Tracer::add_term (Tracer::SPACE
+                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[Space])
+                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[Space]));
+
+                Tracer::add_term (Tracer::TOTAL    , score);
+
+            }
+
+            // --------------------------------------------------
+
             i32 mg = i32 (mg_value (score));
             i32 eg = i32 (eg_value (score));
             ASSERT (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
@@ -1091,31 +1106,6 @@ namespace Evaluator {
             eg = eg * i32 (scale_fac) / i32 (SCALE_FACTOR_NORMAL);
             
             Value value = Value (((mg * i32 (game_phase)) + (eg * i32 (PHASE_MIDGAME - game_phase))) / i32 (PHASE_MIDGAME));
-
-            // In case of tracing add all single evaluation contributions for both white and black
-            if (Trace)
-            {
-                Tracer::add_term (PAWN             , ei.pi->pawn_score);
-                Tracer::add_term (Tracer::MATERIAL , pos.psq_score ());
-                Tracer::add_term (Tracer::IMBALANCE, ei.mi->matl_score);
-
-                Tracer::add_term (Tracer::MOBILITY
-                    , apply_weight (mobility[WHITE], Weights[Mobility])
-                    , apply_weight (mobility[BLACK], Weights[Mobility]));
-
-                Tracer::add_term (Tracer::PASSED
-                    , apply_weight (passed_pawn[WHITE], Weights[PassedPawns])
-                    , apply_weight (passed_pawn[BLACK], Weights[PassedPawns]));
-
-                Tracer::add_term (Tracer::SPACE
-                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[Space])
-                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[Space]));
-
-                Tracer::add_term (Tracer::TOTAL    , score);
-
-                Tracer::Evalinfo    = ei;
-                Tracer::Scalefactor = scale_fac;
-            }
 
             return (WHITE == pos.active ()) ? +value : -value;
         }

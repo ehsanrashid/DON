@@ -18,8 +18,6 @@ namespace Pawns {
         u08    _kp_min_dist   [CLR_NO];
         Score  _king_safety   [CLR_NO];
 
-        template<Color C>
-        Value _shelter_storm (const Position &pos, Square k_sq) const;
 
         template<Color C>
         Score _evaluate_king_safety (const Position &pos, Square k_sq);
@@ -60,6 +58,12 @@ namespace Pawns {
         }
 
         template<Color C>
+        Value shelter_storm (const Position &pos, Square k_sq) const;
+
+        template<Color C>
+        Score evaluate_unstoppable_pawns () const;
+
+        template<Color C>
         inline Score evaluate_king_safety (const Position &pos, Square k_sq)
         {
             if (king_sq[C] != k_sq || _castle_rights[C] != pos.can_castle (C))
@@ -70,9 +74,6 @@ namespace Pawns {
             }
             return _king_safety[C];
         }
-
-        template<Color C>
-        Score evaluate_unstoppable_pawns () const;
 
     };
 

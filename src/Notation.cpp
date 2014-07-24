@@ -74,7 +74,7 @@ namespace Notation {
 
             if (abs (v) < VALUE_MATES_IN_MAX_PLY)
             {
-                oss << setprecision (2) << fixed << showpos << double (v) / VALUE_EG_PAWN;
+                oss << setprecision (2) << fixed << showpos << value_to_cp (v);
             }
             else
             {
@@ -271,7 +271,7 @@ namespace Notation {
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            oss << "cp " << 100 * i32 (v) / i32 (VALUE_EG_PAWN);
+            oss << "cp " << i32 (100 * value_to_cp (v));
         }
         else
         {

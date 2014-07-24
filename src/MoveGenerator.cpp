@@ -88,7 +88,7 @@ namespace MoveGenerator {
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
                 
                 if (EVASION == GT) return;
-                if (pos.castle_impeded (CR) || !pos.can_castle (CR) || pos.checkers ()) return;
+                if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
 
                 const bool KingSide = (CR == CR_WK || CR == CR_BK);
                 const Color C_ = (WHITE == C) ? BLACK : WHITE;
@@ -162,14 +162,14 @@ namespace MoveGenerator {
                             ci = &cc;
                         }
 
-                        if (!pos.castle_impeded (Castling<C, CS_K>::Right) && pos.can_castle (Castling<C, CS_K>::Right))
+                        if (pos.can_castle (Castling<C, CS_K>::Right) && !pos.castle_impeded (Castling<C, CS_K>::Right))
                         {
                             pos.chess960 () ?
                                 generate_castling<Castling<C, CS_K>::Right,  true> (moves, pos, ci) :
                                 generate_castling<Castling<C, CS_K>::Right, false> (moves, pos, ci);
                         }
 
-                        if (!pos.castle_impeded (Castling<C, CS_Q>::Right) && pos.can_castle (Castling<C, CS_Q>::Right))
+                        if (pos.can_castle (Castling<C, CS_Q>::Right) && !pos.castle_impeded (Castling<C, CS_Q>::Right))
                         {
                             pos.chess960 () ?
                                 generate_castling<Castling<C, CS_Q>::Right,  true> (moves, pos, ci) :

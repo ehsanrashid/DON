@@ -285,40 +285,11 @@ namespace Pawns {
 
     } // namespace
 
-    // Initializes some tables by formula instead of hard-coding their values
-    void initialize ()
-    {
-        for (i08 r = R_1; r < R_8; ++r)
-        {
-            for (i08 f = F_A; f <= F_H; ++f)
-            {
-                i16 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
-                ConnectedBonus[f][r] = mk_score (bonus, bonus);
-            }
-        }
-    }
-
-    // probe() takes a position object as input, computes a Entry object, and returns
-    // a pointer to it. The result is also stored in a hash table, so don't have
-    // to recompute everything when the same pawn structure occurs again.
-    Entry* probe (const Position &pos, Table &table)
-    {
-        Key pawn_key = pos.pawn_key ();
-        Entry *e     = table[pawn_key];
-
-        if (e->pawn_key != pawn_key)
-        {
-            e->pawn_key    = pawn_key;
-            e->pawn_score  = evaluate<WHITE> (pos, e)
-                           - evaluate<BLACK> (pos, e);
-        }
-        return e;
-    }
 
     template<Color C>
-    // Entry::_shelter_storm() calculates shelter and storm penalties for the file
+    // Entry::shelter_storm() calculates shelter and storm penalties for the file
     // the king is on, as well as the two adjacent files.
-    Value Entry::_shelter_storm (const Position &pos, Square k_sq) const
+    Value Entry::shelter_storm (const Position &pos, Square k_sq) const
     {
         const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -388,22 +359,22 @@ namespace Pawns {
             // If can castle use the bonus after the castle if is bigger
             if (kr == R_1 && pos.can_castle (C))
             {
-                if (pos.can_castle (Castling<C, CS_K>::Right))
+                if (pos.can_castle (Castling<C, CS_K>::Right) && !pos.castle_impeded (Castling<C, CS_K>::Right))
                 {
-                    bonus = max (bonus, _shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
+                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
                 }
-                if (pos.can_castle (Castling<C, CS_Q>::Right))
+                if (pos.can_castle (Castling<C, CS_Q>::Right) && !pos.castle_impeded (Castling<C, CS_Q>::Right))
                 {
-                    bonus = max (bonus, _shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
+                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
                 }
                 if (bonus < MaxSafetyBonus)
                 {
-                    bonus = max (bonus, _shelter_storm<C> (pos, k_sq));
+                    bonus = max (bonus, shelter_storm<C> (pos, k_sq));
                 }
             }
             else
             {
-                bonus = _shelter_storm<C> (pos, k_sq);
+                bonus = shelter_storm<C> (pos, k_sq);
             }
         }
 
@@ -448,5 +419,36 @@ namespace Pawns {
     // -------------------------------
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
+
+    // Initializes some tables by formula instead of hard-coding their values
+    void initialize ()
+    {
+        for (i08 r = R_1; r < R_8; ++r)
+        {
+            for (i08 f = F_A; f <= F_H; ++f)
+            {
+                i16 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
+                ConnectedBonus[f][r] = mk_score (bonus, bonus);
+            }
+        }
+    }
+
+    // probe() takes a position object as input, computes a Pawn::Entry object,
+    // and returns a pointer to Pawn::Entry object.
+    // The result is also stored in a hash table, so don't have
+    // to recompute everything when the same pawn structure occurs again.
+    Entry* probe (const Position &pos, Table &table)
+    {
+        Key pawn_key = pos.pawn_key ();
+        Entry *e     = table[pawn_key];
+
+        if (e->pawn_key != pawn_key)
+        {
+            e->pawn_key    = pawn_key;
+            e->pawn_score  = evaluate<WHITE> (pos, e)
+                           - evaluate<BLACK> (pos, e);
+        }
+        return e;
+    }
 
 } // namespace Pawns
