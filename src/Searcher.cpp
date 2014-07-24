@@ -1409,8 +1409,8 @@ namespace Searcher {
                     {
                         window[0] =
                         window[1] =
-                            Value (dep < (16*ONE_MOVE) ? 14 + (dep/4) : 22);
-                            //Value (16);
+                            //Value (dep < (16*ONE_MOVE) ? 14 + (dep/4) : 22);
+                            Value (16);
                         bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }

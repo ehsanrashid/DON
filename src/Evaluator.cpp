@@ -110,11 +110,11 @@ namespace Evaluator {
         }
 
         // Evaluation weights, initialized from UCI options
-        enum EvalWeightT { Mobility, PawnStructure, PassedPawns, Space, KingSafety, Eval_NO };
+        enum EvalWeightT { MOBILITY, PAWN_STRUCTURE, PASSED_PAWNS, SPACE, KING_SAFETY, EVAL_NO };
         
         struct Weight { i32 mg, eg; };
 
-        Weight Weights[Eval_NO];
+        Weight Weights[EVAL_NO];
 
     #define S(mg, eg) mk_score (mg, eg)
 
@@ -122,7 +122,7 @@ namespace Evaluator {
         // weights read from UCI parameters. The purpose is to be able to change
         // the evaluation weights while keeping the default values of the UCI
         // parameters at 100, which looks prettier.
-        const Score InternalWeights[Eval_NO] =
+        const Score InternalWeights[EVAL_NO] =
         {
             S(+289,+344), // Mobility
             S(+233,+201), // Pawn Structure
@@ -978,7 +978,7 @@ namespace Evaluator {
 
             // Probe the pawn hash table
             ei.pi  = Pawns::probe (pos, thread->pawns_table);
-            score += apply_weight (ei.pi->pawn_score, Weights[PawnStructure]);
+            score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCTURE]);
 
             // Initialize attack and king safety bitboards
             init_eval_info<WHITE> (pos, ei);
@@ -1013,7 +1013,7 @@ namespace Evaluator {
               - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
             // Weight mobility
-            score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
+            score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[MOBILITY]);
 
             // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
@@ -1031,7 +1031,7 @@ namespace Evaluator {
                 evaluate_passed_pawns<BLACK> (pos, ei)
             };
 
-            score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PassedPawns]);
+            score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PASSED_PAWNS]);
 
             const Value npm[CLR_NO] =
             {
@@ -1060,7 +1060,7 @@ namespace Evaluator {
                 space[WHITE] = evaluate_space<WHITE> (pos, ei);
                 space[BLACK] = evaluate_space<BLACK> (pos, ei);
 
-                score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[Space]);
+                score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[SPACE]);
             }
 
             // In case of tracing add each evaluation contributions for both white and black
@@ -1071,16 +1071,16 @@ namespace Evaluator {
                 Tracer::add_term (Tracer::IMBALANCE, ei.mi->matl_score);
 
                 Tracer::add_term (Tracer::MOBILITY
-                    , apply_weight (mobility[WHITE], Weights[Mobility])
-                    , apply_weight (mobility[BLACK], Weights[Mobility]));
+                    , apply_weight (mobility[WHITE], Weights[MOBILITY])
+                    , apply_weight (mobility[BLACK], Weights[MOBILITY]));
 
                 Tracer::add_term (Tracer::PASSED
-                    , apply_weight (passed_pawn[WHITE], Weights[PassedPawns])
-                    , apply_weight (passed_pawn[BLACK], Weights[PassedPawns]));
+                    , apply_weight (passed_pawn[WHITE], Weights[PASSED_PAWNS])
+                    , apply_weight (passed_pawn[BLACK], Weights[PASSED_PAWNS]));
 
                 Tracer::add_term (Tracer::SPACE
-                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[Space])
-                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[Space]));
+                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[SPACE])
+                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[SPACE]));
 
                 Tracer::add_term (Tracer::TOTAL    , score);
 
@@ -1202,11 +1202,11 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility     ] = weight_option (100                         , InternalWeights[Mobility     ]);
-        Weights[PawnStructure] = weight_option (100                         , InternalWeights[PawnStructure]);
-        Weights[PassedPawns  ] = weight_option (100                         , InternalWeights[PassedPawns  ]);
-        Weights[Space        ] = weight_option (i32 (Options["Space"      ]), InternalWeights[Space        ]);
-        Weights[KingSafety   ] = weight_option (i32 (Options["King Safety"]), InternalWeights[KingSafety   ]);
+        Weights[MOBILITY      ] = weight_option (100                         , InternalWeights[MOBILITY      ]);
+        Weights[PAWN_STRUCTURE] = weight_option (100                         , InternalWeights[PAWN_STRUCTURE]);
+        Weights[PASSED_PAWNS  ] = weight_option (100                         , InternalWeights[PASSED_PAWNS  ]);
+        Weights[SPACE         ] = weight_option (i32 (Options["Space"      ]), InternalWeights[SPACE         ]);
+        Weights[KING_SAFETY   ] = weight_option (i32 (Options["King Safety"]), InternalWeights[KING_SAFETY   ]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
@@ -1215,8 +1215,8 @@ namespace Evaluator {
         for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
             mg = min (PeakScore, min (i32 (0.4*i*i), mg + MaxSlope));
-
-            KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KingSafety]);
+            //if (80 - MaxSlope < i && i < 80) mg = i32 (PeakScore - 0.5 * (80 - i) * (80 - i));
+            KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
         }
     }
 

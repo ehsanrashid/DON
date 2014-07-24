@@ -302,8 +302,8 @@ namespace Pawns {
         Value value = KingSafetyByPawn;
 
         const i08 kf = _file (k_sq);
-        const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
-        const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
+        const i08 w_del = 1 + (kf==F_C) - (kf==F_A);
+        const i08 e_del = 1 + (kf==F_F) - (kf==F_H);
         for (i08 f = kf - w_del; f <= kf + e_del; ++f)
         {
             ASSERT (F_A <= f && f <= F_H);
