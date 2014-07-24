@@ -82,61 +82,9 @@ namespace Pawns {
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KingSafetyPawn = V(+263);
+        const Value KingSafetyByPawn = V(+263);
 
     #undef V
-
-        template<Color C>
-        // pawn_shelter_storm() calculates shelter and storm penalties
-        // for the file the king is on, as well as the two adjacent files.
-        inline Value pawn_shelter_storm (const Position &pos, Square k_sq)
-        {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
-
-            const Bitboard front_pawns = pos.pieces<PAWN> () & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq));
-            const Bitboard pawns[CLR_NO] =
-            {
-                front_pawns & pos.pieces (C ),
-                front_pawns & pos.pieces (C_)
-            };
-        
-            Value value = KingSafetyPawn;
-            
-            const i08 kf = _file (k_sq);
-            const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
-            const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
-            for (i08 f = kf - w_del; f <= kf + e_del; ++f)
-            {
-                ASSERT (F_A <= f && f <= F_H);
-
-                Bitboard mid_pawns;
-
-                mid_pawns  = pawns[1] & File_bb[f];
-                u08 br = (mid_pawns) ?
-                    rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) :
-                    R_1;
-
-                if (   (MidEdge_bb & (f | br))
-                    && (kf == f)
-                    && (rel_rank (C, k_sq) == br - 1)
-                   )
-                {
-                    value += 200;
-                }
-                else
-                {
-                    mid_pawns = pawns[0] & File_bb[f];
-                    u08 wr = (mid_pawns) ?
-                        rel_rank (C, scan_backmost_sq (C , mid_pawns)) :
-                        R_1;
-
-                    u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
-                    value -= ShelterWeakness[wr] + StormDanger[danger][br];
-                }
-            }
-
-            return value;
-        }
 
         template<Color C>
         inline Score evaluate (const Position &pos, Pawns::Entry *e)
@@ -160,20 +108,7 @@ namespace Pawns {
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;
-            e->kp_min_dist    [C] = 0;
 
-            if (pos.can_castle (C))
-            {
-                e->shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
-                e->shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO; 
-            }
-            else
-            {
-                e->shelter_storm[C][CS_K ] = VALUE_ZERO; 
-                e->shelter_storm[C][CS_Q ] = VALUE_ZERO; 
-            }
-            e->shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, pos.king_sq (C));
-            
             Bitboard center_pawns = pawns[0] & ExtCntr_bb[C];
             if (center_pawns)
             {
@@ -350,6 +285,62 @@ namespace Pawns {
         }
 
     } // namespace
+
+    template<Color C>
+    // pawn_shelter_storm() calculates shelter and storm penalties
+    // for the file the king is on, as well as the two adjacent files.
+    Value Entry::pawn_shelter_storm (Square k_sq)
+    {
+        const Color C_ = (WHITE == C) ? BLACK : WHITE;
+
+        const Bitboard front_pawns[CLR_NO] =
+        {
+            pawns[C ] & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq)),
+            pawns[C_] & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq))
+        };
+
+        Value value = KingSafetyByPawn;
+
+        const i08 kf = _file (k_sq);
+        const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
+        const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
+        for (i08 f = kf - w_del; f <= kf + e_del; ++f)
+        {
+            ASSERT (F_A <= f && f <= F_H);
+
+            Bitboard mid_pawns;
+
+            mid_pawns  = front_pawns[1] & File_bb[f];
+            u08 br = (mid_pawns) ?
+                rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) :
+                R_1;
+
+            if (   (MidEdge_bb & (f | br))
+                && (kf == f)
+                && (rel_rank (C, k_sq) == br - 1)
+               )
+            {
+                value += 200;
+            }
+            else
+            {
+                mid_pawns = front_pawns[0] & File_bb[f];
+                u08 wr = (mid_pawns) ?
+                    rel_rank (C, scan_backmost_sq (C , mid_pawns)) :
+                    R_1;
+
+                u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
+                value -= ShelterWeakness[wr] + StormDanger[danger][br];
+            }
+        }
+
+        return value;
+    }
+    
+    // Explicit template instantiation
+    // -------------------------------
+    template Value Entry::pawn_shelter_storm<WHITE> (Square k_sq);
+    template Value Entry::pawn_shelter_storm<BLACK> (Square k_sq);
 
     template<Color C>
     // Entry::evaluate_unstoppable_pawns<>() scores the passed and candidate pawns.

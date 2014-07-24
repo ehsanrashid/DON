@@ -551,9 +551,11 @@ namespace Evaluator {
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
-            Square fk_sq = pos.king_sq (C);
+            const Square fk_sq = pos.king_sq (C);
 
             // King shelter and enemy pawns storm
+            ei.pi->evaluate_king_pawn_safety<C> (pos);
+
             Value value = VALUE_ZERO;
             Rank kr = rel_rank (C, fk_sq);
             if (kr <= R_4)
@@ -584,7 +586,7 @@ namespace Evaluator {
                 }
             }
 
-            Score score = mk_score (value, -16 * ei.pi->king_pawn_min_dist<C> (fk_sq));
+            Score score = mk_score (value, -16 * ei.pi->kp_min_dist[C]);
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])

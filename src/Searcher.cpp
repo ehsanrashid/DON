@@ -1457,7 +1457,7 @@ namespace Searcher {
                         if      (best_value <= bound[0])
                         {
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            window[0] *= 1.5;
+                            window[0] *= 1.38;
                             //window[1] *= 1.1;
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
@@ -1465,7 +1465,7 @@ namespace Searcher {
                         else if (best_value >= bound[1])
                         {
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            window[1] *= 1.5;
+                            window[1] *= 1.38;
                             //window[0] *= 1.1;
                         }
                         else

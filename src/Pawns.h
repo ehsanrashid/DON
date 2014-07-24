@@ -29,9 +29,8 @@ namespace Pawns {
         // Count of pawns on LIGHT and DARK squares
         u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
-        Value    shelter_storm  [CLR_NO][3];
-        
         Square   king_sq        [CLR_NO];
+        Value    shelter_storm  [CLR_NO][3];
         u08      kp_min_dist    [CLR_NO];
 
         template<Color C>
@@ -56,18 +55,34 @@ namespace Pawns {
         Score evaluate_unstoppable_pawns () const;
 
         template<Color C>
-        inline u08 king_pawn_min_dist (Square k_sq)
+        Value pawn_shelter_storm (Square k_sq);
+
+        template<Color C>
+        inline void evaluate_king_pawn_safety (const Position &pos)
         {
+            Square k_sq = pos.king_sq (C);
             if (king_sq[C] != k_sq)
             {
-                king_sq    [C] = k_sq;
+                king_sq[C] = k_sq;
+
+                if (pos.can_castle (C))
+                {
+                    shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_G1)) : VALUE_ZERO; 
+                    shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_C1)) : VALUE_ZERO; 
+                }
+                else
+                {
+                    shelter_storm[C][CS_K ] = VALUE_ZERO; 
+                    shelter_storm[C][CS_Q ] = VALUE_ZERO; 
+                }
+                shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (k_sq);
+
                 kp_min_dist[C] = 0;
                 if (pawns[C])
                 {
                     while (!(BitBoard::DistanceRings[k_sq][kp_min_dist[C]++] & pawns[C])) {}
                 }
             }
-            return kp_min_dist[C];
         }
 
     };
