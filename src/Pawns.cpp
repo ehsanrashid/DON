@@ -153,11 +153,15 @@ namespace Pawns {
                 pos.pieces<PAWN> (C_)
             };
 
-            e->pawn_attacks   [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
+            e->pawns          [C] = pawns[0];
+            e->pawns_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
             e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
             e->passed_pawns   [C] = U64 (0);
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;
+            e->king_sq        [C] = SQ_NO;
+            e->kp_min_dist    [C] = 0;
+
             if (pos.can_castle (C))
             {
                 e->shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
@@ -168,16 +172,8 @@ namespace Pawns {
                 e->shelter_storm[C][CS_K ] = VALUE_ZERO; 
                 e->shelter_storm[C][CS_Q ] = VALUE_ZERO; 
             }
-
-            Square fk_sq = pos.king_sq (C);
-            e->shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, fk_sq);
-
-            e->kp_min_dist  [C] = 0;
-            if (pawns[0])
-            {
-                while (!(DistanceRings[fk_sq][e->kp_min_dist[C]++] & pawns[0])) {}
-            }
-
+            e->shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, pos.king_sq (C));
+            
             Bitboard center_pawns = pawns[0] & ExtCntr_bb[C];
             if (center_pawns)
             {

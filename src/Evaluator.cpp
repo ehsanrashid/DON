@@ -279,8 +279,8 @@ namespace Evaluator {
             Square ek_sq = pos.king_sq (C_);
 
             ei.pinned_pieces  [C]       = pos.pinneds (C);
-            ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
-            ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawn_attacks[C];
+            ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+            ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
 
             Bitboard attacks = ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
 
@@ -584,7 +584,7 @@ namespace Evaluator {
                 }
             }
 
-            Score score = mk_score (value, -16 * ei.pi->kp_min_dist[C]);
+            Score score = mk_score (value, -16 * ei.pi->king_pawn_min_dist<C> (fk_sq));
 
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])

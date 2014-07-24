@@ -17,7 +17,8 @@ namespace Pawns {
         Key      pawn_key;
         Score    pawn_score;
 
-        Bitboard pawn_attacks   [CLR_NO];
+        Bitboard pawns          [CLR_NO];
+        Bitboard pawns_attacks  [CLR_NO];
 
         Bitboard blocked_pawns  [CLR_NO];
         Bitboard passed_pawns   [CLR_NO];
@@ -29,6 +30,8 @@ namespace Pawns {
         u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         Value    shelter_storm  [CLR_NO][3];
+        
+        Square   king_sq        [CLR_NO];
         u08      kp_min_dist    [CLR_NO];
 
         template<Color C>
@@ -51,6 +54,21 @@ namespace Pawns {
 
         template<Color C>
         Score evaluate_unstoppable_pawns () const;
+
+        template<Color C>
+        inline u08 king_pawn_min_dist (Square k_sq)
+        {
+            if (king_sq[C] != k_sq)
+            {
+                king_sq    [C] = k_sq;
+                kp_min_dist[C] = 0;
+                if (pawns[C])
+                {
+                    while (!(BitBoard::DistanceRings[k_sq][kp_min_dist[C]++] & pawns[C])) {}
+                }
+            }
+            return kp_min_dist[C];
+        }
 
     };
 
