@@ -595,7 +595,9 @@ inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (
 
 inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
-inline double value_to_cp (const Value &value) { return double (value) / double (VALUE_EG_PAWN); }
+inline double value_to_cp (Value value) { return double (value) / double (VALUE_EG_PAWN); }
+inline Value  cp_to_value (double cp)   { return Value (i32 (cp * i32 (VALUE_EG_PAWN))); }
+
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 

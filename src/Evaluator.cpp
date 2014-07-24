@@ -287,10 +287,10 @@ namespace Evaluator {
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) >= VALUE_MG_NIHT + VALUE_MG_BSHP) // TODO::
             {
-                Rank rk                        = rel_rank (C_, ek_sq);
+                Rank ekr                       = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = attacks | (rk < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
-                                                                       shift_del<DEL_N> (attacks) | shift_del<DEL_S> (attacks));
+                ei.king_ring              [C_] = attacks | (ekr < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
+                                                                        shift_del<DEL_N> (attacks)|shift_del<DEL_S> (attacks));
                 
                 Bitboard attackers;
                 attackers                      = ei.king_ring[C_] & ei.ful_attacked_by[C ][PAWN];
@@ -713,7 +713,7 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
-                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS] range
+                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 attack_units = min (MAX_ATTACK_UNITS-1, max (0, attack_units));
 
                 // Finally, extract the king danger score from the KingDanger[]
@@ -838,7 +838,7 @@ namespace Evaluator {
                     }
 
                     // If the pawn is free to advance, increase bonus
-                    if (pos.empty (block_sq))
+                    if      (pos.empty (block_sq))
                     {
                         // squares to queen
                         const Bitboard queen_squares = FrontSqrs_bb[C ][s];

@@ -1572,7 +1572,6 @@ namespace Searcher {
     // initialize the PRNG only once
     PolyglotBook        Book;
 
-
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // Consider also failing high nodes and not only EXACT nodes so to
     // allow to always have a ponder move even when fail high at root node.
@@ -1712,9 +1711,14 @@ namespace Searcher {
     void think ()
     {
         RootColor = RootPos.active ();
+        
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
-
-        i32 contempt = i32 (Options["Contempt Factor"]) * VALUE_EG_PAWN / 100; // From centipawns;
+        
+        i32 contempt_factor = i32 (Options["Contempt Factor"]);
+        // Contempt of 10 (60/6) per minute
+        i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (6*M_SEC);
+        
+        Value contempt = cp_to_value ((contempt_factor + time_factor) / 100);
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
