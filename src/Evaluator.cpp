@@ -524,7 +524,7 @@ namespace Evaluator {
                         const Rank kr = rel_rank (C, fk_sq);
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
-                        if (   ((kf < F_E) == (f < kf))
+                        if (   (kf < F_E == f < kf)
                             && (kr == R_1 || kr == r)
                             && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
