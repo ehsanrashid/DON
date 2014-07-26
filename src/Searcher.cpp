@@ -886,7 +886,7 @@ namespace Searcher {
                 }
             }
 
-        //loop_moves: // When in check and at SPNode search starts from here
+            // When in check and at SPNode search starts from here
 
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
             Move cm[2] =
@@ -1282,7 +1282,7 @@ namespace Searcher {
                     }
                 }
 
-                // Step 19. Check for splitting the search (at non splitpoint node)
+                // Step 19. Check for splitting the search (at non-splitpoint node)
                 if (!SPNode)
                 {
                     if (   (Threadpool.split_depth <= depth)
@@ -1716,8 +1716,8 @@ namespace Searcher {
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
         
         i32 contempt_factor = i32 (Options["Contempt Factor"]);
-        // Contempt of 10 (60/6) per minute
-        i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (6*M_SEC);
+        // Contempt of 15 (60/4) per minute
+        i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (4*M_SEC);
         
         Value contempt = cp_to_value ((contempt_factor + time_factor) / 100);
         DrawValue[ RootColor] = VALUE_DRAW - contempt;

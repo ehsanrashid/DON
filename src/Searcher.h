@@ -45,8 +45,8 @@ namespace Searcher {
         u08  depth;     // search <x> depth (plies) only
         u64  nodes;     // search <x> nodes only
         u08  mate;      // search mate in <x> moves
-        bool infinite;  // search until the "stop" command
         bool ponder;    // search on ponder move
+        bool infinite;  // search until the "stop" command
 
         LimitsT ()
             : movetime  (0)
@@ -54,8 +54,8 @@ namespace Searcher {
             , depth     (0)
             , nodes     (0)
             , mate      (0)
-            , infinite  (false)
             , ponder    (false)
+            , infinite  (false)
         {}
         
         bool use_timemanager () const

@@ -38,7 +38,7 @@ protected:
 
     // Constructor should be protected !!!
     IOLogger (std::string log_fn)
-        :  _inbuf (std::cin .rdbuf (), &_fstm)
+        : _inbuf (std::cin .rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
         , _log_fn (log_fn)
     {}
@@ -65,7 +65,7 @@ public:
             _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
-            std::cin .rdbuf (& _inbuf);
+            std::cin .rdbuf (&_inbuf);
             std::cout.rdbuf (&_outbuf);
         }
     }
@@ -75,7 +75,7 @@ public:
         if (_fstm.is_open ())
         {
             std::cout.rdbuf (_outbuf.sbuf ());
-            std::cin .rdbuf ( _inbuf.sbuf ());
+            std::cin .rdbuf (_inbuf.sbuf ());
 
             _fstm << "[" << Time::to_string (Time::now ()) << "] <-" << std::endl;
             _fstm.close ();

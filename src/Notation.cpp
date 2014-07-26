@@ -122,7 +122,7 @@ namespace Notation {
         string scan = can;
         if (5 == scan.length ())
         {
-            // promotion piece in lowercase
+            // Promotion piece in lowercase
             if (isupper (u08 (scan[4])))
             {
                 scan[4] = u08 (tolower (scan[4]));
@@ -172,14 +172,14 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        if (!_ok (m))       return "(xxxx)";
+        //if (!_ok (m))       return "(xxxx)";
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
         MoveT mt   = mtype (m);
-        if (!c960 && (CASTLE == mt)) dst = (((dst > org) ? F_G : F_C) | _rank (org));
+        if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += PieceChar[(BLACK|promote (m))]; // lower case
+        if (PROMOTE == mt) can += PieceChar[(BLACK|promote (m))]; // Lowercase
         return can;
     }
 
@@ -226,7 +226,7 @@ namespace Notation {
             }
             san += to_string (dst);
             if (PROMOTE == mt && PAWN == pt)
-            { 
+            {
                 san += "=";
                 san += PieceChar[promote (m)];
             }
