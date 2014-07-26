@@ -607,8 +607,8 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_], 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                                               // King-zone attacker piece weight
-                    + (undefended ? 3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                            // King-zone undefended piece weight
-                    + (ei.pinned_pieces[C] ? 2 * (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
+                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                            // King-zone undefended piece weight
+                    + 2 * (ei.pinned_pieces[C] ? (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
                     - value / 32;
 
                 // Undefended squares around king not occupied by enemy's
