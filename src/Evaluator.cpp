@@ -237,7 +237,7 @@ namespace Evaluator {
         Score KingDanger[MAX_ATTACK_UNITS];
 
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { + 1, + 2, + 2, + 3, + 5, 0 };
+        const i32   KingAttackWeight[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
 
         // Bonuses for safe checks
         const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
@@ -605,9 +605,9 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
-                    + 3 * (ei.king_zone_attacks_count[C_])                                                                                 // King-zone attacker piece weight
-                    + (undefended ? 3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                             // King-zone undefended piece weight
+                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_], 20)
+                    + 3 * (ei.king_zone_attacks_count[C_])                                                                               // King-zone attacker piece weight
+                    + (undefended ? 3 * (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                            // King-zone undefended piece weight
                     + (ei.pinned_pieces[C] ? 2 * (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
                     - value / 32;
 
