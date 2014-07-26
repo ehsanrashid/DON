@@ -458,7 +458,6 @@ namespace Evaluator {
                         }
                     }
                 }
-
                 }
 
                 if (ROOK == PT)

@@ -786,8 +786,7 @@ namespace Searcher {
 
                                     // Null move dynamic (variable) reduction based on depth and value
                                     Depth rdepth = depth - Depth (
-                                                    + (3 * ONE_MOVE)
-                                                    //+ ((2 + (pos.non_pawn_material (pos.active ()) > VALUE_MG_BSHP)) * ONE_MOVE)
+                                                    + (3*ONE_MOVE)
                                                     + (depth/4)
                                                     + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
 
@@ -812,8 +811,8 @@ namespace Searcher {
                                             null_value = beta;
                                         }
 
-                                        if (   ((depth < (12*ONE_MOVE)) && (abs(beta) < VALUE_KNOWN_WIN))
-                                            || (rdepth < ONE_MOVE)
+                                        if (   (depth < (12*ONE_MOVE))
+                                            && (abs(beta) < VALUE_KNOWN_WIN)
                                            )
                                         {
                                             return null_value;
@@ -822,8 +821,8 @@ namespace Searcher {
                                         // Do verification search at high depths
                                         (ss)->skip_null_move = true;
 
-                                        Value veri_value = //(rdepth < ONE_MOVE) ?
-                                            //search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        Value veri_value = (rdepth < ONE_MOVE) ?
+                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         (ss)->skip_null_move = false;
