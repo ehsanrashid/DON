@@ -605,7 +605,7 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_], 20)
+                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 3, 24)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                                               // King-zone attacker piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                            // King-zone undefended piece weight
                     + 2 * (ei.pinned_pieces[C] ? (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
