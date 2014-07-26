@@ -231,7 +231,11 @@ namespace Evaluator {
         // from the KingDanger[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
         // is used as an index to KingDanger[].
-        //
+        const u08 MAX_ATTACK_UNITS = 100;
+        // KingDanger[attack_units] contains the king danger weighted score
+        // indexed by a calculated integer number.
+        Score KingDanger[MAX_ATTACK_UNITS];
+
         // KingAttackWeight[PieceT] contains king attack weights by piece type
         const i32   KingAttackWeight[NONE] = { + 1, + 2, + 2, + 3, + 5, 0 };
 
@@ -241,10 +245,6 @@ namespace Evaluator {
         // Bonuses for contact safe checks
         const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
 
-        const u08 MAX_ATTACK_UNITS = 100;
-        // KingDanger[attack_units] contains the king danger weighted score
-        // indexed by a calculated integer number.
-        Score KingDanger[MAX_ATTACK_UNITS];
 
         const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
 
@@ -282,29 +282,28 @@ namespace Evaluator {
             ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
 
-            Bitboard attacks = ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
+            Bitboard king_zone = ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
+            Bitboard attackers             = king_zone & ei.ful_attacked_by[C ][PAWN];
+            ei.king_zone_attacks_count[C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) >= VALUE_MG_NIHT + VALUE_MG_BSHP) // TODO::
+            if (pos.non_pawn_material (C) >= VALUE_MG_QUEN) // TODO::
             {
                 Rank ekr                       = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = attacks | (ekr < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (attacks) :
-                                                                        shift_del<DEL_N> (attacks)|shift_del<DEL_S> (attacks));
+                ei.king_ring              [C_] = king_zone | (//ekr < R_2 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) :
+                                                            ekr < R_3 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) | ((shift_del<DEL_E> (king_zone) | shift_del<DEL_W> (king_zone)) & ~rel_rank_bb(C_, R_1)) :
+                                                            ekr < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) |  (shift_del<DEL_E> (king_zone) | shift_del<DEL_W> (king_zone)) :
+                                                                        DistanceRings[ek_sq][1]);
                 
-                Bitboard attackers;
                 attackers                      = ei.king_ring[C_] & ei.ful_attacked_by[C ][PAWN];
                 ei.king_attackers_count   [C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
                 ei.king_attackers_weight  [C ] = attackers ? KingAttackWeight[PAWN] : 0;
-
-                attackers                      = attacks & ei.ful_attacked_by[C ][PAWN];
-                ei.king_zone_attacks_count[C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
             }
             else
             {
                 ei.king_ring              [C_] = U64 (0);
                 ei.king_attackers_count   [C ] = 0;
-                ei.king_zone_attacks_count[C ] = 0;
                 ei.king_attackers_weight  [C ] = 0;
             }
         }
@@ -377,16 +376,13 @@ namespace Evaluator {
 
                 ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PT] |= attacks;
 
-                if (attacks & ei.king_ring[C_])
+                if (ei.king_ring[C_] & attacks)
                 {
                     ei.king_attackers_count [C]++;
                     ei.king_attackers_weight[C] += KingAttackWeight[PT];
 
-                    Bitboard attacks_king = attacks & ei.ful_attacked_by[C_][KING];
-                    if (attacks_king)
-                    {
-                        ei.king_zone_attacks_count[C] += more_than_one (attacks_king) ? pop_count<MAX15> (attacks_king) : 1;
-                    }
+                    Bitboard attackers = ei.ful_attacked_by[C_][KING] & attacks;
+                    ei.king_zone_attacks_count[C ] += attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -524,7 +520,7 @@ namespace Evaluator {
                         const Rank kr = rel_rank (C, fk_sq);
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
-                        if (   (kf < F_E == f < kf)
+                        if (   ((kf < F_E) == (f < kf))
                             && (kr == R_1 || kr == r)
                             && (!ei.pi->semiopen_side<C> (kf, f < kf))
                            )
@@ -587,7 +583,7 @@ namespace Evaluator {
             }
 
             Score score = mk_score (value, -16 * ei.pi->kp_min_dist[C]);
-
+            
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])
             {
@@ -595,7 +591,7 @@ namespace Evaluator {
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
-                    ei.ful_attacked_by[C ][KING] // king region
+                    ei.ful_attacked_by[C ][KING] // King zone
                   & ei.pin_attacked_by[C_][NONE]
                   & ~(ei.pin_attacked_by[C ][PAWN]
                     | ei.pin_attacked_by[C ][NIHT]
@@ -607,7 +603,7 @@ namespace Evaluator {
                 // index to the KingDanger[] array. The initial value is based on the
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
-                // the pawn shelter (current 'score' value).
+                // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                                                 // King-zone attacker piece weight

@@ -22,6 +22,9 @@ CACHE_ALIGN(32) const Value PieceValue[PHASE_NO][TOTL] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
+// PSQT[Color][PieceType][Square] contains Color-PieceType-Square scores.
+CACHE_ALIGN(32) Score PSQT[CLR_NO][NONE][SQ_NO];
+
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
 const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -36,16 +39,15 @@ bool _ok (const string &fen, bool c960, bool full)
 namespace {
 
     // do_move() copy current state info up to 'posi_key' excluded to the new one.
-    // calculate the quad words (64bits) needed to be copied.
-    const u08 STATE_COPY_SIZE = offsetof (StateInfo, posi_key);
-
-    CACHE_ALIGN(64) Score PSQ[CLR_NO][NONE][SQ_NO];
+    // calculate the bits needed to be copied.
+    const u08 STATEINFO_COPY_SIZE = offsetof (StateInfo, posi_key);
 
 #define S(mg, eg) mk_score (mg, eg)
-    // PSQT[PieceType][Square] contains Piece-Square scores. For each piece type on
-    // a given square a (midgame, endgame) score pair is assigned. PSQT is defined
-    // for white side, for black side the tables are symmetric.
-    const Score PSQT[NONE][SQ_NO] =
+    // SQT[PieceType][Square] contains PieceType-Square scores.
+    // For each piece type on a given square a (midgame, endgame) score pair is assigned.
+    // SQT table is defined for white side +ve,
+    // the table for black side is symmetric -ve.
+    const Score SQT[NONE][SQ_NO] =
     {
         // Pawn
         {
@@ -169,9 +171,9 @@ void Position::initialize ()
 
         for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
-            Score psq_score = score + PSQT[pt][s];
-            PSQ[WHITE][pt][ Square (s)] = +psq_score;
-            PSQ[BLACK][pt][~Square (s)] = -psq_score;
+            Score psq_score = score + SQT[pt][s];
+            PSQT[WHITE][pt][ Square (s)] = +psq_score;
+            PSQT[BLACK][pt][~Square (s)] = -psq_score;
         }
     }
 }
@@ -1205,7 +1207,7 @@ Score Position::compute_psq_score () const
     while (occ)
     {
         Square s = pop_lsq (occ);
-        score += PSQ[color (_board[s])][ptype (_board[s])][s];
+        score += PSQT[color (_board[s])][ptype (_board[s])][s];
     }
     return score;
 }
@@ -1226,21 +1228,21 @@ Value Position::compute_non_pawn_material (Color c) const
 
 #undef do_capture
 
-#define do_capture() {                                                       \
-    remove_piece (cap);                                                      \
-    if (PAWN == ct)                                                          \
-    {                                                                        \
-        _si->pawn_key ^= Zob._.piecesq[pasive][PAWN][cap];                  \
-    }                                                                        \
-    else                                                                     \
-    {                                                                        \
-        _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];                    \
-    }                                                                        \
-    _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];    \
-    prefetch ((char *) _thread->material_table[_si->matl_key]);              \
-    p_key ^= Zob._.piecesq[pasive][ct][cap];                                 \
-    _si->psq_score -= PSQ[pasive][ct][cap];                                  \
-    _si->clock50 = 0;                                                        \
+#define do_capture() {                                                        \
+    remove_piece (cap);                                                       \
+    if (PAWN == ct)                                                           \
+    {                                                                         \
+        _si->pawn_key ^= Zob._.piece_square[pasive][PAWN][cap];               \
+    }                                                                         \
+    else                                                                      \
+    {                                                                         \
+        _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];                     \
+    }                                                                         \
+    _si->matl_key ^= Zob._.piece_square[pasive][ct][_piece_count[pasive][ct]];\
+    prefetch ((char *) _thread->material_table[_si->matl_key]);               \
+    p_key ^= Zob._.piece_square[pasive][ct][cap];                             \
+    _si->psq_score -= PSQT[pasive][ct][cap];                                  \
+    _si->clock50 = 0;                                                         \
 }
 
 // do_move() do the move with checking info
@@ -1253,7 +1255,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si, _si, STATE_COPY_SIZE);
+    memcpy (&si, _si, STATEINFO_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si.p_si = _si;
@@ -1294,7 +1296,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
             ct = ptype (_board[cap]);
         }
 
-        ASSERT (KING != ct);   // can't capture the KING
+        ASSERT (KING != ct);   // Can't capture the KING
         if (NONE != ct)
         {
             do_capture ();
@@ -1318,13 +1320,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                Zob._.piecesq[_active][PAWN][org] ^
-                Zob._.piecesq[_active][PAWN][dst];
+                Zob._.piece_square[_active][PAWN][org] ^
+                Zob._.piece_square[_active][PAWN][dst];
         }
 
-        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
-
-        _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
+        p_key ^= Zob._.piece_square[_active][pt][org] ^ Zob._.piece_square[_active][pt][dst];
+        // Update incremental score
+        _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
     }
     else if (mt == CASTLE)
     {
@@ -1335,11 +1337,11 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         Square org_rook, dst_rook;
         do_castling<true> (org, dst, org_rook, dst_rook);
 
-        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
-        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
-
-        _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
-        _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
+        p_key ^= Zob._.piece_square[_active][KING][org     ] ^ Zob._.piece_square[_active][KING][dst     ];
+        p_key ^= Zob._.piece_square[_active][ROOK][org_rook] ^ Zob._.piece_square[_active][ROOK][dst_rook];
+        // Update incremental score
+        _si->psq_score += PSQT[_active][KING][dst     ] - PSQT[_active][KING][org     ];
+        _si->psq_score += PSQT[_active][ROOK][dst_rook] - PSQT[_active][ROOK][org_rook];
         
         _si->clock50++;
     }
@@ -1364,13 +1366,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                Zob._.piecesq[_active][PAWN][org] ^
-                Zob._.piecesq[_active][PAWN][dst];
+                Zob._.piece_square[_active][PAWN][org] ^
+                Zob._.piece_square[_active][PAWN][dst];
         }
         
-        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
-        
-        _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
+        p_key ^= Zob._.piece_square[_active][pt][org] ^ Zob._.piece_square[_active][pt][dst];
+        // Update incremental score
+        _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
     }
     else if (mt == PROMOTE)
     {
@@ -1381,7 +1383,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ct = ptype (_board[cap]);
         ASSERT (PAWN != ct);
 
-        ASSERT (KING != ct);   // can't capture the KING
+        ASSERT (KING != ct);   // Can't capture the KING
         if (NONE != ct)
         {
             do_capture ();
@@ -1397,15 +1399,15 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         place_piece (dst, _active, ppt);
 
         _si->matl_key ^=
-            Zob._.piecesq[_active][PAWN][_piece_count[_active][PAWN]] ^
-            Zob._.piecesq[_active][ppt][_piece_count[_active][ppt] - 1];
+            Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]] ^
+            Zob._.piece_square[_active][ppt][_piece_count[_active][ppt] - 1];
 
-        _si->pawn_key ^= Zob._.piecesq[_active][PAWN][org];
+        _si->pawn_key ^= Zob._.piece_square[_active][PAWN][org];
 
-        p_key ^= Zob._.piecesq[_active][PAWN][org] ^ Zob._.piecesq[_active][ppt][dst];
+        p_key ^= Zob._.piece_square[_active][PAWN][org] ^ Zob._.piece_square[_active][ppt][dst];
 
         // Update incremental score
-        _si->psq_score += PSQ[_active][ppt][dst] - PSQ[_active][PAWN][org];
+        _si->psq_score += PSQT[_active][ppt][dst] - PSQT[_active][PAWN][org];
         // Update material
         _si->non_pawn_matl[_active] += PieceValue[MG][ppt];
     }
@@ -1472,11 +1474,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
-        i08 iorg = org;
-        i08 idst = dst;
-        if (DEL_NN == (idst ^ iorg))
+        if (DEL_NN == (i08 (dst) ^ i08 (org)))
         {
-            Square ep_sq = Square ((idst + iorg) / 2);
+            Square ep_sq = Square ((i08 (dst) + i08 (org)) / 2);
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;

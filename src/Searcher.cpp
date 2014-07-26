@@ -812,17 +812,18 @@ namespace Searcher {
                                             null_value = beta;
                                         }
 
-                                        if (   (depth < (12*ONE_MOVE))
-                                            && (abs(beta) < VALUE_KNOWN_WIN)
+                                        if (   ((depth < (12*ONE_MOVE)) && (abs(beta) < VALUE_KNOWN_WIN))
+                                            || (rdepth < ONE_MOVE)
                                            )
                                         {
                                             return null_value;
                                         }
+
                                         // Do verification search at high depths
                                         (ss)->skip_null_move = true;
 
-                                        Value veri_value = (rdepth < ONE_MOVE) ?
-                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        Value veri_value = //(rdepth < ONE_MOVE) ?
+                                            //search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         (ss)->skip_null_move = false;
