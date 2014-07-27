@@ -702,8 +702,8 @@ bool Position::pseudo_legal (Move m) const
 {
     if (!_ok (m)) return false;
 
-    Square org  = org_sq (m);
-    Square dst  = dst_sq (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Color pasive = ~_active;
 
@@ -883,22 +883,7 @@ bool Position::pseudo_legal (Move m) const
         default:
             return false;
         }
-        
-        //if (!( (PawnAttacks[_active][org] & _color_bb[pasive] & dst   // Not a capture
-        //        && (NONE != ct)
-        //        && (_active != color (_board[cap])))
-        //    || (   (org + pawn_push (_active) == dst)                 // Not a single push
-        //        && empty (dst))
-        //    || (   (R_2 == r_org)                                     // Not a double push
-        //        && (R_4 == r_dst)
-        //        && (0 == file_dist (cap, org))
-        //        //&& (org + 2*pawn_push (_active) == dst)
-        //        && empty (dst)
-        //        && empty (dst - pawn_push (_active)))))
-        //{
-        //    return false;
-        //}
-        
+
     }
     else
     {
@@ -953,8 +938,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
     ASSERT (_ok (m));
     ASSERT (pinned == pinneds (_active));
 
-    Square org  = org_sq (m);
-    Square dst  = dst_sq (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     Color pasive = ~_active;
 
@@ -1269,9 +1254,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     Color pasive = ~_active;
 
-    Square org  = org_sq (m);
-    Square dst  = dst_sq (m);
-    PieceT pt   = ptype (_board[org]);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    PieceT pt  = ptype (_board[org]);
 
     ASSERT ((!empty (org))
         &&  (_active == color (_board[org]))
@@ -1529,8 +1514,8 @@ void Position::undo_move ()
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
-    Square org  = org_sq (m);
-    Square dst  = dst_sq (m);
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
 
     _active = ~_active;
 
@@ -1922,10 +1907,13 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     // 4. En-passant square. Ignore if no pawn capture is possible
     u08 col, row;
     if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
-        && ((iss >> row) && (row == '3' || row == '6')))
+        && ((iss >> row) && (row == '3' || row == '6'))
+       )
     {
         if (!( (WHITE == pos._active && '6' != row)
-            || (BLACK == pos._active && '3' != row)))
+            || (BLACK == pos._active && '3' != row)
+             )
+           )
         {
             Square ep_sq = to_square (col, row);
             if (pos.can_en_passant (ep_sq))

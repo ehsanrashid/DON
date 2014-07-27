@@ -42,10 +42,11 @@ namespace MoveGenerator {
                 {
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci)
+                        if (ci != NULL)
                         {
                             if (    (BSHP == PT || ROOK == PT || QUEN == PT)
-                                && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT]))
+                                && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
+                               )
                             {
                                 continue;
                             }
@@ -59,7 +60,7 @@ namespace MoveGenerator {
                     Bitboard attacks = attacks_bb<PT> (s, occ) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci) attacks &= ci->checking_bb[PT];
+                        if (ci != NULL) attacks &= ci->checking_bb[PT];
                     }
 
                     SERIALIZE (moves, s, attacks);
@@ -221,14 +222,14 @@ namespace MoveGenerator {
                     // not already included in the queen-promotion (queening).
                     if (QUIET_CHECK == GT || CHECK == GT)
                     {
-                        if (ci)
+                        if (ci != NULL)
                         {
                             if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                         }
 
                         if (CHECK == GT)
                         {
-                            if (ci)
+                            if (ci != NULL)
                             {
                                 //if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
@@ -289,7 +290,7 @@ namespace MoveGenerator {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        if (ci)
+                        if (ci != NULL)
                         {
                             Bitboard pawn_attacks = PawnAttacks[C_][ci->king_sq];
 
