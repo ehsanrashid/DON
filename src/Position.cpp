@@ -723,7 +723,7 @@ bool Position::pseudo_legal (Move m) const
 
     MoveT mt = mtype (m);
 
-    if      (mt == NORMAL)
+    if (mt == NORMAL)
     {
         // Is not a promotion, so promotion piece must be empty
         if (PAWN != (promote (m) - NIHT))
@@ -732,7 +732,8 @@ bool Position::pseudo_legal (Move m) const
         }
         ct = ptype (_board[cap]);
     }
-    else if (mt == CASTLE)
+    else
+    if (mt == CASTLE)
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
@@ -770,7 +771,8 @@ bool Position::pseudo_legal (Move m) const
         //ct = NONE;
         return true;
     }
-    else if (mt == ENPASSANT)
+    else
+    if (mt == ENPASSANT)
     {
         if (!( (PAWN == pt)
             && (_si->en_passant_sq == dst)
@@ -790,7 +792,8 @@ bool Position::pseudo_legal (Move m) const
         }
         ct = PAWN;
     }
-    else if (mt == PROMOTE)
+    else
+    if (mt == PROMOTE)
     {
         if (!( (PAWN == pt)
             && (R_7 == r_org)
@@ -962,8 +965,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
     MoveT mt = mtype (m);
 
-    if      (mt == NORMAL
-        ||   mt == PROMOTE)
+    if (mt == NORMAL || mt == PROMOTE)
     {
         // If the moving piece is a king.
         if (KING == pt)
@@ -981,12 +983,14 @@ bool Position::legal        (Move m, Bitboard pinned) const
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
-    else if (mt == CASTLE)
+    else
+    if (mt == CASTLE)
     {
         // Castling moves are checked for legality during move generation.
         return (KING == pt);
     }
-    else if (mt == ENPASSANT)
+    else
+    if (mt == ENPASSANT)
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
@@ -1032,7 +1036,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 
     const Bitboard occ = _types_bb[NONE];
 
-    if      (mt == CASTLE)
+    if (mt == CASTLE)
     {
         // Castling with check ?
         bool  king_side = (dst > org);
@@ -1043,7 +1047,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return (PieceAttacks[ROOK][dst_rook] & ci.king_sq) // First x-ray check then full check
             && (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
-    else if (mt == ENPASSANT)
+    else
+    if (mt == ENPASSANT)
     {
         // En passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
@@ -1055,7 +1060,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
               || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
                );
     }
-    else if (mt == PROMOTE)
+    else
+    if (mt == PROMOTE)
     {
         // Promotion with check ?
         return (attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq);
@@ -1281,7 +1287,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     PieceT  ct = NONE;
 
     // Do move according to move type
-    if      (mt == NORMAL)
+    if (mt == NORMAL)
     {
         ASSERT (PAWN == (promote (m) - NIHT));
 
@@ -1328,7 +1334,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         // Update incremental score
         _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
     }
-    else if (mt == CASTLE)
+    else
+    if (mt == CASTLE)
     {
         ASSERT (KING == pt);
         ASSERT (ROOK == ptype (_board[dst]));
@@ -1345,7 +1352,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         
         _si->clock50++;
     }
-    else if (mt == ENPASSANT)
+    else
+    if (mt == ENPASSANT)
     {
         ASSERT (PAWN == pt);                // Moving type must be pawn
         ASSERT (dst == _si->en_passant_sq); // Destination must be en-passant
@@ -1374,7 +1382,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         // Update incremental score
         _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
     }
-    else if (mt == PROMOTE)
+    else
+    if (mt == PROMOTE)
     {
         ASSERT (PAWN == pt);        // Moving type must be PAWN
         ASSERT (R_7 == rel_rank (_active, org));
@@ -1533,17 +1542,19 @@ void Position::undo_move ()
     Square cap = dst;
 
     // Undo move according to move type
-    if      (mt == NORMAL)
+    if (mt == NORMAL)
     {
         move_piece (dst, org); // Put the piece back at the origin square
     }
-    else if (mt == CASTLE)
+    else
+    if (mt == CASTLE)
     {
         Square org_rook, dst_rook;
         do_castling<false> (org, dst, org_rook, dst_rook);
         //ct  = NONE;
     }
-    else if (mt == ENPASSANT)
+    else
+    if (mt == ENPASSANT)
     {
         ASSERT (PAWN == ptype (_board[dst]));
         ASSERT (PAWN == _si->capture_type);
@@ -1554,7 +1565,8 @@ void Position::undo_move ()
         ASSERT (empty (cap));
         move_piece (dst, org); // Put the piece back at the origin square
     }
-    else if (mt == PROMOTE)
+    else
+    if (mt == PROMOTE)
     {
         ASSERT (promote (m) == ptype (_board[dst]));
         ASSERT (R_8 == rel_rank (_active, dst));
@@ -1828,17 +1840,19 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     Square s = SQ_A8;
     while ((iss >> ch) && !isspace (ch))
     {
-        if      (isdigit (ch))
+        if (isdigit (ch))
         {
             s += Delta (ch - '0'); // Advance the given number of files
         }
-        else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+        else
+        if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
         {
             Piece p = Piece (idx);
             pos.place_piece (s, color (p), ptype (p));
             ++s;
         }
-        else if (ch == '/')
+        else
+        if (ch == '/')
         {
             s += DEL_SS;
         }

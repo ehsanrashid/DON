@@ -361,11 +361,12 @@ inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {
     static Threads::Mutex mutex;
 
-    if      (sync == IO_LOCK)
+    if (sync == IO_LOCK)
     {
         mutex.lock ();
     }
-    else if (sync == IO_UNLOCK)
+    else
+    if (sync == IO_UNLOCK)
     {
         mutex.unlock ();
     }

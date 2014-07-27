@@ -121,7 +121,8 @@ namespace UCI {
                     }
                     //cout << name << "\n" << code << endl;
                 }
-                else if (token == "later")
+                else
+                if (token == "later")
                 {
 
                 }
@@ -141,12 +142,13 @@ namespace UCI {
             if (cmds >> token)
             {
                 // Consume "startpos" or "fen" token
-                if      (token == "startpos")
+                if (token == "startpos")
                 {
                     fen = StartFEN;
                     cmds >> token; // Consume "moves" token if any
                 }
-                else if (token == "fen")
+                else
+                if (token == "fen")
                 {
                     // Consume "moves" token if any
                     while (cmds >> token && token != "moves")
@@ -240,11 +242,12 @@ namespace UCI {
             string token;
             if (cmds >> token)
             {
-                if      (token == "on")
+                if (token == "on")
                 {
                     log_io (true);
                 }
-                else if (token == "off")
+                else
+                if (token == "off")
                 {
                     log_io (false);
                 }
@@ -409,7 +412,7 @@ namespace UCI {
             cmdstream cmds (cmd);
             cmds >> skipws >> token;
 
-            if (token.empty ())             continue;
+            if      (token.empty ())        continue;
             else if (token == "uci")        exe_uci ();
             else if (token == "ucinewgame") { /*TT.clear ();*/ } // Obsolete command
             else if (token == "isready")    exe_isready ();

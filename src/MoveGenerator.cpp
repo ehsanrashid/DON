@@ -332,7 +332,6 @@ namespace MoveGenerator {
                     if (SQ_NO != ep_sq)
                     {
                         ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
-                        // RR5_bb
                         Bitboard pawns_on_R5 = pawns_on_Rx & rel_rank_bb (C, R_5);
                         if (pawns_on_R5)
                         {
@@ -342,13 +341,13 @@ namespace MoveGenerator {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
-                                Bitboard pawns_ep = PawnAttacks[C_][ep_sq] & pawns_on_R5;
-                                ASSERT (pawns_ep);
-                                ASSERT (pop_count<MAX15> (pawns_ep) <= 2);
+                                Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_R5;
+                                ASSERT (ep_pawns);
+                                ASSERT (pop_count<MAX15> (ep_pawns) <= 2);
 
-                                while (pawns_ep)
+                                while (ep_pawns)
                                 {
-                                    (moves++)->move = mk_move<ENPASSANT> (pop_lsq (pawns_ep), ep_sq);
+                                    (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
                                 }
                             }
                         }

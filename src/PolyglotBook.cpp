@@ -292,12 +292,14 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         {
             if (pbe.weight == max_weight) move = Move (pbe.move);
         }
-        else if (sum_weight)
+        else
+        if (sum_weight)
         {
             u16 rand = _rkiss.rand<u16> () % sum_weight;
             if (pbe.weight > rand) move = Move (pbe.move);
         }
-        else if (MOVE_NONE == move) // if not pick best and sum of weight = 0
+        else
+        if (MOVE_NONE == move) // if not pick best and sum of weight = 0
         {
             move = Move (pbe.move);
         }

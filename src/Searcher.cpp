@@ -1454,7 +1454,7 @@ namespace Searcher {
 
                         // In case of failing low/high increase aspiration window and
                         // re-search, otherwise exit the loop.
-                        if      (best_value <= bound[0])
+                        if (best_value <= bound[0])
                         {
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                             window[0] *= 1.375;
@@ -1462,7 +1462,8 @@ namespace Searcher {
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
-                        else if (best_value >= bound[1])
+                        else
+                        if (best_value >= bound[1])
                         {
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             window[1] *= 1.375;
@@ -1908,11 +1909,12 @@ namespace Searcher {
                 Reduction[1][0][hd][mc] = Reduction[1][1][hd][mc];
                 Reduction[0][0][hd][mc] = Reduction[0][1][hd][mc];
                 // Smoother transition for LMR
-                if      (Reduction[0][0][hd][mc] > (2*ONE_MOVE))
+                if (Reduction[0][0][hd][mc] > (2*ONE_MOVE))
                 {
                     Reduction[0][0][hd][mc] += ONE_MOVE;
                 }
-                else if (Reduction[0][0][hd][mc] > (1*ONE_MOVE))
+                else
+                if (Reduction[0][0][hd][mc] > (1*ONE_MOVE))
                 {
                     Reduction[0][0][hd][mc] += ONE_PLY;
                 }

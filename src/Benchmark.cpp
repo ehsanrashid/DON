@@ -101,11 +101,12 @@ void benchmark (istream &is, const Position &pos)
     //else if (limit_type == "depth")
     else                            limits.depth    = u08 (value);
 
-    if      (fen_fn == "default")
+    if (fen_fn == "default")
     {
         fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
     }
-    else if (fen_fn == "current")
+    else
+    if (fen_fn == "current")
     {
         fens.push_back (pos.fen ());
     }
@@ -146,13 +147,14 @@ void benchmark (istream &is, const Position &pos)
             << "\n---------------\n" 
             << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
 
-        if      (limit_type == "perft")
+        if (limit_type == "perft")
         {
             u64 leaf_count = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
             cerr << "\nDepth " << u16 (limits.depth)  << " leaf nodes: " << leaf_count << "\n";
             nodes += leaf_count;
         }
-        else if (limit_type == "perftdiv")
+        else
+        if (limit_type == "perftdiv")
         {
             StateInfo si;
             CheckInfo ci (root_pos);

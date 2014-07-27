@@ -298,11 +298,12 @@ namespace Notation {
             << setw (8) << pretty_time (msecs);
 
         u64 game_nodes = pos.game_nodes ();
-        if      (game_nodes < M)
+        if (game_nodes < M)
         {
             oss << setw (8) << game_nodes / 1 << "  ";
         }
-        else if (game_nodes < K * M)
+        else
+        if (game_nodes < K * M)
         {
             oss << setw (7) << game_nodes / K << "K  ";
         }

@@ -193,11 +193,12 @@ namespace Material {
                 e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
             }
 
-            if      (is_KQKRPs<WHITE> (pos))
+            if (is_KQKRPs<WHITE> (pos))
             {
                 e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
             }
-            else if (is_KQKRPs<BLACK> (pos))
+            else
+            if (is_KQKRPs<BLACK> (pos))
             {
                 e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
             }
@@ -212,21 +213,23 @@ namespace Material {
                 && (pos.pieces<PAWN> ())
                )
             {
-                if (      (pos.count<PAWN> (BLACK) == 0)
-                       && (pos.count<PAWN> (WHITE) >  1)
+                if (  (pos.count<PAWN> (BLACK) == 0)
+                   && (pos.count<PAWN> (WHITE) >  1)
                    )
                 {
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
-                else if ( (pos.count<PAWN> (WHITE) == 0)
-                       && (pos.count<PAWN> (BLACK) >  1)
-                        )
+                else
+                if (  (pos.count<PAWN> (WHITE) == 0)
+                   && (pos.count<PAWN> (BLACK) >  1)
+                   )
                 {
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
-                else if ( (pos.count<PAWN> (WHITE) == 1)
-                       && (pos.count<PAWN> (BLACK) == 1)
-                        )
+                else
+                if (  (pos.count<PAWN> (WHITE) == 1)
+                   && (pos.count<PAWN> (BLACK) == 1)
+                   )
                 {
                     // This is a special case because set scaling functions for both colors instead of only one.
                     e->scaling_func[WHITE] = &ScaleKPKP[WHITE];
@@ -240,13 +243,14 @@ namespace Material {
 
             if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
             {
-                if      (pos.count<PAWN> (WHITE) == 0)
+                if (pos.count<PAWN> (WHITE) == 0)
                 {
                     e->factor[WHITE] = u08 (
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
-                else if (pos.count<PAWN> (WHITE) == 1)
+                else
+                if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->factor[WHITE] = u08 (SCALE_FACTOR_PAWNS);
                 }
@@ -254,13 +258,14 @@ namespace Material {
 
             if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
             {
-                if      (pos.count<PAWN> (BLACK) == 0)
+                if (pos.count<PAWN> (BLACK) == 0)
                 {
                     e->factor[BLACK] = u08 (
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
-                else if (pos.count<PAWN> (BLACK) == 1)
+                else
+                if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->factor[BLACK] = u08 (SCALE_FACTOR_PAWNS);
                 }

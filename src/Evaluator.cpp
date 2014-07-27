@@ -830,7 +830,7 @@ namespace Evaluator {
                     }
 
                     // If the pawn is free to advance, increase bonus
-                    if      (pos.empty (block_sq))
+                    if (pos.empty (block_sq))
                     {
                         // squares to queen
                         const Bitboard queen_squares = FrontSqrs_bb[C ][s];
@@ -886,7 +886,8 @@ namespace Evaluator {
                         mg_value += k * rr;
                         eg_value += k * rr;
                     }
-                    else if (pos.pieces (C) & block_sq)
+                    else
+                    if (pos.pieces (C) & block_sq)
                     {
                         mg_value += 3 * rr + 2 * r + 3;
                         eg_value += 1 * rr + 2 * r;
@@ -1118,10 +1119,11 @@ namespace Evaluator {
                         scale_fac = ScaleFactor (50 * i32 (scale_fac) / i32 (SCALE_FACTOR_NORMAL));
                     }
                 }
-                else if (    (abs (eg) <= VALUE_EG_BSHP)
-                         &&  (ei.pi->pawn_span[strong_side] <= 1)
-                         && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
-                        )
+                else
+                if (    (abs (eg) <= VALUE_EG_BSHP)
+                    &&  (ei.pi->pawn_span[strong_side] <= 1)
+                    && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
+                   )
                 {
                     // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                     scale_fac = PawnSpanScale[ei.pi->pawn_span[strong_side]];

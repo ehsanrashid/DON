@@ -48,11 +48,13 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
     {
         stage = EVASIONS;
     }
-    else if (d > DEPTH_QS_NO_CHECKS)
+    else
+    if (d > DEPTH_QS_NO_CHECKS)
     {
         stage = QSEARCH_0;
     }
-    else if (d > DEPTH_QS_RECAPTURES)
+    else
+    if (d > DEPTH_QS_RECAPTURES)
     {
         stage = QSEARCH_1;
 
@@ -130,11 +132,12 @@ void MovePicker::value<CAPTURE> ()
         itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])+1);
 
         MoveT mt = mtype (m);
-        if      (mt == ENPASSANT)
+        if (mt == ENPASSANT)
         {
             itr->value += PieceValue[MG][PAWN];
         }
-        else if (mt == PROMOTE)
+        else
+        if (mt == PROMOTE)
         {
             itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
         }
@@ -162,30 +165,29 @@ void MovePicker::value<EVASION> ()
         Move m = itr->move;
 
         Value gain_value = pos.see_sign (m);
-        if      (gain_value < VALUE_ZERO)
+        if (gain_value < VALUE_ZERO)
         {
             itr->value = gain_value - VALUE_KNOWN_WIN; // At the bottom
         }
         else
+        if (pos.capture (m))
         {
-            if (pos.capture (m))
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
+                        - Value (ptype (pos[org_sq (m)])+1) + VALUE_KNOWN_WIN;
+            MoveT mt = mtype (m);
+            if (mt == ENPASSANT)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
-                - Value (ptype (pos[org_sq (m)])+1) + VALUE_KNOWN_WIN;
-                MoveT mt = mtype (m);
-                if      (mt == ENPASSANT)
-                {
-                    itr->value += PieceValue[MG][PAWN];
-                }
-                else if (mt == PROMOTE)
-                {
-                    itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
-                }
+                itr->value += PieceValue[MG][PAWN];
             }
             else
+            if (mt == PROMOTE)
             {
-                itr->value = history[pos[org_sq (m)]][dst_sq (m)];
+                itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
             }
+        }
+        else
+        {
+            itr->value = history[pos[org_sq (m)]][dst_sq (m)];
         }
     }
 }

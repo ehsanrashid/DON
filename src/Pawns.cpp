@@ -383,7 +383,7 @@ namespace Pawns {
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
-                i16 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
+                i32 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
                 ConnectedBonus[f][r] = mk_score (bonus, bonus);
             }
         }

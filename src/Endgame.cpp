@@ -274,11 +274,12 @@ namespace EndGame {
             value = VALUE_EG_ROOK - i32 (SquareDist[sk_sq][wp_sq]);
         }
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
-        else if ( (_rank (wk_sq) <= R_3)
-               && (SquareDist[wk_sq][wp_sq] == 1)
-               && (_rank (sk_sq) >= R_4)
-               && (SquareDist[sk_sq][wp_sq] > 2 + (_stong_side == pos.active ()))
-                )
+        else
+        if (   (_rank (wk_sq) <= R_3)
+            && (SquareDist[wk_sq][wp_sq] == 1)
+            && (_rank (sk_sq) >= R_4)
+            && (SquareDist[sk_sq][wp_sq] > 2 + (_stong_side == pos.active ()))
+           )
         {
             value = Value (80 - SquareDist[sk_sq][wp_sq] * 8);
         }

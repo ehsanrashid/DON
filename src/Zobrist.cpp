@@ -125,18 +125,20 @@ namespace Zobrist {
         Square s = SQ_A8;
         while ((iss >> ch) && !isspace (ch))
         {
-            if      (isdigit (ch))
+            if (isdigit (ch))
             {
                 s += Delta (ch - '0'); // Advance the given number of files
             }
-            else if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+            else
+            if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 Piece p = Piece (idx);
                 if (KING == ptype (p))  kf[color (p)] = _file (s);
                 fen_key ^= _.piece_square[color (p)][ptype (p)][s];
                 ++s;
             }
-            else if (ch == '/')
+            else
+            if (ch == '/')
             {
                 s += DEL_SS;
             }
