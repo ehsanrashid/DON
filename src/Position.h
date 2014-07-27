@@ -121,6 +121,7 @@ private:
     CRight   _castle_mask[SQ_NO];
     Square   _castle_rook[CR_ALL];
     Bitboard _castle_path[CR_ALL];
+    Bitboard _king_path[CR_ALL];
 
     // Side on move
     // "w" - WHITE
@@ -228,6 +229,7 @@ public:
 
     Square   castle_rook (CRight cr) const;
     Bitboard castle_path (CRight cr) const;
+    Bitboard king_path   (CRight cr) const;
     bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
@@ -416,6 +418,8 @@ inline CRight Position::can_castle   (Color   c) const { return _si->castle_righ
 
 inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
+inline Bitboard Position::king_path   (CRight cr) const { return _king_path[cr]; }
+
 inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }

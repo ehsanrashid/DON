@@ -1792,9 +1792,9 @@ namespace Searcher {
             }
 
             Threadpool.timer->start ();
-            Threadpool.timer->notify_one ();// Wake up the recurring timer
+            Threadpool.timer->notify_one (); // Wake up the recurring timer
 
-            search_iter_deepening (RootPos);     // Let's start searching !
+            search_iter_deepening (RootPos); // Let's start searching !
 
             Threadpool.timer->stop ();
 

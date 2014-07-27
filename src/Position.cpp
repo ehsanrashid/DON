@@ -1140,6 +1140,7 @@ void Position::set_castle (Color c, Square org_rook)
         if (org_king != s && org_rook != s)
         {
             _castle_path[cr] += Square (s);
+            _king_path[cr] += Square (s);
         }
     }
 }

@@ -557,14 +557,14 @@ namespace Evaluator {
                 {
                     if (    pos.can_castle (Castling<C, CS_K>::Right)
                         && !pos.castle_impeded (Castling<C, CS_K>::Right)
-                        && !(pos.castle_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
+                        && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
                     if (    pos.can_castle (Castling<C, CS_Q>::Right)
                         && !pos.castle_impeded (Castling<C, CS_Q>::Right)
-                        && !(pos.castle_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
+                        && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_Q]);
@@ -584,16 +584,19 @@ namespace Evaluator {
             if (ei.king_attackers_count[C_])
             {
                 const Bitboard occ = pos.pieces ();
+
+                Bitboard defences = ei.pin_attacked_by[C ][PAWN]
+                                  | ei.pin_attacked_by[C ][NIHT]
+                                  | ei.pin_attacked_by[C ][BSHP]
+                                  | ei.pin_attacked_by[C ][ROOK]
+                                  | ei.pin_attacked_by[C ][QUEN];
+
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King zone
                   & ei.ful_attacked_by[C_][NONE]
-                  & ~(ei.pin_attacked_by[C ][PAWN]
-                    | ei.pin_attacked_by[C ][NIHT]
-                    | ei.pin_attacked_by[C ][BSHP]
-                    | ei.pin_attacked_by[C ][ROOK]
-                    | ei.pin_attacked_by[C ][QUEN]);
+                  & ~defences;
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
@@ -678,12 +681,7 @@ namespace Evaluator {
                 }
 
                 // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_area = ~(pos.pieces (C_)
-                                   | ei.pin_attacked_by[C][PAWN]
-                                   | ei.pin_attacked_by[C][NIHT]
-                                   | ei.pin_attacked_by[C][BSHP]
-                                   | ei.pin_attacked_by[C][ROOK]
-                                   | ei.pin_attacked_by[C][QUEN]); // ei.pin_attacked_by[C][NONE]
+                Bitboard safe_area = ~(pos.pieces (C_) | defences); // ei.pin_attacked_by[C][NONE]
 
                 Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
                 Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
