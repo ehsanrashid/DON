@@ -362,8 +362,10 @@ namespace MoveGenerator {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & RR8_bb))
                     {
-                        if      (CAPTURE == GT) empties = ~pos.pieces ();
-                        else if (EVASION == GT) empties &= targets;
+                        empties = 
+                            (CAPTURE == GT) ? ~pos.pieces () :
+                            (EVASION == GT) ?  empties & targets :
+                                               empties;
 
                         generate_promotion<LCAP> (moves, pawns_on_R7, enemies, ci);
                         generate_promotion<RCAP> (moves, pawns_on_R7, enemies, ci);
@@ -379,10 +381,10 @@ namespace MoveGenerator {
         INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            /*if (pos.count<NIHT> (C))*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            /*if (pos.count<BSHP> (C))*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            /*if (pos.count<ROOK> (C))*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            /*if (pos.count<QUEN> (C))*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
+            if (pos.count<NIHT> (C)) Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
+            if (pos.count<BSHP> (C)) Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
+            if (pos.count<ROOK> (C)) Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
+            if (pos.count<QUEN> (C)) Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, C, KING>::generate (moves, pos, targets, ci);
 
             return moves;
