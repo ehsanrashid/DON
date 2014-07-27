@@ -31,7 +31,7 @@ namespace Pawns {
 
         Square   king_sq        [CLR_NO];
         Value    shelter_storm  [CLR_NO][3];
-        u08      kp_min_dist    [CLR_NO];
+        u08      min_kp_dist    [CLR_NO];
 
         template<Color C>
         inline u08  semiopen_file (File f) const
@@ -77,10 +77,10 @@ namespace Pawns {
                 }
                 shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (k_sq);
 
-                kp_min_dist[C] = 0;
+                min_kp_dist[C] = 0;
                 if (pawns[C])
                 {
-                    while (!(BitBoard::DistanceRings[k_sq][kp_min_dist[C]++] & pawns[C])) {}
+                    while (!(BitBoard::DistanceRings[k_sq][min_kp_dist[C]++] & pawns[C])) {}
                 }
             }
         }

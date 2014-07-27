@@ -32,8 +32,8 @@ namespace Evaluator {
             // pin_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type with pinned removed,
             Bitboard pin_attacked_by[CLR_NO][TOTL];
 
-            // pinned_pieces[Color] contains all the pinned pieces
-            Bitboard pinned_pieces[CLR_NO];
+            // pinneds[Color] contains all the pinned pieces
+            Bitboard pinneds[CLR_NO];
 
             // king_ring[Color] is the zone around the king which is considered
             // by the king safety evaluation. This consists of the squares directly
@@ -278,7 +278,7 @@ namespace Evaluator {
 
             Square ek_sq = pos.king_sq (C_);
 
-            ei.pinned_pieces  [C]       = pos.pinneds (C);
+            ei.pinneds[C] = pos.pinneds (C);
             ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
 
@@ -300,7 +300,7 @@ namespace Evaluator {
             }
             else
             {
-                ei.king_ring              [C_] = U64 (0);
+                ei.king_ring              [C_] = pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : 0;
                 ei.king_attackers_count   [C ] = 0;
                 ei.king_attackers_weight  [C ] = 0;
             }
@@ -349,7 +349,7 @@ namespace Evaluator {
             const Delta PULL     = (WHITE == C) ? DEL_S : DEL_N;
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
-            const Bitboard pinned_pieces = ei.pinned_pieces[C];
+            const Bitboard pinneds = ei.pinneds[C];
 
             ei.ful_attacked_by[C][PT] = U64 (0);
             ei.pin_attacked_by[C][PT] = U64 (0);
@@ -365,10 +365,10 @@ namespace Evaluator {
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinned_pieces)
-                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinned_pieces) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinneds) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinneds)
+                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
                                    PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PT] |= attacks;
@@ -495,7 +495,7 @@ namespace Evaluator {
                     attacks &= ~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK]);
                 }
 
-                if (pinned_pieces & s)
+                if (pinneds & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
@@ -578,7 +578,7 @@ namespace Evaluator {
                 }
             }
 
-            Score score = mk_score (value, -16 * ei.pi->kp_min_dist[C]);
+            Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
             if (ei.king_attackers_count[C_])
@@ -604,7 +604,7 @@ namespace Evaluator {
                     + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 3, 24)
                     + 3 * (ei.king_zone_attacks_count[C_])                                                                               // King-zone attacker piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)                            // King-zone undefended piece weight
-                    + 2 * (ei.pinned_pieces[C] ? (more_than_one (ei.pinned_pieces[C]) ? pop_count<MAX15> (ei.pinned_pieces[C]) : 1) : 0) // King-pinned piece weight
+                    + 2 * (ei.pinneds[C] ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King-pinned piece weight
                     - value / 32;
 
                 // Undefended squares around king not occupied by enemy's
