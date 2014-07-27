@@ -109,7 +109,7 @@ namespace Evaluator {
 
         }
 
-        enum EvalWeightT { MOBILITY, PAWN_STRUCTURE, PASSED_PAWNS, SPACE, KING_SAFETY, EVAL_NO };
+        enum EvalWeightT { MOBILITY, PAWN_STRUCT, PASSED_PAWN, SPACE, KING_SAFETY, EVAL_NO };
         
         struct Weight { i32 mg, eg; };
         
@@ -291,10 +291,8 @@ namespace Evaluator {
             {
                 Rank ekr                       = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = king_zone | (//ekr < R_2 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) :
-                                                            ekr < R_3 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) | ((shift_del<DEL_E> (king_zone) | shift_del<DEL_W> (king_zone)) & ~rel_rank_bb(C_, R_1)) :
-                                                            ekr < R_5 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) |  (shift_del<DEL_E> (king_zone) | shift_del<DEL_W> (king_zone)) :
-                                                                        DistanceRings[ek_sq][1]);
+                ei.king_ring              [C_] = king_zone | (ekr < R_4 ? DistanceRings[ek_sq][1] & ~rel_rank_bb(C_, R_1) :
+                                                                          DistanceRings[ek_sq][1]);
                 
                 attackers                      = ei.king_ring[C_] & ei.ful_attacked_by[C ][PAWN];
                 ei.king_attackers_count   [C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
@@ -323,8 +321,7 @@ namespace Evaluator {
             if (value != VALUE_ZERO)
             {
                 // Supporting pawns
-                Bitboard supporting_pawns = ei.pin_attacked_by[C][PAWN] & s;
-                if (supporting_pawns)
+                if (ei.pin_attacked_by[C][PAWN] & s)
                 {
                     if (  (ei.pin_attacked_by[C_][NIHT] & s)
                        || (ei.pin_attacked_by[C_][BSHP] & s)
@@ -591,7 +588,7 @@ namespace Evaluator {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King zone
-                  & ei.pin_attacked_by[C_][NONE]
+                  & ei.ful_attacked_by[C_][NONE]
                   & ~(ei.pin_attacked_by[C ][PAWN]
                     | ei.pin_attacked_by[C ][NIHT]
                     | ei.pin_attacked_by[C ][BSHP]
@@ -709,7 +706,7 @@ namespace Evaluator {
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
-                attack_units = min (MAX_ATTACK_UNITS-1, max (0, attack_units));
+                attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
 
                 // Finally, extract the king danger score from the KingDanger[]
                 // array and subtract the score from evaluation.
@@ -973,7 +970,7 @@ namespace Evaluator {
 
             // Probe the pawn hash table
             ei.pi  = Pawns::probe (pos, thread->pawns_table);
-            score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCTURE]);
+            score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCT]);
 
             // Initialize attack and king safety bitboards
             init_eval_info<WHITE> (pos, ei);
@@ -1026,7 +1023,7 @@ namespace Evaluator {
                 evaluate_passed_pawns<BLACK> (pos, ei)
             };
 
-            score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PASSED_PAWNS]);
+            score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PASSED_PAWN]);
 
             const Value npm[CLR_NO] =
             {
@@ -1070,8 +1067,8 @@ namespace Evaluator {
                     , apply_weight (mobility[BLACK], Weights[MOBILITY]));
 
                 Tracer::add_term (Tracer::PASSED
-                    , apply_weight (passed_pawn[WHITE], Weights[PASSED_PAWNS])
-                    , apply_weight (passed_pawn[BLACK], Weights[PASSED_PAWNS]));
+                    , apply_weight (passed_pawn[WHITE], Weights[PASSED_PAWN])
+                    , apply_weight (passed_pawn[BLACK], Weights[PASSED_PAWN]));
 
                 Tracer::add_term (Tracer::SPACE
                     , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[SPACE])
@@ -1156,15 +1153,15 @@ namespace Evaluator {
                     << "----------------+-------------+-------------+--------------\n";
                 format_row (ss, "Material"      , MATERIAL);
                 format_row (ss, "Imbalance"     , IMBALANCE);
-                format_row (ss, "Pawns"         , PAWN);
-                format_row (ss, "Knights"       , NIHT);
-                format_row (ss, "Bishops"       , BSHP);
-                format_row (ss, "Rooks"         , ROOK);
-                format_row (ss, "Queens"        , QUEN);
-                format_row (ss, "Mobility"      , MOBILITY);
+                format_row (ss, "Pawn"          , PAWN);
+                format_row (ss, "Knight"        , NIHT);
+                format_row (ss, "Bishop"        , BSHP);
+                format_row (ss, "Rook"          , ROOK);
+                format_row (ss, "Queen"         , QUEN);
                 format_row (ss, "King safety"   , KING);
-                format_row (ss, "Threats"       , THREAT);
-                format_row (ss, "Passed pawns"  , PASSED);
+                format_row (ss, "Mobility"      , MOBILITY);
+                format_row (ss, "Threat"        , THREAT);
+                format_row (ss, "Passed pawn"   , PASSED);
                 format_row (ss, "Space"         , SPACE);
                 ss  << "---------------------+-------------+-------------+--------------\n";
                 format_row (ss, "Total"         , TOTAL);
@@ -1197,11 +1194,11 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[MOBILITY      ] = weight_option (100                         , InternalWeights[MOBILITY      ]);
-        Weights[PAWN_STRUCTURE] = weight_option (100                         , InternalWeights[PAWN_STRUCTURE]);
-        Weights[PASSED_PAWNS  ] = weight_option (100                         , InternalWeights[PASSED_PAWNS  ]);
-        Weights[SPACE         ] = weight_option (i32 (Options["Space"      ]), InternalWeights[SPACE         ]);
-        Weights[KING_SAFETY   ] = weight_option (i32 (Options["King Safety"]), InternalWeights[KING_SAFETY   ]);
+        Weights[MOBILITY   ] = weight_option (100                         , InternalWeights[MOBILITY   ]);
+        Weights[PAWN_STRUCT] = weight_option (100                         , InternalWeights[PAWN_STRUCT]);
+        Weights[PASSED_PAWN] = weight_option (100                         , InternalWeights[PASSED_PAWN]);
+        Weights[SPACE      ] = weight_option (i32 (Options["Space"      ]), InternalWeights[SPACE      ]);
+        Weights[KING_SAFETY] = weight_option (i32 (Options["King Safety"]), InternalWeights[KING_SAFETY]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
@@ -1209,7 +1206,7 @@ namespace Evaluator {
         i32 mg = 0;
         for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (PeakScore, min (i32 (0.4*i*i), mg + MaxSlope));
+            mg = min (min (i32 (0.4*i*i), mg + MaxSlope), PeakScore);
             //if (80 - MaxSlope < i && i < 80) mg = i32 (PeakScore - 0.5 * (80 - i) * (80 - i));
             KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
         }
