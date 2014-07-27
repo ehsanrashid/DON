@@ -363,10 +363,8 @@ namespace MoveGenerator {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & RR8_bb))
                     {
-                        empties = 
-                            (CAPTURE == GT) ? ~pos.pieces () :
-                            (EVASION == GT) ?  empties & targets :
-                                               empties;
+                        if      (CAPTURE == GT) empties = ~pos.pieces ();
+                        else if (EVASION == GT) empties &= targets;
 
                         generate_promotion<LCAP> (moves, pawns_on_R7, enemies, ci);
                         generate_promotion<RCAP> (moves, pawns_on_R7, enemies, ci);
