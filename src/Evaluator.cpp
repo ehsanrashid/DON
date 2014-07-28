@@ -166,7 +166,7 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            { S(+ 0,+ 0), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Protected attacked by Minor
+            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Protected attacked by Minor
             { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Knight
             { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Bishop
             { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Rook
