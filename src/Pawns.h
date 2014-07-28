@@ -20,7 +20,7 @@ namespace Pawns {
         Bitboard pawns          [CLR_NO];
         Bitboard pawns_attacks  [CLR_NO];
 
-        Bitboard blocked_pawns  [CLR_NO];
+        //Bitboard blocked_pawns  [CLR_NO];
         Bitboard passed_pawns   [CLR_NO];
         Bitboard candidate_pawns[CLR_NO];
 

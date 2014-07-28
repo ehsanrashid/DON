@@ -91,7 +91,7 @@ namespace Pawns {
         {
             const Color  C_  = (WHITE == C) ? BLACK  : WHITE;
             const Delta PUSH = (WHITE == C) ? DEL_N  : DEL_S;
-            const Delta PULL = (WHITE == C) ? DEL_S  : DEL_N;
+            //const Delta PULL = (WHITE == C) ? DEL_S  : DEL_N;
             const Delta RCAP = (WHITE == C) ? DEL_NE : DEL_SW;
             const Delta LCAP = (WHITE == C) ? DEL_NW : DEL_SE;
 
@@ -103,7 +103,7 @@ namespace Pawns {
 
             e->pawns          [C] = pawns[0];
             e->pawns_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
+            //e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
             e->passed_pawns   [C] = U64 (0);
             e->candidate_pawns[C] = U64 (0);
             e->semiopen_files [C] = 0xFF;

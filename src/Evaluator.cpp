@@ -43,10 +43,10 @@ namespace Evaluator {
             // f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring[CLR_NO];
 
-            // king_ring_attacks[Color] is the sum of product of "count" and "weight" of the pieces
+            // king_ring_attacks_weight[Color] is the sum of product of "count" and "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the variables KingAttackWeight[PieceT]
-            i32 king_ring_attacks[CLR_NO];
+            i32 king_ring_attacks_weight[CLR_NO];
 
             // king_zone_attacks[Color] is the sum of product of "count" and "weight" of the pieces
             // of the given color which attack a square directly adjacent to the enemy king.
@@ -54,7 +54,7 @@ namespace Evaluator {
             // Pieces which attack more than one square are counted multiple times.
             // For instance, if black's king is on g8 and there's a white knight on g5,
             // this knight adds 2 to king_zone_attacks_count[WHITE].
-            i32 king_zone_attacks[CLR_NO];
+            u08 king_zone_attacks[CLR_NO];
 
         };
 
@@ -282,27 +282,23 @@ namespace Evaluator {
             Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
             ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
             
-            ei.king_ring_attacks[C ] = 0;
+            ei.king_ring_attacks_weight[C ] = 0;
             ei.king_zone_attacks[C ] = 0;
             
             Bitboard king_zone = king_attacks + ek_sq;
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) > VALUE_MG_QUEN) // TODO::
+            if (pos.non_pawn_material (C) > VALUE_MG_QUEN)
             {
                 Rank ekr = rel_rank (C_, ek_sq);
 
-                ei.king_ring[C_] = king_zone | (ekr < R_4 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
-                                                ekr < R_6 ? DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr)) :
-                                                            DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)|rel_rank_bb (C_, ekr)|rel_rank_bb (C_, ekr-1)|PawnPassSpan[C][ek_sq]));
-                                                //ekr < R_5 ? DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)) :
-                                                //ekr < R_7 ? DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)|rel_rank_bb (C_, ekr)) :
-                                                            //DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)|rel_rank_bb (C_, ekr)|rel_rank_bb (C_, ekr-1)|PawnPassSpan[C][ek_sq]));
+                ei.king_ring[C_] = king_zone | (ekr < R_6 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
+                                                            DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]));
 
                 Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
                 if (ei.king_ring[C_] & pawn_attacks)
                 {
-                    ei.king_ring_attacks[C] += KingAttackWeight[PAWN];
+                    ei.king_ring_attacks_weight[C] += KingAttackWeight[PAWN];
                     Bitboard zone_attacks = king_zone & pawn_attacks;
                     if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);// * KingAttackWeight[PAWN];
                 }
@@ -310,43 +306,8 @@ namespace Evaluator {
             }
             else
             {
-                ei.king_ring[C_] = //pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : 
-                    U64 (0);
+                ei.king_ring[C_] = U64 (0);
             }
-        }
-
-        template<Color C>
-        // evaluate_outpost<>() evaluates knight outposts squares
-        inline Score evaluate_outpost (const EvalInfo &ei, Square s)
-        {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
-            
-            Score score = SCORE_ZERO;
-            // Initial bonus based on square
-            Value value = OutpostValue[rel_sq (C, s)];
-
-            // Increase bonus if supported by pawn, especially if the opponent has
-            // no minor piece which can exchange the outpost piece.
-            if (value != VALUE_ZERO)
-            {
-                // Supporting pawns
-                if (ei.pin_attacked_by[C][PAWN] & s)
-                {
-                    if (  (ei.pin_attacked_by[C_][NIHT] & s)
-                       || (ei.pin_attacked_by[C_][BSHP] & s)
-                       )
-                    {
-                        value *= 1.50;
-                    }
-                    else
-                    {
-                        value *= 2.50;
-                    }
-                }
-                score = mk_score (value * 2, value / 2);
-            }
-
-            return score;
         }
 
         template<Color C, PieceT PT, bool Trace>
@@ -384,7 +345,7 @@ namespace Evaluator {
 
                 if (ei.king_ring[C_] & attacks)
                 {
-                    ei.king_ring_attacks[C] += KingAttackWeight[PT];
+                    ei.king_ring_attacks_weight[C] += KingAttackWeight[PT];
                     Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
                     if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);// * KingAttackWeight[PT];
                 }
@@ -402,10 +363,32 @@ namespace Evaluator {
                 {
                 if (NIHT == PT)
                 {
-                    // Outpost bonus for knight 
+                    // Outpost bonus for knight
                     if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
                     {
-                        score += evaluate_outpost<C> (ei, s);
+                        // Initial bonus based on square
+                        Value value = OutpostValue[rel_sq (C, s)];
+
+                        // Increase bonus if supported by pawn, especially if the opponent has
+                        // no minor piece which can exchange the outpost piece.
+                        if (value != VALUE_ZERO)
+                        {
+                            // Supporting pawns
+                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            {
+                                if (  (ei.pin_attacked_by[C_][NIHT] & s)
+                                   || (ei.pin_attacked_by[C_][BSHP] & s)
+                                   )
+                                {
+                                    value *= 1.50;
+                                }
+                                else
+                                {
+                                    value *= 2.50;
+                                }
+                            }
+                            score += mk_score (value * 2, value / 2);
+                        }
                     }
                 }
 
@@ -588,7 +571,7 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            if (ei.king_ring_attacks[C_] > KingAttackWeight[PAWN])
+            if (ei.king_ring_attacks_weight[C_] > KingAttackWeight[PAWN])
             {
                 const Bitboard occ = pos.pieces ();
 
@@ -610,7 +593,7 @@ namespace Evaluator {
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
                     //+ min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
-                    + min (ei.king_ring_attacks[C_], 20) // King-ring attacks piece weight
+                    + min (ei.king_ring_attacks_weight[C_], 20) // King-ring attacks piece weight
                     + 3 * ei.king_zone_attacks[C_] // King-zone attacks piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)          // King-zone undefended piece weight
                     + 2 * (ei.pinneds[C] ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King-pinned piece weight
@@ -929,7 +912,7 @@ namespace Evaluator {
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
                   SpaceMask[C]
-                & ~ei.pi->pawns[C] //~ei.pi->blocked_pawns[C]
+                & ~ei.pi->pawns[C]//~ei.pi->blocked_pawns[C]
                 & ~ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
@@ -991,8 +974,8 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by our pawns or king or protected by enemy pawns 
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(pos.pieces (WHITE)|ei.pin_attacked_by[BLACK][NONE]),
-                ~(pos.pieces (BLACK)|ei.pin_attacked_by[WHITE][NONE])
+                ~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
+                ~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
             };
 
             score += 
