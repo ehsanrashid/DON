@@ -137,7 +137,7 @@ private:
 
     // ------------------------
 
-    void set_castle (Color c, Square org_rook);
+    void set_castle (Color c, Square rook_org);
 
     bool can_en_passant (Square ep_sq) const;
     bool can_en_passant (File   ep_f ) const { return can_en_passant (ep_f | rel_rank (_active, R_6)); }
@@ -145,7 +145,7 @@ private:
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
     template<bool Do>
-    void do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook);
+    void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceT PT>
     PieceT least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const;
@@ -316,12 +316,12 @@ public:
 // -------------------------------
 
 INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; }
-inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
-inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
+INLINE Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
+INLINE Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
+INLINE const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
 
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
-inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
+INLINE Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
 
@@ -596,18 +596,18 @@ inline void  Position::  move_piece (Square s1, Square s2)
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
 template<bool Do>
-inline void Position::do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook)
+inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
-    bool king_side = (dst_king > org_king);
-    org_rook = dst_king; // castle is always encoded as "King captures friendly Rook"
-    dst_king = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-    dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
+    bool king_side = (king_dst > king_org);
+    rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
+    king_dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (Do ? org_king : dst_king);
-    remove_piece (Do ? org_rook : dst_rook);
-    place_piece (Do ? dst_king : org_king, _active, KING);
-    place_piece (Do ? dst_rook : org_rook, _active, ROOK);
+    remove_piece (Do ? king_org : king_dst);
+    remove_piece (Do ? rook_org : rook_dst);
+    place_piece (Do ? king_dst : king_org, _active, KING);
+    place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }
 
 // ----------------------------------------------

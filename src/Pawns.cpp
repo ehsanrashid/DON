@@ -263,15 +263,15 @@ namespace Pawns {
                     if (candidate)  e->candidate_pawns[C] += s;
                 }
 
-                if (   (r > R_4)
-                    && !(levered || unsupported)
-                    && (e->blocked_pawns[C] & s)
-                    && !(pawns[1] & PawnPassSpan[C][s + PUSH])
-                   )
-                {
-                    // sneaker - hidden passer bonus 
-                    pawn_score += SneakerBonus * (r - R_4);
-                }
+                //if (   (r > R_4)
+                //    && !(levered || unsupported)
+                //    && (e->blocked_pawns[C] & s)
+                //    && !(pawns[1] & PawnPassSpan[C][s + PUSH])
+                //   )
+                //{
+                //    // sneaker - hidden passer bonus 
+                //    pawn_score += SneakerBonus * (r - R_4);
+                //}
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;

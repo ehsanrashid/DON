@@ -363,7 +363,6 @@ namespace Searcher {
                         if (tte->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
-                            //if (alpha < best_value) best_move = tt_move;
                         }
                     }
                 }
@@ -403,7 +402,6 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-
             MovePicker mp (pos, History, tt_move, depth, dst_sq ((ss-1)->current_move));
             CheckInfo  ci (pos);
 
@@ -450,16 +448,17 @@ namespace Searcher {
                         }
                     }
 
-                    // Detect non-capture evasions that are candidate to be pruned
-                    bool evasion_prunable =
-                           (best_value > VALUE_MATED_IN_MAX_PLY)
-                        && !(pos.can_castle (pos.active ()))
-                        && !(pos.capture (move));
-
                     // Don't search moves with negative SEE values
-                    if (   (evasion_prunable || !InCheck)
-                        && (move != tt_move)
+                    if (   (move != tt_move)
                         && (mtype (move) != PROMOTE)
+                        && (   !InCheck
+                            // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
+                            || (   //InCheck &&
+                                    (best_value > VALUE_MATED_IN_MAX_PLY)
+                                && !(pos.can_castle (pos.active ()))
+                                && !(pos.capture (move))
+                               )
+                           )
                         && (pos.see_sign (move) < VALUE_ZERO)
                        )
                     {
@@ -593,8 +592,7 @@ namespace Searcher {
             }
             else
             {
-                moves_count  = 0;
-                quiets_count = 0;
+                moves_count  = quiets_count = 0;
 
                 best_value = -VALUE_INFINITE;
                 best_move  = (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = MOVE_NONE;
@@ -700,7 +698,6 @@ namespace Searcher {
                             if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
                             {
                                 eval = tt_value;
-                                //if (alpha < eval) best_move = tt_move;
                             }
                         }
                     }
@@ -785,10 +782,10 @@ namespace Searcher {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic (variable) reduction based on depth and value
-                                    Depth rdepth = depth - Depth (
-                                                    + (3*ONE_MOVE)
-                                                    + (depth/4)
-                                                    + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
+                                    Depth rdepth = depth -
+                                                 ( (3*ONE_MOVE)
+                                                 + (depth/4)
+                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -872,7 +869,7 @@ namespace Searcher {
                         && (PVNode || (ss)->static_eval + 256 >= beta)
                        )
                     {
-                        Depth iid_depth = depth - Depth ((2*ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
+                        Depth iid_depth = depth - ((2*ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
 
                         (ss)->skip_null_move = true;
                         search_depth<PVNode ? PV : NonPV, false> (pos, ss, alpha, beta, iid_depth, true);
@@ -953,19 +950,20 @@ namespace Searcher {
                 {
                     if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
                 }
-                else
-                {
-                    // Shared counter cannot be decremented later if move turns out to be illegal
-                    if (!pos.legal (move, ci.pinneds)) continue;
-                }
+
+                bool move_legal;
 
                 if (SPNode)
                 {
+                    // Shared counter cannot be decremented later if move turns out to be illegal
+                    if (!pos.legal (move, ci.pinneds)) continue;
+
                     moves_count = ++splitpoint->moves_count;
                     splitpoint->mutex.unlock ();
                 }
                 else
                 {
+                    move_legal = pos.legal (move, ci.pinneds);
                     ++moves_count;
                 }
 
@@ -1018,6 +1016,7 @@ namespace Searcher {
                 if (   (singular_ext_node)
                     && (ext == DEPTH_ZERO)
                     && (move == tt_move)
+                    && (move_legal)
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
@@ -1092,9 +1091,19 @@ namespace Searcher {
                     }
                 }
 
-                // Save the quiet move
+                // Check for legality only before to do the move
                 if (!SPNode)
                 {
+                    if (!RootNode)
+                    {
+                        // Not legal decrement move-count & continue
+                        if (!move_legal)
+                        {
+                            --moves_count;
+                            continue;
+                        }
+                    }
+
                     if (   !(capture_or_promotion)
                         && (quiets_count < MAX_QUIETS)
                        )
@@ -1170,7 +1179,7 @@ namespace Searcher {
                         value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = (alpha < value && (ss)->reduction > DEPTH_ZERO);
+                    full_depth_search = (alpha < value && (ss)->reduction != DEPTH_ZERO);
                     (ss)->reduction = DEPTH_ZERO;
                 }
                 else
@@ -1579,33 +1588,30 @@ namespace Searcher {
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        i08 ply = 0; // Ply starts from 1, we need to start from 0
-        Move m = pv[ply];
-        
-        pv.clear ();
-
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
         Value expected_value = value[0];
-
+        i08 ply = 0; // Ply starts from 1, we need to start from 0
+        Move m = pv[ply];
+        pv.clear ();
         const TTEntry *tte;
         do
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
             pv.push_back (m);
-            ++ply;
             pos.do_move (m, *si++);
-            tte = TT.retrieve (pos.posi_key ());
+            ++ply;
             expected_value = -expected_value;
+            tte = TT.retrieve (pos.posi_key ());
         }
-        while (tte // Local copy, TT could change
-            && expected_value == value_of_tt (tte->value (), ply+1)
-            && (m = tte->move ()) != MOVE_NONE
-            && pos.pseudo_legal (m)
-            && pos.legal (m)
-            && ply < MAX_DEPTH
-            && (!pos.draw () || ply < 2));
+        while (   tte != NULL
+               && expected_value == value_of_tt (tte->value (), ply+1)
+               && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
+               && pos.pseudo_legal (m)
+               && pos.legal (m)
+               && ply < MAX_DEPTH
+               && (!pos.draw () || ply < 2));
         do
         {
             pos.undo_move ();
@@ -1620,40 +1626,32 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        i08 ply = 0; // Ply starts from 1, we need to start from 0
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
-
-        Move m = pv[ply];
         Value expected_value = value[0];
+        i08 ply = 0; // Ply starts from 1, we need to start from 0
+        Move m = pv[ply];
         const TTEntry *tte;
-        Depth tt_depth = DEPTH_ZERO;
         do
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
-            if (tte != NULL && tte->move () == m)
+            if (tte == NULL || tte->move () != m)
             {
-                tt_depth = tte->depth ();
-            }
-            else //if (tte == NULL || tte->move () != m)
-            {
-                tt_depth = max (tt_depth - ONE_MOVE, DEPTH_QS_NO_CHECKS);
-
                 TT.store (
                     pos.posi_key (),
-                    m,
-                    tt_depth,
+                    pv[ply],
+                    DEPTH_NONE,
                     BND_NONE,
                     value_to_tt (expected_value, ply),
                     VALUE_NONE);
             }
-            ++ply;
+
             pos.do_move (m, *si++);
-            m = pv[ply];
             expected_value = -expected_value;
+            m = pv[++ply];
         }
         while (MOVE_NONE != m);
         do

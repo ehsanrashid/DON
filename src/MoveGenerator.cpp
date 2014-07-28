@@ -91,20 +91,15 @@ namespace MoveGenerator {
                 if (EVASION == GT) return;
                 if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
 
-                const bool KingSide = (CR == CR_WK || CR == CR_BK);
                 const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
-                Square org_king = pos.king_sq (C);
-                Square org_rook = pos.castle_rook (CR);
-                if (ROOK != ptype (pos[org_rook])) return;
+                Square king_org = pos.king_sq (C);
+                Square rook_org = pos.castle_rook (CR);
+                if (ROOK != ptype (pos[rook_org])) return;
 
-                Square dst_king = rel_sq (C, KingSide ? SQ_G1 : SQ_C1);
-
-                Delta step = Chess960 ? 
-                    (dst_king > org_king ? DEL_W : DEL_E) :
-                    (KingSide            ? DEL_W : DEL_E);
-
-                for (i08 s = dst_king; s != org_king; s += step)
+                Square king_dst = rel_sq (C, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
+                Delta step = (king_dst > king_org ? DEL_E : DEL_W);
+                for (i08 s = king_dst; s != king_org; s -= step)
                 {
                     if (pos.attackers_to (Square (s)) & pos.pieces (C_))
                     {
@@ -117,13 +112,13 @@ namespace MoveGenerator {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (C_, ROOK, QUEN))
+                    if (pos.attackers_to (king_dst, pos.pieces () - rook_org) & pos.pieces (C_, ROOK, QUEN))
                     {
                         return;
                     }
                 }
 
-                Move m = mk_move<CASTLE> (org_king, org_rook);
+                Move m = mk_move<CASTLE> (king_org, rook_org);
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {

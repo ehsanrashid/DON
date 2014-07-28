@@ -281,8 +281,10 @@ namespace Evaluator {
             ei.pinneds[C] = pos.pinneds (C);
             ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
-
-            Bitboard king_zone = ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = PieceAttacks[KING][ek_sq];
+            
+            Bitboard king_attacks          = PieceAttacks[KING][ek_sq];
+            ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
+            Bitboard king_zone             = king_attacks + ek_sq;
             Bitboard attackers             = king_zone & ei.ful_attacked_by[C ][PAWN];
             ei.king_zone_attacks_count[C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
 
@@ -291,16 +293,25 @@ namespace Evaluator {
             {
                 Rank ekr                       = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = king_zone | (ekr < R_4 ? DistanceRings[ek_sq][1] & ~rel_rank_bb(C_, R_1) :
+                ei.king_ring              [C_] = king_zone | (ekr < R_3 ? DistanceRings[ek_sq][1] & rel_rank_bb (C_, Rank (ekr + 2)) :
+                                                              ekr < R_5 ? DistanceRings[ek_sq][1] & ~rel_rank_bb (C_, Rank (ekr - 2)) :
                                                                           DistanceRings[ek_sq][1]);
-                
+
                 attackers                      = ei.king_ring[C_] & ei.ful_attacked_by[C ][PAWN];
-                ei.king_attackers_count   [C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
-                ei.king_attackers_weight  [C ] = attackers ? KingAttackWeight[PAWN] : 0;
+                if (attackers)
+                {
+                    ei.king_attackers_count   [C ] = more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
+                    ei.king_attackers_weight  [C ] = KingAttackWeight[PAWN];
+                }
+                else
+                {
+                    ei.king_attackers_count   [C ] = 0;
+                    ei.king_attackers_weight  [C ] = 0;
+                }
             }
             else
             {
-                ei.king_ring              [C_] = pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : 0;
+                ei.king_ring              [C_] = pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : U64 (0);
                 ei.king_attackers_count   [C ] = 0;
                 ei.king_attackers_weight  [C ] = 0;
             }
@@ -379,7 +390,7 @@ namespace Evaluator {
                     ei.king_attackers_weight[C] += KingAttackWeight[PT];
 
                     Bitboard attackers = ei.ful_attacked_by[C_][KING] & attacks;
-                    ei.king_zone_attacks_count[C ] += attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
+                    if (attackers) ei.king_zone_attacks_count[C ] += more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -396,7 +407,7 @@ namespace Evaluator {
                 if (NIHT == PT)
                 {
                     // Outpost bonus for knight 
-                    if (!(PawnAttackSpan[C][s] & pos.pieces<PAWN> (C_) & ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])))
+                    if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
                     {
                         score += evaluate_outpost<C> (ei, s);
                     }
@@ -585,18 +596,16 @@ namespace Evaluator {
             {
                 const Bitboard occ = pos.pieces ();
 
-                Bitboard defences = ei.pin_attacked_by[C ][PAWN]
-                                  | ei.pin_attacked_by[C ][NIHT]
-                                  | ei.pin_attacked_by[C ][BSHP]
-                                  | ei.pin_attacked_by[C ][ROOK]
-                                  | ei.pin_attacked_by[C ][QUEN];
-
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King zone
                   & ei.ful_attacked_by[C_][NONE]
-                  & ~defences;
+                  & ~(ei.pin_attacked_by[C ][PAWN]
+                    | ei.pin_attacked_by[C ][NIHT]
+                    | ei.pin_attacked_by[C ][BSHP]
+                    | ei.pin_attacked_by[C ][ROOK]
+                    | ei.pin_attacked_by[C ][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
@@ -681,7 +690,7 @@ namespace Evaluator {
                 }
 
                 // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_area = ~(pos.pieces (C_) | defences); // ei.pin_attacked_by[C][NONE]
+                Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
 
                 Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
                 Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
@@ -915,7 +924,7 @@ namespace Evaluator {
         // squares one, two or three squares behind a friendly pawn are counted
         // twice. Finally, the space bonus is scaled by a weight taken from the
         // material hash table. The aim is to improve play on game opening.
-        inline i32 evaluate_space (const Position &pos, const EvalInfo &ei)
+        inline i32 evaluate_space (const EvalInfo &ei)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -924,7 +933,7 @@ namespace Evaluator {
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
                   SpaceMask[C]
-                & ~ei.pi->blocked_pawns[C]
+                & ~ei.pi->pawns[C] //~ei.pi->blocked_pawns[C]
                 & ~ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
@@ -932,7 +941,7 @@ namespace Evaluator {
             ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
-            Bitboard behind = pos.pieces<PAWN> (C);
+            Bitboard behind = ei.pi->pawns[C];
             behind |= shift_del<(WHITE == C) ? DEL_S  : DEL_N > (behind);
             behind |= shift_del<(WHITE == C) ? DEL_SS : DEL_NN> (behind);
 
@@ -1048,8 +1057,8 @@ namespace Evaluator {
             Score space_weight = ei.mi->space_weight;
             if (space_weight)
             {
-                space[WHITE] = evaluate_space<WHITE> (pos, ei);
-                space[BLACK] = evaluate_space<BLACK> (pos, ei);
+                space[WHITE] = evaluate_space<WHITE> (ei);
+                space[BLACK] = evaluate_space<BLACK> (ei);
 
                 score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[SPACE]);
             }

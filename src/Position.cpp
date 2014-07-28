@@ -758,9 +758,8 @@ bool Position::pseudo_legal (Move m) const
         // Castle is always encoded as "King captures friendly Rook"
         ASSERT (dst == castle_rook (mk_castle_right (_active, king_side ? CS_K : CS_Q)));
         dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-
-        Delta step = (king_side ? DEL_W : DEL_E);
-        for (i08 s = dst; s != org; s += step)
+        Delta step = (king_side ? DEL_E : DEL_W);
+        for (i08 s = dst; s != org; s -= step)
         {
             if (attackers_to (Square (s)) & _color_bb[pasive])
             {
@@ -1025,12 +1024,12 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     {
         // Castling with check ?
         bool  king_side = (dst > org);
-        Square org_rook = dst; // 'King captures the rook' notation
+        Square rook_org = dst; // 'King captures the rook' notation
         dst             = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-        Square dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
+        Square rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
 
-        return (PieceAttacks[ROOK][dst_rook] & ci.king_sq) // First x-ray check then full check
-            && (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
+        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) // First x-ray check then full check
+            && (attacks_bb<ROOK> (rook_dst, (occ - org - rook_org + dst + rook_dst)) & ci.king_sq);
     }
     else
     if (mt == ENPASSANT)
@@ -1112,32 +1111,32 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 }
 
 // set_castle() set the castling for the particular color & rook
-void Position::set_castle (Color c, Square org_rook)
+void Position::set_castle (Color c, Square rook_org)
 {
-    Square org_king = _piece_list[c][KING][0];
-    ASSERT (org_king != org_rook);
+    Square king_org = _piece_list[c][KING][0];
+    ASSERT (king_org != rook_org);
 
-    bool king_side = (org_rook > org_king);
+    bool king_side = (rook_org > king_org);
     CRight cr = mk_castle_right (c, king_side ? CS_K : CS_Q);
-    Square dst_rook = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
-    Square dst_king = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
+    Square rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
+    Square king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
 
     _si->castle_rights     |= cr;
 
-    _castle_mask[org_king] |= cr;
-    _castle_mask[org_rook] |= cr;
-    _castle_rook[cr] = org_rook;
+    _castle_mask[king_org] |= cr;
+    _castle_mask[rook_org] |= cr;
+    _castle_rook[cr] = rook_org;
 
-    for (i08 s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
+    for (i08 s = min (rook_org, rook_dst); s <= max (rook_org, rook_dst); ++s)
     {
-        if (org_king != s && org_rook != s)
+        if (king_org != s && rook_org != s)
         {
             _castle_path[cr] += Square (s);
         }
     }
-    for (i08 s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
+    for (i08 s = min (king_org, king_dst); s <= max (king_org, king_dst); ++s)
     {
-        if (org_king != s && org_rook != s)
+        if (king_org != s && rook_org != s)
         {
             _castle_path[cr] += Square (s);
             _king_path[cr] += Square (s);
@@ -1327,14 +1326,14 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT (ROOK == ptype (_board[dst]));
         //ct = NONE;
 
-        Square org_rook, dst_rook;
-        do_castling<true> (org, dst, org_rook, dst_rook);
+        Square rook_org, rook_dst;
+        do_castling<true> (org, dst, rook_org, rook_dst);
 
         p_key ^= Zob._.piece_square[_active][KING][org     ] ^ Zob._.piece_square[_active][KING][dst     ];
-        p_key ^= Zob._.piece_square[_active][ROOK][org_rook] ^ Zob._.piece_square[_active][ROOK][dst_rook];
+        p_key ^= Zob._.piece_square[_active][ROOK][rook_org] ^ Zob._.piece_square[_active][ROOK][rook_dst];
         // Update incremental score
         _si->psq_score += PSQT[_active][KING][dst     ] - PSQT[_active][KING][org     ];
-        _si->psq_score += PSQT[_active][ROOK][dst_rook] - PSQT[_active][ROOK][org_rook];
+        _si->psq_score += PSQT[_active][ROOK][rook_dst] - PSQT[_active][ROOK][rook_org];
         
         _si->clock50++;
     }
@@ -1535,8 +1534,8 @@ void Position::undo_move ()
     else
     if (mt == CASTLE)
     {
-        Square org_rook, dst_rook;
-        do_castling<false> (org, dst, org_rook, dst_rook);
+        Square rook_org, rook_dst;
+        do_castling<false> (org, dst, rook_org, rook_dst);
         //ct  = NONE;
     }
     else
