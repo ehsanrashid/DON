@@ -950,20 +950,19 @@ namespace Searcher {
                 {
                     if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
                 }
-
-                bool move_legal;
-
-                if (SPNode)
+                else
                 {
                     // Shared counter cannot be decremented later if move turns out to be illegal
                     if (!pos.legal (move, ci.pinneds)) continue;
+                }
 
+                if (SPNode)
+                {
                     moves_count = ++splitpoint->moves_count;
                     splitpoint->mutex.unlock ();
                 }
                 else
                 {
-                    move_legal = pos.legal (move, ci.pinneds);
                     ++moves_count;
                 }
 
@@ -1016,7 +1015,7 @@ namespace Searcher {
                 if (   (singular_ext_node)
                     && (ext == DEPTH_ZERO)
                     && (move == tt_move)
-                    && (move_legal)
+                    //&& (move_legal)
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
@@ -1091,19 +1090,9 @@ namespace Searcher {
                     }
                 }
 
-                // Check for legality only before to do the move
                 if (!SPNode)
                 {
-                    if (!RootNode)
-                    {
-                        // Not legal decrement move-count & continue
-                        if (!move_legal)
-                        {
-                            --moves_count;
-                            continue;
-                        }
-                    }
-
+                    // Save the quiet move
                     if (   !(capture_or_promotion)
                         && (quiets_count < MAX_QUIETS)
                        )

@@ -284,33 +284,19 @@ namespace Evaluator {
             
             ei.king_ring_attacks[C ] = 0;
             ei.king_zone_attacks[C ] = 0;
+            
+            Bitboard king_zone = king_attacks + ek_sq;
 
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) > VALUE_MG_QUEN) // TODO::
             {
                 Rank ekr = rel_rank (C_, ek_sq);
 
-                Bitboard king_zone = king_attacks + ek_sq;
-
-                ei.king_ring[C_] = king_zone | (ekr < R_4 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) :
-                                                //ekr < R_6 ? DistanceRings[ek_sq][1] & rel_rank_bb (C_, Rank (ekr + 2)) :
-                                                ekr < R_6 ? DistanceRings[ek_sq][1] & ~rel_rank_bb (C_, Rank (ekr - 2)) :
-                                                            DistanceRings[ek_sq][1]);
-                /*
-                const Square *pl = pos.list<PAWN> (C);
-                Square s;
-                // Loop through all pawns of the current color
-                while ((s = *pl++) != SQ_NO)
-                {
-                    Bitboard pawn_attacks = PawnAttacks[C][s];
-                    if (ei.king_ring[C_] & pawn_attacks)
-                    {
-                        ei.king_ring_attacks[C] += KingAttackWeight[PAWN];
-                        Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & pawn_attacks;
-                        if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? 2 : 1) * KingAttackWeight[PAWN];
-                    }
-                }
-                */
+                ei.king_ring[C_] = king_zone | (ekr < R_5 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
+                                                            DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)));
+                                                //ekr < R_5 ? DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)) :
+                                                //ekr < R_7 ? DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)|rel_rank_bb (C_, ekr)) :
+                                                            //DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|rel_rank_bb (C_, ekr+1)|rel_rank_bb (C_, ekr)|rel_rank_bb (C_, ekr-1)|PawnPassSpan[C][ek_sq]));
 
                 Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
                 if (ei.king_ring[C_] & pawn_attacks)
@@ -323,7 +309,7 @@ namespace Evaluator {
             }
             else
             {
-                ei.king_ring[C_] = U64 (0); //pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : U64 (0);
+                ei.king_ring[C_] = pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : U64 (0);
             }
         }
 
@@ -730,9 +716,9 @@ namespace Evaluator {
             }
 
             // King mobility is good in the endgame
-            //Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
-            //u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-            //if (mob < 3) score -= mk_score (0, 8 * (3 - mob));
+            Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
+            u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+            if (mob < 3) score -= mk_score (0, 10 * (3 - mob));
 
             if (Trace)
             {
