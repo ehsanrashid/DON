@@ -6,6 +6,33 @@ using namespace std;
 using namespace Searcher;
 using namespace MoveGenerator;
 
+namespace {
+
+    // Our insertion sort in the range [begin, end], guaranteed to be stable, as is needed
+    inline void insertion_sort (ValMove* begin, ValMove* end)
+    {
+        for (ValMove *p = begin+1; p < end; ++p)
+        {
+            ValMove t = *p, *q;
+            for (q = p; q != begin && *(q-1) < t; --q)
+            {
+                *q = *(q-1);
+            }
+            *q = t;
+        }
+    }
+
+    // Picks and moves to the front the best move in the range [begin, end],
+    // it is faster than sorting all the moves in advance when moves are few, as
+    // normally are the possible captures.
+    inline ValMove* pick_best (ValMove* begin, ValMove* end)
+    {
+        std::swap (*begin, *std::max_element (begin, end));
+        return begin;
+    }
+
+}
+
 // Constructors of the MovePicker class. As arguments pass information
 // to help it to return the (presumably) good moves first, to decide which
 // moves to return (in the quiescence search, for instance, only want to
@@ -277,7 +304,7 @@ void MovePicker::generate_next_stage ()
         end = quiets_end = generate<QUIET> (moves, pos);
         value<QUIET> ();
         end = partition (cur, end, ValMove ());
-        insertion_sort ();
+        insertion_sort (cur, end);
         return;
 
     case QUIETS_2_S1:
@@ -285,7 +312,7 @@ void MovePicker::generate_next_stage ()
         end = quiets_end;
         if (depth >= 3 * ONE_MOVE)
         {
-            insertion_sort ();
+            insertion_sort (cur, end);
         }
         return;
 
@@ -293,6 +320,16 @@ void MovePicker::generate_next_stage ()
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = moves+MAX_MOVES-1;
         end = bad_captures_end;
+        
+        for (ValMove *p = end+2; p <= cur; ++p)
+        {
+            ValMove t = *p, *q;
+            for (q = p; q != (end+1) && *(q-1) > t; --q)
+            {
+                *q = *(q-1);
+            }
+            *q = t;
+        }
         return;
 
     case EVASIONS_S2:
@@ -352,8 +389,7 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S1:
             do
             {
-                pick_best ();
-                move = (cur++)->move;
+                move = pick_best (cur++, end)->move;
                 if (move != tt_move)
                 {
                     if (pos.see_sign (move) >= VALUE_ZERO)
@@ -411,8 +447,7 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S4:
             do
             {
-                pick_best ();
-                move = (cur++)->move;
+                move = pick_best (cur++, end)->move;
                 if (move != tt_move)
                 {
                     return move;
@@ -424,8 +459,7 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S5:
             do
             {
-                pick_best ();
-                move = (cur++)->move;
+                move = pick_best (cur++, end)->move;
                 if (move != tt_move && pos.see (move) > capture_threshold)
                 {
                     return move;
@@ -437,8 +471,7 @@ Move MovePicker::next_move<false> ()
         case CAPTURES_S6:
             do
             {
-                pick_best ();
-                move = (cur++)->move;
+                move = pick_best (cur++, end)->move;
                 if (recapture_sq == dst_sq (move))
                 {
                     return move;
