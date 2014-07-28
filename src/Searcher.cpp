@@ -1978,8 +1978,10 @@ namespace Threads {
         point time = now_time - SearchTime;
 
         if (   (   Limits.use_timemanager ()
-                && (  time > TimeMgr.maximum_time () - 2 * TimerResolution // No more time
-                   || (    (Signals.root_1stmove)                           // Still at first move
+                    // No more time
+                && (  time > TimeMgr.maximum_time () - 2 * TimerResolution
+                    // or Still at first move
+                   || (    (Signals.root_1stmove)
                        && !(Signals.root_failedlow)
                        && (time > TimeMgr.available_time () * 75/100)
                       )

@@ -43,21 +43,18 @@ namespace Evaluator {
             // f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring[CLR_NO];
 
-            // king_attackers_count[Color] is the number of pieces of the given color
-            // which attack a square in the king_ring of the enemy king.
-            u08 king_attackers_count[CLR_NO];
+            // king_ring_attacks[Color] is the sum of product of "count" and "weight" of the pieces
+            // of the given color which attack a square in the king_ring of the enemy king.
+            // The weights of the individual piece types are given by the variables KingAttackWeight[PieceT]
+            i32 king_ring_attacks[CLR_NO];
 
-            // king_attackers_weight[Color] is the sum of the "weight" of the pieces of the
-            // given color which attack a square in the king_ring of the enemy king. The weights
-            // of the individual piece types are given by the variables KingAttackWeight[PieceT]
-            i32 king_attackers_weight[CLR_NO];
-
-            // king_zone_attacks_count[Color] is the number of attacks to squares
-            // directly adjacent to the king of the given color. Pieces which attack
-            // more than one square are counted multiple times. For instance, if black's
-            // king is on g8 and there's a white knight on g5, this knight adds
-            // 2 to king_zone_attacks_count[BLACK].
-            i32 king_zone_attacks_count[CLR_NO];
+            // king_zone_attacks[Color] is the sum of product of "count" and "weight" of the pieces
+            // of the given color which attack a square directly adjacent to the enemy king.
+            // The weights of the individual piece types are given by the variables KingAttackWeight[PieceT]
+            // Pieces which attack more than one square are counted multiple times.
+            // For instance, if black's king is on g8 and there's a white knight on g5,
+            // this knight adds 2 to king_zone_attacks_count[WHITE].
+            i32 king_zone_attacks[CLR_NO];
 
         };
 
@@ -149,7 +146,7 @@ namespace Evaluator {
             },
             // Rooks
             {
-                S(-47,- 52), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
+                S(-47,- 53), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
                 S(+13,+ 48), S(+18,+ 64), S(+22,+ 80), S(+26,+ 96), S(+29,+109),
                 S(+31,+115), S(+33,+119), S(+35,+122), S(+36,+123), S(+37,+124),
             },
@@ -169,11 +166,11 @@ namespace Evaluator {
         // which piece type attacks which one.
         const Score ThreatBonus[NONE][TOTL] =
         {
-            { S(+ 0,+ 0), S(+24,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Protected attacked by Minor
-            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Knight
-            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+36,+96), S(+41,+104) }, // Un-Protected attacked by Bishop
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Un-Protected attacked by Rook
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+48), S(+24,+ 52) }, // Un-Protected attacked by Queen
+            { S(+ 0,+ 0), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Protected attacked by Minor
+            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Knight
+            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Bishop
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Rook
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Queen
             {}
         };
 
@@ -282,38 +279,51 @@ namespace Evaluator {
             ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             
-            Bitboard king_attacks          = PieceAttacks[KING][ek_sq];
+            Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
             ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
-            Bitboard king_zone             = king_attacks + ek_sq;
-            Bitboard attackers             = king_zone & ei.ful_attacked_by[C ][PAWN];
-            ei.king_zone_attacks_count[C ] = attackers ? more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1 : 0;
+            
+            ei.king_ring_attacks[C ] = 0;
+            ei.king_zone_attacks[C ] = 0;
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) >= VALUE_MG_QUEN) // TODO::
+            if (pos.non_pawn_material (C) > VALUE_MG_QUEN) // TODO::
             {
-                Rank ekr                       = rel_rank (C_, ek_sq);
+                Rank ekr = rel_rank (C_, ek_sq);
 
-                ei.king_ring              [C_] = king_zone | (ekr < R_3 ? DistanceRings[ek_sq][1] & rel_rank_bb (C_, Rank (ekr + 2)) :
-                                                              ekr < R_5 ? DistanceRings[ek_sq][1] & ~rel_rank_bb (C_, Rank (ekr - 2)) :
-                                                                          DistanceRings[ek_sq][1]);
+                Bitboard king_zone = king_attacks + ek_sq;
 
-                attackers                      = ei.king_ring[C_] & ei.ful_attacked_by[C ][PAWN];
-                if (attackers)
+                ei.king_ring[C_] = king_zone | (ekr < R_4 ? shift_del<(WHITE == C) ? DEL_S : DEL_N> (king_zone) :
+                                                //ekr < R_6 ? DistanceRings[ek_sq][1] & rel_rank_bb (C_, Rank (ekr + 2)) :
+                                                ekr < R_6 ? DistanceRings[ek_sq][1] & ~rel_rank_bb (C_, Rank (ekr - 2)) :
+                                                            DistanceRings[ek_sq][1]);
+                /*
+                const Square *pl = pos.list<PAWN> (C);
+                Square s;
+                // Loop through all pawns of the current color
+                while ((s = *pl++) != SQ_NO)
                 {
-                    ei.king_attackers_count   [C ] = more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
-                    ei.king_attackers_weight  [C ] = KingAttackWeight[PAWN];
+                    Bitboard pawn_attacks = PawnAttacks[C][s];
+                    if (ei.king_ring[C_] & pawn_attacks)
+                    {
+                        ei.king_ring_attacks[C] += KingAttackWeight[PAWN];
+                        Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & pawn_attacks;
+                        if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? 2 : 1) * KingAttackWeight[PAWN];
+                    }
                 }
-                else
+                */
+
+                Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
+                if (ei.king_ring[C_] & pawn_attacks)
                 {
-                    ei.king_attackers_count   [C ] = 0;
-                    ei.king_attackers_weight  [C ] = 0;
+                    ei.king_ring_attacks[C] += KingAttackWeight[PAWN];
+                    Bitboard zone_attacks = king_zone & pawn_attacks;
+                    if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1) * KingAttackWeight[PAWN];
                 }
+
             }
             else
             {
-                ei.king_ring              [C_] = pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : U64 (0);
-                ei.king_attackers_count   [C ] = 0;
-                ei.king_attackers_weight  [C ] = 0;
+                ei.king_ring[C_] = U64 (0); //pos.non_pawn_material (C) >= VALUE_MG_ROOK ? king_zone : U64 (0);
             }
         }
 
@@ -386,11 +396,9 @@ namespace Evaluator {
 
                 if (ei.king_ring[C_] & attacks)
                 {
-                    ei.king_attackers_count [C]++;
-                    ei.king_attackers_weight[C] += KingAttackWeight[PT];
-
-                    Bitboard attackers = ei.ful_attacked_by[C_][KING] & attacks;
-                    if (attackers) ei.king_zone_attacks_count[C ] += more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
+                    ei.king_ring_attacks[C] += KingAttackWeight[PT];
+                    Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
+                    if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1) * KingAttackWeight[PT];
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -538,7 +546,7 @@ namespace Evaluator {
                 }
 
             }
-
+            
             if (Trace)
             {
                 Tracer::Terms[C][PT] = score;
@@ -592,7 +600,7 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            if (ei.king_attackers_count[C_])
+            if (ei.king_ring_attacks[C_])
             {
                 const Bitboard occ = pos.pieces ();
 
@@ -613,11 +621,12 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
-                    + 3 * (ei.king_zone_attacks_count[C_])                                                             // King-zone attacker piece weight
+                    //+ min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
+                    + ei.king_ring_attacks[C_] // King-ring attacks piece weight
+                    + ei.king_zone_attacks[C_] // King-zone attacks piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)          // King-zone undefended piece weight
                     + 2 * (ei.pinneds[C] ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King-pinned piece weight
-                    - value / 32;
+                    - i32 (value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
@@ -721,9 +730,9 @@ namespace Evaluator {
             }
 
             // King mobility is good in the endgame
-            Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
-            u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-            if (mob < 3) score -= mk_score (0, 8 * (3 - mob));
+            //Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
+            //u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+            //if (mob < 3) score -= mk_score (0, 8 * (3 - mob));
 
             if (Trace)
             {
@@ -893,22 +902,12 @@ namespace Evaluator {
                         mg_value += k * rr;
                         eg_value += k * rr;
                     }
-                    else
-                    if (pos.pieces (C) & block_sq)
-                    {
-                        mg_value += 3 * rr + 2 * r + 3;
-                        eg_value += 1 * rr + 2 * r;
-                    }
                 }
 
                 // Increase the bonus if have more non-pawn pieces
                 if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
                 {
                     eg_value += eg_value / 4;
-                }
-                else
-                {
-                    //mg_value += mg_value / 4;
                 }
 
                 score += mk_score (mg_value, eg_value);
