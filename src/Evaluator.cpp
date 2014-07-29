@@ -825,15 +825,17 @@ namespace Evaluator {
                     {
                         eg_value -= (rr * SquareDist[fk_sq][block_sq + PUSH]);
                     }
+                    
+                    Bitboard pawn_capture = (pr == R_7) ? pos.pieces (C_) & PawnAttacks[C][s] : U64 (0);
 
                     // If the pawn is free to advance, increase bonus
-                    if (pos.empty (block_sq))
+                    if (   pos.empty (block_sq)
+                        || pawn_capture
+                       )
                     {
-                        // squares to queen
+                        // Squares to queen
                         const Bitboard front_squares = FrontSqrs_bb[C ][s];
-                        const Bitboard queen_squares = (pr == R_7) ? 
-                                                        front_squares | (pos.pieces (C_) & PawnAttacks[C][s]) :
-                                                        front_squares;
+                        const Bitboard queen_squares = (pr == R_7) ? front_squares | pawn_capture : front_squares;
                         const Bitboard back_squares  = FrontSqrs_bb[C_][s];
 
                         Bitboard unsafe_squares;
@@ -848,7 +850,7 @@ namespace Evaluator {
                            )
                         {
                             unsafe_squares = (pr == R_7) ?
-                                             front_squares | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                             front_squares | (pawn_capture & (ei.pin_attacked_by[C_][NONE])) :
                                              front_squares;
                         }
                         else
@@ -872,7 +874,7 @@ namespace Evaluator {
                         {
                             defended_squares = (pr == R_7) ?
                                                 ((front_squares & ei.pin_attacked_by[C ][NONE])
-                                                |(queen_squares & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
+                                                |(pawn_capture & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
                                                 (front_squares & ei.pin_attacked_by[C ][NONE]);
                         }
 
