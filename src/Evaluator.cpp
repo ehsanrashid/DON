@@ -871,8 +871,8 @@ namespace Evaluator {
                             else
                             {
                                 unsafe_squares = (pr == R_7) ?
-                                                 (front_squares & pos.pieces (C_)) | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
-                                                 front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
+                                                 (front_squares & pos.pieces ()) | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                                 front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces ());
                             }
 
                             Bitboard defended_squares;
