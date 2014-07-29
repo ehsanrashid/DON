@@ -234,7 +234,7 @@ namespace Evaluator {
         Score KingDanger[MAX_ATTACK_UNITS];
 
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { + 1, + 5, + 4, + 6, +10, 0 };
+        const i32   KingAttackWeight[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
 
         // Bonuses for safe checks
         const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
@@ -282,18 +282,23 @@ namespace Evaluator {
             Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
             ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
             
-            ei.king_ring_attacks_weight[C ] = 0;
-            ei.king_zone_attacks[C ] = 0;
-            
-            Bitboard king_zone = king_attacks + ek_sq;
-
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) > VALUE_MG_QUEN)
             {
-                Rank ekr = rel_rank (C_, ek_sq);
+                Bitboard king_zone = king_attacks + ek_sq;
+                if (pos.count<QUEN> ())
+                {
+                    Rank ekr = rel_rank (C_, ek_sq);
+                    ei.king_ring[C_] = king_zone | (ekr < R_6 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
+                                                                DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]));
+                }
+                else
+                {
+                    ei.king_ring[C_] = king_zone;
+                }
 
-                ei.king_ring[C_] = king_zone | (ekr < R_6 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
-                                                            DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]));
+                ei.king_ring_attacks_weight[C ] = 0;
+                ei.king_zone_attacks       [C ] = 0;
 
                 Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
                 if (ei.king_ring[C_] & pawn_attacks)
@@ -302,7 +307,6 @@ namespace Evaluator {
                     Bitboard zone_attacks = king_zone & pawn_attacks;
                     if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);// * KingAttackWeight[PAWN];
                 }
-
             }
             else
             {
@@ -476,13 +480,6 @@ namespace Evaluator {
                         }
                         
                     }
-                    
-                    attacks &= ~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]);
-                }
-
-                if (QUEN == PT)
-                {
-                    attacks &= ~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK]);
                 }
 
                 if (pinneds & s)
@@ -491,6 +488,16 @@ namespace Evaluator {
                 }
 
                 ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
+
+                if (ROOK == PT)
+                {
+                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP])|ei.pin_attacked_by[C][NONE]);
+                }
+
+                if (QUEN == PT)
+                {
+                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])|ei.pin_attacked_by[C][NONE]);
+                }
                 
                 Bitboard mobile = attacks & mobility_area;
                 
@@ -1191,6 +1198,7 @@ namespace Evaluator {
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
 
+        KingDanger[0] = SCORE_ZERO;
         i32 mg = 0;
         for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {

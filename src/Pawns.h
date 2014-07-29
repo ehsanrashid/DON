@@ -65,17 +65,21 @@ namespace Pawns {
             {
                 king_sq[C] = k_sq;
 
-                if (pos.can_castle (C))
+                Rank kr = rel_rank (C, k_sq);
+                if (kr <= R_4)
                 {
-                    shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_G1)) : VALUE_ZERO; 
-                    shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_C1)) : VALUE_ZERO; 
+                    if (kr == R_1 && pos.can_castle (C))
+                    {
+                        shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_G1)) : VALUE_ZERO; 
+                        shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_C1)) : VALUE_ZERO; 
+                    }
+                    else
+                    {
+                        shelter_storm[C][CS_K ] = VALUE_ZERO; 
+                        shelter_storm[C][CS_Q ] = VALUE_ZERO; 
+                    }
+                    shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (k_sq);
                 }
-                else
-                {
-                    shelter_storm[C][CS_K ] = VALUE_ZERO; 
-                    shelter_storm[C][CS_Q ] = VALUE_ZERO; 
-                }
-                shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (k_sq);
 
                 min_kp_dist[C] = 0;
                 if (pawns[C])

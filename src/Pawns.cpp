@@ -54,7 +54,7 @@ namespace Pawns {
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
         /**/  Score ConnectedBonus[F_NO][R_NO];
 
-        const Score SneakerBonus       = S(+ 0,+ 5);
+        //const Score SneakerBonus       = S(+ 0,+ 5);
 
         const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
         const Score UnstoppableBonus   = S(+ 0,+20); // Bonus for pawn going to promote
@@ -75,7 +75,7 @@ namespace Pawns {
         const Value StormDanger[3][R_NO] =
         {
             { V(+ 0),  V(+66), V(+130), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+  0), V(+41), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+26),  V(+32), V(+ 96), V(+41), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+ 0),  V(+ 0), V(+162), V(+25), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
@@ -301,20 +301,16 @@ namespace Pawns {
 
         Value value = KingSafetyByPawn;
 
-        const i08 kf = _file (k_sq);
-        const i08 w_del = 1 + (kf==F_C) - (kf==F_A);
-        const i08 e_del = 1 + (kf==F_F) - (kf==F_H);
-        for (i08 f = kf - w_del; f <= kf + e_del; ++f)
+        const File kf = _file (k_sq);
+        const i08 ckf = min (max (kf, F_B), F_G);
+        for (i08 f = ckf - 1; f <= ckf + 1; ++f)
         {
             ASSERT (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
 
             mid_pawns  = front_pawns[1] & File_bb[f];
-            u08 br = (mid_pawns) ?
-                rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) :
-                R_1;
-
+            u08 br = (mid_pawns) ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (   (MidEdge_bb & (f | br))
                 && (kf == f)
                 && (rel_rank (C, k_sq) == br - 1)
@@ -325,11 +321,8 @@ namespace Pawns {
             else
             {
                 mid_pawns = front_pawns[0] & File_bb[f];
-                u08 wr = (mid_pawns) ?
-                    rel_rank (C, scan_backmost_sq (C , mid_pawns)) :
-                    R_1;
-
-                u08 danger = (wr == R_1 || wr > br) ? 0 : ((wr + 1) != br) ? 1 : 2;
+                u08 wr = (mid_pawns) ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
+                u08 danger = (wr == R_1) ? 0 : ((wr + 1) != br) ? 1 : 2;
                 value -= ShelterWeakness[wr] + StormDanger[danger][br];
             }
         }

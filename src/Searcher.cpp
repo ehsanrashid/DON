@@ -1631,7 +1631,7 @@ namespace Searcher {
             {
                 TT.store (
                     pos.posi_key (),
-                    pv[ply],
+                    m,
                     DEPTH_NONE,
                     BND_NONE,
                     value_to_tt (expected_value, ply),
