@@ -802,8 +802,8 @@ namespace Evaluator {
                 Square s = pop_lsq (passed_pawns);
 
                 ASSERT (pos.passed_pawn (C, s));
-
-                i32 r = i32 (rel_rank (C, s)) - i32 (R_2);
+                Rank pr = rel_rank (C, s);
+                i32 r = i32 (pr) - i32 (R_2);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
@@ -830,7 +830,10 @@ namespace Evaluator {
                     if (pos.empty (block_sq))
                     {
                         // squares to queen
-                        const Bitboard queen_squares = FrontSqrs_bb[C ][s];
+                        const Bitboard front_squares = FrontSqrs_bb[C ][s];
+                        const Bitboard queen_squares = (pr == R_7) ? 
+                                                        front_squares | (pos.pieces (C_) & PawnAttacks[C][s]) :
+                                                        front_squares;
                         const Bitboard back_squares  = FrontSqrs_bb[C_][s];
 
                         Bitboard unsafe_squares;
@@ -844,11 +847,15 @@ namespace Evaluator {
                             && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
                            )
                         {
-                            unsafe_squares = queen_squares;
+                            unsafe_squares = (pr == R_7) ?
+                                             front_squares | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                             front_squares;
                         }
                         else
                         {
-                            unsafe_squares = queen_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
+                            unsafe_squares = (pr == R_7) ?
+                                             queen_squares & (ei.pin_attacked_by[C_][NONE]) :
+                                             front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
                         }
 
                         Bitboard defended_squares;
@@ -859,29 +866,50 @@ namespace Evaluator {
                             && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
                            )
                         {
-                            defended_squares = queen_squares;
+                            defended_squares = front_squares;
                         }
                         else
                         {
-                            defended_squares = queen_squares & ei.pin_attacked_by[C ][NONE];
+                            defended_squares = (pr == R_7) ?
+                                                ((front_squares & ei.pin_attacked_by[C ][NONE])
+                                                |(queen_squares & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
+                                                (front_squares & ei.pin_attacked_by[C ][NONE]);
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
                         // a smaller bonus if block square is not attacked.
-                        i32 k = (unsafe_squares) ? (unsafe_squares & block_sq) ? 0 : 9 : 15;
+                        i32 k = 0;
+
+                        if (pr == R_7)
+                        {
+                            if (unsafe_squares != queen_squares) k = 15;
+                        }
+                        else
+                        {
+                            k = (unsafe_squares) ? (unsafe_squares & block_sq) ? 0 : 9 : 15;
+                        }
 
                         if (defended_squares)
                         {
                             // Give a big bonus if the path to queen is fully defended,
                             // a smaller bonus if at least block square is defended.
-                            k += (defended_squares == queen_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
-
+                            if (pr == R_7)
+                            {
+                                if (defended_squares & queen_squares) k += 6;
+                            }
+                            else
+                            {
+                                k += (defended_squares == front_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
+                            }
                             // If the block square is defended by a pawn add more small bonus.
                             if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
                         }
-
-                        mg_value += k * rr;
-                        eg_value += k * rr;
+                        
+                        if (k)
+                        {
+                            mg_value += k * rr;
+                            eg_value += k * rr;
+                        }
                     }
                     else
                     if (pos.pieces (C) & block_sq)
