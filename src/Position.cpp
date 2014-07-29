@@ -677,6 +677,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
 {
     Square ksq = _piece_list[king_c][KING][0];
     // Pinners are sliders that give check when a pinned piece is removed
+    // Only one real pinner exist other are fake pinner
     Bitboard pinners =
         ( (PieceAttacks[ROOK][ksq] & (_types_bb[QUEN]|_types_bb[ROOK]))
         | (PieceAttacks[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP]))

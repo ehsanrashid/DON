@@ -825,99 +825,103 @@ namespace Evaluator {
                     {
                         eg_value -= (rr * SquareDist[fk_sq][block_sq + PUSH]);
                     }
-                    
-                    Bitboard pawn_capture = (pr == R_7) ? pos.pieces (C_) & PawnAttacks[C][s] : U64 (0);
 
-                    // If the pawn is free to advance, increase bonus
-                    if (   pos.empty (block_sq)
-                        || pawn_capture
-                       )
+                    bool can_advance = true;
+                    if (ei.pinneds[C] & s)
                     {
-                        // Squares to queen
-                        const Bitboard front_squares = FrontSqrs_bb[C ][s];
-                        const Bitboard queen_squares = (pr == R_7) ? front_squares | pawn_capture : front_squares;
-                        const Bitboard back_squares  = FrontSqrs_bb[C_][s];
+                        // Only one real pinner exist other are fake pinner
+                        Bitboard pawn_pinners =
+                            ( (PieceAttacks[ROOK][fk_sq] & pos.pieces (QUEN, ROOK))
+                            | (PieceAttacks[BSHP][fk_sq] & pos.pieces (QUEN, BSHP))
+                            ) &  pos.pieces (C_) & LineRay_bb[fk_sq][s];
 
-                        Bitboard unsafe_squares;
-                        // If there is an enemy rook or queen attacking the pawn from behind,
-                        // add all X-ray attacks by the rook or queen. Otherwise consider only
-                        // the squares in the pawn's path attacked or occupied by the enemy.
-                        if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.pin_attacked_by[C_][ROOK] & s))
-                               || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
-                               )
-                            && (back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares
-                            && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                        can_advance = Between_bb[fk_sq][pop_lsq (pawn_pinners)] & block_sq;
+                    }
+
+                    if (can_advance)
+                    {
+
+                        Bitboard pawnR7_capture = (pr == R_7) ? pos.pieces (C_) & PawnAttacks[C][s] : U64 (0);
+
+                        // If the pawn is free to advance, increase bonus
+                        if (   pos.empty (block_sq)
+                            || pawnR7_capture
                            )
                         {
-                            unsafe_squares = (pr == R_7) ?
-                                             front_squares | (pawn_capture & (ei.pin_attacked_by[C_][NONE])) :
-                                             front_squares;
-                        }
-                        else
-                        {
-                            unsafe_squares = (pr == R_7) ?
-                                             queen_squares & (ei.pin_attacked_by[C_][NONE]) :
-                                             front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
-                        }
+                            // Squares to queen
+                            const Bitboard front_squares = FrontSqrs_bb[C ][s];
+                            const Bitboard queen_squares = (pr == R_7) ? front_squares | pawnR7_capture : front_squares;
+                            const Bitboard back_squares  = FrontSqrs_bb[C_][s];
 
-                        Bitboard defended_squares;
-                        if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.pin_attacked_by[C ][ROOK] & s))
-                               || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
+                            Bitboard unsafe_squares;
+                            // If there is an enemy rook or queen attacking the pawn from behind,
+                            // add all X-ray attacks by the rook or queen. Otherwise consider only
+                            // the squares in the pawn's path attacked or occupied by the enemy.
+                            if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.pin_attacked_by[C_][ROOK] & s))
+                                   || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
+                                   )
+                                && (back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares
+                                && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
                                )
-                            && (back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares
-                            && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
-                           )
-                        {
-                            defended_squares = front_squares;
-                        }
-                        else
-                        {
-                            defended_squares = (pr == R_7) ?
-                                                ((front_squares & ei.pin_attacked_by[C ][NONE])
-                                                |(pawn_capture & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
-                                                (front_squares & ei.pin_attacked_by[C ][NONE]);
-                        }
-
-                        // Give a big bonus if there aren't enemy attacks, otherwise
-                        // a smaller bonus if block square is not attacked.
-                        i32 k = 0;
-
-                        if (pr == R_7)
-                        {
-                            if (unsafe_squares != queen_squares) k = 15;
-                        }
-                        else
-                        {
-                            k = (unsafe_squares) ? (unsafe_squares & block_sq) ? 0 : 9 : 15;
-                        }
-
-                        if (defended_squares)
-                        {
-                            // Give a big bonus if the path to queen is fully defended,
-                            // a smaller bonus if at least block square is defended.
-                            if (pr == R_7)
                             {
-                                if (defended_squares & queen_squares) k += 6;
+                                unsafe_squares = (pr == R_7) ?
+                                                 front_squares | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                                 front_squares;
                             }
                             else
                             {
-                                k += (defended_squares == front_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
+                                unsafe_squares = (pr == R_7) ?
+                                                 (front_squares & pos.pieces (C_)) | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                                 front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces (C_));
                             }
-                            // If the block square is defended by a pawn add more small bonus.
-                            if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
-                        }
+
+                            Bitboard defended_squares;
+                            if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.pin_attacked_by[C ][ROOK] & s))
+                                   || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
+                                   )
+                                && (back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares
+                                && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                               )
+                            {
+                                defended_squares = front_squares;
+                            }
+                            else
+                            {
+                                defended_squares = (pr == R_7) ?
+                                                    ((front_squares & ei.pin_attacked_by[C ][NONE])
+                                                    |(pawnR7_capture & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
+                                                    (front_squares & ei.pin_attacked_by[C ][NONE]);
+                            }
+
+                            // Give a big bonus if there aren't enemy attacks, otherwise
+                            // a smaller bonus if block square is not attacked.
+                            i32 k = (pr == R_7) ? ((unsafe_squares != queen_squares) ? 15 : 0) :
+                                                   (unsafe_squares) ? ((unsafe_squares & block_sq) ? 0 : 9) :
+                                                                      15;
+
+                            if (defended_squares)
+                            {
+                                // Give a big bonus if the path to queen is fully defended,
+                                // a smaller bonus if at least block square is defended.
+                                k += (pr == R_7) ? ((defended_squares & queen_squares) ? 6 : 0) :
+                                                    (defended_squares == front_squares) ? 6 : (defended_squares & block_sq) ? 4 : 0;
+
+                                // If the block square is defended by a pawn add more small bonus.
+                                if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
+                            }
                         
-                        if (k)
-                        {
-                            mg_value += k * rr;
-                            eg_value += k * rr;
+                            if (k)
+                            {
+                                mg_value += k * rr;
+                                eg_value += k * rr;
+                            }
                         }
-                    }
-                    else
-                    if (pos.pieces (C) & block_sq)
-                    {
-                        mg_value += 3 * rr + 2 * r + 3;
-                        eg_value += 1 * rr + 2 * r + 0;
+                        else
+                        if (pos.pieces (C) & block_sq)
+                        {
+                            mg_value += 3 * rr + 2 * r + 3;
+                            eg_value += 1 * rr + 2 * r + 0;
+                        }
                     }
                 }
 
