@@ -42,7 +42,7 @@ namespace BitBoard {
 
     const Bitboard Corner_bb  = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
     const Bitboard RimEdge_bb = (FA_bb | FH_bb | R1_bb | R8_bb);
-    const Bitboard MidEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
+    const Bitboard EndEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
     const Bitboard ExtCntr_bb[CLR_NO] =
     {
         (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),

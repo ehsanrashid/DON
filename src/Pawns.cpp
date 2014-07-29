@@ -311,12 +311,12 @@ namespace Pawns {
 
             mid_pawns  = front_pawns[1] & File_bb[f];
             u08 br = (mid_pawns) ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
-            if (   (MidEdge_bb & (f | br))
-                && (kf == f)
+            if (   (kf == f)
+                && (EndEdge_bb & (File (f) | Rank (br)))
                 && (rel_rank (C, k_sq) == br - 1)
                )
             {
-                value += 200;
+                value += Value (200); // Enemy pawn in front Shelter
             }
             else
             {
