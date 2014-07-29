@@ -45,8 +45,8 @@ namespace BitBoard {
     const Bitboard MidEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
     const Bitboard ExtCntr_bb[CLR_NO] =
     {
-        (FC_bb | FD_bb | FE_bb | FF_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
-        (FC_bb | FD_bb | FE_bb | FF_bb) & (R3_bb | R4_bb | R5_bb | R6_bb | R7_bb)
+        (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
+        (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R3_bb | R4_bb | R5_bb | R6_bb | R7_bb)
     };
 
     const Delta PawnDeltas[CLR_NO][3] =
