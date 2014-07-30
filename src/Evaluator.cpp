@@ -153,7 +153,7 @@ namespace Evaluator {
             // Queens
             {
                 S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
-                S(+10,+19), S(+14,+29), S(+18,+38), S(+20,+40), S(+21,+41),
+                S(+11,+19), S(+13,+29), S(+18,+38), S(+20,+40), S(+21,+41),
                 S(+22,+41), S(+22,+41), S(+22,+41), S(+23,+41), S(+24,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
@@ -183,6 +183,8 @@ namespace Evaluator {
         
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
+
+        const Score MinorBehindPawnBonus          = S(+16,+ 0);
 
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
@@ -282,6 +284,9 @@ namespace Evaluator {
             Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
             ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
             
+            ei.king_ring_attacks_weight[C ] = 0;
+            ei.king_zone_attacks       [C ] = 0;
+
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) > VALUE_MG_QUEN)
             {
@@ -296,9 +301,6 @@ namespace Evaluator {
                 {
                     ei.king_ring[C_] = king_zone;
                 }
-
-                ei.king_ring_attacks_weight[C ] = 0;
-                ei.king_zone_attacks       [C ] = 0;
 
                 Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
                 if (ei.king_ring[C_] & pawn_attacks)
@@ -335,7 +337,7 @@ namespace Evaluator {
             while ((s = *pl++) != SQ_NO)
             {
                 const File f = _file (s);
-                Rank r ;
+                const Rank r = rel_rank (C, s);
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
@@ -363,7 +365,7 @@ namespace Evaluator {
 
                 // Special extra evaluation for pieces
                 
-                //if (NIHT == PT || BSHP == PT)
+                if (NIHT == PT || BSHP == PT)
                 {
                 if (NIHT == PT)
                 {
@@ -449,11 +451,19 @@ namespace Evaluator {
                         }
                     }
                 }
+
+                // Bishop or knight behind a pawn
+                if (   (r < R_5 && r != R_1)
+                    && (pos.pieces<PAWN> () & (s + PUSH))
+                   )
+                {
+                    score += MinorBehindPawnBonus;
+                }
                 }
 
                 if (ROOK == PT)
                 {
-                    r = rel_rank (C, s);
+                    
                     if (R_4 <= r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
@@ -489,20 +499,8 @@ namespace Evaluator {
 
                 ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
 
-                if (ROOK == PT)
-                {
-                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP])|ei.pin_attacked_by[C][NONE]);
-                }
-
-                if (QUEN == PT)
-                {
-                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])|ei.pin_attacked_by[C][NONE]);
-                }
-                
                 Bitboard mobile = attacks & mobility_area;
-                
                 u08 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
-                
                 mobility += MobilityBonus[PT][mob];
 
                 if (ROOK == PT)
@@ -1031,8 +1029,10 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by our pawns or king or protected by enemy pawns 
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
-                ~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
+                //~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
+                //~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
+                ~(pos.pieces (WHITE, PAWN, KING)),
+                ~(pos.pieces (BLACK, PAWN, KING))
             };
 
             score += 

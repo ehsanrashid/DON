@@ -149,15 +149,15 @@ namespace Pawns {
                 Bitboard rr_bb = rank_bb (s) | pr_bb;
 
                 Bitboard friend_adj_pawns = pawns[0] & AdjFile_bb[f];
-                // Flag the pawn as passed, isolated, doubled,
-                // supported or connected (but not the backward one).
+                // Bitboard supporters, doublers, or leverers.
+                Bitboard supporters = (friend_adj_pawns & pr_bb);
+                Bitboard doublers   = (pawns[0] & FrontSqrs_bb[C][s]);
+                Bitboard leverers   = (pawns[1] & PawnAttacks[C][s]);
+                // Flag the pawn as passed, isolated, connected (but not the backward one).
                 bool connected     = (friend_adj_pawns & rr_bb);
-                Bitboard supported = (friend_adj_pawns & pr_bb);
                 bool isolated      = !(friend_adj_pawns);
                 bool passed        = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
                 bool opposed       = (pawns[1] & FrontSqrs_bb[C][s]);
-                Bitboard levered   = (pawns[1] & PawnAttacks[C][s]);
-                Bitboard doubled   = (pawns[0] & FrontSqrs_bb[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -217,9 +217,9 @@ namespace Pawns {
                     pawn_score += ConnectedBonus[f][r];
                 }
                 
-                if (levered)
+                if (leverers)
                 {
-                    //if (more_than_one (levered))
+                    //if (more_than_one (leverers))
                     //{
                     //    pawn_score += LeverBonus[r];
                     //}
@@ -238,7 +238,7 @@ namespace Pawns {
                 }
                 else
                 {
-                    if (!supported)
+                    if (!supporters)
                     {
                         pawn_score -= UnsupportedPenalty;
                     }
@@ -252,11 +252,11 @@ namespace Pawns {
                     }
                 }
                 
-                if (doubled)
+                if (doublers)
                 {
                     pawn_score -= DoubledPenalty[f]
-                                * (more_than_one (doubled) ? pop_count<MAX15> (doubled) : 1)
-                                / i32 (rank_dist (s, scan_frntmost_sq (C, doubled)));
+                                * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
+                                / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
                 }
                 else
                 {
@@ -267,13 +267,13 @@ namespace Pawns {
                     if (candidate)  e->candidate_pawns[C] += s;
                 }
                 
-                // sneaker - hidden passer bonus 
+                // Sneaker - Hidden passer bonus 
                 if (   (r > R_4)
-                    && !levered
-                    && supported
+                    && !leverers
+                    && supporters
                     && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
                     && !(pawns[1] & PawnPassSpan[C][s + PUSH])               // Pawn is free to advance
-                    && !(supported & shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) // All supporter not blocked
+                    && ((supporters & shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) != supporters) // All supporter not blocked
                    )
                 {
                     pawn_score += HiddenBonus[r];
@@ -299,10 +299,11 @@ namespace Pawns {
     {
         const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
+        const Rank kr = _rank (k_sq);
         const Bitboard front_pawns[CLR_NO] =
         {
-            pawns[C ] & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq)),
-            pawns[C_] & (FrontRank_bb[C][_rank (k_sq)] | rank_bb (k_sq))
+            pawns[C ] & (FrontRank_bb[C][kr] | Rank_bb[kr]),
+            pawns[C_] & (FrontRank_bb[C][kr] | Rank_bb[kr])
         };
 
         Value value = KingSafetyByPawn;
