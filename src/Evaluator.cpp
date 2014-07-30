@@ -830,6 +830,12 @@ namespace Evaluator {
             const Color C_   = (WHITE == C) ? BLACK : WHITE;
             const Delta PUSH = (WHITE == C) ? DEL_N : DEL_S;
 
+            const i32 nonpawn_count[CLR_NO] =
+            {
+                pos.count<NONPAWN> (C ),
+                pos.count<NONPAWN> (C_)
+            };
+            
             Score score = SCORE_ZERO;
 
             Bitboard passed_pawns = ei.pi->passed_pawns[C];
@@ -1005,7 +1011,7 @@ namespace Evaluator {
                 */
 
                 // Increase the bonus if have more non-pawn pieces
-                if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
+                if (nonpawn_count[0] > nonpawn_count[1])
                 {
                     eg_value += eg_value / 4;
                 }
