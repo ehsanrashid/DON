@@ -812,21 +812,21 @@ namespace Evaluator {
 
                 if (rr)
                 {
-                    Square block_sq = s + PUSH;
                     Square fk_sq = pos.king_sq (C );
                     Square ek_sq = pos.king_sq (C_);
+                    Square block_sq = s + PUSH;
+                    //Square queen_sq = scan_frntmost_sq (C, FrontSqrs_bb[C ][s]);
 
                     // Adjust bonus based on kings proximity
                     eg_value += (5 * rr * SquareDist[ek_sq][block_sq])
                              -  (2 * rr * SquareDist[fk_sq][block_sq]);
-
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (C, block_sq) != R_8)
                     {
-                        eg_value -= (rr * SquareDist[fk_sq][block_sq + PUSH]);
+                        eg_value -= (1 * rr * SquareDist[fk_sq][block_sq + PUSH]);
                     }
 
-                    bool can_advance = true;
+                    bool not_pinned = true;
                     if (ei.pinneds[C] & s)
                     {
                         // Only one real pinner exist other are fake pinner
@@ -835,12 +835,11 @@ namespace Evaluator {
                             | (PieceAttacks[BSHP][fk_sq] & pos.pieces (QUEN, BSHP))
                             ) &  pos.pieces (C_) & LineRay_bb[fk_sq][s];
 
-                        can_advance = Between_bb[fk_sq][pop_lsq (pawn_pinners)] & block_sq;
+                        not_pinned = Between_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq;
                     }
 
-                    if (can_advance)
+                    if (not_pinned)
                     {
-
                         Bitboard pawnR7_capture = (pr == R_7) ? pos.pieces (C_) & PawnAttacks[C][s] : U64 (0);
 
                         // If the pawn is free to advance, increase bonus
@@ -852,6 +851,7 @@ namespace Evaluator {
                             const Bitboard front_squares = FrontSqrs_bb[C ][s];
                             const Bitboard queen_squares = (pr == R_7) ? front_squares | pawnR7_capture : front_squares;
                             const Bitboard back_squares  = FrontSqrs_bb[C_][s];
+                            const Bitboard occ           = pos.pieces ();
 
                             Bitboard unsafe_squares;
                             // If there is an enemy rook or queen attacking the pawn from behind,
@@ -861,18 +861,18 @@ namespace Evaluator {
                                    || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
                                    )
                                 && (back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares
-                                && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                                && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
                                )
                             {
                                 unsafe_squares = (pr == R_7) ?
-                                                 front_squares | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
+                                                 front_squares | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
                                                  front_squares;
                             }
                             else
                             {
                                 unsafe_squares = (pr == R_7) ?
-                                                 (front_squares & pos.pieces ()) | (queen_squares & (ei.pin_attacked_by[C_][NONE])) :
-                                                 front_squares & (ei.pin_attacked_by[C_][NONE]|pos.pieces ());
+                                                 (front_squares & occ) | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
+                                                 front_squares & (occ | ei.pin_attacked_by[C_][NONE]);
                             }
 
                             Bitboard defended_squares;
@@ -880,24 +880,38 @@ namespace Evaluator {
                                    || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
                                    )
                                 && (back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares
-                                && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ()))
+                                && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
                                )
                             {
                                 defended_squares = front_squares;
                             }
                             else
                             {
-                                defended_squares = (pr == R_7) ?
-                                                    ((front_squares & ei.pin_attacked_by[C ][NONE])
-                                                    |(pawnR7_capture & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]|ei.pin_attacked_by[C ][ROOK]|ei.pin_attacked_by[C ][QUEN]|ei.pin_attacked_by[C ][KING]))) :
-                                                    (front_squares & ei.pin_attacked_by[C ][NONE]);
+                                if (pr == R_7)
+                                {
+                                    // Pawn on Rank-7 attacks except the current one's
+                                    Bitboard pawns_on_R7    = (ei.pi->pawns[C] - s) & rel_rank_bb (C, R_7);
+                                    Bitboard pawnR7_attacks = (pawns_on_R7) ? shift_del<(WHITE == C) ? DEL_NE : DEL_SW> (pawns_on_R7)
+                                                                            | shift_del<(WHITE == C) ? DEL_NW : DEL_SE> (pawns_on_R7) :
+                                                                              U64 (0);
+
+                                    defended_squares = queen_squares & ( pawnR7_attacks
+                                                                       | ei.pin_attacked_by[C ][NIHT]
+                                                                       | ei.pin_attacked_by[C ][BSHP]
+                                                                       | ei.pin_attacked_by[C ][ROOK]
+                                                                       | ei.pin_attacked_by[C ][QUEN]
+                                                                       | ei.pin_attacked_by[C ][KING]);
+                                }
+                                else
+                                {
+                                    defended_squares = front_squares & ei.pin_attacked_by[C ][NONE];
+                                }
                             }
 
                             // Give a big bonus if there aren't enemy attacks, otherwise
                             // a smaller bonus if block square is not attacked.
                             i32 k = (pr == R_7) ? ((unsafe_squares != queen_squares) ? 15 : 0) :
-                                                   (unsafe_squares) ? ((unsafe_squares & block_sq) ? 0 : 9) :
-                                                                      15;
+                                                   (unsafe_squares) ? ((unsafe_squares & block_sq) ? 0 : 9) : 15;
 
                             if (defended_squares)
                             {
