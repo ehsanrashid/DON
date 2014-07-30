@@ -191,7 +191,7 @@ namespace Evaluator {
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
         const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for double rook on open file
         const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
-        const Score RookTrappedPenalty            = S(+92,+ 5); // Penalty for rook trapped
+        const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
 
@@ -392,8 +392,8 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s)
                             {
-                                if (  (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_))
-                                   || (PieceAttacks[BSHP][s] & pos.pieces<BSHP> (C_))
+                                if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
+                                   || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
                                    )
                                 {
                                     value *= 1.50;
@@ -771,7 +771,7 @@ namespace Evaluator {
             // Enemies protected by pawn and attacked by minors
             Bitboard protected_enemies = 
                    enemies
-                & ~pos.pieces<PAWN>(C_)
+                & ~pos.pieces<PAWN> (C_)
                 &  ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]);
 
@@ -1094,10 +1094,8 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by our pawns or king or protected by enemy pawns 
             const Bitboard mobility_area[CLR_NO] =
             {
-                //~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
-                //~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
-                ~(pos.pieces (WHITE, PAWN, KING)),
-                ~(pos.pieces (BLACK, PAWN, KING))
+                ~(pos.pieces (WHITE, PAWN, KING)|ei.pin_attacked_by[BLACK][PAWN]),
+                ~(pos.pieces (BLACK, PAWN, KING)|ei.pin_attacked_by[WHITE][PAWN])
             };
 
             score += 

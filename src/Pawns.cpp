@@ -343,32 +343,13 @@ namespace Pawns {
     template Value Entry::pawn_shelter_storm<BLACK> (Square k_sq);
 
     template<Color C>
-    // Entry::evaluate_unstoppable_pawns<>() scores the passed and candidate pawns.
+    // Entry::evaluate_unstoppable_pawns<>() scores the most advanced among the passed and candidate pawns.
     // In case opponent has no pieces but pawns, this is somewhat
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        Score score = SCORE_ZERO;
-        Bitboard unstoppable_pawns;
-        //if (passed_pawns[C])
-        {
-            unstoppable_pawns = passed_pawns[C];
-            while (unstoppable_pawns)
-            {
-                Square sq = pop_lsq (unstoppable_pawns);
-                score += UnstoppableBonus * i32 (rel_rank (C, sq));
-            }
-        }
-        //if (candidate_pawns[C])
-        {
-            unstoppable_pawns = candidate_pawns[C];
-            while (unstoppable_pawns)
-            {
-                Square sq = pop_lsq (unstoppable_pawns);
-                score += UnstoppableBonus * 0.5 * i32 (rel_rank (C, sq));
-            }
-        }
-        return score;
+        return UnstoppableBonus * max (i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]))),
+                                       i32 (rel_rank (C, scan_frntmost_sq (C, candidate_pawns[C])) - 1));
     }
 
     // Explicit template instantiation
