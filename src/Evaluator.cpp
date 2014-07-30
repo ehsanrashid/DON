@@ -400,7 +400,7 @@ namespace Evaluator {
 
                 if (BSHP == PT)
                 {
-                    score -= BishopPawnsPenalty * ei.pi->pawns_on_squares<C> (s);
+                    score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s)+ei.pi->pawns_on_squares<C_> (s));
 
                     Square rsq = rel_sq (C, s);
 
@@ -800,7 +800,6 @@ namespace Evaluator {
                 const Square s = pop_lsq (passed_pawns);
                 ASSERT (pos.passed_pawn (C, s));
                 
-                const File f = _file (s);
                 const Rank pr = rel_rank (C, s);
 
                 i32 r = max (i32 (pr) - i32 (R_2), 1);
@@ -941,6 +940,9 @@ namespace Evaluator {
                     }
                 }
 
+                /*
+                const File f = _file (s);
+
                 // Increase the bonus if the passed pawn is supported by a friendly pawn
                 // on the same rank and a bit smaller if it's on the previous rank.
                 Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[f];
@@ -948,12 +950,6 @@ namespace Evaluator {
                     eg_value += Value (r * 20);
                 else if (supporting_pawns & rank_bb (s - PUSH))
                     eg_value += Value (r * 12);
-
-                // Increase the bonus if have more non-pawn pieces
-                if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
-                {
-                    eg_value += eg_value / 4;
-                }
 
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
@@ -967,6 +963,13 @@ namespace Evaluator {
                         eg_value += eg_value / 4;
                     else if (pos.pieces (C_, ROOK, QUEN))
                         eg_value -= eg_value / 4;
+                }
+                */
+
+                // Increase the bonus if have more non-pawn pieces
+                if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
+                {
+                    eg_value += eg_value / 4;
                 }
 
                 score += mk_score (mg_value, eg_value);
