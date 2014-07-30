@@ -201,16 +201,26 @@ namespace Evaluator {
 
         // OutpostValue[Square] contains bonus of outpost,
         // indexed by square (from white's point of view).
-        const Value OutpostValue[SQ_NO] =
+        const Value OutpostValue[2][SQ_NO] =
         {   // A      B      C      D      E      F      G      H
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            // Knights
+           {V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
             V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
             V( 0), V( 0), V( 4), V( 8), V( 8), V( 4), V( 0), V( 0),
             V( 0), V( 4), V(17), V(26), V(26), V(17), V( 4), V( 0),
             V( 0), V( 8), V(26), V(35), V(35), V(26), V( 8), V( 0),
             V( 0), V( 4), V(17), V(17), V(17), V(17), V( 4), V( 0),
             V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)},
+            // Bishops
+           {V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 5), V( 5), V( 5), V( 5), V( 0), V( 0),
+            V( 0), V( 5), V(10), V(10), V(10), V(10), V( 5), V( 0),
+            V( 0), V(10), V(21), V(21), V(21), V(21), V(10), V( 0),
+            V( 0), V( 5), V( 8), V( 8), V( 8), V( 8), V( 5), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
+            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)}
         };
 
     #undef V
@@ -369,11 +379,11 @@ namespace Evaluator {
                 {
                 if (NIHT == PT)
                 {
-                    // Outpost bonus for knight
+                    // Outpost bonus for Knight
                     if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
                     {
                         // Initial bonus based on square
-                        Value value = OutpostValue[rel_sq (C, s)];
+                        Value value = OutpostValue[0][rel_sq (C, s)];
 
                         // Increase bonus if supported by pawn, especially if the opponent has
                         // no minor piece which can exchange the outpost piece.
@@ -382,8 +392,8 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s)
                             {
-                                if (  (ei.pin_attacked_by[C_][NIHT] & s)
-                                   || (ei.pin_attacked_by[C_][BSHP] & s)
+                                if (  (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_))
+                                   || (PieceAttacks[BSHP][s] & pos.pieces<BSHP> (C_))
                                    )
                                 {
                                     value *= 1.50;
@@ -400,7 +410,35 @@ namespace Evaluator {
 
                 if (BSHP == PT)
                 {
-                    score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s)+ei.pi->pawns_on_squares<C_> (s));
+                    score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s));
+
+                    // Outpost bonus for Bishop
+                    if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
+                    {
+                        // Initial bonus based on square
+                        Value value = OutpostValue[1][rel_sq (C, s)];
+
+                        // Increase bonus if supported by pawn, especially if the opponent has
+                        // no minor piece which can exchange the outpost piece.
+                        if (value != VALUE_ZERO)
+                        {
+                            // Supporting pawns
+                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            {
+                                if (  (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_))
+                                   || (PieceAttacks[BSHP][s] & pos.pieces<BSHP> (C_))
+                                   )
+                                {
+                                    value *= 1.50;
+                                }
+                                else
+                                {
+                                    value *= 2.50;
+                                }
+                            }
+                            score += mk_score (value * 2, value / 2);
+                        }
+                    }
 
                     Square rsq = rel_sq (C, s);
 
@@ -704,13 +742,13 @@ namespace Evaluator {
                 // array and subtract the score from evaluation.
                 score -= KingDanger[attack_units];
 
-                if (ei.king_zone_attacks[C_] >= 3)
-                {
-                    // King mobility is good in the endgame
-                    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
-                    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-                    if (mob < 3) score -= mk_score (0, 8 * (8 - mob*mob));
-                }
+                //if (ei.king_zone_attacks[C_] >= 3)
+                //{
+                //    // King mobility is good in the endgame
+                //    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
+                //    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+                //    if (mob < 3) score -= mk_score (0, 8 * (8 - mob*mob));
+                //}
             }
 
             if (Trace)
