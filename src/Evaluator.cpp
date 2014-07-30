@@ -797,10 +797,12 @@ namespace Evaluator {
             Bitboard passed_pawns = ei.pi->passed_pawns[C];
             while (passed_pawns)
             {
-                Square s = pop_lsq (passed_pawns);
-
+                const Square s = pop_lsq (passed_pawns);
                 ASSERT (pos.passed_pawn (C, s));
-                Rank pr = rel_rank (C, s);
+                
+                const File f = _file (s);
+                const Rank pr = rel_rank (C, s);
+
                 i32 r = max (i32 (pr) - i32 (R_2), 1);
                 i32 rr = r * (r - 1);
 
@@ -939,10 +941,32 @@ namespace Evaluator {
                     }
                 }
 
+                // Increase the bonus if the passed pawn is supported by a friendly pawn
+                // on the same rank and a bit smaller if it's on the previous rank.
+                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[f];
+                if (supporting_pawns & rank_bb (s))
+                    eg_value += Value (r * 20);
+                else if (supporting_pawns & rank_bb (s - PUSH))
+                    eg_value += Value (r * 12);
+
                 // Increase the bonus if have more non-pawn pieces
                 if (pos.count<NONPAWN> (C ) > pos.count<NONPAWN> (C_))
                 {
                     eg_value += eg_value / 4;
+                }
+
+                // Rook pawns are a special case: They are sometimes worse, and
+                // sometimes better than other passed pawns. It is difficult to find
+                // good rules for determining whether they are good or bad. For now,
+                // we try the following: Increase the value for rook pawns if the
+                // other side has no pieces apart from a knight, and decrease the
+                // value if the other side has a rook or queen.
+                if (f == F_A || f == F_H)
+                {
+                    if (pos.non_pawn_material (C_) <= VALUE_MG_BSHP)
+                        eg_value += eg_value / 4;
+                    else if (pos.pieces (C_, ROOK, QUEN))
+                        eg_value -= eg_value / 4;
                 }
 
                 score += mk_score (mg_value, eg_value);
