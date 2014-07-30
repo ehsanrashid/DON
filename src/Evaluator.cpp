@@ -587,11 +587,11 @@ namespace Evaluator {
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King zone
                   & ei.ful_attacked_by[C_][NONE]
-                  & ~(ei.pin_attacked_by[C ][PAWN]
-                    | ei.pin_attacked_by[C ][NIHT]
-                    | ei.pin_attacked_by[C ][BSHP]
-                    | ei.pin_attacked_by[C ][ROOK]
-                    | ei.pin_attacked_by[C ][QUEN]);
+                  & ~( ei.pin_attacked_by[C ][PAWN]
+                     | ei.pin_attacked_by[C ][NIHT]
+                     | ei.pin_attacked_by[C ][BSHP]
+                     | ei.pin_attacked_by[C ][ROOK]
+                     | ei.pin_attacked_by[C ][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
@@ -931,10 +931,12 @@ namespace Evaluator {
                             }
                         }
                         else
-                        if (pos.pieces (C) & block_sq)
                         {
-                            mg_value += 3 * rr + 2 * r + 3;
-                            eg_value += 1 * rr + 2 * r + 0;
+                            if (pos.pieces (C) & block_sq)
+                            {
+                                mg_value += 3 * rr + 2 * r + 3;
+                                eg_value += 1 * rr + 2 * r + 0;
+                            }
                         }
                     }
                 }

@@ -45,6 +45,12 @@ namespace Pawns {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
  
+        // Hidden passed pawn bonus by [rank]
+        const Score HiddenBonus[R_NO] =
+        {
+            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 0,+ 0), S(+ 0,+ 0), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
+        };
+ 
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
@@ -53,8 +59,6 @@ namespace Pawns {
         
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
         /**/  Score ConnectedBonus[F_NO][R_NO];
-
-        //const Score SneakerBonus       = S(+ 0,+ 5);
 
         const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
         const Score UnstoppableBonus   = S(+ 0,+20); // Bonus for pawn going to promote
@@ -146,14 +150,14 @@ namespace Pawns {
 
                 Bitboard friend_adj_pawns = pawns[0] & AdjFile_bb[f];
                 // Flag the pawn as passed, isolated, doubled,
-                // unsupported or connected (but not the backward one).
-                bool connected   =  (friend_adj_pawns & rr_bb);
-                bool unsupported = !(friend_adj_pawns & pr_bb);
-                bool isolated    = !(friend_adj_pawns);
-                bool passed      = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
-                bool opposed     = (pawns[1] & FrontSqrs_bb[C][s]);
-                Bitboard levered = (pawns[1] & PawnAttacks[C][s]);
-                Bitboard doubled = (pawns[0] & FrontSqrs_bb[C][s]);
+                // supported or connected (but not the backward one).
+                bool connected     = (friend_adj_pawns & rr_bb);
+                Bitboard supported = (friend_adj_pawns & pr_bb);
+                bool isolated      = !(friend_adj_pawns);
+                bool passed        = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
+                bool opposed       = (pawns[1] & FrontSqrs_bb[C][s]);
+                Bitboard levered   = (pawns[1] & PawnAttacks[C][s]);
+                Bitboard doubled   = (pawns[0] & FrontSqrs_bb[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -234,7 +238,7 @@ namespace Pawns {
                 }
                 else
                 {
-                    if (unsupported)
+                    if (!supported)
                     {
                         pawn_score -= UnsupportedPenalty;
                     }
@@ -262,16 +266,18 @@ namespace Pawns {
                     if (passed)     e->passed_pawns   [C] += s;
                     if (candidate)  e->candidate_pawns[C] += s;
                 }
-
-                //if (   (r > R_4)
-                //    && !(levered || unsupported)
-                //    && (e->blocked_pawns[C] & s)
-                //    && !(pawns[1] & PawnPassSpan[C][s + PUSH])
-                //   )
-                //{
-                //    // sneaker - hidden passer bonus 
-                //    pawn_score += SneakerBonus * (r - R_4);
-                //}
+                
+                // sneaker - hidden passer bonus 
+                if (   (r > R_4)
+                    && !levered
+                    && supported
+                    && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
+                    && !(pawns[1] & PawnPassSpan[C][s + PUSH])               // Pawn is free to advance
+                    && !(supported & shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) // All supporter not blocked
+                   )
+                {
+                    pawn_score += HiddenBonus[r];
+                }
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;
