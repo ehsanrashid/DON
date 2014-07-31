@@ -279,33 +279,38 @@ namespace Evaluator {
 
         //  --- init evaluation info --->
         template<Color C>
-        // init_eval_info<>() initializes king bitboards for given color adding
+        // init_evaluation<>() initializes king bitboards for given color adding
         // pawn attacks. To be done at the beginning of the evaluation.
-        inline void init_eval_info (const Position &pos, EvalInfo &ei)
+        inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const Color  C_ = (WHITE == C) ? BLACK : WHITE;
 
             Square ek_sq = pos.king_sq (C_);
 
             ei.pinneds[C] = pos.pinneds (C);
-            ei.ful_attacked_by[C][NONE] = ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
-            ei.pin_attacked_by[C][NONE] = ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+            ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+            ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             
             Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
-            ei.ful_attacked_by[C_][KING] = ei.pin_attacked_by[C_][KING] = king_attacks;
+            ei.ful_attacked_by[C_][NONE] |= ei.ful_attacked_by[C_][KING] = king_attacks;
+            ei.pin_attacked_by[C_][NONE] |= ei.pin_attacked_by[C_][KING] = king_attacks;
             
             ei.king_ring_attacks_weight[C ] = 0;
             ei.king_zone_attacks       [C ] = 0;
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) > VALUE_MG_QUEN)
+            if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
                 Bitboard king_zone = king_attacks + ek_sq;
                 if (pos.count<QUEN> ())
                 {
                     Rank ekr = rel_rank (C_, ek_sq);
-                    ei.king_ring[C_] = king_zone | (ekr < R_6 ? DistanceRings[ek_sq][1] & PawnPassSpan[C_][ek_sq] :
-                                                                DistanceRings[ek_sq][1] & (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]));
+                    ei.king_ring[C_] = king_zone | (DistanceRings[ek_sq][1] &
+                                                               (ekr < R_4 ? PawnPassSpan[C_][ek_sq] :
+                                                                ekr < R_6 ? (PawnPassSpan[C_][ek_sq]|rank_bb (ek_sq)) :
+                                                                            (file_bb (ek_sq)|rank_bb (ek_sq))
+                                                                            //(PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq])
+                                                               ));
                 }
                 else
                 {
@@ -589,14 +594,14 @@ namespace Evaluator {
                 if (kr == R_1 && pos.can_castle (C))
                 {
                     if (    pos.can_castle (Castling<C, CS_K>::Right)
-                        && !pos.castle_impeded (Castling<C, CS_K>::Right)
+                        //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
                         && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
                     if (    pos.can_castle (Castling<C, CS_Q>::Right)
-                        && !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                        //&& !pos.castle_impeded (Castling<C, CS_Q>::Right)
                         && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
@@ -1085,14 +1090,11 @@ namespace Evaluator {
             ei.pi  = Pawns::probe (pos, thread->pawns_table);
             score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCT]);
 
+            ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64 (0);
+            ei.ful_attacked_by[BLACK][NONE] = ei.pin_attacked_by[BLACK][NONE] = U64 (0);
             // Initialize attack and king safety bitboards
-            init_eval_info<WHITE> (pos, ei);
-            init_eval_info<BLACK> (pos, ei);
-
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
+            init_evaluation<WHITE> (pos, ei);
+            init_evaluation<BLACK> (pos, ei);
 
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
@@ -1135,7 +1137,7 @@ namespace Evaluator {
                 evaluate_passed_pawns<WHITE> (pos, ei),
                 evaluate_passed_pawns<BLACK> (pos, ei)
             };
-
+            // Weight passed pawns
             score += apply_weight (passed_pawn[WHITE] - passed_pawn[BLACK], Weights[PASSED_PAWN]);
 
             const Value npm[CLR_NO] =
