@@ -314,7 +314,7 @@ namespace Evaluator {
                 }
                 else
                 {
-                    ei.king_ring[C_] = king_zone;
+                    ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
                 Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
