@@ -971,7 +971,7 @@ namespace Evaluator {
                                 // If the block square is defended by a pawn add more small bonus.
                                 if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
                             }
-                        
+
                             if (k)
                             {
                                 mg_value += k * rr;
@@ -1016,10 +1016,7 @@ namespace Evaluator {
                 */
 
                 // Increase the bonus if have more non-pawn pieces
-                if (nonpawn_count[0] > nonpawn_count[1])
-                {
-                    eg_value += eg_value / 4;
-                }
+                eg_value += eg_value * (nonpawn_count[0] - nonpawn_count[1]) / 4;
 
                 score += mk_score (mg_value, eg_value);
             }

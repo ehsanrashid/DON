@@ -1617,7 +1617,7 @@ namespace Searcher {
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
-        Value expected_value = value[0];
+        //Value expected_value = value[0];
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         const TTEntry *tte;
@@ -1634,12 +1634,12 @@ namespace Searcher {
                     m,
                     DEPTH_NONE,
                     BND_NONE,
-                    value_to_tt (expected_value, ply),
+                    VALUE_NONE,//value_to_tt (expected_value, ply), // To evaluate again
                     VALUE_NONE);
             }
 
             pos.do_move (m, *si++);
-            expected_value = -expected_value;
+            //expected_value = -expected_value;
             m = pv[++ply];
         }
         while (MOVE_NONE != m);

@@ -128,6 +128,8 @@ namespace Pawns {
                 e->pawns_on_sqrs[C][BLACK] = 0;
             }
 
+            Bitboard enemy_pawns_R34 = pawns[1] & rel_rank_bb (C, R_3) & rel_rank_bb (C, R_4); 
+
             Score pawn_score = SCORE_ZERO;
 
             const Square *pl = pos.list<PAWN> (C);
@@ -143,18 +145,18 @@ namespace Pawns {
                 // This file cannot be semi-open
                 e->semiopen_files[C] &= ~(1 << f);
 
-                // Previous rank
-                Bitboard pr_bb = rank_bb (s - PUSH);
-                // Our rank plus previous one, for connected pawn detection
-                Bitboard rr_bb = rank_bb (s) | pr_bb;
+                // Supporter rank
+                Bitboard sr_bb = rank_bb (s - PUSH);
+                // Connector rank, for connected pawn detection
+                Bitboard cr_bb = rank_bb (s) | sr_bb; 
 
                 Bitboard friend_adj_pawns = pawns[0] & AdjFile_bb[f];
                 // Bitboard supporters, doublers, or leverers.
-                Bitboard supporters = (friend_adj_pawns & pr_bb);
+                Bitboard supporters = (friend_adj_pawns & sr_bb);
                 Bitboard doublers   = (pawns[0] & FrontSqrs_bb[C][s]);
                 Bitboard leverers   = (pawns[1] & PawnAttacks[C][s]);
                 // Flag the pawn as passed, isolated, connected (but not the backward one).
-                bool connected     = (friend_adj_pawns & rr_bb);
+                bool connected     = (friend_adj_pawns & cr_bb);
                 bool isolated      = !(friend_adj_pawns);
                 bool passed        = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
                 bool opposed       = (pawns[1] & FrontSqrs_bb[C][s]);
@@ -165,10 +167,10 @@ namespace Pawns {
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // If it can capture an enemy pawn.
                 // Then it cannot be backward either.
-                if (  (passed || connected || isolated)
+                if (  (passed || connected || isolated || leverers)
                    || (r >= R_6)
+                   || (r == R_2 && !(enemy_pawns_R34 & FrontSqrs_bb[C][s]))
                    || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s - PUSH)))
-                   ||  (pawns[1] & PawnAttacks[C][s])
                    )
                 {
                     backward = false;
@@ -184,7 +186,7 @@ namespace Pawns {
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = (b | shift_del<PUSH> (b)) & pawns[1];
+                    backward = pawns[1] & (b | shift_del<PUSH> (b));
                 }
 
                 // A not passed pawn is a candidate to become passed, if it is free to
@@ -268,7 +270,7 @@ namespace Pawns {
                 }
                 
                 // Sneaker - Hidden passer bonus 
-                if (   (r > R_4)
+                if (   (r >= R_4)
                     && !leverers
                     && supporters
                     && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
@@ -277,6 +279,7 @@ namespace Pawns {
                    )
                 {
                     pawn_score += HiddenBonus[r];
+                    e->candidate_pawns[C] += s;
                 }
             }
 
@@ -348,8 +351,7 @@ namespace Pawns {
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        return UnstoppableBonus * max (i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]))),
-                                       i32 (rel_rank (C, scan_frntmost_sq (C, candidate_pawns[C])) - 1));
+        return UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]|candidate_pawns[C])));
     }
 
     // Explicit template instantiation
