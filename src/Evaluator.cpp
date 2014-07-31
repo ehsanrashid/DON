@@ -593,6 +593,8 @@ namespace Evaluator {
                 // If can castle use the value after the castle if is bigger
                 if (kr == R_1 && pos.can_castle (C))
                 {
+                    value = ei.pi->shelter_storm[C][CS_NO];
+
                     if (    pos.can_castle (Castling<C, CS_K>::Right)
                         //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
                         && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
@@ -607,8 +609,6 @@ namespace Evaluator {
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_Q]);
                     }
-                    
-                    value = max (value, ei.pi->shelter_storm[C][CS_NO]);
                 }
                 else
                 {
