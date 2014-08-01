@@ -447,28 +447,34 @@ namespace Evaluator {
 
                     Square rsq = rel_sq (C, s);
 
-                    if (   rsq == SQ_A7
-                        || rsq == SQ_H7
-                       )
+                    if ((FileEdge_bb & R6_bb) & rsq)
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.pin_attacked_by[C_][PAWN] & ~ei.pin_attacked_by[C][PAWN] & (s + del))
+                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
+                           )
+                        {
+                            score -= BishopTrappedPenalty;
+                        }
+                    }
+                    if ((FileEdge_bb & R7_bb) & rsq)
+                    {
+                        Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
+                        if (   (pos[s + del] == (C_ | PAWN))
+                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty * 2;
                         }
                     }
-                    if (   rsq == SQ_A6
-                        || rsq == SQ_H6
-                       )
+                    if ((FileEdge_bb & R8_bb) & rsq)
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.pin_attacked_by[C_][PAWN] & ~ei.pin_attacked_by[C][PAWN] & (s + del))
+                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
                            )
                         {
-                            score -= BishopTrappedPenalty;
+                            score -= BishopTrappedPenalty * 4;
                         }
                     }
 
@@ -479,9 +485,7 @@ namespace Evaluator {
                     // a friendly pawn on b2/g2 (b7/g7 for black).
                     if (pos.chess960 ())
                     {
-                        if (   rsq == SQ_A1
-                            || rsq == SQ_H1
-                           )
+                        if ((FileEdge_bb & R1_bb) & rsq)
                         {
                             const Piece own_pawn = (C | PAWN);
                             Delta del = PUSH + ((F_A == f) ? DEL_E : DEL_W);
