@@ -83,6 +83,7 @@ private:
 
     TTCluster *_hash_table;
     u64        _cluster_count;
+    u64        _cluster_mask;
     u08        _generation;
 
     void alloc_aligned_memory (u64 mem_size, u08 alignment);
@@ -102,6 +103,7 @@ private:
 
             _hash_table     = NULL;
             _cluster_count  = 0;
+            _cluster_mask   = 0;
             _generation     = 0;
         }
     }
@@ -128,12 +130,14 @@ public:
     TranspositionTable ()
         : _hash_table (NULL)
         , _cluster_count (0)
+        , _cluster_mask (0)
         , _generation (0)
     {}
 
     TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
         , _cluster_count (0)
+        , _cluster_mask (0)
         , _generation (0)
     {
         resize (mem_size_mb, true);
@@ -178,7 +182,7 @@ public:
     // The lower order bits of the key are used to get the index of the cluster inside the table.
     inline TTEntry* cluster_entry (const Key key) const
     {
-        return _hash_table[key & (_cluster_count - 1)].entry;
+        return _hash_table[key & _cluster_mask].entry;
     }
 
     // permill_full() returns an approximation of the per-mille of the 

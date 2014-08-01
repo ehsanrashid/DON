@@ -99,6 +99,7 @@ u64 TranspositionTable::resize (u64 mem_size_mb, bool force)
         alloc_aligned_memory (mem_size, TTCLUSTER_SIZE); // Cache Line Size
 
         _cluster_count = cluster_count;
+        _cluster_mask  = cluster_count-1;
     }
 
     return (mem_size >> 20);
