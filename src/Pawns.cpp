@@ -186,7 +186,7 @@ namespace Pawns {
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 bool candidate;
-                if (opposed || passed || isolated || backward || doublers)// r > R_6
+                if (opposed || passed || isolated || backward)// r > R_6
                 {
                     candidate = false;
                 }
@@ -244,7 +244,6 @@ namespace Pawns {
                     if (candidate)
                     {
                         pawn_score += CandidateBonus[r];
-                        e->candidate_pawns[C] += s;
                     }
                 }
                 
@@ -254,28 +253,32 @@ namespace Pawns {
                                 * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                                 / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
-                    Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
-                    if (doubly_doublers) pawn_score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_frntmost_sq (C, doubly_doublers))) / 3;
+                    //Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
+                    //if (doubly_doublers) pawn_score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_frntmost_sq (C, doubly_doublers))) / 3;
                 }
                 else
                 {
                     // Passed pawns will be properly scored in evaluation because need
                     // full attack info to evaluate passed pawns.
                     // Only the frontmost passed pawn on each file is considered a true passed pawn.
-                    if (passed)     e->passed_pawns   [C] += s;
+                    if (passed)    e->passed_pawns   [C] += s;
+                    if (candidate) e->candidate_pawns[C] += s;
                 }
 
-                // Sneaker - Hidden passer bonus 
+                // Sneaker - Hidden passer bonus
                 if (   (r > R_4)
                     && !leverers
                     && supporters
                     && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
                     && !(pawns[1] & PawnPassSpan[C][s + PUSH])               // Pawn is free to advance
-                    && (supporters & ~shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) // All supporter not blocked
                    )
                 {
-                    pawn_score += CandidateBonus[r];
-                    e->candidate_pawns[C] += s;
+                    Bitboard helpers = (supporters & ~shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])); // All supporter not blocked
+                    if (helpers)
+                    {
+                        pawn_score += CandidateBonus[r];
+                        e->candidate_pawns[C] |= helpers;
+                    }
                 }
             }
 

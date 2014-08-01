@@ -292,8 +292,8 @@ namespace Evaluator {
             ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             
             Bitboard king_attacks        = PieceAttacks[KING][ek_sq];
-            ei.ful_attacked_by[C_][NONE] |= ei.ful_attacked_by[C_][KING] = king_attacks;
-            ei.pin_attacked_by[C_][NONE] |= ei.pin_attacked_by[C_][KING] = king_attacks;
+            ei.ful_attacked_by[C_][KING] = king_attacks;
+            ei.pin_attacked_by[C_][KING] = king_attacks;
             
             ei.king_ring_attacks_weight[C ] = 0;
             ei.king_zone_attacks       [C ] = 0;
@@ -1144,6 +1144,11 @@ namespace Evaluator {
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][QUEN];
+
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[MOBILITY]);
