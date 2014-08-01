@@ -112,9 +112,9 @@ namespace Pawns {
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & Liht_bb;
-                e->pawns_on_sqrs[C][WHITE] = color_pawns ? (more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1) : 0;
+                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
                 color_pawns = center_pawns & Dark_bb;
-                e->pawns_on_sqrs[C][BLACK] = color_pawns ? (more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1) : 0;
+                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
             }
             else
             {
@@ -332,7 +332,9 @@ namespace Pawns {
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        return UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]|candidate_pawns[C])));
+        Bitboard unstoppable_pawns = passed_pawns[C]|candidate_pawns[C];
+        return unstoppable_pawns ? UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]|candidate_pawns[C]))) :
+                                  SCORE_ZERO;
     }
 
     // Explicit template instantiation

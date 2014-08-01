@@ -48,7 +48,7 @@ namespace Pawns {
         template<Color C>
         inline i32 pawns_on_squares (Square s) const
         {
-            return pawns_on_sqrs[C][!(BitBoard::Liht_bb & s)];
+            return pawns_on_sqrs[C][!(BitBoard::Liht_bb & BitBoard::Square_bb[s])];
         }
 
         template<Color C>
