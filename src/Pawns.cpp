@@ -253,6 +253,9 @@ namespace Pawns {
                     pawn_score -= DoubledPenalty[f]
                                 * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                                 / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
+                    
+                    Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
+                    if (doubly_doublers) pawn_score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_frntmost_sq (C, doubly_doublers))) / 3;
                 }
                 else
                 {
