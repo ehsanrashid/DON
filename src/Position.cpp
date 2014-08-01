@@ -687,7 +687,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     while (pinners)
     {
         Bitboard blocker = Between_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
-        if (!more_than_one (blocker))
+        if (blocker && !more_than_one (blocker))
         {
             chk_blockers |= (blocker & _color_bb[piece_c]); // Defending piece
         }

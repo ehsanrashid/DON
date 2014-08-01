@@ -543,7 +543,6 @@ namespace MoveGenerator {
         while (sliders)
         {
             check_sq = pop_lsq (sliders);
-
             ASSERT (color (pos[check_sq]) == ~active);
             slid_attacks |= LineRay_bb[check_sq][king_sq] - check_sq;
         }

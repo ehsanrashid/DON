@@ -270,7 +270,7 @@ namespace Evaluator {
         }
 
         // apply_weight() weighs 'score' by factor 'weight' trying to prevent overflow
-        inline Score apply_weight (const Score &score, const Weight &weight)
+        inline Score apply_weight (Score score, const Weight &weight)
         {
             return mk_score (
                 mg_value (score) * weight.mg / 0x100,
@@ -664,10 +664,11 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-
+                            Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<QUEN> (C_) > 1
-                                  && more_than_one (pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_))))
+                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_))))
+                                  && more_than_one (attackers)
                                   )
                                )
                             {
@@ -685,10 +686,11 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-
+                            Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<ROOK> (C_) > 1
-                                  && more_than_one (pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_)))
+                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_)))
+                                  && more_than_one (attackers)
                                   )
                                )
                             {
@@ -706,11 +708,14 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-
+                            Bitboard bishops;
+                            Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<BSHP> (C_) > 1
-                                  && more_than_one (pos.pieces<BSHP> (C_) & squares_of_color (sq))
-                                  && more_than_one (pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_)))
+                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq))
+                                  && more_than_one (bishops)
+                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_)))
+                                  && more_than_one (attackers)
                                   )
                                )
                             {
@@ -1165,7 +1170,7 @@ namespace Evaluator {
                 space[WHITE] = evaluate_space<WHITE> (ei);
                 space[BLACK] = evaluate_space<BLACK> (ei);
 
-                score += apply_weight ((space[WHITE] - space[BLACK]) * space_weight, Weights[SPACE]);
+                score += apply_weight ((space[WHITE] - space[BLACK])*space_weight, Weights[SPACE]);
             }
 
             // In case of tracing add each evaluation contributions for both white and black

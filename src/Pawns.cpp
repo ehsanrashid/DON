@@ -112,9 +112,9 @@ namespace Pawns {
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & Liht_bb;
-                e->pawns_on_sqrs[C][WHITE] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+                e->pawns_on_sqrs[C][WHITE] = color_pawns ? (more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1) : 0;
                 color_pawns = center_pawns & Dark_bb;
-                e->pawns_on_sqrs[C][BLACK] = more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1;
+                e->pawns_on_sqrs[C][BLACK] = color_pawns ? (more_than_one (color_pawns) ? pop_count<MAX15>(color_pawns) : 1) : 0;
             }
             else
             {
@@ -265,7 +265,7 @@ namespace Pawns {
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;
-            e->pawn_span[C] = more_than_one (span) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
+            e->pawn_span[C] = (span && more_than_one (span)) ? i32 (scan_msq (span)) - i32 (scan_lsq (span)) : 0;
 
             // In endgame it's better to have pawns on both wings.
             // So give a bonus according to file distance between left and right outermost pawns span.
