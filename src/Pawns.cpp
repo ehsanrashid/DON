@@ -48,7 +48,7 @@ namespace Pawns {
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 7,+ 7), S(+14,+14), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
+            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
@@ -263,7 +263,7 @@ namespace Pawns {
                 }
 
                 // Sneaker - Hidden passer bonus 
-                if (   (r >= R_4)
+                if (   (r > R_4)
                     && !leverers
                     && supporters
                     && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
@@ -345,7 +345,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C]|candidate_pawns[C];
-        return unstoppable_pawns ? UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]|candidate_pawns[C]))) :
+        return unstoppable_pawns ? UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns))) :
                                   SCORE_ZERO;
     }
 
@@ -357,7 +357,7 @@ namespace Pawns {
     // Initializes some tables by formula instead of hard-coding their values
     void initialize ()
     {
-        for (i08 r = R_1; r < R_8; ++r)
+        for (i08 r = R_1; r <= R_8; ++r)
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
