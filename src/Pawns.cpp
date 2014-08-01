@@ -45,12 +45,6 @@ namespace Pawns {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
  
-        // Hidden passed pawn bonus by [rank]
-        const Score HiddenBonus[R_NO] =
-        {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 0,+ 0), S(+ 0,+ 0), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
-        };
- 
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
         {
@@ -128,8 +122,6 @@ namespace Pawns {
                 e->pawns_on_sqrs[C][BLACK] = 0;
             }
 
-            Bitboard enemy_pawns_R34 = pawns[1] & rel_rank_bb (C, R_3) & rel_rank_bb (C, R_4); 
-
             Score pawn_score = SCORE_ZERO;
 
             const Square *pl = pos.list<PAWN> (C);
@@ -146,7 +138,7 @@ namespace Pawns {
                 e->semiopen_files[C] &= ~(1 << f);
 
                 // Supporter rank
-                Bitboard sr_bb = rank_bb (s - PUSH);
+                Bitboard sr_bb = rank_bb (s-PUSH);
                 // Connector rank, for connected pawn detection
                 Bitboard cr_bb = rank_bb (s) | sr_bb; 
 
@@ -169,8 +161,8 @@ namespace Pawns {
                 // Then it cannot be backward either.
                 if (  (passed || connected || isolated || leverers)
                    || (r >= R_6)
-                   || (r == R_2 && !(enemy_pawns_R34 & FrontSqrs_bb[C][s]))
-                   || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s - PUSH)))
+                   // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
+                   || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s-PUSH)))
                    )
                 {
                     backward = false;
@@ -194,15 +186,16 @@ namespace Pawns {
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 bool candidate;
-                if (opposed || passed || backward || isolated)
+                if (opposed || passed || isolated || (backward && r <= R_3))
                 {
                     candidate = false;
                 }
                 else
                 {
+                    // TODO::For Advance also include [left and right attack span]
                     Bitboard enemy_adj_pawns;
-                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s + PUSH]; // only behind friend adj pawns
-                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];         // only front enemy adj pawns
+                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s+PUSH+PUSH]; // only behind friend adj pawns
+                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s+PUSH];       // only front enemy adj pawns
                     candidate = (friend_adj_pawns)
                              && (
                                                         (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
@@ -230,7 +223,7 @@ namespace Pawns {
                     //    if (r > R_4) pawn_score += LeverBonus[r];
                     //}
                     
-                    if (r > R_4) pawn_score += LeverBonus[r];
+                    if (r >= R_4) pawn_score += LeverBonus[r];
 
                 }
 
@@ -268,19 +261,7 @@ namespace Pawns {
                     if (passed)     e->passed_pawns   [C] += s;
                     if (candidate)  e->candidate_pawns[C] += s;
                 }
-                
-                // Sneaker - Hidden passer bonus 
-                if (   (r >= R_4)
-                    && !leverers
-                    && supporters
-                    && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
-                    && !(pawns[1] & PawnPassSpan[C][s + PUSH])               // Pawn is free to advance
-                    && ((supporters & shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) != supporters) // All supporter not blocked
-                   )
-                {
-                    pawn_score += HiddenBonus[r];
-                    e->candidate_pawns[C] += s;
-                }
+
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;

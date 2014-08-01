@@ -385,7 +385,7 @@ namespace Evaluator {
                 if (NIHT == PT)
                 {
                     // Outpost bonus for Knight
-                    if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
+                    if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
                     {
                         // Initial bonus based on square
                         Value value = OutpostValue[0][rel_sq (C, s)];
@@ -395,7 +395,7 @@ namespace Evaluator {
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            if (pos.pieces<PAWN> (C) & PawnAttacks[C_][s]) // (ei.pin_attacked_by[C][PAWN] & s)
                             {
                                 if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
                                    || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
@@ -418,7 +418,7 @@ namespace Evaluator {
                     score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s));
 
                     // Outpost bonus for Bishop
-                    if (!(pos.pieces<PAWN> (C_) & PawnAttackSpan[C][s] /*& ~(ei.pi->blocked_pawns[C_] & FrontRank_bb[C][rel_rank (C, s+PUSH)])*/))
+                    if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
                     {
                         // Initial bonus based on square
                         Value value = OutpostValue[1][rel_sq (C, s)];
@@ -428,7 +428,7 @@ namespace Evaluator {
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            if (pos.pieces<PAWN> (C) & PawnAttacks[C_][s]) // (ei.pin_attacked_by[C][PAWN] & s)
                             {
                                 if (  (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_))
                                    || (PieceAttacks[BSHP][s] & pos.pieces<BSHP> (C_))
@@ -533,6 +533,11 @@ namespace Evaluator {
                         }
                         
                     }
+                }
+                
+                if (QUEN == PT)
+                {
+                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])|ei.pin_attacked_by[C][NONE]);
                 }
 
                 if (pinneds & s)
@@ -640,8 +645,7 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    //+ min (ei.king_attackers_count[C_] * ei.king_attackers_weight[C_] / 2, 20)
-                    + min (ei.king_ring_attacks_weight[C_], 20) // King-ring attacks piece weight
+                    + min (ei.king_ring_attacks_weight[C_]/2, 20) // King-ring attacks piece weight
                     + 3 * ei.king_zone_attacks[C_] // King-zone attacks piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)          // King-zone undefended piece weight
                     + 2 * (ei.pinneds[C] ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King-pinned piece weight
@@ -863,7 +867,6 @@ namespace Evaluator {
                     Square fk_sq = pos.king_sq (C );
                     Square ek_sq = pos.king_sq (C_);
                     Square block_sq = s + PUSH;
-                    //Square queen_sq = scan_frntmost_sq (C, FrontSqrs_bb[C ][s]);
 
                     // Adjust bonus based on kings proximity
                     eg_value += (5 * rr * SquareDist[ek_sq][block_sq])
@@ -908,7 +911,6 @@ namespace Evaluator {
                             if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.pin_attacked_by[C_][ROOK] & s))
                                    || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
                                    )
-                                && (back_squares & ei.pin_attacked_by[C ][NONE]) != back_squares
                                 && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
                                )
                             {
@@ -927,7 +929,6 @@ namespace Evaluator {
                             if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.pin_attacked_by[C ][ROOK] & s))
                                    || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
                                    )
-                                && (back_squares & ei.pin_attacked_by[C_][NONE]) != back_squares
                                 && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
                                )
                             {
@@ -1271,8 +1272,8 @@ namespace Evaluator {
                 format_row (ss, "Bishop"        , BSHP);
                 format_row (ss, "Rook"          , ROOK);
                 format_row (ss, "Queen"         , QUEN);
-                format_row (ss, "King safety"   , KING);
                 format_row (ss, "Mobility"      , MOBILITY);
+                format_row (ss, "King safety"   , KING);
                 format_row (ss, "Threat"        , THREAT);
                 format_row (ss, "Passed pawn"   , PASSED);
                 format_row (ss, "Space"         , SPACE);
