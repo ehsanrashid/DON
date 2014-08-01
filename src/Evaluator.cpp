@@ -362,7 +362,7 @@ namespace Evaluator {
                                  | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
                                    PieceAttacks[PT][s];
 
-                ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PT] |= attacks;
+                ei.ful_attacked_by[C][PT] |= attacks;
 
                 if (ei.king_ring[C_] & attacks)
                 {
@@ -541,7 +541,7 @@ namespace Evaluator {
                 
                 if (QUEN == PT)
                 {
-                    attacks &= (~(ei.pin_attacked_by[C_][NIHT]|ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][ROOK])|ei.pin_attacked_by[C][NONE]);
+                    attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
                 }
 
                 if (pinneds & s)
@@ -549,7 +549,7 @@ namespace Evaluator {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
 
-                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PT] |= attacks;
+                ei.pin_attacked_by[C][PT] |= attacks;
 
                 Bitboard mobile = attacks & mobility_area;
                 u08 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
@@ -1116,15 +1116,34 @@ namespace Evaluator {
             score += 
               + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
               - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][NIHT];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][NIHT];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][NIHT];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][NIHT];
+
             score += 
               + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
               - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][BSHP];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][BSHP];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
+
             score += 
               + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
               - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][ROOK];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][ROOK];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
+
             score += 
               + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
               - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][QUEN];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][QUEN];
 
             // Weight mobility
             score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[MOBILITY]);

@@ -150,7 +150,7 @@ namespace Pawns {
                 // Flag the pawn as passed, isolated, connected (but not the backward one).
                 bool connected     = (friend_adj_pawns & cr_bb);
                 bool isolated      = !(friend_adj_pawns);
-                bool passed        = (r == R_7) || !(pawns[1] & PawnPassSpan[C][s]);
+                bool passed        = !(pawns[1] & PawnPassSpan[C][s]);
                 bool opposed       = (pawns[1] & FrontSqrs_bb[C][s]);
 
                 bool backward;
@@ -186,7 +186,7 @@ namespace Pawns {
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 bool candidate;
-                if (opposed || passed || isolated || backward || doublers)
+                if (opposed || passed || isolated || backward || doublers)// r > R_6
                 {
                     candidate = false;
                 }
