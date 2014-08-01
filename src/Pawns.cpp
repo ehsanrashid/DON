@@ -186,7 +186,7 @@ namespace Pawns {
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 bool candidate;
-                if (opposed || passed || isolated || (backward && r <= R_3))
+                if (opposed || passed || isolated || backward || doublers)
                 {
                     candidate = false;
                 }
@@ -194,8 +194,8 @@ namespace Pawns {
                 {
                     // TODO::For Advance also include [left and right attack span]
                     Bitboard enemy_adj_pawns;
-                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s+PUSH+PUSH]; // only behind friend adj pawns
-                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s+PUSH];       // only front enemy adj pawns
+                    friend_adj_pawns = pawns[0] & PawnAttackSpan[C_][s+PUSH]; // only behind friend adj pawns
+                    enemy_adj_pawns  = pawns[1] & PawnAttackSpan[C][s];       // only front enemy adj pawns
                     candidate = (friend_adj_pawns)
                              && (
                                                         (more_than_one (friend_adj_pawns) ? pop_count<MAX15> (friend_adj_pawns) : 1)
@@ -244,6 +244,7 @@ namespace Pawns {
                     if (candidate)
                     {
                         pawn_score += CandidateBonus[r];
+                        e->candidate_pawns[C] += s;
                     }
                 }
                 
@@ -256,12 +257,23 @@ namespace Pawns {
                 else
                 {
                     // Passed pawns will be properly scored in evaluation because need
-                    // full attack info to evaluate passed pawns. Only the frontmost passed
-                    // pawn on each file is considered a true passed pawn.
+                    // full attack info to evaluate passed pawns.
+                    // Only the frontmost passed pawn on each file is considered a true passed pawn.
                     if (passed)     e->passed_pawns   [C] += s;
-                    if (candidate)  e->candidate_pawns[C] += s;
                 }
 
+                // Sneaker - Hidden passer bonus 
+                if (   (r >= R_4)
+                    && !leverers
+                    && supporters
+                    && (pawns[1] & (s + PUSH)) //(e->blocked_pawns[C] & s)   // Pawn is blocked
+                    && !(pawns[1] & PawnPassSpan[C][s + PUSH])               // Pawn is free to advance
+                    && (supporters & ~shift_del<(WHITE == C) ? DEL_S  : DEL_N> (pawns[1])) // All supporter not blocked
+                   )
+                {
+                    pawn_score += CandidateBonus[r];
+                    e->candidate_pawns[C] += s;
+                }
             }
 
             u08 span = e->semiopen_files[C] ^ 0xFF;
