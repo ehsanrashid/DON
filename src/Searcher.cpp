@@ -390,7 +390,7 @@ namespace Searcher {
                                 (ss)->static_eval);
                         }
 
-                        ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                        //ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                         return best_value;
                     }
 
@@ -518,8 +518,10 @@ namespace Searcher {
             {
                 // A special case: If in check and no legal moves were found, it is checkmate.
                 best_value = mated_in ((ss)->ply); // Plies to mate from the root
-                
-                if (best_value >= beta)
+
+                if (   (best_value >= beta)
+                    && (tte == NULL || best_value > value_of_tt (tte->value (), (ss)->ply))
+                   )
                 {
                     TT.store (
                         posi_key,
@@ -527,10 +529,10 @@ namespace Searcher {
                         DEPTH_NONE,
                         BND_LOWER,
                         value_to_tt (best_value, (ss)->ply),
-                        VALUE_NONE);
+                        (ss)->static_eval);
                 }
 
-                ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                //ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                 return best_value;
             }
 
