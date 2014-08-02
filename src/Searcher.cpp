@@ -520,7 +520,7 @@ namespace Searcher {
                 best_value = mated_in ((ss)->ply); // Plies to mate from the root
 
                 if (   (best_value >= beta)
-                    && (tte == NULL || best_value > value_of_tt (tte->value (), (ss)->ply))
+                    && (tte == NULL /*|| best_value > value_of_tt (tte->value (), (ss)->ply)*/)
                    )
                 {
                     TT.store (

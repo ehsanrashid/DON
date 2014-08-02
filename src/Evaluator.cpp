@@ -1022,7 +1022,7 @@ namespace Evaluator {
                 */
 
                 // Increase the bonus if opponent non-pawn pieces is decreased
-                eg_value += eg_value / (2*opp_nonpawn_count);
+                eg_value += eg_value / (4*opp_nonpawn_count);
 
                 score += mk_score (mg_value, eg_value);
             }

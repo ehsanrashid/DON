@@ -194,7 +194,6 @@ namespace Pawns {
                         if (helpers_helper || !sentries_helper)
                         {
                             ++helpers_count;
-                            pawn_score += CandidateBonus[rel_rank (C, sq)];
                         }
                     }
                     candidate = helpers_count >= pop_count<MAX15> (sentries);
@@ -277,6 +276,7 @@ namespace Pawns {
                    )
                 {
                     ASSERT (r+2 <= R_8);
+
                     bool hidden = false;
                     Bitboard helpers_copy = helpers;
                     while (helpers_copy)
@@ -286,11 +286,11 @@ namespace Pawns {
                         Bitboard helpers_helper  = pawns[0] & PawnAttackSpan[C][sq-PUSH] & FrontRank_bb[C_][r];
                         if (helpers_helper || !sentries_helper)
                         {
-                            pawn_score += CandidateBonus[rel_rank (C, sq)];
                             e->unstopped_pawns[C] += sq;
                             hidden = true;
                         }
                     }
+
                     if (hidden) pawn_score += CandidateBonus[r];
                 }
             }
