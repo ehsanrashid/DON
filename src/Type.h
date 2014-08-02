@@ -543,11 +543,10 @@ inline PieceT promote (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
 inline MoveT  mtype   (Move m) { return MoveT  (PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
-    if (MOVE_NONE == m || MOVE_NULL == m)
-    {
-        return false;
-    }
-
+    //if (MOVE_NONE == m || MOVE_NULL == m)
+    //{
+    //    return false;
+    //}
     //Square org = org_sq (m);
     //Square dst = dst_sq (m);
     //if (org == dst) return false;
@@ -561,8 +560,9 @@ inline bool   _ok     (Move m)
     //    return true;
     //}
     //return false;
+    //return (org_sq (m) != dst_sq (m));
 
-    return (org_sq (m) != dst_sq (m));
+    return (MOVE_NONE != m) && (MOVE_NULL != m) && (org_sq (m) != dst_sq (m));
 }
 
 inline void org_sq    (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
