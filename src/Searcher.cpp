@@ -37,16 +37,16 @@ namespace Searcher {
         const u08     FutilityDepth = 16;
         
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   FutilityMoveCount[2][FutilityDepth*i32(ONE_MOVE)]; // [improving][depth]
+        CACHE_ALIGN(32) u08   FutilityMoveCount[2][FutilityDepth*i32(ONE_MOVE)]; // [improving][depth]
         
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value FutilityMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
+        CACHE_ALIGN(32) Value FutilityMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
 
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value    RazorMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
+        CACHE_ALIGN(32) Value    RazorMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
 
         // Reduction lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(32) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, i16 depth, u08 move_num)
@@ -171,17 +171,15 @@ namespace Searcher {
                 History.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
-            Move opp_move = (ss-1)->current_move;
-            if (_ok (opp_move))
+            if (_ok ((ss-1)->current_move))
             {
-                Square opp_move_sq = dst_sq (opp_move);
+                Square opp_move_sq = dst_sq ((ss-1)->current_move);
                 CounterMoves.update (pos[opp_move_sq], opp_move_sq, move);
             }
 
-            Move own_move = (ss-2)->current_move;
-            if (_ok (own_move) && opp_move == (ss-1)->tt_move)
+            if (_ok ((ss-2)->current_move) && (ss-1)->current_move == (ss-1)->tt_move)
             {
-                Square own_move_sq = dst_sq (own_move);
+                Square own_move_sq = dst_sq ((ss-2)->current_move);
                 FollowupMoves.update (pos[own_move_sq], own_move_sq, move);
             }
         }
@@ -251,7 +249,11 @@ namespace Searcher {
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * M_SEC / time
                     << " hashfull " << 0//TT.permill_full ()
-                    << " pv"        << RootMoves[i].info_pv (pos);
+                    << " pv"        ;//<< RootMoves[i].info_pv (pos);
+                for (u08 p = 0; RootMoves[i].pv[p] != MOVE_NONE; ++p)
+                {
+                    ss << " " << move_to_can (RootMoves[i].pv[p], pos.chess960 ());
+                }
             }
 
             return ss.str ();
@@ -512,12 +514,24 @@ namespace Searcher {
             }
 
             // All legal moves have been searched.
-            if (best_value == -VALUE_INFINITE /*&& best_move == MOVE_NONE*/)
+            if (InCheck && best_value == -VALUE_INFINITE)
             {
                 // A special case: If in check and no legal moves were found, it is checkmate.
-                best_value = (InCheck) ?
-                    mated_in ((ss)->ply) :       // Plies to mate from the root
-                    DrawValue[pos.active ()];
+                best_value = mated_in ((ss)->ply); // Plies to mate from the root
+                
+                if (best_value >= beta)
+                {
+                    TT.store (
+                        posi_key,
+                        MOVE_NONE,
+                        DEPTH_NONE,
+                        BND_LOWER,
+                        value_to_tt (best_value, (ss)->ply),
+                        VALUE_NONE);
+                }
+
+                ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                return best_value;
             }
 
             TT.store (
@@ -946,18 +960,15 @@ namespace Searcher {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode)
-                {
-                    if (!count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
-                }
-                else
-                {
-                    // Shared counter cannot be decremented later if move turns out to be illegal
-                    if (!pos.legal (move, ci.pinneds)) continue;
-                }
+                if (RootNode && !count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
+
+                bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
                 if (SPNode)
                 {
+                    // Shared counter cannot be decremented later if move turns out to be illegal
+                    if (!move_legal) continue;
+
                     moves_count = ++splitpoint->moves_count;
                     splitpoint->mutex.unlock ();
                 }
@@ -1015,7 +1026,7 @@ namespace Searcher {
                 if (   (singular_ext_node)
                     && (ext == DEPTH_ZERO)
                     && (move == tt_move)
-                    //&& (move_legal)
+                    && (move_legal)
                    )
                 {
                     Value rbeta = tt_value - i32 (depth);
@@ -1092,6 +1103,13 @@ namespace Searcher {
 
                 if (!SPNode)
                 {
+                    // Check for legality just before making the move
+                    if (!RootNode && !move_legal)
+                    {
+                        --moves_count;
+                        continue;
+                    }
+
                     // Save the quiet move
                     if (   !(capture_or_promotion)
                         && (quiets_count < MAX_QUIETS)
@@ -1146,8 +1164,8 @@ namespace Searcher {
                         && ptype (pos[dst_sq (move)]) != PAWN
                        )
                     {
-                        Move rev_move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
-                        if (pos.see (rev_move) < VALUE_ZERO)
+                        // Reverse move
+                        if (pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO)
                         {
                             (ss)->reduction = max ((ss)->reduction - ONE_MOVE, DEPTH_ZERO);
                         }
@@ -1425,7 +1443,8 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        RootMoves.sort_end (PVIndex);
+                        //RootMoves.sort_end (PVIndex);
+                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
@@ -1477,8 +1496,9 @@ namespace Searcher {
                     while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    RootMoves.sort_beg (PVIndex + 1);
-                    
+                    //RootMoves.sort_beg (PVIndex + 1);
+                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+
                     if ((PVIndex + 1) == MultiPV || (iteration_time > InfoDuration))
                     {
                         sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
@@ -1676,16 +1696,6 @@ namespace Searcher {
                 push_back (RootMove (m));
             }
         }
-    }
-
-    u64 RootMoveList::game_nodes () const
-    {
-        u64 nodes = U64 (0);
-        for (const_iterator itr = begin (); itr != end (); ++itr)
-        {
-            nodes += itr->nodes;
-        }
-        return nodes;
     }
 
     // ------------------------------------

@@ -154,9 +154,9 @@ public:
     //}
 
     // Returns size in MB
-    inline u64 size () const
+    inline u32 size () const
     {
-        return (_cluster_count * TTCLUSTER_SIZE) >> 20;
+        return u32 ((_cluster_count * TTCLUSTER_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -207,9 +207,9 @@ public:
         return u32 ((full_count * 1000) / total_count);
     }
 
-    u64 resize (u64 mem_size_mb, bool force = false);
+    u32 resize (u64 mem_size_mb, bool force = false);
 
-    inline u64 resize () { return resize (size (), true); }
+    inline u32 resize () { return resize (size (), true); }
 
     // store() writes a new entry in the transposition table.
     void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);

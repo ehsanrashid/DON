@@ -22,7 +22,7 @@ namespace Pawns {
 
         //Bitboard blocked_pawns  [CLR_NO];
         Bitboard passed_pawns   [CLR_NO];
-        Bitboard candidate_pawns[CLR_NO];
+        Bitboard unstopped_pawns[CLR_NO];
 
         u08      semiopen_files [CLR_NO];
         u08      pawn_span      [CLR_NO];

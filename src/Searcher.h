@@ -151,11 +151,19 @@ namespace Searcher {
 
         void initialize (const Position &pos, const std::vector<Move> &root_moves);
 
-        inline void sort_full ()     { std::stable_sort (begin (), end ()); }
-        inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }
-        inline void sort_end (i32 n) { std::stable_sort (begin () + n, end ()); }
+        //inline void sort_full ()     { std::stable_sort (begin (), end ()); }
+        //inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }
+        //inline void sort_end (i32 n) { std::stable_sort (begin () + n, end ()); }
         
-        u64 game_nodes () const;
+        //u64 game_nodes () const
+        //{
+        //    u64 nodes = U64 (0);
+        //    for (const_iterator itr = begin (); itr != end (); ++itr)
+        //    {
+        //        nodes += itr->nodes;
+        //    }
+        //    return nodes;
+        //}
     };
 
     // The Stack struct keeps track of the information needed to remember from

@@ -1930,8 +1930,8 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     {
         iss >> skipws >> clk50 >> g_move;
         // Rule 50 draw case
-        if (100 < clk50) return false;
-        if (0 >= g_move) g_move = 1;
+        //if (clk50 >100) return false;
+        if (g_move <= 0) g_move = 1;
     }
 
     // Convert from game_move starting from 1 to game_ply starting from 0,

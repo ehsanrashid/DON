@@ -671,7 +671,7 @@ namespace Evaluator {
                             Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<QUEN> (C_) > 1
-                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_))))
+                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != 0
                                   && more_than_one (attackers)
                                   )
                                )
@@ -693,7 +693,7 @@ namespace Evaluator {
                             Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<ROOK> (C_) > 1
-                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_)))
+                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != 0
                                   && more_than_one (attackers)
                                   )
                                )
@@ -716,9 +716,9 @@ namespace Evaluator {
                             Bitboard attackers;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<BSHP> (C_) > 1
-                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq))
+                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != 0
                                   && more_than_one (bishops)
-                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_)))
+                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != 0
                                   && more_than_one (attackers)
                                   )
                                )
@@ -848,11 +848,7 @@ namespace Evaluator {
             const Color C_   = (WHITE == C) ? BLACK : WHITE;
             const Delta PUSH = (WHITE == C) ? DEL_N : DEL_S;
 
-            const i32 nonpawn_count[CLR_NO] =
-            {
-                pos.count<NONPAWN> (C ),
-                pos.count<NONPAWN> (C_)
-            };
+            const i32 opp_nonpawn_count = pos.count<NONPAWN> (C_)+1;
             
             Score score = SCORE_ZERO;
 
@@ -900,11 +896,11 @@ namespace Evaluator {
 
                     if (not_pinned)
                     {
-                        Bitboard pawnR7_capture = (pr == R_7) ? pos.pieces (C_) & PawnAttacks[C][s] : U64 (0);
+                        Bitboard pawnR7_capture = U64 (0);
 
                         // If the pawn is free to advance, increase bonus
                         if (   pos.empty (block_sq)
-                            || pawnR7_capture
+                            || ((pr == R_7) && (pawnR7_capture = pos.pieces (C_) & PawnAttacks[C][s]) != 0)
                            )
                         {
                             // Squares to queen
@@ -1025,8 +1021,8 @@ namespace Evaluator {
                 }
                 */
 
-                // Increase the bonus if have more non-pawn pieces
-                eg_value += eg_value * (nonpawn_count[0] - nonpawn_count[1]) / 4;
+                // Increase the bonus if opponent non-pawn pieces is decreased
+                eg_value += eg_value / (2*opp_nonpawn_count);
 
                 score += mk_score (mg_value, eg_value);
             }
@@ -1163,7 +1159,7 @@ namespace Evaluator {
                   -  evaluate_threats<BLACK, Trace> (pos, ei);
 
             // Evaluate passed pawns, needed full attack information including king
-            Score passed_pawn[CLR_NO] =
+            const Score passed_pawn[CLR_NO] =
             {
                 evaluate_passed_pawns<WHITE> (pos, ei),
                 evaluate_passed_pawns<BLACK> (pos, ei)

@@ -88,14 +88,16 @@ namespace MoveGenerator {
                 ASSERT (EVASION != GT);
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
                 
-                if (EVASION == GT) return;
-                if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
+                //if (EVASION == GT) return;
+                //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
 
                 const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
                 Square king_org = pos.king_sq (C);
                 Square rook_org = pos.castle_rook (CR);
-                if (ROOK != ptype (pos[rook_org])) return;
+
+                ASSERT (ROOK == ptype (pos[rook_org]));
+                //if (ROOK != ptype (pos[rook_org])) return;
 
                 Square king_dst = rel_sq (C, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
                 Delta step = (king_dst > king_org ? DEL_E : DEL_W);
@@ -253,9 +255,8 @@ namespace MoveGenerator {
 
                 Bitboard pawns = pos.pieces<PAWN> (C);
 
-                Bitboard RR7_bb = rel_rank_bb (C, R_7);
-                Bitboard pawns_on_R7 = pawns &  RR7_bb;
-                Bitboard pawns_on_Rx = pawns & ~RR7_bb;
+                Bitboard pawns_on_R7 = pawns &  rel_rank_bb (C, R_7);
+                Bitboard pawns_on_Rx = pawns & ~pawns_on_R7;
 
                 Bitboard enemies;
                 switch (GT)
@@ -271,9 +272,8 @@ namespace MoveGenerator {
                 {
                     empties = (QUIET == GT || QUIET_CHECK == GT) ? targets : ~pos.pieces ();
                     
-                    Bitboard RR3_bb = rel_rank_bb (C, R_3);
-                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx    ) & empties;
-                    Bitboard push_2 = shift_del<PUSH> (push_1 & RR3_bb) & empties;
+                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx                  ) & empties;
+                    Bitboard push_2 = shift_del<PUSH> (push_1 & rel_rank_bb (C, R_3)) & empties;
 
                     switch (GT)
                     {
@@ -292,16 +292,15 @@ namespace MoveGenerator {
                             push_1 &= pawn_attacks;
                             push_2 &= pawn_attacks;
 
-                            // pawns which give discovered check
-                            Bitboard pawns_chk_dis = pawns_on_Rx & ci->discoverers;
+                            // Pawns which give discovered check
                             // Add pawn pushes which give discovered check. This is possible only
                             // if the pawn is not on the same file as the enemy king, because
                             // don't generate captures. Note that a possible discovery check
                             // promotion has been already generated among captures.
-                            if (pawns_chk_dis)
+                            if (pawns_on_Rx & ci->discoverers)
                             {
-                                Bitboard push_cd_1 = shift_del<PUSH> (pawns_chk_dis     ) & empties;
-                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & RR3_bb) & empties;
+                                Bitboard push_cd_1 = shift_del<PUSH> (pawns_on_Rx & ci->discoverers   ) & empties;
+                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & rel_rank_bb (C, R_3)) & empties;
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -328,8 +327,7 @@ namespace MoveGenerator {
                     if (SQ_NO != ep_sq)
                     {
                         ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
-                        Bitboard pawns_on_R5 = pawns_on_Rx & rel_rank_bb (C, R_5);
-                        if (pawns_on_R5)
+                        if (pawns_on_Rx & rel_rank_bb (C, R_5))
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
@@ -337,7 +335,7 @@ namespace MoveGenerator {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
-                                Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_R5;
+                                Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
                                 ASSERT (ep_pawns);
                                 ASSERT (pop_count<MAX15> (ep_pawns) <= 2);
 
@@ -353,10 +351,8 @@ namespace MoveGenerator {
                 // Promotions (queening and under-promotions)
                 if (pawns_on_R7)
                 {
-                    Bitboard RR8_bb = rel_rank_bb (C, R_8);
-                    
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & RR8_bb))
+                    if (EVASION != GT || (targets & rel_rank_bb (C, R_8)))
                     {
                         if      (CAPTURE == GT) empties = ~pos.pieces ();
                         else if (EVASION == GT) empties &= targets;

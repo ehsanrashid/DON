@@ -78,7 +78,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
 // each cluster consists of NUM_CLUSTER_ENTRY number of entry.
-u64 TranspositionTable::resize (u64 mem_size_mb, bool force)
+u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
 {
     if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
     if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
@@ -102,7 +102,7 @@ u64 TranspositionTable::resize (u64 mem_size_mb, bool force)
         _cluster_mask  = cluster_count-1;
     }
 
-    return (mem_size >> 20);
+    return u32 (mem_size >> 20);
 }
 
 // store() writes a new entry in the transposition table.
