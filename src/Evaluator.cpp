@@ -43,18 +43,22 @@ namespace Evaluator {
             // f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring[CLR_NO];
 
-            // king_ring_attacks_weight[Color] is the sum of product of "count" and "weight" of the pieces
+            // king_ring_attackers_count[color] is the number of pieces of the given color
+            // which attack a square in the king_ring of the enemy king.
+            int king_ring_attackers_count[CLR_NO];
+
+            // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the variables KingAttackWeight[PieceT]
-            i32 king_ring_attacks_weight[CLR_NO];
+            i32 king_ring_attackers_weight[CLR_NO];
 
-            // king_zone_attacks[Color] is the sum of product of "count" and "weight" of the pieces
+            // king_zone_attacks_count[Color] is the sum of attacks of the pieces
             // of the given color which attack a square directly adjacent to the enemy king.
             // The weights of the individual piece types are given by the variables KingAttackWeight[PieceT]
             // Pieces which attack more than one square are counted multiple times.
             // For instance, if black's king is on g8 and there's a white knight on g5,
             // this knight adds 2 to king_zone_attacks_count[WHITE].
-            u08 king_zone_attacks[CLR_NO];
+            u08 king_zone_attacks_count[CLR_NO];
 
         };
 
@@ -189,8 +193,8 @@ namespace Evaluator {
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for double rook on open file
-        const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for double rook on semi-open file
+        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
+        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
@@ -295,8 +299,9 @@ namespace Evaluator {
             ei.ful_attacked_by[C_][KING] = king_attacks;
             ei.pin_attacked_by[C_][KING] = king_attacks;
             
-            ei.king_ring_attacks_weight[C ] = 0;
-            ei.king_zone_attacks       [C ] = 0;
+            ei.king_ring_attackers_count [C ] = 0;
+            ei.king_ring_attackers_weight[C ] = 0;
+            ei.king_zone_attacks_count   [C ] = 0;
 
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
@@ -308,8 +313,7 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone | (DistanceRings[ek_sq][1] &
                                                                (ekr < R_4 ? PawnPassSpan[C_][ek_sq] :
                                                                 ekr < R_6 ? (PawnPassSpan[C_][ek_sq]|rank_bb (ek_sq)) :
-                                                                            (file_bb (ek_sq)|rank_bb (ek_sq))
-                                                                            //(PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq])
+                                                                            (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]|rank_bb (ek_sq))
                                                                ));
                 }
                 else
@@ -317,12 +321,11 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
-                Bitboard pawn_attacks = ei.pin_attacked_by[C][PAWN];
-                if (ei.king_ring[C_] & pawn_attacks)
+                king_zone &= ei.pin_attacked_by[C][PAWN];
+                if (king_zone)
                 {
-                    ei.king_ring_attacks_weight[C] += KingAttackWeight[PAWN];
-                    Bitboard zone_attacks = king_zone & pawn_attacks;
-                    if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);// * KingAttackWeight[PAWN];
+                    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<MAX15> (king_zone) : 1);
+                    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
                 }
             }
             else
@@ -346,6 +349,9 @@ namespace Evaluator {
             ei.pin_attacked_by[C][PT] = U64 (0);
 
             Score score = SCORE_ZERO;
+            
+            u08 king_ring_attackers_count = 0;
+            u08 king_zone_attacks_count   = 0;
 
             const Square *pl = pos.list<PT> (C);
             Square s;
@@ -358,17 +364,16 @@ namespace Evaluator {
                 Bitboard attacks =
                     (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinneds) :
                     (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinneds)
-                                 | attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
                                    PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[C][PT] |= attacks;
 
                 if (ei.king_ring[C_] & attacks)
                 {
-                    ei.king_ring_attacks_weight[C] += KingAttackWeight[PT];
+                    ++king_ring_attackers_count;
                     Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
-                    if (zone_attacks) ei.king_zone_attacks[C] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);// * KingAttackWeight[PT];
+                    if (zone_attacks) king_zone_attacks_count += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -451,7 +456,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
+                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty;
@@ -461,7 +466,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
+                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty * 2;
@@ -471,7 +476,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (   (pos[s + del] == (C_ | PAWN))
-                            && (ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del))
+                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
                            )
                         {
                             score -= BishopTrappedPenalty * 4;
@@ -538,18 +543,17 @@ namespace Evaluator {
                         
                     }
                 }
-                
-                if (QUEN == PT)
-                {
-                    attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
-                }
 
                 if (pinneds & s)
                 {
                     attacks &= LineRay_bb[fk_sq][s];
                 }
-
                 ei.pin_attacked_by[C][PT] |= attacks;
+
+                if (QUEN == PT)
+                {
+                    attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
+                }
 
                 Bitboard mobile = attacks & mobility_area;
                 u08 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
@@ -572,9 +576,15 @@ namespace Evaluator {
                         }
                     }
                 }
-
             }
-            
+
+            if (king_ring_attackers_count)
+            {
+                ei.king_ring_attackers_count [C] += king_ring_attackers_count;
+                ei.king_ring_attackers_weight[C] += king_ring_attackers_count*KingAttackWeight[PT];
+                ei.king_zone_attacks_count   [C] += king_zone_attacks_count;
+            }
+
             if (Trace)
             {
                 Tracer::Terms[C][PT] = score;
@@ -628,9 +638,10 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            if (ei.king_ring_attacks_weight[C_] > KingAttackWeight[PAWN])
+            if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
             {
                 const Bitboard occ = pos.pieces ();
+                Bitboard safe_area;
 
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
@@ -649,10 +660,10 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_ring_attacks_weight[C_]/2, 20) // King-ring attacks piece weight
-                    + 3 * ei.king_zone_attacks[C_] // King-zone attacks piece weight
+                    + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 22) // King-ring attacks piece weight
+                    + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks piece weight
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)          // King-zone undefended piece weight
-                    + 2 * (ei.pinneds[C] ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King-pinned piece weight
+                    + 2 * (ei.pinneds[C] != 0) // King-pinned piece weight
                     - i32 (value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
@@ -731,7 +742,7 @@ namespace Evaluator {
                 }
 
                 // Analyse the enemy's safe distance checks for sliders and knights
-                Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
+                safe_area = ~(pos.pieces (C_)|ei.pin_attacked_by[C][NONE]);
 
                 Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
                 Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
@@ -760,7 +771,7 @@ namespace Evaluator {
                 // array and subtract the score from evaluation.
                 score -= KingDanger[attack_units];
 
-                //if (ei.king_zone_attacks[C_] >= 3)
+                //if (ei.king_zone_attacks_count[C_] >= 3)
                 //{
                 //    // King mobility is good in the endgame
                 //    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
@@ -950,11 +961,11 @@ namespace Evaluator {
                                                                               U64 (0);
 
                                     safe_squares = queen_squares & ( pawnR7_attacks
-                                                                       | ei.pin_attacked_by[C ][NIHT]
-                                                                       | ei.pin_attacked_by[C ][BSHP]
-                                                                       | ei.pin_attacked_by[C ][ROOK]
-                                                                       | ei.pin_attacked_by[C ][QUEN]
-                                                                       | ei.pin_attacked_by[C ][KING]);
+                                                                   | ei.pin_attacked_by[C ][NIHT]
+                                                                   | ei.pin_attacked_by[C ][BSHP]
+                                                                   | ei.pin_attacked_by[C ][ROOK]
+                                                                   | ei.pin_attacked_by[C ][QUEN]
+                                                                   | ei.pin_attacked_by[C ][KING]);
                                 }
                                 else
                                 {
