@@ -250,7 +250,7 @@ namespace Evaluator {
         Score KingDanger[MAX_ATTACK_UNITS];
 
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
+        const i32   KingAttackWeight[NONE] = { + 1, + 5, + 4, + 6, +10, 0 };
 
         // Bonuses for safe checks
         const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
@@ -302,6 +302,7 @@ namespace Evaluator {
             ei.king_ring_attackers_count [C ] = 0;
             ei.king_ring_attackers_weight[C ] = 0;
             ei.king_zone_attacks_count   [C ] = 0;
+            ei.king_ring                 [C_] = U64 (0);
 
             // Init king safety tables only if going to use them
             if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
@@ -327,10 +328,6 @@ namespace Evaluator {
                     ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<MAX15> (king_zone) : 1);
                     ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
                 }
-            }
-            else
-            {
-                ei.king_ring[C_] = U64 (0);
             }
         }
 
@@ -641,7 +638,6 @@ namespace Evaluator {
             if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
             {
                 const Bitboard occ = pos.pieces ();
-                Bitboard safe_area;
 
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
@@ -660,10 +656,10 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 22) // King-ring attacks piece weight
-                    + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks piece weight
-                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0)          // King-zone undefended piece weight
-                    + 2 * (ei.pinneds[C] != 0) // King-pinned piece weight
+                    + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
+                    + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
+                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
+                    + 2 * (ei.pinneds[C] != 0) // King pinned piece
                     - i32 (value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
@@ -742,10 +738,9 @@ namespace Evaluator {
                 }
 
                 // Analyse the enemy's safe distance checks for sliders and knights
-                safe_area = ~(pos.pieces (C_)|ei.pin_attacked_by[C][NONE]);
-
-                Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
-                Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
+                const Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
+                const Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
+                const Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
@@ -771,13 +766,13 @@ namespace Evaluator {
                 // array and subtract the score from evaluation.
                 score -= KingDanger[attack_units];
 
-                //if (ei.king_zone_attacks_count[C_] >= 3)
-                //{
-                //    // King mobility is good in the endgame
-                //    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]);
-                //    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-                //    if (mob < 3) score -= mk_score (0, 8 * (8 - mob*mob));
-                //}
+                if (ei.king_zone_attacks_count[C_] >= 3)
+                {
+                    // King mobility is good in the endgame
+                    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.ful_attacked_by[C_][NONE]);
+                    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+                    if (mob < 3) score -= mk_score (0, 10 * (9 - mob*mob));
+                }
             }
 
             if (Trace)

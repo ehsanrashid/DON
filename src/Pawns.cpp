@@ -196,7 +196,7 @@ namespace Pawns {
                             ++helpers_count;
                         }
                     }
-                    candidate = helpers_count >= pop_count<MAX15> (sentries);
+                    candidate = helpers_count && (helpers_count >= pop_count<MAX15> (sentries));
                 }
 
                 ASSERT (opposers || passed || (pawns[1] & PawnAttackSpan[C][s]));
@@ -282,12 +282,16 @@ namespace Pawns {
                     while (helpers_copy)
                     {
                         Square sq = pop_lsq (helpers_copy);
-                        Bitboard sentries_helper = pawns[1] & ~opposers & PawnPassSpan[C][sq] & FrontRank_bb[C_][r+2];
-                        Bitboard helpers_helper  = pawns[0] & PawnAttackSpan[C][sq-PUSH] & FrontRank_bb[C_][r];
-                        if (helpers_helper || !sentries_helper)
+                        Bitboard blockers        = pos.pieces<PAWN> () & FrontSqrs_bb[C][sq] & FrontRank_bb[C_][r+1];
+                        if (!blockers)
                         {
-                            e->unstopped_pawns[C] += sq;
-                            hidden = true;
+                            Bitboard sentries_helper = pawns[1] & ~opposers & PawnAttackSpan[C][sq] & FrontRank_bb[C_][r+2];
+                            Bitboard helpers_helper  = pawns[0] & PawnAttackSpan[C][sq-PUSH] & FrontRank_bb[C_][r];
+                            if (helpers_helper || !sentries_helper)
+                            {
+                                e->unstopped_pawns[C] += sq;
+                                hidden = true;
+                            }
                         }
                     }
 

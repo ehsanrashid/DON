@@ -255,19 +255,19 @@ namespace UCI {
         }
 
         // Print the RootPos
-        inline void exe_print ()
+        inline void exe_show ()
         {
             sync_cout << RootPos << sync_endl;
         }
 
-        inline void exe_key ()
+        inline void exe_keys ()
         {
             sync_cout
                 << hex << uppercase << setfill ('0')
-                << "fen: "                   << RootPos.fen () << "\n"
-                << "posi key: " << setw (16) << RootPos.posi_key () << "\n"
-                << "matl key: " << setw (16) << RootPos.matl_key () << "\n"
-                << "pawn key: " << setw (16) << RootPos.pawn_key ()
+                << "Fen: "                   << RootPos.fen ()      << "\n"
+                << "Posi key: " << setw (16) << RootPos.posi_key () << "\n"
+                << "Matl key: " << setw (16) << RootPos.matl_key () << "\n"
+                << "Pawn key: " << setw (16) << RootPos.pawn_key ()
                 << dec << nouppercase << setfill (' ')
                 << sync_endl;
         }
@@ -430,8 +430,8 @@ namespace UCI {
                 Signals.ponderhit_stop ? exe_stop () : exe_ponderhit ();
             }
             else if (token == "io")         exe_io (cmds);
-            else if (token == "print")      exe_print ();
-            else if (token == "key")        exe_key ();
+            else if (token == "show")       exe_show ();
+            else if (token == "keys")       exe_keys ();
             else if (token == "moves")      exe_moves ();
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
