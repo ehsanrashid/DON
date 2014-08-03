@@ -181,6 +181,12 @@ namespace Pawns {
                 bool candidate = false;
                 if (!(opposers || passed || isolated || backward || !helpers))// r > R_6
                 {
+                    /*
+                    Bitboard sentries = pawns[1] & PawnAttackSpan[C][s];
+                    candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
+                              >= ((sentries) ? (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));
+                    */
+
                     ASSERT (r+2 <= R_8);
 
                     u08 helpers_count = 0;
@@ -249,8 +255,8 @@ namespace Pawns {
                                 * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                                 / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
-                    Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
-                    if (doubly_doublers) pawn_score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
+                    //if (doubly_doublers) pawn_score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
                 else
                 {
@@ -268,7 +274,7 @@ namespace Pawns {
                 }
 
                 // Sneaker - Hidden passer bonus
-                if (   (r >= R_4)
+                if (   (r > R_4)
                     && helpers                                 // Pawn has helpers
                     && opposers                                // Pawn has opposers
                     && !leverers
@@ -277,7 +283,7 @@ namespace Pawns {
                 {
                     ASSERT (r+2 <= R_8);
 
-                    bool hidden = false;
+                    Rank rr = R_1;
                     Bitboard helpers_copy = helpers;
                     while (helpers_copy)
                     {
@@ -290,12 +296,11 @@ namespace Pawns {
                             if (helpers_helper || !sentries_helper)
                             {
                                 e->unstopped_pawns[C] += sq;
-                                hidden = true;
+                                rr = max (rel_rank (C, sq), rr);
                             }
                         }
                     }
-
-                    if (hidden) pawn_score += CandidateBonus[r];
+                    pawn_score += CandidateBonus[rr];
                 }
             }
 
@@ -368,13 +373,8 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C]|unstopped_pawns[C];
-        Score score = SCORE_ZERO;
-        while (unstoppable_pawns)
-        {
-            Square sq = pop_lsq (unstoppable_pawns);
-            score + UnstoppableBonus * i32 (rel_rank (C, sq));
-        }
-        return score;
+        return unstoppable_pawns ? UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
+                                  SCORE_ZERO;
     }
 
     // Explicit template instantiation

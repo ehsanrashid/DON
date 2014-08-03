@@ -188,13 +188,13 @@ namespace Evaluator {
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
-        const Score MinorBehindPawnBonus          = S(+16,+ 0);
+        const Score MinorBehindPawnBonus          = S(+10,+ 0);
 
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
-        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
+        //const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
+        //const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
@@ -397,17 +397,24 @@ namespace Evaluator {
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (pos.pieces<PAWN> (C) & PawnAttacks[C_][s]) // (ei.pin_attacked_by[C][PAWN] & s)
+                            if (ei.pin_attacked_by[C][PAWN] & s) //pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
                                 if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
                                    || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
                                    )
                                 {
-                                    value *= 1.50;
+                                    value *= 1.25;
                                 }
                                 else
                                 {
-                                    value *= 2.50;
+                                    if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
+                                    {
+                                        value *= 1.75;
+                                    }
+                                    else
+                                    {
+                                        value *= 2.50;
+                                    }
                                 }
                             }
                             score += mk_score (value * 2, value / 2);
@@ -430,17 +437,24 @@ namespace Evaluator {
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (pos.pieces<PAWN> (C) & PawnAttacks[C_][s]) // (ei.pin_attacked_by[C][PAWN] & s)
+                            if (ei.pin_attacked_by[C][PAWN] & s) // pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
-                                if (  (PieceAttacks[NIHT][s] & pos.pieces<NIHT> (C_))
-                                   || (PieceAttacks[BSHP][s] & pos.pieces<BSHP> (C_))
+                                if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
+                                   || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
                                    )
                                 {
-                                    value *= 1.50;
+                                    value *= 1.25;
                                 }
                                 else
                                 {
-                                    value *= 2.50;
+                                    if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
+                                    {
+                                        value *= 1.75;
+                                    }
+                                    else
+                                    {
+                                        value *= 2.50;
+                                    }
                                 }
                             }
                             score += mk_score (value * 2, value / 2);
@@ -502,7 +516,7 @@ namespace Evaluator {
                 }
 
                 // Bishop or knight behind a pawn
-                if (   (r < R_5 && r != R_1)
+                if (   (r < R_5)
                     && (pos.pieces<PAWN> () & (s + PUSH))
                    )
                 {
@@ -522,7 +536,7 @@ namespace Evaluator {
                             score += RookOnPawnBonus * (more_than_one (rook_on_enemy_pawns) ? pop_count<MAX15> (rook_on_enemy_pawns) : 1);
                         }
                     }
-
+                    /*
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<C > (f))
                     {
@@ -537,8 +551,8 @@ namespace Evaluator {
                                      RookDoubledOnOpenFileBonus :
                                      RookDoubledOnSemiOpenFileBonus;
                         }
-                        
                     }
+                    */
                 }
 
                 if (pinneds & s)
@@ -675,9 +689,11 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard attackers;
+                            Bitboard attackers = 0;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<QUEN> (C_) > 1
+                                  && (attackers = pos.pieces<QUEN> (C_) & (PieceAttacks[BSHP][sq]|PieceAttacks[ROOK][sq])) != 0
+                                  && more_than_one (attackers)
                                   && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != 0
                                   && more_than_one (attackers)
                                   )
@@ -697,9 +713,11 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard attackers;
+                            Bitboard attackers = 0;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<ROOK> (C_) > 1
+                                  && (attackers = pos.pieces<ROOK> (C_) & PieceAttacks[ROOK][sq]) != 0
+                                  && more_than_one (attackers)
                                   && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != 0
                                   && more_than_one (attackers)
                                   )
@@ -719,12 +737,14 @@ namespace Evaluator {
                         while (undefended_attacked)
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard bishops;
-                            Bitboard attackers;
+                            Bitboard bishops = 0;
+                            Bitboard attackers = 0;
                             if (  ((ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING]) & sq)
                                || (  pos.count<BSHP> (C_) > 1
                                   && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != 0
                                   && more_than_one (bishops)
+                                  && (attackers = pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][sq]) != 0
+                                  && more_than_one (attackers)
                                   && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != 0
                                   && more_than_one (attackers)
                                   )
@@ -854,8 +874,12 @@ namespace Evaluator {
             const Color C_   = (WHITE == C) ? BLACK : WHITE;
             const Delta PUSH = (WHITE == C) ? DEL_N : DEL_S;
 
-            const i32 opp_nonpawn_count = pos.count<NONPAWN> (C_)+1;
-            
+            const i32 nonpawn_count[CLR_NO] =
+            {
+                pos.count<NONPAWN> (C ),
+                pos.count<NONPAWN> (C_)
+            };
+
             Score score = SCORE_ZERO;
 
             Bitboard passed_pawns = ei.pi->passed_pawns[C];
@@ -1001,9 +1025,8 @@ namespace Evaluator {
                     }
                 }
 
+                
                 /*
-                const File f = _file (s);
-
                 // Increase the bonus if the passed pawn is supported by a friendly pawn
                 // on the same rank and a bit smaller if it's on the previous rank.
                 Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[f];
@@ -1012,23 +1035,28 @@ namespace Evaluator {
                 else if (supporting_pawns & rank_bb (s - PUSH))
                     eg_value += Value (r * 12);
 
+                  */
+
+                // Change the bonus if non-pawn pieces count differs
+                if (nonpawn_count[C] != nonpawn_count[C_]) eg_value += eg_value * (nonpawn_count[C] - nonpawn_count[C_]) / 4;
+
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
                 // good rules for determining whether they are good or bad. For now,
                 // we try the following: Increase the value for rook pawns if the
                 // other side has no pieces apart from a knight, and decrease the
                 // value if the other side has a rook or queen.
-                if (f == F_A || f == F_H)
+                if (FileEdge_bb & s)
                 {
                     if (pos.non_pawn_material (C_) <= VALUE_MG_BSHP)
+                    {
                         eg_value += eg_value / 4;
+                    }
                     else if (pos.pieces (C_, ROOK, QUEN))
+                    {
                         eg_value -= eg_value / 4;
+                    }
                 }
-                */
-
-                // Increase the bonus if opponent non-pawn pieces is decreased
-                eg_value += eg_value / (4*opp_nonpawn_count);
 
                 score += mk_score (mg_value, eg_value);
             }

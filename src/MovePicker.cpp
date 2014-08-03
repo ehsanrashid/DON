@@ -320,17 +320,7 @@ void MovePicker::generate_next_stage ()
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = moves+MAX_MOVES-1;
         end = bad_captures_end;
-        /*
-        for (ValMove *p = end+2; p <= cur; ++p)
-        {
-            ValMove t = *p, *q;
-            for (q = p; q != (end+1) && *(q-1) > t; --q)
-            {
-                *q = *(q-1);
-            }
-            *q = t;
-        }
-        */
+        
         return;
 
     case EVASIONS_S2:
