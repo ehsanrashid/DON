@@ -208,7 +208,7 @@ namespace Pawns {
                     }
                 }
 
-                ASSERT (opposers || passed || (pawns[1] & PawnAttackSpan[C][s]));
+                ASSERT (passed ^ (opposers || (pawns[1] & PawnAttackSpan[C][s])));
 
                 // Score this pawn
                 Score score = SCORE_ZERO;
@@ -268,14 +268,14 @@ namespace Pawns {
                 }
                 
 #ifndef NDEBUG
-                cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
+                //cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
 #endif
                 pawn_score += score;
             }
 
 #ifndef NDEBUG
-            cout << pretty (e->unstopped_pawns[C]) << endl;
-            cout << "-------------" << endl;
+            //cout << pretty (e->unstopped_pawns[C]) << endl;
+            //cout << "-------------" << endl;
 #endif
 
             // In endgame it's better to have pawns on both wings.

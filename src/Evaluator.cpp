@@ -874,11 +874,7 @@ namespace Evaluator {
             const Color C_   = (WHITE == C) ? BLACK : WHITE;
             const Delta PUSH = (WHITE == C) ? DEL_N : DEL_S;
 
-            const i32 nonpawn_count[CLR_NO] =
-            {
-                pos.count<NONPAWN> (C ),
-                pos.count<NONPAWN> (C_)
-            };
+            const i32 nonpawn_count_sum = pos.count<NONPAWN> (C ) + pos.count<NONPAWN> (C_) + 1;
 
             Score score = SCORE_ZERO;
 
@@ -1037,9 +1033,6 @@ namespace Evaluator {
 
                   */
 
-                // Change the bonus if non-pawn pieces count differs
-                if (nonpawn_count[C] != nonpawn_count[C_]) eg_value += eg_value * (nonpawn_count[C] - nonpawn_count[C_]) / 4;
-
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
                 // good rules for determining whether they are good or bad. For now,
@@ -1057,6 +1050,9 @@ namespace Evaluator {
                         eg_value -= eg_value / 4;
                     }
                 }
+
+                // Increase the bonus if non-pawn pieces count decreased
+                eg_value += eg_value / (2*nonpawn_count_sum);
 
                 score += mk_score (mg_value, eg_value);
             }
