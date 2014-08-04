@@ -41,6 +41,11 @@ namespace Threads {
         delete th;
     }
 
+    // Explicit template instantiation
+    // -------------------------------
+    template TimerThread* new_thread<TimerThread> ();
+    template void delete_thread<TimerThread> (TimerThread *th);
+
     // ------------------------------------
 
     // notify_one () wakes up the thread when there is some work to do

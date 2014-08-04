@@ -293,7 +293,7 @@ namespace Notation {
 
         ostringstream oss;
 
-        oss << setw (3) << depth
+        oss << setw (4) << depth
             << setw (8) << pretty_value (value)
             << setw (8) << pretty_time (msecs);
 

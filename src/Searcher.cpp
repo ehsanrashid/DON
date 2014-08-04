@@ -1753,12 +1753,12 @@ namespace Searcher {
                     << "FEN:       " << RootPos.fen ()                   << "\n"
                     << "Infinite:  " << Limits.infinite                  << "\n"
                     << "Ponder:    " << Limits.ponder                    << "\n"
-                    << "Time:      " << Limits.gameclock[RootColor].time << "\n"
+                    << "ClockTime: " << Limits.gameclock[RootColor].time << "\n"
                     << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
                     << "MoveTime:  " << Limits.movetime                  << "\n"
                     << "MovesToGo: " << u16 (Limits.movestogo)           << "\n"
                     << "RootCount: " << u16 (RootCount)                  << "\n"
-                    << " Depth Score   Time    Nodes  PV\n"
+                    << " Depth Score    Time   Nodes  PV\n"
                     << "-----------------------------------------------------------"
                     << endl;
             }
