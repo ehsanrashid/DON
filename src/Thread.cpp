@@ -14,35 +14,31 @@ namespace Threads {
     using namespace MoveGenerator;
     using namespace Searcher;
 
-    extern void check_time ();
-    extern void autosave_hash ();
-
     namespace {
 
         // start_routine() is the C function which is called when a new thread
         // is launched. It is a wrapper to the virtual function idle_loop().
         extern "C" { inline long start_routine (ThreadBase *th) { th->idle_loop (); return 0; } }
+    }
 
-        // Helpers to launch a thread after creation and joining before delete. Must be
-        // outside Thread c'tor and d'tor because object shall be fully initialized
-        // when start_routine (and hence virtual idle_loop) is called and when joining.
-        template<class T>
-        inline T* new_thread ()
-        {
-            T *th = new T ();
-            thread_create (th->native_handle, start_routine, th); // Will go to sleep
-            return th;
-        }
+    // Helpers to launch a thread after creation and joining before delete. Must be
+    // outside Thread c'tor and d'tor because object shall be fully initialized
+    // when start_routine (and hence virtual idle_loop) is called and when joining.
+    template<class T>
+    T* new_thread ()
+    {
+        T *th = new T ();
+        thread_create (th->native_handle, start_routine, th); // Will go to sleep
+        return th;
+    }
 
-        template<class T>
-        inline void delete_thread (T *th)
-        {
-            th->quit ();                // Search must be already finished
-            th->notify_one ();
-            thread_join (th->native_handle);   // Wait for thread termination
-            delete th;
-        }
-
+    template<class T>
+    void delete_thread (T *th)
+    {
+        th->quit ();                // Search must be already finished
+        th->notify_one ();
+        thread_join (th->native_handle);   // Wait for thread termination
+        delete th;
     }
 
     // ------------------------------------
@@ -264,9 +260,7 @@ namespace Threads {
         timer           = new_thread<TimerThread> ();
         timer->task     = check_time;
         timer->resolution = TimerResolution;
-        autosave        = new_thread<TimerThread> ();
-        autosave->task  = autosave_hash;
-        autosave->resolution = INT_MAX;
+        autosave        = NULL;
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
@@ -275,7 +269,7 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
-        delete_thread (autosave);
+        if (Threadpool.autosave) delete_thread (autosave);
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);

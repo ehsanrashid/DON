@@ -79,6 +79,14 @@ namespace Threads {
     const u08   MAX_THREADS            = 128; // Maximum threads
     const u08   MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
     const u08   MAX_SPLIT_DEPTH        =  15; // Maximum split depth
+    
+    extern void check_time ();
+    extern void autosave_hash ();
+
+    template<class T>
+    extern T* new_thread ();
+    template<class T>
+    extern void delete_thread (T *th);
 
     struct Mutex
     {

@@ -1769,6 +1769,8 @@ namespace Searcher {
             autosave_time = i32 (Options["Auto-Save Hash (mins)"]);
             if (autosave_time)
             {
+                Threadpool.autosave        = new_thread<TimerThread> ();
+                Threadpool.autosave->task  = autosave_hash;
                 Threadpool.autosave->resolution = autosave_time*60*M_SEC;
                 Threadpool.autosave->start ();
                 Threadpool.autosave->notify_one ();
@@ -1784,6 +1786,9 @@ namespace Searcher {
             if (autosave_time)
             {
                 Threadpool.autosave->stop ();
+                Threadpool.autosave->quit ();
+                delete_thread (Threadpool.autosave);
+                Threadpool.autosave = NULL;
             }
 
             if (WriteSearchLog)
@@ -1978,6 +1983,12 @@ namespace Threads {
         {
             Signals.force_stop = true;
         }
+    }
+
+    void autosave_hash ()
+    {
+        string hash_fn = string (Options["Hash File"]);
+        TT.save (hash_fn);
     }
 
     // Thread::idle_loop() is where the thread is parked when it has no work to do

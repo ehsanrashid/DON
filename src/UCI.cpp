@@ -462,13 +462,3 @@ namespace UCI {
     }
 
 }
-
-namespace Threads {
-
-    void autosave_hash ()
-    {
-        string hash_fn = string (Options["Hash File"]);
-        TT.save (hash_fn);
-    }
-
-}
