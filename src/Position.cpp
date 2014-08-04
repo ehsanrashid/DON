@@ -196,6 +196,21 @@ Position& Position::operator= (const Position &pos)
 // It does not detect stalemates, this must be done by the search.
 bool Position::draw () const
 {
+    // Draw by Threefold Repetition?
+    const StateInfo *psi = _si;
+    u08 ply = min (_si->null_ply, _si->clock50);
+    while (ply >= 2)
+    {
+        //psi = psi->p_si; if (psi == NULL) break; 
+        //psi = psi->p_si; if (psi == NULL) break;
+        psi = psi->p_si->p_si;
+        if (psi->posi_key == _si->posi_key)
+        {
+            return true; // Draw at first repetition
+        }
+        ply -= 2;
+    }
+
     // Draw by Material?
     if (   (!_types_bb[PAWN])
         && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP)
@@ -212,21 +227,6 @@ bool Position::draw () const
        )
     {
         return true;
-    }
-
-    // Draw by Threefold Repetition?
-    const StateInfo *psi = _si;
-    u08 ply = min (_si->null_ply, _si->clock50);
-    while (ply >= 2)
-    {
-        //psi = psi->p_si; if (psi == NULL) break; 
-        //psi = psi->p_si; if (psi == NULL) break;
-        psi = psi->p_si->p_si;
-        if (psi->posi_key == _si->posi_key)
-        {
-            return true; // Draw at first repetition
-        }
-        ply -= 2;
     }
 
     //// Draw by Stalemate?
