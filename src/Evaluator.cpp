@@ -188,13 +188,13 @@ namespace Evaluator {
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
-        const Score MinorBehindPawnBonus          = S(+10,+ 0);
+        const Score MinorBehindPawnBonus          = S(+16,+ 0);
 
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        //const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
-        //const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
+        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
+        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
@@ -443,13 +443,13 @@ namespace Evaluator {
                                    || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
                                    )
                                 {
-                                    value *= 1.25;
+                                    value *= 1.10;
                                 }
                                 else
                                 {
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
-                                        value *= 1.75;
+                                        value *= 1.50;
                                     }
                                     else
                                     {
@@ -536,7 +536,7 @@ namespace Evaluator {
                             score += RookOnPawnBonus * (more_than_one (rook_on_enemy_pawns) ? pop_count<MAX15> (rook_on_enemy_pawns) : 1);
                         }
                     }
-                    /*
+                    
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<C > (f))
                     {
@@ -551,8 +551,8 @@ namespace Evaluator {
                                      RookDoubledOnOpenFileBonus :
                                      RookDoubledOnSemiOpenFileBonus;
                         }
+                        
                     }
-                    */
                 }
 
                 if (pinneds & s)

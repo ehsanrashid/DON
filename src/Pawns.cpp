@@ -37,12 +37,6 @@ namespace Pawns {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
  
-        // Levers bonus by [rank]
-        const Score LeverBonus[R_NO] = 
-        {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
-        };
-        
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
         /**/  Score ConnectedBonus[F_NO][R_NO];
 
@@ -186,7 +180,7 @@ namespace Pawns {
                     candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
                               >= ((sentries) ? (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));
                     */
-
+                    
                     ASSERT (r+2 <= R_8);
 
                     u08 helpers_count = 0;
@@ -203,6 +197,7 @@ namespace Pawns {
                         }
                     }
                     candidate = helpers_count && (helpers_count >= pop_count<MAX15> (sentries));
+                    
                 }
 
                 ASSERT (opposers || passed || (pawns[1] & PawnAttackSpan[C][s]));
@@ -214,21 +209,6 @@ namespace Pawns {
                     pawn_score += ConnectedBonus[f][r];
                 }
                 
-                if (leverers)
-                {
-                    //if (more_than_one (leverers))
-                    //{
-                    //    pawn_score += LeverBonus[r];
-                    //}
-                    //else
-                    //{
-                    //    if (r > R_4) pawn_score += LeverBonus[r];
-                    //}
-                    
-                    if (r >= R_4) pawn_score += LeverBonus[r];
-
-                }
-
                 if (isolated)
                 {
                     pawn_score -= IsolatedPenalty[!opposers][f];
@@ -300,7 +280,7 @@ namespace Pawns {
                             }
                         }
                     }
-                    pawn_score += CandidateBonus[rr];
+                    pawn_score += CandidateBonus[rr]/2;
                 }
             }
 
