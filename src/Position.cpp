@@ -219,21 +219,25 @@ bool Position::draw () const
         return true;
     }
 
-    // Draw by 50 moves Rule?
-    if (    _fifty_move_dist <  _si->clock50
-        || (_fifty_move_dist == _si->clock50
-          && (!_si->checkers || MoveList<LEGAL> (*this).size ())
-           )
+    // Draw by Stalemate?
+    if (  !(_si->checkers)
+        //&& (game_phase () < PHASE_MIDGAME - 50)
+        && (count<NONE> (_active) <= 3 || (count<NONE> (_active) <= 5 && pinneds (_active)))
+        && (MoveList<LEGAL> (*this).size () == 0)
        )
     {
         return true;
     }
 
-    //// Draw by Stalemate?
-    //if (!in_check)
-    //{
-    //    if (MoveList<LEGAL> (*this).size () == 0) return true;
-    //}
+    // Draw by 50 moves Rule?
+    if (   _fifty_move_dist <  _si->clock50
+        || (  _fifty_move_dist == _si->clock50
+          && (!(_si->checkers) || MoveList<LEGAL> (*this).size ())
+           )
+       )
+    {
+        return true;
+    }
 
     return false;
 }
