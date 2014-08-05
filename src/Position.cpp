@@ -220,10 +220,11 @@ bool Position::draw () const
     }
 
     // Draw by Stalemate?
-    if (  !(_si->checkers)
+    if (   (!_si->checkers)
         //&& (game_phase () < PHASE_MIDGAME - 50)
-        && (count<NONE> (_active) <= 3 || (count<NONE> (_active) <= 5 && pinneds (_active)))
-        && (MoveList<LEGAL> (*this).size () == 0)
+        && (count<NONPAWN> (_active) < count<NONPAWN> (~_active))
+        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
+        && (!MoveList<LEGAL> (*this).size ())
        )
     {
         return true;
@@ -232,7 +233,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (   _fifty_move_dist <  _si->clock50
         || (  _fifty_move_dist == _si->clock50
-          && (!(_si->checkers) || MoveList<LEGAL> (*this).size ())
+          && (!_si->checkers || MoveList<LEGAL> (*this).size ())
            )
        )
     {
