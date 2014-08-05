@@ -194,13 +194,13 @@ void MovePicker::value<EVASION> ()
         Value gain_value = pos.see_sign (m);
         if (gain_value < VALUE_ZERO)
         {
-            itr->value = gain_value - VALUE_KNOWN_WIN; // At the bottom
+            itr->value = gain_value - MaxHistory; // At the bottom
         }
         else
         if (pos.capture (m))
         {
             itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
-                        - Value (ptype (pos[org_sq (m)])+1) + VALUE_KNOWN_WIN;
+                        - Value (ptype (pos[org_sq (m)])+1) + MaxHistory;
             MoveT mt = mtype (m);
             if (mt == ENPASSANT)
             {

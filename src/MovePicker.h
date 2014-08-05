@@ -9,6 +9,8 @@
 
 class Position;
 
+const Value MaxHistory = Value (2000);
+
 template<bool Gain, class T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store
@@ -48,11 +50,11 @@ public:
     {
         if (Gain)
         {
-            _table[p][s] = std::max (v, _table[p][s]);
+            _table[p][s] = std::max (v, _table[p][s]-1);
         }
         else
         {
-            if (abs (i32 (_table[p][s] + v)) < VALUE_KNOWN_WIN)
+            if (abs (i32 (_table[p][s] + v)) < MaxHistory)
             {
                 _table[p][s] += v;
             }

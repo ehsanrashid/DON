@@ -785,7 +785,8 @@ namespace Searcher {
                                     Depth rdepth = depth -
                                                  ( (3*ONE_MOVE)
                                                  + (depth/4)
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
+                                                 + (abs (beta) < VALUE_KNOWN_WIN ? (i32 (eval - beta)*ONE_MOVE)/i32 (VALUE_MG_PAWN) :
+                                                                                   DEPTH_ZERO));
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -1879,7 +1880,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 ( 10 + (90 + 1*d)*d)); // Value (i32 ( 10 + 80*d));
+            FutilityMargin      [d] = Value (i32 ( 10 + 100*d)); //Value (i32 ( 10 + (90 + 1*d)*d)); //Value (i32 ( 10 + 80*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 

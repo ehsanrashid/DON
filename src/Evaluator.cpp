@@ -250,7 +250,7 @@ namespace Evaluator {
         Score KingDanger[MAX_ATTACK_UNITS];
 
         // KingAttackWeight[PieceT] contains king attack weights by piece type
-        const i32   KingAttackWeight[NONE] = { + 1, + 5, + 4, + 6, +10, 0 };
+        const i32   KingAttackWeight[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
 
         // Bonuses for safe checks
         const i32    SafeCheckWeight[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
