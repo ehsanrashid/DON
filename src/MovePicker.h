@@ -1,7 +1,7 @@
 #ifndef _MOVE_PICKER_H_INC_
 #define _MOVE_PICKER_H_INC_
 
-#include <cstring>
+#include <algorithm>
 
 #include "Type.h"
 #include "MoveGenerator.h"
