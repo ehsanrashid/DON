@@ -399,7 +399,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
-        RootPos.setup (StartFEN, Threadpool.main (), bool (Options["UCI_Chess960"]));
+        RootPos.setup (StartFEN, Threadpool.main ());
 
         bool running = arg.empty ();
         string cmd   = arg;
@@ -448,7 +448,6 @@ namespace UCI {
 
         }
         while (running && cmd != "quit");
-
     }
 
     void stop ()

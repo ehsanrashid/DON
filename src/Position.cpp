@@ -198,7 +198,7 @@ bool Position::draw () const
 {
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
-    u08 ply = min (_si->null_ply, _si->clock50);
+    u08 ply = min (_si->clock50, _si->null_ply);
     while (ply >= 2)
     {
         //psi = psi->p_si; if (psi == NULL) break; 
@@ -250,7 +250,7 @@ bool Position::repeated () const
     StateInfo *si = _si;
     while (si != NULL)
     {
-        i32 i = 4, e = min (si->clock50, si->null_ply);
+        u08 i = 4, e = min (si->clock50, si->null_ply);
         if (e < i) return false;
         StateInfo *psi = si->p_si->p_si;
         do
@@ -1773,15 +1773,16 @@ Position::operator string () const
     {
         oss << "<none>";
     }
-    oss << "\n";
     
+    oss << "\n";
+    /*
     MoveList<LEGAL> ms (*this);
     oss << "Legal moves (" << ms.size () << "): ";
     for ( ; *ms; ++ms)
     {
         oss << move_to_san (*ms, *const_cast<Position*> (this)) << " ";
     }
-
+    */
     return oss.str ();
 }
 
