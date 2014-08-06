@@ -210,7 +210,7 @@ bool Position::draw () const
         }
         ply -= 2;
     }
-
+    /*
     // Draw by Material?
     if (   (!_types_bb[PAWN])
         && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP)
@@ -218,6 +218,7 @@ bool Position::draw () const
     {
         return true;
     }
+    */
     /*
     // Draw by Stalemate?
     if (   (!_si->checkers)
@@ -231,10 +232,9 @@ bool Position::draw () const
     }
     */
     // Draw by 50 moves Rule?
-    if (   _fifty_move_dist <  _si->clock50
-        || (  _fifty_move_dist == _si->clock50
-          && (!_si->checkers || MoveList<LEGAL> (*this).size ())
-           )
+    // Not in check or in check have legal moves 
+    if (   (_fifty_move_dist <= _si->clock50)
+        && (!_si->checkers || MoveList<LEGAL> (*this).size ())
        )
     {
         return true;
