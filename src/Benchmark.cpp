@@ -164,7 +164,10 @@ void benchmark (istream &is, const Position &pos)
                 root_pos.do_move (*ms, si, root_pos.gives_check (*ms, ci) ? &ci : NULL);
                 u64 leaf_count = limits.depth > 1 ? perft (root_pos, i32 (limits.depth - 1)*ONE_MOVE) : 1;
                 root_pos.undo_move ();
-                cerr << move_to_can (*ms, root_pos.chess960 ()) << ": " << leaf_count << "\n";
+                //cerr << setw ( 5) << setfill (' ') << move_to_can (*ms, root_pos.chess960 ()) << ": "
+                //     << setw (20) << setfill ('.') << leaf_count << "\n";
+                cerr << setw ( 4) << setfill (' ') << move_to_san (*ms, root_pos) << ": "
+                     << setw (20) << setfill ('.') << leaf_count << "\n";
                 nodes += leaf_count;
             }
         }

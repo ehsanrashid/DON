@@ -1173,7 +1173,7 @@ namespace Searcher {
                         value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = (alpha < value && (ss)->reduction != DEPTH_ZERO);
+                    full_depth_search = (alpha < value && (ss)->reduction > DEPTH_ZERO);
                     (ss)->reduction = DEPTH_ZERO;
                 }
                 else
@@ -1883,7 +1883,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 (  5 + (100 + 1*d)*d)); //Value (i32 ( 10 + 80*d));
+            FutilityMargin      [d] = Value (i32 (  0 + (90 + 1*d)*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
