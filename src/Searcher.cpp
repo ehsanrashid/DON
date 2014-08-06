@@ -665,10 +665,10 @@ namespace Searcher {
                         (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                         // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
-                        if (   (tt_value >= beta)
+                        if (   !(in_check)
+                            && (tt_value >= beta)
                             && (tt_move != MOVE_NONE)
                             && !(pos.capture_or_promotion (tt_move))
-                            && !(in_check)
                            )
                         {
                             update_stats (pos, ss, tt_move, depth, NULL, 0);
@@ -1316,7 +1316,7 @@ namespace Searcher {
                 // All legal moves have been searched and if there are no legal moves, it
                 // must be mate or stalemate, so return value accordingly.
                 // If in a singular extension search then return a fail low score.
-                if (0 == moves_count)
+                if (0 == moves_count) // best_move == MOVE_NONE
                 {
                     best_value = 
                         (excluded_move != MOVE_NONE) ? alpha :
@@ -1327,7 +1327,10 @@ namespace Searcher {
                 else
                 {
                     // Update history, killer, counter & followup moves
-                    if (best_value >= beta && !in_check && !pos.capture_or_promotion (best_move))
+                    if (   !(in_check)
+                        && (best_value >= beta)
+                        && !(pos.capture_or_promotion (best_move))
+                       )
                     {
                         update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                     }
@@ -1462,7 +1465,7 @@ namespace Searcher {
                         {
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                             window[0] *= 1.35;
-                            //window[1] *= 1.1;
+                            if (window[1] > 1) window[1] *= 0.90;
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
@@ -1471,7 +1474,7 @@ namespace Searcher {
                         {
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             window[1] *= 1.35;
-                            //window[0] *= 1.1;
+                            if (window[0] > 1) window[0] *= 0.90;
                         }
                         else
                         {

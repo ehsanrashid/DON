@@ -63,7 +63,7 @@ namespace UCI {
     }
     Option::operator string () const
     {
-        ASSERT (_type == "string");
+        //ASSERT (_type == "string");
         return _value;
     }
 
