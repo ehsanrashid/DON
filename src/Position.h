@@ -501,9 +501,9 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     MoveT mt = mtype (m);
-    return (mt == NORMAL || mt == PROMOTE) ? (EMPTY != _board[dst_sq (m)])
-         : (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
-         : false;
+    return (mt == NORMAL || mt == PROMOTE) ? (EMPTY != _board[dst_sq (m)]) :
+          (mt == ENPASSANT) ? _si->en_passant_sq != SQ_NO : //_ok (_si->en_passant_sq) :
+          false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const

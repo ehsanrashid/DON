@@ -156,17 +156,20 @@ void MovePicker::value<CAPTURE> ()
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
-        itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])+1);
 
         MoveT mt = mtype (m);
         if (mt == ENPASSANT)
         {
-            itr->value += PieceValue[MG][PAWN];
+            itr->value = PieceValue[MG][PAWN] - 1;
         }
         else
         if (mt == PROMOTE)
         {
-            itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - 1;
+        }
+        else
+        {
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) - 1;
         }
     }
 }
@@ -199,17 +202,19 @@ void MovePicker::value<EVASION> ()
         else
         if (pos.capture (m))
         {
-            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])]
-                        - Value (ptype (pos[org_sq (m)])+1) + MaxHistory;
             MoveT mt = mtype (m);
             if (mt == ENPASSANT)
             {
-                itr->value += PieceValue[MG][PAWN];
+                itr->value = PieceValue[MG][PAWN] - 1 + MaxHistory;
             }
             else
             if (mt == PROMOTE)
             {
-                itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - 1 + MaxHistory;
+            }
+            else
+            {
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) -1 + MaxHistory;
             }
         }
         else
