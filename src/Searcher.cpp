@@ -221,8 +221,6 @@ namespace Searcher {
             {
                 bool updated = (i <= PVIndex);
 
-                if (1 == depth && !updated) continue;
-
                 i32   d;
                 Value v;
                 
@@ -233,6 +231,8 @@ namespace Searcher {
                 }
                 else
                 {
+                    if (1 == depth) return "";
+
                     d = depth - 1;
                     v = RootMoves[i].value[1];
                 }
@@ -397,7 +397,7 @@ namespace Searcher {
                     if (PVNode) alpha = best_value;
                 }
 
-                futility_base = best_value + 128;
+                futility_base = best_value + VALUE_EG_PAWN/2;
             }
 
             // Initialize a MovePicker object for the current position, and prepare
