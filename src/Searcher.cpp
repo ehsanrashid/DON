@@ -1058,7 +1058,7 @@ namespace Searcher {
                             Value futility_value = (ss)->static_eval + FutilityMargin[predicted_depth]
                                                  + Gain[pos[org_sq (move)]][dst_sq (move)] + 128;
 
-                            if (futility_value <= alpha)
+                            if (alpha >= futility_value)
                             {
                                 if (best_value < futility_value)
                                 {
