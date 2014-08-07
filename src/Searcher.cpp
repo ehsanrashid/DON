@@ -763,15 +763,15 @@ namespace Searcher {
                             {
                                 // Step 7. Futility pruning: child node
                                 // Betting that the opponent doesn't have a move that will reduce
-                                // the score by more than futility_margin (depth) if do a null move.
+                                // the score by more than FutilityMargin[depth] if do a null move.
                                 if (   (depth < (7*ONE_MOVE))
                                     && (abs (eval) < VALUE_KNOWN_WIN)
                                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                                    )
                                 {
-                                    Value fut_eval = eval - FutilityMargin[depth];
+                                    Value stand_pat = eval - FutilityMargin[depth];
 
-                                    if (fut_eval >= beta) return fut_eval;
+                                    if (stand_pat >= beta) return stand_pat;
                                 }
 
                                 // Step 8. Null move search with verification search
@@ -867,7 +867,7 @@ namespace Searcher {
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (   (tt_move == MOVE_NONE)
                         && (depth >= ((PVNode ? 5 : 8)*ONE_MOVE))
-                        && (PVNode || (ss)->static_eval + 256 >= beta)
+                        && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta))
                        )
                     {
                         Depth iid_depth = depth - ((2*ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
@@ -1056,7 +1056,7 @@ namespace Searcher {
                         if (predicted_depth < (7*ONE_MOVE))
                         {
                             Value futility_value = (ss)->static_eval + FutilityMargin[predicted_depth]
-                                                 + Gain[pos[org_sq (move)]][dst_sq (move)] + 128;
+                                                 + Gain[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
 
                             if (alpha >= futility_value)
                             {
@@ -1068,9 +1068,9 @@ namespace Searcher {
                                 if (SPNode)
                                 {
                                     splitpoint->mutex.lock ();
-                                    if (splitpoint->best_value < best_value)
+                                    if (splitpoint->best_value < futility_value)
                                     {
-                                        splitpoint->best_value = best_value;
+                                        splitpoint->best_value = futility_value;
                                     }
                                 }
                                 continue;
@@ -1463,10 +1463,10 @@ namespace Searcher {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             window[0] *= 1.35;
                             if (window[1] > 1) window[1] *= 0.90;
+                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
+                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
@@ -1474,10 +1474,10 @@ namespace Searcher {
                         else
                         if (best_value >= bound[1])
                         {
-                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             window[1] *= 1.35;
                             if (window[0] > 1) window[0] *= 0.90;
+                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
+                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                         }
                         else
                         {
@@ -1886,7 +1886,7 @@ namespace Searcher {
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 (  5 + (95 + 1*d)*d));
+            FutilityMargin      [d] = Value (i32 (  0 + (95 + 1*d)*d));
             RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
