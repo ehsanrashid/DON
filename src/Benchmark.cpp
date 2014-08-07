@@ -80,7 +80,7 @@ void benchmark (istream &is, const Position &pos)
     vector<string> fens;
 
     // Assign default values to missing arguments
-    string hash       = (is >> token) ? token : Options["Hash"];
+    string hash       = (is >> token) ? token : to_string (TranspositionTable::DEF_TT_SIZE);
     string threads    = (is >> token) ? token : "1";
     string limit_val  = (is >> token) ? token : "13";
     string limit_type = (is >> token) ? token : "depth";

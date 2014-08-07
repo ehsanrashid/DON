@@ -124,6 +124,8 @@ public:
     static const u32 MIN_TT_SIZE;
     // Maximum size for Transposition table in mega-byte
     static const u32 MAX_TT_SIZE;
+    
+    static const u32 DEF_TT_SIZE;
 
     static bool Clear_Hash;
 

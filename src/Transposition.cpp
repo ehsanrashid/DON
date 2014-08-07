@@ -20,6 +20,8 @@ const u32 TranspositionTable::MIN_TT_SIZE   = 4;
 // 1048576 MB (1024 GB) (1 TB)
 const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
 
+const u32 TranspositionTable::DEF_TT_SIZE   = 16;
+
 bool TranspositionTable::Clear_Hash = true;
 
 void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
