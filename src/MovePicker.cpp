@@ -165,7 +165,7 @@ void MovePicker::value<CAPTURE> ()
         else
         if (mt == PROMOTE)
         {
-            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - 1;
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] - 1;
         }
         else
         {
@@ -210,11 +210,11 @@ void MovePicker::value<EVASION> ()
             else
             if (mt == PROMOTE)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - 1 + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] - 1 + MaxHistory;
             }
             else
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) -1 + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) - 1 + MaxHistory;
             }
         }
         else
