@@ -732,13 +732,16 @@ namespace Searcher {
                     if (!PVNode && !MateSearch) // (is omitted in PV nodes)
                     {
 
-                        // Step 6. Razoring
+                        // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
+                        // you search it to a reduced depth, typically one less than normal depth.
                         if (   (depth < (4*ONE_MOVE))
                             && (tt_move == MOVE_NONE)
                             && (!pos.pawn_on_7thR (pos.active ()))
                            )
                         {
-                            Value ralpha = alpha - RazorMargin[depth];
+                            Value ralpha = max (alpha - RazorMargin[depth], -VALUE_INFINITE);
+                            //ASSERT (ralpha >= -VALUE_INFINITE);
+
                             if (eval <= ralpha)
                             {
                                 if (   (depth <= (1*ONE_MOVE))
@@ -754,7 +757,7 @@ namespace Searcher {
                         }
 
                         // Step 7,8,9.
-                        if (!((ss)->skip_null_move))
+                        if (!(ss)->skip_null_move)
                         {
                             //ASSERT ((ss-1)->current_move != MOVE_NONE);
                             //ASSERT ((ss-1)->current_move != MOVE_NULL);
@@ -839,7 +842,7 @@ namespace Searcher {
                                )
                             {
                                 Depth rdepth = depth - (4*ONE_MOVE);
-                                Value rbeta  = min (beta + 200, VALUE_INFINITE);
+                                Value rbeta  = min (beta + VALUE_MG_PAWN, VALUE_INFINITE);
                                 //ASSERT (rdepth >= ONE_MOVE);
                                 //ASSERT (rbeta <= VALUE_INFINITE);
 
