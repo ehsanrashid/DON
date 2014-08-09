@@ -323,11 +323,12 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
-                king_zone &= ei.pin_attacked_by[C][PAWN];
-                if (king_zone)
+                if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
-                    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<MAX15> (king_zone) : 1);
-                    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
+                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<(WHITE == C) ? DEL_S  : DEL_N> ((king_zone|DistanceRings[ek_sq][1]) & rank_bb (ek_sq));
+                    ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
+                    ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
+                    //ei.king_zone_attacks_count   [C] = 1;
                 }
             }
         }
@@ -658,7 +659,7 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
+            if (ei.king_ring_attackers_count[C_] > 0)
             {
                 const Bitboard occ = pos.pieces ();
 
@@ -987,7 +988,7 @@ namespace Evaluator {
                                 if (pr == R_7)
                                 {
                                     // Pawn on Rank-7 attacks except the current one's
-                                    Bitboard pawns_on_R7    = (ei.pi->pawns[C] - s) & rel_rank_bb (C, R_7);
+                                    Bitboard pawns_on_R7    = (pos.pieces<PAWN> (C) - s) & rel_rank_bb (C, R_7);
                                     Bitboard pawnR7_attacks = (pawns_on_R7) ? shift_del<(WHITE == C) ? DEL_NE : DEL_SW> (pawns_on_R7)
                                                                             | shift_del<(WHITE == C) ? DEL_NW : DEL_SE> (pawns_on_R7) :
                                                                               U64 (0);
@@ -1084,7 +1085,7 @@ namespace Evaluator {
         // squares one, two or three squares behind a friendly pawn are counted
         // twice. Finally, the space bonus is scaled by a weight taken from the
         // material hash table. The aim is to improve play on game opening.
-        inline i32 evaluate_space (const EvalInfo &ei)
+        inline i32 evaluate_space (const Position &pos, const EvalInfo &ei)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -1093,7 +1094,7 @@ namespace Evaluator {
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
                   SpaceMask[C]
-                & ~ei.pi->pawns[C]//~ei.pi->blocked_pawns[C]
+                & ~pos.pieces<PAWN> (C)//~ei.pi->blocked_pawns[C]
                 & ~ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
@@ -1101,7 +1102,7 @@ namespace Evaluator {
             ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
-            Bitboard behind = ei.pi->pawns[C];
+            Bitboard behind = pos.pieces<PAWN> (C);
             behind |= shift_del<(WHITE == C) ? DEL_S  : DEL_N > (behind);
             behind |= shift_del<(WHITE == C) ? DEL_SS : DEL_NN> (behind);
 
@@ -1238,8 +1239,8 @@ namespace Evaluator {
             Score space_weight = ei.mi->space_weight;
             if (space_weight)
             {
-                space[WHITE] = evaluate_space<WHITE> (ei);
-                space[BLACK] = evaluate_space<BLACK> (ei);
+                space[WHITE] = evaluate_space<WHITE> (pos, ei);
+                space[BLACK] = evaluate_space<BLACK> (pos, ei);
 
                 score += apply_weight ((space[WHITE] - space[BLACK])*space_weight, Weights[SPACE]);
             }

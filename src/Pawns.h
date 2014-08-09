@@ -17,7 +17,6 @@ namespace Pawns {
         Key      pawn_key;
         Score    pawn_score;
 
-        Bitboard pawns          [CLR_NO];
         Bitboard pawns_attacks  [CLR_NO];
 
         //Bitboard blocked_pawns  [CLR_NO];
@@ -55,7 +54,7 @@ namespace Pawns {
         Score evaluate_unstoppable_pawns () const;
 
         template<Color C>
-        Value pawn_shelter_storm (Square k_sq);
+        Value pawn_shelter_storm (const Position &pos, Square k_sq);
 
         template<Color C>
         inline void evaluate_king_pawn_safety (const Position &pos)
@@ -70,21 +69,21 @@ namespace Pawns {
                 {
                     if (kr == R_1 && pos.can_castle (C))
                     {
-                        shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_G1)) : VALUE_ZERO; 
-                        shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (rel_sq (C, SQ_C1)) : VALUE_ZERO; 
+                        shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
+                        shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO; 
                     }
                     else
                     {
                         shelter_storm[C][CS_K ] = VALUE_ZERO; 
                         shelter_storm[C][CS_Q ] = VALUE_ZERO; 
                     }
-                    shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (k_sq);
+                    shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, k_sq);
                 }
 
                 min_kp_dist[C] = 0;
-                if (pawns[C])
+                if (pos.pieces<PAWN> (C))
                 {
-                    while (!(BitBoard::DistanceRings[k_sq][min_kp_dist[C]++] & pawns[C])) {}
+                    while (!(BitBoard::DistanceRings[k_sq][min_kp_dist[C]++] & pos.pieces<PAWN> (C))) {}
                 }
             }
         }

@@ -91,7 +91,6 @@ namespace Pawns {
                 pos.pieces<PAWN> (C_)
             };
 
-            e->pawns          [C] = pawns[0];
             e->pawns_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
             //e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
             e->passed_pawns   [C] = U64 (0);
@@ -299,15 +298,15 @@ namespace Pawns {
     template<Color C>
     // pawn_shelter_storm() calculates shelter and storm penalties
     // for the file the king is on, as well as the two adjacent files.
-    Value Entry::pawn_shelter_storm (Square k_sq)
+    Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq)
     {
         const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
         const Rank kr = _rank (k_sq);
         const Bitboard front_pawns[CLR_NO] =
         {
-            pawns[C ] & (FrontRank_bb[C][kr] | Rank_bb[kr]),
-            pawns[C_] & (FrontRank_bb[C][kr] | Rank_bb[kr])
+            pos.pieces<PAWN> (C ) & (FrontRank_bb[C][kr] | Rank_bb[kr]),
+            pos.pieces<PAWN> (C_) & (FrontRank_bb[C][kr] | Rank_bb[kr])
         };
 
         Value value = KingSafetyByPawn;
@@ -343,8 +342,8 @@ namespace Pawns {
     
     // Explicit template instantiation
     // -------------------------------
-    template Value Entry::pawn_shelter_storm<WHITE> (Square k_sq);
-    template Value Entry::pawn_shelter_storm<BLACK> (Square k_sq);
+    template Value Entry::pawn_shelter_storm<WHITE> (const Position &pos, Square k_sq);
+    template Value Entry::pawn_shelter_storm<BLACK> (const Position &pos, Square k_sq);
 
     template<Color C>
     // Entry::evaluate_unstoppable_pawns<>() scores the most advanced among the passed and candidate pawns.
