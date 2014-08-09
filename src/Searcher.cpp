@@ -1885,11 +1885,11 @@ namespace Searcher {
         // Initialize lookup tables
         for (u08 d = 0; d < 4*ONE_MOVE; ++d)
         {
-            RazorMargin         [d] = Value (i32 (496 + (16 + 1*d)*d));
+            RazorMargin         [d] = Value (i32 (512 + (16 + 0*d)*d));
         }
         for (u08 d = 0; d < 7*ONE_MOVE; ++d)
         {
-            FutilityMargin      [d] = Value (i32 (  0 + (95 + 1*d)*d));
+            FutilityMargin      [d] = Value (i32 (  0 + (100 + 0*d)*d));
         }
         for (u08 d = 0; d < 16*ONE_MOVE; ++d)
         {
