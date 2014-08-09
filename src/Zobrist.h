@@ -2,7 +2,6 @@
 #define _ZOBRIST_H_INC_
 
 #include "Type.h"
-#include <string>
 
 class RKISS;
 class Position;

@@ -2,7 +2,6 @@
 #define _UCI_H_INC_
 
 #include <map>
-#include <string>
 
 #include "Type.h"
 #include "functor.h"

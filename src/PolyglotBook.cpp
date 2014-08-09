@@ -1,6 +1,5 @@
 #include "PolyglotBook.h"
 
-#include <vector>
 #include <iomanip>
 
 #include "manipulator.h"

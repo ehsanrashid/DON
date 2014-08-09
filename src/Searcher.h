@@ -3,7 +3,6 @@
 
 #include <cstring>
 #include <memory>
-#include <vector>
 
 #include "Type.h"
 #include "Time.h"
@@ -198,7 +197,6 @@ namespace Searcher {
 
     extern PolyglotBook          Book;
     
-    template<bool RootNode>
     extern u64 perft (Position &pos, Depth depth);
 
     extern void think ();

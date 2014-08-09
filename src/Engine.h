@@ -1,8 +1,6 @@
 #ifndef _ENGINE_H_INC_
 #define _ENGINE_H_INC_
 
-#include <string>
-
 #include "Type.h"
 
 namespace Engine {

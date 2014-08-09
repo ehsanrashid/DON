@@ -1,5 +1,6 @@
 #include "Endgame.h"
 
+#include <string>
 #include "Position.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"

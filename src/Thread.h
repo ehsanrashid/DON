@@ -2,7 +2,6 @@
 #define _THREAD_H_INC_
 
 #include <bitset>
-#include <vector>
 
 #include "Position.h"
 #include "Pawns.h"

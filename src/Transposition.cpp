@@ -1,5 +1,6 @@
 #include "Transposition.h"
 
+#include <string>
 #include <fstream>
 #include "BitScan.h"
 #include "Engine.h"

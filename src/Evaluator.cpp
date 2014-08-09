@@ -288,7 +288,8 @@ namespace Evaluator {
         // pawn attacks. To be done at the beginning of the evaluation.
         inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
-            const Color  C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color  C_  = (WHITE == C) ? BLACK : WHITE;
+            const Delta PULL = (WHITE == C) ? DEL_S : DEL_N;
 
             Square ek_sq = pos.king_sq (C_);
 
@@ -325,7 +326,7 @@ namespace Evaluator {
 
                 if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<(WHITE == C) ? DEL_S  : DEL_N> ((king_zone|DistanceRings[ek_sq][1]) & rank_bb (ek_sq));
+                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
                     ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                     //ei.king_zone_attacks_count   [C] = 1;

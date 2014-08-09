@@ -1,12 +1,12 @@
 ﻿#include "BitBoard.h"
 
-#include <cstring>
-
 #include "RKISS.h"
+#include "Notation.h"
 
 namespace BitBoard {
 
     using namespace std;
+    using namespace Notation;
 
     // FRONT SQUARES
     CACHE_ALIGN(64) Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];

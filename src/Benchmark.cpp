@@ -1,9 +1,5 @@
 #include "Benchmark.h"
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-
 #include "UCI.h"
 #include "Position.h"
 #include "Searcher.h"
@@ -150,9 +146,9 @@ void benchmark (istream &is, const Position &pos)
         if (limit_type == "perft")
         {
             cerr << "\nDepth " << i32 (limits.depth) << "\n";
-            u64 leaf_count = perft<true> (root_pos, i32 (limits.depth) * ONE_MOVE);
-            cout << "\nLeaf nodes: " << leaf_count << "\n";
-            nodes += leaf_count;
+            u64 leaf_nodes = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
+            cout << "\nLeaf nodes: " << leaf_nodes << "\n";
+            nodes += leaf_nodes;
         }
         else
         {
