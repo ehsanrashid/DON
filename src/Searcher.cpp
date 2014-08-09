@@ -749,7 +749,7 @@ namespace Searcher {
                             //ASSERT (ralpha >= -VALUE_INFINITE);
 
                             Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-                                
+
                             if (ver_value <= ralpha) return ver_value;
                         }
 
@@ -825,7 +825,18 @@ namespace Searcher {
 
                                         (ss)->skip_null_move = false;
 
-                                        if (veri_value >= beta) return null_value;
+                                        if (veri_value >= beta)
+                                        {
+                                            //TT.store (
+                                            //    posi_key,
+                                            //    tt_move,
+                                            //    depth,
+                                            //    BND_LOWER,
+                                            //    value_to_tt (null_value, (ss)->ply),
+                                            //    (ss)->static_eval);
+
+                                            return null_value;
+                                        }
                                     }
                                 }
                             }

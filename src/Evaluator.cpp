@@ -186,6 +186,7 @@ namespace Evaluator {
         };
         
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
+        //const Score BishopImmobilityPenalty       = S(+ 8,+12); // Penalty for bishop in region attacked by enemy pawns
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
         const Score MinorBehindPawnBonus          = S(+16,+ 0);
@@ -425,6 +426,14 @@ namespace Evaluator {
                 if (BSHP == PT)
                 {
                     score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s));
+                    
+                    //// Give a partial immobility penalty for bishops for squares attacked by enemy pawns
+                    //Bitboard immobility = ei.pin_attacked_by[C_][PAWN] & attacks;
+                    //if (immobility)
+                    //{
+                    //    i32 imob = pop_count<MAX15>(immobility);
+                    //    score -= BishopImmobilityPenalty * imob;
+                    //}
 
                     // Outpost bonus for Bishop
                     if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
@@ -567,7 +576,7 @@ namespace Evaluator {
                 }
 
                 Bitboard mobile = attacks & mobility_area;
-                u08 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
+                i32 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
                 mobility += MobilityBonus[PT][mob];
 
                 if (ROOK == PT)
@@ -827,13 +836,16 @@ namespace Evaluator {
             
             Score score = SCORE_ZERO;
 
-            score += (protected_enemies) ?
-                        ((protected_enemies & pos.pieces<QUEN> ()) ? ThreatBonus[0][QUEN] :
-                         (protected_enemies & pos.pieces<ROOK> ()) ? ThreatBonus[0][ROOK] :
-                         (protected_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[0][BSHP] :
-                         (protected_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[0][NIHT] :
-                         //(protected_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[0][PAWN] :
-                                                                      SCORE_ZERO) : SCORE_ZERO;
+            if (protected_enemies)
+            {
+                score += ((protected_enemies & pos.pieces<QUEN> ()) ? ThreatBonus[0][QUEN] :
+                          (protected_enemies & pos.pieces<ROOK> ()) ? ThreatBonus[0][ROOK] :
+                          (protected_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[0][BSHP] :
+                                                                     ThreatBonus[0][NIHT]);
+                          //(protected_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[0][NIHT] :
+                          ////(protected_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[0][PAWN] :
+                          //SCORE_ZERO);
+            }
 
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_enemies)
@@ -842,23 +854,26 @@ namespace Evaluator {
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
                     Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
-
-                    score += (threaten_enemies) ?
-                                ((threaten_enemies & pos.pieces<QUEN> ()) ? ThreatBonus[pt][QUEN] :
-                                 (threaten_enemies & pos.pieces<ROOK> ()) ? ThreatBonus[pt][ROOK] :
-                                 (threaten_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[pt][BSHP] :
-                                 (threaten_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[pt][NIHT] :
-                                 (threaten_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[pt][PAWN] :
-                                                                             SCORE_ZERO) : SCORE_ZERO;
+                    if (threaten_enemies)
+                    {
+                        score += ((threaten_enemies & pos.pieces<QUEN> ()) ? ThreatBonus[pt][QUEN] :
+                                  (threaten_enemies & pos.pieces<ROOK> ()) ? ThreatBonus[pt][ROOK] :
+                                  (threaten_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[pt][BSHP] :
+                                  (threaten_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[pt][NIHT] :
+                                                                            ThreatBonus[pt][PAWN]);
+                                  //(threaten_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[pt][PAWN] :
+                                  //SCORE_ZERO);
+                    }
                 }
 
                 // Hanging enemies
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
                 
-                //score += (hanging_enemies) ?
-                //            HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1) :
-                //            SCORE_ZERO;
-                if (hanging_enemies) score += HangingBonus;
+                if (hanging_enemies)
+                {
+                    //score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1) :
+                    score += HangingBonus;
+                }
             }
 
             if (Trace)
