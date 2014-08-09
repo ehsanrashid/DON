@@ -34,16 +34,14 @@ namespace Searcher {
 
         const point   InfoDuration  = 3000; // 3 sec
         
-        const u08     FutilityDepth = 16;
-        
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(32) u08   FutilityMoveCount[2][FutilityDepth*i32(ONE_MOVE)]; // [improving][depth]
+        CACHE_ALIGN(32) u08   FutilityMoveCount[2][16*2]; // [improving][depth]
         
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(32) Value FutilityMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
+        CACHE_ALIGN(32) Value FutilityMargin[7*2];       // [depth]
 
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(32) Value    RazorMargin[FutilityDepth*i32(ONE_MOVE)];       // [depth]
+        CACHE_ALIGN(32) Value    RazorMargin[4*2];       // [depth]
 
         // Reduction lookup table (initialized at startup)
         CACHE_ALIGN(32) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
@@ -735,25 +733,24 @@ namespace Searcher {
                         // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (   (depth < (4*ONE_MOVE))
+                            && (eval + RazorMargin[depth] <= alpha)
                             && (tt_move == MOVE_NONE)
                             && (!pos.pawn_on_7thR (pos.active ()))
                            )
                         {
+                            if (   (depth <= (1*ONE_MOVE))
+                                && (eval + RazorMargin[3*ONE_MOVE] <= alpha)
+                               )
+                            {
+                                return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                            }
+
                             Value ralpha = max (alpha - RazorMargin[depth], -VALUE_INFINITE);
                             //ASSERT (ralpha >= -VALUE_INFINITE);
 
-                            if (eval <= ralpha)
-                            {
-                                if (   (depth <= (1*ONE_MOVE))
-                                    && (eval <= alpha - RazorMargin[3*ONE_MOVE])
-                                   )
-                                {
-                                    return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
-                                }
-
-                                Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
-                                if (ver_value <= ralpha) return ver_value;
-                            }
+                            Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+                                
+                            if (ver_value <= ralpha) return ver_value;
                         }
 
                         // Step 7,8,9.
@@ -866,7 +863,7 @@ namespace Searcher {
                         }
 
                     }
-
+                    
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (   (tt_move == MOVE_NONE)
                         && (depth >= ((PVNode ? 5 : 8)*ONE_MOVE))
@@ -880,7 +877,8 @@ namespace Searcher {
                         (ss)->skip_null_move = false;
 
                         tte = TT.retrieve (posi_key);
-                        tt_move = tte != NULL ? tte->move () : MOVE_NONE;
+                        tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
+                        tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                     }
 
                 }
@@ -1044,7 +1042,7 @@ namespace Searcher {
                        )
                     {
                         // Move count based pruning
-                        if (   (depth < (FutilityDepth*i32(ONE_MOVE)))
+                        if (   (depth < (16*ONE_MOVE))
                             && (moves_count >= FutilityMoveCount[improving][depth])
                            )
                         {
@@ -1885,12 +1883,18 @@ namespace Searcher {
     void initialize ()
     {
         // Initialize lookup tables
-        for (u08 d = 0; d < FutilityDepth*i32(ONE_MOVE); ++d)    // depth (ONE_MOVE == 2)
+        for (u08 d = 0; d < 4*ONE_MOVE; ++d)
+        {
+            RazorMargin         [d] = Value (i32 (496 + (16 + 1*d)*d));
+        }
+        for (u08 d = 0; d < 7*ONE_MOVE; ++d)
+        {
+            FutilityMargin      [d] = Value (i32 (  0 + (95 + 1*d)*d));
+        }
+        for (u08 d = 0; d < 16*ONE_MOVE; ++d)
         {
             FutilityMoveCount[0][d] = u08 (2.40 + 0.222 * pow (0.00 + d, 1.80));
             FutilityMoveCount[1][d] = u08 (3.00 + 0.300 * pow (0.98 + d, 1.80));
-            FutilityMargin      [d] = Value (i32 (  0 + (95 + 1*d)*d));
-            RazorMargin         [d] = Value (i32 (512 + 16*d));
         }
 
         Reduction[0][0][0][0] = Reduction[0][1][0][0] = Reduction[1][0][0][0] = Reduction[1][1][0][0] = 0;

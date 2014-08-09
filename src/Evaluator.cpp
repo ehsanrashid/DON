@@ -854,9 +854,11 @@ namespace Evaluator {
 
                 // Hanging enemies
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
-                score += (hanging_enemies) ?
-                            HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1) :
-                            SCORE_ZERO;
+                
+                //score += (hanging_enemies) ?
+                //            HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1) :
+                //            SCORE_ZERO;
+                if (hanging_enemies) score += HangingBonus;
             }
 
             if (Trace)

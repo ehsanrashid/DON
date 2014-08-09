@@ -40,10 +40,10 @@ namespace BitBoard {
     const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
     const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
-    const Bitboard Corner_bb  = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
+    const Bitboard Corner_bb   = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
     const Bitboard FileEdge_bb = (FA_bb | FH_bb);
-    const Bitboard RimEdge_bb = (FileEdge_bb | R1_bb | R8_bb);
-    const Bitboard EndEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
+    const Bitboard RimEdge_bb  = (FileEdge_bb | R1_bb | R8_bb);
+    const Bitboard EndEdge_bb  = (FA_bb | FH_bb)&(R2_bb | R3_bb);
     const Bitboard ExtCntr_bb[CLR_NO] =
     {
         (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
@@ -206,10 +206,9 @@ namespace BitBoard {
     inline Bitboard& operator+= (Bitboard &bb, Rank   r) { return bb |= Rank_bb[r]; }
     inline Bitboard& operator-= (Bitboard &bb, Rank   r) { return bb &=~Rank_bb[r]; }
     */
-    //inline u08 file_dist (File f1, File f2)     { return FileRankDist[f1][f2]; }
+
     inline u08 file_dist (Square s1, Square s2) { return FileRankDist[_file (s1)][_file (s2)]; }
 
-    //inline u08 rank_dist (Rank r1, Rank r2)     { return FileRankDist[r1][r2]; }
     inline u08 rank_dist (Square s1, Square s2) { return FileRankDist[_rank (s1)][_rank (s2)]; }
 
     // ----------------------------------------------------
@@ -218,43 +217,14 @@ namespace BitBoard {
 
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
-    //inline Bitboard adj_files_bb (Square s) { return AdjFile_bb[_file (s)]; }
-    //inline Bitboard adj_ranks_bb (Square s) { return AdjRank_bb[_rank (s)]; }
-
     inline Bitboard rel_rank_bb (Color c, Rank   r) { return Rank_bb[rel_rank (c, r)]; }
     inline Bitboard rel_rank_bb (Color c, Square s) { return Rank_bb[rel_rank (c, s)]; }
-
-    // Bitboard of ranks in front of the rank, from the point of view of the given color.
-    //inline Bitboard front_rank_bb (Color c, Rank   r) { return FrontRank_bb[c][r]; }
-    // Bitboard of squares along the line in front of the square, from the point of view of the given color.
-    //inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
-
-    // Ring on the square with the distance 'd'
-    //inline Bitboard distance_rings   (Square s, u08 d) { return DistanceRings[s][d]; }
 
     // board_edges() returns a bitboard of edges of the board
     inline Bitboard board_edges (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
     inline Bitboard squares_of_color (Square s) { return (Dark_bb & s) ? Dark_bb : Liht_bb; }
-
-    // pawn_attack_span() takes a color and a square as input, and returns a bitboard
-    // representing all squares that can be attacked by a pawn of the given color
-    // when it moves along its file starting from the given square. Definition is:
-    // PawnAttackSpan[c][s] = front_ranks_bb(c, s) & adjacent_files_bb(s);
-    //inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][s]; }
-
-    // passer_pawn_span() takes a color and a square as input, and returns a
-    // bitboard mask which can be used to test if a pawn of the given color on
-    // the given square is a passed pawn. Definition of the table is:
-    // PassedPawnMask[c][s] = PawnAttackSpan[c][s] | forward_bb(c, s)
-    //inline Bitboard passer_pawn_span (Color c, Square s) { return PawnPassSpan[c][s]; }
-
-    // between_bb() returns a bitboard representing all squares between two squares.
-    // For instance,
-    // between_bb(SQ_C4, SQ_F7) returns a bitboard with the bits for square d5 and e6 set.
-    // If s1 and s2 are not on the same rank, file or diagonal, 0 is returned.
-    //inline Bitboard between_sq (Square s1, Square s2) { return Between_bb[s1][s2]; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return LineRay_bb[s1][s2] & s3; }

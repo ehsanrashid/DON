@@ -474,7 +474,7 @@ inline bool Position::passed_pawn (Color c, Square s) const
 }
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return (_color_bb[c]&_types_bb[PAWN]) & BitBoard::Rank_bb[rel_rank (c, R_7)];
+    return (_color_bb[c]&_types_bb[PAWN]) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
