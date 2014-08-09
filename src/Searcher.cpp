@@ -257,26 +257,6 @@ namespace Searcher {
             return ss.str ();
         }
 
-        // _perft() is our utility to verify move generation. All the leaf nodes
-        // up to the given depth are generated and counted and the sum returned.
-        inline u64 _perft (Position &pos, i16 depth)
-        {
-            const bool leaf = (depth == (2*ONE_MOVE));
-
-            u64 leaf_count = U64 (0);
-
-            StateInfo si;
-            CheckInfo ci (pos);
-            for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
-            {
-                Move m = *ms;
-                pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
-                leaf_count += leaf ? MoveList<LEGAL> (pos).size () : _perft (pos, depth - ONE_MOVE);
-                pos.undo_move ();
-            }
-            return leaf_count;
-        }
-
         template <NodeT NT, bool InCheck>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
@@ -1705,10 +1685,45 @@ namespace Searcher {
 
     // ------------------------------------
 
+    // perft() is our utility to verify move generation. All the leaf nodes
+    // up to the given depth are generated and counted and the sum returned.
+    template<bool RootNode>
     u64 perft (Position &pos, Depth depth)
     {
-        return (depth > ONE_MOVE) ? _perft (pos, depth) : MoveList<LEGAL> (pos).size ();
+        u64 nodes = U64 (0);
+
+        const bool leaf = (depth <= (2*ONE_MOVE));
+        CheckInfo ci (pos);
+
+        for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
+        {
+            u64 leaf_count = U64 (0);
+            if (RootNode && leaf)
+            {
+                leaf_count = 1;
+            }
+            else
+            {
+                Move m = *ms;
+                StateInfo si;
+                pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
+                leaf_count += leaf ? MoveList<LEGAL>(pos).size() : perft<false> (pos, depth - ONE_MOVE);
+                pos.undo_move ();
+            }
+            if (RootNode)
+            {
+                //sync_cout << setw ( 5) << setfill (' ') << move_to_can (*ms, pos.chess960 ()) << ": "
+                //          << setw (20) << setfill ('.') << leaf_count << sync_endl;
+                sync_cout << setw ( 5) << setfill (' ') << move_to_san (*ms, pos) << ": "
+                          << setw (20) << setfill ('.') << leaf_count << sync_endl;
+            }
+
+            nodes += leaf_count;
+        }
+        return nodes;
     }
+
+    template u64 perft<true> (Position &pos, Depth depth);
 
     // Main searching starts from here
     void think ()

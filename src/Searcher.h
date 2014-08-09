@@ -197,7 +197,8 @@ namespace Searcher {
     extern Time::point           SearchTime;
 
     extern PolyglotBook          Book;
-
+    
+    template<bool RootNode>
     extern u64 perft (Position &pos, Depth depth);
 
     extern void think ();
