@@ -47,10 +47,9 @@ namespace Searcher {
         CACHE_ALIGN(32) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, i16 depth, u08 move_num)
+        inline Depth reduction (bool imp, Depth depth, i32 move_num)
         {
-            depth /= i32 (ONE_MOVE);
-            return Depth (Reduction[PVNode][imp][depth < 63 ? depth : 63][move_num < 63 ? move_num : 63]);
+            return (Depth) (Reduction[PVNode][imp][min (i32 (depth)/i32 (ONE_MOVE), 63)][min (move_num, 63)]);
         }
 
         TimeManager TimeMgr;
@@ -122,14 +121,14 @@ namespace Searcher {
                     Value v = RootMoves[i].value[0];
 
                     // Don't allow crazy blunders even at very low skills
-                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2 * VALUE_MG_PAWN))
+                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2*VALUE_MG_PAWN))
                     {
                         break;
                     }
 
                     // This is our magic formula
                     v += (weakness * i32 (RootMoves[0].value[0] - v)
-                      +   variance * i32 (rk.rand<u32> () % weakness) / 0x80);
+                      +   variance * i32 (rk.rand<u32> () % weakness) / (VALUE_EG_PAWN/2));
 
                     if (max_v < v)
                     {
@@ -372,6 +371,8 @@ namespace Searcher {
                         return best_value;
                     }
 
+                    ASSERT (best_value < beta);
+                    // Update alpha here! always alpha < beta
                     if (PVNode) alpha = best_value;
                 }
 
@@ -484,7 +485,8 @@ namespace Searcher {
 
                             return best_value;
                         }
-                        
+
+                        ASSERT (value < beta);
                         // Update alpha here! always alpha < beta
                         if (PVNode) alpha = value;
                     }
@@ -736,8 +738,8 @@ namespace Searcher {
                         // Step 7,8,9.
                         if (!(ss)->skip_null_move)
                         {
-                            //ASSERT ((ss-1)->current_move != MOVE_NONE);
-                            //ASSERT ((ss-1)->current_move != MOVE_NULL);
+                            ASSERT ((ss-1)->current_move != MOVE_NONE);
+                            ASSERT ((ss-1)->current_move != MOVE_NULL);
 
                             if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                             {
@@ -765,7 +767,7 @@ namespace Searcher {
                                     Depth rdepth = depth -
                                                  ( (3*ONE_MOVE)
                                                  + (depth/4)
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? (i32 (eval - beta)*ONE_MOVE)/i32 (VALUE_MG_PAWN) :
+                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta)/i32 (VALUE_MG_PAWN)*ONE_MOVE :
                                                                                    DEPTH_ZERO));
 
                                     // Do null move
@@ -829,10 +831,13 @@ namespace Searcher {
                                 && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                                )
                             {
+                                //ASSERT ((ss-1)->current_move != MOVE_NONE);
+                                //ASSERT ((ss-1)->current_move != MOVE_NULL);
+
                                 Depth rdepth = depth - (4*ONE_MOVE);
-                                Value rbeta  = min (beta + VALUE_MG_PAWN, VALUE_INFINITE);
+                                Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
                                 //ASSERT (rdepth >= ONE_MOVE);
-                                //ASSERT (rbeta <= VALUE_INFINITE);
+                                //ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -1008,7 +1013,7 @@ namespace Searcher {
                     && (move_legal)
                    )
                 {
-                    Value rbeta = tt_value - i32 (depth);
+                    Value rbeta = min (tt_value - i32 (depth), +VALUE_INFINITE);
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1060,9 +1065,9 @@ namespace Searcher {
                                 if (SPNode)
                                 {
                                     splitpoint->mutex.lock ();
-                                    if (splitpoint->best_value < futility_value)
+                                    if (splitpoint->best_value < best_value)
                                     {
-                                        splitpoint->best_value = futility_value;
+                                        splitpoint->best_value = best_value;
                                     }
                                 }
                                 continue;
@@ -1118,16 +1123,14 @@ namespace Searcher {
                 {
                     (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
 
-                    if (PVNode || !cut_node)
-                    {
-                        if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
-                        {
-                            (ss)->reduction += ONE_PLY;
-                        }
-                    }
-                    else
+                    if (!PVNode && cut_node)
                     {
                         (ss)->reduction += ONE_MOVE;
+                    }
+                    else
+                    if (History[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
+                    {
+                        (ss)->reduction += ONE_PLY;
                     }
 
                     if (   (ss)->reduction > DEPTH_ZERO
@@ -1270,7 +1273,8 @@ namespace Searcher {
 
                             break;
                         }
-                        
+
+                        ASSERT (value < beta);
                         // Update alpha here! always alpha < beta
                         if (PVNode) alpha = (SPNode) ? splitpoint->alpha = value : value;
                     }
@@ -1281,11 +1285,11 @@ namespace Searcher {
                 {
                     if (   (Threadpool.split_depth <= depth)
                         && (Threadpool.size () > 1)
-                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                         && (thread->splitpoint_threads < MAX_SPLITPOINT_THREADS)
+                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
-                        ASSERT (alpha >= best_value && best_value < beta);
+                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && best_value < beta && beta <= -VALUE_INFINITE);
 
                         thread->split (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
                         
@@ -1317,15 +1321,13 @@ namespace Searcher {
                 }
                 // Quiet best move:
                 else
+                // Update history, killer, counter & followup moves
+                if (   !(in_check)
+                    && (best_value >= beta)
+                    && !(pos.capture_or_promotion (best_move))
+                   )
                 {
-                    // Update history, killer, counter & followup moves
-                    if (   !(in_check)
-                        && (best_value >= beta)
-                        && !(pos.capture_or_promotion (best_move))
-                       )
-                    {
-                        update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
-                    }
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
                 }
 
                 TT.store (
@@ -1455,10 +1457,10 @@ namespace Searcher {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.35;
-                            if (window[1] > 1) window[1] *= 0.90;
+                            window[0] *= 1.36;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
+                            //if (window[1] > 1) window[1] *= 0.95;
+                            //bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
@@ -1466,10 +1468,10 @@ namespace Searcher {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.35;
-                            if (window[0] > 1) window[0] *= 0.90;
-                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
+                            window[1] *= 1.36;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
+                            //if (window[0] > 1) window[0] *= 0.95;
+                            //bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                         }
                         else
                         {

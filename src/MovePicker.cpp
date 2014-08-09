@@ -53,7 +53,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     bad_captures_end = moves+MAX_MOVES-1;
 
-    stage = (pos.checkers () ? EVASIONS : MAIN_STAGE);
+    stage = (pos.checkers () ? EVASIONS : MAIN);
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
@@ -158,18 +158,19 @@ void MovePicker::value<CAPTURE> ()
         Move m = itr->move;
 
         MoveT mt = mtype (m);
+        if (mt == NORMAL)
+        {
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32 (ptype (pos[org_sq (m)]));
+        }
+        else
         if (mt == ENPASSANT)
         {
-            itr->value = PieceValue[MG][PAWN] - 1;
+            itr->value = PieceValue[MG][PAWN];
         }
         else
         if (mt == PROMOTE)
         {
-            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] - 1;
-        }
-        else
-        {
-            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) - 1;
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
         }
     }
 }
@@ -203,18 +204,19 @@ void MovePicker::value<EVASION> ()
         if (pos.capture (m))
         {
             MoveT mt = mtype (m);
+            if (mt == NORMAL)
+            {
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32 (ptype (pos[org_sq (m)])) + MaxHistory;
+            }
+            else
             if (mt == ENPASSANT)
             {
-                itr->value = PieceValue[MG][PAWN] - 1 + MaxHistory;
+                itr->value = PieceValue[MG][PAWN] + MaxHistory;
             }
             else
             if (mt == PROMOTE)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] - 1 + MaxHistory;
-            }
-            else
-            {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - Value (ptype (pos[org_sq (m)])) - 1 + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + MaxHistory;
             }
         }
         else
@@ -239,83 +241,68 @@ void MovePicker::generate_next_stage ()
     case CAPTURES_S5:
     case CAPTURES_S6:
         end = generate<CAPTURE> (moves, pos);
-        value<CAPTURE> ();
+        if (cur < end-1)
+        {
+            value<CAPTURE> ();
+        }
         return;
 
     case KILLERS_S1:
         // Killer moves usually come right after after the hash move and (good) captures
         cur = end = killers;
-
-        killers[0].move =           //killer_moves[0];
-        killers[1].move =           //killer_moves[1];
+        
+        killers[0].move = ss->killer_moves[0];
+        killers[1].move = (ss->killer_moves[0] != ss->killer_moves[1]) ? ss->killer_moves[1] : MOVE_NONE;
         killers[2].move =           //counter_moves[0]
         killers[3].move =           //counter_moves[1]
         killers[4].move =           //followup_moves[0]
         killers[5].move = MOVE_NONE;//followup_moves[1]
 
-        // Be sure killer moves are not MOVE_NONE
-        for (i08 i = 0; i < 2; ++i)
-        {
-            if (ss->killer_moves[i] != MOVE_NONE)
-            {
-                (end++)->move = ss->killer_moves[i];
-            }
-        }
-        //// If killer moves are same
-        //if (ss->killers[1] != MOVE_NONE && ss->killers[1] == ss->killers[0]) // Due to SMP races
-        //{
-        //    (--end)->move = MOVE_NONE;
-        //}
-
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (counter_moves[i] != MOVE_NONE)
-                && (counter_moves[i] != cur[0].move)
+            if (   (counter_moves[i] != cur[0].move)
                 && (counter_moves[i] != cur[1].move)
+                && (counter_moves[i] != cur[2].move)
                )
             {
                 (end++)->move = counter_moves[i];
             }
         }
-        //// If counter moves are same
-        //if (counter_moves[1] != MOVE_NONE && counter_moves[1] == counter_moves[0]) // Due to SMP races
-        //{
-        //    (--end)->move = MOVE_NONE;
-        //}
 
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (followup_moves[i] != MOVE_NONE)
-                && (followup_moves[i] != cur[0].move)
+            if (   (followup_moves[i] != cur[0].move)
                 && (followup_moves[i] != cur[1].move)
                 && (followup_moves[i] != cur[2].move)
                 && (followup_moves[i] != cur[3].move)
+                && (followup_moves[i] != cur[4].move)
                )
             {
                 (end++)->move = followup_moves[i];
             }
         }
-        //// If followup moves are same
-        //if (followup_moves[1] != MOVE_NONE && followup_moves[1] == followup_moves[0]) // Due to SMP races
-        //{
-        //    (--end)->move = MOVE_NONE;
-        //}
 
         return;
 
     case QUIETS_1_S1:
         end = quiets_end = generate<QUIET> (moves, pos);
-        value<QUIET> ();
-        end = partition (cur, end, ValMove ());
-        insertion_sort (cur, end);
+        if (cur < end)
+        {
+            value<QUIET> ();
+            end = partition (cur, end, ValMove ());
+            if (cur < end-1)
+            {
+                insertion_sort (cur, end);
+            }
+        }
         return;
 
     case QUIETS_2_S1:
         cur = end;
         end = quiets_end;
-        if (depth >= 3 * ONE_MOVE)
+        if (depth >= (3*ONE_MOVE))
         {
             insertion_sort (cur, end);
         }
@@ -330,7 +317,7 @@ void MovePicker::generate_next_stage ()
 
     case EVASIONS_S2:
         end = generate<EVASION> (moves, pos);
-        if (moves < end-1)
+        if (cur < end-1)
         {
             value<EVASION> ();
         }
@@ -374,7 +361,7 @@ Move MovePicker::next_move<false> ()
         switch (stage)
         {
 
-        case MAIN_STAGE:
+        case MAIN:
         case EVASIONS:
         case QSEARCH_0:
         case QSEARCH_1:
