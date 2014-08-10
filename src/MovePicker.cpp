@@ -249,7 +249,7 @@ void MovePicker::generate_next_stage ()
 
     case KILLERS_S1:
         // Killer moves usually come right after after the hash move and (good) captures
-        cur = end = killers;
+        cur = killers;
         
         killers[0].move = ss->killer_moves[0];
         killers[1].move = (ss->killer_moves[0] != ss->killer_moves[1]) ? ss->killer_moves[1] : MOVE_NONE;
@@ -258,10 +258,12 @@ void MovePicker::generate_next_stage ()
         killers[4].move =           //followup_moves[0]
         killers[5].move = MOVE_NONE;//followup_moves[1]
 
+        end = cur + 2;
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (counter_moves[i] != cur[0].move)
+            if (   (counter_moves[i] != MOVE_NONE)
+                && (counter_moves[i] != cur[0].move)
                 && (counter_moves[i] != cur[1].move)
                 && (counter_moves[i] != cur[2].move)
                )
@@ -273,7 +275,8 @@ void MovePicker::generate_next_stage ()
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (followup_moves[i] != cur[0].move)
+            if (   (followup_moves[i] != MOVE_NONE)
+                && (followup_moves[i] != cur[0].move)
                 && (followup_moves[i] != cur[1].move)
                 && (followup_moves[i] != cur[2].move)
                 && (followup_moves[i] != cur[3].move)

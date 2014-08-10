@@ -325,16 +325,16 @@ namespace Searcher {
             if (InCheck)
             {
                 (ss)->static_eval = VALUE_NONE;
-                best_value = futility_base = -VALUE_INFINITE;
+                futility_base = best_value = -VALUE_INFINITE;
             }
             else
             {
                 if (tte != NULL)
                 {
                     // Never assume anything on values stored in TT
-                    Value eval_ = tte->eval ();
-                    if (VALUE_NONE == eval_) eval_ = evaluate (pos);
-                    best_value = (ss)->static_eval = eval_;
+                    Value eval = tte->eval ();
+                    if (VALUE_NONE == eval) eval = evaluate (pos);
+                    (ss)->static_eval = best_value = eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
@@ -347,7 +347,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    best_value = (ss)->static_eval = 
+                    (ss)->static_eval = best_value = 
                         (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TempoBonus;
                 }
 
@@ -406,14 +406,14 @@ namespace Searcher {
                     {
                         ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
-                        Value futility_value = futility_base + PieceValue[EG][ptype (pos[dst_sq (move)])];
+                        Value futility_value = futility_base
+                                              + (mtype (move) != ENPASSANT ?
+                                                        PieceValue[EG][ptype (pos[dst_sq (move)])] :
+                                                        PieceValue[EG][PAWN]);
 
                         if (futility_value < beta)
                         {
-                            if (best_value < futility_value)
-                            {
-                                best_value = futility_value;
-                            }
+                            best_value = max (futility_value, best_value);
                             continue;
                         }
 
@@ -421,10 +421,7 @@ namespace Searcher {
                         // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
                         if (futility_base < beta && pos.see (move) <= VALUE_ZERO)
                         {
-                            if (best_value < futility_base)
-                            {
-                                best_value = futility_base;
-                            }
+                            best_value = max (futility_base, best_value);
                             continue;
                         }
                     }
@@ -661,16 +658,16 @@ namespace Searcher {
                 // Step 5. Evaluate the position statically and update parent's gain statistics
                 if (in_check)
                 {
-                    eval = (ss)->static_eval = VALUE_NONE;
+                    (ss)->static_eval = eval = VALUE_NONE;
                 }
                 else
                 {
                     if (tte != NULL)
                     {
                         // Never assume anything on values stored in TT
-                        Value eval_ = tte->eval ();
-                        if (VALUE_NONE == eval_) eval_ = evaluate (pos);
-                        eval = (ss)->static_eval = eval_;
+                        eval = tte->eval ();
+                        if (VALUE_NONE == eval) eval = evaluate (pos);
+                        (ss)->static_eval = eval;
 
                         // Can tt_value be used as a better position evaluation?
                         if (VALUE_NONE != tt_value)
@@ -683,7 +680,7 @@ namespace Searcher {
                     }
                     else
                     {
-                        eval = (ss)->static_eval = 
+                        (ss)->static_eval = eval =
                             (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TempoBonus;
 
                         TT.store (
@@ -741,6 +738,7 @@ namespace Searcher {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
+                            // Step 7,8.
                             if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                             {
                                 // Step 7. Futility pruning: child node
@@ -807,19 +805,9 @@ namespace Searcher {
 
                                         (ss)->skip_null_move = false;
 
-                                        if (veri_value >= beta)
-                                        {
-                                            //TT.store (
-                                            //    posi_key,
-                                            //    tt_move,
-                                            //    depth,
-                                            //    BND_LOWER,
-                                            //    value_to_tt (null_value, (ss)->ply),
-                                            //    (ss)->static_eval);
-
-                                            return null_value;
-                                        }
+                                        if (veri_value >= beta) return null_value;
                                     }
+                                    //else { // threat move here }
                                 }
                             }
 
@@ -829,11 +817,9 @@ namespace Searcher {
                             // can (almost) safely prune the previous move.
                             if (   (depth >= (5*ONE_MOVE))
                                 && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
+                                //&& (excluded_move == MOVE_NONE)
                                )
                             {
-                                //ASSERT ((ss-1)->current_move != MOVE_NONE);
-                                //ASSERT ((ss-1)->current_move != MOVE_NULL);
-
                                 Depth rdepth = depth - (4*ONE_MOVE);
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
                                 //ASSERT (rdepth >= ONE_MOVE);
@@ -860,23 +846,23 @@ namespace Searcher {
 
                     }
                     
-                    // Step 10. Internal iterative deepening (skipped when in check)
-                    if (   (tt_move == MOVE_NONE)
-                        && (depth >= ((PVNode ? 5 : 8)*ONE_MOVE))
-                        && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta))
-                       )
-                    {
-                        Depth iid_depth = depth - ((2*ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
+                }
 
-                        (ss)->skip_null_move = true;
-                        search_depth<PVNode ? PV : NonPV, false> (pos, ss, alpha, beta, iid_depth, true);
-                        (ss)->skip_null_move = false;
+                // Step 10. Internal iterative deepening
+                if (   (tt_move == MOVE_NONE)
+                    && (depth >= ((PVNode ? 5 : 8)*ONE_MOVE))
+                    && (PVNode || (!in_check && (ss)->static_eval + VALUE_EG_PAWN >= beta))
+                   )
+                {
+                    Depth iid_depth = depth - ((2*ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
 
-                        tte = TT.retrieve (posi_key);
-                        tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
-                        tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
-                    }
+                    (ss)->skip_null_move = true;
+                    search_depth<PVNode ? PV : NonPV, false> (pos, ss, alpha, beta, iid_depth, true);
+                    (ss)->skip_null_move = false;
 
+                    tte = TT.retrieve (posi_key);
+                    tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
+                    tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 }
             }
 
@@ -907,7 +893,7 @@ namespace Searcher {
 
             bool singular_ext_node =
                    (!RootNode && !SPNode)
-                && (depth >= (8*ONE_MOVE))
+                && (depth >= ((PVNode ? 6 : 8)*ONE_MOVE))
                 && (tt_move != MOVE_NONE)
                 && (excluded_move == MOVE_NONE) // Recursive singular search is not allowed
                 && (abs (beta)     < VALUE_KNOWN_WIN)
@@ -987,19 +973,32 @@ namespace Searcher {
 
                 Depth ext = DEPTH_ZERO;
 
+                MoveT mt = mtype (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
-
-                bool gives_check= pos.gives_check (move, ci);
-
-                bool dangerous  = 
+                bool gives_check = pos.gives_check (move, ci);
+                bool dangerous  =
                        (gives_check)
+                    //|| (CASTLE == mt)
                     || (NORMAL != mtype (move))
-                    || (pos.advanced_pawn_push (move));
+                    || (pos.advanced_pawn_push (move))
+                    || (   (NORMAL == mt)        // Entering a pawn endgame?
+                        && (capture_or_promotion)
+                        && (PAWN != ptype (pos[dst_sq (move)]))
+                        && (  pos.non_pawn_material (WHITE)
+                            + pos.non_pawn_material (BLACK)
+                            - PieceValue[MG][ptype (pos[dst_sq (move)])] == VALUE_ZERO
+                           )
+                       );
 
                 // Step 12. Extend checks
-                if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
+                if (PVNode && dangerous)
                 {
                     ext = ONE_MOVE;
+                }
+                else
+                if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
+                {
+                    ext = ONE_PLY;
                 }
 
                 // Singular extension(SE) search. If all moves but one fail low on a search of
@@ -1009,11 +1008,12 @@ namespace Searcher {
                 // a margin then extend tt_move.
                 if (   (singular_ext_node)
                     && (ext == DEPTH_ZERO)
-                    && (move == tt_move)
                     && (move_legal)
+                    && (move == tt_move)
                    )
                 {
-                    Value rbeta = min (tt_value - i32 (depth), +VALUE_INFINITE);
+                    ASSERT (tt_value != VALUE_NONE);
+                    Value rbeta = tt_value - i32 (depth);
 
                     (ss)->excluded_move  = move;
                     (ss)->skip_null_move = true;
@@ -1115,10 +1115,11 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   !(pv_1st_move)
                     && (depth >= (3*ONE_MOVE))
-                    && !(capture_or_promotion)
                     && (move != tt_move)
                     && (move != (ss)->killer_moves[0])
                     && (move != (ss)->killer_moves[1])
+                    && !(dangerous)
+                    && !(capture_or_promotion)
                    )
                 {
                     (ss)->reduction = reduction<PVNode> (improving, depth, moves_count);
@@ -1319,12 +1320,13 @@ namespace Searcher {
                         in_check ? mated_in ((ss)->ply) :
                         DrawValue[pos.active ()];
                 }
-                // Quiet best move:
                 else
-                // Update history, killer, counter & followup moves
-                if (   !(in_check)
-                    && (best_value >= beta)
-                    && !(pos.capture_or_promotion (best_move))
+                // If we have pruned all the moves without searching return a fail-low score
+                if (best_value == -VALUE_INFINITE) best_value = alpha;
+                else
+                // Quiet best move: Update history, killer, counter & followup moves
+                if (   (best_value >= beta)
+                    && !in_check && !pos.capture_or_promotion (best_move)
                    )
                 {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
@@ -1405,7 +1407,7 @@ namespace Searcher {
                     if (Signals.force_stop) break;
 
                     // Reset Aspiration window starting size
-                    if (aspiration)
+                    if (aspiration && abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
                     {
                         window[0] =
                         window[1] =
@@ -1413,6 +1415,11 @@ namespace Searcher {
                             Value (16);
                         bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
+                    }
+                    else
+                    {
+                        bound [0] = -VALUE_INFINITE;
+                        bound [1] = +VALUE_INFINITE;
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
@@ -1457,10 +1464,10 @@ namespace Searcher {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.36;
+                            window[0] *= 1.375;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            //if (window[1] > 1) window[1] *= 0.95;
-                            //bound [1] = min (best_value + window[1], +VALUE_INFINITE);
+                            if (window[1] > 1) window[1] *= 0.925;
+                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
@@ -1468,10 +1475,10 @@ namespace Searcher {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.36;
+                            window[1] *= 1.375;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            //if (window[0] > 1) window[0] *= 0.95;
-                            //bound [0] = max (best_value - window[0], -VALUE_INFINITE);
+                            if (window[0] > 1) window[0] *= 0.925;
+                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                         }
                         else
                         {
@@ -1564,7 +1571,7 @@ namespace Searcher {
 
         }
 
-        // perft() is our utility to verify move generation. All the leaf nodes
+        // perft<>() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.
         template<bool RootNode>
         u64 perft (Position &pos, Depth depth)
