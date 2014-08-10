@@ -813,7 +813,7 @@ namespace Searcher {
                                         {
                                             null_value = beta;
                                         }
-
+                                        // Do zugzwang verification search at high depths
                                         if (  depth < 12*ONE_MOVE
                                            && abs(beta) < VALUE_KNOWN_WIN
                                            )
@@ -1017,6 +1017,7 @@ namespace Searcher {
                     }
                 }
 
+                // Step 12. Decide the new search depth
                 Depth ext = DEPTH_ZERO;
 
                 MoveT mt = mtype (move);
@@ -1036,7 +1037,7 @@ namespace Searcher {
                           )
                        );
 
-                // Step 12. Extend checks
+                // Step 13. Extend the move which seems dangerous like ...checks etc.
                 if (PVNode && dangerous)
                 {
                     ext = ONE_MOVE;
@@ -1047,11 +1048,12 @@ namespace Searcher {
                     ext = ONE_PLY;
                 }
 
-                // Singular extension(SE) search. If all moves but one fail low on a search of
-                // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
-                // is singular and should be extended. To verify this do a reduced search
-                // on all the other moves but the tt_move, if result is lower than tt_value minus
-                // a margin then extend tt_move.
+                // Singular extension(SE) search.
+                // We extend the TT move if its value is much better than its siblings.
+                // If all moves but one fail low on a search of (alpha-s, beta-s),
+                // and just one fails high on (alpha, beta), then that move is singular
+                // and should be extended. To verify this do a reduced search on all the other moves
+                // but the tt_move, if result is lower than tt_value minus a margin then extend tt_move.
                 if (  move_legal
                    && singular_ext_node
                    && ext < ONE_MOVE
@@ -1073,7 +1075,7 @@ namespace Searcher {
                 // Update the current move (this must be done after singular extension search)
                 Depth new_depth = depth - ONE_MOVE + ext;
 
-                // Step 13. Pruning at shallow depth (exclude PV nodes)
+                // Step 14. Pruning at shallow depth (exclude PV nodes)
                 if (!PVNode && !MateSearch)
                 {
                     if (  !capture_or_promotion
@@ -1152,12 +1154,12 @@ namespace Searcher {
                 bool pv_1st_move = PVNode && (1 == moves_count);
                 (ss)->current_move = move;
 
-                // Step 14. Make the move
+                // Step 15. Make the move
                 pos.do_move (move, si, gives_check ? &ci : NULL);
 
                 bool full_depth_search = !pv_1st_move;
 
-                // Step 15. Reduced depth search (LMR).
+                // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (  full_depth_search
                    && depth >= 3*ONE_MOVE
@@ -1219,7 +1221,7 @@ namespace Searcher {
                     (ss)->reduction = DEPTH_ZERO;
                 }
 
-                // Step 16. Full depth search, when LMR is skipped or fails high
+                // Step 17. Full depth search, when LMR is skipped or fails high
                 if (full_depth_search)
                 {
                     if (SPNode) alpha = splitpoint->alpha;
@@ -1252,12 +1254,12 @@ namespace Searcher {
                     }
                 }
 
-                // Step 17. Undo move
+                // Step 18. Undo move
                 pos.undo_move ();
 
                 ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-                // Step 18. Check for new best move
+                // Step 19. Check for new best move
                 if (SPNode)
                 {
                     splitpoint->mutex.lock ();
@@ -1323,7 +1325,7 @@ namespace Searcher {
                     }
                 }
 
-                // Step 19. Check for splitting the search (at non-splitpoint node)
+                // Step 20. Check for splitting the search (at non-splitpoint node)
                 if (!SPNode)
                 {
                     if (  Threadpool.split_depth <= depth
@@ -1349,7 +1351,7 @@ namespace Searcher {
                 }
             }
 
-            // Step 20. Check for checkmate and stalemate
+            // Step 21. Check for checkmate and stalemate
             if (!SPNode)
             {
                 // All possible moves have been searched and if there are no legal moves,
@@ -1737,7 +1739,7 @@ namespace Searcher {
                     DEPTH_NONE,
                     BND_NONE,
                     VALUE_NONE,
-                    evaluate (pos)); // VALUE_NONE ->To evaluate again
+                    VALUE_NONE); // evaluate (pos) ->To evaluate again
             }
 
             pos.do_move (m, *si++);
