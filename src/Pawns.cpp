@@ -150,10 +150,10 @@ namespace Pawns {
                 // If the rank is greater then Rank 6
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // Then it cannot be backward either.
-                if (  (passed || isolated || connectors || leverers)
-                   || (r >= R_6)
+                if (  passed || isolated || connectors || leverers
+                   || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || ((pawns[0] & PawnAttackSpan[C_][s]) && !(pawns[1] & (s-PUSH)))
+                   || (pawns[0] & PawnAttackSpan[C_][s] && !(pawns[1] & (s-PUSH)))
                    )
                 {
                     backward = false;
@@ -260,7 +260,7 @@ namespace Pawns {
                     {
                         e->passed_pawns   [C] += s;
                     }
-                    if (candidate || ((r == R_6) && !opposers))
+                    if (candidate || (r == R_6 && !opposers))
                     {
                         e->unstopped_pawns[C] += s;
                     }
@@ -320,7 +320,7 @@ namespace Pawns {
             Bitboard mid_pawns;
 
             mid_pawns  = front_pawns[1] & File_bb[f];
-            u08 br = (mid_pawns) ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
+            u08 br = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (  kf == f
                && EndEdge_bb & (File (f) | Rank (br))
                && rel_rank (C, k_sq) == br - 1
@@ -331,8 +331,8 @@ namespace Pawns {
             else
             {
                 mid_pawns = front_pawns[0] & File_bb[f];
-                u08 wr = (mid_pawns) ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
-                u08 danger = (wr == R_1) ? 0 : ((wr + 1) != br) ? 1 : 2;
+                u08 wr = mid_pawns ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
+                u08 danger = wr == R_1 ? 0 : (wr + 1) != br ? 1 : 2;
                 value -= ShelterWeakness[wr] + StormDanger[danger][br];
             }
         }

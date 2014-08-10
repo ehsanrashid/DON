@@ -328,7 +328,7 @@ namespace Evaluator {
                 {
                     Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
-                    //ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
+                    ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                     //ei.king_zone_attacks_count   [C] = 1;
                 }
             }
@@ -450,8 +450,8 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s) // pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
-                                if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
-                                   || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
+                                if (  pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s]
+                                   || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
                                     value *= 1.10;
@@ -574,7 +574,7 @@ namespace Evaluator {
 
                 if (QUEN == PT)
                 {
-                    attacks &= ~ei.pin_attacked_by[C_][NONE];
+                    attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
                 }
 
                 Bitboard mobile = attacks & mobility_area;
@@ -873,7 +873,8 @@ namespace Evaluator {
                 
                 if (hanging_enemies)
                 {
-                    score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                    //score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                    score += HangingBonus;
                 }
             }
 

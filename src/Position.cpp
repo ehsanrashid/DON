@@ -355,27 +355,25 @@ bool Position::ok (i08 *step) const
         }
 
         // The union of the white and black pieces must be equal to occupied squares
-        if (  ((_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE])
-           || ((_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE])
+        if (  (_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE]
+           || (_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE]
            )
         {
             return false;
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if ( ((_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
+        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
               |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
-             )
-          || ((_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
+           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
               ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
-             )
            )
         {
             return false;
         }
 
         // PAWN rank should not be 1/8
-        if ((_types_bb[PAWN]&(R1_bb|R8_bb)))
+        if ((R1_bb|R8_bb) & _types_bb[PAWN])
         {
             return false;
         }
@@ -475,9 +473,9 @@ bool Position::ok (i08 *step) const
 
                 if (!can_castle (cr)) continue;
 
-                if ( (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
-                  || (_board[_castle_rook[cr]] != (Color (c) | ROOK))
-                  || (_castle_mask[_castle_rook[cr]] != cr)
+                if (  (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
+                   || _board[_castle_rook[cr]] != (Color (c) | ROOK)
+                   || _castle_mask[_castle_rook[cr]] != cr
                    )
                 {
                     return false;
@@ -518,8 +516,8 @@ bool Position::ok (i08 *step) const
     // step 13
     if (step && ++(*step), test_np_material)
     {
-        if (  (compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE])
-           || (compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK])
+        if (  compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE]
+           || compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK]
            )
         {
             return false;
@@ -717,7 +715,7 @@ bool Position::pseudo_legal (Move m) const
 
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if ((EMPTY == p) || (_active != color (p))) return false;
+    if (EMPTY == p || _active != color (p)) return false;
 
     Rank r_org = rel_rank (_active, org);
     Rank r_dst = rel_rank (_active, dst);
@@ -732,7 +730,7 @@ bool Position::pseudo_legal (Move m) const
     if (mt == NORMAL)
     {
         // Is not a promotion, so promotion piece must be empty
-        if (PAWN != (promote (m) - NIHT))
+        if (PAWN != promote (m) - NIHT)
         {
             return false;
         }
@@ -743,12 +741,12 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!( (KING == pt)
-            && (R_1 == r_org)
-            && (R_1 == r_dst)
-            && (_active|ROOK) == _board[dst]
-            && (_si->castle_rights & mk_castle_right (_active))
-            && (!_si->checkers)
+        if (!( KING == pt
+            && R_1 == r_org
+            && R_1 == r_dst
+            && _board[dst] == (_active|ROOK)
+            && _si->castle_rights & mk_castle_right (_active)
+            && !_si->checkers
             //&& !castle_impeded (_active)
              )
            )
@@ -779,11 +777,11 @@ bool Position::pseudo_legal (Move m) const
     else
     if (mt == ENPASSANT)
     {
-        if (!( (PAWN == pt)
-            && (_si->en_passant_sq == dst)
-            && (R_5 == r_org)
-            && (R_6 == r_dst)
-            && (empty (dst))
+        if (!( PAWN == pt
+            && _si->en_passant_sq == dst
+            && R_5 == r_org
+            && R_6 == r_dst
+            && empty (dst)
              )
            )
         {
@@ -800,9 +798,9 @@ bool Position::pseudo_legal (Move m) const
     else
     if (mt == PROMOTE)
     {
-        if (!( (PAWN == pt)
-            && (R_7 == r_org)
-            && (R_8 == r_dst)
+        if (!( PAWN == pt
+            && R_7 == r_org
+            && R_8 == r_dst
              )
            )
         {
@@ -826,8 +824,8 @@ bool Position::pseudo_legal (Move m) const
     {
         // Have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
-        if ((R_1 == r_org) || (R_8 == r_org)) return false;
-        if ((R_1 == r_dst) || (R_2 == r_dst)) return false;
+        if (R_1 == r_org || R_8 == r_org) return false;
+        if (R_1 == r_dst || R_2 == r_dst) return false;
         if (mt == NORMAL)
         {
             if (R_7 == r_org || R_8 == r_dst) return false;
@@ -845,8 +843,8 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!( (empty (dst))
-                && (0 == FileRankDist[_file (dst)][_file (org)])
+            if (!( empty (dst)
+                && 0 == FileRankDist[_file (dst)][_file (org)]
                  )
                )
             {
@@ -860,9 +858,9 @@ bool Position::pseudo_legal (Move m) const
             // The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
             // File distance b/w cap and org must be one, avoids a7h5
-            if (!( (NONE != ct)
-                && (pasive == color (_board[cap]))
-                && (1 == FileRankDist[_file (cap)][_file (org)])
+            if (!( NONE != ct
+                && pasive == color (_board[cap])
+                && 1 == FileRankDist[_file (cap)][_file (org)]
                  )
                )
             {
@@ -874,11 +872,11 @@ bool Position::pseudo_legal (Move m) const
             // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
-            if (!( (R_2 == r_org)
-                && (R_4 == r_dst)
-                && (empty (dst))
-                && (empty (dst - pawn_push (_active)))
-                && (0 == FileRankDist[_file (dst)][_file (org)])
+            if (!( R_2 == r_org
+                && R_4 == r_dst
+                && empty (dst)
+                && empty (dst - pawn_push (_active))
+                && 0 == FileRankDist[_file (dst)][_file (org)]
                  )
                )
             {
@@ -914,11 +912,11 @@ bool Position::pseudo_legal (Move m) const
         {
             // Double check? In this case a king move is required
             if (more_than_one (chkrs)) return false;
-            if ((PAWN == pt) && (ENPASSANT == mt))
+            if (PAWN == pt && ENPASSANT == mt)
             {
                 // Move must be a capture of the checking en-passant pawn
                 // or a blocking evasion of the checking piece
-                if (!((chkrs & cap) || (Between_bb[scan_lsq (chkrs)][_piece_list[_active][KING][0]] & dst)))
+                if (!(chkrs & cap || Between_bb[scan_lsq (chkrs)][_piece_list[_active][KING][0]] & dst))
                 {
                     return false;
                 }
@@ -969,7 +967,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return !(pinned)
+        return !pinned
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
@@ -993,8 +991,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return !( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-               || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
+        return !(  attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK]))
+                || attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))
                 );
     }
 
@@ -1034,8 +1032,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst             = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
         Square rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
 
-        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) // First x-ray check then full check
-            && (attacks_bb<ROOK> (rook_dst, (occ - org - rook_org + dst + rook_dst)) & ci.king_sq);
+        return   PieceAttacks[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
+              && attacks_bb<ROOK> (rook_dst, (occ - org - rook_org + dst + rook_dst)) & ci.king_sq;
     }
     else
     if (mt == ENPASSANT)
@@ -1046,15 +1044,15 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = occ - org - cap + dst;
         // if any attacker then in check
-        return ( (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-              || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
+        return (  attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
+               || attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))
                );
     }
     else
     if (mt == PROMOTE)
     {
         // Promotion with check ?
-        return (attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq);
+        return attacks_bb (Piece (promote (m)), dst, occ - org + dst) & ci.king_sq;
     }
 
     ASSERT (false);
@@ -1069,7 +1067,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //        Position pos = *this;
 //        StateInfo si;
 //        pos.do_move (m, si, &ci);
-//        return (MoveList<LEGAL> (pos).size () == 0);
+//        return !MoveList<LEGAL> (pos).size ();
 //    }
 //    return false;
 //}
@@ -1181,8 +1179,8 @@ bool Position::can_en_passant (Square ep_sq) const
     {
         Move m = *curr;
         Bitboard mocc = occ - org_sq (m);
-        if (!( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
+        if (!(  attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK]))
+             || attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))
              )
            )
         {
@@ -1264,15 +1262,15 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     Square dst = dst_sq (m);
     PieceT pt  = ptype (_board[org]);
 
-    ASSERT ((!empty (org))
-        &&  (_active == color (_board[org]))
-        &&  (NONE != pt));
+    ASSERT (  !empty (org)
+           && _active == color (_board[org])
+           && NONE != pt);
     
     MoveT mt   = mtype (m);
     
-    ASSERT ((empty (dst))
-        ||  (pasive == color (_board[dst]))
-        ||  (CASTLE == mt));
+    ASSERT (  empty (dst)
+           || pasive == color (_board[dst])
+           || CASTLE == mt);
 
     Square cap = dst;
     PieceT  ct = NONE;
@@ -1280,7 +1278,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     // Do move according to move type
     if (mt == NORMAL)
     {
-        ASSERT (PAWN == (promote (m) - NIHT));
+        ASSERT (PAWN == promote (m) - NIHT);
 
         if (PAWN == pt)
         {
@@ -1444,13 +1442,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
                     {
                         _si->checkers |=
                             attacks_bb<ROOK> (_piece_list[pasive][KING][0], _types_bb[NONE]) &
-                            (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]));
+                            _color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]);
                     }
                     if (BSHP != pt)
                     {
                         _si->checkers |=
                             attacks_bb<BSHP> (_piece_list[pasive][KING][0], _types_bb[NONE]) &
-                            (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]));
+                            _color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]);
                     }
                 }
             }
@@ -1645,7 +1643,7 @@ void Position::flip ()
 
     // 4. En-passant square
     ss >> s;
-    fen_ += ((s == "-") ? s : s.replace (1, 1, (s[1] == '3') ? "6" : (s[1] == '6') ? "3" : "-"));
+    fen_ += (s == "-" ? s : s.replace (1, 1, s[1] == '3' ? "6" : s[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
     getline (ss, s);
     fen_ += s;
@@ -1917,9 +1915,9 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
        && (iss >> row && (row == '3' || row == '6'))
        )
     {
-        if ( !(  (WHITE == pos._active && '6' != row)
-              || (BLACK == pos._active && '3' != row)
-              )
+        if (!(  (WHITE == pos._active && '6' != row)
+             || (BLACK == pos._active && '3' != row)
+             )
            )
         {
             Square ep_sq = to_square (col, row);

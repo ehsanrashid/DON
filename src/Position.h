@@ -218,7 +218,7 @@ public:
     Key matl_key      () const;
     Key pawn_key      () const;
     Key posi_key      () const;
-    Key posi_key_excl () const;
+    Key posi_exc_key  () const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
@@ -408,7 +408,7 @@ inline Bitboard Position::checkers    () const { return _si->checkers; }
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
-inline Key    Position::posi_key_excl () const { return _si->posi_key ^ Zobrist::Exclusion; }
+inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::Exclusion; }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
 inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
