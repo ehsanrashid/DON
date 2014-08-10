@@ -273,8 +273,7 @@ namespace Searcher {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth <= DEPTH_ZERO);
 
-            Move  tt_move
-                , best_move;
+            Move best_move;
 
             (ss)->current_move = best_move = MOVE_NONE;
 
@@ -288,7 +287,6 @@ namespace Searcher {
             if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             Value old_alpha
-                , tt_value
                 , best_value;
 
             StateInfo si;
@@ -296,27 +294,33 @@ namespace Searcher {
             // To flag EXACT a node with eval above alpha and no available moves
             if (PVNode) old_alpha = alpha;
 
-            
-
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth tt_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
+            Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
                               DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             // Transposition table lookup
-            Key posi_key = pos.posi_key ();
+            Key posi_key;
             const TTEntry *tte;
+            Move  tt_move;
+            Value tt_value;
+            Depth tt_depth;
+            Bound tt_bound;
+
+            posi_key = pos.posi_key ();
             tte      = TT.retrieve (posi_key);
             tt_move  = tte != NULL ?              tte->move ()              : MOVE_NONE;
             tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
+            tt_depth = tte != NULL ? tte->depth () : DEPTH_NONE;
+            tt_bound = tte != NULL ? tte->bound () : BND_NONE;
 
             if (  tte != NULL
-               && tte->depth () >= tt_depth
+               && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
-               && (         PVNode ? tte->bound () == BND_EXACT :
-                  tt_value >= beta ? tte->bound () &  BND_LOWER :
-                                     tte->bound () &  BND_UPPER
+               && (         PVNode ? tt_bound == BND_EXACT :
+                  tt_value >= beta ? tt_bound &  BND_LOWER :
+                                     tt_bound &  BND_UPPER
                   )
                )
             {
@@ -337,27 +341,14 @@ namespace Searcher {
                 if (tte != NULL)
                 {
                     // Never assume anything on values stored in TT
-                    Value eval = tte->eval ();
-                    if (VALUE_NONE == eval)
-                    {
-                        eval = evaluate (pos);
-                        /*
-                        TT.store (
-                            posi_key,
-                            MOVE_NONE,
-                            DEPTH_NONE,
-                            BND_NONE,
-                            value_to_tt (tt_value, (ss)->ply),
-                            eval);
-                        */
-                    }
-
-                    (ss)->static_eval = best_value = eval;
+                    best_value = tte->eval ();
+                    if (VALUE_NONE == best_value) best_value = evaluate (pos);
+                    (ss)->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
                     if (VALUE_NONE != tt_value)
                     {
-                        if (tte->bound () & (tt_value > best_value ? BND_LOWER : BND_UPPER))
+                        if (tt_bound & (tt_value > best_value ? BND_LOWER : BND_UPPER))
                         {
                             best_value = tt_value;
                         }
@@ -446,11 +437,10 @@ namespace Searcher {
 
                     // Don't search moves with negative SEE values
                     if (  move != tt_move
-                       && PROMOTE != mtype (move)
+                       && mtype (move) != PROMOTE
                        && (  !InCheck
                           // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                          || (  //InCheck &&
-                                best_value > VALUE_MATED_IN_MAX_PLY
+                          || (  best_value > VALUE_MATED_IN_MAX_PLY
                              && !pos.can_castle (pos.active ())
                              && !pos.capture (move)
                              )
@@ -493,7 +483,7 @@ namespace Searcher {
                             TT.store (
                                 posi_key,
                                 best_move,
-                                tt_depth,
+                                qs_depth,
                                 BND_LOWER,
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
@@ -509,16 +499,17 @@ namespace Searcher {
             }
 
             // All legal moves have been searched.
-            if (InCheck && best_value == -VALUE_INFINITE)
+            // A special case:
+            // If in check and no legal moves were found, it is checkmate.
+            if (InCheck)
             {
-                // A special case: If in check and no legal moves were found, it is checkmate.
-                return mated_in ((ss)->ply); // Plies to mate from the root
+                if (best_value == -VALUE_INFINITE) return mated_in ((ss)->ply); // Plies to mate from the root
             }
 
             TT.store (
                 posi_key,
                 best_move,
-                tt_depth,
+                qs_depth,
                 PVNode && old_alpha < best_value ? BND_EXACT : BND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
@@ -547,13 +538,11 @@ namespace Searcher {
             ASSERT (depth > DEPTH_ZERO);
 
             Move  move
-                , tt_move
                 , excluded_move
                 //, threat_move
                 , best_move;
 
-            Value eval
-                , tt_value
+            Value static_eval
                 , best_value;
 
             u08   moves_count
@@ -562,9 +551,13 @@ namespace Searcher {
             Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
 
             SplitPoint *splitpoint;
-            Key   posi_key;
 
+            Key   posi_key;
             const TTEntry *tte;
+            Move  tt_move;
+            Value tt_value;
+            Depth tt_depth;
+            Bound tt_bound;
 
             StateInfo si;
             CheckInfo ci (pos);
@@ -572,6 +565,7 @@ namespace Searcher {
             // Step 1. Initialize node
             Thread *thread  = pos.thread ();
             bool   in_check = pos.checkers ();
+            bool singular_ext_node;
 
             if (SPNode)
             {
@@ -583,6 +577,10 @@ namespace Searcher {
                 tte      = NULL;
                 tt_move  = excluded_move = MOVE_NONE;
                 tt_value = VALUE_NONE;
+                tt_depth = DEPTH_NONE;
+                tt_bound = BND_NONE;
+
+                singular_ext_node = false;
 
                 ASSERT (splitpoint->best_value > -VALUE_INFINITE);
                 ASSERT (splitpoint->moves_count > 0);
@@ -640,6 +638,8 @@ namespace Searcher {
                 (ss)->tt_move = tt_move = RootNode   ? RootMoves[PVIndex].pv[0] :
                                          tte != NULL ? tte->move () : MOVE_NONE;
                 tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
+                tt_depth = tte != NULL ? tte->depth () : DEPTH_NONE;
+                tt_bound = tte != NULL ? tte->bound () : BND_NONE;
 
                 if (!RootNode)
                 {
@@ -649,10 +649,10 @@ namespace Searcher {
                     // should also update RootMoveList to avoid bogus output.
                     if (  tte != NULL
                        && tt_value != VALUE_NONE // Only in case of TT access race
-                       && tte->depth () >= depth
-                       && (         PVNode ? tte->bound () == BND_EXACT :
-                          tt_value >= beta ? tte->bound () &  BND_LOWER :
-                                             tte->bound () &  BND_UPPER
+                       && tt_depth >= depth
+                       && (         PVNode ? tt_bound == BND_EXACT :
+                          tt_value >= beta ? tt_bound &  BND_LOWER :
+                                             tt_bound &  BND_UPPER
                           )
                        )
                     {
@@ -675,42 +675,29 @@ namespace Searcher {
                 // Step 5. Evaluate the position statically and update parent's gain statistics
                 if (in_check)
                 {
-                    (ss)->static_eval = eval = VALUE_NONE;
+                    (ss)->static_eval = static_eval = VALUE_NONE;
                 }
                 else
                 {
                     if (tte != NULL)
                     {
                         // Never assume anything on values stored in TT
-                        eval = tte->eval ();
-                        if (VALUE_NONE == eval)
-                        {
-                            eval = evaluate (pos);
-                            /*
-                            TT.store (
-                                posi_key,
-                                MOVE_NONE,
-                                DEPTH_NONE,
-                                BND_NONE,
-                                value_to_tt (tt_value, (ss)->ply),
-                                eval);
-                            */
-                        }
-                        
-                        (ss)->static_eval = eval;
+                        static_eval = tte->eval ();
+                        if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
+                        (ss)->static_eval = static_eval;
 
                         // Can tt_value be used as a better position evaluation?
                         if (VALUE_NONE != tt_value)
                         {
-                            if (tte->bound () & (tt_value > eval ? BND_LOWER : BND_UPPER))
+                            if (tt_bound & (tt_value > static_eval ? BND_LOWER : BND_UPPER))
                             {
-                                eval = tt_value;
+                                static_eval = tt_value;
                             }
                         }
                     }
                     else
                     {
-                        (ss)->static_eval = eval =
+                        (ss)->static_eval = static_eval =
                             (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TempoBonus;
 
                         TT.store (
@@ -741,13 +728,13 @@ namespace Searcher {
                         // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (  depth < RazorDepth
-                           && eval + RazorMargin[depth] <= alpha
+                           && static_eval + RazorMargin[depth] <= alpha
                            && tt_move == MOVE_NONE
                            && !pos.pawn_on_7thR (pos.active ())
                            )
                         {
                             if (  depth <= 1*ONE_MOVE
-                               && eval + RazorMargin[3*ONE_MOVE] <= alpha
+                               && static_eval + RazorMargin[3*ONE_MOVE] <= alpha
                                )
                             {
                                 return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
@@ -774,18 +761,18 @@ namespace Searcher {
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargin[depth] if do a null move.
                                 if (  depth < FutilityMarginDepth
-                                   && abs (eval) < VALUE_KNOWN_WIN
+                                   && abs (static_eval) < VALUE_KNOWN_WIN
                                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                    )
                                 {
-                                    Value stand_pat = eval - FutilityMargin[depth];
+                                    Value stand_pat = static_eval - FutilityMargin[depth];
 
                                     if (stand_pat >= beta) return stand_pat;
                                 }
 
                                 // Step 8. Null move search with verification search
                                 if (  depth >= 2*ONE_MOVE
-                                   && eval >= beta
+                                   && static_eval >= beta
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
@@ -794,7 +781,7 @@ namespace Searcher {
                                     Depth rdepth = depth -
                                                  ( 3*ONE_MOVE
                                                  + depth/4
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32(eval - beta)*ONE_MOVE/VALUE_MG_PAWN : DEPTH_ZERO));
+                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32(static_eval - beta)*ONE_MOVE/VALUE_MG_PAWN : DEPTH_ZERO));
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -846,7 +833,7 @@ namespace Searcher {
                                         // parent node, which will trigger a re-search with full depth).
                                         threat_move = (ss+1)->current_move;
 
-                                        if (  depth < (5*ONE_PLY)
+                                        if (  depth < 5*ONE_MOVE
                                            && (ss-1)->reduction
                                            && threat_move != MOVE_NONE
                                            //&& allows (pos, (ss-1)->current_move, threat_move)
@@ -910,6 +897,8 @@ namespace Searcher {
                         //(ss)->tt_move =
                         tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
                         tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
+                        tt_depth = tte != NULL ? tte->depth () : DEPTH_NONE;
+                        tt_bound = tte != NULL ? tte->bound () : BND_NONE;
                     }
                 }
 
@@ -930,8 +919,21 @@ namespace Searcher {
                     //(ss)->tt_move =
                     tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
                     tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
+                    tt_depth = tte != NULL ? tte->depth () : DEPTH_NONE;
+                    tt_bound = tte != NULL ? tte->bound () : BND_NONE;
                 }
                 */
+
+
+                singular_ext_node =
+                   !RootNode
+                && depth >= (PVNode ? 8 : 8)*ONE_MOVE // TODO::
+                && tt_move != MOVE_NONE
+                && excluded_move == MOVE_NONE // Recursive singular search is not allowed
+                && abs (beta)     < VALUE_KNOWN_WIN
+                && abs (tt_value) < VALUE_KNOWN_WIN
+                && tt_bound & BND_LOWER
+                && tt_depth >= depth-3*ONE_MOVE;
 
             }
 
@@ -960,16 +962,6 @@ namespace Searcher {
                    ((ss  )->static_eval >= (ss-2)->static_eval)
                 || ((ss  )->static_eval == VALUE_NONE)
                 || ((ss-2)->static_eval == VALUE_NONE);
-
-            bool singular_ext_node =
-                   !RootNode && !SPNode
-                && depth >= (PVNode ? 8 : 8)*ONE_MOVE // TODO::
-                && tt_move != MOVE_NONE
-                && excluded_move == MOVE_NONE // Recursive singular search is not allowed
-                && abs (beta)     < VALUE_KNOWN_WIN
-                && abs (tt_value) < VALUE_KNOWN_WIN
-                && tte->bound () & BND_LOWER
-                && tte->depth () >= depth-3*ONE_MOVE;
 
             point time;
 
