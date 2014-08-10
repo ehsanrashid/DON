@@ -324,12 +324,18 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
+                //king_zone &= ei.pin_attacked_by[C][PAWN];
+                //if (king_zone)
+                //{
+                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<MAX15> (king_zone) : 1);
+                //    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
+                //}
                 if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
                     Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
-                    ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
-                    //ei.king_zone_attacks_count   [C] = 1;
+                    //ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
+                    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
                 }
             }
         }
@@ -657,7 +663,8 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            if (ei.king_ring_attackers_count[C_] > 0)
+            //if (ei.king_ring_attackers_count[C_] > 0)
+            if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
             {
                 const Bitboard occ = pos.pieces ();
 
@@ -870,8 +877,8 @@ namespace Evaluator {
                 
                 if (hanging_enemies)
                 {
-                    //score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
-                    score += HangingBonus;
+                    score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                    //score += HangingBonus;
                 }
             }
 

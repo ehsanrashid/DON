@@ -215,13 +215,12 @@ namespace Pawns {
                 if (connectors)
                 {
                     score += ConnectedBonus[f][r];
-
-                    if (r > R_4 && leverers)
-                    {
-                        score += LeverBonus[r];
-                    }
                 }
-                
+                if (r > R_4 && leverers)
+                {
+                    score += LeverBonus[r];
+                }
+
                 if (isolated)
                 {
                     score -= IsolatedPenalty[!opposers][f];

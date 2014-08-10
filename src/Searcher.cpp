@@ -273,6 +273,11 @@ namespace Searcher {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth <= DEPTH_ZERO);
 
+            Move  tt_move
+                , best_move;
+
+            (ss)->current_move = best_move = MOVE_NONE;
+
             (ss)->ply = (ss-1)->ply + 1;
 
             // Check for aborted search
@@ -286,15 +291,12 @@ namespace Searcher {
                 , tt_value
                 , best_value;
 
-            Move  tt_move
-                , best_move;
-
             StateInfo si;
 
             // To flag EXACT a node with eval above alpha and no available moves
             if (PVNode) old_alpha = alpha;
 
-            (ss)->current_move = best_move = MOVE_NONE;
+            
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
@@ -544,15 +546,15 @@ namespace Searcher {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
-            Value eval
-                , tt_value
-                , best_value;
-
             Move  move
                 , tt_move
                 , excluded_move
                 //, threat_move
                 , best_move;
+
+            Value eval
+                , tt_value
+                , best_value;
 
             u08   moves_count
                 , quiets_count;
@@ -587,15 +589,16 @@ namespace Searcher {
             }
             else
             {
-                moves_count = quiets_count = 0;
-
-                best_value = -VALUE_INFINITE;
                 (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = /*threat_move =*/ best_move = MOVE_NONE;
                 (ss)->ply  = (ss-1)->ply + 1;
 
                 (ss+1)->skip_null_move  = false;
                 (ss+1)->reduction       = DEPTH_ZERO;
                 (ss+2)->killer_moves[0] = (ss+2)->killer_moves[1] = MOVE_NONE;
+
+                moves_count = quiets_count = 0;
+
+                best_value = -VALUE_INFINITE;
 
                 // Used to send 'seldepth' info to GUI
                 if (PVNode)
@@ -798,7 +801,7 @@ namespace Searcher {
                                     (ss+1)->skip_null_move = true;
 
                                     // Null window (alpha, beta) = (beta-1, beta):
-                                    Value null_value = (rdepth < ONE_MOVE) ?
+                                    Value null_value = (rdepth < 1*ONE_MOVE) ?
                                         -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
                                         -search_depth<NonPV, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
@@ -824,7 +827,7 @@ namespace Searcher {
                                         // Do verification search at high depths
                                         (ss)->skip_null_move = true;
 
-                                        Value veri_value = (rdepth < ONE_MOVE) ?
+                                        Value veri_value = (rdepth < 1*ONE_MOVE) ?
                                             search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false> (pos, ss, beta-1, beta, rdepth, false);
 
@@ -867,7 +870,7 @@ namespace Searcher {
                             {
                                 Depth rdepth = depth - 4*ONE_MOVE;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                //ASSERT (rdepth >= ONE_MOVE);
+                                //ASSERT (rdepth >= 1*ONE_MOVE);
                                 //ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
@@ -904,7 +907,7 @@ namespace Searcher {
                         (ss)->skip_null_move = false;
 
                         tte = TT.retrieve (posi_key);
-                        (ss)->tt_move =
+                        //(ss)->tt_move =
                         tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
                         tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                     }
@@ -924,7 +927,7 @@ namespace Searcher {
                     (ss)->skip_null_move = false;
 
                     tte = TT.retrieve (posi_key);
-                    (ss)->tt_move =
+                    //(ss)->tt_move =
                     tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
                     tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 }
@@ -1249,7 +1252,7 @@ namespace Searcher {
                     if (SPNode) alpha = splitpoint->alpha;
 
                     value =
-                        (new_depth < ONE_MOVE) ?
+                        (new_depth < 1*ONE_MOVE) ?
                             (gives_check ?
                                 -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
                                 -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO)) :
@@ -1268,7 +1271,7 @@ namespace Searcher {
                     if (pv_1st_move || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
-                            (new_depth < ONE_MOVE) ?
+                            (new_depth < 1*ONE_MOVE) ?
                                 (gives_check ?
                                     -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                     -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)) :
@@ -1541,7 +1544,7 @@ namespace Searcher {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.375;
+                            window[0] *= 1.365;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                             if (window[1] > 1) window[1] *= 0.925;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
@@ -1552,7 +1555,7 @@ namespace Searcher {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.375;
+                            window[1] *= 1.365;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             if (window[0] > 1) window[0] *= 0.925;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
