@@ -212,8 +212,8 @@ bool Position::draw () const
     }
     /*
     // Draw by Material?
-    if (   (!_types_bb[PAWN])
-        && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP)
+    if (  !_types_bb[PAWN]
+       && _si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP
        )
     {
         return true;
@@ -221,11 +221,11 @@ bool Position::draw () const
     */
     /*
     // Draw by Stalemate?
-    if (   (!_si->checkers)
-        //&& (game_phase () < PHASE_MIDGAME - 50)
-        && (count<NONPAWN> (_active) < count<NONPAWN> (~_active))
-        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
-        && (!MoveList<LEGAL> (*this).size ())
+    if (  !_si->checkers
+       //&& game_phase () < PHASE_MIDGAME - 50
+       && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
+       && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
+       && !MoveList<LEGAL> (*this).size ()
        )
     {
         return true;
@@ -233,8 +233,8 @@ bool Position::draw () const
     */
     // Draw by 50 moves Rule?
     // Not in check or in check have legal moves 
-    if (   (_fifty_move_dist <= _si->clock50)
-        && (!_si->checkers || MoveList<LEGAL> (*this).size ())
+    if (  _fifty_move_dist <= _si->clock50
+       && (!_si->checkers || MoveList<LEGAL> (*this).size ())
        )
     {
         return true;
@@ -315,9 +315,9 @@ bool Position::ok (i08 *step) const
     // step 3
     if (step && ++(*step), test_piece_count)
     {
-        if (   pop_count<FULL> (_types_bb[NONE]) > 32
-            || count<NONE> () > 32
-            || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
+        if (  pop_count<FULL> (_types_bb[NONE]) > 32
+           || count<NONE> () > 32
+           || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
            )
         {
             return false;
@@ -391,11 +391,11 @@ bool Position::ok (i08 *step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (    (_piece_count[c][PAWN] +
-                max (_piece_count[c][NIHT] - 2, 0) +
-                max (_piece_count[c][BSHP] - 2, 0) +
-                max (_piece_count[c][ROOK] - 2, 0) +
-                max (_piece_count[c][QUEN] - 1, 0)) > 8
+            if (  (_piece_count[c][PAWN]
+               + max (_piece_count[c][NIHT] - 2, 0)
+               + max (_piece_count[c][BSHP] - 2, 0)
+               + max (_piece_count[c][ROOK] - 2, 0)
+               + max (_piece_count[c][QUEN] - 1, 0)) > 8
                )
             {
                 return false; // Too many Promoted Piece of color
@@ -410,9 +410,9 @@ bool Position::ok (i08 *step) const
                     pop_count<FULL> (Dark_bb & bishops),
                 };
 
-                if (    (_piece_count[c][PAWN] +
-                    max (bishop_count[WHITE] - 1, 0) +
-                    max (bishop_count[BLACK] - 1, 0)) > 8
+                if (  (_piece_count[c][PAWN]
+                   + max (bishop_count[WHITE] - 1, 0)
+                   + max (bishop_count[BLACK] - 1, 0)) > 8
                    )
                 {
                     return false; // Too many Promoted BISHOP of color
@@ -436,9 +436,9 @@ bool Position::ok (i08 *step) const
             {
                 for (i08 i = 0; i < _piece_count[c][pt]; ++i)
                 {
-                    if (   !_ok  (_piece_list[c][pt][i])
-                        || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
-                        || _piece_index[_piece_list[c][pt][i]] != i
+                    if (  !_ok  (_piece_list[c][pt][i])
+                       || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
+                       || _piece_index[_piece_list[c][pt][i]] != i
                        )
                     {
                         return false;
@@ -1830,7 +1830,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     // 1. Piece placement on Board
     size_t idx;
     Square s = SQ_A8;
-    while ((iss >> ch) && !isspace (ch))
+    while (iss >> ch && !isspace (ch))
     {
         if (isdigit (ch))
         {
@@ -1913,13 +1913,13 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
 
     // 4. En-passant square. Ignore if no pawn capture is possible
     u08 col, row;
-    if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
-        && ((iss >> row) && (row == '3' || row == '6'))
+    if (  (iss >> col && (col >= 'a' && col <= 'h'))
+       && (iss >> row && (row == '3' || row == '6'))
        )
     {
-        if (!( (WHITE == pos._active && '6' != row)
-            || (BLACK == pos._active && '3' != row)
-             )
+        if ( !(  (WHITE == pos._active && '6' != row)
+              || (BLACK == pos._active && '3' != row)
+              )
            )
         {
             Square ep_sq = to_square (col, row);

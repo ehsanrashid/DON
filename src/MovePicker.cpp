@@ -99,8 +99,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
         // Skip TT move if is not a capture or a promotion, this avoids search_quien
         // tree explosion due to a possible perpetual check or similar rare cases
         // when TT table is full.
-        if (   (ttm != MOVE_NONE)
-            && (!pos.capture_or_promotion (ttm))
+        if (  ttm != MOVE_NONE
+           && !pos.capture_or_promotion (ttm)
            )
         {
             ttm = MOVE_NONE;
@@ -135,8 +135,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    if (   (tt_move != MOVE_NONE)
-        && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold)
+    if (  tt_move != MOVE_NONE
+       && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold)
        )
     {
         tt_move = MOVE_NONE;
@@ -273,10 +273,10 @@ void MovePicker::generate_next_stage ()
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (counter_moves[i] != MOVE_NONE)
-                && (counter_moves[i] != cur[0].move)
-                && (counter_moves[i] != cur[1].move)
-                && (counter_moves[i] != cur[2].move)
+            if (  counter_moves[i] != MOVE_NONE
+               && counter_moves[i] != cur[0].move
+               && counter_moves[i] != cur[1].move
+               && counter_moves[i] != cur[2].move
                )
             {
                 (end++)->move = counter_moves[i];
@@ -286,12 +286,12 @@ void MovePicker::generate_next_stage ()
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (   (followup_moves[i] != MOVE_NONE)
-                && (followup_moves[i] != cur[0].move)
-                && (followup_moves[i] != cur[1].move)
-                && (followup_moves[i] != cur[2].move)
-                && (followup_moves[i] != cur[3].move)
-                && (followup_moves[i] != cur[4].move)
+            if (  followup_moves[i] != MOVE_NONE
+               && followup_moves[i] != cur[0].move
+               && followup_moves[i] != cur[1].move
+               && followup_moves[i] != cur[2].move
+               && followup_moves[i] != cur[3].move
+               && followup_moves[i] != cur[4].move
                )
             {
                 (end++)->move = followup_moves[i];
@@ -404,10 +404,10 @@ Move MovePicker::next_move<false> ()
             do
             {
                 move = (cur++)->move;
-                if (   (move != MOVE_NONE)
-                    && (move != tt_move)
-                    && (pos.pseudo_legal (move))
-                    && (!pos.capture (move))
+                if (  move != MOVE_NONE
+                   && move != tt_move
+                   && pos.pseudo_legal (move)
+                   && !pos.capture (move)
                    )
                 {
                     return move;
@@ -421,13 +421,13 @@ Move MovePicker::next_move<false> ()
             do
             {
                 move = (cur++)->move;
-                if (   (move != tt_move)
-                    && (move != killers[0].move)
-                    && (move != killers[1].move)
-                    && (move != killers[2].move)
-                    && (move != killers[3].move)
-                    && (move != killers[4].move)
-                    && (move != killers[5].move)
+                if (  move != tt_move
+                   && move != killers[0].move
+                   && move != killers[1].move
+                   && move != killers[2].move
+                   && move != killers[3].move
+                   && move != killers[4].move
+                   && move != killers[5].move
                    )
                 {
                     return move;

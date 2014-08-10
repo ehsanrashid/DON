@@ -79,11 +79,11 @@ namespace Pawns {
         template<Color C>
         inline Score evaluate (const Position &pos, Pawns::Entry *e)
         {
-            const Color  C_  = (WHITE == C) ? BLACK  : WHITE;
-            const Delta PUSH = (WHITE == C) ? DEL_N  : DEL_S;
-            //const Delta PULL = (WHITE == C) ? DEL_S  : DEL_N;
-            const Delta RCAP = (WHITE == C) ? DEL_NE : DEL_SW;
-            const Delta LCAP = (WHITE == C) ? DEL_NW : DEL_SE;
+            const Color  C_  = WHITE == C ? BLACK  : WHITE;
+            const Delta PUSH = WHITE == C ? DEL_N  : DEL_S;
+            //const Delta PULL = WHITE == C ? DEL_S  : DEL_N;
+            const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
+            const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
 
             const Bitboard pawns[CLR_NO] =
             {
@@ -300,7 +300,7 @@ namespace Pawns {
     // for the file the king is on, as well as the two adjacent files.
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq)
     {
-        const Color C_ = (WHITE == C) ? BLACK : WHITE;
+        const Color C_ = WHITE == C ? BLACK : WHITE;
 
         const Rank kr = _rank (k_sq);
         const Bitboard front_pawns[CLR_NO] =
@@ -321,9 +321,9 @@ namespace Pawns {
 
             mid_pawns  = front_pawns[1] & File_bb[f];
             u08 br = (mid_pawns) ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
-            if (   (kf == f)
-                && (EndEdge_bb & (File (f) | Rank (br)))
-                && (rel_rank (C, k_sq) == br - 1)
+            if (  kf == f
+               && EndEdge_bb & (File (f) | Rank (br))
+               && rel_rank (C, k_sq) == br - 1
                )
             {
                 value += Value (200); // Enemy pawn in front Shelter

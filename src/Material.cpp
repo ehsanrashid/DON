@@ -62,7 +62,7 @@ namespace Material {
         template<Color C>
         inline bool is_KXK (const Position &pos)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
                 && pos.non_pawn_material (C_) == VALUE_ZERO
@@ -72,7 +72,7 @@ namespace Material {
         template<Color C> 
         inline bool is_KBPsKs (const Position &pos)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) == VALUE_MG_BSHP
                 && pos.non_pawn_material (C_) == VALUE_ZERO
@@ -83,7 +83,7 @@ namespace Material {
         template<Color C>
         inline bool is_KQKRPs (const Position &pos)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             return pos.non_pawn_material (C ) == VALUE_MG_QUEN
                 && pos.non_pawn_material (C_) == VALUE_MG_ROOK
@@ -99,7 +99,7 @@ namespace Material {
         // KING == BISHOP_PAIR
         inline Value imbalance (const i32 count[][NONE])
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             i32 value = VALUE_ZERO;
 
@@ -209,26 +209,26 @@ namespace Material {
                 pos.non_pawn_material (BLACK),
             };
 
-            if (   (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
-                && (pos.pieces<PAWN> ())
+            if (  npm[WHITE] + npm[BLACK] == VALUE_ZERO
+               && pos.pieces<PAWN> ()
                )
             {
-                if (  (pos.count<PAWN> (BLACK) == 0)
-                   && (pos.count<PAWN> (WHITE) >  1)
+                if (  pos.count<PAWN> (BLACK) == 0
+                   && pos.count<PAWN> (WHITE) >  1
                    )
                 {
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else
-                if (  (pos.count<PAWN> (WHITE) == 0)
-                   && (pos.count<PAWN> (BLACK) >  1)
+                if (  pos.count<PAWN> (WHITE) == 0
+                   && pos.count<PAWN> (BLACK) >  1
                    )
                 {
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else
-                if (  (pos.count<PAWN> (WHITE) == 1)
-                   && (pos.count<PAWN> (BLACK) == 1)
+                if (  pos.count<PAWN> (WHITE) == 1
+                   && pos.count<PAWN> (BLACK) == 1
                    )
                 {
                     // This is a special case because set scaling functions for both colors instead of only one.

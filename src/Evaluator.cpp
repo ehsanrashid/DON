@@ -288,8 +288,8 @@ namespace Evaluator {
         // pawn attacks. To be done at the beginning of the evaluation.
         inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
-            const Color  C_  = (WHITE == C) ? BLACK : WHITE;
-            const Delta PULL = (WHITE == C) ? DEL_S : DEL_N;
+            const Color  C_  = WHITE == C ? BLACK : WHITE;
+            const Delta PULL = WHITE == C ? DEL_S : DEL_N;
 
             Square ek_sq = pos.king_sq (C_);
 
@@ -338,9 +338,9 @@ namespace Evaluator {
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
         {
-            const Color  C_      = (WHITE == C) ? BLACK : WHITE;
-            const Delta PUSH     = (WHITE == C) ? DEL_N : DEL_S;
-            const Delta PULL     = (WHITE == C) ? DEL_S : DEL_N;
+            const Color  C_      = WHITE == C ? BLACK : WHITE;
+            const Delta PUSH     = WHITE == C ? DEL_N : DEL_S;
+            const Delta PULL     = WHITE == C ? DEL_S : DEL_N;
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinneds = ei.pinneds[C];
@@ -402,8 +402,8 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s) //pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
-                                if (  (pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s])
-                                   || (pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s])
+                                if (  pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s]
+                                   || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
                                     value *= 1.25;
@@ -474,31 +474,31 @@ namespace Evaluator {
 
                     Square rsq = rel_sq (C, s);
 
-                    if ((FileEdge_bb & R6_bb) & rsq)
+                    if (FileEdge_bb & R6_bb & rsq)
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (   (pos[s + del] == (C_ | PAWN))
-                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
+                        if (  pos[s + del] == (C_ | PAWN)
+                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty;
                         }
                     }
-                    if ((FileEdge_bb & R7_bb) & rsq)
+                    if (FileEdge_bb & R7_bb & rsq)
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (   (pos[s + del] == (C_ | PAWN))
-                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
+                        if (  pos[s + del] == (C_ | PAWN)
+                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty * 2;
                         }
                     }
-                    if ((FileEdge_bb & R8_bb) & rsq)
+                    if (FileEdge_bb & R8_bb & rsq)
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (   (pos[s + del] == (C_ | PAWN))
-                            && ((ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE]) & (s + del))
+                        if (  pos[s + del] == (C_ | PAWN)
+                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty * 4;
@@ -527,8 +527,8 @@ namespace Evaluator {
                 }
 
                 // Bishop or knight behind a pawn
-                if (   (r < R_5)
-                    && (pos.pieces<PAWN> () & (s + PUSH))
+                if (  r < R_5
+                   && pos.pieces<PAWN> () & (s + PUSH)
                    )
                 {
                     score += MinorBehindPawnBonus;
@@ -556,7 +556,7 @@ namespace Evaluator {
                                  RookOnSemiOpenFileBonus;
                         
                         // Give more if the rook is doubled
-                        if (pos.count<ROOK> (C) > 1 && (File_bb[f] & pos.pieces<ROOK> (C) & attacks))
+                        if (pos.count<ROOK> (C) > 1 && File_bb[f] & pos.pieces<ROOK> (C) & attacks)
                         {
                             score += (ei.pi->semiopen_file<C_> (f)) ?
                                      RookDoubledOnOpenFileBonus :
@@ -589,9 +589,9 @@ namespace Evaluator {
                         const Rank kr = rel_rank (C, fk_sq);
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
-                        if (   ((kf < F_E) == (f < kf))
-                            && (kr == R_1 || kr == r)
-                            && (!ei.pi->semiopen_side<C> (kf, f < kf))
+                        if (  (kf < F_E) == (f < kf)
+                           && (kr == R_1 || kr == r)
+                           && !ei.pi->semiopen_side<C> (kf, f < kf)
                            )
                         {
                             score -= (RookTrappedPenalty - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
@@ -620,7 +620,7 @@ namespace Evaluator {
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             const Square fk_sq = pos.king_sq (C);
 
@@ -636,16 +636,16 @@ namespace Evaluator {
                 {
                     value = ei.pi->shelter_storm[C][CS_NO];
 
-                    if (    pos.can_castle (Castling<C, CS_K>::Right)
-                        //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
-                        && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
+                    if (  pos.can_castle (Castling<C, CS_K>::Right)
+                       //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
+                       && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
-                    if (    pos.can_castle (Castling<C, CS_Q>::Right)
-                        //&& !pos.castle_impeded (Castling<C, CS_Q>::Right)
-                        && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
+                    if (  pos.can_castle (Castling<C, CS_Q>::Right)
+                       //&& !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                       && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_Q]);
@@ -819,7 +819,7 @@ namespace Evaluator {
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             Bitboard enemies = pos.pieces (C_);
 
@@ -889,8 +889,8 @@ namespace Evaluator {
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_   = (WHITE == C) ? BLACK : WHITE;
-            const Delta PUSH = (WHITE == C) ? DEL_N : DEL_S;
+            const Color C_   = WHITE == C ? BLACK : WHITE;
+            const Delta PUSH = WHITE == C ? DEL_N : DEL_S;
 
             const i32 nonpawn_count_sum = pos.count<NONPAWN> (C ) + pos.count<NONPAWN> (C_) + 1;
 
@@ -943,8 +943,8 @@ namespace Evaluator {
                         Bitboard pawnR7_capture = U64 (0);
 
                         // If the pawn is free to advance, increase bonus
-                        if (   pos.empty (block_sq)
-                            || ((pr == R_7) && (pawnR7_capture = pos.pieces (C_) & PawnAttacks[C][s]) != 0)
+                        if (  pos.empty (block_sq)
+                           || ((pr == R_7) && (pawnR7_capture = pos.pieces (C_) & PawnAttacks[C][s]) != 0)
                            )
                         {
                             // Squares to queen
@@ -957,10 +957,10 @@ namespace Evaluator {
                             // If there is an enemy rook or queen attacking the pawn from behind,
                             // add all X-ray attacks by the rook or queen. Otherwise consider only
                             // the squares in the pawn's path attacked or occupied by the enemy.
-                            if (   (  ((back_squares & pos.pieces<ROOK> (C_)) && (ei.pin_attacked_by[C_][ROOK] & s))
-                                   || ((back_squares & pos.pieces<QUEN> (C_)) && (ei.pin_attacked_by[C_][QUEN] & s))
-                                   )
-                                && (back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
+                            if (  (  (back_squares & pos.pieces<ROOK> (C_) && ei.pin_attacked_by[C_][ROOK] & s)
+                                  || (back_squares & pos.pieces<QUEN> (C_) && ei.pin_attacked_by[C_][QUEN] & s)
+                                  )
+                               && back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)
                                )
                             {
                                 unsafe_squares = (pr == R_7) ?
@@ -975,10 +975,10 @@ namespace Evaluator {
                             }
 
                             Bitboard safe_squares;
-                            if (   (  ((back_squares & pos.pieces<ROOK> (C )) && (ei.pin_attacked_by[C ][ROOK] & s))
-                                   || ((back_squares & pos.pieces<QUEN> (C )) && (ei.pin_attacked_by[C ][QUEN] & s))
-                                   )
-                                && (back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, occ))
+                            if (  (  (back_squares & pos.pieces<ROOK> (C ) && ei.pin_attacked_by[C ][ROOK] & s)
+                                  || (back_squares & pos.pieces<QUEN> (C ) && ei.pin_attacked_by[C ][QUEN] & s)
+                                  )
+                               && back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, occ)
                                )
                             {
                                 safe_squares = front_squares;
@@ -989,8 +989,8 @@ namespace Evaluator {
                                 {
                                     // Pawn on Rank-7 attacks except the current one's
                                     Bitboard pawns_on_R7    = (pos.pieces<PAWN> (C) - s) & rel_rank_bb (C, R_7);
-                                    Bitboard pawnR7_attacks = (pawns_on_R7) ? shift_del<(WHITE == C) ? DEL_NE : DEL_SW> (pawns_on_R7)
-                                                                            | shift_del<(WHITE == C) ? DEL_NW : DEL_SE> (pawns_on_R7) :
+                                    Bitboard pawnR7_attacks = (pawns_on_R7) ? shift_del<WHITE == C ? DEL_NE : DEL_SW> (pawns_on_R7)
+                                                                            | shift_del<WHITE == C ? DEL_NW : DEL_SE> (pawns_on_R7) :
                                                                               U64 (0);
 
                                     safe_squares = queen_squares & ( pawnR7_attacks
@@ -1087,7 +1087,7 @@ namespace Evaluator {
         // material hash table. The aim is to improve play on game opening.
         inline i32 evaluate_space (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             // Find the safe squares for our pieces inside the area defined by
             // SpaceMask[]. A square is unsafe if it is attacked by an enemy
@@ -1099,15 +1099,15 @@ namespace Evaluator {
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
             // Since SpaceMask[C] is fully on our half of the board
-            ASSERT (u32 (safe_space >> ((WHITE == C) ? 32 : 0)) == 0);
+            ASSERT (u32 (safe_space >> (WHITE == C ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
-            behind |= shift_del<(WHITE == C) ? DEL_S  : DEL_N > (behind);
-            behind |= shift_del<(WHITE == C) ? DEL_SS : DEL_NN> (behind);
+            behind |= shift_del<WHITE == C ? DEL_S  : DEL_N > (behind);
+            behind |= shift_del<WHITE == C ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            return pop_count<FULL> (((WHITE == C) ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            return pop_count<FULL> ((WHITE == C ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
         }
 
         template<bool Trace>
@@ -1286,15 +1286,15 @@ namespace Evaluator {
 
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
-            if (   (game_phase < PHASE_MIDGAME)
-                && (scale_fac == SCALE_FACTOR_NORMAL || scale_fac == SCALE_FACTOR_PAWNS)
+            if (  game_phase < PHASE_MIDGAME
+               && (scale_fac == SCALE_FACTOR_NORMAL || scale_fac == SCALE_FACTOR_PAWNS)
                )
             {
                 if (pos.opposite_bishops ())
                 {
                     // Both sides with opposite-colored bishops only ignoring any pawns.
-                    if (   (npm[WHITE] == VALUE_MG_BSHP)
-                        && (npm[BLACK] == VALUE_MG_BSHP)
+                    if (  npm[WHITE] == VALUE_MG_BSHP
+                       && npm[BLACK] == VALUE_MG_BSHP
                        )
                     {
                         // It is almost certainly a draw even with pawns.
@@ -1309,9 +1309,9 @@ namespace Evaluator {
                     }
                 }
                 else
-                if (    (abs (eg) <= VALUE_EG_BSHP)
-                    &&  (ei.pi->pawn_span[strong_side] <= 1)
-                    && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
+                if (  abs (eg) <= VALUE_EG_BSHP
+                   && ei.pi->pawn_span[strong_side] <= 1
+                   && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
                    )
                 {
                     // Endings where weaker side can place his king in front of the strong side pawns are drawish.

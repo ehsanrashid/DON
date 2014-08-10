@@ -49,7 +49,7 @@ namespace BitBases {
 
             Result classify (const vector<KPKPosition>& db)
             {
-                return (WHITE == _active) ? classify<WHITE> (db) : classify<BLACK> (db);
+                return WHITE == _active ? classify<WHITE> (db) : classify<BLACK> (db);
             }
 
         };
@@ -64,10 +64,10 @@ namespace BitBases {
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (   (SquareDist[_wk_sq][_bk_sq] <= 1)
-                || (_wk_sq == _p_sq)
-                || (_bk_sq == _p_sq)
-                || (WHITE == _active && (PawnAttacks[WHITE][_p_sq] & _bk_sq))
+            if (  SquareDist[_wk_sq][_bk_sq] <= 1
+               || _wk_sq == _p_sq
+               || _bk_sq == _p_sq
+               || (WHITE == _active && PawnAttacks[WHITE][_p_sq] & _bk_sq)
                )
             {
                 result = INVALID;
@@ -77,11 +77,11 @@ namespace BitBases {
                 if (WHITE == _active)
                 {
                     // Immediate win if a pawn can be promoted without getting captured
-                    if (   (_rank (_p_sq) == R_7)
-                        && (_wk_sq != _p_sq + DEL_N)
-                        && ((SquareDist[_bk_sq][_p_sq + DEL_N] > 1)
-                         || (PieceAttacks[KING][_wk_sq] & (_p_sq + DEL_N))
-                           )
+                    if (  _rank (_p_sq) == R_7
+                       && _wk_sq != _p_sq + DEL_N
+                       && (  SquareDist[_bk_sq][_p_sq + DEL_N] > 1
+                          || PieceAttacks[KING][_wk_sq] & (_p_sq + DEL_N)
+                          )
                        )
                     {
                         result = WIN;
@@ -91,7 +91,7 @@ namespace BitBases {
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
                     if (  !(PieceAttacks[KING][_bk_sq] & ~(PieceAttacks[KING][_wk_sq] | PawnAttacks[WHITE][_p_sq]))
-                        || (PieceAttacks[KING][_bk_sq] &  ~PieceAttacks[KING][_wk_sq] & _p_sq)
+                        || (PieceAttacks[KING][_bk_sq] & ~(PieceAttacks[KING][_wk_sq]) & _p_sq)
                        )
                     {
                         result = DRAW;
@@ -128,19 +128,19 @@ namespace BitBases {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const Color C_ = (WHITE == C) ? BLACK : WHITE;
+            const Color C_ = WHITE == C ? BLACK : WHITE;
 
             Result r = INVALID;
 
-            Bitboard b = PieceAttacks[KING][(WHITE == C) ? _wk_sq : _bk_sq];
+            Bitboard b = PieceAttacks[KING][WHITE == C ? _wk_sq : _bk_sq];
             while (b)
             {
-                r |= (WHITE == C) ?
+                r |= WHITE == C ?
                     db[index(C_, _bk_sq, pop_lsq (b), _p_sq)] :
                     db[index(C_, pop_lsq (b), _wk_sq, _p_sq)];
             }
 
-            if ((WHITE == C) && (_rank (_p_sq) < R_7))
+            if (WHITE == C && _rank (_p_sq) < R_7)
             {
                 Square s = _p_sq + DEL_N;
 
@@ -152,7 +152,7 @@ namespace BitBases {
                 }
             }
 
-            result = (WHITE == C) ?
+            result = WHITE == C ?
                      (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW) :
                      (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
 
@@ -181,7 +181,7 @@ namespace BitBases {
             repeat = false;
             for (idx = 0; idx < MAX_INDEX; ++idx)
             {
-                repeat |= ((UNKNOWN == db[idx]) && (UNKNOWN != db[idx].classify (db)));
+                repeat |= UNKNOWN == db[idx] && UNKNOWN != db[idx].classify (db);
             }
         }
         while (repeat);

@@ -5,8 +5,7 @@
 #include <climits>
 #include <vector>
 #include <algorithm>
-#include <iostream>
-
+#include <iosfwd>
 #include "Platform.h"
 
 typedef u64     Key;

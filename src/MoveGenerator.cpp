@@ -34,8 +34,6 @@ namespace MoveGenerator {
             {
                 ASSERT (KING != PT && PAWN != PT);
 
-                const Bitboard occ = pos.pieces ();
-
                 const Square *pl = pos.list<PT> (C);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
@@ -44,8 +42,8 @@ namespace MoveGenerator {
                     {
                         if (ci != NULL)
                         {
-                            if (    (BSHP == PT || ROOK == PT || QUEN == PT)
-                                && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
+                            if (  (BSHP == PT || ROOK == PT || QUEN == PT)
+                               && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
                                )
                             {
                                 continue;
@@ -57,7 +55,7 @@ namespace MoveGenerator {
                         }
                     }
 
-                    Bitboard attacks = attacks_bb<PT> (s, occ) & targets;
+                    Bitboard attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
                         if (ci != NULL) attacks &= ci->checking_bb[PT];
@@ -91,7 +89,7 @@ namespace MoveGenerator {
                 //if (EVASION == GT) return;
                 //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
 
-                const Color C_ = (WHITE == C) ? BLACK : WHITE;
+                const Color C_ = WHITE == C ? BLACK : WHITE;
 
                 Square king_org = pos.king_sq (C);
                 Square rook_org = pos.castle_rook (CR);
@@ -143,7 +141,7 @@ namespace MoveGenerator {
 
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    const Color C_ = (WHITE == C) ? BLACK : WHITE;
+                    const Color C_ = WHITE == C ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (C);
                     Bitboard attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
                     SERIALIZE (moves, king_sq, attacks);
@@ -248,10 +246,10 @@ namespace MoveGenerator {
             // Generates PAWN common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                const Color C_   = (WHITE == C) ? BLACK : WHITE;
-                const Delta PUSH = (WHITE == C) ? DEL_N  : DEL_S;
-                const Delta RCAP = (WHITE == C) ? DEL_NE : DEL_SW;
-                const Delta LCAP = (WHITE == C) ? DEL_NW : DEL_SE;
+                const Color C_   = WHITE == C ? BLACK : WHITE;
+                const Delta PUSH = WHITE == C ? DEL_N  : DEL_S;
+                const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
+                const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
 
                 Bitboard pawns = pos.pieces<PAWN> (C);
 
@@ -394,8 +392,9 @@ namespace MoveGenerator {
         //    while (beg != end)
         //    {
         //        Move m = beg->move;
-        //        if (   (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
-        //            && !pos.legal (m, pinneds))
+        //        if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
+        //           && !pos.legal (m, pinneds)
+        //           )
         //        {
         //            beg->move = (--end)->move;
         //        }
@@ -450,8 +449,7 @@ namespace MoveGenerator {
         ASSERT (!pos.checkers ());
 
         Color active    = pos.active ();
-        Bitboard occ    = pos.pieces ();
-        Bitboard empties= ~occ;
+        Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
@@ -459,7 +457,7 @@ namespace MoveGenerator {
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, occ) & empties;
+            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & empties;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
@@ -477,7 +475,6 @@ namespace MoveGenerator {
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
         Color active    = pos.active ();
-        Bitboard occ    = pos.pieces ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
@@ -486,7 +483,7 @@ namespace MoveGenerator {
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, occ) & targets;
+            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & targets;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 

@@ -123,7 +123,7 @@ namespace Zobrist {
 
         size_t idx;
         Square s = SQ_A8;
-        while ((iss >> ch) && !isspace (ch))
+        while (iss >> ch && !isspace (ch))
         {
             if (isdigit (ch))
             {
@@ -182,8 +182,8 @@ namespace Zobrist {
         }
 
         u08 col, row;
-        if (   ((iss >> col) && (col >= 'a' && col <= 'h'))
-            && ((iss >> row) && (row == '3' || row == '6')))
+        if (  (iss >> col && (col >= 'a' && col <= 'h'))
+           && (iss >> row && (row == '3' || row == '6')))
         {
             fen_key ^= _.en_passant[to_file (col)];
         }
