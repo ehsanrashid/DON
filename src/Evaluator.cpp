@@ -538,14 +538,11 @@ namespace Evaluator {
                 if (ROOK == PT)
                 {
                     
-                    if (R_4 <= r)
+                    if (R_4 < r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        const Bitboard rook_on_enemy_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (rook_on_enemy_pawns)
-                        {
-                            score += RookOnPawnBonus * (more_than_one (rook_on_enemy_pawns) ? pop_count<MAX15> (rook_on_enemy_pawns) : 1);
-                        }
+                        const Bitboard rook_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
+                        if (rook_on_pawns) score += RookOnPawnBonus * (more_than_one (rook_on_pawns) ? pop_count<MAX15> (rook_on_pawns) : 1);
                     }
                     
                     // Give a bonus for a rook on a open or semi-open file
@@ -692,7 +689,7 @@ namespace Evaluator {
                 if (undefended)
                 {
                     Bitboard undefended_attacked;
-                    if (pos.count<QUEN> (C_) > 0)
+                    if (pos.count<QUEN> (C_))
                     {
                         // Analyse enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
@@ -714,7 +711,7 @@ namespace Evaluator {
                             }
                         }
                     }
-                    if (pos.count<ROOK> (C_) > 0)
+                    if (pos.count<ROOK> (C_))
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy rooks...
@@ -738,7 +735,7 @@ namespace Evaluator {
                             }
                         }
                     }
-                    if (pos.count<BSHP> (C_) > 0)
+                    if (pos.count<BSHP> (C_))
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy bishop...

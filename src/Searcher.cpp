@@ -587,7 +587,7 @@ namespace Searcher {
             }
             else
             {
-                moves_count  = quiets_count = 0;
+                moves_count = quiets_count = 0;
 
                 best_value = -VALUE_INFINITE;
                 (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = /*threat_move =*/ best_move = MOVE_NONE;
@@ -1673,10 +1673,10 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    //sync_cout << setw ( 5) << setfill (' ') << move_to_can (*ms, pos.chess960 ()) << ": "
-                    //          << setw (16) << setfill ('.') << inter_nodes << sync_endl;
-                    sync_cout << setw ( 5) << setfill (' ') << move_to_san (*ms, pos) << ": "
-                              << setw (16) << setfill ('.') << inter_nodes << sync_endl;
+                    sync_cout <<  left << setw ( 7) << setfill (' ') <<
+                              //move_to_can (*ms, pos.chess960 ())
+                              move_to_san (*ms, pos)
+                              << right << setw (12) << setfill ('.') << inter_nodes << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
