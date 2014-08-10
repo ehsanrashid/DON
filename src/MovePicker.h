@@ -76,28 +76,16 @@ class MovePicker
 
 private:
 
-    enum StageT : u08
-    {
-        MAIN      , CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
-        EVASIONS  , EVASIONS_S2,
-        QSEARCH_0 , CAPTURES_S3, QUIET_CHECKS_S3,
-        QSEARCH_1 , CAPTURES_S4,
-        PROBCUT   , CAPTURES_S5,
-        RECAPTURE , CAPTURES_S6,
-        STOP
-    };
-
     ValMove  moves[MAX_MOVES]
         ,   *cur
         ,   *end
         ,   *quiets_end
         ,   *bad_captures_end;
 
-    const Position     &pos;
-
+    const Position &pos;
     const HistoryStats &history;
 
-    Searcher::Stack    *ss;
+    Searcher::Stack *ss;
 
     ValMove killers[6];
     Move   *counter_moves;

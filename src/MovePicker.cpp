@@ -8,6 +8,17 @@ using namespace MoveGenerator;
 
 namespace {
 
+    enum StageT : u08
+    {
+        MAIN_S    , CAPTURE_S1, KILLER_S1, QUIET_1_S1, QUIET_2_S1, BAD_CAPTURE_S1,
+        EVASION_S1, EVASION_S2,
+        QSEARCH_0 , CAPTURE_S3, QUIET_CHECK_S3,
+        QSEARCH_1 , CAPTURE_S4,
+        PROBCUT   , CAPTURE_S5,
+        RECAPTURE , CAPTURE_S6,
+        STOP
+    };
+
     // Our insertion sort in the range [begin, end], guaranteed to be stable, as is needed
     inline void insertion_sort (ValMove* begin, ValMove* end)
     {
@@ -53,7 +64,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     bad_captures_end = moves+MAX_MOVES-1;
 
-    stage = (pos.checkers () ? EVASIONS : MAIN);
+    stage = (pos.checkers () ? EVASION_S1 : MAIN_S);
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
     end += (tt_move != MOVE_NONE);
@@ -73,7 +84,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     if (pos.checkers ())
     {
-        stage = EVASIONS;
+        stage = EVASION_S1;
     }
     else
     if (d > DEPTH_QS_NO_CHECKS)
@@ -235,11 +246,11 @@ void MovePicker::generate_next_stage ()
     switch (++stage)
     {
 
-    case CAPTURES_S1:
-    case CAPTURES_S3:
-    case CAPTURES_S4:
-    case CAPTURES_S5:
-    case CAPTURES_S6:
+    case CAPTURE_S1:
+    case CAPTURE_S3:
+    case CAPTURE_S4:
+    case CAPTURE_S5:
+    case CAPTURE_S6:
         end = generate<CAPTURE> (moves, pos);
         if (cur < end-1)
         {
@@ -247,7 +258,7 @@ void MovePicker::generate_next_stage ()
         }
         return;
 
-    case KILLERS_S1:
+    case KILLER_S1:
         // Killer moves usually come right after after the hash move and (good) captures
         cur = killers;
         
@@ -289,7 +300,7 @@ void MovePicker::generate_next_stage ()
 
         return;
 
-    case QUIETS_1_S1:
+    case QUIET_1_S1:
         end = quiets_end = generate<QUIET> (moves, pos);
         if (cur < end)
         {
@@ -302,7 +313,7 @@ void MovePicker::generate_next_stage ()
         }
         return;
 
-    case QUIETS_2_S1:
+    case QUIET_2_S1:
         cur = end;
         end = quiets_end;
         if (depth >= (3*ONE_MOVE))
@@ -311,14 +322,14 @@ void MovePicker::generate_next_stage ()
         }
         return;
 
-    case BAD_CAPTURES_S1:
+    case BAD_CAPTURE_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
         cur = moves+MAX_MOVES-1;
         end = bad_captures_end;
         
         return;
 
-    case EVASIONS_S2:
+    case EVASION_S2:
         end = generate<EVASION> (moves, pos);
         if (cur < end-1)
         {
@@ -326,11 +337,11 @@ void MovePicker::generate_next_stage ()
         }
         return;
 
-    case QUIET_CHECKS_S3:
+    case QUIET_CHECK_S3:
         end = generate<QUIET_CHECK> (moves, pos);
         return;
 
-    case EVASIONS:
+    case EVASION_S1:
     case QSEARCH_0:
     case QSEARCH_1:
     case PROBCUT:
@@ -364,15 +375,15 @@ Move MovePicker::next_move<false> ()
         switch (stage)
         {
 
-        case MAIN:
-        case EVASIONS:
+        case MAIN_S:
+        case EVASION_S1:
         case QSEARCH_0:
         case QSEARCH_1:
         case PROBCUT:
             ++cur;
             return tt_move;
 
-        case CAPTURES_S1:
+        case CAPTURE_S1:
             do
             {
                 move = pick_best (cur++, end)->move;
@@ -389,7 +400,7 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case KILLERS_S1:
+        case KILLER_S1:
             do
             {
                 move = (cur++)->move;
@@ -405,8 +416,8 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case QUIETS_1_S1:
-        case QUIETS_2_S1:
+        case QUIET_1_S1:
+        case QUIET_2_S1:
             do
             {
                 move = (cur++)->move;
@@ -425,12 +436,12 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case BAD_CAPTURES_S1:
+        case BAD_CAPTURE_S1:
             return (cur--)->move;
 
-        case EVASIONS_S2:
-        case CAPTURES_S3:
-        case CAPTURES_S4:
+        case EVASION_S2:
+        case CAPTURE_S3:
+        case CAPTURE_S4:
             do
             {
                 move = pick_best (cur++, end)->move;
@@ -442,7 +453,7 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case CAPTURES_S5:
+        case CAPTURE_S5:
             do
             {
                 move = pick_best (cur++, end)->move;
@@ -454,7 +465,7 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case CAPTURES_S6:
+        case CAPTURE_S6:
             do
             {
                 move = pick_best (cur++, end)->move;
@@ -466,7 +477,7 @@ Move MovePicker::next_move<false> ()
             while (cur < end);
             break;
 
-        case QUIET_CHECKS_S3:
+        case QUIET_CHECK_S3:
             do
             {
                 move = (cur++)->move;

@@ -172,8 +172,8 @@ namespace Searcher {
     {
         SplitPoint *splitpoint;
 
-        Move    current_move
-            ,   tt_move
+        Move    tt_move
+            ,   current_move
             ,   excluded_move
             ,   killer_moves[2];
 

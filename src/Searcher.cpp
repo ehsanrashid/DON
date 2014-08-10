@@ -282,10 +282,12 @@ namespace Searcher {
 
             StateInfo si;
 
-            Move  best_move = MOVE_NONE;
+            Move  tt_move
+                , best_move = MOVE_NONE;
 
-            Value best_value
-                , old_alpha;
+            Value old_alpha
+                , tt_value
+                , best_value;
 
             // To flag EXACT a node with eval above alpha and no available moves
             if (PVNode) old_alpha = alpha;
@@ -299,9 +301,6 @@ namespace Searcher {
 
             // Transposition table lookup
             const TTEntry *tte;
-            Move  tt_move;
-            Value tt_value;
-
             tte      = TT.retrieve (posi_key);
             tt_move  = tte != NULL ?              tte->move ()              : MOVE_NONE;
             tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
@@ -528,24 +527,25 @@ namespace Searcher {
             ASSERT (PVNode || (alpha == beta-1));
             ASSERT (depth > DEPTH_ZERO);
 
-            SplitPoint *splitpoint;
-            Key   posi_key;
-
-            const TTEntry *tte;
-
-            Move  best_move
+            Move  move
                 , tt_move
                 , excluded_move
-                , move;
+                , threat_move
+                , best_move;
 
-            Value best_value
+            Value eval
                 , tt_value
-                , eval;
+                , best_value;
 
             u08   moves_count
                 , quiets_count;
 
             Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
+
+            SplitPoint *splitpoint;
+            Key   posi_key;
+
+            const TTEntry *tte;
 
             StateInfo si;
             CheckInfo ci (pos);
@@ -556,9 +556,10 @@ namespace Searcher {
 
             if (SPNode)
             {
-                splitpoint = (ss)->splitpoint;
-                best_move  = splitpoint->best_move;
-                best_value = splitpoint->best_value;
+                splitpoint  = (ss)->splitpoint;
+                //threat_move = splitPoint->threat_move;
+                best_move   = splitpoint->best_move;
+                best_value  = splitpoint->best_value;
 
                 tte      = NULL;
                 tt_move  = excluded_move = MOVE_NONE;
@@ -572,7 +573,7 @@ namespace Searcher {
                 moves_count  = quiets_count = 0;
 
                 best_value = -VALUE_INFINITE;
-                best_move  = (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = MOVE_NONE;
+                (ss)->current_move = (ss)->tt_move = (ss+1)->excluded_move = threat_move = best_move = MOVE_NONE;
                 (ss)->ply  = (ss-1)->ply + 1;
 
                 (ss+1)->skip_null_move  = false;
@@ -620,8 +621,8 @@ namespace Searcher {
                 posi_key = (excluded_move != MOVE_NONE) ? pos.posi_key_excl () : pos.posi_key ();
 
                 tte      = TT.retrieve (posi_key);
-                tt_move  = (ss)->tt_move = RootNode    ? RootMoves[PVIndex].pv[0]
-                                         : tte != NULL ? tte->move () : MOVE_NONE;
+                (ss)->tt_move = tt_move = RootNode   ? RootMoves[PVIndex].pv[0] :
+                                         tte != NULL ? tte->move () : MOVE_NONE;
                 tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
 
                 if (!RootNode)
@@ -807,7 +808,27 @@ namespace Searcher {
 
                                         if (veri_value >= beta) return null_value;
                                     }
-                                    //else { // threat move here }
+                                    /*
+                                    else
+                                    {
+                                        // The null move failed low, which means that we may be faced with
+                                        // some kind of threat. If the previous move was reduced, check if
+                                        // the move that refuted the null move was somehow connected to the
+                                        // move which was reduced. If a connection is found, return a fail
+                                        // low score (which will cause the reduced move to fail high in the
+                                        // parent node, which will trigger a re-search with full depth).
+                                        threat_move = (ss+1)->current_move;
+
+                                        if (   (depth < (5*ONE_PLY))
+                                            && (ss-1)->reduction
+                                            && (threat_move != MOVE_NONE)
+                                            //&& allows (pos, (ss-1)->current_move, threat_move)
+                                           )
+                                        {
+                                            return beta - 1;
+                                        }
+                                    }
+                                    */
                                 }
                             }
 
@@ -861,7 +882,7 @@ namespace Searcher {
                     (ss)->skip_null_move = false;
 
                     tte = TT.retrieve (posi_key);
-                    tt_move  = tte != NULL ? tte->move () : MOVE_NONE;
+                    (ss)->tt_move = tt_move = tte != NULL ? tte->move () : MOVE_NONE;
                     tt_value = tte != NULL ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 }
             }
@@ -1291,7 +1312,7 @@ namespace Searcher {
                         && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
-                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && best_value < beta && beta <= -VALUE_INFINITE);
+                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && best_value <= beta && beta <= -VALUE_INFINITE);
 
                         thread->split (pos, ss, alpha, beta, best_value, best_move, depth, moves_count, mp, NT, cut_node);
                         
@@ -1311,8 +1332,8 @@ namespace Searcher {
             // Step 20. Check for checkmate and stalemate
             if (!SPNode)
             {
-                // All legal moves have been searched and if there are no legal moves, it
-                // must be mate or stalemate, so return value accordingly.
+                // All possible moves have been searched and if there are no legal moves,
+                // it must be mate or stalemate, so return value accordingly.
                 // If in a singular extension search then return a fail low score.
                 if (0 == moves_count) // best_move == MOVE_NONE
                 {
@@ -1635,10 +1656,11 @@ namespace Searcher {
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
-        Value expected_value = value[0];
+       
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         pv.clear ();
+        Value expected_value = value[0];
         const TTEntry *tte;
         do
         {
@@ -1657,6 +1679,7 @@ namespace Searcher {
                && pos.legal (m)
                && ply < MAX_DEPTH
                && (!pos.draw () || ply < 2));
+        
         do
         {
             pos.undo_move ();
@@ -1673,7 +1696,7 @@ namespace Searcher {
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
-        //Value expected_value = value[0];
+        
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         const TTEntry *tte;
@@ -1690,15 +1713,15 @@ namespace Searcher {
                     m,
                     DEPTH_NONE,
                     BND_NONE,
-                    VALUE_NONE,//value_to_tt (expected_value, ply), // To evaluate again
+                    VALUE_NONE, // To evaluate again
                     VALUE_NONE);
             }
 
             pos.do_move (m, *si++);
-            //expected_value = -expected_value;
             m = pv[++ply];
         }
         while (MOVE_NONE != m);
+
         do
         {
             pos.undo_move ();
