@@ -866,6 +866,7 @@ namespace Searcher {
                 }
             }
 
+            // Splitpoint start
             // When in check and at SPNode search starts from here
 
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
@@ -1322,14 +1323,18 @@ namespace Searcher {
                 }
                 else
                 // If we have pruned all the moves without searching return a fail-low score
-                if (best_value == -VALUE_INFINITE) best_value = alpha;
+                if (best_value == -VALUE_INFINITE)
+                {
+                    ASSERT (0 == quiets_count);
+                    best_value = alpha;
+                }
                 else
                 // Quiet best move: Update history, killer, counter & followup moves
                 if (   (best_value >= beta)
                     && !in_check && !pos.capture_or_promotion (best_move)
                    )
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count);
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets_count-1);
                 }
 
                 TT.store (
