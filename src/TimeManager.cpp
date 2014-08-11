@@ -51,7 +51,7 @@ namespace {
         double time_ratio1 = (TMaxRatio * this_move_imp) / (TMaxRatio * this_move_imp + other_move_imp);
         double time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
 
-        return i32 (time * min (time_ratio1, time_ratio2));
+        return i32(time * min (time_ratio1, time_ratio2));
     }
 
 }
@@ -59,11 +59,11 @@ namespace {
 void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
 {
     // Read uci parameters
-    //EmergencyClockTime   = i32 (Options["Emergency Clock Time"]);
-    //EmergencyMoveHorizon = i32 (Options["Emergency Move Horizon"]);
-    //EmergencyMoveTime    = i32 (Options["Emergency Move Time"]);
-    //MinimumThinkingTime  = i32 (Options["Minimum Thinking Time"]);
-    Slowness             = i32 (Options["Slowness"]);
+    //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
+    //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
+    //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
+    //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
+    Slowness             = i32(Options["Slowness"]);
 
     // Initialize unstable pv factor to 1 and search times to maximum values
     _unstable_pv_factor  = 1.0;

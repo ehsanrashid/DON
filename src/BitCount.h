@@ -42,11 +42,11 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #       ifdef _64BIT
     {
-        return u08 (_mm_popcnt_u64 (bb));
+        return u08(_mm_popcnt_u64 (bb));
     }
 #       else
     {
-        return u08 (_mm_popcnt_u32 (bb) + _mm_popcnt_u32 (bb >> 32));
+        return u08(_mm_popcnt_u32 (bb) + _mm_popcnt_u32 (bb >> 32));
     }
 #       endif
 }
@@ -62,11 +62,11 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #      ifdef _64BIT
     {
-        return u08 (__popcnt64 (bb));
+        return u08(__popcnt64 (bb));
     }
 #      else
     {
-        return u08 (__popcnt (bb) + __popcnt (bb >> 32));
+        return u08(__popcnt (bb) + __popcnt (bb >> 32));
     }
 #      endif
 }
@@ -80,7 +80,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //template<>
 //INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //{
-//    return u08 (__m64_popcnt (bb));
+//    return u08(__m64_popcnt (bb));
 //}
 
 #else
@@ -175,8 +175,8 @@ INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
 {
     if (!bb) return 0;
 
-    u32 w0 = u32 (bb);
-    u32 w1 = u32 (bb >> 32);
+    u32 w0 = u32(bb);
+    u32 w1 = u32(bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
     w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits
@@ -192,8 +192,8 @@ INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 {
     if (!bb) return 0;
 
-    u32 w0 = u32 (bb);
-    u32 w1 = u32 (bb >> 32);
+    u32 w0 = u32(bb);
+    u32 w1 = u32(bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
     w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits

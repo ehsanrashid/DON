@@ -245,10 +245,10 @@ namespace Pawns {
                 {
                     score -= DoubledPenalty[f]
                             * (more_than_one (doublers) ? pop_count<Max15> (doublers) : 1)
-                            / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
+                            / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
                     //Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
-                    //if (doubly_doublers) score -= DoubledPenalty[f] * i32 (rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //if (doubly_doublers) score -= DoubledPenalty[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
                 else
                 {
@@ -281,8 +281,8 @@ namespace Pawns {
             if (pos.count<PAWN>(C) > 1)
             {
                 i32 span = e->semiopen_files[C] ^ 0xFF;
-                e->pawn_span[C] = i32 (scan_msq (span)) - i32 (scan_lsq (span));
-                pawn_score += FileSpanBonus * i32 (e->pawn_span[C]);
+                e->pawn_span[C] = i32(scan_msq (span)) - i32(scan_lsq (span));
+                pawn_score += FileSpanBonus * i32(e->pawn_span[C]);
             }
             else
             {
@@ -321,11 +321,11 @@ namespace Pawns {
             mid_pawns  = front_pawns[1] & File_bb[f];
             u08 br = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (  kf == f
-               && EndEdge_bb & (File (f) | Rank (br))
+               && EndEdge_bb & (File(f) | Rank(br))
                && rel_rank (C, k_sq) == br - 1
                )
             {
-                value += Value (200); // Enemy pawn in front Shelter
+                value += Value(200); // Enemy pawn in front Shelter
             }
             else
             {
@@ -351,7 +351,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C]|unstopped_pawns[C];
-        return unstoppable_pawns ? UnstoppableBonus * i32 (rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
+        return unstoppable_pawns ? UnstoppableBonus * i32(rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
                                   SCORE_ZERO;
     }
 

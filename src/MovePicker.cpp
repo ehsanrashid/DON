@@ -171,7 +171,7 @@ void MovePicker::value<CAPTURE> ()
         MoveT mt = mtype (m);
         if (mt == NORMAL)
         {
-            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32 (ptype (pos[org_sq (m)]));
+            itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
         }
         else
         if (mt == ENPASSANT)
@@ -217,7 +217,7 @@ void MovePicker::value<EVASION> ()
             MoveT mt = mtype (m);
             if (mt == NORMAL)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32 (ptype (pos[org_sq (m)])) + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + MaxHistory;
             }
             else
             if (mt == ENPASSANT)

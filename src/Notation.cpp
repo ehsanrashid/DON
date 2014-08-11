@@ -80,11 +80,11 @@ namespace Notation {
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    oss << "+#" << i32 (VALUE_MATE - v + 1) / 2;
+                    oss << "+#" << i32(VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
-                    oss << "-#" << i32 (VALUE_MATE + v + 0) / 2;
+                    oss << "-#" << i32(VALUE_MATE + v + 0) / 2;
                 }
             }
 
@@ -97,11 +97,11 @@ namespace Notation {
             const u32 MinuteMSec = M_SEC * 60;
             const u32 HourMSec   = MinuteMSec * 60;
 
-            u32 hours   = u32 (msecs / HourMSec);
+            u32 hours   = u32(msecs / HourMSec);
             msecs      %= HourMSec;
-            u32 minutes =  u32 (msecs / MinuteMSec);
+            u32 minutes =  u32(msecs / MinuteMSec);
             msecs      %= MinuteMSec;
-            u32 seconds = u32 (msecs / M_SEC);
+            u32 seconds = u32(msecs / M_SEC);
 
             ostringstream oss;
 
@@ -123,9 +123,9 @@ namespace Notation {
         if (5 == scan.length ())
         {
             // Promotion piece in lowercase
-            if (isupper (u08 (scan[4])))
+            if (isupper (u08(scan[4])))
             {
-                scan[4] = u08 (tolower (scan[4]));
+                scan[4] = u08(tolower (scan[4]));
             }
         }
 
@@ -271,11 +271,11 @@ namespace Notation {
 
         if (abs (v) < VALUE_MATES_IN_MAX_PLY)
         {
-            oss << "cp " << i32 (100 * value_to_cp (v));
+            oss << "cp " << i32(100 * value_to_cp (v));
         }
         else
         {
-            oss << "mate " << i32 (v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+            oss << "mate " << i32(v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
         }
 
         oss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");

@@ -125,7 +125,7 @@ namespace Material {
             }
             value += count[C ][KING] * OwnSideLinearCoefficient[KING];
 
-            return Value (value);
+            return Value(value);
         }
 
     } // namespace
@@ -245,14 +245,14 @@ namespace Material {
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
-                    e->factor[WHITE] = u08 (
+                    e->factor[WHITE] = u08(
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
-                    e->factor[WHITE] = u08 (SCALE_FACTOR_PAWNS);
+                    e->factor[WHITE] = u08(SCALE_FACTOR_PAWNS);
                 }
             }
 
@@ -260,14 +260,14 @@ namespace Material {
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
-                    e->factor[BLACK] = u08 (
+                    e->factor[BLACK] = u08(
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
-                    e->factor[BLACK] = u08 (SCALE_FACTOR_PAWNS);
+                    e->factor[BLACK] = u08(SCALE_FACTOR_PAWNS);
                 }
             }
 
@@ -293,7 +293,7 @@ namespace Material {
                 }
             };
 
-            Value value = Value (i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));
+            Value value = Value(i16((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));
             e->matl_score = mk_score (value, value);
         }
 

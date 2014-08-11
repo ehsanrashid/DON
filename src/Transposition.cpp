@@ -105,7 +105,7 @@ u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
         _cluster_mask  = cluster_count-1;
     }
 
-    return u32 (mem_size >> 20);
+    return u32(mem_size >> 20);
 }
 
 // store() writes a new entry in the transposition table.
@@ -142,7 +142,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
             // Preserve any existing TT move
             if (move == MOVE_NONE && ite->_move != MOVE_NONE)
             {
-                move = Move (ite->_move);
+                move = Move(ite->_move);
             }
             ite->save (key16, move, value, eval, depth, bound, _generation);
             return;

@@ -93,9 +93,9 @@ void benchmark (istream &is, const Position &pos)
     LimitsT limits;
     if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
     else if (limit_type == "nodes") limits.nodes    = value;
-    else if (limit_type == "mate")  limits.mate     = u08 (value);
+    else if (limit_type == "mate")  limits.mate     = u08(value);
     //else if (limit_type == "depth")
-    else                            limits.depth    = u08 (value);
+    else                            limits.depth    = u08(value);
 
     if (fen_fn == "default")
     {
@@ -145,8 +145,8 @@ void benchmark (istream &is, const Position &pos)
 
         if (limit_type == "perft")
         {
-            cerr << "\nDepth " << i32 (limits.depth) << "\n";
-            u64 leaf_nodes = perft (root_pos, i32 (limits.depth) * ONE_MOVE);
+            cerr << "\nDepth " << i32(limits.depth) << "\n";
+            u64 leaf_nodes = perft (root_pos, i32(limits.depth) * ONE_MOVE);
             cout << "\nLeaf nodes: " << leaf_nodes << "\n";
             nodes += leaf_nodes;
         }
@@ -169,8 +169,8 @@ void benchmark (istream &is, const Position &pos)
 
     cerr
         << "\n===========================\n"
-        << "Total time (ms) : " << time << "\n"
-        << "Nodes searched  : " << nodes   << "\n"
+        << "Total time (ms) : " << time  << "\n"
+        << "Nodes searched  : " << nodes << "\n"
         << "Nodes/second    : " << nodes * M_SEC / time
         << "\n---------------------------\n" << endl;
 }

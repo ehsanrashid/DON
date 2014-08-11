@@ -43,7 +43,7 @@ namespace std {
             bool error = false;
             if ('\n' == last_ch)
             {
-                u32 length = u32 (strlen (prefix));
+                u32 length = u32(strlen (prefix));
                 if (_filestm->rdbuf ()->sputn (prefix, length) != length)
                 {
                     error = true;

@@ -198,7 +198,7 @@ namespace EndGame {
         }
         else
         {
-            value = Value ((
+            value = Value((
                     PushClose[SquareDist[sk_sq][wk_sq]]
                   + PushClose[SquareDist[sp_sq][sk_sq]]
                   + PushAway [SquareDist[sp_sq][wk_sq]]) / 10);
@@ -241,7 +241,7 @@ namespace EndGame {
 
         Square wk_sq = pos.king_sq (_weak_side);
 
-        Value value = Value (PushToEdges[wk_sq] / 8);
+        Value value = Value(PushToEdges[wk_sq] / 8);
 
         return (_stong_side == pos.active ()) ? +value : -value;
     }
@@ -272,7 +272,7 @@ namespace EndGame {
               )
            )
         {
-            value = VALUE_EG_ROOK - i32 (SquareDist[sk_sq][wp_sq]);
+            value = VALUE_EG_ROOK - i32(SquareDist[sk_sq][wp_sq]);
         }
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else
@@ -282,11 +282,11 @@ namespace EndGame {
            && SquareDist[sk_sq][wp_sq] > 2 + (_stong_side == pos.active ())
            )
         {
-            value = Value (80 - SquareDist[sk_sq][wp_sq] * 8);
+            value = Value(80 - SquareDist[sk_sq][wp_sq] * 8);
         }
         else
         {
-            value = Value (200
+            value = Value(200
                   - 8 * SquareDist[sk_sq][wp_sq+DEL_S]
                   + 8 * SquareDist[wk_sq][wp_sq+DEL_S]
                   + 8 * SquareDist[wp_sq][queening_sq]);
@@ -308,7 +308,7 @@ namespace EndGame {
         Square wb_sq = pos.list<BSHP> (_weak_side)[0];
 
         // When the weaker side ended up in the same corner as bishop.
-        Value value  = Value (PushToEdges[wk_sq] / 4);
+        Value value  = Value(PushToEdges[wk_sq] / 4);
 
         // To draw, the weaker side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
@@ -334,7 +334,7 @@ namespace EndGame {
 
         Square wk_sq = pos.king_sq (_weak_side);
         Square wn_sq = pos.list<NIHT> (_weak_side)[0];
-        Value value  = Value (PushToEdges[wk_sq] + PushAway[SquareDist[wk_sq][wn_sq]]);
+        Value value  = Value(PushToEdges[wk_sq] + PushAway[SquareDist[wk_sq][wn_sq]]);
 
         // If weaker king is near the knight, it's a draw.
         if (  _weak_side == pos.active ()
@@ -361,7 +361,7 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_weak_side);
         Square wp_sq = pos.list<PAWN> (_weak_side)[0];
 
-        Value value = Value (PushClose[SquareDist[sk_sq][wk_sq]]);
+        Value value = Value(PushClose[SquareDist[sk_sq][wk_sq]]);
 
         if (  rel_rank (_weak_side, wp_sq) != R_7
            || SquareDist[wk_sq][wp_sq] != 1
@@ -427,7 +427,7 @@ namespace EndGame {
         }
         else
         {
-            value = Value (PushClose[SquareDist[sk_sq][wk_sq]] / 8);
+            value = Value(PushClose[SquareDist[sk_sq][wk_sq]] / 8);
         }
 
         return (_stong_side == pos.active ()) ? +value : -value;

@@ -55,28 +55,28 @@ namespace MoveGenerator {
 
     private:
         ValMove  moves[MAX_MOVES]
-                , *curr
-                , *last;
+              , *cur
+              , *end;
 
     public:
 
         explicit MoveList (const Position &pos)
-            : curr (moves)
-            , last (generate<GT> (moves, pos))
+            : cur (moves)
+            , end (generate<GT> (moves, pos))
         {
-            last->move = MOVE_NONE;
+            end->move = MOVE_NONE;
         }
 
-        inline void operator++ () { ++curr; }
-        inline void operator-- () { --curr; }
+        inline void operator++ () { ++cur; }
+        inline void operator-- () { --cur; }
 
-        inline Move operator* () const { return curr->move; }
+        inline Move operator* () const { return cur->move; }
 
-        inline u16 size       () const { return u16 (last - moves); }
+        inline u16 size       () const { return u16(end - moves); }
 
         bool contains (Move m) const
         {
-            for (const ValMove *itr = moves; itr != last; ++itr)
+            for (const ValMove *itr = moves; itr != end; ++itr)
             {
                 if (itr->move == m) return true;
             }
@@ -92,12 +92,12 @@ namespace MoveGenerator {
     //inline std::basic_ostream<CharT, Traits>&
     //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
     //{
-    //    ValMove *curr = movelist.curr;
+    //    ValMove *cur = movelist.cur;
     //    for ( ; *movelist; ++movelist)
     //    {
     //        os << *movelist << std::endl;
     //    }
-    //    movelist.curr = curr;
+    //    movelist.cur = cur;
     //    return os;
     //}
 }

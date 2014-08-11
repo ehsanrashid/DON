@@ -144,7 +144,7 @@ namespace UCI {
 
         void on_resize_hash (const Option &opt)
         {
-            TT.resize (i32 (opt), false);
+            TT.resize (i32(opt), false);
         }
 
         void on_save_hash   (const Option &)
@@ -176,7 +176,7 @@ namespace UCI {
 
         void on_50_move_dist (const Option &opt)
         {
-            Position::_fifty_move_dist = u08 (2 * i32 (opt));
+            Position::_fifty_move_dist = u08(2 * i32(opt));
         }
 
         void on_io_log (const Option &opt)
@@ -235,12 +235,12 @@ namespace UCI {
         // 
         // To save a Hash file to disk:
         // .    End the analysis
-        // .    Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .    Go to the options window, enter the name of the Hash File(e.g. C:\Chess\Game.dat)
         // .    Press the Save Hash to File button, and OK in the options window.
         // 
         // To load a Hash file from disk:
         // .    Load the correspondence game
-        // .    Go to the options window, enter the name of the Hash File (e.g. C:\Chess\Game.dat)
+        // .    Go to the options window, enter the name of the Hash File(e.g. C:\Chess\Game.dat)
         // .    Press the Load Hash from File button, and OK in the options window.
         // -----------------------------------------------------------------------------------------
 

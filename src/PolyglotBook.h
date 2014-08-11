@@ -55,7 +55,7 @@ public:
     static const u08 PGENTRY_SIZE   = sizeof (PBEntry);
     static const u08 PGHEADER_SIZE  = 0*PGENTRY_SIZE;
 
-    static const u64 ERROR_INDEX    = u64 (-1);
+    static const u64 ERROR_INDEX    = u64(-1);
 
 private:
 

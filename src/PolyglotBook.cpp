@@ -63,9 +63,9 @@ PolyglotBook::PBEntry::operator string () const
 {
     ostringstream oss;
 
-    Move m = Move (move);
+    Move m = Move(move);
     // Set new type for promotion piece
-    PieceT pt = PieceT ((m >> 12) & TOTL);
+    PieceT pt = PieceT((m >> 12) & TOTL);
     if (pt != PAWN) promote (m, pt);
 
     oss << setfill ('0')
@@ -86,7 +86,7 @@ PolyglotBook& PolyglotBook::operator>> (T &t)
     t = T ();
     for (u08 i = 0; i < sizeof (t) && good (); ++i)
     {
-        u08 byte = u08 (get ());
+        u08 byte = u08(get ());
         t = T ((t << 8) + byte);
     }
     return *this;
@@ -104,7 +104,7 @@ PolyglotBook& PolyglotBook::operator<< (T &t)
     const u08 Size = sizeof (t);
     for (u08 i = 0; i < Size && good (); ++i)
     {
-        u08 byte = u08 (t >> (8*(Size - 1 - i)));
+        u08 byte = u08(t >> (8*(Size - 1 - i)));
         put (byte);
     }
     return *this;
@@ -155,8 +155,8 @@ u64 PolyglotBook::find_index (const Key key)
 {
     if (!fstream::is_open ()) return ERROR_INDEX;
 
-    u64 beg = u64 (0);
-    u64 end = u64 ((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
+    u64 beg = u64(0);
+    u64 end = u64((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
 
     PBEntry pbe;
 
@@ -239,7 +239,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //        pbe = *ms;
     //        if (pbe.weight == max_weight)
     //        {
-    //            move = Move (pbe.move);
+    //            move = Move(pbe.move);
     //            break;
     //        }
     //        ++ms;
@@ -259,7 +259,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //        pbe = *ms;
     //        if (pbe.weight > rand)
     //        {
-    //            move = Move (pbe.move);
+    //            move = Move(pbe.move);
     //            break;
     //        }
     //        rand -= pbe.weight;
@@ -284,23 +284,23 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         //if ((sum_weight && rand % sum_weight < pbe.weight) ||
         //    (pick_best && (pbe.weight == max_weight)))
         //{
-        //    move = Move (pbe.move);
+        //    move = Move(pbe.move);
         //}
 
         if (pick_best)
         {
-            if (pbe.weight == max_weight) move = Move (pbe.move);
+            if (pbe.weight == max_weight) move = Move(pbe.move);
         }
         else
         if (sum_weight)
         {
             u16 rand = _rkiss.rand<u16> () % sum_weight;
-            if (pbe.weight > rand) move = Move (pbe.move);
+            if (pbe.weight > rand) move = Move(pbe.move);
         }
         else
         if (MOVE_NONE == move) // if not pick best and sum of weight = 0
         {
-            move = Move (pbe.move);
+            move = Move(pbe.move);
         }
     }
 
@@ -321,7 +321,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     // in all the other cases can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
     // Polyglot use 3 bits while use 2 bits
-    PieceT pt = PieceT ((move >> 12) & TOTL);
+    PieceT pt = PieceT((move >> 12) & TOTL);
     // Set new type for promotion piece
     if (pt != PAWN) promote (move, pt);
 

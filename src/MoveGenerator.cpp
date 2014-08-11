@@ -101,7 +101,7 @@ namespace MoveGenerator {
                 Delta step = (king_dst > king_org ? DEL_E : DEL_W);
                 for (i08 s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (Square (s)) & pos.pieces (C_))
+                    if (pos.attackers_to (Square(s)) & pos.pieces (C_))
                     {
                         return;
                     }
@@ -457,7 +457,7 @@ namespace MoveGenerator {
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & empties;
+            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
@@ -483,7 +483,7 @@ namespace MoveGenerator {
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & targets;
+            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 

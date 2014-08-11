@@ -22,7 +22,7 @@ private:
 
 public:
 
-    inline u32 available_time () const { return u32 (_optimum_time * _unstable_pv_factor * 0.71); }
+    inline u32 available_time () const { return u32(_optimum_time * _unstable_pv_factor * 0.71); }
     
     inline u32 maximum_time   () const { return _maximum_time; }
 

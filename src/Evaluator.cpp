@@ -680,7 +680,7 @@ namespace Evaluator {
                     + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     + 3 * (undefended ? (more_than_one (undefended) ? pop_count<Max15> (undefended) : 1) : 0) // King-zone undefended pieces
                     + 2 * (ei.pinneds[C] != 0) // King pinned piece
-                    - i32 (value) / 32;
+                    - i32(value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
@@ -895,12 +895,12 @@ namespace Evaluator {
                 
                 const Rank pr = rel_rank (C, s);
 
-                i32 r = max (i32 (pr) - i32 (R_2), 1);
+                i32 r = max (i32(pr) - i32(R_2), 1);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                Value mg_value = Value (17 * rr);
-                Value eg_value = Value ( 7 * (rr + r + 1));
+                Value mg_value = Value(17 * rr);
+                Value eg_value = Value( 7 * (rr + r + 1));
 
                 if (rr)
                 {
@@ -1036,9 +1036,9 @@ namespace Evaluator {
                 // on the same rank and a bit smaller if it's on the previous rank.
                 Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[f];
                 if (supporting_pawns & rank_bb (s))
-                    eg_value += Value (r * 20);
+                    eg_value += Value(r * 20);
                 else if (supporting_pawns & rank_bb (s - PUSH))
-                    eg_value += Value (r * 12);
+                    eg_value += Value(r * 12);
 
                   */
 
@@ -1090,7 +1090,7 @@ namespace Evaluator {
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
             // Since SpaceMask[C] is fully on our half of the board
-            ASSERT (u32 (safe_space >> (WHITE == C ? 32 : 0)) == 0);
+            ASSERT (u32(safe_space >> (WHITE == C ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (C);
@@ -1261,8 +1261,8 @@ namespace Evaluator {
 
             // --------------------------------------------------
 
-            i32 mg = i32 (mg_value (score));
-            i32 eg = i32 (eg_value (score));
+            i32 mg = i32(mg_value (score));
+            i32 eg = i32(eg_value (score));
             ASSERT (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
             ASSERT (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
@@ -1296,7 +1296,7 @@ namespace Evaluator {
                     else
                     {
                         // Still a bit drawish, but not as drawish as with only the two bishops.
-                        scale_fac = ScaleFactor (50 * i32 (scale_fac) / i32 (SCALE_FACTOR_NORMAL));
+                        scale_fac = ScaleFactor (50 * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL));
                     }
                 }
                 else
@@ -1311,9 +1311,9 @@ namespace Evaluator {
             }
 
             // Interpolates between a middle game and a (scaled by 'scale_fac') endgame score, based on game phase.
-            eg = eg * i32 (scale_fac) / i32 (SCALE_FACTOR_NORMAL);
+            eg = eg * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL);
             
-            Value value = Value (((mg * i32 (game_phase)) + (eg * i32 (PHASE_MIDGAME - game_phase))) / i32 (PHASE_MIDGAME));
+            Value value = Value(((mg * i32(game_phase)) + (eg * i32(PHASE_MIDGAME - game_phase))) / i32(PHASE_MIDGAME));
 
             return (WHITE == pos.active ()) ? +value : -value;
         }
@@ -1379,8 +1379,8 @@ namespace Evaluator {
         Weights[MOBILITY   ] = weight_option (100                         , InternalWeights[MOBILITY   ]);
         Weights[PAWN_STRUCT] = weight_option (100                         , InternalWeights[PAWN_STRUCT]);
         Weights[PASSED_PAWN] = weight_option (100                         , InternalWeights[PASSED_PAWN]);
-        Weights[SPACE      ] = weight_option (i32 (Options["Space"      ]), InternalWeights[SPACE      ]);
-        Weights[KING_SAFETY] = weight_option (i32 (Options["King Safety"]), InternalWeights[KING_SAFETY]);
+        Weights[SPACE      ] = weight_option (i32(Options["Space"      ]), InternalWeights[SPACE      ]);
+        Weights[KING_SAFETY] = weight_option (i32(Options["King Safety"]), InternalWeights[KING_SAFETY]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
@@ -1389,8 +1389,8 @@ namespace Evaluator {
         i32 mg = 0;
         for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (i32 (0.4*i*i), mg + MaxSlope), PeakScore);
-            //if (80 - MaxSlope < i && i < 80) mg = i32 (PeakScore - 0.5 * (80 - i) * (80 - i));
+            mg = min (min (i32(0.4*i*i), mg + MaxSlope), PeakScore);
+            //if (80 - MaxSlope < i && i < 80) mg = i32(PeakScore - 0.5 * (80 - i) * (80 - i));
             KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
         }
     }

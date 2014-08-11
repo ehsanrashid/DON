@@ -35,21 +35,21 @@ private:
 
 public:
 
-    inline Move  move  () const { return Move  (_move);  }
-    inline Value value () const { return Value (_value); }
-    inline Value eval  () const { return Value (_eval);  }
-    inline Depth depth () const { return Depth (_depth) + DEPTH_NONE; }
+    inline Move  move  () const { return Move(_move); }
+    inline Value value () const { return Value(_value); }
+    inline Value eval  () const { return Value(_eval); }
+    inline Depth depth () const { return Depth(_depth) + DEPTH_NONE; }
     inline Bound bound () const { return Bound (_gen_bnd & 0x03); }
     inline u08   gen   () const { return u08   (_gen_bnd & 0xFC); }
 
     inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
     {
-        _key   = u16 (k);
-        _move  = u16 (m);
-        _value = u16 (v);
-        _eval  = u16 (e);
-        _depth = u08 (d - DEPTH_NONE);
-        _gen_bnd = g | u08 (b);
+        _key   = u16(k);
+        _move  = u16(m);
+        _value = u16(v);
+        _eval  = u16(e);
+        _depth = u08(d - DEPTH_NONE);
+        _gen_bnd = g | u08(b);
     }
 
 };
@@ -158,7 +158,7 @@ public:
     // Returns size in MB
     inline u32 size () const
     {
-        return u32 ((_cluster_count * TTCLUSTER_SIZE) >> 20);
+        return u32((_cluster_count * TTCLUSTER_SIZE) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -206,7 +206,7 @@ public:
             }
         }
 
-        return u32 ((full_count * 1000) / total_count);
+        return u32((full_count * 1000) / total_count);
     }
 
     u32 resize (u64 mem_size_mb, bool force = false);
@@ -238,7 +238,7 @@ public:
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            u32 cluster_bulk = u32 (tt._cluster_count / BUFFER_SIZE);
+            u32 cluster_bulk = u32(tt._cluster_count / BUFFER_SIZE);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 os.write ((const CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
@@ -265,7 +265,7 @@ public:
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
             tt._generation = (generation > 0 ? generation - 4 : 0);
-            u32 cluster_bulk = u32 (tt._cluster_count / BUFFER_SIZE);
+            u32 cluster_bulk = u32(tt._cluster_count / BUFFER_SIZE);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 is.read ((CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);

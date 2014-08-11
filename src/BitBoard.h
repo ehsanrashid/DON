@@ -253,9 +253,9 @@ namespace BitBoard {
     template<> inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_SW); } //(bb >> -DEL_SW) & FH_bb_;
 
     // Rotate RIGHT (toward LSB)
-    inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08 (SQ_NO) - k)); }
+    inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
     // Rotate LEFT  (toward MSB)
-    inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08 (SQ_NO) - k)); }
+    inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64 (0))
     {
@@ -299,13 +299,13 @@ namespace BitBoard {
     {
 #ifdef BM2
         // Parallel bits extract (pext)
-        return u16 (_pext_u64 (occ, BMask_bb[s]));
+        return u16(_pext_u64 (occ, BMask_bb[s]));
 #else
 #   ifdef _64BIT
-        return u16 (((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
+        return u16(((occ & BMask_bb[s]) * BMagic_bb[s]) >> BShift[s]);
 #   else
-        u32 lo = (u32 (occ >> 0x00) & u32 (BMask_bb[s] >> 0x00)) * u32 (BMagic_bb[s] >> 0x00);
-        u32 hi = (u32 (occ >> 0x20) & u32 (BMask_bb[s] >> 0x20)) * u32 (BMagic_bb[s] >> 0x20);
+        u32 lo = (u32(occ >> 0x00) & u32(BMask_bb[s] >> 0x00)) * u32(BMagic_bb[s] >> 0x00);
+        u32 hi = (u32(occ >> 0x20) & u32(BMask_bb[s] >> 0x20)) * u32(BMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> BShift[s]);
 #   endif
 #endif
@@ -316,13 +316,13 @@ namespace BitBoard {
     {
 #ifdef BM2
         // Parallel bits extract (pext)
-        return u16 (_pext_u64 (occ, RMask_bb[s]));
+        return u16(_pext_u64 (occ, RMask_bb[s]));
 #else
 #   ifdef _64BIT
-        return u16 (((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
+        return u16(((occ & RMask_bb[s]) * RMagic_bb[s]) >> RShift[s]);
 #   else
-        u32 lo = (u32 (occ >> 0x00) & u32 (RMask_bb[s] >> 0x00)) * u32 (RMagic_bb[s] >> 0x00);
-        u32 hi = (u32 (occ >> 0x20) & u32 (RMask_bb[s] >> 0x20)) * u32 (RMagic_bb[s] >> 0x20);
+        u32 lo = (u32(occ >> 0x00) & u32(RMask_bb[s] >> 0x00)) * u32(RMagic_bb[s] >> 0x00);
+        u32 hi = (u32(occ >> 0x20) & u32(RMask_bb[s] >> 0x20)) * u32(RMagic_bb[s] >> 0x20);
         return ((lo ^ hi) >> RShift[s]);
 #   endif
 #endif

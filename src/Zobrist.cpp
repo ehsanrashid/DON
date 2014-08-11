@@ -31,7 +31,7 @@ namespace Zobrist {
         {
             for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pos.count (Color (c), PieceT (pt)); ++pc)
+                for (u08 pc = 0; pc < pos.count (Color(c), PieceT(pt)); ++pc)
                 {
                     matl_key ^= _.piece_square[c][pt][pc];
                 }
@@ -54,7 +54,7 @@ namespace Zobrist {
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            const Square *pl = pos.list<PAWN> (Color (c));
+            const Square *pl = pos.list<PAWN> (Color(c));
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
@@ -81,7 +81,7 @@ namespace Zobrist {
         {
             for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                const Square *pl = pos[(Color (c) | PieceT (pt))];
+                const Square *pl = pos[(Color(c) | PieceT(pt))];
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
@@ -132,7 +132,7 @@ namespace Zobrist {
             else
             if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
-                Piece p = Piece (idx);
+                Piece p = Piece(idx);
                 if (KING == ptype (p))  kf[color (p)] = _file (s);
                 fen_key ^= _.piece_square[color (p)][ptype (p)][s];
                 ++s;
@@ -156,7 +156,7 @@ namespace Zobrist {
             while ((iss >> ch) && !isspace (ch))
             {
                 Color c = isupper (ch) ? WHITE : BLACK;
-                u08 sym = u08 (tolower (ch));
+                u08 sym = u08(tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
                     fen_key ^= _.castle_right[c][(kf[c] < to_file (sym)) ? CS_K : CS_Q];

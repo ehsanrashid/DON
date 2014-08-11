@@ -128,7 +128,7 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         
-        TT.resize (i32 (Options["Hash"]), true);
+        TT.resize (i32(Options["Hash"]), true);
 
         cout << endl;
 

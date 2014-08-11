@@ -53,30 +53,30 @@ enum Delta : i08
 
     DEL_N =  8,
     DEL_E =  1,
-    DEL_S = -i08 (DEL_N),
-    DEL_W = -i08 (DEL_E),
+    DEL_S = -i08(DEL_N),
+    DEL_W = -i08(DEL_E),
 
-    DEL_NN = i08 (DEL_N) + i08 (DEL_N),
-    DEL_EE = i08 (DEL_E) + i08 (DEL_E),
-    DEL_SS = i08 (DEL_S) + i08 (DEL_S),
-    DEL_WW = i08 (DEL_W) + i08 (DEL_W),
+    DEL_NN = i08(DEL_N) + i08(DEL_N),
+    DEL_EE = i08(DEL_E) + i08(DEL_E),
+    DEL_SS = i08(DEL_S) + i08(DEL_S),
+    DEL_WW = i08(DEL_W) + i08(DEL_W),
 
-    DEL_NE = i08 (DEL_N) + i08 (DEL_E),
-    DEL_SE = i08 (DEL_S) + i08 (DEL_E),
-    DEL_SW = i08 (DEL_S) + i08 (DEL_W),
-    DEL_NW = i08 (DEL_N) + i08 (DEL_W),
+    DEL_NE = i08(DEL_N) + i08(DEL_E),
+    DEL_SE = i08(DEL_S) + i08(DEL_E),
+    DEL_SW = i08(DEL_S) + i08(DEL_W),
+    DEL_NW = i08(DEL_N) + i08(DEL_W),
 
-    DEL_NNE = i08 (DEL_NN) + i08 (DEL_E),
-    DEL_NNW = i08 (DEL_NN) + i08 (DEL_W),
+    DEL_NNE = i08(DEL_NN) + i08(DEL_E),
+    DEL_NNW = i08(DEL_NN) + i08(DEL_W),
 
-    DEL_EEN = i08 (DEL_EE) + i08 (DEL_N),
-    DEL_EES = i08 (DEL_EE) + i08 (DEL_S),
+    DEL_EEN = i08(DEL_EE) + i08(DEL_N),
+    DEL_EES = i08(DEL_EE) + i08(DEL_S),
 
-    DEL_SSE = i08 (DEL_SS) + i08 (DEL_E),
-    DEL_SSW = i08 (DEL_SS) + i08 (DEL_W),
+    DEL_SSE = i08(DEL_SS) + i08(DEL_E),
+    DEL_SSW = i08(DEL_SS) + i08(DEL_W),
 
-    DEL_WWN = i08 (DEL_WW) + i08 (DEL_N),
-    DEL_WWS = i08 (DEL_WW) + i08 (DEL_S)
+    DEL_WWN = i08(DEL_WW) + i08(DEL_N),
+    DEL_WWS = i08(DEL_WW) + i08(DEL_S)
 
 };
 
@@ -97,9 +97,9 @@ enum CRight : u08
     CR_BK = CR_WK << 2,   // 0100
     CR_BQ = CR_WK << 3,   // 1000
 
-    CR_W = u08 (CR_WK) | u08 (CR_WQ), // 0011
-    CR_B = u08 (CR_BK) | u08 (CR_BQ), // 1100
-    CR_A = u08 (CR_W)   | u08 (CR_B),   // 1111
+    CR_W = u08(CR_WK) | u08(CR_WQ), // 0011
+    CR_B = u08(CR_BK) | u08(CR_BQ), // 1100
+    CR_A = u08(CR_W)  | u08(CR_B),  // 1111
     CR_ALL = 16
 
 };
@@ -191,14 +191,14 @@ enum Value : i32
     VALUE_DRAW      = 0,
     
     VALUE_NONE      = 0x7FFF, //SHRT_MAX,
-    VALUE_INFINITE  = +i16 (VALUE_NONE) - 1,
-    //VALUE_INFINITE_ = -i16 (VALUE_INFINITE),
+    VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
+    //VALUE_INFINITE_ = -i16(VALUE_INFINITE),
 
-    VALUE_MATE      = +i16 (VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = 10000, //+i16 (VALUE_MATE) / 4,
+    VALUE_MATE      = +i16(VALUE_INFINITE) - 1,
+    VALUE_KNOWN_WIN = 10000, //+i16(VALUE_MATE) / 4,
 
-    VALUE_MATES_IN_MAX_PLY = +i16 (VALUE_MATE) - i16 (MaxDepth),
-    VALUE_MATED_IN_MAX_PLY = -i16 (VALUE_MATE) + i16 (MaxDepth),
+    VALUE_MATES_IN_MAX_PLY = +i16(VALUE_MATE) - i16(MaxDepth),
+    VALUE_MATED_IN_MAX_PLY = -i16(VALUE_MATE) + i16(MaxDepth),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -218,14 +218,14 @@ enum Score : i32 { SCORE_ZERO = 0 };
 enum Depth : i16
 {
     ONE_PLY             =  1,
-    ONE_MOVE            =  2 * i16 (ONE_PLY),
+    ONE_MOVE            =  2 * i16(ONE_PLY),
 
-    DEPTH_ZERO          =  0 * i16 (ONE_MOVE),
-    DEPTH_QS_CHECKS     =  0 * i16 (ONE_MOVE),
-    DEPTH_QS_NO_CHECKS  = -1 * i16 (ONE_MOVE),
-    DEPTH_QS_RECAPTURES = -5 * i16 (ONE_MOVE),
+    DEPTH_ZERO          =  0 * i16(ONE_MOVE),
+    DEPTH_QS_CHECKS     =  0 * i16(ONE_MOVE),
+    DEPTH_QS_NO_CHECKS  = -1 * i16(ONE_MOVE),
+    DEPTH_QS_RECAPTURES = -5 * i16(ONE_MOVE),
 
-    DEPTH_NONE          = -6 * i16 (ONE_MOVE)
+    DEPTH_NONE          = -6 * i16(ONE_MOVE)
 };
 
 enum Bound : u08
@@ -288,43 +288,43 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
 
-inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) / 0x10000); }
+inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
 
-inline Value eg_value (Score s) { return Value ((i32) (u32 (s) & 0x7FFFU) - (i32) (u32 (s) & 0x8000U)); }
+inline Value eg_value (Score s) { return Value((i32) (u32(s) & 0x7FFFU) - (i32) (u32(s) & 0x8000U)); }
 
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-#define BASIC_OPERATORS(T)                                                          \
-    inline T  operator+  (T  d, i32 i) { return T (i32 (d) + i); }                  \
-    inline T  operator-  (T  d, i32 i) { return T (i32 (d) - i); }                  \
-    inline T& operator+= (T &d, i32 i) { d = T (i32 (d) + i); return d; }           \
-    inline T& operator-= (T &d, i32 i) { d = T (i32 (d) - i); return d; }           \
+#define BASIC_OPERATORS(T)                                                        \
+    inline T  operator+  (T  d, i32 i) { return T (i32(d) + i); }                 \
+    inline T  operator-  (T  d, i32 i) { return T (i32(d) - i); }                 \
+    inline T& operator+= (T &d, i32 i) { d = T (i32(d) + i); return d; }          \
+    inline T& operator-= (T &d, i32 i) { d = T (i32(d) - i); return d; }          \
 
-#define ARTHMAT_OPERATORS(T)                                                        \
-    BASIC_OPERATORS(T)                                                              \
-    inline T  operator+  (T  d1, T d2) { return T (i32 (d1) + i32 (d2)); }          \
-    inline T  operator-  (T  d1, T d2) { return T (i32 (d1) - i32 (d2)); }          \
-    inline T  operator*  (T  d, i32 i) { return T (i32 (d) * i); }                  \
-    inline T  operator+  (T  d       ) { return T (+i32 (d)); }                     \
-    inline T  operator-  (T  d       ) { return T (-i32 (d)); }                     \
-    inline T& operator+= (T &d1, T d2) { d1 = T (i32 (d1) + i32 (d2)); return d1; } \
-    inline T& operator-= (T &d1, T d2) { d1 = T (i32 (d1) - i32 (d2)); return d1; } \
-    inline T  operator*  (i32 i, T  d) { return T (i * i32 (d)); }                  \
-    inline T& operator*= (T &d, i32 i) { d = T (i32 (d) * i); return d; }
+#define ARTHMAT_OPERATORS(T)                                                      \
+    BASIC_OPERATORS(T)                                                            \
+    inline T  operator+  (T  d1, T d2) { return T (i32(d1) + i32(d2)); }          \
+    inline T  operator-  (T  d1, T d2) { return T (i32(d1) - i32(d2)); }          \
+    inline T  operator*  (T  d, i32 i) { return T (i32(d) * i); }                 \
+    inline T  operator+  (T  d       ) { return T (+i32(d)); }                    \
+    inline T  operator-  (T  d       ) { return T (-i32(d)); }                    \
+    inline T& operator+= (T &d1, T d2) { d1 = T (i32(d1) + i32(d2)); return d1; } \
+    inline T& operator-= (T &d1, T d2) { d1 = T (i32(d1) - i32(d2)); return d1; } \
+    inline T  operator*  (i32 i, T  d) { return T (i * i32(d)); }                 \
+    inline T& operator*= (T &d, i32 i) { d = T (i32(d) * i); return d; }
 
-//inline T  operator+  (i32 i, T d) { return T (i + i32 (d)); }                  
-//inline T  operator-  (i32 i, T d) { return T (i - i32 (d)); }                  
-//inline T  operator/  (T  d, i32 i) { return T (i32 (d) / i); }                 
-//inline T& operator/= (T &d, i32 i) { d = T (i32 (d) / i); return d; }
+//inline T  operator+  (i32 i, T d) { return T (i + i32(d)); }                  
+//inline T  operator-  (i32 i, T d) { return T (i - i32(d)); }                  
+//inline T  operator/  (T  d, i32 i) { return T (i32(d) / i); }                 
+//inline T& operator/= (T &d, i32 i) { d = T (i32(d) / i); return d; }
 
 #define INC_DEC_OPERATORS(T)                                                     \
-    inline T  operator++ (T &d, i32) { T o = d; d = T (i32 (d) + 1); return o; } \
-    inline T  operator-- (T &d, i32) { T o = d; d = T (i32 (d) - 1); return o; } \
-    inline T& operator++ (T &d     ) { d = T (i32 (d) + 1); return d; }          \
-    inline T& operator-- (T &d     ) { d = T (i32 (d) - 1); return d; }
+    inline T  operator++ (T &d, i32) { T o = d; d = T (i32(d) + 1); return o; }  \
+    inline T  operator-- (T &d, i32) { T o = d; d = T (i32(d) - 1); return o; }  \
+    inline T& operator++ (T &d     ) { d = T (i32(d) + 1); return d; }           \
+    inline T& operator-- (T &d     ) { d = T (i32(d) - 1); return d; }
 
 BASIC_OPERATORS (File)
 INC_DEC_OPERATORS (File)
@@ -336,41 +336,41 @@ INC_DEC_OPERATORS (Color)
 
 // Square operator
 INC_DEC_OPERATORS (Square)
-inline Square  operator+  (Square  s, Delta d) { return Square (i32 (s) + i32 (d)); }
-inline Square  operator-  (Square  s, Delta d) { return Square (i32 (s) - i32 (d)); }
-inline Square& operator+= (Square &s, Delta d) { s = Square (i32 (s) + i32 (d)); return s; }
-inline Square& operator-= (Square &s, Delta d) { s = Square (i32 (s) - i32 (d)); return s; }
-inline Delta   operator-  (Square s1, Square s2) { return Delta (i32 (s1) - i32 (s2)); }
+inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
+inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
+inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
+inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
+inline Delta   operator-  (Square s1, Square s2) { return Delta (i32(s1) - i32(s2)); }
 
 ARTHMAT_OPERATORS (Delta)
-inline Delta  operator/  (Delta  d, i32 i) { return Delta (i32 (d) / i); }
-inline Delta& operator/= (Delta &d, i32 i) { d = Delta (i32 (d) / i); return d; }
+inline Delta  operator/  (Delta  d, i32 i) { return Delta (i32(d) / i); }
+inline Delta& operator/= (Delta &d, i32 i) { d = Delta (i32(d) / i); return d; }
 
 INC_DEC_OPERATORS (CSide)
 
 // CRight operator
-inline CRight  operator|  (CRight  cr, i32 i) { return CRight (i32 (cr) | i); }
-inline CRight  operator&  (CRight  cr, i32 i) { return CRight (i32 (cr) & i); }
-inline CRight  operator^  (CRight  cr, i32 i) { return CRight (i32 (cr) ^ i); }
-inline CRight& operator|= (CRight &cr, i32 i) { cr = CRight (i32 (cr) | i); return cr; }
-inline CRight& operator&= (CRight &cr, i32 i) { cr = CRight (i32 (cr) & i); return cr; }
-inline CRight& operator^= (CRight &cr, i32 i) { cr = CRight (i32 (cr) ^ i); return cr; }
+inline CRight  operator|  (CRight  cr, i32 i) { return CRight(i32(cr) | i); }
+inline CRight  operator&  (CRight  cr, i32 i) { return CRight(i32(cr) & i); }
+inline CRight  operator^  (CRight  cr, i32 i) { return CRight(i32(cr) ^ i); }
+inline CRight& operator|= (CRight &cr, i32 i) { cr = CRight(i32(cr) | i); return cr; }
+inline CRight& operator&= (CRight &cr, i32 i) { cr = CRight(i32(cr) & i); return cr; }
+inline CRight& operator^= (CRight &cr, i32 i) { cr = CRight(i32(cr) ^ i); return cr; }
 
 INC_DEC_OPERATORS (PieceT)
 
 // Move operator
-inline Move& operator|= (Move &m, i32 i) { m = Move (i32 (m) | i); return m; }
-inline Move& operator&= (Move &m, i32 i) { m = Move (i32 (m) & i); return m; }
+inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
+inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
 
 ARTHMAT_OPERATORS (Value)
 INC_DEC_OPERATORS (Value)
 // Additional operators to a Value
-inline Value  operator+  (i32 i, Value v) { return Value (i + i32 (v)); }
-inline Value  operator-  (i32 i, Value v) { return Value (i - i32 (v)); }
-inline Value  operator/  (Value  v, i32 i) { return Value (i32 (v) / i); }
-inline Value& operator/= (Value &v, i32 i) { v = Value (i32 (v) / i); return v; }
-inline Value  operator*  (Value  v, double f) { return Value (i32 (i32 (v) * f)); }
-inline Value& operator*= (Value &v, double f) { v = Value (i32 (i32 (v) * f)); return v; }
+inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
+inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
+inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
+inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
+inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. Don't want to multiply two scores due to
@@ -383,9 +383,9 @@ inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, 
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
-inline Depth  operator/  (Depth  d, i32 i) { return Depth (u08 (d) / i); }
-inline Depth  operator*  (Depth  d, double f) { return Depth (i32 (i32 (d) * f)); }
-inline Depth& operator*= (Depth &d, double f) { d = Depth (i32 (i32 (d) * f)); return d; }
+inline Depth  operator/  (Depth  d, i32 i) { return Depth(u08(d) / i); }
+inline Depth  operator*  (Depth  d, double f) { return Depth(i32(i32(d) * f)); }
+inline Depth& operator*= (Depth &d, double f) { d = Depth(i32(i32(d) * f)); return d; }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
@@ -397,45 +397,45 @@ extern const std::string PieceChar;
 extern const std::string ColorChar;
 
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
-inline Color operator~ (Color c) { return Color (c^BLACK); }
+inline Color operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool _ok       (File f) { return !(f & ~i08 (F_H)); }
-inline File operator~ (File f) { return File (f ^ i08 (F_H)); }
-inline File to_file   (char f) { return File (f - 'a'); }
+inline bool _ok       (File f) { return !(f & ~i08(F_H)); }
+inline File operator~ (File f) { return File(f ^ i08(F_H)); }
+inline File to_file   (char f) { return File(f - 'a'); }
 
-inline bool _ok       (Rank r) { return !(r & ~i08 (R_8)); }
-inline Rank operator~ (Rank r) { return Rank (r ^ i08 (R_8)); }
-inline Rank to_rank   (char r) { return Rank (r - '1'); }
+inline bool _ok       (Rank r) { return !(r & ~i08(R_8)); }
+inline Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
+inline Rank to_rank   (char r) { return Rank(r - '1'); }
 
-inline Square operator| (File f, Rank r) { return Square (( r << 3) | i08 (f)); }
-inline Square operator| (Rank r, File f) { return Square ((~r << 3) | i08 (f)); }
+inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
+inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
-inline bool _ok     (Square s) { return !(s & ~i08 (SQ_H8)); }
-inline File _file   (Square s) { return File (s & i08 (F_H)); }
-inline Rank _rank   (Square s) { return Rank (s >> 3); }
-inline Diag _diag18 (Square s) { return Diag ((s >> 3) - (s & i08 (SQ_H1)) + i08 (SQ_H1)); } // R - F + 7
-inline Diag _diag81 (Square s) { return Diag ((s >> 3) + (s & i08 (SQ_H1))); }               // R + F
-inline Color color (Square s) { return Color (!((s ^ (s >> 3)) & BLACK)); }
+inline bool _ok     (Square s) { return !(s & ~i08(SQ_H8)); }
+inline File _file   (Square s) { return File(s & i08(F_H)); }
+inline Rank _rank   (Square s) { return Rank(s >> 3); }
+inline Diag _diag18 (Square s) { return Diag((s >> 3) - (s & i08(SQ_H1)) + i08(SQ_H1)); } // R - F + 7
+inline Diag _diag81 (Square s) { return Diag((s >> 3) + (s & i08(SQ_H1))); }              // R + F
+inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 // FLIP   => SQ_A1 -> SQ_A8
-inline Square operator~ (Square s) { return Square (s ^ i08 (SQ_A8)); }
+inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
-inline Square operator! (Square s) { return Square (s ^ i08 (SQ_H1)); }
+inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank (r ^ (c * i08 (R_8))); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8))); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
-inline Square rel_sq    (Color c, Square s) { return Square (s ^ (c * i08 (SQ_A8))); }
+inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
-    i08 s = i08 (s1) ^ i08 (s2);
+    i08 s = i08(s1) ^ i08(s2);
     return ((s >> 3) ^ s) & BLACK;
 }
 
 inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
 
-inline CRight mk_castle_right (Color c)           { return CRight (CR_W << (c << BLACK)); }
-inline CRight mk_castle_right (Color c, CSide cs) { return CRight (CR_WK << ((CS_Q == cs) + (c << BLACK))); }
-inline CRight operator~ (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
+inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_Q == cs) + (c << BLACK))); }
+inline CRight operator~ (CRight cr) { return CRight(((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
 
 template<Color C, CSide CS>
 struct Castling
@@ -448,18 +448,18 @@ struct Castling
 
 inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }
 
-inline Piece  operator| (Color c, PieceT pt) { return Piece ((c << 3) | pt); }
+inline Piece  operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return (c|pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceT ptype (Piece p) { return PieceT (p & TOTL); }
-inline Color  color (Piece p) { return Color (p >> 3); }
-inline Piece  operator~ (Piece p) { return Piece (p ^ (BLACK << 3)); }
+inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
+inline Color  color (Piece p) { return Color(p >> 3); }
+inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
-inline Square org_sq  (Move m) { return Square ((m >> 6) & i08 (SQ_H8)); }
-inline Square dst_sq  (Move m) { return Square ((m >> 0) & i08 (SQ_H8)); }
-inline PieceT promote (Move m) { return PieceT (((m >> 12) & ROOK) + NIHT); }
-inline MoveT  mtype   (Move m) { return MoveT  (PROMOTE & m); }
+inline Square org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
+inline Square dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
+inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
+inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
     //if (MOVE_NONE == m || MOVE_NULL == m)
@@ -497,7 +497,7 @@ inline void   promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt 
 //}
 
 template<MoveT MT>
-inline Move mk_move (Square org, Square dst) { return Move (MT | (org << 6) | (dst << 0)); }
+inline Move mk_move (Square org, Square dst) { return Move(MT | (org << 6) | (dst << 0)); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
@@ -510,12 +510,12 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 template<MoveT MT>
 inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0)); }
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | (( i08(pt) - i08(NIHT)) << 12) | (org << 6) | (dst << 0)); }
 
 inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
 inline double value_to_cp (Value value) { return double (value) / double (VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp)   { return Value (i32 (cp * i32 (VALUE_EG_PAWN))); }
+inline Value  cp_to_value (double cp)   { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
 
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
@@ -546,7 +546,7 @@ public:
         : _table (Size, Entry ())
     {}
 
-    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (Size - 1)]; }
+    inline Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
 
 };
 

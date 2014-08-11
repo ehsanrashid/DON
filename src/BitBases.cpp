@@ -56,10 +56,10 @@ namespace BitBases {
 
         inline KPKPosition::KPKPosition (u32 idx)
         {
-            _wk_sq  = Square((idx >>  0) & 0x3F);
-            _bk_sq  = Square((idx >>  6) & 0x3F);
-            _active = Color ((idx >> 12) & 0x01);
-            _p_sq   = File  ((idx >> 13) & 0x03) | Rank (i08 (R_7) - ((idx >> 15) & 0x07));
+            _wk_sq  = Square((idx >> 0) & 0x3F);
+            _bk_sq  = Square((idx >> 6) & 0x3F);
+            _active = Color((idx >> 12) & 0x01);
+            _p_sq   = File((idx >> 13) & 0x03) | Rank(i08(R_7) - ((idx >> 15) & 0x07));
             
             result  = UNKNOWN;
 
@@ -111,7 +111,7 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
         inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
         {
-            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32 (R_7) - i32 (_rank (wp_sq))) << 15);
+            return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32(R_7) - i32(_rank (wp_sq))) << 15);
         }
 
         template<Color C>
