@@ -80,14 +80,14 @@ namespace Searcher {
         public:
 
             Skill ()
-                : level (MAX_SKILL_LEVEL)
+                : level (MaxSkillLevel)
                 , candidates (0)
                 , move (MOVE_NONE)
             {}
 
             Skill (u08 lvl)
-                : level (lvl < MAX_SKILL_LEVEL ? lvl : MAX_SKILL_LEVEL)
-                , candidates (lvl < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootCount) : 0)
+                : level (lvl < MaxSkillLevel ? lvl : MaxSkillLevel)
+                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, RootCount) : 0)
                 , move (MOVE_NONE)
             {}
 
@@ -1351,7 +1351,7 @@ namespace Searcher {
                 {
                     if (  Threadpool.split_depth <= depth
                        && Threadpool.size () > 1
-                       && thread->splitpoint_threads < MAX_SPLITPOINT_THREADS
+                       && thread->splitpoint_thread_count < MaxSplitPointThread
                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
@@ -1529,8 +1529,8 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
-                        if (  (bound[0] >= best_value || best_value >= bound[1])
-                           && iteration_time > InfoDuration
+                        if (  iteration_time > InfoDuration
+                           && (bound[0] >= best_value || best_value >= bound[1])
                            )
                         {
                             sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
@@ -2077,7 +2077,7 @@ namespace Threads {
             // all the currently active positions nodes.
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
-                for (u08 s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
+                for (u08 s = 0; s < Threadpool[t]->splitpoint_thread_count; ++s)
                 {
                     SplitPoint &sp = Threadpool[t]->splitpoints[s];
                     sp.mutex.lock ();
@@ -2130,7 +2130,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : NULL);
+        SplitPoint *splitpoint = ((splitpoint_thread_count) ? active_splitpoint : NULL);
         ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
 
         do
@@ -2232,7 +2232,7 @@ namespace Threads {
                     for (u08 t = 0; t < Threadpool.size (); ++t)
                     {
                         Thread *thread = Threadpool[t];
-                        const u08 size = thread->splitpoint_threads; // Local copy
+                        const u08 size = thread->splitpoint_thread_count; // Local copy
                         sp = (size == 0) ? NULL : &thread->splitpoints[size - 1];
 
                         if (  sp != NULL

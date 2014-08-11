@@ -66,8 +66,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     stage = (pos.checkers () ? EVASION_S1 : MAIN_S);
 
-    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    end += (tt_move != MOVE_NONE);
+    tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
+    end += tt_move != MOVE_NONE;
 }
 
 MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Depth d, Square sq)
@@ -113,8 +113,8 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
         ttm = MOVE_NONE;
     }
 
-    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
-    end += (tt_move != MOVE_NONE);
+    tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
+    end += tt_move != MOVE_NONE;
 }
 
 MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,          PieceT pt)
@@ -134,14 +134,14 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
     // In ProbCut generate only captures better than parent's captured piece
     capture_threshold = PieceValue[MG][pt];
 
-    tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
+    tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
     if (  tt_move != MOVE_NONE
        && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold)
        )
     {
         tt_move = MOVE_NONE;
     }
-    end += (tt_move != MOVE_NONE);
+    end += tt_move != MOVE_NONE;
 }
 
 
@@ -260,15 +260,14 @@ void MovePicker::generate_next_stage ()
 
     case KILLER_S1:
         // Killer moves usually come right after after the hash move and (good) captures
-        cur = killers;
-        
         killers[0].move = ss->killer_moves[0];
         killers[1].move = (ss->killer_moves[0] != ss->killer_moves[1]) ? ss->killer_moves[1] : MOVE_NONE;
         killers[2].move =           //counter_moves[0]
         killers[3].move =           //counter_moves[1]
         killers[4].move =           //followup_moves[0]
         killers[5].move = MOVE_NONE;//followup_moves[1]
-
+        
+        cur = killers;
         end = cur + 2;
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)

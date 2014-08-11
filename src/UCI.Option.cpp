@@ -292,7 +292,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, on_config_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MaxThread, on_config_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -300,7 +300,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool);
+        Options["Split Depth"]                  << Option ( 0, 0, MaxSplitDepth, on_config_threadpool);
 
         // Game Play Options
         // -----------------
@@ -348,10 +348,10 @@ namespace UCI {
         Options["Fifty Move Distance"]          << Option ( 50, 5,  50, on_50_move_dist);
         
         // How well you want engine to play.
-        // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
+        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
         //
-        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
+        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
 
         Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
         Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
@@ -373,7 +373,7 @@ namespace UCI {
         // The filename of the search log.
         Options["SearchLog File"]               << Option ("SearchLog.txt");
 
-        /// ---------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

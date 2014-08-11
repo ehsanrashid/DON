@@ -75,9 +75,9 @@ namespace Threads {
 
     using namespace Searcher;
 
-    const u08   MAX_THREADS            = 128; // Maximum threads
-    const u08   MAX_SPLITPOINT_THREADS =   8; // Maximum threads per splitpoint
-    const u08   MAX_SPLIT_DEPTH        =  15; // Maximum split depth
+    const u08   MaxThread           = 128; // Maximum threads
+    const u08   MaxSplitPointThread =   8; // Maximum threads per splitpoint
+    const u08   MaxSplitDepth       =  15; // Maximum split depth
     
     extern void check_time ();
     extern void autosave_hash ();
@@ -167,7 +167,7 @@ namespace Threads {
         SplitPoint  *parent_splitpoint;
 
         // Shared data
-        std::bitset<MAX_THREADS> slaves_mask;
+        std::bitset<MaxThread> slaves_mask;
         volatile bool  slave_searching;
         volatile u08   moves_count;
         volatile Value alpha;
@@ -238,7 +238,7 @@ namespace Threads {
     {
 
     public:
-        SplitPoint splitpoints[MAX_SPLITPOINT_THREADS];
+        SplitPoint splitpoints[MaxSplitPointThread];
         
         Material::Table  material_table;
         Pawns   ::Table  pawns_table;
@@ -248,7 +248,7 @@ namespace Threads {
         u08     idx;
 
         SplitPoint* volatile active_splitpoint;
-        volatile    u08      splitpoint_threads;
+        volatile    u08      splitpoint_thread_count;
         volatile    bool     searching;
 
         Thread ();
