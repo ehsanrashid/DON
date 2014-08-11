@@ -38,8 +38,8 @@ namespace {
     // remaining_time<>() calculate the time remaining
     inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
     {
-        const double TMaxRatio   = (OPTIMUM_TIME == TT ? 1 : MaxRatio);
-        const double TStealRatio = (MAXIMUM_TIME == TT ? 0 : StealRatio);
+        const double TMaxRatio   = OPTIMUM_TIME == TT ? 1 : MaxRatio;
+        const double TStealRatio = MAXIMUM_TIME == TT ? 0 : StealRatio;
 
         double  this_move_imp = move_importance (game_ply) * Slowness / 100;
         double other_move_imp = 0.0;
@@ -69,7 +69,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     _unstable_pv_factor  = 1.0;
     _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
-    u08 tot_movestogo = (movestogo) ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
+    u08 tot_movestogo = movestogo ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)

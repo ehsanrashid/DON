@@ -29,19 +29,19 @@ namespace Searcher {
 
     namespace {
 
-        const Depth           FutilityMoveCountDepth = Depth (16*2);
+        const Depth           FutilityMoveCountDepth = Depth (16*i32 (ONE_MOVE));
         // Futility move count lookup table (initialized at startup)
         CACHE_ALIGN(32) u08   FutilityMoveCount[2][FutilityMoveCountDepth]; // [improving][depth]
         
-        const Depth           FutilityMarginDepth = Depth (7*2);
+        const Depth           FutilityMarginDepth = Depth (7*i32 (ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
         CACHE_ALIGN(32) Value FutilityMargin[FutilityMarginDepth];  // [depth]
 
-        const Depth           RazorDepth = Depth (4*2);
+        const Depth           RazorDepth = Depth (4*i32 (ONE_MOVE));
         // Razoring margin lookup table (initialized at startup)
         CACHE_ALIGN(32) Value RazorMargin[RazorDepth];              // [depth]
 
-        const Depth           ReductionDepth     = Depth (32*2);
+        const Depth           ReductionDepth     = Depth (32*i32 (ONE_MOVE));
         const u08             ReductionMoveCount = 64;
         // Reduction lookup table (initialized at startup)
         CACHE_ALIGN(32) u08   Reduction[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
@@ -52,9 +52,11 @@ namespace Searcher {
             return (Depth) Reduction[PVNode][imp][min (depth/ONE_MOVE, ReductionDepth-1)][min (move_count, ReductionMoveCount-1)];
         }
 
-        const u08     QuietsCount   = 64;
+        const Depth ProbCutDepth = Depth (5*i32 (ONE_MOVE));
 
-        const point   InfoDuration  = 3000; // 3 sec
+        const u08   QuietsCount  = 64;
+
+        const point InfoDuration = 3000; // 3 sec
 
         TimeManager TimeMgr;
 
@@ -853,15 +855,15 @@ namespace Searcher {
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
-                            if (  depth >= 5*ONE_MOVE
+                            if (  depth >= ProbCutDepth
                                && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                //&& excluded_move == MOVE_NONE
                                )
                             {
-                                Depth rdepth = depth - 4*ONE_MOVE;
+                                Depth rdepth = depth - ProbCutDepth + 1*ONE_MOVE;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                //ASSERT (rdepth >= 1*ONE_MOVE);
-                                //ASSERT (rbeta <= +VALUE_INFINITE);
+                                ASSERT (rdepth >= 1*ONE_MOVE);
+                                ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
