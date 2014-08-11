@@ -279,7 +279,6 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         // of being choosen than a move with a lower score.
         // Note that first entry is always chosen.
 
-
         //u32 rand = _rkiss.rand<u32> ();
         //if ((sum_weight && rand % sum_weight < pbe.weight) ||
         //    (pick_best && (pbe.weight == max_weight)))
@@ -373,7 +372,7 @@ string PolyglotBook::read_entries (const Position &pos)
     //{
     //    oss << setfill ('0')
     //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-    //        << (sum_weight ? double (_pbe.weight) * 100 / double (sum_weight) : 0.0)
+    //        << (sum_weight ? 100 * (float) _pbe.weight / sum_weight : 0.0)
     //        << endl;
     //});
 

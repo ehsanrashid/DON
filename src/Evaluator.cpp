@@ -193,8 +193,8 @@ namespace Evaluator {
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for double rook on open file
-        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for double rook on semi-open file
+        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for doubled rook on open file
+        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for doubled rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
@@ -411,20 +411,21 @@ namespace Evaluator {
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
-                                    value *= 1.25;
+                                    value *= float(1.10);
                                 }
                                 else
                                 {
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
-                                        value *= 1.75;
+                                        value *= float(1.50);
                                     }
                                     else
                                     {
-                                        value *= 2.50;
+                                        value *= float(2.50);
                                     }
                                 }
                             }
+
                             score += mk_score (value * 2, value / 2);
                         }
                     }
@@ -451,20 +452,21 @@ namespace Evaluator {
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
-                                    value *= 1.10;
+                                    value *= float(1.10);
                                 }
                                 else
                                 {
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
-                                        value *= 1.50;
+                                        value *= float(1.50);
                                     }
                                     else
                                     {
-                                        value *= 2.50;
+                                        value *= float(2.50);
                                     }
                                 }
                             }
+
                             score += mk_score (value * 2, value / 2);
                         }
                     }

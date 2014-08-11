@@ -28,7 +28,7 @@ namespace Debugger {
                 << "Total: "  << setw (4) << (Hits[0])
                 << ", Hits: " << setw (4) << (Hits[1])
                 << ", Hit-rate (%): " << setw (4) << setprecision (2) << fixed
-                << (100 * (double) Hits[1] / Hits[0])
+                << (100 * (float) Hits[1] / Hits[0])
                 << sync_endl;
         }
 
@@ -37,7 +37,7 @@ namespace Debugger {
             sync_cout
                 << "Total: "  << setw (4) << (Mean[0])
                 << ", Mean: " << setw (4) << setprecision (2) << fixed
-                << ((double) Mean[1] / Mean[0])
+                << ((float) Mean[1] / Mean[0])
                 << sync_endl;
         }
     }

@@ -17,9 +17,9 @@ using namespace Notation;
 
 namespace {
 
-    const u08   FEN_TOTAL   = 30;
+    const u08   PosCount   = 30;
 
-    const char *DefaultFens[FEN_TOTAL] =
+    const char *DefaultFEN[PosCount] =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
@@ -76,7 +76,7 @@ void benchmark (istream &is, const Position &pos)
     vector<string> fens;
 
     // Assign default values to missing arguments
-    string hash       = (is >> token) ? token : to_string (TranspositionTable::DEF_TT_SIZE);
+    string hash       = (is >> token) ? token : to_string (TranspositionTable::DefTTSize);
     string threads    = (is >> token) ? token : "1";
     string limit_val  = (is >> token) ? token : "13";
     string limit_type = (is >> token) ? token : "depth";
@@ -99,7 +99,7 @@ void benchmark (istream &is, const Position &pos)
 
     if (fen_fn == "default")
     {
-        fens.assign (DefaultFens, DefaultFens + FEN_TOTAL);
+        fens.assign (DefaultFEN, DefaultFEN + PosCount);
     }
     else
     if (fen_fn == "current")

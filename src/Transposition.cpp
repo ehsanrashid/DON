@@ -9,21 +9,21 @@ TranspositionTable  TT; // Global Transposition Table
 
 using namespace std;
 
-const u08 TranspositionTable::TTENTRY_SIZE   = sizeof (TTEntry);   // 10
+const u08 TranspositionTable::TTEntrySize   = sizeof (TTEntry);   // 10
 
-const u08 TranspositionTable::TTCLUSTER_SIZE = sizeof (TTCluster); // 32
+const u08 TranspositionTable::TTClusterSize = sizeof (TTCluster); // 32
 
-const u32 TranspositionTable::BUFFER_SIZE = 0x10000;
+const u32 TranspositionTable::BufferSize = 0x10000;
 
-const u08 TranspositionTable::MAX_HASH_BIT  = 36;
+const u08 TranspositionTable::MaxHashBit  = 36;
 // 4 MB
-const u32 TranspositionTable::MIN_TT_SIZE   = 4;
+const u32 TranspositionTable::MinTTSize   = 4;
 // 1048576 MB (1024 GB) (1 TB)
-const u32 TranspositionTable::MAX_TT_SIZE   = (U64 (1) << (MAX_HASH_BIT-1 - 20)) * TTCLUSTER_SIZE;
+const u32 TranspositionTable::MaxTTSize   = (U64 (1) << (MaxHashBit-1 - 20)) * TTClusterSize;
 
-const u32 TranspositionTable::DEF_TT_SIZE   = 16;
+const u32 TranspositionTable::DefTTSize   = 16;
 
-bool TranspositionTable::Clear_Hash = true;
+bool TranspositionTable::ClearHash = true;
 
 void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 {
@@ -83,23 +83,23 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 // each cluster consists of ClusterEntryCount number of entry.
 u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
 {
-    if (mem_size_mb < MIN_TT_SIZE) mem_size_mb = MIN_TT_SIZE;
-    if (mem_size_mb > MAX_TT_SIZE) mem_size_mb = MAX_TT_SIZE;
+    if (mem_size_mb < MinTTSize) mem_size_mb = MinTTSize;
+    if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
     u64 mem_size      = mem_size_mb << 20;
-    u08 hash_bit      = scan_msq ((mem_size) / TTCLUSTER_SIZE);
+    u08 hash_bit      = scan_msq ((mem_size) / TTClusterSize);
     
-    ASSERT (hash_bit < MAX_HASH_BIT);
+    ASSERT (hash_bit < MaxHashBit);
     
     u64 cluster_count = 1 << hash_bit;
 
-    mem_size  = cluster_count * TTCLUSTER_SIZE;
+    mem_size  = cluster_count * TTClusterSize;
 
     if (force || cluster_count != _cluster_count)
     {
         free_aligned_memory ();
 
-        alloc_aligned_memory (mem_size, TTCLUSTER_SIZE); // Cache Line Size
+        alloc_aligned_memory (mem_size, TTClusterSize); // Cache Line Size
 
         _cluster_count = cluster_count;
         _cluster_mask  = cluster_count-1;

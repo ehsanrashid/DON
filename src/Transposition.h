@@ -39,8 +39,8 @@ public:
     inline Value value () const { return Value(_value); }
     inline Value eval  () const { return Value(_eval); }
     inline Depth depth () const { return Depth(_depth) + DEPTH_NONE; }
-    inline Bound bound () const { return Bound (_gen_bnd & 0x03); }
-    inline u08   gen   () const { return u08   (_gen_bnd & 0xFC); }
+    inline Bound bound () const { return Bound(_gen_bnd & 0x03); }
+    inline u08   gen   () const { return u08(_gen_bnd & 0xFC); }
 
     inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
     {
@@ -111,23 +111,23 @@ private:
 public:
 
     // Size for Transposition entry in byte
-    static const u08 TTENTRY_SIZE;
+    static const u08 TTEntrySize;
     // Size for Transposition Cluster in byte  
-    static const u08 TTCLUSTER_SIZE;
+    static const u08 TTClusterSize;
 
-    static const u32 BUFFER_SIZE;
+    static const u32 BufferSize;
 
     // Maximum bit of hash for cluster
-    static const u08 MAX_HASH_BIT;
+    static const u08 MaxHashBit;
 
     // Minimum size for Transposition table in mega-byte
-    static const u32 MIN_TT_SIZE;
+    static const u32 MinTTSize;
     // Maximum size for Transposition table in mega-byte
-    static const u32 MAX_TT_SIZE;
+    static const u32 MaxTTSize;
     
-    static const u32 DEF_TT_SIZE;
+    static const u32 DefTTSize;
 
-    static bool Clear_Hash;
+    static bool ClearHash;
 
     TranspositionTable ()
         : _hash_table (NULL)
@@ -158,7 +158,7 @@ public:
     // Returns size in MB
     inline u32 size () const
     {
-        return u32((_cluster_count * TTCLUSTER_SIZE) >> 20);
+        return u32((_cluster_count * TTClusterSize) >> 20);
     }
 
     // clear() overwrites the entire transposition table with zeroes.
@@ -167,9 +167,9 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (Clear_Hash && _hash_table != NULL)
+        if (ClearHash && _hash_table != NULL)
         {
-            memset (_hash_table, 0x00, _cluster_count * TTCLUSTER_SIZE);
+            memset (_hash_table, 0x00, _cluster_count * TTClusterSize);
             _generation = 0;
             sync_cout << "info string Hash cleared." << sync_endl;
         }
@@ -200,13 +200,16 @@ public:
         for (const TTCluster *itc = _hash_table; itc < _hash_table + total_count; ++itc)
         {
             const TTEntry *tte = itc->entry;
-            if (tte->gen () == _generation)
+            if (  (tte+0)->gen () == _generation
+               || (tte+1)->gen () == _generation
+               || (tte+2)->gen () == _generation
+               )
             {
                 ++full_count;
             }
         }
 
-        return u32((full_count * 1000) / total_count);
+        return u32(1000 * full_count / total_count);
     }
 
     u32 resize (u64 mem_size_mb, bool force = false);
@@ -238,10 +241,10 @@ public:
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &dummy, sizeof (dummy));
             os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
-            u32 cluster_bulk = u32(tt._cluster_count / BUFFER_SIZE);
+            u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                os.write ((const CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+                os.write ((const CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
             }
             return os;
     }
@@ -265,10 +268,10 @@ public:
             is.read ((CharT *) &generation   , sizeof (generation));
             tt.resize (mem_size_mb);
             tt._generation = (generation > 0 ? generation - 4 : 0);
-            u32 cluster_bulk = u32(tt._cluster_count / BUFFER_SIZE);
+            u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                is.read ((CharT *) (tt._hash_table+i*BUFFER_SIZE), TTCLUSTER_SIZE*BUFFER_SIZE);
+                is.read ((CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
             }
             return is;
     }

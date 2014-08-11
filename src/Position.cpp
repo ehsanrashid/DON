@@ -754,15 +754,15 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
-        bool king_side = (dst > org); 
-        if (castle_impeded (mk_castle_right (_active, king_side ? CS_K : CS_Q)))
+        const bool KingSide = (dst > org); 
+        if (castle_impeded (mk_castle_right (_active, KingSide ? CS_K : CS_Q)))
         {
             return false;
         }
         // Castle is always encoded as "King captures friendly Rook"
-        ASSERT (dst == castle_rook (mk_castle_right (_active, king_side ? CS_K : CS_Q)));
-        dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-        Delta step = (king_side ? DEL_E : DEL_W);
+        ASSERT (dst == castle_rook (mk_castle_right (_active, KingSide ? CS_K : CS_Q)));
+        dst = rel_sq (_active, KingSide ? SQ_G1 : SQ_C1);
+        Delta step = (KingSide ? DEL_E : DEL_W);
         for (i08 s = dst; s != org; s -= step)
         {
             if (attackers_to (Square(s)) & _color_bb[pasive])

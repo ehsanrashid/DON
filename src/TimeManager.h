@@ -16,9 +16,9 @@ class TimeManager
 
 private:
 
-    u32    _optimum_time;
-    u32    _maximum_time;
-    double _unstable_pv_factor;
+    u32   _optimum_time;
+    u32   _maximum_time;
+    float _unstable_pv_factor;
 
 public:
 
@@ -26,7 +26,7 @@ public:
     
     inline u32 maximum_time   () const { return _maximum_time; }
 
-    inline void pv_instability (double best_move_changes)
+    inline void pv_instability (float best_move_changes)
     {
         _unstable_pv_factor = 1 + best_move_changes;
     }

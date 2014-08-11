@@ -1546,9 +1546,9 @@ namespace Searcher {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.365;
+                            window[0] *= float(1.365);
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            if (window[1] > 1) window[1] *= 0.925;
+                            if (window[1] > 1) window[1] *= float(0.925);
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
@@ -1557,9 +1557,9 @@ namespace Searcher {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.365;
+                            window[1] *= float(1.365);
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            if (window[0] > 1) window[0] *= 0.925;
+                            if (window[0] > 1) window[0] *= float(0.925);
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                         }
                         else
@@ -2029,8 +2029,8 @@ namespace Searcher {
         {
             for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
-                double    pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
-                double nonpv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
+                float    pv_red = 0.00 + log (float(hd)) * log (float(mc)) / 3.00;
+                float nonpv_red = 0.33 + log (float(hd)) * log (float(mc)) / 2.25;
                 Reduction[1][1][hd][mc] = u08(   pv_red >= 1.0 ?    pv_red*i16(ONE_MOVE) : 0);
                 Reduction[0][1][hd][mc] = u08(nonpv_red >= 1.0 ? nonpv_red*i16(ONE_MOVE) : 0);
 

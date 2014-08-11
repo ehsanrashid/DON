@@ -10,12 +10,12 @@ namespace {
 
     enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
-    const double MaxRatio    = 07.00; // When in trouble, can step over reserved time with this ratio
-    const double StealRatio  = 00.33; // However must not steal time from remaining moves over this ratio
+    const float MaxRatio    = 07.00; // When in trouble, can step over reserved time with this ratio
+    const float StealRatio  = 00.33; // However must not steal time from remaining moves over this ratio
 
-    const double Scale       = 09.30;
-    const double Shift       = 59.80;
-    const double SkewFactor  = 00.172;
+    const float Scale       = 09.30;
+    const float Shift       = 59.80;
+    const float SkewFactor  = 00.172;
 
     u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
 
@@ -29,7 +29,7 @@ namespace {
     // analysis of "how many games are still undecided after 'n' half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    inline double move_importance (i32 ply)
+    inline float move_importance (i32 ply)
     {
         return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
@@ -38,18 +38,18 @@ namespace {
     // remaining_time<>() calculate the time remaining
     inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
     {
-        const double TMaxRatio   = OPTIMUM_TIME == TT ? 1 : MaxRatio;
-        const double TStealRatio = MAXIMUM_TIME == TT ? 0 : StealRatio;
+        const float TMaxRatio   = OPTIMUM_TIME == TT ? 1 : MaxRatio;
+        const float TStealRatio = MAXIMUM_TIME == TT ? 0 : StealRatio;
 
-        double  this_move_imp = move_importance (game_ply) * Slowness / 100;
-        double other_move_imp = 0.0;
+        float  this_move_imp = move_importance (game_ply) * Slowness / 100;
+        float other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
             other_move_imp += move_importance (game_ply + 2 * i);
         }
 
-        double time_ratio1 = (TMaxRatio * this_move_imp) / (TMaxRatio * this_move_imp + other_move_imp);
-        double time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
+        float time_ratio1 = (TMaxRatio * this_move_imp) / (TMaxRatio * this_move_imp + other_move_imp);
+        float time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
 
         return i32(time * min (time_ratio1, time_ratio2));
     }

@@ -369,8 +369,8 @@ inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
 inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
-inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
-inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
+inline Value  operator*  (Value  v, float f) { return Value(i32(i32(v) * f)); }
+inline Value& operator*= (Value &v, float f) { v = Value(i32(i32(v) * f)); return v; }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. Don't want to multiply two scores due to
@@ -378,14 +378,14 @@ ARTHMAT_OPERATORS (Score)
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
-inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
-inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
+inline Score  operator*  (Score  s, float f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
+inline Score& operator*= (Score &s, float f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
 inline Depth  operator/  (Depth  d, i32 i) { return Depth(u08(d) / i); }
-inline Depth  operator*  (Depth  d, double f) { return Depth(i32(i32(d) * f)); }
-inline Depth& operator*= (Depth &d, double f) { d = Depth(i32(i32(d) * f)); return d; }
+inline Depth  operator*  (Depth  d, float f) { return Depth(i32(i32(d) * f)); }
+inline Depth& operator*= (Depth &d, float f) { d = Depth(i32(i32(d) * f)); return d; }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
@@ -514,8 +514,8 @@ inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(P
 
 inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
-inline double value_to_cp (Value value) { return double (value) / double (VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp)   { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
+inline float value_to_cp (Value value) { return float(value) / float(VALUE_EG_PAWN); }
+inline Value  cp_to_value (float cp)   { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
 
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }

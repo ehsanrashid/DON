@@ -139,7 +139,7 @@ namespace UCI {
 
         void on_never_clear_hash (const Option &opt)
         {
-            TranspositionTable::Clear_Hash = !bool (opt);
+            TranspositionTable::ClearHash = !bool (opt);
         }
 
         void on_resize_hash (const Option &opt)
@@ -204,9 +204,9 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (TranspositionTable::DEF_TT_SIZE,
-                                                           TranspositionTable::MIN_TT_SIZE,
-                                                           TranspositionTable::MAX_TT_SIZE,
+        Options["Hash"]                         << Option (TranspositionTable::DefTTSize,
+                                                           TranspositionTable::MinTTSize,
+                                                           TranspositionTable::MaxTTSize,
                                                            on_resize_hash);
 #ifdef LPAGES
         Options["Large Pages"]                  << Option (true, on_large_pages);

@@ -599,10 +599,10 @@ template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
-    bool king_side = (king_dst > king_org);
+    const bool KingSide = (king_dst > king_org);
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (_active, KingSide ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (_active, KingSide ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);

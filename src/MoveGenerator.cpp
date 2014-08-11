@@ -7,13 +7,13 @@ namespace MoveGenerator {
     using namespace std;
     using namespace BitBoard;
 
-#undef SERIALIZE
-#undef SERIALIZE_PAWNS
+#undef serialize_moves
+#undef serialize_pawnmoves
 
     // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define SERIALIZE(moves, org, attacks)         while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+#define serialize_moves(moves, org, attacks)       while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
     // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define SERIALIZE_PAWNS(moves, delta, attacks) while (attacks) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
+#define serialize_pawnmoves(moves, delta, attacks) while (attacks) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
 
     namespace {
 
@@ -61,7 +61,7 @@ namespace MoveGenerator {
                         if (ci != NULL) attacks &= ci->checking_bb[PT];
                     }
 
-                    SERIALIZE (moves, s, attacks);
+                    serialize_moves (moves, s, attacks);
                 }
             }
 
@@ -144,7 +144,7 @@ namespace MoveGenerator {
                     const Color C_ = WHITE == C ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (C);
                     Bitboard attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
-                    SERIALIZE (moves, king_sq, attacks);
+                    serialize_moves (moves, king_sq, attacks);
                 }
 
                 if (CAPTURE != GT)
@@ -309,8 +309,8 @@ namespace MoveGenerator {
                     default: break;
                     }
 
-                    SERIALIZE_PAWNS (moves, Delta (PUSH << 0), push_1);
-                    SERIALIZE_PAWNS (moves, Delta (PUSH << 1), push_2);
+                    serialize_pawnmoves (moves, Delta (PUSH << 0), push_1);
+                    serialize_pawnmoves (moves, Delta (PUSH << 1), push_2);
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if (QUIET != GT && QUIET_CHECK != GT)
@@ -318,8 +318,8 @@ namespace MoveGenerator {
                     Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
                     Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
 
-                    SERIALIZE_PAWNS (moves, LCAP, l_attacks);
-                    SERIALIZE_PAWNS (moves, RCAP, r_attacks);
+                    serialize_pawnmoves (moves, LCAP, l_attacks);
+                    serialize_pawnmoves (moves, RCAP, r_attacks);
 
                     Square ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
@@ -461,7 +461,7 @@ namespace MoveGenerator {
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
-            SERIALIZE (moves, org, attacks);
+            serialize_moves (moves, org, attacks);
         }
 
         return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
@@ -487,7 +487,7 @@ namespace MoveGenerator {
 
             if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
-            SERIALIZE (moves, org, attacks);
+            serialize_moves (moves, org, attacks);
         }
 
         return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -544,10 +544,10 @@ namespace MoveGenerator {
         Bitboard attacks =  PieceAttacks[KING][king_sq]
             & ~(pos.pieces (active) | PieceAttacks[KING][pos.king_sq (~active)] | slid_attacks);
 
-        SERIALIZE (moves, king_sq, attacks);
+        serialize_moves (moves, king_sq, attacks);
 
-        // If double check, then only a king move can save the day
-        if (more_than_one (checkers) || pos.count<NONE> (active) == 1)
+        // If double-check, then only a king move can save the day, triple+ check not possible
+        if (more_than_one (checkers) || pos.count<NONE> (active) <= 1)
         {
             return moves;
         }
@@ -591,7 +591,7 @@ namespace MoveGenerator {
         return end;
     }
 
-#undef SERIALIZE
-#undef SERIALIZE_PAWNS
+#undef serialize_moves
+#undef serialize_pawnmoves
 
 }

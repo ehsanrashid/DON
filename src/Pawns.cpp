@@ -360,19 +360,6 @@ namespace Pawns {
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
-    // Initializes some tables by formula instead of hard-coding their values
-    void initialize ()
-    {
-        for (i08 r = R_1; r <= R_8; ++r)
-        {
-            for (i08 f = F_A; f <= F_H; ++f)
-            {
-                i32 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
-                ConnectedBonus[f][r] = mk_score (bonus, bonus);
-            }
-        }
-    }
-
     // probe() takes a position object as input, computes a Pawn::Entry object,
     // and returns a pointer to Pawn::Entry object.
     // The result is also stored in a hash table, so don't have
@@ -389,6 +376,19 @@ namespace Pawns {
                            - evaluate<BLACK> (pos, e);
         }
         return e;
+    }
+
+    // Initializes some tables by formula instead of hard-coding their values
+    void initialize ()
+    {
+        for (i08 r = R_1; r <= R_8; ++r)
+        {
+            for (i08 f = F_A; f <= F_H; ++f)
+            {
+                i32 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
+                ConnectedBonus[f][r] = mk_score (bonus, bonus);
+            }
+        }
     }
 
 } // namespace Pawns
