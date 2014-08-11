@@ -7,7 +7,7 @@ namespace Pawns {
 
     namespace {
 
-        const i16 PawnFileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const i16 PawnFileValue[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
     #define S(mg, eg) mk_score(mg, eg)
 
@@ -385,8 +385,8 @@ namespace Pawns {
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
-                i32 bonus = 1 * r * (r-1) * (r-2) + PawnFileBonus[f] * (r/2 + 1);
-                ConnectedBonus[f][r] = mk_score (bonus, bonus);
+                i32 value = 1 * r * (r-1) * (r-2) + PawnFileValue[f] * (r/2 + 1);
+                ConnectedBonus[f][r] = mk_score (value, value);
             }
         }
     }

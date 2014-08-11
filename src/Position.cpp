@@ -1008,14 +1008,15 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 
     ASSERT (color (_board[org]) == _active);
     ASSERT (ci.discoverers == discoverers (_active));
-
+    
+    PieceT pt = ptype (_board[org]);
     // Direct check ?
-    if (ci.checking_bb[ptype (_board[org])] & dst) return true;
-
+    if (ci.checking_bb[pt] & dst) return true;
     // Discovery check ?
     if (ci.discoverers && (ci.discoverers & org))
     {
-        if (!sqrs_aligned (org, dst, ci.king_sq)) return true;
+        // For pawn and king moves we need to verify also direction
+        if (/*(pt != PAWN && pt != KING) ||*/ !sqrs_aligned (org, dst, ci.king_sq)) return true;
     }
 
     MoveT mt  = mtype (m);

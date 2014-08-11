@@ -187,6 +187,7 @@ namespace Notation {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
         ASSERT (pos.legal (m));
+        ASSERT (MoveList<LEGAL> (pos).contains (m));
 
         string san;
 

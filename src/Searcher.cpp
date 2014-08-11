@@ -224,7 +224,7 @@ namespace Searcher {
             {
                 bool updated = (i <= PVIndex);
 
-                i32   d;
+                i16   d;
                 Value v;
                 
                 if (updated)
