@@ -269,31 +269,34 @@ void MovePicker::generate_next_stage ()
         
         cur = killers;
         end = cur + 2;
+        Move m;
         // Be sure counter moves are not MOVE_NONE & different from killer moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (  counter_moves[i] != MOVE_NONE
-               && counter_moves[i] != cur[0].move
-               && counter_moves[i] != cur[1].move
-               && counter_moves[i] != cur[2].move
+            m = counter_moves[i];
+            if (  m != MOVE_NONE
+               && m != cur[0].move
+               && m != cur[1].move
+               && m != cur[2].move
                )
             {
-                (end++)->move = counter_moves[i];
+                (end++)->move = m;
             }
         }
 
         // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
         for (i08 i = 0; i < 2; ++i)
         {
-            if (  followup_moves[i] != MOVE_NONE
-               && followup_moves[i] != cur[0].move
-               && followup_moves[i] != cur[1].move
-               && followup_moves[i] != cur[2].move
-               && followup_moves[i] != cur[3].move
-               && followup_moves[i] != cur[4].move
+            m = followup_moves[i];
+            if (  m != MOVE_NONE
+               && m != cur[0].move
+               && m != cur[1].move
+               && m != cur[2].move
+               && m != cur[3].move
+               && m != cur[4].move
                )
             {
-                (end++)->move = followup_moves[i];
+                (end++)->move = m;
             }
         }
 

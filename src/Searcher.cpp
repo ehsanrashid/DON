@@ -905,6 +905,8 @@ namespace Searcher {
                         tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                         tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
                         tt_bound = entry_tt ? tte->bound () : BND_NONE;
+                        (ss)->static_eval =
+                        static_eval = entry_tt ? tte->eval () : VALUE_NONE;
                     }
                 }
 
@@ -928,6 +930,8 @@ namespace Searcher {
                     tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                     tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
                     tt_bound = entry_tt ? tte->bound () : BND_NONE;
+                    (ss)->static_eval =
+                    static_eval = entry_tt && !in_check ? tte->eval () : VALUE_NONE;
                 }
                 */
 
