@@ -186,7 +186,6 @@ namespace Evaluator {
         };
         
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
-        //const Score BishopImmobilityPenalty       = S(+ 8,+12); // Penalty for bishop in region attacked by enemy pawns
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
         const Score MinorBehindPawnBonus          = S(+16,+ 0);
@@ -434,14 +433,6 @@ namespace Evaluator {
                 if (BSHP == PT)
                 {
                     score -= BishopPawnsPenalty * (ei.pi->pawns_on_squares<C> (s));
-                    
-                    //// Give a partial immobility penalty for bishops for squares attacked by enemy pawns
-                    //Bitboard immobility = ei.pin_attacked_by[C_][PAWN] & attacks;
-                    //if (immobility)
-                    //{
-                    //    i32 imob = pop_count<MAX15>(immobility);
-                    //    score -= BishopImmobilityPenalty * imob;
-                    //}
 
                     // Outpost bonus for Bishop
                     if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
@@ -874,12 +865,7 @@ namespace Evaluator {
 
                 // Hanging enemies
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
-                
-                if (hanging_enemies)
-                {
-                    score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
-                    //score += HangingBonus;
-                }
+                if (hanging_enemies) score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
             }
 
             if (Trace)

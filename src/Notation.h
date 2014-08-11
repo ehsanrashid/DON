@@ -2,6 +2,7 @@
 #define _NOTATION_H_INC_
 
 #include <cstring>
+#include <iostream>
 
 #include "Type.h"
 

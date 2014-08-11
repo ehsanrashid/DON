@@ -1,9 +1,9 @@
 #include "UCI.h"
 
-#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+
 #include "Transposition.h"
 #include "Evaluator.h"
 #include "Searcher.h"

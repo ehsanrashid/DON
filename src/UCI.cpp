@@ -1,6 +1,5 @@
 #include "UCI.h"
 
-#include <iostream>
 #include <cstdarg>
 
 #include "Engine.h"
