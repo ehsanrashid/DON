@@ -127,7 +127,7 @@ namespace BitBoard {
 #               else
                     32
 #               endif
-                    - pop_count<MAX15> (mask);
+                    - pop_count<Max15> (mask);
 #           else
                 (void) shift;
 #           endif
@@ -172,7 +172,7 @@ namespace BitBoard {
                         magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
                     }
-                    while (pop_count<MAX15> (index) < 6);
+                    while (pop_count<Max15> (index) < 6);
 
                     memset (attacks_bb[s], U64 (0), size*sizeof (*attacks_bb[s]));
 

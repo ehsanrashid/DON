@@ -103,9 +103,9 @@ namespace Pawns {
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & Liht_bb;
-                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
+                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<Max15>(color_pawns) : 0);
                 color_pawns = center_pawns & Dark_bb;
-                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
+                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<Max15>(color_pawns) : 0);
             }
             else
             {
@@ -184,8 +184,8 @@ namespace Pawns {
                     {
                         /*
                         Bitboard sentries = pawns[1] & PawnAttackSpan[C][s];
-                        candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
-                                  >= ((sentries) ? (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));
+                        candidate = ((more_than_one (helpers) ? pop_count<Max15> (friend_adj_pawns) : 1)
+                                  >= ((sentries) ? (more_than_one (sentries) ? pop_count<Max15> (sentries) : 1) : 0));
                         */
 
                         ASSERT (r+2 <= R_8);
@@ -203,7 +203,7 @@ namespace Pawns {
                                 ++helpers_count;
                             }
                         }
-                        candidate = helpers_count && (helpers_count >= pop_count<MAX15> (sentries));
+                        candidate = helpers_count && (helpers_count >= pop_count<Max15> (sentries));
                     }
                 }
 
@@ -244,7 +244,7 @@ namespace Pawns {
                 if (doublers)
                 {
                     score -= DoubledPenalty[f]
-                            * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
+                            * (more_than_one (doublers) ? pop_count<Max15> (doublers) : 1)
                             / i32 (rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
                     //Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);

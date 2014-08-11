@@ -306,7 +306,7 @@ bool Position::ok (i08 *step) const
             {
                 return false;
             }
-            if (_piece_count[c][KING] != pop_count<FULL> (_color_bb[c]&_types_bb[KING]))
+            if (_piece_count[c][KING] != pop_count<Full> (_color_bb[c]&_types_bb[KING]))
             {
                 return false;
             }
@@ -315,9 +315,9 @@ bool Position::ok (i08 *step) const
     // step 3
     if (step && ++(*step), test_piece_count)
     {
-        if (  pop_count<FULL> (_types_bb[NONE]) > 32
+        if (  pop_count<Full> (_types_bb[NONE]) > 32
            || count<NONE> () > 32
-           || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
+           || count<NONE> () != pop_count<Full> (_types_bb[NONE])
            )
         {
             return false;
@@ -327,7 +327,7 @@ bool Position::ok (i08 *step) const
         {
             for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
+                if (_piece_count[c][pt] != pop_count<Full> (_color_bb[c]&_types_bb[pt]))
                 {
                     return false;
                 }
@@ -382,7 +382,7 @@ bool Position::ok (i08 *step) const
         {
             Bitboard colors = _color_bb[c];
 
-            if (pop_count<FULL> (colors) > 16) // Too many Piece of color
+            if (pop_count<Full> (colors) > 16) // Too many Piece of color
             {
                 return false;
             }
@@ -404,8 +404,8 @@ bool Position::ok (i08 *step) const
                 Bitboard bishops = colors & _types_bb[BSHP];
                 u08 bishop_count[CLR_NO] =
                 {
-                    pop_count<FULL> (Liht_bb & bishops),
-                    pop_count<FULL> (Dark_bb & bishops),
+                    pop_count<Full> (Liht_bb & bishops),
+                    pop_count<Full> (Dark_bb & bishops),
                 };
 
                 if (  (_piece_count[c][PAWN]
@@ -456,7 +456,7 @@ bool Position::ok (i08 *step) const
     if (step && ++(*step), test_king_capture)
     {
         if (  (attackers_to (_piece_list[~_active][KING][0]) & _color_bb[_active])
-           || (pop_count<FULL> (_si->checkers)) > 2
+           || (pop_count<Full> (_si->checkers)) > 2
            )
         {
             return false;
@@ -1160,7 +1160,7 @@ bool Position::can_en_passant (Square ep_sq) const
     //if ((pasive | PAWN) != _board[cap]) return false;
 
     Bitboard ep_pawns = PawnAttacks[pasive][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
-    ASSERT (pop_count<FULL> (ep_pawns) <= 2);
+    ASSERT (pop_count<Full> (ep_pawns) <= 2);
     if (!ep_pawns) return false;
 
     Move ep_moves[3]

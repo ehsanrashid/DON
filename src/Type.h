@@ -11,8 +11,8 @@
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u08   MAX_DEPTH     = 120;          // Maximum Depth (Ply)
-const u08   MAX_DEPTH_6   = MAX_DEPTH + 6;// Maximum Stack size
+const u08   MaxDepth    = 120;          // Maximum Depth (Ply)
+const u08   MaxDepth6   = MaxDepth + 6; // Maximum Stack size
 
 // File of Square
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
@@ -197,8 +197,8 @@ enum Value : i32
     VALUE_MATE      = +i16 (VALUE_INFINITE) - 1,
     VALUE_KNOWN_WIN = 10000, //+i16 (VALUE_MATE) / 4,
 
-    VALUE_MATES_IN_MAX_PLY = +i16 (VALUE_MATE) - i16 (MAX_DEPTH),
-    VALUE_MATED_IN_MAX_PLY = -i16 (VALUE_MATE) + i16 (MAX_DEPTH),
+    VALUE_MATES_IN_MAX_PLY = +i16 (VALUE_MATE) - i16 (MaxDepth),
+    VALUE_MATED_IN_MAX_PLY = -i16 (VALUE_MATE) + i16 (MaxDepth),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,

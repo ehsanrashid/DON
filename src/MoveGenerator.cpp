@@ -335,7 +335,7 @@ namespace MoveGenerator {
                             {
                                 Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
                                 ASSERT (ep_pawns);
-                                ASSERT (pop_count<MAX15> (ep_pawns) <= 2);
+                                ASSERT (pop_count<Max15> (ep_pawns) <= 2);
 
                                 while (ep_pawns)
                                 {

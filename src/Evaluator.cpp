@@ -326,13 +326,13 @@ namespace Evaluator {
                 //king_zone &= ei.pin_attacked_by[C][PAWN];
                 //if (king_zone)
                 //{
-                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<MAX15> (king_zone) : 1);
+                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<Max15> (king_zone) : 1);
                 //    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
                 //}
                 if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
                     Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
-                    ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
+                    ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<Max15> (attackers) : 1);
                     //ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                     ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
                 }
@@ -378,7 +378,7 @@ namespace Evaluator {
                 {
                     ++king_ring_attackers_count;
                     Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
-                    if (zone_attacks) king_zone_attacks_count += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);
+                    if (zone_attacks) king_zone_attacks_count += (more_than_one (zone_attacks) ? pop_count<Max15> (zone_attacks) : 1);
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -539,7 +539,7 @@ namespace Evaluator {
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
                         const Bitboard rook_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (rook_on_pawns) score += RookOnPawnBonus * (more_than_one (rook_on_pawns) ? pop_count<MAX15> (rook_on_pawns) : 1);
+                        if (rook_on_pawns) score += RookOnPawnBonus * (more_than_one (rook_on_pawns) ? pop_count<Max15> (rook_on_pawns) : 1);
                     }
                     
                     // Give a bonus for a rook on a open or semi-open file
@@ -572,7 +572,7 @@ namespace Evaluator {
                 }
 
                 Bitboard mobile = attacks & mobility_area;
-                i32 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
+                i32 mob = mobile ? pop_count<(QUEN != PT) ? Max15 : Full> (mobile) : 0;
                 mobility += MobilityBonus[PT][mob];
 
                 if (ROOK == PT)
@@ -678,7 +678,7 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
                     + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
-                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
+                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<Max15> (undefended) : 1) : 0) // King-zone undefended pieces
                     + 2 * (ei.pinneds[C] != 0) // King pinned piece
                     - i32 (value) / 32;
 
@@ -771,19 +771,19 @@ namespace Evaluator {
                 Bitboard safe_check;
                 // Enemy queen safe checks
                 safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
-                if (safe_check) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+                if (safe_check) attack_units += SafeCheckWeight[QUEN] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
                 // Enemy rooks safe checks
                 safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
-                if (safe_check) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+                if (safe_check) attack_units += SafeCheckWeight[ROOK] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
                 // Enemy bishops safe checks
                 safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
-                if (safe_check) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+                if (safe_check) attack_units += SafeCheckWeight[BSHP] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
                 // Enemy knights safe checks
                 safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
-                if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
+                if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
                 // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
@@ -796,7 +796,7 @@ namespace Evaluator {
                 {
                     // King mobility is good in the endgame
                     Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.ful_attacked_by[C_][NONE]);
-                    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+                    u08 mob = mobile ? more_than_one (mobile) ? pop_count<Max15> (mobile) : 1 : 0;
                     if (mob < 3) score -= mk_score (0, 10 * (9 - mob*mob));
                 }
             }
@@ -865,7 +865,7 @@ namespace Evaluator {
 
                 // Hanging enemies
                 Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
-                if (hanging_enemies) score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                if (hanging_enemies) score += HangingBonus * (more_than_one (hanging_enemies) ? pop_count<Max15> (hanging_enemies) : 1);
             }
 
             if (Trace)
@@ -1098,7 +1098,7 @@ namespace Evaluator {
             behind |= shift_del<WHITE == C ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            return pop_count<FULL> ((WHITE == C ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            return pop_count<Full> ((WHITE == C ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
         }
 
         template<bool Trace>

@@ -29,30 +29,32 @@ namespace Searcher {
 
     namespace {
 
-        const u08     MAX_QUIETS    = 64;
-
-        const point   InfoDuration  = 3000; // 3 sec
-        
-        const i32             FutilityMoveCountDepth = 16*2;
+        const Depth           FutilityMoveCountDepth = Depth (16*2);
         // Futility move count lookup table (initialized at startup)
         CACHE_ALIGN(32) u08   FutilityMoveCount[2][FutilityMoveCountDepth]; // [improving][depth]
         
-        const i32             FutilityMarginDepth = 7*2;
+        const Depth           FutilityMarginDepth = Depth (7*2);
         // Futility margin lookup table (initialized at startup)
         CACHE_ALIGN(32) Value FutilityMargin[FutilityMarginDepth];  // [depth]
 
-        const i32             RazorDepth = 4*2;
+        const Depth           RazorDepth = Depth (4*2);
         // Razoring margin lookup table (initialized at startup)
         CACHE_ALIGN(32) Value RazorMargin[RazorDepth];              // [depth]
 
+        const Depth           ReductionDepth     = Depth (32*2);
+        const u08             ReductionMoveCount = 64;
         // Reduction lookup table (initialized at startup)
-        CACHE_ALIGN(32) u08   Reduction[2][2][64][64];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(32) u08   Reduction[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, Depth depth, i32 move_num)
+        inline Depth reduction (bool imp, Depth depth, i32 move_count)
         {
-            return (Depth) (Reduction[PVNode][imp][min (i32(depth)/i32(ONE_MOVE), 63)][min (move_num, 63)]);
+            return (Depth) Reduction[PVNode][imp][min (depth/ONE_MOVE, ReductionDepth-1)][min (move_count, ReductionMoveCount-1)];
         }
+
+        const u08     QuietsCount   = 64;
+
+        const point   InfoDuration  = 3000; // 3 sec
 
         TimeManager TimeMgr;
 
@@ -111,7 +113,7 @@ namespace Searcher {
 
                 // RootMoves are already sorted by score in descending order
                 const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
-                const Value weakness = Value (MAX_DEPTH - 2 * level);
+                const Value weakness = Value (MaxDepth - 2 * level);
                 
                 Value max_v = -VALUE_INFINITE;
                 move        = MOVE_NONE;
@@ -278,32 +280,21 @@ namespace Searcher {
             (ss)->ply = (ss-1)->ply + 1;
 
             // Check for aborted search
-            if (Signals.force_stop)    return VALUE_ZERO;
+            if (Signals.force_stop)   return VALUE_ZERO;
             // Check for immediate draw
-            if (pos.draw ())           return DrawValue[pos.active ()];
+            if (pos.draw ())          return DrawValue[pos.active ()];
             // Check for maximum ply reached
-            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
-
-            Value old_alpha
-                , best_value;
-
-            StateInfo si;
+            if ((ss)->ply > MaxDepth) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            if (PVNode) old_alpha = alpha;
-
-            // Decide whether or not to include checks, this fixes also the type of
-            // TT entry depth that are going to use. Note that in search_quien use
-            // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
-                              DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+            Value old_alpha = (PVNode) ? alpha : VALUE_NONE;
 
             // Transposition table lookup
             Key posi_key;
             const TTEntry *tte;
             bool  entry_tt;
             Move  tt_move;
-            Value tt_value;
+            Value tt_value, best_value;
             Depth tt_depth;
             Bound tt_bound;
 
@@ -315,6 +306,12 @@ namespace Searcher {
             tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
             tt_bound = entry_tt ? tte->bound () : BND_NONE;
             best_value = entry_tt && !InCheck ? tte->eval () : VALUE_NONE;
+
+            // Decide whether or not to include checks, this fixes also the type of
+            // TT entry depth that are going to use. Note that in search_quien use
+            // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
+            Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
+                               DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             if (  entry_tt
                && tt_depth >= qs_depth
@@ -393,6 +390,7 @@ namespace Searcher {
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
             MovePicker mp (pos, History, tt_move, depth, dst_sq ((ss-1)->current_move));
+            StateInfo si;
             CheckInfo  ci (pos);
 
             Move move;
@@ -549,7 +547,7 @@ namespace Searcher {
             u08   moves_count
                 , quiets_count;
 
-            Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
+            Move quiet_moves[QuietsCount] = { MOVE_NONE };
 
             SplitPoint *splitpoint;
 
@@ -612,11 +610,11 @@ namespace Searcher {
                     // Step 2. Check end condition
                     
                     // Check for aborted search
-                    if (Signals.force_stop)    return VALUE_ZERO;
+                    if (Signals.force_stop)   return VALUE_ZERO;
                     // Check for immediate draw
-                    if (pos.draw ())           return DrawValue[pos.active ()];
+                    if (pos.draw ())          return DrawValue[pos.active ()];
                     // Check for maximum ply reached
-                    if ((ss)->ply > MAX_DEPTH) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
+                    if ((ss)->ply > MaxDepth) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
@@ -1167,7 +1165,7 @@ namespace Searcher {
 
                     // Save the quiet move
                     if (  !capture_or_promotion
-                       && quiets_count < MAX_QUIETS
+                       && quiets_count < QuietsCount
                        )
                     {
                         quiet_moves[quiets_count++] = move;
@@ -1429,7 +1427,7 @@ namespace Searcher {
         // you want the computer to think rather than how deep you want it to think. 
         inline void search_iter_deepening (Position &pos)
         {
-            Stack stack[MAX_DEPTH_6]
+            Stack stack[MaxDepth6]
                 , *ss = stack+2; // To allow referencing (ss-2)
 
             memset (ss-2, 0x00, 5*sizeof (*ss));
@@ -1458,7 +1456,7 @@ namespace Searcher {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++dep <= MAX_DEPTH && (!Limits.depth || dep <= Limits.depth))
+            while (++dep <= MaxDepth && (!Limits.depth || dep <= Limits.depth))
             {
                 // Requested to stop?
                 if (Signals.force_stop) break;
@@ -1708,7 +1706,7 @@ namespace Searcher {
     // This results in a long PV to print that is important for position analysis.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH_6]
+        StateInfo states[MaxDepth6]
                 , *si = states;
        
         i08 ply = 0; // Ply starts from 1, we need to start from 0
@@ -1731,7 +1729,7 @@ namespace Searcher {
               && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
               && pos.pseudo_legal (m)
               && pos.legal (m)
-              && ply < MAX_DEPTH
+              && ply < MaxDepth
               && (!pos.draw () || ply < 2));
         
         do
@@ -1748,7 +1746,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH_6]
+        StateInfo states[MaxDepth6]
                 , *si = states;
         
         i08 ply = 0; // Ply starts from 1, we need to start from 0
@@ -2021,9 +2019,9 @@ namespace Searcher {
 
         Reduction[0][0][0][0] = Reduction[0][1][0][0] = Reduction[1][0][0][0] = Reduction[1][1][0][0] = 0;
         // Initialize reductions lookup table
-        for (hd = 1; hd < 64; ++hd) // half-depth (ONE_PLY == 1)
+        for (hd = 1; hd < ReductionDepth; ++hd) // half-depth (ONE_PLY == 1)
         {
-            for (mc = 1; mc < 64; ++mc) // move-count
+            for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
                 double    pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double nonpv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
@@ -2183,7 +2181,7 @@ namespace Threads {
 
                 Threadpool.mutex.unlock ();
 
-                Stack stack[MAX_DEPTH_6]
+                Stack stack[MaxDepth6]
                     , *ss = stack+2; // To allow referencing (ss-2)
 
                 Position pos (*(sp)->pos, this);
