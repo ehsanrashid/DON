@@ -314,7 +314,7 @@ namespace Searcher {
             tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
             tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
             tt_bound = entry_tt ? tte->bound () : BND_NONE;
-            best_value = entry_tt ? tte->eval () : VALUE_NONE;
+            best_value = entry_tt && !InCheck ? tte->eval () : VALUE_NONE;
 
             if (  entry_tt
                && tt_depth >= qs_depth
@@ -334,7 +334,7 @@ namespace Searcher {
             // Evaluate the position statically
             if (InCheck)
             {
-                (ss)->static_eval = VALUE_NONE;
+                (ss)->static_eval = best_value;
                 futility_base = best_value = -VALUE_INFINITE;
             }
             else
@@ -645,7 +645,7 @@ namespace Searcher {
                 tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
                 tt_bound = entry_tt ? tte->bound () : BND_NONE;
-                static_eval = entry_tt ? tte->eval () : VALUE_NONE;
+                static_eval = entry_tt && !in_check ? tte->eval () : VALUE_NONE;
 
                 if (!RootNode)
                 {
@@ -681,7 +681,7 @@ namespace Searcher {
                 // Step 5. Evaluate the position statically and update parent's gain statistics
                 if (in_check)
                 {
-                    (ss)->static_eval = static_eval = VALUE_NONE;
+                    (ss)->static_eval = static_eval;
                 }
                 else
                 {
