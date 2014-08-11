@@ -123,10 +123,7 @@ namespace Notation {
         if (5 == scan.length ())
         {
             // Promotion piece in lowercase
-            if (isupper (u08(scan[4])))
-            {
-                scan[4] = u08(tolower (scan[4]));
-            }
+            if (isupper (u08(scan[4]))) scan[4] = u08(tolower (scan[4]));
         }
 
         for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
@@ -298,19 +295,11 @@ namespace Notation {
             << setw (8) << pretty_time (msecs);
 
         u64 game_nodes = pos.game_nodes ();
-        if (game_nodes < M)
-        {
-            oss << setw (8) << game_nodes / 1 << "  ";
-        }
+        if (game_nodes < M)     oss << setw (8) << game_nodes / 1 << "  ";
         else
-        if (game_nodes < K * M)
-        {
-            oss << setw (7) << game_nodes / K << "K  ";
-        }
+        if (game_nodes < K * M) oss << setw (7) << game_nodes / K << "K  ";
         else
-        {
-            oss << setw (7) << game_nodes / M << "M  ";
-        }
+                                oss << setw (7) << game_nodes / M << "M  ";
 
         string spv = oss.str ();
         string padding = string (spv.length (), ' ');
