@@ -30,7 +30,7 @@ namespace Notation {
     //extern const std::string move_to_lan (Move m, Position &pos);
     //extern const std::string move_to_fan (Move m, Position &pos);
 
-    extern const std::string score_uci (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
+    extern const std::string pretty_score (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
     extern const std::string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[]);
     

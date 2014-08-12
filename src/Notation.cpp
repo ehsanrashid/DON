@@ -257,13 +257,13 @@ namespace Notation {
     //    return fan;
     //}
 
-    // score_uci() converts a value to a string suitable
+    // pretty_score() converts a value to a string suitable
     // for use with the UCI protocol specifications:
     //
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.
     //            If the engine is getting mated use negative values for y.
-    const string score_uci (Value v, Value alpha, Value beta)
+    const string pretty_score (Value v, Value alpha, Value beta)
     {
         ostringstream oss;
 

@@ -368,10 +368,8 @@ namespace UCI {
         // -------------
         // Whether or not to write a debug log.
         Options["Write DebugLog"]               << Option (false, on_io_log);
-        // Whether or not to write a search log.
-        Options["Write SearchLog"]              << Option (false);
         // The filename of the search log.
-        Options["SearchLog File"]               << Option ("SearchLog.txt");
+        Options["SearchLog File"]               << Option ("");
 
         // ---------------------------------------------------------------------------------------
 

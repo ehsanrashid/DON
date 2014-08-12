@@ -10,8 +10,8 @@ namespace {
 
     enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
-    const float MaxRatio    = 07.00f; // When in trouble, can step over reserved time with this ratio
-    const float StealRatio  = 00.33f; // However must not steal time from remaining moves over this ratio
+    const float MaxStepRatio  = 07.00f; // When in trouble, can step over reserved time with this ratio
+    const float MaxStealRatio = 00.33f; // However must not steal time from remaining moves over this ratio
 
     const float Scale       = 09.30f;
     const float Shift       = 59.80f;
@@ -29,26 +29,26 @@ namespace {
     // analysis of "how many games are still undecided after 'n' half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from CCRL game database with some simple filtering criteria.
-    inline float move_importance (i32 ply)
+    inline float move_importance (i32 game_ply)
     {
-        return (float) pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
+        return pow ((1 + exp ((game_ply - Shift) / Scale)), -SkewFactor) + FLT_MIN; // Ensure non-zero
     }
 
     template<TimeT TT>
     // remaining_time<>() calculate the time remaining
     inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
     {
-        const float TMaxRatio   = OPTIMUM_TIME == TT ? 1 : MaxRatio;
-        const float TStealRatio = MAXIMUM_TIME == TT ? 0 : StealRatio;
+        const float TStepRatio  = OPTIMUM_TIME == TT ? 1.0f : MaxStepRatio;
+        const float TStealRatio = MAXIMUM_TIME == TT ? 0.0f : MaxStealRatio;
 
-        float  this_move_imp = move_importance (game_ply) * Slowness / 100;
-        float other_move_imp = 0.0;
+        float  this_move_imp = move_importance (game_ply) * Slowness / 0x64; // 100
+        float other_move_imp = 0.0f;
         for (u08 i = 1; i < movestogo; ++i)
         {
             other_move_imp += move_importance (game_ply + 2 * i);
         }
 
-        float time_ratio1 = (TMaxRatio * this_move_imp) / (TMaxRatio * this_move_imp + other_move_imp);
+        float time_ratio1 = (TStepRatio * this_move_imp) / (TStepRatio * this_move_imp + other_move_imp);
         float time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
 
         return i32(time * min (time_ratio1, time_ratio2));
@@ -66,7 +66,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     Slowness             = i32(Options["Slowness"]);
 
     // Initialize unstable pv factor to 1 and search times to maximum values
-    _unstable_pv_factor  = 1.0;
+    _unstable_pv_factor  = 1.0f;
     _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
     u08 tot_movestogo = movestogo ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
@@ -86,13 +86,13 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
         u32 opt_time = MinimumThinkingTime + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
         u32 max_time = MinimumThinkingTime + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
 
-        if (_optimum_time > opt_time) _optimum_time = opt_time;
-        if (_maximum_time > max_time) _maximum_time = max_time;
+        _optimum_time = min (opt_time, _optimum_time);
+        _maximum_time = min (max_time, _maximum_time);
     }
 
     if (bool(Options["Ponder"])) _optimum_time += _optimum_time / 4;
 
     // Make sure that _optimum_time is not over _maximum_time
-    if (_optimum_time > _maximum_time) _optimum_time = _maximum_time;
+    _optimum_time = min (_maximum_time, _optimum_time);
 }
 

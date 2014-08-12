@@ -7,6 +7,14 @@
 #include "tiebuffer.h"
 #include "Time.h"
 
+namespace Debugger {
+
+    extern void dbg_hits_on (bool h, bool c = true);
+    extern void dbg_mean_of (u64 v);
+    extern void dbg_print ();
+
+}
+
 class LogFile
     : public std::ofstream
 {
@@ -88,14 +96,6 @@ inline void log_io (bool b)
 {
     (b) ? IOLogger::instance ().start ()
         : IOLogger::instance ().stop ();
-}
-
-namespace Debugger {
-
-    extern void dbg_hits_on (bool h, bool c = true);
-    extern void dbg_mean_of (u64 v);
-    extern void dbg_print ();
-
 }
 
 #endif // _DEBUGGER_H_INC_

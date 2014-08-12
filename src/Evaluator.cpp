@@ -239,7 +239,6 @@ namespace Evaluator {
             ((FC_bb | FD_bb | FE_bb | FF_bb) & (R7_bb | R6_bb | R5_bb))
         };
 
-
         // King danger constants and variables. The king danger scores are taken
         // from the KingDanger[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which

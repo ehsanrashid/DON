@@ -155,8 +155,6 @@ namespace {
 
 #endif
 
-    char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
-
 } // namespace
 
 u08 Position::_fifty_move_dist;

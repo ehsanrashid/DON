@@ -282,17 +282,6 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NONE    = 255
 };
 
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
-
-// Extracting the signed lower and upper 16 bits it not so trivial because
-// according to the standard a simple cast to short is implementation defined
-// and so is a right shift of a signed integer.
-
-inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
-
-inline Value eg_value (Score s) { return Value((i32) (u32(s) & 0x7FFFU) - (i32) (u32(s) & 0x8000U)); }
-
-
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
@@ -512,13 +501,23 @@ inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
 inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | (( i08(pt) - i08(NIHT)) << 12) | (org << 6) | (dst << 0)); }
 
-inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
+inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
-inline float value_to_cp (Value value) { return float(value) / float(VALUE_EG_PAWN); }
-inline Value  cp_to_value (float cp)   { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
+inline float  value_to_cp (Value value) { return (float) value / i32(VALUE_EG_PAWN); }
+inline Value cp_to_value (float cp)     { return (Value) i32(cp * i32(VALUE_EG_PAWN)); }
 
-inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
-inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
+inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
+inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
+
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
+
+// Extracting the signed lower and upper 16 bits it not so trivial because
+// according to the standard a simple cast to short is implementation defined
+// and so is a right shift of a signed integer.
+
+inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
+
+inline Value eg_value (Score s) { return Value(i32(u32(s) & 0x7FFFU) - i32(u32(s) & 0x8000U)); }
 
 // GameClock stores the available time and time-gain per move
 struct GameClock
@@ -556,6 +555,17 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 #define sync_endl std::endl << IO_UNLOCK
 
 extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
+
+inline char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
+
+inline void trim (std::string &str)
+{
+    std::size_t pb = str.find_first_not_of (' ');
+    std::size_t pe = str.find_last_not_of (' ');
+    pb = pb == std::string::npos ? 0 : pb;
+    pe = pe == std::string::npos ? pb : pe - pb + 1;
+    str = str.substr (pb, pe);
+}
 
 inline void convert_path (std::string &path)
 {

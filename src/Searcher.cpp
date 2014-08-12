@@ -63,9 +63,9 @@ namespace Searcher {
         Value   DrawValue[CLR_NO];
 
         Color   RootColor;
-        u08     Roots
+        u08     MaxPV   // RootMove Count
             ,   MultiPV
-            ,   PVIndex;
+            ,   CurPV;
 
         bool    MateSearch;
 
@@ -75,7 +75,6 @@ namespace Searcher {
         struct Skill
         {
         private:
-
             u08  level;
             u08  candidates;
             Move move;
@@ -90,7 +89,7 @@ namespace Searcher {
 
             Skill (u08 lvl)
                 : level (lvl < MaxSkillLevel ? lvl : MaxSkillLevel)
-                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, Roots) : 0)
+                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, MaxPV) : 0)
                 , move (MOVE_NONE)
             {}
 
@@ -223,7 +222,7 @@ namespace Searcher {
 
             for (u08 i = 0; i < MultiPV; ++i)
             {
-                bool updated = (i <= PVIndex);
+                bool updated = (i <= CurPV);
 
                 i16   d;
                 Value v;
@@ -248,7 +247,7 @@ namespace Searcher {
                     << " multipv "  << u16(i + 1)
                     << " depth "    << d
                     << " seldepth " << sel_depth
-                    << " score "    << ((i == PVIndex) ? score_uci (v, alpha, beta) : score_uci (v))
+                    << " score "    << ((i == CurPV) ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MilliSec / time
@@ -290,7 +289,8 @@ namespace Searcher {
             if ((ss)->ply > MaxDepth) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            Value old_alpha = (PVNode) ? alpha : VALUE_NONE;
+            Value old_alpha;
+            if (PVNode) old_alpha = alpha;
 
             // Transposition table lookup
             Key posi_key;
@@ -640,7 +640,7 @@ namespace Searcher {
                 tte      = TT.retrieve (posi_key);
                 entry_tt = tte != NULL;
                 (ss)->tt_move =
-                tt_move  = RootNode ? RootMoves[PVIndex].pv[0] :
+                tt_move  = RootNode ? RootMoves[CurPV].pv[0] :
                            entry_tt ? tte->move () : MOVE_NONE;
                 tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
@@ -1002,7 +1002,7 @@ namespace Searcher {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && !count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
+                if (RootNode && !count (RootMoves.begin () + CurPV, RootMoves.end (), move)) continue;
 
                 bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
@@ -1035,7 +1035,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16(depth)/i16(ONE_MOVE)
-                                << " currmovenumber " << setw (2) << u16(legals + PVIndex)
+                                << " currmovenumber " << setw (2) << u16(legals + CurPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << " time "           << time
                                 << sync_endl;
@@ -1451,7 +1451,7 @@ namespace Searcher {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), Roots);
+            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), MaxPV);
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1472,7 +1472,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < Roots; ++i)
+                for (u08 i = 0; i < MaxPV; ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
@@ -1480,7 +1480,7 @@ namespace Searcher {
                 const bool aspiration = dep > 2*i16(ONE_MOVE);
 
                 // MultiPV loop. Perform a full root search for each PV line
-                for (PVIndex = 0; PVIndex < MultiPV; ++PVIndex)
+                for (CurPV = 0; CurPV < MultiPV; ++CurPV)
                 {
                     // Requested to stop?
                     if (Signals.force_stop) break;
@@ -1488,19 +1488,19 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
+                        if (abs (RootMoves[CurPV].value[1]) < VALUE_KNOWN_WIN)
                         {
                             window[0] =
                             window[1] =
                                 //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22);
                                 Value(16);
-                            bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
-                            bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
+                            bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
+                            bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
                         }
                         else
                         {
-                            if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                            if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
+                            if (RootMoves[CurPV].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
+                            if (RootMoves[CurPV].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
                         }
                     }
 
@@ -1516,12 +1516,12 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        //RootMoves.sort_end (PVIndex);
-                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
+                        //RootMoves.sort_end (CurPV);
+                        std::stable_sort (RootMoves.begin () + CurPV, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i08 i = PVIndex; i >= 0; --i)
+                        for (i08 i = CurPV; i >= 0; --i)
                         {
                             RootMoves[i].insert_pv_into_tt (pos);
                         }
@@ -1572,10 +1572,10 @@ namespace Searcher {
                     while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    //RootMoves.sort_beg (PVIndex + 1);
-                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+                    //RootMoves.sort_beg (CurPV + 1);
+                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + CurPV + 1);
 
-                    if (  PVIndex + 1 == MultiPV
+                    if (  CurPV + 1 == MultiPV
                        || iteration_time > InfoDuration
                        )
                     {
@@ -1618,7 +1618,7 @@ namespace Searcher {
 
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (  Roots == 1
+                    if (  MaxPV == 1
                        || iteration_time > TimeMgr.available_time ()
                        )
                     {
@@ -1839,12 +1839,12 @@ namespace Searcher {
 
         MateSearch        = bool(Limits.mate);
 
-        WriteSearchLog    = bool(Options["Write SearchLog"]);
-        SearchLogFilename = "";
-        if (WriteSearchLog)
+        WriteSearchLog    =  false;
+        SearchLogFilename = string(Options["SearchLog File"]);
+        if (!SearchLogFilename.empty ())
         {
-            SearchLogFilename = string(Options["SearchLog File"]);
             convert_path (SearchLogFilename);
+            trim (SearchLogFilename);
             WriteSearchLog = !SearchLogFilename.empty ();
         }
         
@@ -1874,7 +1874,7 @@ namespace Searcher {
                 }
             }
 
-            Roots = RootMoves.size ();
+            MaxPV = RootMoves.size ();
 
             if (WriteSearchLog)
             {
@@ -1888,7 +1888,7 @@ namespace Searcher {
                     << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
                     << "MoveTime:  " << Limits.movetime                  << "\n"
                     << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
-                    << "Roots:     " << u16(Roots)                       << "\n"
+                    << "MaxPV:     " << u16(MaxPV)                       << "\n"
                     << " Depth Score    Time   Nodes  PV\n"
                     << "-----------------------------------------------------------"
                     << endl;
@@ -1950,7 +1950,7 @@ namespace Searcher {
             sync_cout
                 << "info"
                 << " depth " << 0
-                << " score " << score_uci (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                << " score " << pretty_score (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << sync_endl;
 
             RootMoves.push_back (RootMove (MOVE_NONE));
@@ -2011,16 +2011,16 @@ namespace Searcher {
         // Initialize lookup tables
         for (d = 0; d < RazorDepth; ++d)
         {
-            RazorMargins         [d] = Value(i32(0x200 + (0x10 + 0*d)*d));
+            RazorMargins         [d] = Value(i32(0x200 + (0x10 + 0*d)*d));  // 512, 16
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d));
+            FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d));    // 0, 100
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(2.40 + 0.222 * pow (0.00 + d, 1.80));
-            FutilityMoveCounts[1][d] = u08(3.00 + 0.300 * pow (0.98 + d, 1.80));
+            FutilityMoveCounts[0][d] = u08(2.40f + 0.222f * pow (0.00f + d, 1.80f));
+            FutilityMoveCounts[1][d] = u08(3.00f + 0.300f * pow (0.98f + d, 1.80f));
         }
 
         Reductions[0][0][0][0] = Reductions[0][1][0][0] = Reductions[1][0][0][0] = Reductions[1][1][0][0] = 0;
@@ -2029,10 +2029,10 @@ namespace Searcher {
         {
             for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
-                float    pv_red = float(0.00 + log (float(hd)) * log (float(mc)) / 3.00);
-                float nonpv_red = float(0.33 + log (float(hd)) * log (float(mc)) / 2.25);
-                Reductions[1][1][hd][mc] = u08(   pv_red >= 1.0 ?    pv_red*i16(ONE_MOVE) : 0);
-                Reductions[0][1][hd][mc] = u08(nonpv_red >= 1.0 ? nonpv_red*i16(ONE_MOVE) : 0);
+                float    pv_red = 0.00f + log (float(hd)) * log (float(mc)) / 3.00f;
+                float nonpv_red = 0.33f + log (float(hd)) * log (float(mc)) / 2.25f;
+                Reductions[1][1][hd][mc] =    pv_red >= 1.0 ? u08(   pv_red*i16(ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = nonpv_red >= 1.0 ? u08(nonpv_red*i16(ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
