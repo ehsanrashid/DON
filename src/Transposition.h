@@ -195,9 +195,9 @@ public:
     // hash, are using <x>%. of the state of full.
     inline u32 permill_full () const
     {
-        u64 full_count = 0;
-        u64 total_count = std::min (10000ULL, _cluster_count);
-        for (const TTCluster *itc = _hash_table; itc < _hash_table + total_count; ++itc)
+        u64 full_cluster = 0;
+        u64 scan_cluster = std::min (10000ULL, _cluster_count);
+        for (const TTCluster *itc = _hash_table; itc < _hash_table + scan_cluster; ++itc)
         {
             const TTEntry *tte = itc->entry;
             if (  (tte+0)->gen () == _generation
@@ -205,11 +205,11 @@ public:
                || (tte+2)->gen () == _generation
                )
             {
-                ++full_count;
+                ++full_cluster;
             }
         }
 
-        return u32(1000 * full_count / total_count);
+        return u32(1000 * full_cluster / scan_cluster);
     }
 
     u32 resize (u64 mem_size_mb, bool force = false);

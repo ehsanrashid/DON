@@ -361,6 +361,17 @@ inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline Value  operator*  (Value  v, float f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, float f) { v = Value(i32(i32(v) * f)); return v; }
 
+// Score
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
+
+// Extracting the signed lower and upper 16 bits it not so trivial because
+// according to the standard a simple cast to short is implementation defined
+// and so is a right shift of a signed integer.
+
+inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
+
+inline Value eg_value (Score s) { return Value(i32(u32(s) & 0x7FFFU) - i32(u32(s) & 0x8000U)); }
+
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. Don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
@@ -379,11 +390,6 @@ inline Depth& operator*= (Depth &d, float f) { d = Depth(i32(i32(d) * f)); retur
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
-
-CACHE_ALIGN(32) extern const Value PieceValue[PHASE_NO][TOTL];
-
-extern const std::string PieceChar;
-extern const std::string ColorChar;
 
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color(c^BLACK); }
@@ -509,16 +515,6 @@ inline Value cp_to_value (float cp)     { return (Value) i32(cp * i32(VALUE_EG_P
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
-
-// Extracting the signed lower and upper 16 bits it not so trivial because
-// according to the standard a simple cast to short is implementation defined
-// and so is a right shift of a signed integer.
-
-inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
-
-inline Value eg_value (Score s) { return Value(i32(u32(s) & 0x7FFFU) - i32(u32(s) & 0x8000U)); }
-
 // GameClock stores the available time and time-gain per move
 struct GameClock
 {
@@ -571,5 +567,10 @@ inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/');
 }
+
+CACHE_ALIGN(32) extern const Value PieceValue[PHASE_NO][TOTL];
+
+extern const std::string PieceChar;
+extern const std::string ColorChar;
 
 #endif // _TYPE_H_INC_

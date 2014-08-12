@@ -67,16 +67,8 @@ namespace Pawns {
                 Rank kr = rel_rank (C, k_sq);
                 if (kr <= R_4)
                 {
-                    if (kr == R_1 && pos.can_castle (C))
-                    {
-                        shelter_storm[C][CS_K ] = pos.can_castle (Castling<C, CS_K>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
-                        shelter_storm[C][CS_Q ] = pos.can_castle (Castling<C, CS_Q>::Right) ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO; 
-                    }
-                    else
-                    {
-                        shelter_storm[C][CS_K ] = VALUE_ZERO; 
-                        shelter_storm[C][CS_Q ] = VALUE_ZERO; 
-                    }
+                    shelter_storm[C][CS_K ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
+                    shelter_storm[C][CS_Q ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO; 
                     shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, k_sq);
                 }
 

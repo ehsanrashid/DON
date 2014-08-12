@@ -1833,7 +1833,7 @@ namespace Searcher {
         // Contempt of 15 (60/4) per minute
         i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (4*MilliSec);
         
-        Value contempt = Value(cp_to_value (float(contempt_factor + time_factor) / 100));
+        Value contempt = Value(cp_to_value ((contempt_factor + time_factor) / 100.0f));
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
