@@ -189,7 +189,7 @@ namespace Searcher {
     extern LimitsT               Limits;
     extern SignalsT volatile     Signals;
 
-    extern RootMoveList          RootMovesList;
+    extern RootMoveList          RootMoves;
     extern Position              RootPos;
     extern StateInfoStackPtr     SetupStates;
 

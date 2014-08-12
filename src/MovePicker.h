@@ -7,17 +7,17 @@
 
 class Position;
 
-const Value MaxHistoryValue = Value(2000);
+const Value MaxHistoryStatsValue = Value(2000);
 
 template<bool Gain, class T>
 // The Stats struct stores moves statistics.
 // According to the template parameter the class can store
-// History, Gain, CounterMoves & FollowupMoves.
+// History, Gain, CounterMoveStats & FollowupMoveStats.
 // - History records how often different moves have been successful or unsuccessful during the
 //   current search and is used for reduction and move ordering decisions.
 // - Gain records the move's best evaluation gain from one ply to the next and is used
 //   for pruning decisions.
-// - CounterMoves & FollowupMoves store the move that refute a previous one.
+// - CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
 // Entries are stored according only to moving piece and destination square,
 // in particular two moves with different origin but same destination and same piece will be considered identical.
 struct Stats
@@ -52,7 +52,7 @@ public:
         }
         else
         {
-            if (abs (i32(_table[p][s] + v)) < MaxHistoryValue)
+            if (abs (i32(_table[p][s] + v)) < MaxHistoryStatsValue)
             {
                 _table[p][s] += v;
             }

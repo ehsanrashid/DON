@@ -10,12 +10,12 @@ namespace {
 
     enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
-    const float MaxRatio    = 07.00; // When in trouble, can step over reserved time with this ratio
-    const float StealRatio  = 00.33; // However must not steal time from remaining moves over this ratio
+    const float MaxRatio    = 07.00f; // When in trouble, can step over reserved time with this ratio
+    const float StealRatio  = 00.33f; // However must not steal time from remaining moves over this ratio
 
-    const float Scale       = 09.30;
-    const float Shift       = 59.80;
-    const float SkewFactor  = 00.172;
+    const float Scale       = 09.30f;
+    const float Shift       = 59.80f;
+    const float SkewFactor  = 00.172f;
 
     u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
 
@@ -31,7 +31,7 @@ namespace {
     // Data was extracted from CCRL game database with some simple filtering criteria.
     inline float move_importance (i32 ply)
     {
-        return pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
+        return (float) pow ((1 + exp ((ply - Shift) / Scale)), -SkewFactor) + DBL_MIN; // Ensure non-zero
     }
 
     template<TimeT TT>
@@ -90,7 +90,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
         if (_maximum_time > max_time) _maximum_time = max_time;
     }
 
-    if (bool (Options["Ponder"])) _optimum_time += _optimum_time / 4;
+    if (bool(Options["Ponder"])) _optimum_time += _optimum_time / 4;
 
     // Make sure that _optimum_time is not over _maximum_time
     if (_optimum_time > _maximum_time) _optimum_time = _maximum_time;

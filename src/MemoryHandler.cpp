@@ -108,7 +108,7 @@ namespace MemoryHandler {
 
 #   else    // Linux - Unix
 
-        i32 Num;
+        i32 SharedMemoryKey;
 
 #   endif
 
@@ -118,7 +118,7 @@ namespace MemoryHandler {
     {
         UsePages = false;
 
-        if (bool (Options["Large Pages"]))
+        if (bool(Options["Large Pages"]))
         {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -150,10 +150,10 @@ namespace MemoryHandler {
 
 #   else    // Linux - Unix
 
-            Num = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (Num >= 0)
+            SharedMemoryKey = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            if (SharedMemoryKey >= 0)
             {
-                mem_ref = shmat (Num, NULL, 0x0);
+                mem_ref = shmat (SharedMemoryKey, NULL, 0x0);
                 if (mem_ref != -1)
                 {
                     UsePages = true;
@@ -200,7 +200,7 @@ namespace MemoryHandler {
 #   else   // Linux - Unix
 
             if (shmdt (mem)) { cerr << "Could not close memory segment." << endl; }
-            shmctl (Num, IPC_RMID, NULL);
+            shmctl (SharedMemoryKey, IPC_RMID, NULL);
             
 #   endif
             UsePages = false;

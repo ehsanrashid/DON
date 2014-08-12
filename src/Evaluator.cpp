@@ -244,10 +244,10 @@ namespace Evaluator {
         // from the KingDanger[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
         // is used as an index to KingDanger[].
-        const u08 MAX_ATTACK_UNITS = 100;
+        const u08 MaxAttackUnits = 100;
         // KingDanger[attack_units] contains the king danger weighted score
         // indexed by a calculated integer number.
-        Score KingDanger[MAX_ATTACK_UNITS];
+        Score KingDanger[MaxAttackUnits];
 
         // KingAttackWeight[PieceT] contains king attack weights by piece type
         const i32   KingAttackWeight[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
@@ -411,17 +411,17 @@ namespace Evaluator {
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
-                                    value *= float(1.10);
+                                    value *= 1.10f;
                                 }
                                 else
                                 {
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
-                                        value *= float(1.50);
+                                        value *= 1.50f;
                                     }
                                     else
                                     {
-                                        value *= float(2.50);
+                                        value *= 2.50f;
                                     }
                                 }
                             }
@@ -452,17 +452,17 @@ namespace Evaluator {
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
                                 {
-                                    value *= float(1.10);
+                                    value *= 1.10f;
                                 }
                                 else
                                 {
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
-                                        value *= float(1.50);
+                                        value *= 1.50f;
                                     }
                                     else
                                     {
-                                        value *= float(2.50);
+                                        value *= 2.50f;
                                     }
                                 }
                             }
@@ -787,8 +787,8 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
-                // To index KingDanger[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
-                attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
+                // To index KingDanger[] attack_units must be in [0, MaxAttackUnits-1] range
+                attack_units = min (max (attack_units, 0), MaxAttackUnits-1);
 
                 // Finally, extract the king danger score from the KingDanger[]
                 // array and subtract the score from evaluation.
@@ -1389,10 +1389,9 @@ namespace Evaluator {
 
         KingDanger[0] = SCORE_ZERO;
         i32 mg = 0;
-        for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
+        for (u08 i = 1; i < MaxAttackUnits; ++i)
         {
             mg = min (min (i32(0.4*i*i), mg + MaxSlope), PeakScore);
-            //if (80 - MaxSlope < i && i < 80) mg = i32(PeakScore - 0.5 * (80 - i) * (80 - i));
             KingDanger[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
         }
     }

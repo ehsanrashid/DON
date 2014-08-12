@@ -118,7 +118,7 @@ namespace Threads {
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-        Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
+        Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         ASSERT (pos.ok ());
         ASSERT (searching);
@@ -139,7 +139,7 @@ namespace Threads {
         sp.best_value   = best_value;
         sp.best_move    = best_move;
         sp.depth        = depth;
-        sp.moves_count  = moves_count;
+        sp.legals       = legals;
         sp.movepicker   = &movepicker;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;
@@ -337,7 +337,7 @@ namespace Threads {
         wait_for_think_finished ();
 
         RootPos     = pos;
-        RootMovesList.initialize (pos, limits.root_moves);
+        RootMoves.initialize (pos, limits.root_moves);
         Limits      = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {

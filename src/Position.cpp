@@ -40,7 +40,7 @@ namespace {
 
     // do_move() copy current state info up to 'posi_key' excluded to the new one.
     // calculate the bits needed to be copied.
-    const u08 STATEINFO_COPY_SIZE = offsetof (StateInfo, posi_key);
+    const u08 StateInfoCopySize = offsetof (StateInfo, posi_key);
 
 #define S(mg, eg) mk_score (mg, eg)
     // SQT[PieceType][Square] contains PieceType-Square scores.
@@ -1251,7 +1251,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si, _si, STATEINFO_COPY_SIZE);
+    memcpy (&si, _si, StateInfoCopySize);
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si.p_si = _si;

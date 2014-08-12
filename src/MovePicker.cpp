@@ -209,7 +209,7 @@ void MovePicker::value<EVASION> ()
         Value gain_value = pos.see_sign (m);
         if (gain_value < VALUE_ZERO)
         {
-            itr->value = gain_value - MaxHistoryValue; // At the bottom
+            itr->value = gain_value - MaxHistoryStatsValue; // At the bottom
         }
         else
         if (pos.capture (m))
@@ -217,17 +217,17 @@ void MovePicker::value<EVASION> ()
             MoveT mt = mtype (m);
             if (mt == NORMAL)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + MaxHistoryValue;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + MaxHistoryStatsValue;
             }
             else
             if (mt == ENPASSANT)
             {
-                itr->value = PieceValue[MG][PAWN] + MaxHistoryValue;
+                itr->value = PieceValue[MG][PAWN] + MaxHistoryStatsValue;
             }
             else
             if (mt == PROMOTE)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + MaxHistoryValue;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + MaxHistoryStatsValue;
             }
         }
         else

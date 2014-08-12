@@ -91,7 +91,7 @@ void benchmark (istream &is, const Position &pos)
     //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
-    if      (limit_type == "time")  limits.movetime = value * M_SEC; // movetime is in ms
+    if      (limit_type == "time")  limits.movetime = value * MilliSec; // movetime is in ms
     else if (limit_type == "nodes") limits.nodes    = value;
     else if (limit_type == "mate")  limits.mate     = u08(value);
     //else if (limit_type == "depth")
@@ -128,7 +128,7 @@ void benchmark (istream &is, const Position &pos)
         ifs.close ();
     }
     
-    bool  chess960 = bool (Options["UCI_Chess960"]);
+    bool  chess960 = bool(Options["UCI_Chess960"]);
     u64   nodes    = 0;
     point time     = now ();
 
@@ -171,6 +171,6 @@ void benchmark (istream &is, const Position &pos)
         << "\n===========================\n"
         << "Total time (ms) : " << time  << "\n"
         << "Nodes searched  : " << nodes << "\n"
-        << "Nodes/second    : " << nodes * M_SEC / time
+        << "Nodes/second    : " << nodes * MilliSec / time
         << "\n---------------------------\n" << endl;
 }

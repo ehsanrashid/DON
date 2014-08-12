@@ -117,8 +117,8 @@ namespace Threads {
             ,   *tm = &ts;
         u64 ms = Time::now() + msec;
 
-        ts.tv_sec = ms / Time::M_SEC;
-        ts.tv_nsec = (ms % Time::M_SEC) * 1000000LL;
+        ts.tv_sec = ms / Time::MilliSec;
+        ts.tv_nsec = (ms % Time::MilliSec) * 1000000LL;
 
 #endif
 
@@ -169,7 +169,7 @@ namespace Threads {
         // Shared data
         std::bitset<MaxThreads> slaves_mask;
         volatile bool  slave_searching;
-        volatile u08   moves_count;
+        volatile u08   legals;
         volatile Value alpha;
         volatile Value best_value;
         volatile Move  best_move;
@@ -260,7 +260,7 @@ namespace Threads {
         bool available_to (const Thread *master) const;
 
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 moves_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 

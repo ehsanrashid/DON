@@ -48,7 +48,7 @@ namespace UCI {
 
         operator bool () const;
         operator i32  () const;
-        operator std::string() const;
+        operator std::string () const;
 
         Option& operator=  (const std::string &value);
 

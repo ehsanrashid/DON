@@ -12,7 +12,7 @@ typedef u64     Key;
 typedef u64     Bitboard;
 
 const u08   MaxDepth    = 120;          // Maximum Depth (Ply)
-const u08   MaxDepth6   = MaxDepth + 6; // Maximum Stack size
+const u08   MaxDepth6   = MaxDepth + 6; // Maximum Stack Size
 
 // File of Square
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };

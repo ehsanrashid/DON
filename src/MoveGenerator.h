@@ -68,11 +68,11 @@ namespace MoveGenerator {
         }
 
         inline void operator++ () { ++cur; }
-        inline void operator-- () { --cur; }
+        //inline void operator-- () { --cur; }
 
         inline Move operator* () const { return cur->move; }
 
-        inline u16 size       () const { return u16(end - moves); }
+        inline u16 size       () const { return u16(end - cur); }
 
         bool contains (Move m) const
         {

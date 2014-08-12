@@ -139,7 +139,7 @@ namespace UCI {
 
         void on_never_clear_hash (const Option &opt)
         {
-            TranspositionTable::ClearHash = !bool (opt);
+            TranspositionTable::ClearHash = !bool(opt);
         }
 
         void on_resize_hash (const Option &opt)
@@ -149,13 +149,13 @@ namespace UCI {
 
         void on_save_hash   (const Option &)
         {
-            string hash_fn = string (Options["Hash File"]);
+            string hash_fn = string(Options["Hash File"]);
             TT.save (hash_fn);
         }
 
         void on_load_hash   (const Option &)
         {
-            string hash_fn = string (Options["Hash File"]);
+            string hash_fn = string(Options["Hash File"]);
             TT.load (hash_fn);
         }
 
@@ -181,7 +181,7 @@ namespace UCI {
 
         void on_io_log (const Option &opt)
         {
-            log_io (bool (opt));
+            log_io (bool(opt));
         }
 
     }

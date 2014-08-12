@@ -94,14 +94,14 @@ namespace Notation {
         // time to string
         const string pretty_time (u64 msecs)
         {
-            const u32 MinuteMSec = M_SEC * 60;
-            const u32 HourMSec   = MinuteMSec * 60;
+            const u32 MinuteMilliSec = MilliSec * 60;
+            const u32 HourMilliSec   = MinuteMilliSec * 60;
 
-            u32 hours   = u32(msecs / HourMSec);
-            msecs      %= HourMSec;
-            u32 minutes =  u32(msecs / MinuteMSec);
-            msecs      %= MinuteMSec;
-            u32 seconds = u32(msecs / M_SEC);
+            u32 hours   = u32(msecs / HourMilliSec);
+            msecs      %= HourMilliSec;
+            u32 minutes = u32(msecs / MinuteMilliSec);
+            msecs      %= MinuteMilliSec;
+            u32 seconds = u32(msecs / MilliSec);
 
             ostringstream oss;
 

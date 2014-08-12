@@ -70,22 +70,22 @@ namespace BitBoard {
 
         // max moves for rook from any corner square (LINEAR)
         // 2 ^ 12 = 4096 = 0x1000
-        const u16 MAX_LMOVES =   U32 (0x1000);
+        const u16 MaxLMoves =   U32 (0x1000);
 
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const u32 MAX_BMOVES = U32 (0x1480);
+        const u32 MaxBMoves = U32 (0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const u32 MAX_RMOVES = U32 (0x19000);
+        const u32 MaxRMoves = U32 (0x19000);
 
-        CACHE_ALIGN(64) Bitboard BTable_bb[MAX_BMOVES];
-        CACHE_ALIGN(64) Bitboard RTable_bb[MAX_RMOVES];
+        CACHE_ALIGN(64) Bitboard BTable_bb[MaxBMoves];
+        CACHE_ALIGN(64) Bitboard RTable_bb[MaxRMoves];
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
@@ -99,8 +99,8 @@ namespace BitBoard {
             { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
 #       endif
             
-            Bitboard occupancy[MAX_LMOVES];
-            Bitboard reference[MAX_LMOVES];
+            Bitboard occupancy[MaxLMoves];
+            Bitboard reference[MaxLMoves];
             RKISS rkiss;
 #   endif
 

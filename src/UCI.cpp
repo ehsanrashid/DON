@@ -162,7 +162,7 @@ namespace UCI {
             }
             else return;
             
-            RootPos.setup (fen, Threadpool.main (), bool (Options["UCI_Chess960"]));
+            RootPos.setup (fen, Threadpool.main (), bool(Options["UCI_Chess960"]));
             
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
             // Parse and validate game moves (if any)

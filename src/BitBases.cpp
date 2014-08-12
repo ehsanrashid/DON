@@ -10,7 +10,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const u32 MAX_INDEX = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
+        const u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
 
         enum Result
         {
@@ -24,7 +24,7 @@ namespace BitBases {
         //inline Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
 
         // Each u32 stores results of 32 positions, one per bit
-        u32 KPKBitbase[MAX_INDEX / 32];
+        u32 KPKBitbase[MaxIndex / 32];
 
         struct KPKPosition
         {
@@ -100,7 +100,7 @@ namespace BitBases {
             }
         }
 
-        // A KPK bitbase index is an integer in [0, MAX_INDEX] range
+        // A KPK bitbase index is an integer in [0, MaxIndex] range
         //
         // Information is mapped in a way that minimizes the number of iterations:
         //
@@ -164,11 +164,11 @@ namespace BitBases {
     void initialize ()
     {
         vector<KPKPosition> db;
-        db.reserve (MAX_INDEX);
+        db.reserve (MaxIndex);
 
         u32 idx;
         // Initialize db with known win / draw positions
-        for (idx = 0; idx < MAX_INDEX; ++idx)
+        for (idx = 0; idx < MaxIndex; ++idx)
         {
             db.push_back (KPKPosition (idx));
         }
@@ -179,7 +179,7 @@ namespace BitBases {
         do
         {
             repeat = false;
-            for (idx = 0; idx < MAX_INDEX; ++idx)
+            for (idx = 0; idx < MaxIndex; ++idx)
             {
                 repeat |= UNKNOWN == db[idx] && UNKNOWN != db[idx].classify (db);
             }
@@ -187,7 +187,7 @@ namespace BitBases {
         while (repeat);
 
         // Map 32 results into one KPKBitbase[] entry
-        for (idx = 0; idx < MAX_INDEX; ++idx)
+        for (idx = 0; idx < MaxIndex; ++idx)
         {
             if (WIN == db[idx])
             {
