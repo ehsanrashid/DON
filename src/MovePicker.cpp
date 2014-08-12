@@ -62,7 +62,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 {
     ASSERT (d > DEPTH_ZERO);
 
-    bad_captures_end = moves+MAX_MOVES-1;
+    bad_captures_end = moves+MaxMoves-1;
 
     stage = (pos.checkers () ? EVASION_S1 : MAIN_S);
 
@@ -209,7 +209,7 @@ void MovePicker::value<EVASION> ()
         Value gain_value = pos.see_sign (m);
         if (gain_value < VALUE_ZERO)
         {
-            itr->value = gain_value - MaxHistory; // At the bottom
+            itr->value = gain_value - MaxHistoryValue; // At the bottom
         }
         else
         if (pos.capture (m))
@@ -217,17 +217,17 @@ void MovePicker::value<EVASION> ()
             MoveT mt = mtype (m);
             if (mt == NORMAL)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + MaxHistoryValue;
             }
             else
             if (mt == ENPASSANT)
             {
-                itr->value = PieceValue[MG][PAWN] + MaxHistory;
+                itr->value = PieceValue[MG][PAWN] + MaxHistoryValue;
             }
             else
             if (mt == PROMOTE)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + MaxHistory;
+                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + MaxHistoryValue;
             }
         }
         else
@@ -326,7 +326,7 @@ void MovePicker::generate_next_stage ()
 
     case BAD_CAPTURE_S1:
         // Just pick them in reverse order to get MVV/LVA ordering
-        cur = moves+MAX_MOVES-1;
+        cur = moves+MaxMoves-1;
         end = bad_captures_end;
         
         return;

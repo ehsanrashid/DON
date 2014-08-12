@@ -75,7 +75,7 @@ namespace Threads {
         : active_pos (NULL)
         , idx (Threadpool.size ())  // Starts from 0
         , active_splitpoint (NULL)
-        , splitpoint_thread_count (0)
+        , splitpoint_threads (0)
         , searching (false)
     {}
 
@@ -104,7 +104,7 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        const u08 size = splitpoint_thread_count;
+        const u08 size = splitpoint_threads;
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
@@ -124,10 +124,10 @@ namespace Threads {
         ASSERT (searching);
         ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
         ASSERT (Threadpool.split_depth <= depth);
-        ASSERT (splitpoint_thread_count < MaxSplitPointThread);
+        ASSERT (splitpoint_threads < MaxSplitPointThreads);
 
         // Pick the next available splitpoint from the splitpoint stack
-        SplitPoint &sp = splitpoints[splitpoint_thread_count];
+        SplitPoint &sp = splitpoints[splitpoint_threads];
 
         sp.master       = this;
         sp.parent_splitpoint = active_splitpoint;
@@ -153,7 +153,7 @@ namespace Threads {
         sp.mutex.lock ();
 
         sp.slave_searching = true;
-        ++splitpoint_thread_count;
+        ++splitpoint_threads;
         active_splitpoint = &sp;
         active_pos = NULL;
 
@@ -181,7 +181,7 @@ namespace Threads {
         ASSERT (!active_pos);
 
         // Have returned from the idle loop, which means that all threads are finished.
-        // Note that setting 'searching' and decreasing splitpoint_thread_count is
+        // Note that setting 'searching' and decreasing splitpoint_threads is
         // done under lock protection to avoid a race with available_to().
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
@@ -190,7 +190,7 @@ namespace Threads {
 
         active_pos = &pos;
         active_splitpoint = sp.parent_splitpoint;
-        --splitpoint_thread_count;
+        --splitpoint_threads;
 
         pos.game_nodes (pos.game_nodes () + sp.nodes);
 
@@ -337,7 +337,7 @@ namespace Threads {
         wait_for_think_finished ();
 
         RootPos     = pos;
-        RootMoves.initialize (pos, limits.root_moves);
+        RootMovesList.initialize (pos, limits.root_moves);
         Limits      = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {

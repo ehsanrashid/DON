@@ -47,14 +47,14 @@ namespace Searcher {
         CACHE_ALIGN(32) u08   Reduction[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, Depth depth, i32 move_count)
+        inline Depth reduction (bool imp, Depth depth, i32 moves_count)
         {
-            return (Depth) Reduction[PVNode][imp][min (depth/i32(ONE_MOVE), ReductionDepth-1)][min (move_count, ReductionMoveCount-1)];
+            return (Depth) Reduction[PVNode][imp][min (depth/i32(ONE_MOVE), ReductionDepth-1)][min (moves_count, ReductionMoveCount-1)];
         }
 
         const Depth ProbCutDepth = Depth(5*i16(ONE_MOVE));
 
-        const u08   QuietsCount  = 64;
+        const u08   MaxQuiets = 64;
 
         const point InfoDuration = 3000; // 3 sec
 
@@ -63,7 +63,7 @@ namespace Searcher {
         Value   DrawValue[CLR_NO];
 
         Color   RootColor;
-        u08     RootCount;
+        u08     RootMoves;
         u08     MultiPV
             ,   PVIndex;
         bool    MateSearch;
@@ -89,7 +89,7 @@ namespace Searcher {
 
             Skill (u08 lvl)
                 : level (lvl < MaxSkillLevel ? lvl : MaxSkillLevel)
-                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, RootCount) : 0)
+                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, RootMoves) : 0)
                 , move (MOVE_NONE)
             {}
 
@@ -97,7 +97,7 @@ namespace Searcher {
             {
                 if (candidates) // Swap best PV line with the sub-optimal one
                 {
-                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
+                    swap (RootMovesList[0], *find (RootMovesList.begin (), RootMovesList.end (), move != MOVE_NONE ? move : pick_move ()));
                 }
             }
 
@@ -106,15 +106,15 @@ namespace Searcher {
             bool time_to_pick (i16 depth) const { return (depth == (1 + level)); }
 
             // When playing with a strength handicap, choose best move among the first 'candidates'
-            // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+            // RootMovesList using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
             Move pick_move ()
             {
                 static RKISS rk;
                 // PRNG sequence should be not deterministic
                 for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
 
-                // RootMoves are already sorted by score in descending order
-                const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
+                // RootMovesList are already sorted by score in descending order
+                const Value variance = min (RootMovesList[0].value[0] - RootMovesList[candidates - 1].value[0], VALUE_MG_PAWN);
                 const Value weakness = Value(MaxDepth - 2 * level);
                 
                 Value max_v = -VALUE_INFINITE;
@@ -124,22 +124,22 @@ namespace Searcher {
                 // then choose the move with the resulting highest score.
                 for (u08 i = 0; i < candidates; ++i)
                 {
-                    Value v = RootMoves[i].value[0];
+                    Value v = RootMovesList[i].value[0];
 
                     // Don't allow crazy blunders even at very low skills
-                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2*VALUE_MG_PAWN))
+                    if (i > 0 && RootMovesList[i-1].value[0] > (v + 2*VALUE_MG_PAWN))
                     {
                         break;
                     }
 
                     // This is our magic formula
-                    v += (weakness * i32(RootMoves[0].value[0] - v)
+                    v += (weakness * i32(RootMovesList[0].value[0] - v)
                       +   variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2));
 
                     if (max_v < v)
                     {
                         max_v = v;
-                        move = RootMoves[i].pv[0];
+                        move = RootMovesList[i].pv[0];
                     }
                 }
                 return move;
@@ -230,14 +230,14 @@ namespace Searcher {
                 if (updated)
                 {
                     d = depth;
-                    v = RootMoves[i].value[0];
+                    v = RootMovesList[i].value[0];
                 }
                 else
                 {
                     if (1 == depth) return "";
 
                     d = depth - 1;
-                    v = RootMoves[i].value[1];
+                    v = RootMovesList[i].value[1];
                 }
 
                 // Not at first line
@@ -252,10 +252,10 @@ namespace Searcher {
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * M_SEC / time
                     << " hashfull " << 0//TT.permill_full ()
-                    << " pv"        ;//<< RootMoves[i].info_pv (pos);
-                for (u08 p = 0; RootMoves[i].pv[p] != MOVE_NONE; ++p)
+                    << " pv"        ;//<< RootMovesList[i].info_pv (pos);
+                for (u08 p = 0; RootMovesList[i].pv[p] != MOVE_NONE; ++p)
                 {
-                    ss << " " << move_to_can (RootMoves[i].pv[p], pos.chess960 ());
+                    ss << " " << move_to_can (RootMovesList[i].pv[p], pos.chess960 ());
                 }
             }
 
@@ -549,7 +549,7 @@ namespace Searcher {
             u08   moves_count
                 , quiets_count;
 
-            Move quiet_moves[QuietsCount] = { MOVE_NONE };
+            Move quiet_moves[MaxQuiets] = { MOVE_NONE };
 
             SplitPoint *splitpoint;
 
@@ -640,7 +640,7 @@ namespace Searcher {
                 tte      = TT.retrieve (posi_key);
                 entry_tt = tte != NULL;
                 (ss)->tt_move =
-                tt_move  = RootNode ? RootMoves[PVIndex].pv[0] :
+                tt_move  = RootNode ? RootMovesList[PVIndex].pv[0] :
                            entry_tt ? tte->move () : MOVE_NONE;
                 tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                 tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
@@ -1002,7 +1002,7 @@ namespace Searcher {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && !count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
+                if (RootNode && !count (RootMovesList.begin () + PVIndex, RootMovesList.end (), move)) continue;
 
                 bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
@@ -1171,7 +1171,7 @@ namespace Searcher {
 
                     // Save the quiet move
                     if (  !capture_or_promotion
-                       && quiets_count < QuietsCount
+                       && quiets_count < MaxQuiets
                        )
                     {
                         quiet_moves[quiets_count++] = move;
@@ -1304,7 +1304,7 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    RootMove &rm = *find (RootMoves.begin (), RootMoves.end (), move);
+                    RootMove &rm = *find (RootMovesList.begin (), RootMovesList.end (), move);
                     // Remember searched nodes counts for this move
                     rm.nodes += pos.game_nodes () - nodes;
 
@@ -1319,7 +1319,7 @@ namespace Searcher {
                         // When the best move changes frequently, allocate some more time.
                         if (!move_pv)
                         {
-                            RootMoves.best_move_changes++;
+                            RootMovesList.best_move_changes++;
                         }
                     }
                     else
@@ -1357,7 +1357,7 @@ namespace Searcher {
                 {
                     if (  Threadpool.split_depth <= depth
                        && Threadpool.size () > 1
-                       && thread->splitpoint_thread_count < MaxSplitPointThread
+                       && thread->splitpoint_threads < MaxSplitPointThreads
                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
@@ -1451,7 +1451,7 @@ namespace Searcher {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), RootCount);
+            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), RootMoves);
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1468,13 +1468,13 @@ namespace Searcher {
                 if (Signals.force_stop) break;
                 
                 // Age out PV variability metric
-                RootMoves.best_move_changes *= 0.5;
+                RootMovesList.best_move_changes *= 0.5;
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < RootCount; ++i)
+                for (u08 i = 0; i < RootMoves; ++i)
                 {
-                    RootMoves[i].value[1] = RootMoves[i].value[0];
+                    RootMovesList[i].value[1] = RootMovesList[i].value[0];
                 }
                 
                 const bool aspiration = dep > 2*i16(ONE_MOVE);
@@ -1488,19 +1488,19 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
+                        if (abs (RootMovesList[PVIndex].value[1]) < VALUE_KNOWN_WIN)
                         {
                             window[0] =
                             window[1] =
                                 //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22);
                                 Value(16);
-                            bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
-                            bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
+                            bound [0] = max (RootMovesList[PVIndex].value[1] - window[0], -VALUE_INFINITE);
+                            bound [1] = min (RootMovesList[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                         }
                         else
                         {
-                            if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                            if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
+                            if (RootMovesList[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
+                            if (RootMovesList[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
                         }
                     }
 
@@ -1516,21 +1516,21 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        //RootMoves.sort_end (PVIndex);
-                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
+                        //RootMovesList.sort_end (PVIndex);
+                        std::stable_sort (RootMovesList.begin () + PVIndex, RootMovesList.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
                         for (i08 i = PVIndex; i >= 0; --i)
                         {
-                            RootMoves[i].insert_pv_into_tt (pos);
+                            RootMovesList[i].insert_pv_into_tt (pos);
                         }
 
                         iteration_time = now () - SearchTime;
 
                         // If search has been stopped break immediately.
                         // Sorting and writing PV back to TT is safe becuase
-                        // RootMoves is still valid, although refers to previous iteration.
+                        // RootMovesList is still valid, although refers to previous iteration.
                         if (Signals.force_stop) break;
 
                         // When failing high/low give some update
@@ -1572,8 +1572,8 @@ namespace Searcher {
                     while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    //RootMoves.sort_beg (PVIndex + 1);
-                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+                    //RootMovesList.sort_beg (PVIndex + 1);
+                    std::stable_sort (RootMovesList.begin (), RootMovesList.begin () + PVIndex + 1);
 
                     if (  PVIndex + 1 == MultiPV
                        || iteration_time > InfoDuration
@@ -1589,7 +1589,7 @@ namespace Searcher {
                     Move m = skill.pick_move ();
                     if (MOVE_NONE != m)
                     {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), m));
+                        swap (RootMovesList[0], *find (RootMovesList.begin (), RootMovesList.end (), m));
                     }
                 }
 
@@ -1598,7 +1598,7 @@ namespace Searcher {
                 if (WriteSearchLog)
                 {
                     LogFile log (SearchLogFilename);
-                    log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    log << pretty_pv (pos, dep, RootMovesList[0].value[0], iteration_time, &RootMovesList[0].pv[0]) << endl;
                 }
                 
                 // Requested to stop?
@@ -1613,12 +1613,12 @@ namespace Searcher {
                     // Take in account some extra time if the best move has changed
                     if (aspiration && MultiPV == 1)
                     {
-                        TimeMgr.pv_instability (RootMoves.best_move_changes);
+                        TimeMgr.pv_instability (RootMovesList.best_move_changes);
                     }
 
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (  RootCount == 1
+                    if (  RootMoves == 1
                        || iteration_time > TimeMgr.available_time ()
                        )
                     {
@@ -1697,7 +1697,7 @@ namespace Searcher {
     LimitsT             Limits;
     SignalsT volatile   Signals;
 
-    RootMoveList        RootMoves;
+    RootMoveList        RootMovesList;
     Position            RootPos;
     StateInfoStackPtr   SetupStates;
 
@@ -1850,7 +1850,7 @@ namespace Searcher {
         
         i32 autosave_time;
 
-        if (!RootMoves.empty ())
+        if (!RootMovesList.empty ())
         {
             if (bool (Options["Own Book"]) && !Limits.infinite && !MateSearch)
             {
@@ -1865,16 +1865,16 @@ namespace Searcher {
                 {
                     Move book_move = Book.probe_move (RootPos, bool (Options["Best Book Move"]));
                     if (  book_move != MOVE_NONE
-                       && count (RootMoves.begin (), RootMoves.end (), book_move)
+                       && count (RootMovesList.begin (), RootMovesList.end (), book_move)
                        )
                     {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
+                        swap (RootMovesList[0], *find (RootMovesList.begin (), RootMovesList.end (), book_move));
                         goto finish;
                     }
                 }
             }
 
-            RootCount = RootMoves.size ();
+            RootMoves = RootMovesList.size ();
 
             if (WriteSearchLog)
             {
@@ -1888,7 +1888,7 @@ namespace Searcher {
                     << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
                     << "MoveTime:  " << Limits.movetime                  << "\n"
                     << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
-                    << "RootCount: " << u16(RootCount)                   << "\n"
+                    << "RootMoves: " << u16(RootMoves)         << "\n"
                     << " Depth Score    Time   Nodes  PV\n"
                     << "-----------------------------------------------------------"
                     << endl;
@@ -1933,12 +1933,12 @@ namespace Searcher {
                     << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                     << "Nodes/sec.:  " << RootPos.game_nodes () * M_SEC / time      << "\n"
                     << "Hash-full:   " << TT.permill_full ()                        << "\n"
-                    << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-                if (RootMoves[0].pv[0] != MOVE_NONE)
+                    << "Best move:   " << move_to_san (RootMovesList[0].pv[0], RootPos) << "\n";
+                if (RootMovesList[0].pv[0] != MOVE_NONE)
                 {
                     StateInfo si;
-                    RootPos.do_move (RootMoves[0].pv[0], si);
-                    log << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos);
+                    RootPos.do_move (RootMovesList[0].pv[0], si);
+                    log << "Ponder move: " << move_to_san (RootMovesList[0].pv[1], RootPos);
                     RootPos.undo_move ();
                 }
                 log << endl;
@@ -1953,7 +1953,7 @@ namespace Searcher {
                 << " score " << score_uci (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
                 << sync_endl;
 
-            RootMoves.push_back (RootMove (MOVE_NONE));
+            RootMovesList.push_back (RootMove (MOVE_NONE));
 
             if (WriteSearchLog)
             {
@@ -1993,10 +1993,10 @@ namespace Searcher {
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
-        if (RootMoves[0].pv[0] != MOVE_NONE)
+        sync_cout << "bestmove " << move_to_can (RootMovesList[0].pv[0], RootPos.chess960 ());
+        if (RootMovesList[0].pv[0] != MOVE_NONE)
         {
-            cout << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
+            cout << " ponder " << move_to_can (RootMovesList[0].pv[1], RootPos.chess960 ());
         }
         cout << sync_endl;
 
@@ -2083,7 +2083,7 @@ namespace Threads {
             // all the currently active positions nodes.
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
-                for (u08 s = 0; s < Threadpool[t]->splitpoint_thread_count; ++s)
+                for (u08 s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
                 {
                     SplitPoint &sp = Threadpool[t]->splitpoints[s];
                     sp.mutex.lock ();
@@ -2136,7 +2136,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = ((splitpoint_thread_count) ? active_splitpoint : NULL);
+        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : NULL);
         ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
 
         do
@@ -2238,8 +2238,8 @@ namespace Threads {
                     for (u08 t = 0; t < Threadpool.size (); ++t)
                     {
                         Thread *thread = Threadpool[t];
-                        const u08 size = thread->splitpoint_thread_count; // Local copy
-                        sp = (size == 0) ? NULL : &thread->splitpoints[size - 1];
+                        const u08 size = thread->splitpoint_threads; // Local copy
+                        sp = (size > 0) ? &thread->splitpoints[size - 1] : NULL;
 
                         if (  sp != NULL
                            && (sp)->slave_searching

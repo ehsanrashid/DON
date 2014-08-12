@@ -55,7 +55,7 @@ public:
 };
 
 // Number of entries in a cluster
-const u08 ClusterEntryCount = 3;
+const u08 ClusterEntries = 3;
 
 // TTCluster is a 32 bytes cluster of TT entries consisting of:
 //
@@ -63,12 +63,12 @@ const u08 ClusterEntryCount = 3;
 // padding     (2 bytes)
 struct TTCluster
 {
-    TTEntry entry[ClusterEntryCount];
+    TTEntry entry[ClusterEntries];
     u08     padding[2];
 };
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of ClusterEntryCount number of entry.
+// and each cluster consists of ClusterEntries number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -152,7 +152,7 @@ public:
 
     //inline u64 entries () const
     //{
-    //    return (_cluster_count * ClusterEntryCount);
+    //    return (_cluster_count * ClusterEntries);
     //}
 
     // Returns size in MB

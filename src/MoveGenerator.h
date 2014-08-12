@@ -5,7 +5,7 @@
 
 class Position;
 
-const u08   MAX_MOVES   = 255;
+const u08   MaxMoves   = 255;
 
 struct ValMove
 {
@@ -54,7 +54,7 @@ namespace MoveGenerator {
     {
 
     private:
-        ValMove  moves[MAX_MOVES]
+        ValMove  moves[MaxMoves]
               , *cur
               , *end;
 

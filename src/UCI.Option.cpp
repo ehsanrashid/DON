@@ -292,7 +292,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MaxThread, on_config_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MaxThreads, on_config_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.

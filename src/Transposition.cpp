@@ -80,7 +80,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
 
 // resize(mb) sets the size of the table, measured in mega-bytes.
 // Transposition table consists of a power of 2 number of clusters and
-// each cluster consists of ClusterEntryCount number of entry.
+// each cluster consists of ClusterEntries number of entry.
 u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
 {
     if (mem_size_mb < MinTTSize) mem_size_mb = MinTTSize;
@@ -130,7 +130,7 @@ void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Va
     u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
     TTEntry *fte = cluster_entry (key);
     TTEntry *rte = fte;
-    for (TTEntry *ite = fte; ite < fte + ClusterEntryCount; ++ite)
+    for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
     {
         if (ite->_key == 0)     // Empty entry? then write
         {
@@ -169,7 +169,7 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
 {
     u16 key16    = (key >> (64-16));
     TTEntry *fte = cluster_entry (key);
-    for (TTEntry *ite = fte; ite < fte + ClusterEntryCount; ++ite)
+    for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
     {
         if (ite->_key == key16)
         {
