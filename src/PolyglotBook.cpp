@@ -118,14 +118,14 @@ PolyglotBook& PolyglotBook::operator<< (PBEntry &pbe)
 
 PolyglotBook::PolyglotBook ()
     : fstream ()
-    , _fn_book ("")
+    , _book_fn ("")
     , _mode (ios_base::openmode (0))
     , _size_book (0)
 {}
 
-PolyglotBook::PolyglotBook (const string &fn_book, ios_base::openmode mode)
-    : fstream (fn_book.c_str (), mode|ios_base::binary)
-    , _fn_book (fn_book)
+PolyglotBook::PolyglotBook (const string &book_fn, ios_base::openmode mode)
+    : fstream (book_fn.c_str (), mode|ios_base::binary)
+    , _book_fn (book_fn)
     , _mode (mode)
     , _size_book (0)
 {}
@@ -139,12 +139,12 @@ PolyglotBook::~PolyglotBook ()
 // mode:
 // Read -> ios_base::in
 // Write-> ios_base::out
-bool PolyglotBook::open (const string &fn_book, ios_base::openmode mode)
+bool PolyglotBook::open (const string &book_fn, ios_base::openmode mode)
 {
     close ();
-    fstream::open (fn_book.c_str (), mode|ios_base::binary);
+    fstream::open (book_fn.c_str (), mode|ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
-    _fn_book = fn_book;
+    _book_fn = book_fn;
     _mode    = mode;
     return fstream::is_open ();
 }
@@ -205,7 +205,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 {
     //if (!fstream::is_open () || !(_mode & ios_base::in))
     //{
-    //    if (!open (_fn_book, ios_base::in)) return MOVE_NONE;
+    //    if (!open (_book_fn, ios_base::in)) return MOVE_NONE;
     //}
 
     Key key = ZobPG.compute_posi_key (pos);
@@ -404,14 +404,14 @@ void PolyglotBook::insert_entry (const PolyglotBook::PBEntry &pbe)
 
 }
 
-//void PolyglotBook::import_pgn (const string &fn_pgn)
+//void PolyglotBook::import_pgn (const string &pgn_fn)
 //{
-//    (void) fn_pgn;
+//    (void) pgn_fn;
 //}
 //
-//void PolyglotBook::merge_book (const string &fn_book)
+//void PolyglotBook::merge_book (const string &book_fn)
 //{
-//    (void) fn_book;
+//    (void) book_fn;
 //
 //}
 

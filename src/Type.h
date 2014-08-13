@@ -563,6 +563,12 @@ inline void trim (std::string &str)
     str = str.substr (pb, pe);
 }
 
+inline void remove_extension (std::string &filename)
+{
+    std::size_t last_dot = filename.find_last_of ('.');
+    filename = (last_dot == std::string::npos) ? filename : filename.substr (0, last_dot); 
+}
+
 inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/');

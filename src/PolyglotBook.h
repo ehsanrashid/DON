@@ -59,7 +59,7 @@ public:
 
 private:
 
-    std::string _fn_book;
+    std::string _book_fn;
     std::ios_base::openmode _mode;
 
     u64    _size_book;
@@ -83,13 +83,13 @@ public:
     PolyglotBook ();
 
     // mode = std::ios_base::in|std::ios_base::out
-    PolyglotBook (const std::string &fn_book, std::ios_base::openmode mode);
+    PolyglotBook (const std::string &book_fn, std::ios_base::openmode mode);
     ~PolyglotBook ();
 
-    bool open (const std::string &fn_book, std::ios_base::openmode mode);
+    bool open (const std::string &book_fn, std::ios_base::openmode mode);
     void close ();
 
-    std::string filename () const { return _fn_book; }
+    std::string filename () const { return _book_fn; }
 
     u64 size ()
     {
@@ -118,8 +118,8 @@ public:
 
     void write ();
 
-    //void import_pgn (const std::string &fn_pgn);
-    //void merge_book (const std::string &fn_book);
+    //void import_pgn (const std::string &pgn_fn);
+    //void merge_book (const std::string &book_fn);
     //void dump ();
     //void info ();
 

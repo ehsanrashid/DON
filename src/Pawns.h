@@ -67,9 +67,15 @@ namespace Pawns {
                 Rank kr = rel_rank (C, k_sq);
                 if (kr <= R_4)
                 {
-                    shelter_storm[C][CS_K ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO; 
-                    shelter_storm[C][CS_Q ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO; 
+                    shelter_storm[C][CS_K ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO;
+                    shelter_storm[C][CS_Q ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO;
                     shelter_storm[C][CS_NO] = pawn_shelter_storm<C> (pos, k_sq);
+                }
+                else
+                {
+                    shelter_storm[C][CS_K ] = VALUE_ZERO; 
+                    shelter_storm[C][CS_Q ] = VALUE_ZERO;
+                    shelter_storm[C][CS_NO] = VALUE_ZERO;
                 }
 
                 min_kp_dist[C] = 0;

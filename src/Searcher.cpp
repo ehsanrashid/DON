@@ -69,7 +69,6 @@ namespace Searcher {
 
         bool    MateSearch;
 
-        bool    WriteSearchLog;
         string  SearchLogFilename;
 
         struct Skill
@@ -1595,7 +1594,7 @@ namespace Searcher {
 
                 iteration_time = now () - SearchTime;
 
-                if (WriteSearchLog)
+                if (!SearchLogFilename.empty ())
                 {
                     LogFile log (SearchLogFilename);
                     log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
@@ -1833,19 +1832,22 @@ namespace Searcher {
         // Contempt of 15 (60/4) per minute
         i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (4*MilliSec);
         
-        Value contempt = Value(cp_to_value ((contempt_factor + time_factor) / 100.0f));
+        Value contempt = Value(cp_to_value (float(contempt_factor + time_factor) / 0x64)); // 100
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
         MateSearch        = bool(Limits.mate);
 
-        WriteSearchLog    =  false;
         SearchLogFilename = string(Options["SearchLog File"]);
         if (!SearchLogFilename.empty ())
         {
-            convert_path (SearchLogFilename);
             trim (SearchLogFilename);
-            WriteSearchLog = !SearchLogFilename.empty ();
+            if (!SearchLogFilename.empty ())
+            {
+                convert_path (SearchLogFilename);
+                remove_extension (SearchLogFilename);
+                SearchLogFilename += ".txt";
+            }
         }
         
         i32 autosave_time;
@@ -1854,12 +1856,12 @@ namespace Searcher {
         {
             if (bool(Options["Own Book"]) && !Limits.infinite && !MateSearch)
             {
-                string fn_book = string(Options["Book File"]);
-                convert_path (fn_book);
+                string book_fn = string(Options["Book File"]);
+                convert_path (book_fn);
 
-                if (!Book.is_open () && !fn_book.empty ())
+                if (!Book.is_open () && !book_fn.empty ())
                 {
-                    Book.open (fn_book, ios_base::in|ios_base::binary);
+                    Book.open (book_fn, ios_base::in|ios_base::binary);
                 }
                 if (Book.is_open ())
                 {
@@ -1876,7 +1878,7 @@ namespace Searcher {
 
             MaxPV = RootMoves.size ();
 
-            if (WriteSearchLog)
+            if (!SearchLogFilename.empty ())
             {
                 LogFile log (SearchLogFilename);
 
@@ -1922,7 +1924,7 @@ namespace Searcher {
                 Threadpool.autosave = NULL;
             }
 
-            if (WriteSearchLog)
+            if (!SearchLogFilename.empty ())
             {
                 LogFile log (SearchLogFilename);
 
@@ -1955,7 +1957,7 @@ namespace Searcher {
 
             RootMoves.push_back (RootMove (MOVE_NONE));
 
-            if (WriteSearchLog)
+            if (!SearchLogFilename.empty ())
             {
                 LogFile log (SearchLogFilename);
 
