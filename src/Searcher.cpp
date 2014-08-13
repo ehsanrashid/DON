@@ -898,13 +898,13 @@ namespace Searcher {
 
                         tte = TT.retrieve (posi_key);
                         entry_tt = tte != NULL;
-                        (ss)->tt_move =
-                        tt_move  = entry_tt ? tte->move () : MOVE_NONE;
-                        tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
-                        tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
-                        tt_bound = entry_tt ? tte->bound () : BND_NONE;
-                        (ss)->static_eval =
-                        static_eval = entry_tt ? tte->eval () : VALUE_NONE;
+                        if (entry_tt)
+                        {
+                            tt_move  = tte->move ();
+                            tt_value = value_of_tt (tte->value (), (ss)->ply);
+                            tt_depth = tte->depth ();
+                            tt_bound = tte->bound ();
+                        }
                     }
                 }
 
@@ -923,13 +923,10 @@ namespace Searcher {
 
                     tte = TT.retrieve (posi_key);
                     entry_tt = tte != NULL;
-                    //(ss)->tt_move =
                     tt_move  = entry_tt ? tte->move () : MOVE_NONE;
                     tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                     tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
                     tt_bound = entry_tt ? tte->bound () : BND_NONE;
-                    (ss)->static_eval =
-                    static_eval = entry_tt && !in_check ? tte->eval () : VALUE_NONE;
                 }
                 */
 
@@ -1845,12 +1842,9 @@ namespace Searcher {
             {
                 convert_path (SearchLog);
                 remove_extension (SearchLog);
-                SearchLog += ".txt";
+                if (!SearchLog.empty ()) SearchLog += ".txt";
             }
-            else
-            {
-                SearchLog = "SearchLog.txt";
-            }
+            if (SearchLog.empty ()) SearchLog = "SearchLog.txt";
         }
         
         i32 autosave_time;

@@ -58,7 +58,7 @@ protected:
             {
                 convert_path (_log_fn);
                 remove_extension (_log_fn);
-                _log_fn += ".txt";
+                if (!_log_fn.empty ()) _log_fn += ".txt";
             }
         }
         if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
