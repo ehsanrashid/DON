@@ -158,11 +158,11 @@ public:
 
     Position () { clear (); }
 
-    Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
+    explicit Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
+    explicit Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
     
     explicit Position (i32) {}
 

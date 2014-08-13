@@ -136,7 +136,7 @@ public:
         , _generation (0)
     {}
 
-    TranspositionTable (u32 mem_size_mb)
+    explicit TranspositionTable (u32 mem_size_mb)
         : _hash_table (NULL)
         , _cluster_count (0)
         , _cluster_mask (0)

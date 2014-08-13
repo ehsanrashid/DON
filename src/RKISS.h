@@ -39,7 +39,7 @@ public:
         initialize (seed);
     }
 
-    RKISS (u32 seed)
+    explicit RKISS (u32 seed)
     {
         initialize (seed);
     }
