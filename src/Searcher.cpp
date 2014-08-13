@@ -52,11 +52,11 @@ namespace Searcher {
             return (Depth) Reductions[PVNode][imp][min (depth/i32(ONE_MOVE), ReductionDepth-1)][min (moves_count, ReductionMoveCount-1)];
         }
 
-        const Depth ProbCutDepth = Depth(5*i16(ONE_MOVE));
+        const Depth         ProbCutDepth = Depth(5*i16(ONE_MOVE));
 
-        const u08   MaxQuiets = 64;
+        const u08           MaxQuiets = 64;
 
-        const point InfoDuration = 3000; // 3 sec
+        const point         InfoDuration = 3000; // 3 sec
 
         TimeManager TimeMgr;
 
@@ -882,7 +882,6 @@ namespace Searcher {
                             }
 
                         }
-
                     }
                   
                     // Step 10. Internal iterative deepening (skipped when in check)
@@ -899,7 +898,7 @@ namespace Searcher {
 
                         tte = TT.retrieve (posi_key);
                         entry_tt = tte != NULL;
-                        //(ss)->tt_move =
+                        (ss)->tt_move =
                         tt_move  = entry_tt ? tte->move () : MOVE_NONE;
                         tt_value = entry_tt ? value_of_tt (tte->value (), (ss)->ply) : VALUE_NONE;
                         tt_depth = entry_tt ? tte->depth () : DEPTH_NONE;
@@ -910,7 +909,7 @@ namespace Searcher {
                 }
 
                 /*
-                // Step 10. Internal iterative deepening
+                // Step 10. Internal iterative deepening (not skipped when in check)
                 if (  tt_move == MOVE_NONE
                    && depth >= (PVNode ? 5 : 8)*i16(ONE_MOVE)
                    && (PVNode || (!in_check && (ss)->static_eval + VALUE_EG_PAWN >= beta)) // IID Margin = VALUE_EG_PAWN
@@ -935,14 +934,14 @@ namespace Searcher {
                 */
 
                 singular_ext_node =
-                   !RootNode
-                && depth >= (PVNode ? 8 : 8)*i16(ONE_MOVE) // TODO::
-                && tt_move != MOVE_NONE
-                && excluded_move == MOVE_NONE // Recursive singular search is not allowed
-                && abs (beta)     < VALUE_KNOWN_WIN
-                && abs (tt_value) < VALUE_KNOWN_WIN
-                && tt_bound & BND_LOWER
-                && tt_depth >= depth-3*i16(ONE_MOVE);
+                       !RootNode
+                    && depth >= (PVNode ? 8 : 8)*i16(ONE_MOVE) // TODO::
+                    && tt_move != MOVE_NONE
+                    && excluded_move == MOVE_NONE // Recursive singular search is not allowed
+                    && abs (beta)     < VALUE_KNOWN_WIN
+                    && abs (tt_value) < VALUE_KNOWN_WIN
+                    && tt_bound & BND_LOWER
+                    && tt_depth >= depth-3*i16(ONE_MOVE);
 
             }
 
