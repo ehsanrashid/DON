@@ -236,20 +236,14 @@ namespace UCI {
             Limits.ponder = false;
         }
 
-        inline void exe_io (cmdstream &cmds)
+        inline void exe_debug (cmdstream &cmds)
         {
             string token;
             if (cmds >> token)
             {
-                if (token == "on")
-                {
-                    log_io (true);
-                }
+                if (token == "on")  log_debug (true);
                 else
-                if (token == "off")
-                {
-                    log_io (false);
-                }
+                if (token == "off") log_debug (false);
             }
         }
 
@@ -415,7 +409,7 @@ namespace UCI {
                 // switching from pondering to normal search.
                 Signals.ponderhit_stop ? exe_stop () : exe_ponderhit ();
             }
-            else if (token == "io")         exe_io (cmds);
+            else if (token == "debug")      exe_debug (cmds);
             else if (token == "show")       exe_show ();
             else if (token == "keys")       exe_keys ();
             else if (token == "moves")      exe_moves ();

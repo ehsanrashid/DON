@@ -69,7 +69,7 @@ namespace Searcher {
 
         bool    MateSearch;
 
-        string  SearchLogFilename;
+        string  SearchLog;
 
         struct Skill
         {
@@ -1593,9 +1593,9 @@ namespace Searcher {
 
                 iteration_time = now () - SearchTime;
 
-                if (!SearchLogFilename.empty ())
+                if (!SearchLog.empty ())
                 {
-                    LogFile log (SearchLogFilename);
+                    LogFile log (SearchLog);
                     log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
                 
@@ -1837,15 +1837,19 @@ namespace Searcher {
 
         MateSearch        = bool(Limits.mate);
 
-        SearchLogFilename = string(Options["SearchLog File"]);
-        if (!SearchLogFilename.empty ())
+        SearchLog = string(Options["Search Log"]);
+        if (!SearchLog.empty ())
         {
-            trim (SearchLogFilename);
-            if (!SearchLogFilename.empty ())
+            trim (SearchLog);
+            if (!SearchLog.empty ())
             {
-                convert_path (SearchLogFilename);
-                remove_extension (SearchLogFilename);
-                SearchLogFilename += ".txt";
+                convert_path (SearchLog);
+                remove_extension (SearchLog);
+                SearchLog += ".txt";
+            }
+            else
+            {
+                SearchLog = "SearchLog.txt";
             }
         }
         
@@ -1877,9 +1881,9 @@ namespace Searcher {
 
             MaxPV = RootMoves.size ();
 
-            if (!SearchLogFilename.empty ())
+            if (!SearchLog.empty ())
             {
-                LogFile log (SearchLogFilename);
+                LogFile log (SearchLog);
 
                 log << "----------->\n" << boolalpha
                     << "FEN:       " << RootPos.fen ()                   << "\n"
@@ -1923,9 +1927,9 @@ namespace Searcher {
                 Threadpool.autosave = NULL;
             }
 
-            if (!SearchLogFilename.empty ())
+            if (!SearchLog.empty ())
             {
-                LogFile log (SearchLogFilename);
+                LogFile log (SearchLog);
 
                 point time = now () - SearchTime;
                 if (time == 0) time = 1;
@@ -1956,9 +1960,9 @@ namespace Searcher {
 
             RootMoves.push_back (RootMove (MOVE_NONE));
 
-            if (!SearchLogFilename.empty ())
+            if (!SearchLog.empty ())
             {
-                LogFile log (SearchLogFilename);
+                LogFile log (SearchLog);
 
                 log << "Time:        " << 0        << "\n"
                     << "Nodes:       " << 0        << "\n"

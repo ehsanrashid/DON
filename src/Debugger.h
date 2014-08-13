@@ -6,6 +6,7 @@
 #include "noncopyable.h"
 #include "tiebuffer.h"
 #include "Time.h"
+#include "UCI.h"
 
 namespace Debugger {
 
@@ -31,8 +32,8 @@ public:
 
 };
 
-// Singleton I/O logger class
-class IOLogger
+// Singleton Debug(I/O) Logger class
+class DebugLogger
     : public std::noncopyable
 {
 
@@ -45,24 +46,37 @@ private:
 protected:
 
     // Constructor should be protected !!!
-    IOLogger (std::string log_fn)
+    DebugLogger ()
         : _inbuf (std::cin .rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
-        , _log_fn (log_fn)
-    {}
+    {
+        _log_fn = std::string(Options["Debug Log"]);
+        if (!_log_fn.empty ())
+        {
+            trim (_log_fn);
+            if (!_log_fn.empty ())
+            {
+                convert_path (_log_fn);
+                remove_extension (_log_fn);
+                _log_fn += ".txt";
+            }
+        }
+        if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
+    }
 
 public:
 
-    ~IOLogger ()
+    ~DebugLogger ()
     {
         stop ();
     }
 
-    static IOLogger& instance ()
+    static DebugLogger& instance ()
     {
         // Guaranteed to be destroyed.
         // Instantiated on first use.
-        static IOLogger _instance ("DebugLog.txt");
+        static DebugLogger _instance;
+
         return _instance;
     }
 
@@ -92,10 +106,10 @@ public:
 
 };
 
-inline void log_io (bool b)
+inline void log_debug (bool b)
 {
-    (b) ? IOLogger::instance ().start ()
-        : IOLogger::instance ().stop ();
+    (b) ? DebugLogger::instance ().start ()
+        : DebugLogger::instance ().stop ();
 }
 
 #endif // _DEBUGGER_H_INC_

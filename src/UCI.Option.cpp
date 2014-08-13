@@ -179,9 +179,9 @@ namespace UCI {
             Position::_fifty_move_dist = u08(2 * i32(opt));
         }
 
-        void on_io_log (const Option &opt)
+        void on_debug_log (const Option &opt)
         {
-            log_io (bool(opt));
+            log_debug (!string(opt).empty ());
         }
 
     }
@@ -325,7 +325,7 @@ namespace UCI {
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV_cp"]                   << Option (0, 0, 1000);
+        //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1);
 
         // Roughly equivalent to "Optimism."
         // Factor for adjusted contempt. Changes playing style.
@@ -366,10 +366,10 @@ namespace UCI {
 
         // Debug Options
         // -------------
-        // Whether or not to write a debug log.
-        Options["Write DebugLog"]               << Option (false, on_io_log);
+        // The filename of the debug log.
+        Options["Debug Log"]                    << Option ("", on_debug_log);
         // The filename of the search log.
-        Options["SearchLog File"]               << Option ("");
+        Options["Search Log"]                   << Option ("");
 
         // ---------------------------------------------------------------------------------------
 
