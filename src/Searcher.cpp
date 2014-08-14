@@ -58,14 +58,14 @@ namespace Searcher {
 
         const point         InfoDuration = 3000; // 3 sec
 
-        TimeManager TimeMgr;
-
-        Value   DrawValue[CLR_NO];
-
         Color   RootColor;
         u08     RootSize   // RootMove Count
             ,   MultiPV
             ,   CurPV;
+
+        TimeManager TimeMgr;
+
+        Value   DrawValue[CLR_NO];
 
         bool    MateSearch;
 
@@ -1283,7 +1283,7 @@ namespace Searcher {
                 // Step 18. Undo move
                 pos.undo_move ();
 
-                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                //ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE); // TODO::
 
                 // Step 19. Check for new best move
                 if (SPNode)
@@ -1430,7 +1430,7 @@ namespace Searcher {
         // - the maximum search depth is reached.
         // Time management; with iterative deepining enabled you can specify how long
         // you want the computer to think rather than how deep you want it to think. 
-        inline void search_iter_deepening (Position &pos)
+        inline void search_iter_deepening () //(Position &pos)
         {
             Stack stack[MaxDepth6]
                 , *ss = stack+2; // To allow referencing (ss-2)
@@ -1507,7 +1507,7 @@ namespace Searcher {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false> (pos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
+                        best_value = search_depth<Root, false> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1522,7 +1522,7 @@ namespace Searcher {
                         // entries have been overwritten during the search.
                         for (i08 i = CurPV; i >= 0; --i)
                         {
-                            RootMoves[i].insert_pv_into_tt (pos);
+                            RootMoves[i].insert_pv_into_tt (RootPos);
                         }
 
                         iteration_time = now () - SearchTime;
@@ -1538,7 +1538,7 @@ namespace Searcher {
                            && (bound[0] >= best_value || best_value >= bound[1])
                            )
                         {
-                            sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (RootPos, dep, bound[0], bound[1], iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
@@ -1578,7 +1578,7 @@ namespace Searcher {
                        || iteration_time > InfoDuration
                        )
                     {
-                        sync_cout << info_multipv (pos, dep, bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (RootPos, dep, bound[0], bound[1], iteration_time) << sync_endl;
                     }
                 }
 
@@ -1597,7 +1597,7 @@ namespace Searcher {
                 if (!SearchLog.empty ())
                 {
                     LogFile logfile (SearchLog);
-                    logfile << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    logfile << pretty_pv (RootPos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
                 
                 // Requested to stop?
@@ -1609,10 +1609,27 @@ namespace Searcher {
                 // Do have time for the next iteration? Can stop searching now?
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
-                    // Take in account some extra time if the best move has changed
+                    // Time adjusments
                     if (aspiration && MultiPV == 1)
                     {
-                        TimeMgr.pv_instability (RootMoves.best_move_changes);
+                        // Take in account some extra time if the best move has changed
+                        TimeMgr.instability (RootMoves.best_move_changes);
+
+                        // Take less time for recaptures if good
+                        bool fast_recapture = false;
+                        if (RootMoves.best_move_changes < 0.05 && !SetupStates->empty ())
+                        {
+                            PieceT org_pt = ptype (RootPos[org_sq (RootMoves[0].pv[0])]);
+                            PieceT dst_pt = ptype (RootPos[dst_sq (RootMoves[0].pv[0])]);
+                            PieceT cap_pt = SetupStates->top ().capture_type;
+
+                            fast_recapture = dst_pt != NONE && cap_pt != NONE && dst_pt != cap_pt
+                                && (  PieceValue[MG][dst_pt] - PieceValue[MG][cap_pt] > VALUE_MG_ROOK - VALUE_MG_NIHT
+                                   || PieceValue[MG][dst_pt] - PieceValue[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                                   || abs (PieceValue[MG][org_pt] - PieceValue[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
+                                   );
+                        }
+                        TimeMgr.recapture (fast_recapture);
                     }
 
                     // If there is only one legal move available or 
@@ -1915,7 +1932,7 @@ namespace Searcher {
             Threadpool.timer->start ();
             Threadpool.timer->notify_one (); // Wake up the recurring timer
 
-            search_iter_deepening (RootPos); // Let's start searching !
+            search_iter_deepening (); // Let's start searching !
 
             Threadpool.timer->stop ();
 

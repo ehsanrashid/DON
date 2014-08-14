@@ -18,19 +18,19 @@ private:
 
     u32   _optimum_time;
     u32   _maximum_time;
-    float _unstable_pv_factor;
+
+    float _unstable_factor;
+    float _recapture_factor;
 
 public:
 
-    inline u32 available_time () const { return u32(_optimum_time * _unstable_pv_factor * 0.71); }
+    inline u32 available_time () const { return u32(_optimum_time * _unstable_factor * _recapture_factor * 0.71); }
     
     inline u32 maximum_time   () const { return _maximum_time; }
 
-    inline void pv_instability (float best_move_changes)
-    {
-        _unstable_pv_factor = 1 + best_move_changes;
-    }
-
+    inline void instability (float best_move_changes) { _unstable_factor  = 1.0f + best_move_changes; }
+    inline void recapture   (bool fast_recapture)     { _recapture_factor = 1.0f - fast_recapture * 0.85f; }
+    
     void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     
 };
