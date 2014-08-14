@@ -49,20 +49,7 @@ protected:
     DebugLogger ()
         : _inbuf (std::cin .rdbuf (), &_fstm)
         , _outbuf (std::cout.rdbuf (), &_fstm)
-    {
-        _log_fn = std::string(Options["Debug Log"]);
-        if (!_log_fn.empty ())
-        {
-            trim (_log_fn);
-            if (!_log_fn.empty ())
-            {
-                convert_path (_log_fn);
-                remove_extension (_log_fn);
-                if (!_log_fn.empty ()) _log_fn += ".txt";
-            }
-        }
-        if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
-    }
+    {}
 
 public:
 
@@ -84,6 +71,19 @@ public:
     {
         if (!_fstm.is_open ())
         {
+            _log_fn = std::string(Options["Debug Log"]);
+            if (!_log_fn.empty ())
+            {
+                trim (_log_fn);
+                if (!_log_fn.empty ())
+                {
+                    convert_path (_log_fn);
+                    remove_extension (_log_fn);
+                    if (!_log_fn.empty ()) _log_fn += ".txt";
+                }
+            }
+            if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
+            
             _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 

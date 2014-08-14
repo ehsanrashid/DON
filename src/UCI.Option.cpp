@@ -63,7 +63,7 @@ namespace UCI {
     }
     Option::operator string () const
     {
-        //ASSERT (_type == "string");
+        ASSERT (_type == "string");
         return _value;
     }
 
@@ -271,10 +271,8 @@ namespace UCI {
 
         // Openings Book Options
         // ---------------------
-        // Whether or not the engine should use the Opening Book.
-        Options["Own Book"]                     << Option (false);
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option ("Book.bin", on_change_book);
+        Options["Opening Book"]                 << Option ("", on_change_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (true);
