@@ -66,11 +66,11 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     Slowness             = i32(Options["Slowness"]);
 
     // Initialize:
-    // unstable factor to 1.0
+    // instability factor to 1.0
     // recapture factor to 1.0
     // and search times to maximum values
-    _unstable_factor  = 1.0f;
-    _recapture_factor = 1.0f;
+    _instability_factor = 1.0f;
+    _recapture_factor   = 1.0f;
     _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
     u08 tot_movestogo = movestogo ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;

@@ -1609,7 +1609,7 @@ namespace Searcher {
                 // Do have time for the next iteration? Can stop searching now?
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
-                    // Time adjusments
+                    // Time adjustments
                     if (aspiration && MultiPV == 1)
                     {
                         // Take in account some extra time if the best move has changed
@@ -1624,8 +1624,8 @@ namespace Searcher {
                             PieceT cap_pt = SetupStates->top ().capture_type;
 
                             fast_recapture = dst_pt != NONE && cap_pt != NONE && dst_pt != cap_pt
-                                && (  PieceValue[MG][dst_pt] - PieceValue[MG][cap_pt] > VALUE_MG_ROOK - VALUE_MG_NIHT
-                                   || PieceValue[MG][dst_pt] - PieceValue[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                                && (  PieceValue[MG][dst_pt] - PieceValue[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                                   //|| PieceValue[MG][dst_pt] - PieceValue[MG][cap_pt] > VALUE_MG_ROOK - VALUE_MG_NIHT
                                    || abs (PieceValue[MG][org_pt] - PieceValue[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
                                    );
                         }
