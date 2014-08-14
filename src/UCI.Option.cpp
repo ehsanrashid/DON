@@ -250,7 +250,7 @@ namespace UCI {
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option ("Hash.dat");
 
-        Options["Auto-Save Hash (mins)"]        << Option ( 0, 0, 60);
+        Options["Auto-Save Hash (min)"]         << Option ( 0, 0, 60);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.

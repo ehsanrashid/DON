@@ -1871,8 +1871,8 @@ namespace Searcher {
         i32 time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time;
         if (time_diff >= MilliSec)
         {
-            i32 contempt_time  = i32(Options["Contempt Time"]);
-            timed_contempt = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (contempt_time*MilliSec);
+            i32 contempt_time  = i32(Options["Contempt Time (sec)"]);
+            timed_contempt = time_diff / (contempt_time*MilliSec);
         }
 
         Value contempt = Value(cp_to_value (float(fixed_contempt + timed_contempt) / 0x64)); // 100
