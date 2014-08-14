@@ -1283,7 +1283,7 @@ namespace Searcher {
                 // Step 18. Undo move
                 pos.undo_move ();
 
-                //ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE); // TODO::
+                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE); // TODO::
 
                 // Step 19. Check for new best move
                 if (SPNode)
@@ -1617,7 +1617,7 @@ namespace Searcher {
 
                         // Take less time for recaptures if good
                         bool fast_recapture = false;
-                        if (RootMoves.best_move_changes < 0.05 && !SetupStates->empty ())
+                        if (RootMoves.best_move_changes < 0.05 && SetupStates.get () != NULL && !SetupStates->empty ())
                         {
                             PieceT org_pt = ptype (RootPos[org_sq (RootMoves[0].pv[0])]);
                             PieceT dst_pt = ptype (RootPos[dst_sq (RootMoves[0].pv[0])]);
