@@ -17,7 +17,7 @@ namespace {
     const float Shift       = 59.80f;
     const float SkewFactor  = 00.172f;
 
-    u08 MaxMoveHorizon        = 50; // Plan time management at most this many moves ahead
+    u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead
 
     u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time (in ms) at clock
     u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves
@@ -73,7 +73,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     _recapture_factor   = 1.0f;
     _optimum_time = _maximum_time = max (gameclock.time, MinimumThinkingTime);
 
-    u08 tot_movestogo = movestogo ? min (movestogo, MaxMoveHorizon) : MaxMoveHorizon;
+    u08 tot_movestogo = movestogo ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
@@ -99,4 +99,3 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
     // Make sure that _optimum_time is not over _maximum_time
     _optimum_time = min (_maximum_time, _optimum_time);
 }
-
