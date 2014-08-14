@@ -20,7 +20,7 @@ namespace {
     };
 
     // Our insertion sort in the range [begin, end], guaranteed to be stable, as is needed
-    inline void insertion_sort (ValMove* begin, ValMove* end)
+    inline void insertion_sort (ValMove *begin, ValMove *end)
     {
         for (ValMove *p = begin+1; p < end; ++p)
         {
@@ -36,7 +36,7 @@ namespace {
     // Picks and moves to the front the best move in the range [begin, end],
     // it is faster than sorting all the moves in advance when moves are few, as
     // normally are the possible captures.
-    inline ValMove* pick_best (ValMove* begin, ValMove* end)
+    inline ValMove* pick_best (ValMove *begin, ValMove *end)
     {
         std::swap (*begin, *std::max_element (begin, end));
         return begin;
@@ -64,7 +64,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm, Dept
 
     bad_captures_end = moves+MaxMoves-1;
 
-    stage = (pos.checkers () ? EVASION_S1 : MAIN_S);
+    stage = pos.checkers () ? EVASION_S1 : MAIN_S;
 
     tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
     end += tt_move != MOVE_NONE;
@@ -149,21 +149,21 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
 // The moves with highest scores will be picked first.
 
 template<>
+// Winning and equal captures in the main search are ordered by MVV/LVA.
+// Suprisingly, this appears to perform slightly better than SEE based
+// move ordering. The reason is probably that in a position with a winning
+// capture, capturing a more valuable (but sufficiently defended) piece
+// first usually doesn't hurt. The opponent will have to recapture, and
+// the hanging piece will still be hanging (except in the unusual cases
+// where it is possible to recapture with the hanging piece).
+// Exchanging big pieces before capturing a hanging piece probably
+// helps to reduce the subtree size.
+// In main search want to push captures with negative SEE values to
+// bad_captures[] array, but instead of doing it now delay till when
+// the move has been picked up in pick_move(), this way save
+// some SEE calls in case get a cutoff (idea from Pablo Vazquez).
 void MovePicker::value<CAPTURE> ()
 {
-    // Winning and equal captures in the main search are ordered by MVV/LVA.
-    // Suprisingly, this appears to perform slightly better than SEE based
-    // move ordering. The reason is probably that in a position with a winning
-    // capture, capturing a more valuable (but sufficiently defended) piece
-    // first usually doesn't hurt. The opponent will have to recapture, and
-    // the hanging piece will still be hanging (except in the unusual cases
-    // where it is possible to recapture with the hanging piece). Exchanging
-    // big pieces before capturing a hanging piece probably helps to reduce
-    // the subtree size.
-    // In main search want to push captures with negative SEE values to
-    // bad_captures[] array, but instead of doing it now delay till when
-    // the move has been picked up in pick_move(), this way save
-    // some SEE calls in case get a cutoff (idea from Pablo Vazquez).
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
@@ -197,11 +197,11 @@ void MovePicker::value<QUIET>   ()
 }
 
 template<>
+// Try good captures ordered by MVV/LVA, then non-captures if destination square
+// is not under attack, ordered by history value, then bad-captures and quiet
+// moves with a negative SEE. This last group is ordered by the SEE value.
 void MovePicker::value<EVASION> ()
 {
-    // Try good captures ordered by MVV/LVA, then non-captures if destination square
-    // is not under attack, ordered by history value, then bad-captures and quiet
-    // moves with a negative SEE. This last group is ordered by the SEE value.
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
@@ -261,7 +261,7 @@ void MovePicker::generate_next_stage ()
     case KILLER_S1:
         // Killer moves usually come right after after the hash move and (good) captures
         killers[0].move = ss->killer_moves[0];
-        killers[1].move = (ss->killer_moves[0] != ss->killer_moves[1]) ? ss->killer_moves[1] : MOVE_NONE;
+        killers[1].move = ss->killer_moves[0] != ss->killer_moves[1] ? ss->killer_moves[1] : MOVE_NONE;
         killers[2].move =           //counter_moves[0]
         killers[3].move =           //counter_moves[1]
         killers[4].move =           //followup_moves[0]
@@ -318,7 +318,7 @@ void MovePicker::generate_next_stage ()
     case QUIET_2_S1:
         cur = end;
         end = quiets_end;
-        if (depth >= (3*ONE_MOVE))
+        if (depth >= 3*i16(ONE_MOVE))
         {
             insertion_sort (cur, end);
         }
