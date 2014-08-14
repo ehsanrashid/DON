@@ -1243,7 +1243,7 @@ namespace Searcher {
                         value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true);
                     }
 
-                    full_depth_search = (alpha < value && (ss)->reduction > DEPTH_ZERO);
+                    full_depth_search = alpha < value && (ss)->reduction > DEPTH_ZERO;
                     (ss)->reduction = DEPTH_ZERO;
                 }
 
@@ -1253,10 +1253,10 @@ namespace Searcher {
                     if (SPNode) alpha = splitpoint->alpha;
 
                     value =
-                        (new_depth < 1*i16(ONE_MOVE)) ?
-                            (gives_check ?
+                        new_depth < 1*i16(ONE_MOVE) ?
+                            gives_check ?
                                 -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO)) :
+                                -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
                             -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                 }
 
@@ -1272,10 +1272,10 @@ namespace Searcher {
                     if (move_pv || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
-                            (new_depth < 1*i16(ONE_MOVE)) ?
-                                (gives_check ?
+                            new_depth < 1*i16(ONE_MOVE) ?
+                                gives_check ?
                                     -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                    -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO)) :
+                                    -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                 -search_depth<PV, false> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
@@ -1816,13 +1816,12 @@ namespace Searcher {
 
     void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
     {
-        best_move_changes = 0.0;
+        best_move_changes = 0.0f;
         clear ();
-        bool all_rootmoves = root_moves.empty ();
         for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
         {
             Move m = *itr;
-            if (  all_rootmoves
+            if (  root_moves.empty ()
                || count (root_moves.begin (), root_moves.end (), m)
                )
             {
@@ -1845,11 +1844,17 @@ namespace Searcher {
         
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
         
-        i32 contempt_factor = i32(Options["Contempt Factor"]);
-        // Contempt of 15 (60/4) per minute
-        i32 time_factor = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (4*MilliSec);
-        
-        Value contempt = Value(cp_to_value (float(contempt_factor + time_factor) / 0x64)); // 100
+        i32 fixed_contempt = i32(Options["Fixed Contempt"]);
+        i32 timed_contempt = 0;
+
+        i32 time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time;
+        if (time_diff >= MilliSec)
+        {
+            i32 contempt_time  = i32(Options["Contempt Time"]);
+            timed_contempt = (Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) / (contempt_time*MilliSec);
+        }
+
+        Value contempt = Value(cp_to_value (float(fixed_contempt + timed_contempt) / 0x64)); // 100
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
