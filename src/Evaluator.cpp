@@ -263,7 +263,6 @@ namespace Evaluator {
         // Bonuses for contact safe checks
         const i32 ContactCheckWeight[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
 
-
         const ScaleFactor PawnSpanScale[2] = { ScaleFactor(38), ScaleFactor(56) };
 
         // weight_option() computes the value of an evaluation weight,

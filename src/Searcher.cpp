@@ -2121,7 +2121,7 @@ namespace Threads {
         static point last_time = now ();
         
         point now_time = now ();
-        if ((now_time - last_time) >= MilliSec)
+        if (now_time - last_time >= MilliSec)
         {
             last_time = now_time;
             Debugger::dbg_print ();
