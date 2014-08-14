@@ -41,8 +41,8 @@ namespace Threads {
         delete th;
     }
 
-    // Explicit template instantiation
-    // -------------------------------
+    // explicit template instantiations
+    // --------------------------------
     template TimerThread* new_thread<TimerThread> ();
     template void delete_thread<TimerThread> (TimerThread *th);
 

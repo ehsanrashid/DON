@@ -861,8 +861,8 @@ namespace Searcher {
                             {
                                 Depth rdepth = depth - ProbCutDepth + 1*i16(ONE_MOVE);
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                ASSERT (rdepth >= 1*i16(ONE_MOVE));
-                                ASSERT (rbeta <= +VALUE_INFINITE);
+                                //ASSERT (rdepth >= 1*i16(ONE_MOVE));
+                                //ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -1592,8 +1592,8 @@ namespace Searcher {
 
                 if (!SearchLog.empty ())
                 {
-                    LogFile log (SearchLog);
-                    log << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    LogFile logfile (SearchLog);
+                    logfile << pretty_pv (pos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
                 
                 // Requested to stop?
@@ -1877,9 +1877,10 @@ namespace Searcher {
 
             if (!SearchLog.empty ())
             {
-                LogFile log (SearchLog);
+                LogFile logfile (SearchLog);
 
-                log << "----------->\n" << boolalpha
+                logfile
+                    << "----------->\n" << boolalpha
                     << "FEN:       " << RootPos.fen ()                   << "\n"
                     << "Infinite:  " << Limits.infinite                  << "\n"
                     << "Ponder:    " << Limits.ponder                    << "\n"
@@ -1923,12 +1924,13 @@ namespace Searcher {
 
             if (!SearchLog.empty ())
             {
-                LogFile log (SearchLog);
+                LogFile logfile (SearchLog);
 
                 point time = now () - SearchTime;
                 if (time == 0) time = 1;
 
-                log << "Time:        " << time                                      << "\n"
+                logfile
+                    << "Time:        " << time                                      << "\n"
                     << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
                     << "Nodes/sec.:  " << RootPos.game_nodes () * MilliSec / time   << "\n"
                     << "Hash-full:   " << TT.permill_full ()                        << "\n"
@@ -1937,10 +1939,10 @@ namespace Searcher {
                 {
                     StateInfo si;
                     RootPos.do_move (RootMoves[0].pv[0], si);
-                    log << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos);
+                    logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos);
                     RootPos.undo_move ();
                 }
-                log << endl;
+                logfile << endl;
             }
 
         }
@@ -1956,14 +1958,15 @@ namespace Searcher {
 
             if (!SearchLog.empty ())
             {
-                LogFile log (SearchLog);
+                LogFile logfile (SearchLog);
 
-                log << "Time:        " << 0        << "\n"
+                logfile
+                    << "Time:        " << 0        << "\n"
                     << "Nodes:       " << 0        << "\n"
                     << "Nodes/sec.:  " << 0        << "\n"
                     << "Hash-full:   " << 0        << "\n"
-                    << "Best move:   " << "(none)" << "\n";
-                log << endl;
+                    << "Best move:   " << "(none)" << "\n"
+                    << endl;
             }
 
         }

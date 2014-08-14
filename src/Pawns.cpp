@@ -281,7 +281,7 @@ namespace Pawns {
             if (pos.count<PAWN>(C) > 1)
             {
                 i32 span = e->semiopen_files[C] ^ 0xFF;
-                e->pawn_span[C] = i32(scan_msq (span)) - i32(scan_lsq (span));
+                e->pawn_span[C] = i32(scan_msq (span) - scan_lsq (span));
                 pawn_score += FileSpanBonus * i32(e->pawn_span[C]);
             }
             else
@@ -318,7 +318,7 @@ namespace Pawns {
 
             Bitboard mid_pawns;
 
-            mid_pawns  = front_pawns[1] & File_bb[f];
+            mid_pawns = front_pawns[1] & File_bb[f];
             u08 br = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (  kf == f
                && EndEdge_bb & (File(f) | Rank(br))
@@ -331,18 +331,13 @@ namespace Pawns {
             {
                 mid_pawns = front_pawns[0] & File_bb[f];
                 u08 wr = mid_pawns ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
-                u08 danger = wr == R_1 ? 0 : (wr + 1) != br ? 1 : 2;
+                u08 danger = wr == R_1 ? 0 : wr != br - 1 ? 1 : 2;
                 value -= ShelterWeakness[wr] + StormDanger[danger][br];
             }
         }
 
         return value;
     }
-    
-    // Explicit template instantiation
-    // -------------------------------
-    template Value Entry::pawn_shelter_storm<WHITE> (const Position &pos, Square k_sq);
-    template Value Entry::pawn_shelter_storm<BLACK> (const Position &pos, Square k_sq);
 
     template<Color C>
     // Entry::evaluate_unstoppable_pawns<>() scores the most advanced among the passed and candidate pawns.
@@ -355,8 +350,10 @@ namespace Pawns {
                                   SCORE_ZERO;
     }
 
-    // Explicit template instantiation
-    // -------------------------------
+    // explicit template instantiations
+    // --------------------------------
+    template Value Entry::pawn_shelter_storm<WHITE> (const Position &pos, Square k_sq);
+    template Value Entry::pawn_shelter_storm<BLACK> (const Position &pos, Square k_sq);
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
