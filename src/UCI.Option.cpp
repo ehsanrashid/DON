@@ -278,6 +278,12 @@ namespace UCI {
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (true);
 
+        // How well you want engine to play.
+        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
+        //
+        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
+
         // End Game Table Bases Options
         // ----------------------------
 
@@ -331,10 +337,10 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]              << Option (0, -100, +100);
+        Options["Fixed Contempt"]               << Option (0, -100, +100);
         
         // Time Base Contempt
-        Options["Contempt Time"]               << Option (5, 1, 300);
+        Options["Contempt Time (sec)"]          << Option (5, 1, 300);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -348,12 +354,6 @@ namespace UCI {
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option ( 50, 5,  50, on_50_move_dist);
-        
-        // How well you want engine to play.
-        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
-        //
-        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
 
         Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
         Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);

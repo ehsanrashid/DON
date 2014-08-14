@@ -290,7 +290,9 @@ namespace Threads {
         u32 threads = i32(Options["Threads"]);
         split_depth = i32(Options["Split Depth"])*ONE_MOVE;
 
-        // Split depth 0 has a special meaning:
+        ASSERT (threads > 0);
+
+        // Split depth '0' has a special meaning:
         // Determines the best optimal minimum split depth automatically
         if (0 == split_depth)
         {
