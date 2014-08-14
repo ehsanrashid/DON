@@ -27,7 +27,7 @@ CACHE_ALIGN(32) Score PSQT[CLR_NO][NONE][SQ_NO];
 
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
-const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+const string StartingFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 bool _ok (const string &fen, bool c960, bool full)
 {

@@ -137,38 +137,34 @@ namespace UCI {
         inline void exe_position (cmdstream &cmds)
         {
             string token;
-            string fen;
+            string fen = "";
             if (cmds >> token)
             {
-                // Consume "startpos" or "fen" token
-                if (token == "startpos")
+                if (token == "startpos")    // Consume "startpos" or "fen" token
                 {
-                    fen = StartFEN;
-                    cmds >> token; // Consume "moves" token if any
+                    fen = StartingFEN;
+                    cmds >> token;          // Consume "moves" token if any
                 }
                 else
-                if (token == "fen")
                 {
-                    // Consume "moves" token if any
-                    while (cmds >> token && token != "moves")
+                    if (token != "fen") fen += token;
+                    while (cmds >> token && token != "moves") // Consume "moves" token if any
                     {
                         fen += string (" ", !fen.empty ()) + token;
                     }
-
                     //ASSERT (_ok (fen));
                     //if (!_ok (fen)) return;
                 }
-                else return;
             }
             else return;
             
             RootPos.setup (fen, Threadpool.main (), bool(Options["UCI_Chess960"]));
             
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
-            // Parse and validate game moves (if any)
+            
             if (token == "moves")
             {
-                while (cmds >> token)
+                while (cmds >> token)   // Parse and validate game moves (if any)
                 {
                     Move m = move_from_can (token, RootPos);
                     if (MOVE_NONE == m)
@@ -246,8 +242,7 @@ namespace UCI {
                 if (token == "off") log_debug (false);
             }
         }
-
-        // Print the RootPos
+        // Print the root position
         inline void exe_show ()
         {
             sync_cout << RootPos << sync_endl;
@@ -379,7 +374,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
-        RootPos.setup (StartFEN, Threadpool.main ());
+        RootPos.setup (StartingFEN, Threadpool.main ());
 
         bool running = arg.empty ();
         string cmd   = arg;
@@ -409,6 +404,8 @@ namespace UCI {
                 // switching from pondering to normal search.
                 Signals.ponderhit_stop ? exe_stop () : exe_ponderhit ();
             }
+            else if (token == "stop"
+                  || token == "quit")       exe_stop ();
             else if (token == "debug")      exe_debug (cmds);
             else if (token == "show")       exe_show ();
             else if (token == "keys")       exe_keys ();
@@ -418,8 +415,6 @@ namespace UCI {
             else if (token == "perft")      exe_perft (cmds);
             else if (token == "bench")      exe_bench (cmds);
             else if (token == "cls")        system ("cls");
-            else if (token == "stop"
-                ||   token == "quit")       exe_stop ();
             else
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;

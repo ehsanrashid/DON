@@ -63,7 +63,7 @@ namespace Searcher {
         Value   DrawValue[CLR_NO];
 
         Color   RootColor;
-        u08     MaxPV   // RootMove Count
+        u08     RootSize   // RootMove Count
             ,   MultiPV
             ,   CurPV;
 
@@ -88,7 +88,7 @@ namespace Searcher {
 
             Skill (u08 lvl)
                 : level (lvl < MaxSkillLevel ? lvl : MaxSkillLevel)
-                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, MaxPV) : 0)
+                , candidates (lvl < MaxSkillLevel ? min (MinSkillMultiPV, RootSize) : 0)
                 , move (MOVE_NONE)
             {}
 
@@ -317,6 +317,9 @@ namespace Searcher {
             Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
+            CheckInfo cc
+                ,    *ci = NULL;
+
             if (  tte != NULL
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
@@ -395,15 +398,18 @@ namespace Searcher {
             // be generated.
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
-            CheckInfo  ci (pos);
-
+            if (ci == NULL)
+            {
+                cc = CheckInfo (pos);
+                ci = &cc;
+            }
             Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
                 ASSERT (_ok (move));
 
-                bool gives_check = pos.gives_check (move, ci);
+                bool gives_check = pos.gives_check (move, *ci);
 
                 if (!PVNode && !MateSearch)
                 {
@@ -456,12 +462,12 @@ namespace Searcher {
                 }
 
                 // Check for legality just before making the move
-                if (!pos.legal (move, ci.pinneds)) continue;
+                if (!pos.legal (move, ci->pinneds)) continue;
 
                 (ss)->current_move = move;
 
                 // Make and search the move
-                pos.do_move (move, si, gives_check ? &ci : NULL);
+                pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
                     -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
@@ -548,25 +554,18 @@ namespace Searcher {
             Value static_eval = VALUE_NONE
                 , best_value  = -VALUE_INFINITE;
 
+            // Step 1. Initialize node
+            bool   in_check = pos.checkers ();
+            bool singular_ext_node = false;
+
+            SplitPoint *splitpoint;
             Move  move
                 , excluded_move = MOVE_NONE
                 //, threat_move   = MOVE_NONE
                 , best_move     = MOVE_NONE;
 
-            u08   legals
-                , quiets;
-
-            Move quiet_moves[MaxQuiets] = { MOVE_NONE };
-
-            StateInfo si;
-            CheckInfo ci (pos);
-
-            // Step 1. Initialize node
-            Thread *thread  = pos.thread ();
-            bool   in_check = pos.checkers ();
-            bool singular_ext_node = false;
-
-            SplitPoint *splitpoint;
+            CheckInfo cc
+                ,    *ci = NULL;
 
             if (SPNode)
             {
@@ -586,8 +585,6 @@ namespace Searcher {
                 (ss+1)->skip_null_move  = false;
                 (ss+1)->reduction       = DEPTH_ZERO;
                 (ss+2)->killer_moves[0] = (ss+2)->killer_moves[1] = MOVE_NONE;
-
-                legals = quiets = 0;
 
                 // Used to send 'seldepth' info to GUI
                 if (PVNode)
@@ -749,6 +746,8 @@ namespace Searcher {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
 
+                            StateInfo si;
+
                             // Step 7,8.
                             if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                             {
@@ -858,13 +857,14 @@ namespace Searcher {
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
                                 MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
-
+                                cc = CheckInfo (pos);
+                                ci = &cc;
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
-                                    if (!pos.legal (move, ci.pinneds)) continue;
+                                    if (!pos.legal (move, ci->pinneds)) continue;
 
                                     (ss)->current_move = move;
-                                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                                    pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
                                     Value value = -search_depth<NonPV, false> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
 
@@ -937,22 +937,6 @@ namespace Searcher {
             // Splitpoint start
             // When in check and at SPNode search starts from here
 
-            Square opp_move_sq = dst_sq ((ss-1)->current_move);
-            Move counter_moves[2] =
-            {
-                CounterMoveStats[pos[opp_move_sq]][opp_move_sq].first,
-                CounterMoveStats[pos[opp_move_sq]][opp_move_sq].second
-            };
-
-            Square own_move_sq = dst_sq ((ss-2)->current_move);
-            Move followup_moves[2] =
-            {
-                FollowupMoveStats[pos[own_move_sq]][own_move_sq].first,
-                FollowupMoveStats[pos[own_move_sq]][own_move_sq].second
-            };
-
-            MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
-
             Value value = best_value;
 
             bool improving =
@@ -960,6 +944,7 @@ namespace Searcher {
                 || ((ss  )->static_eval == VALUE_NONE)
                 || ((ss-2)->static_eval == VALUE_NONE);
 
+            Thread *thread  = pos.thread ();
             point time;
 
             if (RootNode)
@@ -978,6 +963,33 @@ namespace Searcher {
                 }
             }
 
+            u08   legals = 0
+                , quiets = 0;
+
+            Move quiet_moves[MaxQuiets] = { MOVE_NONE };
+
+            Square opp_move_sq = dst_sq ((ss-1)->current_move);
+            Move counter_moves[2] =
+            {
+                CounterMoveStats[pos[opp_move_sq]][opp_move_sq].first,
+                CounterMoveStats[pos[opp_move_sq]][opp_move_sq].second
+            };
+
+            Square own_move_sq = dst_sq ((ss-2)->current_move);
+            Move followup_moves[2] =
+            {
+                FollowupMoveStats[pos[own_move_sq]][own_move_sq].first,
+                FollowupMoveStats[pos[own_move_sq]][own_move_sq].second
+            };
+
+            MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
+            StateInfo si;
+            if (ci == NULL)
+            {
+                cc = CheckInfo (pos);
+                ci = &cc;
+            }
+
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)
@@ -991,7 +1003,7 @@ namespace Searcher {
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (RootNode && !count (RootMoves.begin () + CurPV, RootMoves.end (), move)) continue;
 
-                bool move_legal = RootNode || pos.legal (move, ci.pinneds);
+                bool move_legal = RootNode || pos.legal (move, ci->pinneds);
 
                 if (SPNode)
                 {
@@ -1035,7 +1047,7 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
                 
-                bool gives_check = pos.gives_check (move, ci);
+                bool gives_check = pos.gives_check (move, *ci);
                 
                 MoveT mt = mtype (move);
 
@@ -1169,7 +1181,7 @@ namespace Searcher {
                 (ss)->current_move = move;
 
                 // Step 15. Make the move
-                pos.do_move (move, si, gives_check ? &ci : NULL);
+                pos.do_move (move, si, gives_check ? ci : NULL);
 
                 bool full_depth_search = !move_pv;
 
@@ -1438,7 +1450,7 @@ namespace Searcher {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), MaxPV);
+            MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), RootSize);
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1459,7 +1471,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < MaxPV; ++i)
+                for (u08 i = 0; i < RootSize; ++i)
                 {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
@@ -1605,7 +1617,7 @@ namespace Searcher {
 
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (  MaxPV == 1
+                    if (  RootSize == 1
                        || iteration_time > TimeMgr.available_time ()
                        )
                     {
@@ -1839,7 +1851,7 @@ namespace Searcher {
             if (SearchLog.empty ()) SearchLog = "SearchLog.txt";
         }
         
-        MaxPV = RootMoves.size ();
+        RootSize = RootMoves.size ();
 
         if (!SearchLog.empty ())
         {
@@ -1848,7 +1860,7 @@ namespace Searcher {
             logfile
                 << "----------->\n" << boolalpha
                 << "RootPos  : " << RootPos.fen ()                   << "\n"
-                << "MaxPV    : " << u16(MaxPV)                       << "\n"
+                << "RootSize : " << u16(RootSize)                    << "\n"
                 << "Infinite : " << Limits.infinite                  << "\n"
                 << "Ponder   : " << Limits.ponder                    << "\n"
                 << "ClockTime: " << Limits.gameclock[RootColor].time << "\n"
@@ -1862,7 +1874,7 @@ namespace Searcher {
 
         i32 autosave_time;
 
-        if (MaxPV)
+        if (RootSize)
         {
             string book_fn = string(Options["Opening Book"]);
             if (!book_fn.empty () && !Limits.infinite && !MateSearch)
