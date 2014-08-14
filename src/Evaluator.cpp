@@ -185,6 +185,8 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
+        const Score KnightPawnsPenalty            = S(+ 8,+10); // Penalty for knight with pawns
+
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
 
@@ -193,10 +195,14 @@ namespace Evaluator {
         const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookDoubledOnOpenFileBonus    = S(+21,+10); // Bonus for doubled rook on open file
-        const Score RookDoubledOnSemiOpenFileBonus= S(+10,+ 6); // Bonus for doubled rook on semi-open file
+        const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for doubled rook on open file
+        const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for doubled rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
+        const Score RookOn7thBonus                = S(+ 3,+ 6);
         
+        const Score QueenOnPawnBonus              = S(+ 4,+20);
+        const Score QueenOn7thBonus               = S(+ 3,+ 8);
+
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
 
     #undef S
@@ -305,7 +311,9 @@ namespace Evaluator {
             ei.king_ring                 [C_] = U64 (0);
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+            if (  //pos.count<QUEN> () &&
+                  pos.non_pawn_material (C) >= VALUE_MG_QUEN + VALUE_MG_PAWN
+               )
             {
                 Bitboard king_zone = king_attacks + ek_sq;
                 if (pos.count<QUEN> ())
@@ -322,18 +330,12 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
-                //king_zone &= ei.pin_attacked_by[C][PAWN];
-                //if (king_zone)
-                //{
-                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<Max15> (king_zone) : 1);
-                //    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
-                //}
                 if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
-                    ei.king_ring_attackers_count [C] = (more_than_one (attackers) ? pop_count<Max15> (attackers) : 1);
-                    //ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
-                    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
+                    Bitboard attackers = 
+                        pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
+                    ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<Max15> (attackers) : 1;
+                    ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                 }
             }
         }
@@ -377,7 +379,7 @@ namespace Evaluator {
                 {
                     ++king_ring_attackers_count;
                     Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
-                    if (zone_attacks) king_zone_attacks_count += (more_than_one (zone_attacks) ? pop_count<Max15> (zone_attacks) : 1);
+                    if (zone_attacks) king_zone_attacks_count += more_than_one (zone_attacks) ? pop_count<Max15> (zone_attacks) : 1;
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
@@ -393,6 +395,9 @@ namespace Evaluator {
                 {
                 if (NIHT == PT)
                 {
+                    // Penalty for knight when there are few friendly pawns
+                    score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C), 0);
+
                     // Outpost bonus for Knight
                     if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
                     {
@@ -422,6 +427,11 @@ namespace Evaluator {
                                     {
                                         value *= 2.50f;
                                     }
+                                }
+
+                                if (ei.pi->semiopen_file<C_> (f))
+                                {
+			                              value *= 1.50f;
                                 }
                             }
 
@@ -463,6 +473,11 @@ namespace Evaluator {
                                     {
                                         value *= 2.50f;
                                     }
+                                }
+
+                                if (ei.pi->semiopen_file<C_> (f))
+                                {
+			                              value *= 1.50f;
                                 }
                             }
 
@@ -541,15 +556,22 @@ namespace Evaluator {
                         // Rook piece attacking enemy pawns on the same rank/file
                         const Bitboard rook_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                         if (rook_on_pawns) score += RookOnPawnBonus * (more_than_one (rook_on_pawns) ? pop_count<Max15> (rook_on_pawns) : 1);
-                    }
                     
+                        if (  R_7 == r
+                           && R_8 == rel_rank (C, pos.king_sq (C_))
+                           )
+                        {
+                            score += RookOn7thBonus;
+                        }
+                    }
+
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<C > (f))
                     {
                         score += (ei.pi->semiopen_file<C_> (f)) ?
                                  RookOnOpenFileBonus :
                                  RookOnSemiOpenFileBonus;
-                        
+                        /*
                         // Give more if the rook is doubled
                         if (pos.count<ROOK> (C) > 1 && File_bb[f] & pos.pieces<ROOK> (C) & attacks)
                         {
@@ -557,7 +579,7 @@ namespace Evaluator {
                                      RookDoubledOnOpenFileBonus :
                                      RookDoubledOnSemiOpenFileBonus;
                         }
-                        
+                        */
                     }
                 }
 
@@ -569,6 +591,20 @@ namespace Evaluator {
 
                 if (QUEN == PT)
                 {
+                    if (R_4 < r)
+                    {
+                        // Rook piece attacking enemy pawns on the same rank/file
+                        const Bitboard queen_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[QUEN][s];
+                        if (queen_on_pawns) score += QueenOnPawnBonus * (more_than_one (queen_on_pawns) ? pop_count<Max15> (queen_on_pawns) : 1);
+                    
+                        if (  R_7 == r
+                           && R_8 == rel_rank (C, pos.king_sq (C_))
+                           )
+                        {
+                            score += QueenOn7thBonus;
+                        }
+                    }
+
                     attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
                 }
 
@@ -631,15 +667,15 @@ namespace Evaluator {
                 {
                     value = ei.pi->shelter_storm[C][CS_NO];
 
-                    if (  pos.can_castle (Castling<C, CS_K>::Right)
-                       //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
+                    if (   pos.can_castle (Castling<C, CS_K>::Right)
+                       && !pos.castle_impeded (Castling<C, CS_K>::Right)
                        && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
-                    if (  pos.can_castle (Castling<C, CS_Q>::Right)
-                       //&& !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                    if (   pos.can_castle (Castling<C, CS_Q>::Right)
+                       && !pos.castle_impeded (Castling<C, CS_Q>::Right)
                        && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
@@ -655,8 +691,8 @@ namespace Evaluator {
             Score score = mk_score (value, -16 * ei.pi->min_kp_dist[C]);
             
             // Main king safety evaluation
-            //if (ei.king_ring_attackers_count[C_] > 0)
-            if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
+            //if (ei.king_ring_attackers_weight[C_] > KingAttackWeight[PAWN])
+            if (ei.king_ring_attackers_count[C_] > 0)
             {
                 const Bitboard occ = pos.pieces ();
 
@@ -679,7 +715,7 @@ namespace Evaluator {
                 i32 attack_units =
                     + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
                     + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
-                    + 3 * (undefended ? (more_than_one (undefended) ? pop_count<Max15> (undefended) : 1) : 0) // King-zone undefended pieces
+                    + 3 * (undefended ? more_than_one (undefended) ? pop_count<Max15> (undefended) : 1 : 0) // King-zone undefended pieces
                     + 2 * (ei.pinneds[C] != 0) // King pinned piece
                     - i32(value) / 32;
 
@@ -786,6 +822,12 @@ namespace Evaluator {
                 safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check) attack_units += SafeCheckWeight[NIHT] * (more_than_one (safe_check) ? pop_count<Max15> (safe_check) : 1);
 
+                //// Penalty for pinned pieces which not defended by a pawn
+                //if (ei.pinned_pieces[C] & ~ei.pin_attacked_by[C][PAWN])
+                //{
+                //    attack_units += 1;
+                //}
+
                 // To index KingDanger[] attack_units must be in [0, MaxAttackUnits-1] range
                 attack_units = min (max (attack_units, 0), MaxAttackUnits-1);
 
@@ -840,9 +882,6 @@ namespace Evaluator {
                           (protected_enemies & pos.pieces<ROOK> ()) ? ThreatBonus[0][ROOK] :
                           (protected_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[0][BSHP] :
                                                                      ThreatBonus[0][NIHT]);
-                          //(protected_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[0][NIHT] :
-                          ////(protected_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[0][PAWN] :
-                          //SCORE_ZERO);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
@@ -859,8 +898,6 @@ namespace Evaluator {
                                   (threaten_enemies & pos.pieces<BSHP> ()) ? ThreatBonus[pt][BSHP] :
                                   (threaten_enemies & pos.pieces<NIHT> ()) ? ThreatBonus[pt][NIHT] :
                                                                             ThreatBonus[pt][PAWN]);
-                                  //(threaten_enemies & pos.pieces<PAWN> ()) ? ThreatBonus[pt][PAWN] :
-                                  //SCORE_ZERO);
                     }
                 }
 
@@ -1031,17 +1068,17 @@ namespace Evaluator {
                     }
                 }
 
-                
-                /*
                 // Increase the bonus if the passed pawn is supported by a friendly pawn
                 // on the same rank and a bit smaller if it's on the previous rank.
-                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[f];
+                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
                 if (supporting_pawns & rank_bb (s))
+                {
                     eg_value += Value(r * 20);
+                }
                 else if (supporting_pawns & rank_bb (s - PUSH))
+                {
                     eg_value += Value(r * 12);
-
-                  */
+                }
 
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
@@ -1051,7 +1088,7 @@ namespace Evaluator {
                 // value if the other side has a rook or queen.
                 if (FileEdge_bb & s)
                 {
-                    if (pos.non_pawn_material (C_) <= VALUE_MG_BSHP)
+                    if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
                     {
                         eg_value += eg_value / 4;
                     }
@@ -1291,7 +1328,7 @@ namespace Evaluator {
                     {
                         // It is almost certainly a draw even with pawns.
                         i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        scale_fac = (pawn_diff == 0) ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
+                        scale_fac = pawn_diff == 0 ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
                     }
                     // Both sides with opposite-colored bishops, but also other pieces. 
                     else
@@ -1377,9 +1414,9 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[MOBILITY   ] = weight_option (100                         , InternalWeights[MOBILITY   ]);
-        Weights[PAWN_STRUCT] = weight_option (100                         , InternalWeights[PAWN_STRUCT]);
-        Weights[PASSED_PAWN] = weight_option (100                         , InternalWeights[PASSED_PAWN]);
+        Weights[MOBILITY   ] = weight_option (100                        , InternalWeights[MOBILITY   ]);
+        Weights[PAWN_STRUCT] = weight_option (100                        , InternalWeights[PAWN_STRUCT]);
+        Weights[PASSED_PAWN] = weight_option (100                        , InternalWeights[PASSED_PAWN]);
         Weights[SPACE      ] = weight_option (i32(Options["Space"      ]), InternalWeights[SPACE      ]);
         Weights[KING_SAFETY] = weight_option (i32(Options["King Safety"]), InternalWeights[KING_SAFETY]);
 

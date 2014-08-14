@@ -39,7 +39,7 @@ namespace Pawns {
         
         // Levers bonus by [rank]
         const Score LeverBonus[R_NO] = 
-        {
+        {                                              //S(+30,+30), S(+50,+50) // TODO::
             S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
@@ -218,7 +218,7 @@ namespace Pawns {
                 }
                 if (r > R_4 && leverers)
                 {
-                    score += LeverBonus[r];
+                    score += LeverBonus[r] * (supporters ? 1 : 2);
                 }
 
                 if (isolated)
