@@ -33,6 +33,9 @@ namespace Searcher {
         // Futility move count lookup table (initialized at startup)
         CACHE_ALIGN(32) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
         
+        // Futility margin for quiescence search
+        const Value           QSFutilityMargin = Value(0x80);
+
         const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
         CACHE_ALIGN(32) Value FutilityMargins[FutilityMarginDepth];  // [depth]
@@ -47,10 +50,25 @@ namespace Searcher {
         CACHE_ALIGN(32) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, Depth depth, i32 moves_count)
+        inline Depth reduction (bool imp, Depth d, i32 mn)
         {
-            return (Depth) Reductions[PVNode][imp][min (depth/i32(ONE_MOVE), ReductionDepth-1)][min (moves_count, ReductionMoveCount-1)];
+            return (Depth) Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)];
         }
+
+        /*
+        CACHE_ALIGN(32) Value FutilityMargins[16][64]; // [depth][move_num]
+        CACHE_ALIGN(32) int FutilityMoveCounts[32];    // [depth]
+
+        inline Value futility_margin(Depth d, int mn)
+        {
+            return d < 7*i16(ONE_MOVE) ? FutilityMargins[max (d, Depth (1))][min (mn, ReductionMoveCount-1)] : 2 * VALUE_INFINITE;
+        }
+
+        inline u08 futility_move_count (Depth d)
+        {
+            return d < 16*i16(ONE_MOVE) ? FutilityMoveCounts[d] : MaxMoves;
+        }
+        */
 
         const Depth         ProbCutDepth = Depth(5*i16(ONE_MOVE));
 
@@ -389,7 +407,7 @@ namespace Searcher {
                     if (PVNode) alpha = best_value;
                 }
 
-                futility_base = best_value + VALUE_EG_PAWN/2;
+                futility_base = best_value + QSFutilityMargin;
             }
 
             // Initialize a MovePicker object for the current position, and prepare
@@ -878,7 +896,7 @@ namespace Searcher {
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
                        && depth >= (PVNode ? 5 : 8)*i16(ONE_MOVE)
-                       && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta)) // IID Margin = VALUE_EG_PAWN
+                       && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta)) // IID Margin = VALUE_EG_PAWN , 256
                        )
                     {
                         Depth iid_depth = depth - (2*i16(ONE_MOVE) + (PVNode ? DEPTH_ZERO : depth/4));
@@ -1394,15 +1412,6 @@ namespace Searcher {
                         DrawValue[pos.active ()];
                 }
                 else
-                // Quiet best move: Update history, killer, counter & followup moves
-                if (  best_value >= beta
-                   && !in_check
-                   && !pos.capture_or_promotion (best_move)
-                   )
-                {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
-                }
-                else // TODO::
                 // If we have pruned all the moves without searching return a fail-low score
                 if (best_value == -VALUE_INFINITE)
                 {
@@ -1417,6 +1426,16 @@ namespace Searcher {
                     best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
+
+                // Quiet best move: Update history, killer, counter & followup moves
+                if (  best_value >= beta
+                   && !in_check
+                   && best_move != MOVE_NONE
+                   && !pos.capture_or_promotion (best_move)
+                   )
+                {
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
+                }
             }
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1491,8 +1510,10 @@ namespace Searcher {
                         {
                             window[0] =
                             window[1] =
+                                //Value(16);
                                 //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22);
-                                Value(16);
+                                Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12);
+                                
                             bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
                             bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
                         }
@@ -2045,12 +2066,20 @@ namespace Searcher {
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d));    // 0, 100
+            //FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d));    // 0, 100 ---> LTC
+            FutilityMargins      [d] = Value(i32( 10 + (0x50 + 1*d)*d)); // 10, 80 ---> STC
+
+            //for (mc = 0; FutilityMoveCountDepth < 64; ++mc)
+            //{
+            //    FutilityMargins[d][mc] = Value(112 * i32(log (float(d*d) / 2) / log (2.0f) + 1.001f) - 8 * mc + 45);
+            //}
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(2.40f + 0.222f * pow (0.00f + d, 1.80f));
-            FutilityMoveCounts[1][d] = u08(3.00f + 0.300f * pow (0.98f + d, 1.80f));
+            FutilityMoveCounts[0][d] = u08(2.400f + 0.222f * pow (0.00f + d, 1.80f));
+            FutilityMoveCounts[1][d] = u08(3.000f + 0.300f * pow (0.98f + d, 1.80f));
+            
+            //FutilityMoveCounts[d]    = u08(3.001f + 0.250f * pow (d, 2.0f));
         }
 
         Reductions[0][0][0][0] = Reductions[0][1][0][0] = Reductions[1][0][0][0] = Reductions[1][1][0][0] = 0;
@@ -2143,7 +2172,7 @@ namespace Threads {
                     // or Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && time > TimeMgr.available_time () * 75/100
+                    && time > TimeMgr.available_time () * (RootMoves.best_move_changes < 1.0e-4 ? 50 : 75) / 100 // TODO:: 75/100
                     )
                  ) 
               )
