@@ -172,6 +172,8 @@ namespace Searcher {
     {
         SplitPoint *splitpoint;
 
+        u08     ply;
+
         Move    tt_move
             ,   current_move
             ,   excluded_move
@@ -180,10 +182,6 @@ namespace Searcher {
         Value   static_eval;
 
         Depth   reduction;
-
-        u08     ply;
-
-        bool    skip_null_move;
     };
 
     extern LimitsT               Limits;
