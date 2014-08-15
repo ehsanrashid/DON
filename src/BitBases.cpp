@@ -9,9 +9,6 @@ namespace BitBases {
 
     namespace {
 
-        // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
-
         enum Result
         {
             INVALID = 0,
@@ -22,7 +19,9 @@ namespace BitBases {
         };
         inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
         //inline Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
-
+        
+        // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
+        const u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * wp_sq * wk_sq * bk_sq = 196608
         // Each u32 stores results of 32 positions, one per bit
         u32 KPKBitbase[MaxIndex / 32];
 

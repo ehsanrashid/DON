@@ -34,7 +34,7 @@ namespace Searcher {
         CACHE_ALIGN(32) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
         
         // Futility margin for quiescence search
-        const Value           QSFutilityMargin = Value(0x80);
+        const Value           QSFutilityMargin = VALUE_EG_PAWN/2; //Value(0x80);
 
         const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
@@ -56,6 +56,7 @@ namespace Searcher {
         }
 
         /*
+        // TODO::
         CACHE_ALIGN(32) Value FutilityMargins[FutilityMarginDepth][ReductionMoveCount]; // [depth][move_num]
         inline Value futility_margin(Depth d, int mn)
         {
@@ -1416,15 +1417,7 @@ namespace Searcher {
                     ASSERT (0 == quiets);
                     best_value = alpha;
                 }
-
-                TT.store (
-                    posi_key,
-                    best_move,
-                    depth,
-                    best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
-                    value_to_tt (best_value, (ss)->ply),
-                    (ss)->static_eval);
-
+                
                 // Quiet best move: Update history, killer, counter & followup moves
                 if (  best_value >= beta
                    && !in_check
@@ -1434,6 +1427,14 @@ namespace Searcher {
                 {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
+
+                TT.store (
+                    posi_key,
+                    best_move,
+                    depth,
+                    best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
+                    value_to_tt (best_value, (ss)->ply),
+                    (ss)->static_eval);
             }
 
             ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1447,7 +1448,7 @@ namespace Searcher {
         // - the maximum search depth is reached.
         // Time management; with iterative deepining enabled you can specify how long
         // you want the computer to think rather than how deep you want it to think. 
-        inline void search_iter_deepening () //(Position &pos)
+        inline void search_iter_deepening ()
         {
             Stack stack[MaxDepth6]
                 , *ss = stack+2; // To allow referencing (ss-2)
@@ -1864,14 +1865,21 @@ namespace Searcher {
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
         
         i32 manual_contempt = i32(Options["Manual Contempt"]);
-        i32 time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time;
-        i32 auto_contempt   = (time_diff >= MilliSec) ? time_diff / (i32(Options["Auto Contempt (sec)"])*MilliSec) : 0;
+        i32 time_diff = 0;
+        i32 autocontempt_time = 0;
+        i32 auto_contempt = 0;
+        if (  (time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) >= MilliSec
+           && (autocontempt_time = i32(Options["Auto Contempt (sec)"])) != 0
+           )
+        {
+            auto_contempt = time_diff / (autocontempt_time*MilliSec);
+        }
 
         Value contempt = Value(cp_to_value (float(manual_contempt + auto_contempt) / 0x64)); // 100
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
-        MateSearch        = bool(Limits.mate);
+        RootSize = RootMoves.size ();
 
         SearchLog = string(Options["Search Log"]);
         if (!SearchLog.empty ())
@@ -1885,9 +1893,6 @@ namespace Searcher {
             }
             if (SearchLog.empty ()) SearchLog = "SearchLog.txt";
         }
-        
-        RootSize = RootMoves.size ();
-
         if (!SearchLog.empty ())
         {
             LogFile logfile (SearchLog);
@@ -1907,7 +1912,7 @@ namespace Searcher {
                 << endl;
         }
 
-        i32 autosave_time;
+        MateSearch = bool(Limits.mate);
 
         if (RootSize)
         {
@@ -1937,7 +1942,7 @@ namespace Searcher {
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
 
-            autosave_time = i32(Options["Auto Save Hash (min)"]);
+            i32 autosave_time = i32(Options["Auto Save Hash (min)"]);
             if (autosave_time)
             {
                 Threadpool.autosave        = new_thread<TimerThread> ();
@@ -1984,7 +1989,6 @@ namespace Searcher {
                 }
                 logfile << endl;
             }
-
         }
         else
         {
@@ -2058,9 +2062,9 @@ namespace Searcher {
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            //FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d));    // 0, 100 ---> LTC
+            //FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d)); // 0, 100 ---> LTC
             FutilityMargins      [d] = Value(i32( 10 + (0x50 + 1*d)*d)); // 10, 80 ---> STC
-
+            // TODO::
             //for (mc = 0; FutilityMoveCountDepth < 64; ++mc)
             //{
             //    FutilityMargins[d][mc] = Value(112 * i32(log (float(d*d) / 2) / log (2.0f) + 1.001f) - 8 * mc + 45);
@@ -2070,7 +2074,7 @@ namespace Searcher {
         {
             FutilityMoveCounts[0][d] = u08(2.400f + 0.222f * pow (0.00f + d, 1.80f));
             FutilityMoveCounts[1][d] = u08(3.000f + 0.300f * pow (0.98f + d, 1.80f));
-            
+            // TODO::
             //FutilityMoveCounts[d]    = u08(3.001f + 0.250f * pow (d, 2.0f));
         }
 

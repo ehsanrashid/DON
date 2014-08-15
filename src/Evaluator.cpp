@@ -185,7 +185,7 @@ namespace Evaluator {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        const Score KnightPawnsPenalty            = S(+ 8,+10); // Penalty for knight with pawns
+        //const Score KnightPawnsPenalty            = S(+ 8,+10); // Penalty for knight with pawns
 
         const Score BishopPawnsPenalty            = S(+ 8,+12); // Penalty for bishop with pawns on same color
         const Score BishopTrappedPenalty          = S(+50,+40); // Penalty for bishop trapped with pawns
@@ -198,10 +198,10 @@ namespace Evaluator {
         const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for doubled rook on open file
         const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for doubled rook on semi-open file
         const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
-        const Score RookOn7thBonus                = S(+ 3,+ 6);
+        //const Score RookOn7thBonus                = S(+ 3,+ 6);
         
-        const Score QueenOnPawnBonus              = S(+ 4,+20);
-        const Score QueenOn7thBonus               = S(+ 3,+ 8);
+        //const Score QueenOnPawnBonus              = S(+ 4,+20);
+        //const Score QueenOn7thBonus               = S(+ 3,+ 8);
 
         const Score HangingBonus                  = S(+23,+20); // Bonus for each enemy hanging piece       
 
@@ -329,10 +329,15 @@ namespace Evaluator {
                     ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
+                //king_zone &= ei.pin_attacked_by[C][PAWN];
+                //if (king_zone)
+                //{
+                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<Max15> (king_zone) : 1);
+                //    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
+                //}
                 if (king_zone & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = 
-                        pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
+                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<Max15> (attackers) : 1;
                     ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                 }
@@ -395,7 +400,7 @@ namespace Evaluator {
                 if (NIHT == PT)
                 {
                     // Penalty for knight when there are few friendly pawns
-                    score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C), 0);
+                    //score -= KnightPawnsPenalty * max (5 - pos.count<PAWN> (C), 0);
 
                     // Outpost bonus for Knight
                     if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
@@ -428,10 +433,10 @@ namespace Evaluator {
                                     }
                                 }
 
-                                if (ei.pi->semiopen_file<C_> (f))
-                                {
-			                              value *= 1.50f;
-                                }
+                                //if (ei.pi->semiopen_file<C_> (f))
+                                //{
+                                //    value *= 1.50f;
+                                //}
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -474,10 +479,10 @@ namespace Evaluator {
                                     }
                                 }
 
-                                if (ei.pi->semiopen_file<C_> (f))
-                                {
-			                              value *= 1.50f;
-                                }
+                                //if (ei.pi->semiopen_file<C_> (f))
+                                //{
+                                //    value *= 1.50f;
+                                //}
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -556,12 +561,12 @@ namespace Evaluator {
                         const Bitboard rook_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
                         if (rook_on_pawns) score += RookOnPawnBonus * (more_than_one (rook_on_pawns) ? pop_count<Max15> (rook_on_pawns) : 1);
                     
-                        if (  R_7 == r
-                           && R_8 == rel_rank (C, pos.king_sq (C_))
-                           )
-                        {
-                            score += RookOn7thBonus;
-                        }
+                        //if (  R_7 == r
+                        //   && R_8 == rel_rank (C, pos.king_sq (C_))
+                        //   )
+                        //{
+                        //    score += RookOn7thBonus;
+                        //}
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
@@ -570,7 +575,7 @@ namespace Evaluator {
                         score += (ei.pi->semiopen_file<C_> (f)) ?
                                  RookOnOpenFileBonus :
                                  RookOnSemiOpenFileBonus;
-                        /*
+                        
                         // Give more if the rook is doubled
                         if (pos.count<ROOK> (C) > 1 && File_bb[f] & pos.pieces<ROOK> (C) & attacks)
                         {
@@ -578,7 +583,7 @@ namespace Evaluator {
                                      RookDoubledOnOpenFileBonus :
                                      RookDoubledOnSemiOpenFileBonus;
                         }
-                        */
+                        
                     }
                 }
 
@@ -590,19 +595,19 @@ namespace Evaluator {
 
                 if (QUEN == PT)
                 {
-                    if (R_4 < r)
-                    {
-                        // Rook piece attacking enemy pawns on the same rank/file
-                        const Bitboard queen_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[QUEN][s];
-                        if (queen_on_pawns) score += QueenOnPawnBonus * (more_than_one (queen_on_pawns) ? pop_count<Max15> (queen_on_pawns) : 1);
-                    
-                        if (  R_7 == r
-                           && R_8 == rel_rank (C, pos.king_sq (C_))
-                           )
-                        {
-                            score += QueenOn7thBonus;
-                        }
-                    }
+                    //if (R_4 < r)
+                    //{
+                    //    // Rook piece attacking enemy pawns on the same rank/file
+                    //    const Bitboard queen_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[QUEN][s];
+                    //    if (queen_on_pawns) score += QueenOnPawnBonus * (more_than_one (queen_on_pawns) ? pop_count<Max15> (queen_on_pawns) : 1);
+                    //
+                    //    if (  R_7 == r
+                    //       && R_8 == rel_rank (C, pos.king_sq (C_))
+                    //       )
+                    //    {
+                    //        score += QueenOn7thBonus;
+                    //    }
+                    //}
 
                     attacks &= (~ei.pin_attacked_by[C_][NONE]|ei.pin_attacked_by[C][NONE]);
                 }
@@ -1072,11 +1077,11 @@ namespace Evaluator {
                 Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
                 if (supporting_pawns & rank_bb (s))
                 {
-                    eg_value += Value(r * 20);
+                    eg_value += Value(20 * r);
                 }
                 else if (supporting_pawns & rank_bb (s - PUSH))
                 {
-                    eg_value += Value(r * 12);
+                    eg_value += Value(12 * r);
                 }
 
                 // Rook pawns are a special case: They are sometimes worse, and

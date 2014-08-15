@@ -96,7 +96,7 @@ void benchmark (istream &is, const Position &pos)
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);
     //else if (limit_type == "depth")
-    else                              limits.depth    = u08(value);
+    else                               limits.depth    = u08(value);
 
     if (fen_fn == "default")
     {

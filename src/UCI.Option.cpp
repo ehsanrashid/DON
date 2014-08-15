@@ -332,14 +332,13 @@ namespace UCI {
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1);
 
-        // Manual Contempt roughly equivalent to "Optimism."
-        // Factor for adjusted contempt. Changes playing style.
+        // Manual Contempt roughly equivalent to "Optimism". Changes playing style.
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
         Options["Manual Contempt"]              << Option (0, -100, +100);
         // Auto Contempt Time (sec)
-        Options["Auto Contempt (sec)"]          << Option (5, 1, 300);
+        Options["Auto Contempt (sec)"]          << Option (0, 0, 600);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
