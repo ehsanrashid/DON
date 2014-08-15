@@ -1509,9 +1509,9 @@ namespace Searcher {
                         {
                             window[0] =
                             window[1] =
-                                //Value(16);
-                                //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22);
-                                Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12);
+                                Value(16);
+                                //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22); // increases have to check
+                                //Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12); // decreases better
                                 
                             bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
                             bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
@@ -1750,7 +1750,7 @@ namespace Searcher {
     {
         StateInfo states[MaxDepth6]
                 , *si = states;
-       
+
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         pv.clear ();
@@ -1863,16 +1863,17 @@ namespace Searcher {
         RootColor = RootPos.active ();
         
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
-        
-        i32 manual_contempt = i32(Options["Manual Contempt"]);
-        i32 time_diff = 0;
-        i32 autocontempt_time = 0;
-        i32 auto_contempt = 0;
-        if (  (time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time) >= MilliSec
-           && (autocontempt_time = i32(Options["Auto Contempt (sec)"])) != 0
+
+        i16 manual_contempt = i16(i32(Options["Manual Contempt"]));
+        i16 diff_time = 0;
+        u16 auto_contempt_time = 0;
+        i16 auto_contempt = 0;
+        if (  (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MilliSec) != 0
+           && (auto_contempt_time = u16(i32(Options["Auto Contempt (sec)"]))) > 0
+           //&& auto_contempt_time <= abs (diff_time) 
            )
         {
-            auto_contempt = time_diff / (autocontempt_time*MilliSec);
+            auto_contempt = diff_time / auto_contempt_time;
         }
 
         Value contempt = Value(cp_to_value (float(manual_contempt + auto_contempt) / 0x64)); // 100
@@ -1942,14 +1943,14 @@ namespace Searcher {
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
 
-            i32 autosave_time = i32(Options["Auto Save Hash (min)"]);
-            if (autosave_time)
+            u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
+            if (auto_save_time)
             {
-                Threadpool.autosave        = new_thread<TimerThread> ();
-                Threadpool.autosave->task  = autosave_hash;
-                Threadpool.autosave->resolution = autosave_time*60*MilliSec;
-                Threadpool.autosave->start ();
-                Threadpool.autosave->notify_one ();
+                Threadpool.auto_save        = new_thread<TimerThread> ();
+                Threadpool.auto_save->task  = autosave_hash;
+                Threadpool.auto_save->resolution = auto_save_time*60*MilliSec;
+                Threadpool.auto_save->start ();
+                Threadpool.auto_save->notify_one ();
             }
 
             Threadpool.timer->start ();
@@ -1959,12 +1960,12 @@ namespace Searcher {
 
             Threadpool.timer->stop ();
 
-            if (autosave_time)
+            if (auto_save_time)
             {
-                Threadpool.autosave->stop ();
-                Threadpool.autosave->quit ();
-                delete_thread (Threadpool.autosave);
-                Threadpool.autosave = NULL;
+                Threadpool.auto_save->stop ();
+                Threadpool.auto_save->quit ();
+                delete_thread (Threadpool.auto_save);
+                Threadpool.auto_save = NULL;
             }
 
             if (!SearchLog.empty ())

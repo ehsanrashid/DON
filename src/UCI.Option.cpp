@@ -362,7 +362,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // How slow you want engine to play, 100 is neutral
-        Options["Slowness"]                     << Option ( 80, 10, 1000);
+        Options["Slowness"]                     << Option ( 85, 10, 1000);
 
         // Debug Options
         // -------------

@@ -265,7 +265,7 @@ namespace Threads {
         timer           = new_thread<TimerThread> ();
         timer->task     = check_time;
         timer->resolution = TimerResolution;
-        autosave        = NULL;
+        auto_save        = NULL;
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
@@ -274,7 +274,7 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
-        if (Threadpool.autosave) delete_thread (autosave);
+        if (Threadpool.auto_save) delete_thread (auto_save);
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);

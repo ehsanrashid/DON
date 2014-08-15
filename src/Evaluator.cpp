@@ -192,13 +192,13 @@ namespace Evaluator {
 
         const Score MinorBehindPawnBonus          = S(+16,+ 0);
 
-        const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         const Score RookOnOpenFileBonus           = S(+43,+21); // Bonus for rook on open file
         const Score RookOnSemiOpenFileBonus       = S(+19,+10); // Bonus for rook on semi-open file
-        const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for doubled rook on open file
-        const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for doubled rook on semi-open file
-        const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
+        //const Score RookDoubledOnOpenFileBonus    = S(+23,+10); // Bonus for doubled rook on open file
+        //const Score RookDoubledOnSemiOpenFileBonus= S(+12,+ 6); // Bonus for doubled rook on semi-open file
+        const Score RookOnPawnBonus               = S(+10,+28); // Bonus for rook on pawns
         //const Score RookOn7thBonus                = S(+ 3,+ 6);
+        const Score RookTrappedPenalty            = S(+92,+ 0); // Penalty for rook trapped
         
         //const Score QueenOnPawnBonus              = S(+ 4,+20);
         //const Score QueenOn7thBonus               = S(+ 3,+ 8);
@@ -314,11 +314,10 @@ namespace Evaluator {
                   pos.non_pawn_material (C) >= VALUE_MG_QUEN + VALUE_MG_PAWN
                )
             {
-                Bitboard king_zone = king_attacks + ek_sq;
                 if (pos.count<QUEN> ())
                 {
                     Rank ekr = rel_rank (C_, ek_sq);
-                    ei.king_ring[C_] = king_zone | (DistanceRings[ek_sq][1] &
+                    ei.king_ring[C_] = king_attacks | (DistanceRings[ek_sq][1] &
                                                                (ekr < R_4 ? PawnPassSpan[C_][ek_sq] :
                                                                 ekr < R_6 ? (PawnPassSpan[C_][ek_sq]|rank_bb (ek_sq)) :
                                                                             (PawnPassSpan[C_][ek_sq]|PawnPassSpan[C][ek_sq]|rank_bb (ek_sq))
@@ -326,18 +325,12 @@ namespace Evaluator {
                 }
                 else
                 {
-                    ei.king_ring[C_] = king_zone & (file_bb (ek_sq)|rank_bb (ek_sq));
+                    ei.king_ring[C_] = king_attacks & (file_bb (ek_sq)|rank_bb (ek_sq));
                 }
 
-                //king_zone &= ei.pin_attacked_by[C][PAWN];
-                //if (king_zone)
-                //{
-                //    ei.king_ring_attackers_count [C] = (more_than_one (king_zone) ? pop_count<Max15> (king_zone) : 1);
-                //    ei.king_ring_attackers_weight[C] = KingAttackWeight[PAWN];
-                //}
-                if (king_zone & ei.pin_attacked_by[C][PAWN])
+                if (king_attacks & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_zone|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
+                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_attacks|DistanceRings[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<Max15> (attackers) : 1;
                     ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KingAttackWeight[PAWN];
                 }
@@ -576,13 +569,13 @@ namespace Evaluator {
                                  RookOnOpenFileBonus :
                                  RookOnSemiOpenFileBonus;
                         
-                        // Give more if the rook is doubled
-                        if (pos.count<ROOK> (C) > 1 && File_bb[f] & pos.pieces<ROOK> (C) & attacks)
-                        {
-                            score += (ei.pi->semiopen_file<C_> (f)) ?
-                                     RookDoubledOnOpenFileBonus :
-                                     RookDoubledOnSemiOpenFileBonus;
-                        }
+                        //// Give more if the rook is doubled
+                        //if (pos.count<ROOK> (C) > 1 && File_bb[f] & pos.pieces<ROOK> (C) & attacks)
+                        //{
+                        //    score += (ei.pi->semiopen_file<C_> (f)) ?
+                        //             RookDoubledOnOpenFileBonus :
+                        //             RookDoubledOnSemiOpenFileBonus;
+                        //}
                         
                     }
                 }
@@ -671,15 +664,15 @@ namespace Evaluator {
                 {
                     value = ei.pi->shelter_storm[C][CS_NO];
 
-                    if (   pos.can_castle (Castling<C, CS_K>::Right)
-                       && !pos.castle_impeded (Castling<C, CS_K>::Right)
+                    if (  pos.can_castle (Castling<C, CS_K>::Right)
+                       //&& !pos.castle_impeded (Castling<C, CS_K>::Right)
                        && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
-                    if (   pos.can_castle (Castling<C, CS_Q>::Right)
-                       && !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                    if (  pos.can_castle (Castling<C, CS_Q>::Right)
+                       //&& !pos.castle_impeded (Castling<C, CS_Q>::Right)
                        && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
