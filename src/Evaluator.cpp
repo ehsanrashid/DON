@@ -271,8 +271,8 @@ namespace Evaluator {
         {
             Weight weight =
             {
-                opt_value * mg_value (internal_weight) / 100, // =mg
-                opt_value * eg_value (internal_weight) / 100  // =eg
+                opt_value * mg_value (internal_weight) / 0x64, // =mg // 100
+                opt_value * eg_value (internal_weight) / 0x64  // =eg // 100
             };
             return weight;
         }
@@ -408,6 +408,7 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s) //pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
+                                // If attacked by enemy Knights or Bishops
                                 if (  pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s]
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
@@ -416,16 +417,23 @@ namespace Evaluator {
                                 }
                                 else
                                 {
+                                    // If there are enemy Knights or Bishops
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
                                         value *= 1.50f;
                                     }
+                                    // If there are no enemy Knights or Bishops
                                     else
                                     {
                                         value *= 2.50f;
                                     }
                                 }
-
+                                //// Increase bonus more if the piece blocking enemy pawn
+                                //if (pos[s + pawn_push (C)] == (C_|PAWN))
+                                //{
+                                //    bonus += i32 (bonus)*0.5;
+                                //}
+                                //// Increase bonus more if the piece blocking enemy semiopen file
                                 //if (ei.pi->semiopen_file<C_> (f))
                                 //{
                                 //    value *= 1.50f;
@@ -454,6 +462,7 @@ namespace Evaluator {
                             // Supporting pawns
                             if (ei.pin_attacked_by[C][PAWN] & s) // pos.pieces<PAWN> (C) & PawnAttacks[C_][s]
                             {
+                                // If attacked by enemy Knights or Bishops
                                 if (  pos.pieces<NIHT> (C_) & PieceAttacks[NIHT][s]
                                    || pos.pieces<BSHP> (C_) & PieceAttacks[BSHP][s]
                                    )
@@ -462,16 +471,23 @@ namespace Evaluator {
                                 }
                                 else
                                 {
+                                    // If there are enemy Knights or Bishops
                                     if (pos.pieces<NIHT> (C_) || (pos.pieces<BSHP> (C_) & squares_of_color (s)))
                                     {
                                         value *= 1.50f;
                                     }
+                                    // If there are no enemy Knights or Bishops
                                     else
                                     {
                                         value *= 2.50f;
                                     }
                                 }
-
+                                //// Increase bonus more if the piece blocking enemy pawn
+                                //if (pos[s + pawn_push (C)] == (C_|PAWN))
+                                //{
+                                //    bonus += i32 (bonus)*0.5;
+                                //}
+                                //// Increase bonus more if the piece blocking enemy semiopen file
                                 //if (ei.pi->semiopen_file<C_> (f))
                                 //{
                                 //    value *= 1.50f;
@@ -488,7 +504,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
+                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty;
@@ -498,7 +514,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
+                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty * 2;
@@ -508,7 +524,7 @@ namespace Evaluator {
                     {
                         Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
                         if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~ei.pin_attacked_by[C][NONE] & (s + del)
+                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
                            )
                         {
                             score -= BishopTrappedPenalty * 4;
@@ -590,7 +606,7 @@ namespace Evaluator {
                 {
                     //if (R_4 < r)
                     //{
-                    //    // Rook piece attacking enemy pawns on the same rank/file
+                    //    // Queen piece attacking enemy pawns on the same rank/file
                     //    const Bitboard queen_on_pawns = pos.pieces<PAWN> (C_) & PieceAttacks[QUEN][s];
                     //    if (queen_on_pawns) score += QueenOnPawnBonus * (more_than_one (queen_on_pawns) ? pop_count<Max15> (queen_on_pawns) : 1);
                     //
