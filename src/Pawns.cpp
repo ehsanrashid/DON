@@ -218,7 +218,7 @@ namespace Pawns {
                 }
                 if (r > R_4 && leverers)
                 {
-                    score += LeverBonus[r] * (supporters ? 1 : 2);
+                    score += LeverBonus[r] * (supporters ? 1 : 2); // TODO::
                 }
 
                 if (isolated)
