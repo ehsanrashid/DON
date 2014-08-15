@@ -249,8 +249,8 @@ namespace UCI {
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option ("Hash.dat");
-
-        Options["Auto-Save Hash (min)"]         << Option ( 0, 0, 60);
+        // Auto Save Hash Time (min)
+        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -332,15 +332,14 @@ namespace UCI {
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1);
 
-        // Roughly equivalent to "Optimism."
+        // Manual Contempt roughly equivalent to "Optimism."
         // Factor for adjusted contempt. Changes playing style.
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (0, -100, +100);
-        
-        // Time Base Contempt
-        Options["Contempt Time (sec)"]          << Option (5, 1, 300);
+        Options["Manual Contempt"]              << Option (0, -100, +100);
+        // Auto Contempt Time (sec)
+        Options["Auto Contempt (sec)"]          << Option (5, 1, 300);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.

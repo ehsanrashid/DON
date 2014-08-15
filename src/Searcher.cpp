@@ -56,17 +56,15 @@ namespace Searcher {
         }
 
         /*
-        CACHE_ALIGN(32) Value FutilityMargins[16][64]; // [depth][move_num]
-        CACHE_ALIGN(32) int FutilityMoveCounts[32];    // [depth]
-
+        CACHE_ALIGN(32) Value FutilityMargins[FutilityMarginDepth][ReductionMoveCount]; // [depth][move_num]
         inline Value futility_margin(Depth d, int mn)
         {
-            return d < 7*i16(ONE_MOVE) ? FutilityMargins[max (d, Depth (1))][min (mn, ReductionMoveCount-1)] : 2 * VALUE_INFINITE;
+            return d < FutilityMarginDepth ? FutilityMargins[max (d, Depth (1))][min (mn, ReductionMoveCount-1)] : 2*VALUE_INFINITE;
         }
-
+        CACHE_ALIGN(32) i32   FutilityMoveCounts[FutilityMoveCountDepth];  // [depth]
         inline u08 futility_move_count (Depth d)
         {
-            return d < 16*i16(ONE_MOVE) ? FutilityMoveCounts[d] : MaxMoves;
+            return d < FutilityMoveCountDepth ? FutilityMoveCounts[d] : MaxMoves;
         }
         */
 
@@ -1865,17 +1863,11 @@ namespace Searcher {
         
         TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPos.game_ply ());
         
-        i32 fixed_contempt = i32(Options["Fixed Contempt"]);
-        i32 timed_contempt = 0;
-
+        i32 manual_contempt = i32(Options["Manual Contempt"]);
         i32 time_diff = Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time;
-        if (time_diff >= MilliSec)
-        {
-            i32 contempt_time  = i32(Options["Contempt Time (sec)"]);
-            timed_contempt = time_diff / (contempt_time*MilliSec);
-        }
+        i32 auto_contempt   = (time_diff >= MilliSec) ? time_diff / (i32(Options["Auto Contempt (sec)"])*MilliSec) : 0;
 
-        Value contempt = Value(cp_to_value (float(fixed_contempt + timed_contempt) / 0x64)); // 100
+        Value contempt = Value(cp_to_value (float(manual_contempt + auto_contempt) / 0x64)); // 100
         DrawValue[ RootColor] = VALUE_DRAW - contempt;
         DrawValue[~RootColor] = VALUE_DRAW + contempt;
 
@@ -1945,7 +1937,7 @@ namespace Searcher {
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
 
-            autosave_time = i32(Options["Auto-Save Hash (mins)"]);
+            autosave_time = i32(Options["Auto Save Hash (min)"]);
             if (autosave_time)
             {
                 Threadpool.autosave        = new_thread<TimerThread> ();
