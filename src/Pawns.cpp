@@ -281,7 +281,7 @@ namespace Pawns {
             if (pos.count<PAWN>(C) > 1)
             {
                 i32 span = e->semiopen_files[C] ^ 0xFF;
-                e->pawn_span[C] = i32(scan_msq (span) - scan_lsq (span));
+                e->pawn_span[C] = u08(scan_msq (span)) - u08(scan_lsq (span));
                 pawn_score += FileSpanBonus * i32(e->pawn_span[C]);
             }
             else
@@ -322,7 +322,7 @@ namespace Pawns {
             u08 br = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (  kf == f
                && EndEdge_bb & (File(f) | Rank(br))
-               && rel_rank (C, k_sq) == br - 1
+               && rel_rank (C, k_sq) + 1 == br
                )
             {
                 value += Value(200); // Enemy pawn in front Shelter
@@ -331,7 +331,7 @@ namespace Pawns {
             {
                 mid_pawns = front_pawns[0] & File_bb[f];
                 u08 wr = mid_pawns ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
-                u08 danger = wr == R_1 ? 0 : wr != br - 1 ? 1 : 2;
+                u08 danger = wr == R_1 ? 0 : wr + 1 != br ? 1 : 2;
                 value -= ShelterWeakness[wr] + StormDanger[danger][br];
             }
         }
