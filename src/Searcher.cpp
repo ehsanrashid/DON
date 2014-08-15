@@ -55,20 +55,6 @@ namespace Searcher {
             return (Depth) Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)];
         }
 
-        /*
-        // TODO::
-        CACHE_ALIGN(32) Value FutilityMargins[FutilityMarginDepth][ReductionMoveCount]; // [depth][move_num]
-        inline Value futility_margin(Depth d, int mn)
-        {
-            return d < FutilityMarginDepth ? FutilityMargins[max (d, Depth (1))][min (mn, ReductionMoveCount-1)] : 2*VALUE_INFINITE;
-        }
-        CACHE_ALIGN(32) i32   FutilityMoveCounts[FutilityMoveCountDepth];  // [depth]
-        inline u08 futility_move_count (Depth d)
-        {
-            return d < FutilityMoveCountDepth ? FutilityMoveCounts[d] : MaxMoves;
-        }
-        */
-
         const Depth         ProbCutDepth = Depth(5*i16(ONE_MOVE));
 
         const u08           MaxQuiets = 64;
@@ -941,7 +927,7 @@ namespace Searcher {
 
                 singular_ext_node =
                        !RootNode
-                    && depth >= (PVNode ? 8 : 8)*i16(ONE_MOVE) // TODO::
+                    && depth >= 8*i16(ONE_MOVE)
                     && tt_move != MOVE_NONE
                     && excluded_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN
@@ -1071,26 +1057,9 @@ namespace Searcher {
                 bool dangerous =
                        gives_check
                     || NORMAL != mt
-                    || pos.advanced_pawn_push (move)
-                    /*
-                    //|| CASTLE == mt         // TODO::
-                    || (  NORMAL == mt        // Entering a pawn endgame?
-                       && capture_or_promotion
-                       && PAWN != ptype (pos[dst_sq (move)])
-                       && (  pos.non_pawn_material (WHITE)
-                           + pos.non_pawn_material (BLACK)
-                           - PieceValue[MG][ptype (pos[dst_sq (move)])] == VALUE_ZERO
-                          )
-                       )
-                    */
-                    ;
+                    || pos.advanced_pawn_push (move);
 
-                // Step 13. Extend the move which seems dangerous like ...checks etc. TODO::
-                //if (PVNode && dangerous)
-                //{
-                //    ext = 1*ONE_MOVE;
-                //}
-                //else
+                // Step 13. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
                 {
                     ext = 1*ONE_MOVE;
@@ -1300,7 +1269,7 @@ namespace Searcher {
                 // Step 18. Undo move
                 pos.undo_move ();
 
-                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE); // TODO::
+                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Step 19. Check for new best move
                 if (SPNode)
@@ -2064,19 +2033,12 @@ namespace Searcher {
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
             //FutilityMargins      [d] = Value(i32(  0 + (0x64 + 0*d)*d)); // 0, 100 ---> LTC
-            FutilityMargins      [d] = Value(i32( 10 + (0x50 + 1*d)*d)); // 10, 80 ---> STC
-            // TODO::
-            //for (mc = 0; FutilityMoveCountDepth < 64; ++mc)
-            //{
-            //    FutilityMargins[d][mc] = Value(112 * i32(log (float(d*d) / 2) / log (2.0f) + 1.001f) - 8 * mc + 45);
-            //}
+            FutilityMargins      [d] = Value(i32( 5 + (0x5A + 1*d)*d)); // 5, 90 ---> STC
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
             FutilityMoveCounts[0][d] = u08(2.400f + 0.222f * pow (0.00f + d, 1.80f));
             FutilityMoveCounts[1][d] = u08(3.000f + 0.300f * pow (0.98f + d, 1.80f));
-            // TODO::
-            //FutilityMoveCounts[d]    = u08(3.001f + 0.250f * pow (d, 2.0f));
         }
 
         Reductions[0][0][0][0] = Reductions[0][1][0][0] = Reductions[1][0][0][0] = Reductions[1][1][0][0] = 0;

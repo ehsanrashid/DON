@@ -338,7 +338,7 @@ namespace UCI {
         // Default 0, Min -100, Max +100.
         Options["Manual Contempt"]              << Option (0, -100, +100);
         // Auto Contempt Time (sec)
-        Options["Auto Contempt (sec)"]          << Option (0, 0, 600);
+        Options["Auto Contempt (sec)"]          << Option (6, 0, 600);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
