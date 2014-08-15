@@ -559,6 +559,7 @@ namespace Searcher {
 
             // Step 1. Initialize node
             bool   in_check = pos.checkers ();
+
             bool singular_ext_node = false;
 
             SplitPoint *splitpoint;
@@ -582,7 +583,6 @@ namespace Searcher {
                 (ss)->ply = (ss-1)->ply + 1;
                 (ss)->current_move = MOVE_NONE;
 
-                (ss+1)->reduction       = DEPTH_ZERO;
                 (ss+2)->killer_moves[0] = (ss+2)->killer_moves[1] = MOVE_NONE;
 
                 // Used to send 'seldepth' info to GUI
@@ -1142,27 +1142,27 @@ namespace Searcher {
                    && !capture_or_promotion
                    )
                 {
-                    (ss)->reduction = reduction<PVNode> (improving, depth, legals);
+                    Depth reduction_depth = reduction<PVNode> (improving, depth, legals);
 
                     if (!PVNode && cut_node)
                     {
-                        (ss)->reduction += 1*ONE_MOVE;
+                        reduction_depth += 1*ONE_MOVE;
                     }
                     else
                     if (HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO)
                     {
-                        (ss)->reduction += 1*ONE_PLY;
+                        reduction_depth += 1*ONE_PLY;
                     }
 
-                    if (  (ss)->reduction > DEPTH_ZERO
+                    if (  reduction_depth > DEPTH_ZERO
                        && (move == counter_moves[0] || move == counter_moves[1])
                        )
                     {
-                        (ss)->reduction = max ((ss)->reduction - 1*i16(ONE_MOVE), DEPTH_ZERO);
+                        reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
                     }
 
                     // Decrease reduction for moves that escape a capture
-                    if (  (ss)->reduction > DEPTH_ZERO
+                    if (  reduction_depth > DEPTH_ZERO
                        && mt == NORMAL
                        && ptype (pos[dst_sq (move)]) != PAWN
                        )
@@ -1170,27 +1170,26 @@ namespace Searcher {
                         // Reverse move
                         if (pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO)
                         {
-                            (ss)->reduction = max ((ss)->reduction - 1*i16(ONE_MOVE), DEPTH_ZERO);
+                            reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
                         }
                     }
 
-                    Depth red_depth = max (new_depth - (ss)->reduction, 1*ONE_MOVE);
+                    Depth reduced_depth = max (new_depth - reduction_depth, 1*ONE_MOVE);
 
                     if (SPNode) alpha = splitpoint->alpha;
 
                     // Search with reduced depth
-                    value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, red_depth, true, false, MOVE_NONE);
+                    value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true, false, MOVE_NONE);
 
                     // Re-search at intermediate depth if reduction is very high
-                    if (alpha < value && (ss)->reduction >= 4*i16(ONE_MOVE))
+                    if (alpha < value && reduction_depth >= 4*i16(ONE_MOVE))
                     {
                         Depth inter_depth = max (new_depth - 2*i16(ONE_MOVE), 1*ONE_MOVE);
                         
                         value = -search_depth<NonPV, false> (pos, ss+1, -alpha-1, -alpha, inter_depth, true, false, MOVE_NONE);
                     }
 
-                    full_depth_search = alpha < value && (ss)->reduction > DEPTH_ZERO;
-                    (ss)->reduction = DEPTH_ZERO;
+                    full_depth_search = alpha < value && reduction_depth > DEPTH_ZERO;
                 }
 
                 // Step 17. Full depth search, when LMR is skipped or fails high

@@ -180,7 +180,6 @@ namespace Searcher {
 
         Value   static_eval;
 
-        Depth   reduction;
     };
 
     extern LimitsT               Limits;
