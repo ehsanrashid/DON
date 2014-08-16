@@ -80,7 +80,7 @@ namespace Threads {
     const u08   MaxSplitDepth        =  15; // Maximum split depth
     
     extern void check_time ();
-    extern void autosave_hash ();
+    extern void auto_save_hash ();
 
     template<class T>
     extern T* new_thread ();

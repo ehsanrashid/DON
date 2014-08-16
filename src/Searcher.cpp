@@ -167,12 +167,15 @@ namespace Searcher {
                 (ss)->killer_moves[0] = move;
             }
 
+            ASSERT (quiet_moves == NULL || quiet_moves[quiets] == move);
+            
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
             Value bonus = Value(depth * depth);
             HistoryStatistics.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (u08 i = 0; i < quiets; ++i)
             {
                 Move m = quiet_moves[i];
+                ASSERT (m != move);
                 HistoryStatistics.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
@@ -529,7 +532,7 @@ namespace Searcher {
             return best_value;
         }
 
-        template<NodeT NT, bool SPNode, bool DoNullMove>
+        template<NodeT NT, bool SPNode, bool MoveNull>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
@@ -742,7 +745,7 @@ namespace Searcher {
                         }
 
                         // Step 7,8,9.
-                        if (DoNullMove)
+                        if (MoveNull)
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
@@ -831,8 +834,11 @@ namespace Searcher {
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
                                 MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
-                                cc = CheckInfo (pos);
-                                ci = &cc;
+                                if (ci == NULL)
+                                {
+                                    cc = CheckInfo (pos);
+                                    ci = &cc;
+                                }
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
                                     if (!pos.legal (move, ci->pinneds)) continue;
@@ -933,11 +939,6 @@ namespace Searcher {
                 }
             }
 
-            u08   legals = 0
-                , quiets = 0;
-
-            Move quiet_moves[MaxQuiets] = { MOVE_NONE };
-
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
             Move counter_moves[2] =
             {
@@ -959,6 +960,11 @@ namespace Searcher {
                 cc = CheckInfo (pos);
                 ci = &cc;
             }
+
+            u08   legals = 0
+                , quiets = 0;
+
+            Move quiet_moves[MaxQuiets] = { MOVE_NONE };
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1208,8 +1214,7 @@ namespace Searcher {
                             -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node, MOVE_NONE);
                 }
 
-                // Principal Variation Search
-                // For PV nodes only
+                // Principal Variation Search (PV nodes only)
                 if (PVNode)
                 {
                     // Do a full PV search on:
@@ -1416,7 +1421,7 @@ namespace Searcher {
                 if (Signals.force_stop) break;
                 
                 // Age out PV variability metric
-                RootMoves.best_move_changes *= 0.5;
+                RootMoves.best_move_changes *= 0.5f;
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -1440,8 +1445,8 @@ namespace Searcher {
                         {
                             window[0] =
                             window[1] =
-                                Value(16);
-                                //Value(dep < 12*i16(ONE_MOVE) ? 20 - dep/4 : 14); // TODO:: Decreasing window
+                                //Value(16);
+                                Value(dep < 12*i16(ONE_MOVE) ? 20 - dep/4 : 14); // Decreasing window
 
                             bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
                             bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
@@ -1566,20 +1571,21 @@ namespace Searcher {
                         TimeMgr.instability (RootMoves.best_move_changes);
 
                         // Take less time for recaptures if good
-                        bool fast_recapture = false;
-                        if (RootMoves.best_move_changes < 0.05 && SetupStates.get () != NULL && !SetupStates->empty ())
+                        bool good_recapture = false;
+                        if (RootMoves.best_move_changes < 0.05f && SetupStates.get () != NULL && !SetupStates->empty ())
                         {
                             PieceT org_pt = ptype (RootPos[org_sq (RootMoves[0].pv[0])]);
                             PieceT dst_pt = ptype (RootPos[dst_sq (RootMoves[0].pv[0])]);
                             PieceT cap_pt = SetupStates->top ().capture_type;
+                            if (org_pt == KING) org_pt = QUEN;
 
-                            fast_recapture = dst_pt != NONE && cap_pt != NONE && dst_pt != cap_pt
+                            good_recapture = dst_pt != NONE && cap_pt != NONE //&& org_pt != KING //&& dst_pt != cap_pt
                                 && (  PieceValue[MG][dst_pt] - PieceValue[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
-                                   //|| PieceValue[MG][dst_pt] - PieceValue[MG][cap_pt] > VALUE_MG_ROOK - VALUE_MG_NIHT
+                                   || PieceValue[MG][dst_pt] - PieceValue[MG][cap_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
                                    || abs (PieceValue[MG][org_pt] - PieceValue[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
                                    );
                         }
-                        TimeMgr.recapture (fast_recapture);
+                        TimeMgr.recapture (good_recapture);
                     }
 
                     // If there is only one legal move available or 
@@ -1877,7 +1883,7 @@ namespace Searcher {
             if (auto_save_time)
             {
                 Threadpool.auto_save        = new_thread<TimerThread> ();
-                Threadpool.auto_save->task  = autosave_hash;
+                Threadpool.auto_save->task  = auto_save_hash;
                 Threadpool.auto_save->resolution = auto_save_time*60*MilliSec;
                 Threadpool.auto_save->start ();
                 Threadpool.auto_save->notify_one ();
@@ -2092,7 +2098,7 @@ namespace Threads {
                     // or Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && time > TimeMgr.available_time () * (RootMoves.best_move_changes < 1.0e-4 ? 50 : 75) / 100 // TODO:: 75/100
+                    && time > TimeMgr.available_time () * (RootMoves.best_move_changes < 1.0e-4f ? 50 : 75) / 100 // TODO:: 75/100
                     )
                  ) 
               )
@@ -2104,7 +2110,7 @@ namespace Threads {
         }
     }
 
-    void autosave_hash ()
+    void auto_save_hash ()
     {
         string hash_fn = string(Options["Hash File"]);
         TT.save (hash_fn);
