@@ -1469,16 +1469,6 @@ namespace Searcher {
                     {
                         best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
 
-                        i16 valued_contempt = 0;
-                        if (  ContemptMaterial > 0
-                           && (valued_contempt = i16(best_value)/ContemptMaterial) != 0
-                           //&& ContemptMaterial <= abs (valued_contempt)
-                           )
-                        {
-                            DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
-                            DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
-                        }
-
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
                         // and eventually the new best one are set to -VALUE_INFINITE and
@@ -1550,6 +1540,16 @@ namespace Searcher {
                     {
                         sync_cout << info_multipv (RootPos, dep, bound[0], bound[1], iteration_time) << sync_endl;
                     }
+                }
+
+                i16 valued_contempt = 0;
+                if (  ContemptMaterial > 0
+                   && (valued_contempt = i16(RootMoves[0].value[0])/ContemptMaterial) != 0
+                   //&& ContemptMaterial <= abs (valued_contempt)
+                   )
+                {
+                    DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
+                    DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
