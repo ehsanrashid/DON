@@ -539,7 +539,7 @@ namespace Searcher {
         // the first move before splitting, don't have to repeat all this work again.
         // Also don't need to store anything to the hash table here.
         // This is taken care of after return from the splitpoint.
-        inline Value search_depth  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node, bool skip_null_move, Move excluded_move)
+        inline Value search_depth  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node, bool null_move_skip, Move excluded_move)
         {
             const bool RootNode = NT == Root;
             const bool   PVNode = NT == Root || NT == PV;
@@ -631,7 +631,7 @@ namespace Searcher {
                     tt_bound = tte->bound ();
                     if (!in_check) static_eval = tte->eval ();
                 }
-
+                
                 if (!RootNode)
                 {
                     // At PV nodes check for exact scores, while at non-PV nodes check for
@@ -640,7 +640,10 @@ namespace Searcher {
                     // should also update RootMoveList to avoid bogus output.
                     if (  tte != NULL
                        && tt_value != VALUE_NONE // Only in case of TT access race
-                       && tt_depth >= depth
+                       && (  tt_depth >= depth
+                          //|| tt_value >= max (VALUE_MATES_IN_MAX_PLY, beta)
+                          //|| tt_value <  min (VALUE_MATED_IN_MAX_PLY, beta)
+                          )
                        && (         PVNode ? tt_bound == BND_EXACT :
                           tt_value >= beta ? tt_bound &  BND_LOWER :
                                              tt_bound &  BND_UPPER
@@ -739,7 +742,7 @@ namespace Searcher {
                         }
 
                         // Step 7,8,9.
-                        if (!skip_null_move)
+                        if (!null_move_skip)
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
@@ -1438,16 +1441,15 @@ namespace Searcher {
                             window[0] =
                             window[1] =
                                 Value(16);
-                                //Value(dep < 16*i16(ONE_MOVE) ? 14 + dep/4 : 22); // increases have to check
-                                //Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12); // decreases better
-                                
+                                //Value(dep < 12*i16(ONE_MOVE) ? 20 - dep/4 : 14); // TODO:: Decreasing window
+
                             bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
                             bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
                         }
                         else
                         {
-                            if (RootMoves[CurPV].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                            if (RootMoves[CurPV].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
+                            if (RootMoves[CurPV].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(14); };
+                            if (RootMoves[CurPV].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(14); };
                         }
                     }
 
