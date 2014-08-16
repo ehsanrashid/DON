@@ -264,7 +264,7 @@ namespace Searcher {
             return ss.str ();
         }
 
-        template <NodeT NT, bool InCheck>
+        template<NodeT NT, bool InCheck>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is ZERO (to be more precise, less than ONE_MOVE).
@@ -529,7 +529,7 @@ namespace Searcher {
             return best_value;
         }
 
-        template <NodeT NT, bool SPNode, bool DoNullMove>
+        template<NodeT NT, bool SPNode, bool DoNullMove>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
