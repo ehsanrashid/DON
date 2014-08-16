@@ -69,7 +69,7 @@ namespace Searcher {
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO]
-            ,   InitialContempt;
+            ,   BaseContempt[CLR_NO];
 
         i16     ContemptMaterial;
 
@@ -1469,15 +1469,14 @@ namespace Searcher {
                     {
                         best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
 
-                        float diff_matl = 0.0f;
+                        i16 valued_contempt = 0;
                         if (  ContemptMaterial > 0
-                           && (diff_matl = float(best_value)/i16(VALUE_EG_PAWN)/ContemptMaterial) != 0.0f
-                           //&& ContemptMaterial <= abs (diff_matl)
+                           && (valued_contempt = i16(best_value)/ContemptMaterial) != 0
+                           //&& ContemptMaterial <= abs (valued_contempt)
                            )
                         {
-                            Value matl_contempt = Value(cp_to_value (diff_matl * 2 / 0x64));
-                            DrawValue[ RootColor] = VALUE_DRAW - InitialContempt - matl_contempt;
-                            DrawValue[~RootColor] = VALUE_DRAW + InitialContempt + matl_contempt;
+                            DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
+                            DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
                         }
 
                         // Bring to front the best move. It is critical that sorting is
@@ -1813,7 +1812,7 @@ namespace Searcher {
     void think ()
     {
         RootColor = RootPos.active ();
-        RootSize = RootMoves.size ();
+        RootSize  = RootMoves.size ();
 
         SearchLog = string(Options["Search Log"]);
         if (!SearchLog.empty ())
@@ -1888,11 +1887,11 @@ namespace Searcher {
                 timed_contempt = diff_time / contempt_time;
             }
 
-            InitialContempt = Value(cp_to_value (float(fixed_contempt + timed_contempt) / 0x64)); // 100
-            DrawValue[ RootColor] = VALUE_DRAW - InitialContempt;
-            DrawValue[~RootColor] = VALUE_DRAW + InitialContempt;
+            Value contempt = Value(cp_to_value (float(fixed_contempt + timed_contempt) / 0x64)); // 100
+            DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
+            DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            ContemptMaterial = i16(i32(Options["Material Contempt (cp)"]));
+            ContemptMaterial = i16(i32(Options["Valued Contempt (cp)"]));
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;

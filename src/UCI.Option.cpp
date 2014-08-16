@@ -340,13 +340,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (0, -100, +100);
+        Options["Fixed Contempt"]               << Option (   0,-100,+100);
         // Time (sec) for Timed Contempt
-        // Default +6, Min 0, Max +600.
-        Options["Timed Contempt (sec)"]         << Option (6, 0, 600);
-        // Centipawn (cp) for Material Contempt
-        // Default +2, Min 0, Max +20.
-        Options["Material Contempt (cp)"]       << Option (1, 0, 10);
+        // Default +6, Min 0, Max +900.
+        Options["Timed Contempt (sec)"]         << Option (+  6,   0,+900);
+        // Centipawn (cp) for Valued Contempt
+        // Default +50, Min 0, Max +1000.
+        Options["Valued Contempt (cp)"]         << Option (+ 50,   0,+1000);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -359,10 +359,10 @@ namespace UCI {
         //
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option ( 50, 5,  50, on_50_move_dist);
+        Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
-        Options["Space"]                        << Option (100, 0, 200, on_change_evaluation);
-        Options["King Safety"]                  << Option (100, 0, 200, on_change_evaluation);
+        Options["Space"]                        << Option (+100,   0,+1000, on_change_evaluation);
+        Options["King Safety"]                  << Option (+100,   0,+1000, on_change_evaluation);
 
         //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
         //Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
@@ -370,7 +370,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // How slow you want engine to play, 100 is neutral
-        Options["Slowness"]                     << Option ( 85, 10, 1000);
+        Options["Slowness"]                     << Option (+ 85,+ 10,+ 1000);
 
         // Debug Options
         // -------------
