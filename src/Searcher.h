@@ -176,6 +176,7 @@ namespace Searcher {
 
         Move    tt_move
             ,   current_move
+            ,   excluded_move
             ,   killer_moves[2];
 
         Value   static_eval;

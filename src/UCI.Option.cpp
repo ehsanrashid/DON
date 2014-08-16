@@ -267,6 +267,7 @@ namespace UCI {
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
         Options["Load Hash"]                    << Option (on_load_hash);
 
+
         // Position Learning Options
         // -------------------------
 
@@ -278,11 +279,6 @@ namespace UCI {
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (true);
 
-        // How well you want engine to play.
-        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
-        //
-        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
 
         // End Game Table Bases Options
         // ----------------------------
@@ -310,6 +306,12 @@ namespace UCI {
         // Game Play Options
         // -----------------
 
+        // How well you want engine to play.
+        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
+        //
+        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
+
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
@@ -332,13 +334,19 @@ namespace UCI {
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1);
 
-        // Manual Contempt roughly equivalent to "Optimism". Changes playing style.
+        // Changes playing style.
+        // ----------------------
+        // Fixed Contempt roughly equivalent to "Optimism".
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Manual Contempt"]              << Option (0, -100, +100);
-        // Auto Contempt Time (sec)
-        Options["Auto Contempt (sec)"]          << Option (6, 0, 600);
+        Options["Fixed Contempt"]               << Option (0, -100, +100);
+        // Time (sec) for Timed Contempt
+        // Default +6, Min 0, Max +600.
+        Options["Timed Contempt (sec)"]         << Option (6, 0, 600);
+        // Centipawn (cp) for Material Contempt
+        // Default +2, Min 0, Max +20.
+        Options["Material Contempt (cp)"]       << Option (1, 0, 10);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
