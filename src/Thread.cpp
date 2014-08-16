@@ -146,8 +146,9 @@ namespace Threads {
         sp.nodes        = 0;
         sp.cut_off      = false;
 
-        // Try to allocate available threads and ask them to start searching setting
-        // 'searching' flag. This must be done under lock protection to avoid concurrent
+        // Try to allocate available threads and ask them to start
+        // searching by setting 'searching' flag.
+        // This must be done under lock protection to avoid concurrent
         // allocation of the same slave by another master.
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
