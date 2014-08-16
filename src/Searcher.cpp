@@ -71,7 +71,7 @@ namespace Searcher {
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
 
-        i16     ContemptMaterial;
+        i16     ContemptValue;
 
         bool    MateSearch;
 
@@ -1543,9 +1543,9 @@ namespace Searcher {
                 }
 
                 i16 valued_contempt = 0;
-                if (  ContemptMaterial > 0
-                   && (valued_contempt = i16(RootMoves[0].value[0])/ContemptMaterial) != 0
-                   //&& ContemptMaterial <= abs (valued_contempt)
+                if (  ContemptValue > 0
+                   && (valued_contempt = i16(RootMoves[0].value[0])/ContemptValue) != 0
+                   //&& ContemptValue <= abs (valued_contempt)
                    )
                 {
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
@@ -1891,7 +1891,7 @@ namespace Searcher {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            ContemptMaterial = i16(i32(Options["Valued Contempt (cp)"]));
+            ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
