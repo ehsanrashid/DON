@@ -1542,12 +1542,9 @@ namespace Searcher {
                     }
                 }
 
-                i16 valued_contempt = 0;
-                if (  ContemptValue > 0
-                   && (valued_contempt = i16(RootMoves[0].value[0])/ContemptValue) != 0
-                   //&& ContemptValue <= abs (valued_contempt)
-                   )
+                if (ContemptValue > 0)
                 {
+                    i16 valued_contempt = i16(RootMoves[0].value[0])/ContemptValue;
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
                 }
@@ -1881,7 +1878,7 @@ namespace Searcher {
             u16 contempt_time = 0;
             if (  (contempt_time = u16(i32(Options["Timed Contempt (sec)"]))) > 0
                && (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MilliSec) != 0
-               //&& contempt_time <= abs (diff_time) 
+               //&& contempt_time <= abs (diff_time)
                )
             {
                 timed_contempt = diff_time / contempt_time;
