@@ -779,7 +779,7 @@ namespace Searcher {
                                     Depth rdepth = depth -
                                                  ( 3*i16(ONE_MOVE)
                                                  + depth/4
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32(static_eval - beta)*ONE_MOVE/i32(VALUE_MG_PAWN) : DEPTH_ZERO));
+                                                 + (abs (beta) < VALUE_KNOWN_WIN ? (i32(static_eval - beta)/i32(VALUE_MG_PAWN)*ONE_MOVE) : DEPTH_ZERO));
 
                                     // Do null move
                                     pos.do_null_move (si);

@@ -7,7 +7,7 @@
 
 class Position;
 
-const Value MaxHistoryStatsValue = Value(2000);
+const Value MaxHistoryStatsValue = Value(i32(pow (MaxDepth/2, 2))); // (MaxDepth/2)^2
 
 template<bool Gain, class T>
 // The Stats struct stores moves statistics.
