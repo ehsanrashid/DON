@@ -282,8 +282,8 @@ namespace Notation {
     }
 
     // pretty_pv() returns formated human-readable search information, typically to be
-    // appended to the search log file. It uses the two helpers below to pretty
-    // format the time and score respectively.
+    // appended to the search log file.
+    // It uses the two helpers to pretty format the value and time respectively.
     const string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
     {
         const u64 K = 1000;
@@ -302,6 +302,7 @@ namespace Notation {
         else
                                 oss << setw (7) << game_nodes / M << "M  ";
 
+        /*
         string spv = oss.str ();
         string padding = string (spv.length (), ' ');
 
@@ -327,6 +328,25 @@ namespace Notation {
         }
 
         return spv;
+        */
+
+        StateInfoStack states;
+        const Move *m = pv;
+        while (*m != MOVE_NONE)
+        {
+            oss << move_to_san (*m, pos) << " ";
+            states.push (StateInfo ());
+            pos.do_move (*m, states.top ());
+            ++m;
+        }
+
+        while (m != pv)
+        {
+            pos.undo_move ();
+            --m;
+        }
+
+        return oss.str ();
     }
 
 }

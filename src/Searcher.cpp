@@ -170,16 +170,13 @@ namespace Searcher {
                 (ss)->killer_moves[0] = move;
             }
 
-            ASSERT (quiet_moves == NULL || quiet_moves[quiets] == move);
-            
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
             Value bonus = Value(depth * depth);
             HistoryStatistics.update (pos[org_sq (move)], dst_sq (move), bonus);
             for (u08 i = 0; i < quiets; ++i)
             {
                 Move m = quiet_moves[i];
-                ASSERT (m != move);
-                HistoryStatistics.update (pos[org_sq (m)], dst_sq (m), -bonus);
+                if (m != move) HistoryStatistics.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
             if (_ok ((ss-1)->current_move))
@@ -1119,26 +1116,23 @@ namespace Searcher {
                     }
                 }
 
-                if (!SPNode)
+                // Check for legality just before making the move
+                if (!RootNode && !SPNode && !move_legal)
                 {
-                    // Check for legality just before making the move
-                    if (!RootNode && !move_legal)
-                    {
-                        --legals;
-                        continue;
-                    }
-
-                    // Save the quiet move
-                    if (  !capture_or_promotion
-                       && quiets < MaxQuiets
-                       )
-                    {
-                        quiet_moves[quiets++] = move;
-                    }
+                    --legals;
+                    continue;
                 }
 
                 bool move_pv = PVNode && (1 == legals);
                 (ss)->current_move = move;
+                // Save the quiet move
+                if (  !SPNode
+                   && !capture_or_promotion
+                   && quiets < MaxQuiets
+                   )
+                {
+                    quiet_moves[quiets++] = move;
+                }
 
                 // Step 15. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
@@ -1318,7 +1312,7 @@ namespace Searcher {
                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
-                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && best_value <= beta && beta <= -VALUE_INFINITE);
+                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
                         thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
                         
@@ -1366,7 +1360,7 @@ namespace Searcher {
                    && !pos.capture_or_promotion (best_move)
                    )
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets);
                 }
 
                 TT.store (

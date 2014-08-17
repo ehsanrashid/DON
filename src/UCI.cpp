@@ -432,6 +432,8 @@ namespace UCI {
         Threadpool.wait_for_think_finished ();
         // Close book if open
         Book.close ();
+        // Close log file
+        log_debug (false);
     }
 
 }
