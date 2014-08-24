@@ -343,7 +343,7 @@ namespace UCI {
         Options["Fixed Contempt"]               << Option (   0,-100,+100);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+  6,   0,+900);
+        Options["Timed Contempt (sec)"]         << Option (+ 20,   0,+900);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
         Options["Valued Contempt (cp)"]         << Option (+ 50,   0,+1000);
@@ -361,8 +361,8 @@ namespace UCI {
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
-        Options["Space"]                        << Option (+100,   0,+1000, on_change_evaluation);
-        Options["King Safety"]                  << Option (+100,   0,+1000, on_change_evaluation);
+        Options["Space"]                        << Option ( 0,-1000,+1000, on_change_evaluation);
+        Options["King Safety"]                  << Option ( 0,-1000,+1000, on_change_evaluation);
 
         //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
         //Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);

@@ -146,7 +146,7 @@ namespace Searcher {
     {
 
     public:
-        float best_move_changes;
+        float best_move_change;
 
         void initialize (const Position &pos, const std::vector<Move> &root_moves);
 

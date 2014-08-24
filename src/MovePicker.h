@@ -7,63 +7,135 @@
 
 class Position;
 
-const Value MaxHistoryStatsValue = Value(i32(pow (MaxDepth/2, 2))); // (MaxDepth/2)^2
-
-template<bool Gain, class T>
 // The Stats struct stores moves statistics.
-// According to the template parameter the class can store
-// History, Gain, CounterMoveStats & FollowupMoveStats.
-// - History records how often different moves have been successful or unsuccessful during the
-//   current search and is used for reduction and move ordering decisions.
-// - Gain records the move's best evaluation gain from one ply to the next and is used
-//   for pruning decisions.
-// - CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
+
+// Gain records the move's best evaluation gain from one ply to the next and is used
+// for pruning decisions.
 // Entries are stored according only to moving piece and destination square,
 // in particular two moves with different origin but same destination and same piece will be considered identical.
-struct Stats
+struct GainStats
 {
 
 private:
-    T _table[TOT_PIECE][SQ_NO];
+    Value _values[TOT_PIECE][SQ_NO];
 
 public:
 
-    inline const T* operator[] (Piece p) const { return _table[p]; }
+    inline const Value* operator[] (Piece p) const { return _values[p]; }
 
     inline void clear ()
     {
-        memset (_table, 0x00, sizeof (_table));
+        std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
     }
 
-    inline void update (Piece p, Square s, Move m)
+    inline void update (const Position &pos, Move m, Value g)
     {
-        if (m != _table[p][s].first)
-        {
-            _table[p][s].second = _table[p][s].first;
-            _table[p][s].first = m;
-        }
+        Square s = dst_sq (m);
+        Piece p  = pos[s];
+
+        _values[p][s] = std::max (g, _values[p][s]-1);
+    }
+};
+
+// History records how often different moves have been successful or unsuccessful during the
+// current search and is used for reduction and move ordering decisions.
+// Entries are stored according only to moving piece and destination square,
+// in particular two moves with different origin but same destination and same piece will be considered identical.
+struct HistoryStats
+{
+
+private:
+    i16 _counts[TOT_PIECE][SQ_NO][2];
+    Value _values[TOT_PIECE][SQ_NO];
+
+public:
+    
+    static const Value MinValue = Value(-2001);
+    static const Value MaxValue = Value(+2000);
+    
+    inline void clear ()
+    {
+        memset (_counts, 0x00, sizeof (_counts));
+        std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), MinValue);
     }
 
-    inline void update (Piece p, Square s, Value v)
+    inline void success (const Position &pos, Move m, i16 d)
     {
-        if (Gain)
+        Piece p     = pos[org_sq (m)];
+        Square s    = dst_sq (m);
+
+        i16 cnt = _counts[p][s][0] + d*d;
+        if (cnt > 2000)
         {
-            _table[p][s] = std::max (v, _table[p][s]-1);
+            cnt /= 2;
+            _counts[p][s][1] /= 2;
         }
-        else
+        _counts[p][s][0] = cnt;
+        _values[p][s] = MinValue;
+    }
+
+    inline void failure (const Position &pos, Move m, i16 d)
+    {
+        Piece p     = pos[org_sq (m)];
+        Square s    = dst_sq (m);
+
+        i16 cnt = _counts[p][s][1] + d*d;
+        if (cnt > 2000)
         {
-            if (abs (i32(_table[p][s] + v)) < MaxHistoryStatsValue)
-            {
-                _table[p][s] += v;
-            }
+            cnt /= 2;
+            _counts[p][s][0] /= 2;
         }
+        _counts[p][s][1] = cnt;
+        _values[p][s] = MinValue;
+    }
+
+    inline Value value (Piece p, Square s)
+    {
+        if (_values[p][s] <= MinValue)
+        {
+            i16 succ = _counts[p][s][0];
+            i16 fail = _counts[p][s][1];
+            _values[p][s] = (succ + fail > 0) ? MaxValue * i32(succ-fail) / (succ+fail) : VALUE_ZERO;
+        }
+
+        return _values[p][s];
     }
 
 };
 
-typedef Stats< true,                Value  > GainStats;
-typedef Stats<false,                Value  > HistoryStats;
-typedef Stats<false, std::pair<Move, Move> > MoveStats;
+// CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
+// Entries are stored according only to moving piece and destination square,
+// in particular two moves with different origin but same destination and same piece will be considered identical.
+struct MoveStats
+{
+
+private:
+    Move _moves[TOT_PIECE][SQ_NO][2];
+
+public:
+
+    inline void clear ()
+    {
+        std::fill (**_moves, **_moves + sizeof (_moves) / sizeof (***_moves), MOVE_NONE);
+    }
+
+    inline void update (const Position &pos, Move m1, Move m2)
+    {
+        Square s = dst_sq (m1);
+        Piece p  = pos[s];
+        if (m2 != _moves[p][s][0])
+        {
+            _moves[p][s][1] = _moves[p][s][0];
+            _moves[p][s][0] = m2;
+        }
+    }
+
+    inline Move* moves (const Position &pos, Square s)
+    {
+        return _moves[pos[s]][s];
+    }
+};
+
 
 // MovePicker class is used to pick one pseudo legal move at a time from the
 // current position. The most important method is next_move(), which returns a
@@ -83,13 +155,15 @@ private:
         ,   *bad_captures_end;
 
     const Position &pos;
-    const HistoryStats &history;
+    HistoryStats &history;
 
     Searcher::Stack *ss;
 
-    ValMove killers[6];
-    Move   *counter_moves;
-    Move   *followup_moves;
+    Move   killers[6]
+        ,  *counter_moves
+        ,  *followup_moves
+        ,  *kcur
+        ,  *kend;
 
     Move    tt_move;
     Depth   depth;
@@ -112,9 +186,9 @@ private:
 
 public:
 
-    MovePicker (const Position&, const HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
-    MovePicker (const Position&, const HistoryStats&, Move, Depth, Square);
-    MovePicker (const Position&, const HistoryStats&, Move,        PieceT);
+    MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
+    MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
+    MovePicker (const Position&, HistoryStats&, Move,        PieceT);
 
     template<bool SPNode>
     Move next_move ();

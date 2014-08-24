@@ -116,7 +116,7 @@ public:
 
     void insert_entry (const PolyglotBook::PBEntry &pbe);
 
-    void write ();
+    //void write ();
 
     //void import_pgn (const std::string &pgn_fn);
     //void merge_book (const std::string &book_fn);

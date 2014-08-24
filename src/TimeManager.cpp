@@ -81,11 +81,11 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
         // Calculate thinking time for hypothetic "moves to go"-value
         i32 hyp_time =
             + gameclock.time
-            + gameclock.inc * (hyp_movestogo - 1)
+            + gameclock.inc * (hyp_movestogo-1)
             - EmergencyClockTime
             - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon);
 
-        if (hyp_time < 0) hyp_time = 0;
+        hyp_time = max (0, hyp_time);
 
         u32 opt_time = MinimumThinkingTime + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
         u32 max_time = MinimumThinkingTime + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);

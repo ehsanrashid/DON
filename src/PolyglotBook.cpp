@@ -220,14 +220,14 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     PBEntry pbe;
 
     u16 max_weight = 0;
-    u32 sum_weight = 0;
+    u32 weight_sum = 0;
 
     //vector<PBEntry> pe_list;
     //while ((*this >> pbe), (pbe.key == key))
     //{
     //    pe_list.push_back (pbe);
     //    max_weight = max (max_weight, pbe.weight);
-    //    sum_weight += pbe.weight;
+    //    weight_sum += pbe.weight;
     //}
     //if (!pe_list.size ()) return MOVE_NONE;
     //
@@ -252,7 +252,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
     //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
     //
-    //    u32 rand = (_rkiss.rand<u32> () % sum_weight);
+    //    u32 rand = (_rkiss.rand<u32> () % weight_sum);
     //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
     //    while (ms != pe_list.end ())
     //    {
@@ -272,7 +272,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         if (MOVE_NONE == pbe.move) continue;
 
         max_weight = max (max_weight, pbe.weight);
-        sum_weight += pbe.weight;
+        weight_sum += pbe.weight;
 
         // Choose book move according to its score.
         // If a move has a very high score it has a higher probability
@@ -280,7 +280,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
         // Note that first entry is always chosen.
 
         //u32 rand = _rkiss.rand<u32> ();
-        //if ((sum_weight && rand % sum_weight < pbe.weight) ||
+        //if ((weight_sum && rand % weight_sum < pbe.weight) ||
         //    (pick_best && (pbe.weight == max_weight)))
         //{
         //    move = Move(pbe.move);
@@ -291,9 +291,9 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
             if (pbe.weight == max_weight) move = Move(pbe.move);
         }
         else
-        if (sum_weight)
+        if (weight_sum)
         {
-            u16 rand = _rkiss.rand<u16> () % sum_weight;
+            u16 rand = _rkiss.rand<u16> () % weight_sum;
             if (pbe.weight > rand) move = Move(pbe.move);
         }
         else
@@ -329,7 +329,7 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
         Move m = *ms;
         //if ((m ^ mtype (m)) == move)
-        if ((m & 0x3FFF) == move)
+        if ((m & ~PROMOTE) == move)
         {
             return m;
         }
@@ -359,20 +359,20 @@ string PolyglotBook::read_entries (const Position &pos)
 
     vector<PBEntry> pe_list;
 
-    u32 sum_weight = 0;
+    u32 weight_sum = 0;
     while ((*this >> pbe), (pbe.key == key))
     {
         pe_list.push_back (pbe);
-        sum_weight += pbe.weight;
+        weight_sum += pbe.weight;
     }
 
     //TODO::
     ostringstream oss;
-    //for_each (pe_list.begin (), pe_list.end (), [&oss, &sum_weight] (PBEntry _pbe)
+    //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
     //{
     //    oss << setfill ('0')
     //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-    //        << (sum_weight ? 100 * (float) _pbe.weight / sum_weight : 0.0)
+    //        << (weight_sum ? 100 * (float) _pbe.weight / weight_sum : 0.0)
     //        << endl;
     //});
 

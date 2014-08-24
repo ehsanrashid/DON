@@ -32,8 +32,8 @@ const string StartingFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
-    Position pos (0);
-    return Position::parse (pos, fen, NULL, c960, full) && pos.ok ();
+    Position pos (fen, NULL, c960, full);
+    return pos.ok ();
 }
 
 namespace {
@@ -1099,18 +1099,178 @@ void Position::clear ()
     _sb.capture_type  = NONE;
     _si = &_sb;
 }
-// setup() sets the fen on the position
+
+// A FEN string defines a particular position using only the ASCII character set.
+//
+// A FEN string contains six fields separated by a space. The fields are:
+//
+// 1) Piece placement (from white's perspective).
+//    Each rank is described, starting with rank 8 and ending with rank 1;
+//    within each rank, the contents of each square are described from file A through file H.
+//    Following the Standard Algebraic Notation (SAN),
+//    each piece is identified by a single letter taken from the standard English names.
+//    White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
+//    Blank squares are noted using digits 1 through 8 (the number of blank squares),
+//    and "/" separates ranks.
+//
+// 2) Active color. "w" means white, "b" means black - moves next,.
+//
+// 3) Castling availability. If neither side can castle, this is "-". 
+//    Otherwise, this has one or more letters:
+//    "K" (White can castle  Kingside),
+//    "Q" (White can castle Queenside),
+//    "k" (Black can castle  Kingside),
+//    "q" (Black can castle Queenside).
+//
+// 4) En passant target square (in algebraic notation).
+//    If there's no en passant target square, this is "-".
+//    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
+//    This is recorded regardless of whether there is a pawn in position to make an en passant capture.
+//
+// 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
+//    This is used to determine if a draw can be claimed under the fifty-move rule.
+//
+// 6) Fullmove number. The number of the full move.
+//    It starts at 1, and is incremented after Black's move.
 bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 {
-    //Position pos (0);
-    //if (parse (pos, f, th, c960, full) && pos.ok ())
-    //{
-    //    *this = pos;
-    //    return true;
-    //}
-    //return false;
+    if (f.empty ()) return false;
+    istringstream iss (f);
+    iss >> noskipws;
 
-    return parse (*const_cast<Position*> (this), f, th, c960, full);
+    clear ();
+    
+    u08 ch;
+    // 1. Piece placement on Board
+    size_t idx;
+    Square s = SQ_A8;
+    while (iss >> ch && !isspace (ch))
+    {
+        if (isdigit (ch))
+        {
+            s += Delta (ch - '0'); // Advance the given number of files
+        }
+        else
+        if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+        {
+            Piece p = Piece(idx);
+            place_piece (s, color (p), ptype (p));
+            ++s;
+        }
+        else
+        if (ch == '/')
+        {
+            s += DEL_SS;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    ASSERT (_piece_list[WHITE][KING][0] != SQ_NO);
+    ASSERT (_piece_list[BLACK][KING][0] != SQ_NO);
+
+    // 2. Active color
+    iss >> ch;
+    _active = Color(ColorChar.find (ch));
+
+    // 3. Castling rights availability
+    // Compatible with 3 standards:
+    // 1-Normal FEN standard,
+    // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
+    // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
+    // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
+    iss >> ch;
+    if (c960)
+    {
+        while ((iss >> ch) && !isspace (ch))
+        {
+            Color c = isupper (ch) ? WHITE : BLACK;
+            u08 sym = u08(tolower (ch));
+            if ('a' <= sym && sym <= 'h')
+            {
+                Square rsq = (to_file (sym) | rel_rank (c, R_1));
+                //if (ROOK != ptype ((*this)[rsq])) return false;
+                set_castle (c, rsq);
+            }
+            else
+            {
+                continue;
+            }
+        }
+    }
+    else
+    {
+        while ((iss >> ch) && !isspace (ch))
+        {
+            i08 rsq; // Rook Square
+            Color c = isupper (ch) ? WHITE : BLACK;
+            switch (toupper (ch))
+            {
+            case 'K':
+                rsq = rel_sq (c, SQ_H1);
+                while ((rel_sq (c, SQ_A1) <= rsq) && (ROOK != ptype ((*this)[Square(rsq)]))) --rsq;
+                break;
+            case 'Q':
+                rsq = rel_sq (c, SQ_A1);
+                while ((rel_sq (c, SQ_H1) >= rsq) && (ROOK != ptype ((*this)[Square(rsq)]))) ++rsq;
+                break;
+            default:
+                continue;
+            }
+
+            //if (ROOK != ptype ((*this)[Square(rsq)])) return false;
+            set_castle (c, Square(rsq));
+        }
+    }
+
+    // 4. En-passant square. Ignore if no pawn capture is possible
+    u08 col, row;
+    if (  (iss >> col && (col >= 'a' && col <= 'h'))
+       && (iss >> row && (row == '3' || row == '6'))
+       )
+    {
+        if (!(  (WHITE == _active && '6' != row)
+             || (BLACK == _active && '3' != row)
+             )
+           )
+        {
+            Square ep_sq = to_square (col, row);
+            if (can_en_passant (ep_sq))
+            {
+                _si->en_passant_sq = ep_sq;
+            }
+        }
+    }
+
+    // 5-6. 50-move clock and game-move count
+    i32 clk50 = 0, g_move = 1;
+    if (full)
+    {
+        iss >> skipws >> clk50 >> g_move;
+        // Rule 50 draw case
+        //if (clk50 >100) return false;
+        if (g_move <= 0) g_move = 1;
+    }
+
+    // Convert from game_move starting from 1 to game_ply starting from 0,
+    // handle also common incorrect FEN with game_move = 0.
+    _si->clock50 = u08((SQ_NO != _si->en_passant_sq) ? 0 : clk50);
+    _game_ply = max (2 * (g_move - 1), 0) + (BLACK == _active);
+
+    _si->matl_key = Zob.compute_matl_key (*this);
+    _si->pawn_key = Zob.compute_pawn_key (*this);
+    _si->posi_key = Zob.compute_posi_key (*this);
+    _si->psq_score = compute_psq_score ();
+    _si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
+    _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
+    _si->checkers = checkers (_active);
+    _chess960     = c960;
+    _game_nodes   = 0;
+    _thread       = th;
+
+    return true;
 }
 
 // set_castle() set the castling for the particular color & rook
@@ -1781,177 +1941,4 @@ Position::operator string () const
     }
     */
     return oss.str ();
-}
-
-// A FEN string defines a particular position using only the ASCII character set.
-//
-// A FEN string contains six fields separated by a space. The fields are:
-//
-// 1) Piece placement (from white's perspective).
-//    Each rank is described, starting with rank 8 and ending with rank 1;
-//    within each rank, the contents of each square are described from file A through file H.
-//    Following the Standard Algebraic Notation (SAN),
-//    each piece is identified by a single letter taken from the standard English names.
-//    White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
-//    Blank squares are noted using digits 1 through 8 (the number of blank squares),
-//    and "/" separates ranks.
-//
-// 2) Active color. "w" means white, "b" means black - moves next,.
-//
-// 3) Castling availability. If neither side can castle, this is "-". 
-//    Otherwise, this has one or more letters:
-//    "K" (White can castle  Kingside),
-//    "Q" (White can castle Queenside),
-//    "k" (Black can castle  Kingside),
-//    "q" (Black can castle Queenside).
-//
-// 4) En passant target square (in algebraic notation).
-//    If there's no en passant target square, this is "-".
-//    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
-//    This is recorded regardless of whether there is a pawn in position to make an en passant capture.
-//
-// 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
-//    This is used to determine if a draw can be claimed under the fifty-move rule.
-//
-// 6) Fullmove number. The number of the full move.
-//    It starts at 1, and is incremented after Black's move.
-bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c960, bool full)
-{
-    if (fen.empty ()) return false;
-    istringstream iss (fen);
-    iss >> noskipws;
-
-    pos.clear ();
-    
-    u08 ch;
-    // 1. Piece placement on Board
-    size_t idx;
-    Square s = SQ_A8;
-    while (iss >> ch && !isspace (ch))
-    {
-        if (isdigit (ch))
-        {
-            s += Delta (ch - '0'); // Advance the given number of files
-        }
-        else
-        if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
-        {
-            Piece p = Piece(idx);
-            pos.place_piece (s, color (p), ptype (p));
-            ++s;
-        }
-        else
-        if (ch == '/')
-        {
-            s += DEL_SS;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    ASSERT (pos._piece_list[WHITE][KING][0] != SQ_NO);
-    ASSERT (pos._piece_list[BLACK][KING][0] != SQ_NO);
-
-    // 2. Active color
-    iss >> ch;
-    pos._active = Color(ColorChar.find (ch));
-
-    // 3. Castling rights availability
-    // Compatible with 3 standards:
-    // 1-Normal FEN standard,
-    // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
-    // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
-    // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    iss >> ch;
-    if (c960)
-    {
-        while ((iss >> ch) && !isspace (ch))
-        {
-            Color c = isupper (ch) ? WHITE : BLACK;
-            u08 sym = u08(tolower (ch));
-            if ('a' <= sym && sym <= 'h')
-            {
-                Square rsq = (to_file (sym) | rel_rank (c, R_1));
-                //if (ROOK != ptype (pos[rsq])) return false;
-                pos.set_castle (c, rsq);
-            }
-            else
-            {
-                continue;
-            }
-        }
-    }
-    else
-    {
-        while ((iss >> ch) && !isspace (ch))
-        {
-            i08 rsq; // Rook Square
-            Color c = isupper (ch) ? WHITE : BLACK;
-            switch (toupper (ch))
-            {
-            case 'K':
-                rsq = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rsq) && (ROOK != ptype (pos[Square(rsq)]))) --rsq;
-                break;
-            case 'Q':
-                rsq = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rsq) && (ROOK != ptype (pos[Square(rsq)]))) ++rsq;
-                break;
-            default:
-                continue;
-            }
-
-            //if (ROOK != ptype (pos[Square(rsq)])) return false;
-            pos.set_castle (c, Square(rsq));
-        }
-    }
-
-    // 4. En-passant square. Ignore if no pawn capture is possible
-    u08 col, row;
-    if (  (iss >> col && (col >= 'a' && col <= 'h'))
-       && (iss >> row && (row == '3' || row == '6'))
-       )
-    {
-        if (!(  (WHITE == pos._active && '6' != row)
-             || (BLACK == pos._active && '3' != row)
-             )
-           )
-        {
-            Square ep_sq = to_square (col, row);
-            if (pos.can_en_passant (ep_sq))
-            {
-                pos._si->en_passant_sq = ep_sq;
-            }
-        }
-    }
-
-    // 5-6. 50-move clock and game-move count
-    i32 clk50 = 0, g_move = 1;
-    if (full)
-    {
-        iss >> skipws >> clk50 >> g_move;
-        // Rule 50 draw case
-        //if (clk50 >100) return false;
-        if (g_move <= 0) g_move = 1;
-    }
-
-    // Convert from game_move starting from 1 to game_ply starting from 0,
-    // handle also common incorrect FEN with game_move = 0.
-    pos._si->clock50 = u08((SQ_NO != pos._si->en_passant_sq) ? 0 : clk50);
-    pos._game_ply = max (2 * (g_move - 1), 0) + (BLACK == pos._active);
-
-    pos._si->matl_key = Zob.compute_matl_key (pos);
-    pos._si->pawn_key = Zob.compute_pawn_key (pos);
-    pos._si->posi_key = Zob.compute_posi_key (pos);
-    pos._si->psq_score = pos.compute_psq_score ();
-    pos._si->non_pawn_matl[WHITE] = pos.compute_non_pawn_material (WHITE);
-    pos._si->non_pawn_matl[BLACK] = pos.compute_non_pawn_material (BLACK);
-    pos._si->checkers = pos.checkers (pos._active);
-    pos._chess960     = c960;
-    pos._game_nodes   = 0;
-    pos._thread       = thread;
-
-    return true;
 }

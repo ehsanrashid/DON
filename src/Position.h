@@ -212,7 +212,7 @@ public:
     u08    clock50       () const;
     Move   last_move     () const;  // Last move played
     PieceT capture_type  () const;  // Last ptype captured
-    Piece  capture_piece () const;  // Last piece captured
+    //Piece  capture_piece () const;  // Last piece captured
     Bitboard checkers    () const;
 
     Key matl_key      () const;
@@ -267,7 +267,7 @@ public:
     bool gives_check     (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
     bool advanced_pawn_push (Move m)      const;
-    Piece moved_piece (Move m)  const;
+    Piece moving_piece (Move m)  const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
@@ -283,8 +283,6 @@ public:
 
     bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
 
-    void flip ();
-
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
@@ -296,12 +294,12 @@ public:
     void   do_null_move (StateInfo &si);
     void undo_null_move ();
 
+    void flip ();
+
     std::string fen (bool c960, bool full = true) const;
     std::string fen () const { return fen (false); }
     
     operator std::string () const;
-
-    static bool parse (Position &pos, const std::string &fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
 
     template<class CharT, class Traits>
     friend std::basic_ostream<CharT, Traits>&
@@ -402,7 +400,7 @@ inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 inline u08    Position::clock50       () const { return _si->clock50; }
 inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
-inline Piece  Position::capture_piece () const { return (NONE == _si->capture_type) ? EMPTY : (_active | _si->capture_type); }
+//inline Piece  Position::capture_piece () const { return (NONE == _si->capture_type) ? EMPTY : (_active | _si->capture_type); }
 inline Bitboard Position::checkers    () const { return _si->checkers; }
 
 inline Key    Position::matl_key      () const { return _si->matl_key; }
@@ -509,15 +507,15 @@ inline bool Position::capture       (Move m) const
 inline bool Position::capture_or_promotion  (Move m) const
 {
     MoveT mt = mtype (m);
-    return (mt == NORMAL) ? (EMPTY != _board[dst_sq (m)])
-         : (mt == ENPASSANT) ? _ok (_si->en_passant_sq)
-         : (mt != CASTLE);
+    return (mt == NORMAL) ? (EMPTY != _board[dst_sq (m)]) :
+           (mt == ENPASSANT) ? _si->en_passant_sq != SQ_NO : //_ok (_si->en_passant_sq)
+           (mt != CASTLE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
     return (PAWN == ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
 }
-inline Piece Position:: moved_piece (Move m) const { return _board[org_sq (m)]; }
+inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
