@@ -9,7 +9,7 @@
 #include "Notation.h"
 
 using namespace std;
-using namespace MoveGenerator;
+using namespace MoveGen;
 using namespace Notation;
 
 #define STM_POS(x)  ((PGHEADER_SIZE) + (x)*(PGENTRY_SIZE))

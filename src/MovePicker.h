@@ -7,7 +7,9 @@
 
 class Position;
 
-namespace MovePickers {
+namespace MovePick {
+
+    using namespace MoveGen;
 
     // The Stats struct stores moves statistics.
 
@@ -159,7 +161,7 @@ namespace MovePickers {
         const Position &pos;
         HistoryStats &history;
 
-        Searcher::Stack *ss;
+        Search::Stack *ss;
 
         Move   killers[6]
             ,  *counter_moves
@@ -178,7 +180,7 @@ namespace MovePickers {
 
         MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
-        template<MoveGenerator::GenT>
+        template<MoveGen::GenT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
         void value ();
@@ -188,7 +190,7 @@ namespace MovePickers {
 
     public:
 
-        MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
+        MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Search::Stack*);
         MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
         MovePicker (const Position&, HistoryStats&, Move,        PieceT);
 

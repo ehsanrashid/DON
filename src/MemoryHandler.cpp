@@ -36,7 +36,7 @@
 
 #endif
 
-namespace MemoryHandler {
+namespace Memory {
 
     using namespace std;
 

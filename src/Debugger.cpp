@@ -1,7 +1,7 @@
 #include "Debugger.h"
 #include "Thread.h"
 
-namespace Debugger {
+namespace Debug {
 
     using namespace std;
 

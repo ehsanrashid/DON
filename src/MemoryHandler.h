@@ -5,7 +5,7 @@
 
 #   include "Type.h"
 
-namespace MemoryHandler {
+namespace Memory {
 
     extern void create_memory   (void *&mem_ref, u64 mem_size, u08 align);
 

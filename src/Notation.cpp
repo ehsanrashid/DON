@@ -11,7 +11,7 @@ namespace Notation {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace MoveGenerator;
+    using namespace MoveGen;
     using namespace Time;
 
     namespace {

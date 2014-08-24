@@ -2,11 +2,11 @@
 
 #include "Thread.h"
 
-namespace MovePickers {
+namespace MovePick {
 
     using namespace std;
-    using namespace Searcher;
-    using namespace MoveGenerator;
+    using namespace Search;
+    using namespace MoveGen;
 
     namespace {
 

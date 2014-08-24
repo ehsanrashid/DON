@@ -112,7 +112,7 @@ namespace Engine {
 #endif
 #ifdef LPAGES
         //cout << "info string LARGE PAGES available." << endl;
-        MemoryHandler::initialize ();
+        Memory::initialize ();
 #endif
 
         //cout << "info string Processor(s) found " << cpu_count () << "." << endl;
@@ -122,9 +122,9 @@ namespace Engine {
         Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
-        Searcher ::initialize ();
+        Search ::initialize ();
         Pawns    ::initialize ();
-        Evaluator::initialize ();
+        Evaluate ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
         

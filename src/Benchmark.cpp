@@ -9,8 +9,9 @@
 #include "Debugger.h"
 
 using namespace std;
-using namespace Searcher;
-using namespace MoveGenerator;
+using namespace Search;
+using namespace Transposition;
+using namespace MoveGen;
 using namespace Time;
 using namespace Threads;
 using namespace Notation;
@@ -162,7 +163,7 @@ void benchmark (istream &is, const Position &pos)
 
     cerr<< "\n---------------------------\n";
 
-    Debugger::dbg_print (); // Just before to exit
+    Debug::dbg_print (); // Just before to exit
 
     time = now () - time;
     // Ensure non-zero to avoid a 'divide by zero'

@@ -9,11 +9,11 @@
 #include "Thread.h"
 #include "UCI.h"
 
-namespace Evaluator {
+namespace Evaluate {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace MoveGenerator;
+    using namespace MoveGen;
     using namespace Threads;
 
     namespace {

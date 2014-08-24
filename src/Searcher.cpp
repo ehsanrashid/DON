@@ -18,15 +18,16 @@
 
 using namespace std;
 using namespace Time;
-using namespace Searcher;
 
-namespace Searcher {
+namespace Search {
 
     using namespace BitBoard;
-    using namespace MoveGenerator;
-    using namespace MovePickers;
-    using namespace Evaluator;
+    using namespace MoveGen;
+    using namespace MovePick;
+    using namespace Transposition;
+    using namespace Evaluate;
     using namespace Notation;
+    using namespace Debug;
 
     namespace {
 
@@ -2035,7 +2036,7 @@ namespace Threads {
         if (now_time - last_time >= MilliSec)
         {
             last_time = now_time;
-            Debugger::dbg_print ();
+            Debug::dbg_print ();
         }
 
         if (Limits.ponder || Signals.force_stop)

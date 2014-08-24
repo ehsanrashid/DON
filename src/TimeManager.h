@@ -3,36 +3,40 @@
 
 #include "Type.h"
 
-// TimeManager class computes the optimal time to think depending on the
-// maximum available time, the move game number and other parameters.
-//Support four different kind of time controls:
-//
-//increment == 0 && moves_to_go == 0 means: x basetime  [sudden death!]
-//increment == 0 && moves_to_go != 0 means: x moves in y minutes
-//increment >  0 && moves_to_go == 0 means: x basetime + z increment
-//increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
-class TimeManager
-{
+namespace Time {
 
-private:
+    // TimeManager class computes the optimal time to think depending on the
+    // maximum available time, the move game number and other parameters.
+    //Support four different kind of time controls:
+    //
+    //increment == 0 && moves_to_go == 0 means: x basetime  [sudden death!]
+    //increment == 0 && moves_to_go != 0 means: x moves in y minutes
+    //increment >  0 && moves_to_go == 0 means: x basetime + z increment
+    //increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
+    class TimeManager
+    {
 
-    u32   _optimum_time;
-    u32   _maximum_time;
+    private:
 
-    float _instability_factor;
-    float _recapture_factor;
+        u32   _optimum_time;
+        u32   _maximum_time;
 
-public:
+        float _instability_factor;
+        float _recapture_factor;
 
-    inline u32 available_time () const { return u32(_optimum_time * _instability_factor * _recapture_factor * 0.71f); }
+    public:
+
+        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * _recapture_factor * 0.71f); }
     
-    inline u32 maximum_time   () const { return _maximum_time; }
+        inline u32 maximum_time   () const { return _maximum_time; }
 
-    inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
-    inline void recapture   (bool recapture_good)     { _recapture_factor   = 1.0f - recapture_good * 0.85f; }
+        inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
+        inline void recapture   (bool recapture_good)     { _recapture_factor   = 1.0f - recapture_good * 0.85f; }
     
-    void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
+        void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     
-};
+    };
+
+}
 
 #endif // _TIME_MANAGER_H_INC_

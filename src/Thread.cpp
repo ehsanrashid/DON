@@ -11,8 +11,8 @@ Threads::ThreadPool     Threadpool; // Global ThreadPool
 namespace Threads {
 
     using namespace std;
-    using namespace MoveGenerator;
-    using namespace Searcher;
+    using namespace MoveGen;
+    using namespace Search;
 
     namespace {
 

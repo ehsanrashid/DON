@@ -15,8 +15,9 @@ UCI::OptionMap  Options; // Global string mapping of Options
 namespace UCI {
 
     using namespace std;
+    using namespace Transposition;
     using namespace Threads;
-    using namespace Searcher;
+    using namespace Search;
 
     Option::Option (OnChange on_change)
         : _type ("button")
@@ -171,7 +172,7 @@ namespace UCI {
         
         void on_change_evaluation (const Option &)
         {
-            Evaluator::initialize ();
+            Evaluate::initialize ();
         }
 
         void on_50_move_dist (const Option &opt)
@@ -181,8 +182,8 @@ namespace UCI {
 
         void on_debug_log (const Option &opt)
         {
-            log_debug (false);
-            if (!string(opt).empty ()) log_debug (true);
+            Debug::log_debug (false);
+            if (!string(opt).empty ()) Debug::log_debug (true);
         }
 
     }

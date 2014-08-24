@@ -2,7 +2,7 @@
 
 #include "Position.h"
 
-namespace MoveGenerator {
+namespace MoveGen {
 
     using namespace std;
     using namespace BitBoard;

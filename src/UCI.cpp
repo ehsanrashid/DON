@@ -15,8 +15,8 @@ using namespace std;
 
 namespace UCI {
 
-    using namespace Searcher;
-    using namespace MoveGenerator;
+    using namespace Search;
+    using namespace MoveGen;
     using namespace Threads;
     using namespace Notation;
 
@@ -237,9 +237,9 @@ namespace UCI {
             string token;
             if (cmds >> token)
             {
-                if (token == "on")  log_debug (true);
+                if (token == "on")  Debug::log_debug (true);
                 else
-                if (token == "off") log_debug (false);
+                if (token == "off") Debug::log_debug (false);
             }
         }
         // Print the root position
@@ -336,7 +336,7 @@ namespace UCI {
 
         inline void exe_eval ()
         {
-            sync_cout << Evaluator::trace (RootPos) << sync_endl;
+            sync_cout << Evaluate::trace (RootPos) << sync_endl;
         }
 
         inline void exe_perft (cmdstream &cmds)
@@ -433,7 +433,7 @@ namespace UCI {
         // Close book if open
         Book.close ();
         // Close log file
-        log_debug (false);
+        Debug::log_debug (false);
     }
 
 }
