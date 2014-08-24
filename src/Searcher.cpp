@@ -59,8 +59,8 @@ namespace Searcher {
         Color   RootColor;
         i32     RootPly;
         u08     RootSize   // RootMove Count
-            ,   LimitPV
-            ,   CurPV;
+            ,   PVLimit
+            ,   PVIndex;
 
         TimeManager TimeMgr;
 
@@ -217,9 +217,9 @@ namespace Searcher {
 
             stringstream ss;
 
-            for (u08 i = 0; i < LimitPV; ++i)
+            for (u08 i = 0; i < PVLimit; ++i)
             {
-                bool updated = (i <= CurPV);
+                bool updated = (i <= PVIndex);
 
                 i16   d;
                 Value v;
@@ -244,7 +244,7 @@ namespace Searcher {
                     << " multipv "  << u16(i + 1)
                     << " depth "    << d
                     << " seldepth " << u16(Threadpool.max_ply)
-                    << " score "    << ((i == CurPV) ? pretty_score (v, alpha, beta) : pretty_score (v))
+                    << " score "    << ((i == PVIndex) ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MilliSec / time
@@ -621,7 +621,7 @@ namespace Searcher {
 
                 tte      = TT.retrieve (posi_key);
                 (ss)->tt_move =
-                tt_move  = RootNode ? RootMoves[CurPV].pv[0] :
+                tt_move  = RootNode ? RootMoves[PVIndex].pv[0] :
                            tte != NULL ? tte->move () : MOVE_NONE;
                 if (tte != NULL)
                 {
@@ -942,7 +942,7 @@ namespace Searcher {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && !count (RootMoves.begin () + CurPV, RootMoves.end (), move)) continue;
+                if (RootNode && !count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
 
                 bool move_legal = RootNode || pos.legal (move, ci->pinneds);
 
@@ -975,7 +975,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16(depth)/i16(ONE_MOVE)
-                                << " currmovenumber " << setw (2) << u16(legals + CurPV)
+                                << " currmovenumber " << setw (2) << u16(legals + PVIndex)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << " time "           << time
                                 << sync_endl;
@@ -1372,7 +1372,7 @@ namespace Searcher {
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
             u08 MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), RootSize);
-            LimitPV = MultiPV;
+            PVLimit = MultiPV;
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1400,9 +1400,9 @@ namespace Searcher {
                 
                 const bool aspiration = dep > 2*i16(ONE_MOVE);
                 
-                //LimitPV = dep <= 5*i16(ONE_MOVE) ? min (max (MultiPV, MinSkillMultiPV), RootSize) : MultiPV;
+                //PVLimit = dep <= 5*i16(ONE_MOVE) ? min (max (MultiPV, MinSkillMultiPV), RootSize) : MultiPV;
                 // MultiPV loop. Perform a full root search for each PV line
-                for (CurPV = 0; CurPV < LimitPV; ++CurPV)
+                for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
                 {
                     // Requested to stop?
                     if (Signals.force_stop) break;
@@ -1410,7 +1410,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        if (abs (RootMoves[CurPV].value[1]) < VALUE_KNOWN_WIN)
+                        if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
                         {
                             window[0] =
                             window[1] =
@@ -1418,13 +1418,13 @@ namespace Searcher {
                                 //Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12);
                                 //Value(dep < 12*i16(ONE_MOVE) ? 20 - dep/4 : 14); // Decreasing window
 
-                            bound [0] = max (RootMoves[CurPV].value[1] - window[0], -VALUE_INFINITE);
-                            bound [1] = min (RootMoves[CurPV].value[1] + window[1], +VALUE_INFINITE);
+                            bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
+                            bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                         }
                         else
                         {
-                            if (RootMoves[CurPV].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                            if (RootMoves[CurPV].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
+                            if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
+                            if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
                         }
                     }
 
@@ -1440,12 +1440,12 @@ namespace Searcher {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        //RootMoves.sort_end (CurPV);
-                        std::stable_sort (RootMoves.begin () + CurPV, RootMoves.end ());
+                        //RootMoves.sort_end (PVIndex);
+                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i08 i = CurPV; i >= 0; --i)
+                        for (i08 i = PVIndex; i >= 0; --i)
                         {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
@@ -1496,10 +1496,10 @@ namespace Searcher {
                     while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
-                    //RootMoves.sort_beg (CurPV + 1);
-                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + CurPV + 1);
+                    //RootMoves.sort_beg (PVIndex + 1);
+                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
 
-                    if (  CurPV + 1 == LimitPV
+                    if (  PVIndex + 1 == PVLimit
                        || iteration_time > InfoInterval
                        )
                     {
