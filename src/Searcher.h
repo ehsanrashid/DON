@@ -192,7 +192,7 @@ namespace Search {
 
     extern Time::point           SearchTime;
 
-    extern PolyglotBook          Book;
+    extern OpeningBook::PolyglotBook Book;
     
     extern u64 perft (Position &pos, Depth depth);
 

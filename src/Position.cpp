@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace BitBoard;
-using namespace Transposition;
+using namespace Transpose;
 using namespace MoveGen;
 using namespace Threads;
 using namespace Notation;

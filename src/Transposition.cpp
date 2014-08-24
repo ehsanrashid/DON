@@ -5,9 +5,9 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-Transposition::TranspositionTable  TT; // Global Transposition Table
+Transpose::TranspositionTable  TT; // Global Transposition Table
 
-namespace Transposition {
+namespace Transpose {
 
 
     using namespace std;

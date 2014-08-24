@@ -24,7 +24,7 @@ namespace Search {
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace MovePick;
-    using namespace Transposition;
+    using namespace Transpose;
     using namespace Evaluate;
     using namespace Notation;
     using namespace Debug;
@@ -1659,7 +1659,7 @@ namespace Search {
     point               SearchTime;
 
     // initialize the PRNG only once
-    PolyglotBook        Book;
+    OpeningBook::PolyglotBook Book;
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // Consider also failing high nodes and not only EXACT nodes so to

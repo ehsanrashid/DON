@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace Search;
-using namespace Transposition;
+using namespace Transpose;
 using namespace MoveGen;
 using namespace Time;
 using namespace Threads;

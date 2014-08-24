@@ -9,6 +9,8 @@
 
 class Position;
 
+namespace OpeningBook {
+
 // A Polyglot book is a series of entries of 16 bytes.
 // All integers are stored in big-endian format,
 // with the highest byte first (regardless of size).
@@ -124,5 +126,7 @@ public:
     //void info ();
 
 };
+
+}
 
 #endif // _POLYGLOT_BOOK_H_INC_

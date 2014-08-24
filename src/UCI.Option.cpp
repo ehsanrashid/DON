@@ -15,7 +15,7 @@ UCI::OptionMap  Options; // Global string mapping of Options
 namespace UCI {
 
     using namespace std;
-    using namespace Transposition;
+    using namespace Transpose;
     using namespace Threads;
     using namespace Search;
 
