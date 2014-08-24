@@ -74,6 +74,7 @@ typedef void* (*StartRoutine) (void*);
 namespace Threads {
 
     using namespace Searcher;
+    using namespace MovePickers;
 
     const u08   MaxThreads           = 128; // Maximum threads
     const u08   MaxSplitPointThreads =   8; // Maximum threads per splitpoint

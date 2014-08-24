@@ -24,6 +24,7 @@ namespace Searcher {
 
     using namespace BitBoard;
     using namespace MoveGenerator;
+    using namespace MovePickers;
     using namespace Evaluator;
     using namespace Notation;
 
