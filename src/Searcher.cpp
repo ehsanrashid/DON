@@ -59,7 +59,7 @@ namespace Searcher {
 
         const u08           MaxQuiets = 64;
 
-        const point         InfoDuration = 3000; // 3 sec
+        const point         InfoInterval = 3000; // 3 sec
 
         Color   RootColor;
         u08     RootSize   // RootMove Count
@@ -928,7 +928,7 @@ namespace Searcher {
                 if (Threadpool.main () == thread)
                 {
                     time = now () - SearchTime;
-                    if (time > InfoDuration)
+                    if (time > InfoInterval)
                     {
                         sync_cout
                             << "info"
@@ -1005,7 +1005,7 @@ namespace Searcher {
                     if (Threadpool.main () == thread)
                     {
                         time = now () - SearchTime;
-                        if (time > InfoDuration)
+                        if (time > InfoInterval)
                         {
                             sync_cout
                                 << "info"
@@ -1488,7 +1488,7 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
-                        if (  iteration_time > InfoDuration
+                        if (  iteration_time > InfoInterval
                            && (bound[0] >= best_value || best_value >= bound[1])
                            )
                         {
@@ -1529,7 +1529,7 @@ namespace Searcher {
                     std::stable_sort (RootMoves.begin (), RootMoves.begin () + CurPV + 1);
 
                     if (  CurPV + 1 == MultiPV
-                       || iteration_time > InfoDuration
+                       || iteration_time > InfoInterval
                        )
                     {
                         sync_cout << info_multipv (RootPos, dep, bound[0], bound[1], iteration_time) << sync_endl;
