@@ -2112,38 +2112,6 @@ namespace Threads {
 
         do
         {
-            // If not searching, wait for a condition to be signaled instead of
-            // wasting CPU time polling for work.
-            while (!searching)
-            {
-                // Grab the lock to avoid races with Thread::notify_one()
-                mutex.lock ();
-
-                // If master and all slaves have finished then exit idle_loop
-                if (splitpoint != NULL && splitpoint->slaves_mask.none ())
-                {
-                    mutex.unlock ();
-                    break;
-                }
-
-                // Do sleep after retesting sleep conditions under lock protection, in
-                // particular to avoid a deadlock in case a master thread has,
-                // in the meanwhile, allocated us and sent the notify_one () call before
-                // the chance to grab the lock.
-                if (!searching && !exit)
-                {
-                    sleep_condition.wait (mutex);
-                }
-                
-                mutex.unlock ();
-                
-                if (exit)
-                {
-                    ASSERT (splitpoint == NULL);
-                    return;
-                }
-            }
-
             // If this thread has been assigned work, launch a search
             if (searching)
             {
@@ -2233,21 +2201,34 @@ namespace Threads {
                             (sp)->mutex.unlock ();
                             Threadpool.mutex.unlock ();
 
-                            if (searching) break; // Just a single attempt
+                            //if (searching)
+                            break; // Just a single attempt
                         }
                     }
                 }
             }
 
-            // If this thread is the master of a splitpoint and all slaves have finished
-            // their work at this splitpoint, return from the idle loop.
+            // Grab the lock to avoid races with Thread::notify_one()
+            mutex.lock ();
+
+            // If master and all slaves have finished then exit idle_loop
             if (splitpoint != NULL && splitpoint->slaves_mask.none ())
             {
-                splitpoint->mutex.lock ();
-                bool finished = splitpoint->slaves_mask.none (); // Retest under lock protection
-                splitpoint->mutex.unlock ();
-                if (finished) return;
+                mutex.unlock ();
+                break;
             }
+
+            // Do sleep after retesting sleep conditions under lock protection, in
+            // particular to avoid a deadlock in case a master thread has,
+            // in the meanwhile, allocated us and sent the notify_one () call before
+            // the chance to grab the lock.
+            if (!searching && !exit)
+            {
+                sleep_condition.wait (mutex);
+            }
+
+            mutex.unlock ();
+
         }
         while (!exit);
     }
