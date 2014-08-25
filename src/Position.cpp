@@ -648,10 +648,7 @@ Value Position::see      (Move m) const
         // achievable score from the point of view of the side to move.
         while (--depth > 0)
         {
-            if (swap_list[depth - 1] > -swap_list[depth])
-            {
-                swap_list[depth - 1] = -swap_list[depth];
-            }
+            swap_list[depth - 1] = min (-swap_list[depth], swap_list[depth - 1]);
         }
     }
 

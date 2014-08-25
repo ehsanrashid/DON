@@ -2107,8 +2107,8 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : NULL);
-        ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
+        SplitPoint *splitpoint = splitpoint_threads ? active_splitpoint : NULL;
+        ASSERT (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
         {
