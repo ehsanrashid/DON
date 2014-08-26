@@ -753,7 +753,7 @@ namespace Search {
                                 // Step 7. Futility pruning: child node
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargins[depth] if do a null move.
-                                if (  depth < FutilityMarginDepth   // TODO:: + 1*i16(ONE_MOVE)
+                                if (  depth < FutilityMarginDepth
                                    && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                    && abs (static_eval) < VALUE_KNOWN_WIN
                                    )
@@ -795,7 +795,7 @@ namespace Search {
                                             null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (  depth < 12*i16(ONE_MOVE)   // TODO:: 12*2
+                                        if (  depth < 12*i16(ONE_MOVE)
                                            && abs (beta) < VALUE_KNOWN_WIN
                                            )
                                         {

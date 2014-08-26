@@ -102,13 +102,15 @@ namespace Notation {
             u32 minutes = u32(msecs / MinuteMilliSec);
             msecs      %= MinuteMilliSec;
             u32 seconds = u32(msecs / MilliSec);
+            msecs      %= MilliSec;
 
             ostringstream oss;
 
             if (hours) oss << hours << ":";
             oss << setfill ('0')
                 << setw (2) << minutes << ":"
-                << setw (2) << seconds;
+                << setw (2) << seconds << "."
+                << setw (2) << msecs;
 
             return oss.str ();
         }
@@ -339,6 +341,7 @@ namespace Notation {
             pos.do_move (*m, states.top ());
             //---------------------------------
             //oss << move_to_can (*m, pos.chess960 ()) << " ";
+
             ++m;
         }
 
