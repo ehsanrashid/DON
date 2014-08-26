@@ -2211,16 +2211,19 @@ namespace Threads {
             // Grab the lock to avoid races with Thread::notify_one()
             mutex.lock ();
 
-            // If master and all slaves have finished then exit idle_loop
+            // If master and all slaves have finished then exit idle_loop()
             if (splitpoint != NULL && splitpoint->slaves_mask.none ())
             {
+                ASSERT (!searching);
                 mutex.unlock ();
                 break;
             }
 
+            // If not searching, wait for a condition to be signaled instead of
+            // wasting CPU time polling for work.
             // Do sleep after retesting sleep conditions under lock protection, in
             // particular to avoid a deadlock in case a master thread has,
-            // in the meanwhile, allocated us and sent the notify_one () call before
+            // in the meanwhile, allocated us and sent the notify_one() call before
             // the chance to grab the lock.
             if (!searching && !exit)
             {

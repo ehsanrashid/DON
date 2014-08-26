@@ -15,9 +15,9 @@ namespace Time {
         const float MaxStepRatio  = 07.00f; // When in trouble, can step over reserved time with this ratio
         const float MaxStealRatio = 00.33f; // However must not steal time from remaining moves over this ratio
 
-        const float Scale       = 09.30f;
-        const float Shift       = 59.80f;
-        const float SkewFactor  = 00.172f;
+        const float Scale    = 09.30f;
+        const float Shift    = 59.80f;
+        const float SkewRate = 00.172f;
 
         u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead
 
@@ -33,7 +33,7 @@ namespace Time {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         inline float move_importance (i32 game_ply)
         {
-            return pow ((1 + exp ((game_ply - Shift) / Scale)), -SkewFactor) + FLT_MIN; // Ensure non-zero
+            return pow ((1 + exp ((game_ply - Shift) / Scale)), -SkewRate) + FLT_MIN; // Ensure non-zero
         }
 
         template<TimeT TT>
