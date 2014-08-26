@@ -218,6 +218,8 @@ namespace Transpose {
 
         inline u32 resize () { return resize (size (), true); }
 
+        u32 auto_size (u64 mem_size_mb, bool force = false);
+
         // store() writes a new entry in the transposition table.
         void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
 

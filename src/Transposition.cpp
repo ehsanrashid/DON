@@ -39,9 +39,11 @@ namespace Transpose {
         u08 offset = max<i08> (alignment-1, sizeof (void *));
 
         Memory::create_memory (_mem, mem_size, alignment);
-
-        void *ptr = (void *) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
-        _hash_table = (TTCluster *) (ptr);
+        if (_mem != NULL)
+        {
+            void *ptr = (void *) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
+            _hash_table = (TTCluster *) (ptr);
+        }
 
     #else
 
@@ -65,16 +67,17 @@ namespace Transpose {
         if (mem == NULL)
         {
             cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
-            Engine::exit (EXIT_FAILURE);
+            //Engine::exit (EXIT_FAILURE);
         }
+        else
+        {
+            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-        sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
-
-        void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
+            void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
     
-        ptr[-1]     = mem;
-        _hash_table = (TTCluster *) (ptr);
-
+            ptr[-1]     = mem;
+            _hash_table = (TTCluster *) (ptr);
+        }
     #endif
 
         ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
@@ -86,17 +89,17 @@ namespace Transpose {
     // each cluster consists of ClusterEntries number of entry.
     u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
     {
-        if (mem_size_mb < MinTTSize) mem_size_mb = MinTTSize;
+        if (mem_size_mb < 1         ) mem_size_mb = 1;
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
         u64 mem_size      = mem_size_mb << 20;
         u08 hash_bit      = scan_msq ((mem_size) / TTClusterSize);
-    
-        ASSERT (hash_bit < MaxHashBit);
-    
-        u64 cluster_count = 1 << hash_bit;
 
-        mem_size  = cluster_count * TTClusterSize;
+        ASSERT (hash_bit < MaxHashBit);
+
+        u64 cluster_count = u64(1) << hash_bit;
+
+        mem_size  = cluster_count * i32(TTClusterSize);
 
         if (force || cluster_count != _cluster_count)
         {
@@ -104,11 +107,31 @@ namespace Transpose {
 
             alloc_aligned_memory (mem_size, TTClusterSize); // Cache Line Size
 
+            if (_hash_table == NULL) return 0;
+
             _cluster_count = cluster_count;
             _cluster_mask  = cluster_count-1;
         }
 
         return u32(mem_size >> 20);
+    }
+
+    u32 TranspositionTable::auto_size (u64 mem_size_mb, bool force)
+    {
+        if (mem_size_mb == 0) mem_size_mb = MaxTTSize;
+
+        u64 msize_mb;
+        for (msize_mb = mem_size_mb; msize_mb != 0; msize_mb >>= 1)
+        {
+            u32 size = resize (msize_mb, force);
+            if (size) return size;
+        }
+        //if (!msize_mb)
+        //{
+        //    return resize (MinTTSize, force);
+        //}
+        Engine::exit (EXIT_FAILURE);
+        return 0;
     }
 
     // store() writes a new entry in the transposition table.

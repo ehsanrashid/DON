@@ -145,7 +145,7 @@ namespace UCI {
 
         void on_resize_hash (const Option &opt)
         {
-            TT.resize (i32(opt), false);
+            TT.auto_size (i32(opt), false);
         }
 
         void on_save_hash   (const Option &)
@@ -206,10 +206,7 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (TranspositionTable::DefTTSize,
-                                                           TranspositionTable::MinTTSize,
-                                                           TranspositionTable::MaxTTSize,
-                                                           on_resize_hash);
+        Options["Hash"]                         << Option (TranspositionTable::DefTTSize, 0, TranspositionTable::MaxTTSize, on_resize_hash);
 #ifdef LPAGES
         Options["Large Pages"]                  << Option (true, on_large_pages);
 #endif
@@ -347,7 +344,7 @@ namespace UCI {
         Options["Timed Contempt (sec)"]         << Option (+ 20,   0,+900);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 50,   0,+1000);
+        Options["Valued Contempt (cp)"]         << Option (+ 40,   0,+1000);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.

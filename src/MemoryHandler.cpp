@@ -181,7 +181,7 @@ namespace Memory {
         }
 
         cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB." << endl;
-        Engine::exit (EXIT_FAILURE);
+        //Engine::exit (EXIT_FAILURE);
     }
 
     void   free_memory  (void *mem)
