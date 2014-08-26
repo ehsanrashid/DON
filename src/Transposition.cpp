@@ -74,7 +74,7 @@ namespace Transpose {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
             void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
-    
+
             ptr[-1]     = mem;
             _hash_table = (TTCluster *) (ptr);
         }
