@@ -337,6 +337,8 @@ namespace Notation {
             oss << move_to_san (*m, pos) << " ";
             states.push (StateInfo ());
             pos.do_move (*m, states.top ());
+            //---------------------------------
+            //oss << move_to_can (*m, pos.chess960 ()) << " ";
             ++m;
         }
 
