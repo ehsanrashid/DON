@@ -173,7 +173,7 @@ namespace Transpose {
                 return;
             }
         
-            if (ite == fte) continue;
+            //if (ite == fte) continue;
 
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BND_EXACT)
