@@ -272,7 +272,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Opening Book"]                 << Option ("", on_change_book);
+        Options["Book File"]                    << Option ("", on_change_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (true);

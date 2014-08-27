@@ -1818,7 +1818,7 @@ namespace Search {
 
         if (RootSize)
         {
-            string book_fn = string(Options["Opening Book"]);
+            string book_fn = string(Options["Book File"]);
             if (!book_fn.empty () && !Limits.infinite && !MateSearch)
             {
                 trim (book_fn);
