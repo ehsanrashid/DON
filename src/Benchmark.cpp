@@ -114,7 +114,7 @@ void benchmark (istream &is, const Position &pos)
 
         if (!ifs.is_open ())
         {
-            cerr << "ERROR: Unable to open file ... \'" << fen_fn << "\'" << endl;
+            cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << endl;
             return;
         }
 

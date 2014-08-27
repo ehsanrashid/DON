@@ -62,7 +62,7 @@ namespace Time {
 
         if (!str_time[00])
         {
-            oss << "ERROR: Invalid time '" << time << "'";
+            oss << "ERROR: invalid time '" << time << "'";
             return oss.str ();
         }
 

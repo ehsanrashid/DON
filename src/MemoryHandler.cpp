@@ -180,7 +180,7 @@ namespace Memory {
             return;
         }
 
-        cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB." << endl;
+        cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
         //Engine::exit (EXIT_FAILURE);
     }
 

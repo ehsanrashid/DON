@@ -66,7 +66,7 @@ namespace Transpose {
         void *mem = calloc (mem_size + offset, 1);
         if (mem == NULL)
         {
-            cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
+            cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
             //Engine::exit (EXIT_FAILURE);
         }
         else
@@ -123,8 +123,7 @@ namespace Transpose {
         u64 msize_mb;
         for (msize_mb = mem_size_mb; msize_mb != 0; msize_mb >>= 1)
         {
-            u32 size = resize (msize_mb, force);
-            if (size) return size;
+            if (resize (msize_mb, force)) return msize_mb;
         }
         //if (!msize_mb)
         //{
