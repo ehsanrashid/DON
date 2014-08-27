@@ -3,6 +3,8 @@
 
 #include "Type.h"
 
+namespace BitBoard {
+
 enum BitCountT
 {
     CNT_64_FULL,
@@ -206,5 +208,7 @@ INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
 //#   endif
 
 #endif
+
+}
 
 #endif // _BITCOUNT_H_INC_

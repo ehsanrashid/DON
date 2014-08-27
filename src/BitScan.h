@@ -3,6 +3,8 @@
 
 #include "Type.h"
 
+namespace BitBoard {
+
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions
 #endif
@@ -242,6 +244,8 @@ INLINE Square pop_lsq (Bitboard &bb)
     bb &= (bb - 1); // reset the LS1B
 #endif
     return s;
+}
+
 }
 
 #endif // _BITSCAN_H_INC_

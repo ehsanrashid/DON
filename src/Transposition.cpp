@@ -93,7 +93,7 @@ namespace Transpose {
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
         u64 mem_size      = mem_size_mb << 20;
-        u08 hash_bit      = scan_msq ((mem_size) / TTClusterSize);
+        u08 hash_bit      = BitBoard::scan_msq ((mem_size) / TTClusterSize);
 
         ASSERT (hash_bit < MaxHashBit);
 
@@ -123,7 +123,7 @@ namespace Transpose {
         u64 msize_mb;
         for (msize_mb = mem_size_mb; msize_mb != 0; msize_mb >>= 1)
         {
-            if (resize (msize_mb, force)) return msize_mb;
+            if (resize (msize_mb, force)) return u32(msize_mb);
         }
         //if (!msize_mb)
         //{
