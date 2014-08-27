@@ -183,12 +183,12 @@ namespace Pawns {
                     Bitboard helpers = (friend_adj_pawns & PawnAttackSpan[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
                     if (helpers)
                     {
-                        /*
-                        Bitboard sentries = pawns[1] & PawnAttackSpan[C][s];
+                        
+                        Bitboard sentries = pawns[1] & PawnAttackSpan[C][s];    // Only front enemy adj pawns
                         candidate = ((more_than_one (helpers) ? pop_count<Max15> (friend_adj_pawns) : 1)
                                   >= ((sentries) ? (more_than_one (sentries) ? pop_count<Max15> (sentries) : 1) : 0));
-                        */
-
+                        
+                        /*
                         ASSERT (r+2 <= R_8);
 
                         u08 helpers_count = 0;
@@ -205,6 +205,7 @@ namespace Pawns {
                             }
                         }
                         candidate = helpers_count && (helpers_count >= pop_count<Max15> (sentries));
+                        */
                     }
                 }
 

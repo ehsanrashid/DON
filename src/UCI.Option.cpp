@@ -196,7 +196,7 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default 64, Min 4, Max 65536 MB = 064 GB.
+        // Default 16, Min 4, Max 1048576 MB = 1024 GB.
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
@@ -278,7 +278,7 @@ namespace UCI {
         Options["Best Book Move"]               << Option (true);
 
 
-        // End Game Table Bases Options
+        // End-Game Table Bases Options
         // ----------------------------
 
         // Cores and Threads Options
@@ -378,6 +378,8 @@ namespace UCI {
         Options["Search Log"]                   << Option ("");
 
         // ---------------------------------------------------------------------------------------
+        // Other Options
+        // -------------
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
