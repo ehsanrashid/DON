@@ -173,7 +173,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -188,7 +188,7 @@ namespace EndGame {
         Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
         Square sp_sq = normalize (pos, _stong_side, pos.list<PAWN> (_stong_side)[0]);
 
-        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
+        Color c = _stong_side == pos.active () ? WHITE : BLACK;
 
         Value value;
 
@@ -204,7 +204,7 @@ namespace EndGame {
                   + PushAway [SquareDist[sp_sq][wk_sq]]) / 10);
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -231,7 +231,7 @@ namespace EndGame {
         Value value = VALUE_KNOWN_WIN
             + PushClose[SquareDist[sk_sq][wk_sq]] + PushToCorners[wk_sq];
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -243,7 +243,7 @@ namespace EndGame {
 
         Value value = Value(PushToEdges[wk_sq] / 8);
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -292,7 +292,7 @@ namespace EndGame {
                   + 8 * SquareDist[wp_sq][queening_sq]);
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -321,7 +321,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -344,7 +344,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -371,7 +371,7 @@ namespace EndGame {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -390,7 +390,7 @@ namespace EndGame {
         Value value  = VALUE_EG_QUEN - VALUE_EG_ROOK
             + PushToEdges[wk_sq] + PushClose[SquareDist[sk_sq][wk_sq]];
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
     template<>
@@ -430,7 +430,7 @@ namespace EndGame {
             value = Value(PushClose[SquareDist[sk_sq][wk_sq]] / 8);
         }
 
-        return (_stong_side == pos.active ()) ? +value : -value;
+        return _stong_side == pos.active () ? +value : -value;
     }
 
 
@@ -702,7 +702,7 @@ namespace EndGame {
             return SCALE_FACTOR_NONE;
         }
 
-        Color c = (_stong_side == pos.active ()) ? WHITE : BLACK;
+        Color c = _stong_side == pos.active () ? WHITE : BLACK;
 
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
