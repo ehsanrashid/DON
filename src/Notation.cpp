@@ -103,11 +103,12 @@ namespace Notation {
             msecs      %= MinuteMilliSec;
             u32 seconds = u32(msecs / MilliSec);
             msecs      %= MilliSec;
+            msecs      /= 10;
 
             ostringstream oss;
 
-            if (hours) oss << hours << ":";
             oss << setfill ('0')
+                <<              hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
                 << setw (2) << msecs;
@@ -295,7 +296,7 @@ namespace Notation {
 
         oss << setw (4) << depth
             << setw (8) << pretty_value (value)
-            << setw (8) << pretty_time (msecs);
+            << setw (12) << pretty_time (msecs);
 
         u64 game_nodes = pos.game_nodes ();
         if (game_nodes < M)     oss << setw (8) << game_nodes / 1 << "  ";

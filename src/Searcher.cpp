@@ -1809,7 +1809,7 @@ namespace Search {
                 << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
                 << "MoveTime : " << Limits.movetime                  << "\n"
                 << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
-                << " Depth Score    Time   Nodes  PV\n"
+                << " Depth Score    Time       Nodes  PV\n"
                 << "-----------------------------------------------------------"
                 << endl;
         }
@@ -1898,11 +1898,11 @@ namespace Search {
                 if (time == 0) time = 1;
 
                 logfile
-                    << "Time:        " << time                                      << "\n"
-                    << "Nodes:       " << RootPos.game_nodes ()                     << "\n"
-                    << "Nodes/sec.:  " << RootPos.game_nodes () * MilliSec / time   << "\n"
-                    << "Hash-full:   " << TT.permill_full ()                        << "\n"
-                    << "Best move:   " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
+                    << "Time (ms)  : " << time                                      << "\n"
+                    << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
+                    << "Speed (N/s): " << RootPos.game_nodes () * MilliSec / time   << "\n"
+                    << "Hash-full  : " << TT.permill_full ()                        << "\n"
+                    << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (RootMoves[0].pv[0] != MOVE_NONE)
                 {
                     StateInfo si;
@@ -1929,11 +1929,11 @@ namespace Search {
 
                 logfile
                     << pretty_pv (RootPos, 0, RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW, 0, &RootMoves[0].pv[0]) << "\n"
-                    << "Time:        " << 0        << "\n"
-                    << "Nodes:       " << 0        << "\n"
-                    << "Nodes/sec.:  " << 0        << "\n"
-                    << "Hash-full:   " << 0        << "\n"
-                    << "Best move:   " << "(none)" << "\n"
+                    << "Time (ms)  : " << 0        << "\n"
+                    << "Nodes (N)  : " << 0        << "\n"
+                    << "Speed (N/s): " << 0        << "\n"
+                    << "Hash-full  : " << 0        << "\n"
+                    << "Best move  : " << "(none)" << "\n"
                     << endl;
             }
 
