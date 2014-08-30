@@ -68,23 +68,24 @@ namespace Notation {
         }
 
         // value to string
-        const string pretty_value (Value v)
+        const string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
 
             if (abs (v) < VALUE_MATES_IN_MAX_PLY)
             {
+                v = (WHITE == pos.active ()) ? +v : -v;
                 oss << setprecision (2) << fixed << showpos << value_to_cp (v);
             }
             else
             {
                 if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
                 {
-                    oss << "+#" << i32(VALUE_MATE - v + 1) / 2;
+                    oss << "#" << showpos << +i32(VALUE_MATE - v + 1) / 2;
                 }
                 else                //if (v <= VALUE_MATED_IN_MAX_PLY)
                 {
-                    oss << "-#" << i32(VALUE_MATE + v + 0) / 2;
+                    oss << "#" << showpos << -i32(VALUE_MATE + v + 0) / 2;
                 }
             }
 
@@ -276,7 +277,7 @@ namespace Notation {
         }
         else
         {
-            oss << "mate " << i32(v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
+            oss << "mate " << i32(v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
         }
 
         oss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
@@ -293,9 +294,9 @@ namespace Notation {
         const u64 M = 1000000;
 
         ostringstream oss;
-        value = (WHITE == pos.active ()) ? +value : -value;
+
         oss << setw (4) << depth
-            << setw (8) << pretty_value (value)
+            << setw (8) << pretty_value (value, pos)
             << setw (12) << pretty_time (msecs);
 
         u64 game_nodes = pos.game_nodes ();
