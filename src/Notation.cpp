@@ -108,7 +108,7 @@ namespace Notation {
             ostringstream oss;
 
             oss << setfill ('0')
-                <<              hours   << ":"
+                <<             hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
                 << setw (2) << msecs;
