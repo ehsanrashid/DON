@@ -35,7 +35,7 @@ namespace Threads {
     template<class T>
     void delete_thread (T *th)
     {
-        th->quit ();                // Search must be already finished
+        th->kill ();                // Search must be already finished
         th->notify_one ();
         thread_join (th->native_handle);   // Wait for thread termination
         delete th;
@@ -211,7 +211,7 @@ namespace Threads {
         do
         {
             mutex.lock ();
-            if (!exit)
+            if (alive)
             {
                 sleep_condition.wait_for (mutex, run ? resolution : INT_MAX);
             }
@@ -222,7 +222,7 @@ namespace Threads {
                 task ();
             }
         }
-        while (!exit);
+        while (alive);
     }
 
     // ------------------------------------
@@ -235,21 +235,21 @@ namespace Threads {
         {
             mutex.lock ();
             thinking = false;
-            while (!thinking && !exit)
+            while (!thinking && alive)
             {
                 Threadpool.sleep_condition.notify_one (); // Wake up UI thread if needed
                 sleep_condition.wait (mutex);
             }
             mutex.unlock ();
 
-            if (exit) return;
+            if (!alive) return;
 
             searching = true;
             think ();   // Start thinking
             ASSERT (searching);
             searching = false;
         }
-        while (!exit);
+        while (alive);
     }
 
     // ------------------------------------

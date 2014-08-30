@@ -184,20 +184,20 @@ namespace Threads {
     {
     protected:
         Condition     sleep_condition;
-        volatile bool  exit;
+        volatile bool  alive;
 
     public:
         Mutex   mutex;
         Handle  native_handle;
 
         ThreadBase ()
-            : exit (false)
+            : alive (true)
             , native_handle (Handle ())
         {}
 
-        virtual ~ThreadBase () {}
+        virtual ~ThreadBase () { kill (); }
 
-        void quit () { exit = true; }
+        void kill () { alive = false; }
         void notify_one ();
 
         void wait_for (const volatile bool &condition);

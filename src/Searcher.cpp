@@ -1885,7 +1885,7 @@ namespace Search {
             if (auto_save_time)
             {
                 Threadpool.auto_save->stop ();
-                Threadpool.auto_save->quit ();
+                Threadpool.auto_save->kill ();
                 delete_thread (Threadpool.auto_save);
                 Threadpool.auto_save = NULL;
             }
@@ -2115,7 +2115,7 @@ namespace Threads {
             // If this thread has been assigned work, launch a search
             if (searching)
             {
-                ASSERT (!exit);
+                ASSERT (alive);
 
                 Threadpool.mutex.lock ();
 
@@ -2225,7 +2225,7 @@ namespace Threads {
             // particular to avoid a deadlock in case a master thread has,
             // in the meanwhile, allocated us and sent the notify_one() call before
             // the chance to grab the lock.
-            if (!searching && !exit)
+            if (alive && !searching)
             {
                 sleep_condition.wait (mutex);
             }
@@ -2233,6 +2233,6 @@ namespace Threads {
             mutex.unlock ();
 
         }
-        while (!exit);
+        while (alive);
     }
 }
