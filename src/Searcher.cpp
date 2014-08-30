@@ -565,8 +565,8 @@ namespace Search {
 
             SplitPoint *splitpoint;
             Move  move
-                , excluded_move = MOVE_NONE
-                , best_move     = MOVE_NONE;
+                , exclude_move = MOVE_NONE
+                , best_move    = MOVE_NONE;
 
             CheckInfo cc
                 ,    *ci = NULL;
@@ -583,7 +583,7 @@ namespace Search {
             else
             {
                 (ss)->ply = (ss-1)->ply + 1;
-                (ss)->current_move = (ss+1)->excluded_move = MOVE_NONE;
+                (ss)->current_move = (ss+1)->exclude_move = MOVE_NONE;
                 fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves) / sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
 
                 // Used to send 'seldepth' info to GUI
@@ -618,8 +618,8 @@ namespace Search {
                 // Step 4. Transposition table lookup
                 // Don't want the score of a partial search to overwrite a previous full search
                 // TT value, so use a different position key in case of an excluded move.
-                excluded_move = (ss)->excluded_move;
-                posi_key = excluded_move == MOVE_NONE ? pos.posi_key () : pos.posi_exc_key ();
+                exclude_move = (ss)->exclude_move;
+                posi_key = exclude_move == MOVE_NONE ? pos.posi_key () : pos.posi_exc_key ();
 
                 tte      = TT.retrieve (posi_key);
                 (ss)->tt_move =
@@ -820,7 +820,7 @@ namespace Search {
                                && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                )
                             {
-                                ASSERT (excluded_move == MOVE_NONE);
+                                ASSERT (exclude_move == MOVE_NONE);
 
                                 Depth rdepth = depth - RazorDepth;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
@@ -876,7 +876,7 @@ namespace Search {
                        !RootNode
                     && depth >= (PVNode ? 6*i16(ONE_MOVE) : 8*i16(ONE_MOVE))    // TODO::
                     && tt_move != MOVE_NONE
-                    && excluded_move == MOVE_NONE // Recursive singular search is not allowed
+                    && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN
                     && abs (tt_value) < VALUE_KNOWN_WIN
                     && tt_bound & BND_LOWER
@@ -939,7 +939,7 @@ namespace Search {
             {
                 ASSERT (_ok (move));
 
-                if (move == excluded_move) continue;
+                if (move == exclude_move) continue;
 
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
@@ -1020,9 +1020,9 @@ namespace Search {
                     //ASSERT (tt_value != VALUE_NONE);
                     Value rbeta = tt_value - i32(depth); // TODO::
 
-                    (ss)->excluded_move = move;
+                    (ss)->exclude_move = move;
                     value = search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
-                    (ss)->excluded_move = MOVE_NONE;
+                    (ss)->exclude_move = MOVE_NONE;
 
                     if (value < rbeta) ext = 1*ONE_MOVE;
                 }
@@ -1315,7 +1315,7 @@ namespace Search {
                 if (best_value == -VALUE_INFINITE || legals == 0)
                 {
                     best_value = 
-                        excluded_move != MOVE_NONE ? alpha :
+                        exclude_move != MOVE_NONE ? alpha :
                         in_check ? mated_in ((ss)->ply) :
                         DrawValue[pos.active ()];
                 }

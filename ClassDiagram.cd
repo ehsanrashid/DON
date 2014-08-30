@@ -1031,7 +1031,7 @@
         <Position X="3.231" Y="-3.095" Height="0.16" Width="0.831" />
       </MemberNameLabel>
     </AssociationLine>
-    <AssociationLine Name="excluded_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
+    <AssociationLine Name="exclude_move" Type="Move" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="3.938" Y="11.5" />
         <Point X="3.938" Y="7.812" />
@@ -1069,7 +1069,7 @@
       <Field Name="splitpoint" />
       <Field Name="current_move" />
       <Field Name="tt_move" />
-      <Field Name="excluded_move" />
+      <Field Name="exclude_move" />
       <Field Name="reduction" />
       <Field Name="static_eval" />
     </ShowAsAssociation>
