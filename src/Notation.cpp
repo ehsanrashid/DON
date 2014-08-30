@@ -293,7 +293,7 @@ namespace Notation {
         const u64 M = 1000000;
 
         ostringstream oss;
-
+        value = (WHITE == pos.active ()) ? +value : -value;
         oss << setw (4) << depth
             << setw (8) << pretty_value (value)
             << setw (12) << pretty_time (msecs);
