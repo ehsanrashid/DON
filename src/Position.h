@@ -440,8 +440,8 @@ inline Bitboard Position::attackers_to (Color c, Square s, Bitboard occ) const
 {
     return((BitBoard::PawnAttacks[~c][s]    & _types_bb[PAWN])
         |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
-        |  (_piece_count[c][BSHP] + _piece_count[c][QUEN] ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
-        |  (_piece_count[c][ROOK] + _piece_count[c][QUEN] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[BSHP]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
         |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
 // Attackers to the square 's' by Color 'c'
@@ -456,8 +456,8 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return (BitBoard::PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
         |  (BitBoard::PawnAttacks[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
         |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
-        |  (count<BSHP>() + count<QUEN>() ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
-        |  (count<ROOK>() + count<QUEN>() ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[BSHP]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
         |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING]);
 }
 // Attackers to the square 's'
