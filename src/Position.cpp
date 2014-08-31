@@ -454,7 +454,7 @@ bool Position::ok (i08 *step) const
     // step 6
     if (step && ++(*step), test_king_capture)
     {
-        if (  (attackers_to (_piece_list[~_active][KING][0]) & _color_bb[_active])
+        if (  (attackers_to (_active, _piece_list[~_active][KING][0]))
            || (pop_count<Full> (_si->checkers)) > 2
            )
         {
@@ -761,7 +761,7 @@ bool Position::pseudo_legal (Move m) const
         Delta step = (KingSide ? DEL_E : DEL_W);
         for (i08 s = dst; s != org; s -= step)
         {
-            if (attackers_to (Square(s)) & _color_bb[pasive])
+            if (attackers_to (pasive, Square(s), _types_bb[NONE]))
             {
                 return false;
             }
@@ -899,7 +899,7 @@ bool Position::pseudo_legal (Move m) const
         {
             // In case of king moves under check, remove king so to catch
             // as invalid moves like B1A1 when opposite queen is on C1.
-            if (attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive])
+            if (attackers_to (pasive, dst, _types_bb[NONE] - org))
             {
                 return false;
             }
@@ -957,7 +957,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
-            return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive]); // Remove 'org' but not place 'dst'
+            return !attackers_to (pasive, dst, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
         }
 
         // A non-king move is legal if and only if it is not pinned or
@@ -1612,7 +1612,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
         else
         {
-            _si->checkers = attackers_to (_piece_list[pasive][KING][0], _types_bb[NONE]) & _color_bb[_active];
+            _si->checkers = attackers_to (_active, _piece_list[pasive][KING][0]);
         }
     }
 
@@ -1648,8 +1648,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Update the key with the final value
     _si->posi_key     = p_key;
-    _si->capture_type = ct;
     _si->last_move    = m;
+    _si->capture_type = ct;
     ++_si->null_ply;
     ++_game_ply;
     ++_game_nodes;

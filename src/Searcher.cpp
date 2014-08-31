@@ -2113,7 +2113,7 @@ namespace Threads {
         do
         {
             // If this thread has been assigned work, launch a search
-            if (searching)
+            while (searching)
             {
                 ASSERT (alive);
 

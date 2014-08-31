@@ -252,6 +252,8 @@ public:
     Value see_sign (Move m) const;
     
 
+    Bitboard attackers_to (Color c, Square s, Bitboard occ) const;
+    Bitboard attackers_to (Color c, Square s) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
@@ -433,25 +435,41 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 inline Threads::Thread* Position::thread () const { return _thread; }
 
-// Attackers to the square on given occ
+// Attackers to the square 's' by Color 'c' on Occupancy 'occ'
+inline Bitboard Position::attackers_to (Color c, Square s, Bitboard occ) const
+{
+    return((BitBoard::PawnAttacks[~c][s]    & _types_bb[PAWN])
+        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
+        |  (_piece_count[c][BSHP] + _piece_count[c][QUEN] ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
+        |  (_piece_count[c][ROOK] + _piece_count[c][QUEN] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
+}
+// Attackers to the square 's' by Color 'c'
+inline Bitboard Position::attackers_to (Color c, Square s) const
+{
+    return attackers_to (c, s, _types_bb[NONE]);
+}
+
+// Attackers to the square 's' on Occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (BitBoard::PawnAttacks[WHITE][s]    & _types_bb[PAWN]&_color_bb[BLACK])
-        |  (BitBoard::PawnAttacks[BLACK][s]    & _types_bb[PAWN]&_color_bb[WHITE])
-        |  (BitBoard::PieceAttacks[NIHT][s]    & _types_bb[NIHT])
-        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
-        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
-        |  (BitBoard::PieceAttacks[KING][s]    & _types_bb[KING]);
+    return (BitBoard::PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
+        |  (BitBoard::PawnAttacks[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
+        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
+        |  (count<BSHP>() + count<QUEN>() ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
+        |  (count<ROOK>() + count<QUEN>() ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING]);
 }
-// Attackers to the square
+// Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, _types_bb[NONE]);
 }
+
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (_piece_list[c][KING][0], _types_bb[NONE]) & _color_bb[~c];
+    return attackers_to (~c, _piece_list[c][KING][0]);
 }
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.

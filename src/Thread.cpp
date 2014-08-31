@@ -205,7 +205,7 @@ namespace Threads {
     // ------------------------------------
 
     // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
-    // and then calls check_time(). If msec is 0 thread sleeps until is woken up.
+    // and then calls task(). If msec is 0 thread sleeps until is woken up.
     void TimerThread::idle_loop ()
     {
         do
@@ -217,10 +217,7 @@ namespace Threads {
             }
             mutex.unlock ();
 
-            if (run)
-            {
-                task ();
-            }
+            if (run) task ();
         }
         while (alive);
     }
@@ -234,20 +231,21 @@ namespace Threads {
         do
         {
             mutex.lock ();
-            thinking = false;
-            while (!thinking && alive)
+            while (alive && !thinking)
             {
                 Threadpool.sleep_condition.notify_one (); // Wake up UI thread if needed
                 sleep_condition.wait (mutex);
             }
             mutex.unlock ();
 
-            if (!alive) return;
-
-            searching = true;
-            think ();   // Start thinking
-            ASSERT (searching);
-            searching = false;
+            if (alive)
+            {
+                searching = true;
+                think ();   // Start thinking
+                ASSERT (searching);
+                searching = false;
+                thinking  = false;
+            }
         }
         while (alive);
     }
