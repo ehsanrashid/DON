@@ -101,7 +101,7 @@ namespace MoveGen {
                 Delta step = (king_dst > king_org ? DEL_E : DEL_W);
                 for (i08 s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (C_, Square(s)))
+                    if (pos.attackers_to (Square(s), C_))
                     {
                         return;
                     }
@@ -112,7 +112,7 @@ namespace MoveGen {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to (C_, king_dst, pos.pieces () - rook_org) & pos.pieces (ROOK, QUEN))
+                    if (pos.attackers_to (king_dst, C_, pos.pieces () - rook_org) & pos.pieces (ROOK, QUEN))
                     {
                         return;
                     }
@@ -409,7 +409,7 @@ namespace MoveGen {
 
     template<GenT GT>
     // Generates all pseudo-legal moves.
-    ValMove* generate (ValMove *moves, const Position &pos)
+    inline ValMove* generate (ValMove *moves, const Position &pos)
     {
         ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
         ASSERT (!pos.checkers ());
@@ -521,7 +521,7 @@ namespace MoveGen {
         //    Square sq = king_sq + PieceDeltas[KING][k];
         //    if (_ok (sq))
         //    {
-        //        if ((attacks & sq) && pos.attackers_to (~active, sq, mocc))
+        //        if ((attacks & sq) && pos.attackers_to (sq, ~active, mocc))
         //        {
         //            attacks -= sq;
         //        }

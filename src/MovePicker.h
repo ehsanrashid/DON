@@ -168,6 +168,8 @@ namespace MovePick {
             ,  *followup_moves
             ,  *kcur
             ,  *kend;
+        Bitboard killers_org
+            ,     killers_dst;
 
         Move    tt_move;
         Depth   depth;

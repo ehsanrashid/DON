@@ -7,6 +7,7 @@ namespace MovePick {
     using namespace std;
     using namespace Search;
     using namespace MoveGen;
+    using namespace BitBoard;
 
     namespace {
 
@@ -262,8 +263,7 @@ namespace MovePick {
 
         case KILLER_S1:
             // Killer moves usually come right after the hash move and (good) captures
-
-            memset (killers, MOVE_NONE, sizeof (killers));
+            std::fill (killers, killers + sizeof (killers) / sizeof (*killers), MOVE_NONE);
             killers[0] = ss->killer_moves[0];
             killers[1] = ss->killer_moves[0] != ss->killer_moves[1] ? ss->killer_moves[1] : MOVE_NONE;
 
@@ -315,6 +315,21 @@ namespace MovePick {
                 if (cur < end-1)
                 {
                     insertion_sort (cur, end);
+                }
+            }
+            // Init killers bitboards to shortcut move's validity check later on
+            killers_org = killers_dst = U64(0);
+            if (tt_move != MOVE_NONE)
+            {
+                killers_org += org_sq (tt_move),
+                killers_dst += dst_sq (tt_move);
+            }
+            for (i08 i = 0; i < 6; ++i)
+            {
+                if (killers[i] != MOVE_NONE)
+                {
+                    killers_org += org_sq (killers[i]),
+                    killers_dst += dst_sq (killers[i]);
                 }
             }
             return;
@@ -427,6 +442,12 @@ namespace MovePick {
                 do
                 {
                     move = (cur++)->move;
+                    if (  !(killers_org & org_sq (move))
+                       || !(killers_dst & dst_sq (move))
+                       )
+                    {
+                        return move;
+                    }
                     if (  move != tt_move
                        && move != killers[0]
                        && move != killers[1]
@@ -511,7 +532,7 @@ namespace MovePick {
     // safe so must be lock protected by the caller.
     Move MovePicker::next_move<true> ()
     {
-        return ss->splitpoint->movepicker->next_move<false> ();
+        return (ss)->splitpoint->movepicker->next_move<false> ();
     }
 
 }

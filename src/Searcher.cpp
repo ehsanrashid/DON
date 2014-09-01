@@ -744,6 +744,7 @@ namespace Search {
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
+                            ASSERT (exclude_move == MOVE_NONE);
 
                             StateInfo si;
 
@@ -780,7 +781,7 @@ namespace Search {
                                     pos.do_null_move (si);
 
                                     // Null window (alpha, beta) = (beta-1, beta):
-                                    Value null_value = (rdepth < 1*i16(ONE_MOVE)) ?
+                                    Value null_value = rdepth < 1*i16(ONE_MOVE) ?
                                         -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
                                         -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
@@ -803,7 +804,7 @@ namespace Search {
                                         }
 
                                         // Do verification search at high depths
-                                        Value veri_value = (rdepth < 1*i16(ONE_MOVE)) ?
+                                        Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
                                             search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
@@ -820,8 +821,6 @@ namespace Search {
                                && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                )
                             {
-                                ASSERT (exclude_move == MOVE_NONE);
-
                                 Depth rdepth = depth - RazorDepth;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
                                 //ASSERT (rdepth >= 1*i16(ONE_MOVE));

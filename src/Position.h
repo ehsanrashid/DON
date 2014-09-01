@@ -252,8 +252,8 @@ public:
     Value see_sign (Move m) const;
     
 
-    Bitboard attackers_to (Color c, Square s, Bitboard occ) const;
-    Bitboard attackers_to (Color c, Square s) const;
+    Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
+    Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
@@ -435,8 +435,8 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 inline Threads::Thread* Position::thread () const { return _thread; }
 
-// Attackers to the square 's' by Color 'c' on Occupancy 'occ'
-inline Bitboard Position::attackers_to (Color c, Square s, Bitboard occ) const
+// Attackers to the square 's' by color 'c' on occupancy 'occ'
+inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     return((BitBoard::PawnAttacks[~c][s]    & _types_bb[PAWN])
         |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
@@ -444,13 +444,13 @@ inline Bitboard Position::attackers_to (Color c, Square s, Bitboard occ) const
         |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
         |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
-// Attackers to the square 's' by Color 'c'
-inline Bitboard Position::attackers_to (Color c, Square s) const
+// Attackers to the square 's' by color 'c'
+inline Bitboard Position::attackers_to (Square s, Color c) const
 {
-    return attackers_to (c, s, _types_bb[NONE]);
+    return attackers_to (s, c, _types_bb[NONE]);
 }
 
-// Attackers to the square 's' on Occupancy 'occ'
+// Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return (BitBoard::PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
@@ -469,7 +469,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (~c, _piece_list[c][KING][0]);
+    return attackers_to (_piece_list[c][KING][0], ~c);
 }
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.
@@ -486,11 +486,11 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !((_color_bb[~c]&_types_bb[PAWN]) & BitBoard::PawnPassSpan[c][s]);
+    return !((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PawnPassSpan[c][s]);
 }
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return (_color_bb[c]&_types_bb[PAWN]) & BitBoard::rel_rank_bb (c, R_7);
+    return (_types_bb[PAWN]&_color_bb[c]) & BitBoard::rel_rank_bb (c, R_7);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -516,22 +516,20 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 // capture(m) tests move is capture
 inline bool Position::capture       (Move m) const
 {
-    MoveT mt = mtype (m);
-    return (mt == NORMAL || mt == PROMOTE) ? (EMPTY != _board[dst_sq (m)]) :
-          (mt == ENPASSANT) ? _si->en_passant_sq != SQ_NO : //_ok (_si->en_passant_sq)
-          false;
+    return mtype (m) == NORMAL || mtype (m) == PROMOTE ? EMPTY != _board[dst_sq (m)] :
+           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO : //&& dst_sq (m) == _si->en_passant_sq :
+           false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    MoveT mt = mtype (m);
-    return (mt == NORMAL) ? (EMPTY != _board[dst_sq (m)]) :
-           (mt == ENPASSANT) ? _si->en_passant_sq != SQ_NO : //_ok (_si->en_passant_sq)
-           (mt != CASTLE);
+    return mtype (m) == NORMAL ? EMPTY != _board[dst_sq (m)] :
+           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO : //&& dst_sq (m) == _si->en_passant_sq :
+           mtype (m) != CASTLE;
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return (PAWN == ptype (_board[org_sq (m)])) && (R_4 < rel_rank (_active, org_sq (m)));
+    return PAWN == ptype (_board[org_sq (m)]) && R_4 < rel_rank (_active, org_sq (m));
 }
 inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 
