@@ -170,6 +170,7 @@ namespace MovePick {
             ,  *kend;
         Bitboard killers_org
             ,     killers_dst;
+        u08     killers_size;
 
         Move    tt_move;
         Depth   depth;

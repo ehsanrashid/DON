@@ -262,35 +262,51 @@ namespace MovePick {
             return;
 
         case KILLER_S1:
+            kcur = kend = killers;
             // Killer moves usually come right after the hash move and (good) captures
             std::fill (killers, killers + sizeof (killers) / sizeof (*killers), MOVE_NONE);
-            killers[0] = ss->killer_moves[0];
-            killers[1] = ss->killer_moves[0] != ss->killer_moves[1] ? ss->killer_moves[1] : MOVE_NONE;
-
-            kcur = killers;
-            kend = kcur + 2;
-
+            // Init killers bitboards to shortcut move's validity check later on
+            killers_org = killers_dst = U64(0);
             Move m;
+            for (i08 i = 0; i < 2; ++i)
+            {
+                m = ss->killer_moves[i];
+                if (  m != MOVE_NONE
+                   && m != tt_move
+                   && m != kcur[0]
+                   )
+                {
+                    *(kend++) = m;
+                    killers_org += org_sq (m);
+                    killers_dst += dst_sq (m);
+                }
+            }
+
             if (counter_moves)
             // Be sure counter moves are not MOVE_NONE & different from killer moves
             for (i08 i = 0; i < 2; ++i)
             {
                 m = counter_moves[i];
                 if (  m != MOVE_NONE
+                   && m != tt_move
                    && m != kcur[0]
                    && m != kcur[1]
                    && m != kcur[2]
                    )
                 {
                     *(kend++) = m;
+                    killers_org += org_sq (m);
+                    killers_dst += dst_sq (m);
                 }
             }
+            
             if (followup_moves)
             // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
             for (i08 i = 0; i < 2; ++i)
             {
                 m = followup_moves[i];
                 if (  m != MOVE_NONE
+                   && m != tt_move
                    && m != kcur[0]
                    && m != kcur[1]
                    && m != kcur[2]
@@ -299,11 +315,13 @@ namespace MovePick {
                    )
                 {
                     *(kend++) = m;
+                    killers_org += org_sq (m);
+                    killers_dst += dst_sq (m);
                 }
             }
 
+            killers_size = u08(kend - kcur);
             end = cur + 1;
-
             return;
 
         case QUIET_1_S1:
@@ -315,21 +333,6 @@ namespace MovePick {
                 if (cur < end-1)
                 {
                     insertion_sort (cur, end);
-                }
-            }
-            // Init killers bitboards to shortcut move's validity check later on
-            killers_org = killers_dst = U64(0);
-            if (tt_move != MOVE_NONE)
-            {
-                killers_org += org_sq (tt_move),
-                killers_dst += dst_sq (tt_move);
-            }
-            for (i08 i = 0; i < 6; ++i)
-            {
-                if (killers[i] != MOVE_NONE)
-                {
-                    killers_org += org_sq (killers[i]),
-                    killers_dst += dst_sq (killers[i]);
                 }
             }
             return;
@@ -425,7 +428,7 @@ namespace MovePick {
                 {
                     move = *kcur++;
                     if (  move != MOVE_NONE
-                       && move != tt_move
+                       //&& move != tt_move // Not needed as filter out tt_move at move generation 
                        && pos.pseudo_legal (move)
                        && !pos.capture (move)
                        )
@@ -442,22 +445,28 @@ namespace MovePick {
                 do
                 {
                     move = (cur++)->move;
-                    if (  !(killers_org & org_sq (move))
-                       || !(killers_dst & dst_sq (move))
-                       )
+                    if (move != tt_move)
                     {
-                        return move;
-                    }
-                    if (  move != tt_move
-                       && move != killers[0]
-                       && move != killers[1]
-                       && move != killers[2]
-                       && move != killers[3]
-                       && move != killers[4]
-                       && move != killers[5]
-                       )
-                    {
-                        return move;
+                        if (  !(killers_org & org_sq (move))
+                           || !(killers_dst & dst_sq (move))
+                           )
+                        {
+                            return move;
+                        }
+                        if (killers_size <= 0 || (move != killers[0]
+                           && (killers_size <= 1 || (move != killers[1]
+                              && (killers_size <= 2 || (move != killers[2]
+                                 && (killers_size <= 3 || (move != killers[3]
+                                    && (killers_size <= 4 || (move != killers[4] 
+                                       && (killers_size <= 5 || (move != killers[5])))
+                                       ))
+                                    ))
+                                 ))
+                              ))
+                           )
+                        {
+                            return move;
+                        }
                     }
                 }
                 while (cur < end);
