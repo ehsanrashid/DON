@@ -282,7 +282,7 @@
       <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -328,7 +328,7 @@
       <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -402,7 +402,7 @@
       <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -447,7 +447,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <LargeAddressAware>false</LargeAddressAware>
       <StackReserveSize>2097152</StackReserveSize>
       <StackCommitSize>32768</StackCommitSize>
@@ -486,7 +486,7 @@
       <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -565,7 +565,7 @@
       <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
