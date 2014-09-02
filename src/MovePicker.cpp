@@ -474,6 +474,7 @@ namespace MovePick {
 
             case BAD_CAPTURE_S1:
                 return (cur--)->move;
+                break;
 
             case EVASION_S2:
             case CAPTURE_S3:
@@ -505,7 +506,7 @@ namespace MovePick {
                 do
                 {
                     move = pick_best (cur++, end)->move;
-                    if (recapture_sq == dst_sq (move))
+                    if (move != tt_move && recapture_sq == dst_sq (move))
                     {
                         return move;
                     }

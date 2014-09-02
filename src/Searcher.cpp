@@ -1984,8 +1984,8 @@ namespace Search {
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            //FutilityMargins      [d] = Value(i32(  0 + (0x64 - FutilityMarginDepth/2 -1 + 1*d)*d));
-            FutilityMargins      [d] = Value(i32(  5 + (0x5A - FutilityMarginDepth/2 -1 + 1*d)*d));
+            FutilityMargins      [d] = Value(i32(  0 + (0x64 - FutilityMarginDepth/2 -1 + 1*d)*d));
+            //FutilityMargins      [d] = Value(i32(  5 + (0x5A - FutilityMarginDepth/2 -1 + 1*d)*d));
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
