@@ -261,18 +261,17 @@ namespace Search {
             return ss.str ();
         }
 
-        template<NodeT NT, bool InCheck>
+        template<bool InCheck>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is ZERO (to be more precise, less than ONE_MOVE).
         inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
-            const bool    PVNode = NT == PV;
+            const bool    PVNode = alpha < beta - 1;;
 
-            ASSERT (NT == PV || NT == NonPV);
             ASSERT (InCheck == !!pos.checkers ());
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-            ASSERT (PVNode || alpha == beta-1);
+            //ASSERT (alpha < beta-1);
             ASSERT (depth <= DEPTH_ZERO);
 
             Move best_move;
@@ -288,8 +287,7 @@ namespace Search {
             if ((ss)->ply > MaxDepth) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            Value old_alpha;
-            if (PVNode) old_alpha = alpha;
+            Value old_alpha = alpha;
 
             // Transposition table lookup
             Key posi_key;
@@ -412,7 +410,7 @@ namespace Search {
 
                 bool gives_check = pos.gives_check (move, *ci);
 
-                if (!PVNode && !MateSearch)
+                if (!MateSearch)
                 {
                     // Futility pruning
                     if (  !InCheck
@@ -471,8 +469,8 @@ namespace Search {
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
-                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
-                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
+                    -search_quien<true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
+                    -search_quien<false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
 
                 pos.undo_move ();
 
@@ -728,13 +726,13 @@ namespace Search {
                                && static_eval + RazorMargins[3*i16(ONE_MOVE)] <= alpha
                                )
                             {
-                                return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                                return search_quien<false> (pos, ss, alpha, beta, DEPTH_ZERO);
                             }
 
                             Value ralpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
                             //ASSERT (ralpha >= -VALUE_INFINITE);
 
-                            Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+                            Value ver_value = search_quien<false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
 
                             if (ver_value <= ralpha) return ver_value;
                         }
@@ -782,7 +780,7 @@ namespace Search {
 
                                     // Null window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < 1*i16(ONE_MOVE) ?
-                                        -search_quien<NonPV, false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                        -search_quien<false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
                                         -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
                                     // Undo null move
@@ -805,7 +803,7 @@ namespace Search {
 
                                         // Do verification search at high depths
                                         Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
-                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                            search_quien<false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         if (veri_value >= beta) return null_value;
@@ -1184,8 +1182,8 @@ namespace Search {
                         value =
                             new_depth < 1*i16(ONE_MOVE) ?
                                 gives_check ?
-                                    -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                    -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                    -search_quien<true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                    -search_quien<false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
                                 -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                     }
                 }
@@ -1203,8 +1201,8 @@ namespace Search {
                         value =
                             new_depth < 1*i16(ONE_MOVE) ?
                                 gives_check ?
-                                    -search_quien<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                    -search_quien<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                    -search_quien<true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                    -search_quien<false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                 -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
