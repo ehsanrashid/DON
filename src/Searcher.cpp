@@ -916,8 +916,10 @@ namespace Search {
                 }
             }
 
-            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL;
-            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
+            Move *cm = CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
+            Move *fm = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
+            Move counter_moves[] = { cm[0], cm[1] };
+            Move followup_moves[] = { fm[0], fm[1] };
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
@@ -1133,7 +1135,7 @@ namespace Search {
                         }
 
                         if (  reduction_depth > DEPTH_ZERO
-                           && counter_moves && (move == counter_moves[0] || move == counter_moves[1])
+                           && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
                             reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);

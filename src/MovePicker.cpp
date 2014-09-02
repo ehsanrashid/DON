@@ -73,7 +73,7 @@ namespace MovePick {
         end += tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm, Depth d, Square sq)
+    MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm, Depth d, Square dst_sq)
         : cur (moves)
         , end (moves)
         , pos (p)
@@ -112,7 +112,7 @@ namespace MovePick {
         else
         {
             stage = RECAPTURE;
-            recapture_sq = sq;
+            recapture_sq = dst_sq;
             ttm = MOVE_NONE;
         }
 
@@ -282,8 +282,8 @@ namespace MovePick {
                 }
             }
 
-            if (counter_moves)
             // Be sure counter moves are not MOVE_NONE & different from killer moves
+            //if (counter_moves)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = counter_moves[i];
@@ -300,8 +300,8 @@ namespace MovePick {
                 }
             }
             
-            if (followup_moves)
             // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
+            //if (followup_moves)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = followup_moves[i];

@@ -343,7 +343,6 @@ namespace Evaluate {
         {
             const Color  C_      = WHITE == C ? BLACK : WHITE;
             const Delta PUSH     = WHITE == C ? DEL_N : DEL_S;
-            const Delta PULL     = WHITE == C ? DEL_S : DEL_N;
             const Square fk_sq   = pos.king_sq (C);
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinneds = ei.pinneds[C];
@@ -448,7 +447,7 @@ namespace Evaluate {
 
                 if (BSHP == PT)
                 {
-                    score -= BishopPawnsPenalty * (ei.pi->pawns_on_squarecolor<C> (s));
+                    score -= BishopPawnsPenalty * ei.pi->pawns_on_squarecolor<C> (s);
 
                     // Outpost bonus for Bishop
                     if (!(pos.pieces<PAWN> (C_) & PawnAttacks[C][s]))
@@ -499,39 +498,6 @@ namespace Evaluate {
                         }
                     }
 
-                    Square rsq = rel_sq (C, s);
-
-                    if (FileEdge_bb & R6_bb & rsq)
-                    {
-                        Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
-                           )
-                        {
-                            score -= BishopTrappedPenalty;
-                        }
-                    }
-                    if (FileEdge_bb & R7_bb & rsq)
-                    {
-                        Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
-                           )
-                        {
-                            score -= BishopTrappedPenalty * 2;
-                        }
-                    }
-                    if (FileEdge_bb & R8_bb & rsq)
-                    {
-                        Delta del = PULL + ((F_A == f) ? DEL_E : DEL_W);
-                        if (  pos[s + del] == (C_ | PAWN)
-                           && ei.pin_attacked_by[C_][NONE] & ~(ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][KING]) & (s + del)
-                           )
-                        {
-                            score -= BishopTrappedPenalty * 4;
-                        }
-                    }
-
                     // An important Chess960 pattern: A cornered bishop blocked by a friendly
                     // pawn diagonally in front of it is a very serious problem, especially
                     // when that pawn is also blocked.
@@ -539,7 +505,7 @@ namespace Evaluate {
                     // a friendly pawn on b2/g2 (b7/g7 for black).
                     if (pos.chess960 ())
                     {
-                        if ((FileEdge_bb & R1_bb) & rsq)
+                        if ((FileEdge_bb & R1_bb) & rel_sq (C, s))
                         {
                             const Piece own_pawn = (C | PAWN);
                             Delta del = PUSH + ((F_A == f) ? DEL_E : DEL_W);
