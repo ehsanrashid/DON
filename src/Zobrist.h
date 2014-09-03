@@ -24,16 +24,15 @@ namespace Zobrist {
     union Zob
     {
     public:
+        //CACHE_ALIGN(64)
         Key zobrist[ZobristSize];
 
-        //CACHE_ALIGN(64)
         struct
         {
-            Key piece_square[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
-            Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]
-            Key en_passant  [F_NO];                 // [ENPASSANT FILE]
+            CACHE_ALIGN(64) Key piece_square[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
+            CACHE_ALIGN(8)  Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]
+            CACHE_ALIGN(8)  Key en_passant  [F_NO];                 // [ENPASSANT FILE]
             Key mover_side;                         // COLOR
-
         } _;
 
     public:

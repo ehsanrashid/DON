@@ -66,7 +66,7 @@ namespace BitBoard {
     };
 
     // SQUARES
-    CACHE_ALIGN(64) const Bitboard Square_bb[SQ_NO] =
+    CACHE_ALIGN(8) const Bitboard Square_bb[SQ_NO] =
     {
 #undef S_16
 #undef S_8
@@ -83,18 +83,18 @@ namespace BitBoard {
 #undef S_2
     };
     // FILES
-    CACHE_ALIGN(64) const Bitboard   File_bb[F_NO] =
+    CACHE_ALIGN(8) const Bitboard   File_bb[F_NO] =
     {
         FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
     };
     // RANKS
-    CACHE_ALIGN(64) const Bitboard   Rank_bb[R_NO] =
+    CACHE_ALIGN(8) const Bitboard   Rank_bb[R_NO] =
     {
         R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
     };
 
     // ADJACENT FILES used for isolated-pawn
-    CACHE_ALIGN(64) const Bitboard AdjFile_bb[F_NO] =
+    CACHE_ALIGN(8) const Bitboard AdjFile_bb[F_NO] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -106,7 +106,7 @@ namespace BitBoard {
         FG_bb
     };
     // ADJACENT RANKS
-    CACHE_ALIGN(64) const Bitboard AdjRank_bb[R_NO] =
+    CACHE_ALIGN(8) const Bitboard AdjRank_bb[R_NO] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -118,7 +118,7 @@ namespace BitBoard {
         R7_bb,
     };
     // FRONT RANK
-    CACHE_ALIGN(64) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
+    CACHE_ALIGN(8) const Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
         {
         R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -147,7 +147,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
+    CACHE_ALIGN(8)  extern Bitboard DistanceRings[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
@@ -156,22 +156,22 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard PieceAttacks[NONE][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard *BAttack_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard *RAttack_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard *BAttack_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard *RAttack_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard    BMask_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard    RMask_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard    BMask_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard    RMask_bb[SQ_NO];
 
 #ifndef BM2
-    CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard   BMagic_bb[SQ_NO];
+    CACHE_ALIGN(8) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern u08        BShift   [SQ_NO];
-    CACHE_ALIGN(64) extern u08        RShift   [SQ_NO];
+    CACHE_ALIGN(1) extern u08        BShift   [SQ_NO];
+    CACHE_ALIGN(1) extern u08        RShift   [SQ_NO];
 #endif
 
-    extern u08 FileRankDist[F_NO][R_NO];
-    extern u08   SquareDist[SQ_NO][SQ_NO];
+    CACHE_ALIGN(8) extern u08 FileRankDist[F_NO][R_NO];
+    CACHE_ALIGN(8) extern u08   SquareDist[SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }

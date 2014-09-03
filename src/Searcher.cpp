@@ -33,20 +33,20 @@ namespace Search {
 
         const Depth           FutilityMoveCountDepth = Depth(16*i16(ONE_MOVE));
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
+        CACHE_ALIGN(2) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
         
         const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value FutilityMargins[FutilityMarginDepth];  // [depth]
+        CACHE_ALIGN(2) Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
         const Depth           RazorDepth = Depth(4*i16(ONE_MOVE));
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value RazorMargins[RazorDepth];              // [depth]
+        CACHE_ALIGN(2) Value RazorMargins[RazorDepth];              // [depth]
 
         const Depth           ReductionDepth     = Depth(32*i16(ONE_MOVE));
         const u08             ReductionMoveCount = 64;
         // Reductions lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(2) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
