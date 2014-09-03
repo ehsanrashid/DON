@@ -14,7 +14,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(8)  Bitboard DistanceRings[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard DistanceRings[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
@@ -28,18 +28,18 @@ namespace BitBoard {
     // Attacks of the pieces
     CACHE_ALIGN(64) Bitboard PieceAttacks[NONE][SQ_NO];
 
-    CACHE_ALIGN(8) Bitboard*BAttack_bb[SQ_NO];
-    CACHE_ALIGN(8) Bitboard*RAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard*BAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard*RAttack_bb[SQ_NO];
 
-    CACHE_ALIGN(8) Bitboard   BMask_bb[SQ_NO];
-    CACHE_ALIGN(8) Bitboard   RMask_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
 
 #ifndef BM2
-    CACHE_ALIGN(8) Bitboard  BMagic_bb[SQ_NO];
-    CACHE_ALIGN(8) Bitboard  RMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(1) u08       BShift   [SQ_NO];
-    CACHE_ALIGN(1) u08       RShift   [SQ_NO];
+    CACHE_ALIGN(8) u08       BShift   [SQ_NO];
+    CACHE_ALIGN(8) u08       RShift   [SQ_NO];
 #endif
 
     // FILE & RANK distance

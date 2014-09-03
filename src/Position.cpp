@@ -582,8 +582,6 @@ Value Position::see      (Move m) const
     // Gain list
     Value swap_list[32];
     i08   depth = 1;
-    swap_list[0] = PieceValue[MG][ptype (_board[dst])];
-
     Bitboard occupied = _types_bb[NONE] - org;
 
     if (mtype (m) == CASTLE)
@@ -597,7 +595,12 @@ Value Position::see      (Move m) const
     {
         // Remove the captured pawn
         occupied -= (dst - pawn_push (stm));
+        //occupied += dst;
         swap_list[0] = PieceValue[MG][PAWN];
+    }
+    else
+    {
+        swap_list[0] = PieceValue[MG][ptype (_board[dst])];
     }
 
     // Find all enemy attackers to the destination square, with the moving piece

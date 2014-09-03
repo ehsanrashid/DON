@@ -66,7 +66,7 @@ namespace BitBoard {
     };
 
     // SQUARES
-    CACHE_ALIGN(8) const Bitboard Square_bb[SQ_NO] =
+    CACHE_ALIGN(64) const Bitboard Square_bb[SQ_NO] =
     {
 #undef S_16
 #undef S_8
@@ -147,7 +147,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(8)  extern Bitboard DistanceRings[SQ_NO][F_NO];
+    CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
@@ -156,18 +156,18 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard PieceAttacks[NONE][SQ_NO];
 
-    CACHE_ALIGN(8) extern Bitboard *BAttack_bb[SQ_NO];
-    CACHE_ALIGN(8) extern Bitboard *RAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard *BAttack_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard *RAttack_bb[SQ_NO];
 
-    CACHE_ALIGN(8) extern Bitboard    BMask_bb[SQ_NO];
-    CACHE_ALIGN(8) extern Bitboard    RMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard    BMask_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard    RMask_bb[SQ_NO];
 
 #ifndef BM2
-    CACHE_ALIGN(8) extern Bitboard   BMagic_bb[SQ_NO];
-    CACHE_ALIGN(8) extern Bitboard   RMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   BMagic_bb[SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard   RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(1) extern u08        BShift   [SQ_NO];
-    CACHE_ALIGN(1) extern u08        RShift   [SQ_NO];
+    CACHE_ALIGN(8) extern u08        BShift   [SQ_NO];
+    CACHE_ALIGN(8) extern u08        RShift   [SQ_NO];
 #endif
 
     CACHE_ALIGN(8) extern u08 FileRankDist[F_NO][R_NO];
