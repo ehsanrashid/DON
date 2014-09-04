@@ -21,7 +21,6 @@ namespace UCI {
 
     Option::Option (OnChange on_change)
         : _type ("button")
-        , _default ("")
         , _value ("")
         , _minimum (0)
         , _maximum (0)
@@ -33,7 +32,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _default = _value = (val ? "true" : "false");
+        _value = (val ? "true" : "false");
     }
     Option::Option (const char *val, OnChange on_change)
         : _type ("string")
@@ -41,7 +40,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _default = _value = val;
+        _value = val;
     }
     Option::Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change)
         : _type ("spin")
@@ -49,7 +48,7 @@ namespace UCI {
         , _maximum (maximum)
         , _on_change (on_change)
     {
-        ostringstream oss; oss << val; _default = _value = oss.str ();
+        ostringstream oss; oss << val; _value = oss.str ();
     }
 
     Option::operator bool () const
@@ -113,7 +112,7 @@ namespace UCI {
         oss << " type " << _type;
         if (_type != "button")
         {
-            oss << " default " << _default;
+            oss << " default " << _value;
             if (_type == "spin")
             {
                 oss << " min " << _minimum

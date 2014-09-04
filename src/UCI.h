@@ -31,9 +31,7 @@ namespace UCI {
         u08 _idx;
         std::string _type;
 
-        std::string
-              _default
-            , _value;
+        std::string _value;
 
         i32   _minimum
             , _maximum;
