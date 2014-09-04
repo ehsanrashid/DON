@@ -88,7 +88,7 @@ namespace Transpose {
         u64        _cluster_mask;
         u08        _generation;
 
-        void alloc_aligned_memory (u64 mem_size, u08 alignment);
+        void alloc_aligned_memory (size_t mem_size, size_t alignment);
 
         // free_aligned_memory() free the allocated memory
         void free_aligned_memory ()
@@ -171,7 +171,7 @@ namespace Transpose {
         {
             if (ClearHash && _hash_table != NULL)
             {
-                memset (_hash_table, 0x00, _cluster_count * TTClusterSize);
+                memset (_hash_table, 0x00, size_t (_cluster_count * TTClusterSize));
                 _generation = 0;
                 sync_cout << "info string Hash cleared." << sync_endl;
             }
@@ -214,11 +214,11 @@ namespace Transpose {
             return u32(1000 * full_cluster / scan_cluster);
         }
 
-        u32 resize (u64 mem_size_mb, bool force = false);
+        u32 resize (size_t mem_size_mb, bool force = false);
 
         inline u32 resize () { return resize (size (), true); }
 
-        u32 auto_size (u64 mem_size_mb, bool force = false);
+        u32 auto_size (size_t mem_size_mb, bool force = false);
 
         // store() writes a new entry in the transposition table.
         void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);

@@ -28,7 +28,7 @@ namespace Transpose {
 
     bool TranspositionTable::ClearHash = true;
 
-    void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
+    void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
     {
 
         ASSERT (0 == (alignment & (alignment - 1)));
@@ -36,7 +36,7 @@ namespace Transpose {
 
     #ifdef LPAGES
 
-        u08 offset = max<i08> (alignment-1, sizeof (void *));
+        size_t offset = max (alignment-1, sizeof (void *));
 
         Memory::create_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
@@ -87,17 +87,17 @@ namespace Transpose {
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of ClusterEntries number of entry.
-    u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
+    u32 TranspositionTable::resize (size_t mem_size_mb, bool force)
     {
         if (mem_size_mb < 1         ) mem_size_mb = 1;
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
-        u64 mem_size      = mem_size_mb << 20;
+        size_t mem_size      = mem_size_mb << 20;
         u08 hash_bit      = BitBoard::scan_msq ((mem_size) / TTClusterSize);
 
         ASSERT (hash_bit < MaxHashBit);
 
-        u64 cluster_count = u64(1) << hash_bit;
+        size_t cluster_count = size_t(1) << hash_bit;
 
         mem_size  = cluster_count * i32(TTClusterSize);
 
@@ -116,11 +116,11 @@ namespace Transpose {
         return u32(mem_size >> 20);
     }
 
-    u32 TranspositionTable::auto_size (u64 mem_size_mb, bool force)
+    u32 TranspositionTable::auto_size (size_t mem_size_mb, bool force)
     {
         if (mem_size_mb == 0) mem_size_mb = MaxTTSize;
 
-        u64 msize_mb;
+        size_t msize_mb;
         for (msize_mb = mem_size_mb; msize_mb != 0; msize_mb >>= 1)
         {
             if (resize (msize_mb, force)) return u32(msize_mb);

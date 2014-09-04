@@ -115,13 +115,13 @@ namespace Search {
                 static RKISS rk;
                 // PRNG sequence should be not deterministic
                 for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
+                
+                move = MOVE_NONE;
 
                 // RootMoves are already sorted by score in descending order
                 const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
                 const Value weakness = Value(MaxDepth - 2 * level);
-                
                 Value max_v = -VALUE_INFINITE;
-                move        = MOVE_NONE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -889,11 +889,11 @@ namespace Search {
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval)
-                || (  (ss-1)->current_move != MOVE_NULL
-                   && (ss-0)->static_eval != VALUE_NONE
-                   && (ss-0)->static_eval > -(ss-1)->static_eval
-                   );
+                || ((ss-0)->static_eval >= (ss-2)->static_eval);
+                //|| (  (ss-1)->current_move != MOVE_NULL
+                //   && (ss-0)->static_eval != VALUE_NONE
+                //   && (ss-0)->static_eval > -(ss-1)->static_eval
+                //   );
 
             Thread *thread  = pos.thread ();
             point time;

@@ -24,8 +24,8 @@
 #   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
 
-#   define MEMALIGN(mem, align, size)  mem = _aligned_malloc (size, align)
-#   define ALIGNED_FREE(mem)           _aligned_free (mem);
+#   define MEMALIGN(mem, alignment, size)  mem = _aligned_malloc (size, alignment)
+#   define ALIGNED_FREE(mem)                _aligned_free (mem);
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
@@ -114,7 +114,7 @@ namespace Memory {
 
     }
 
-    void create_memory  (void *&mem_ref, u64 mem_size, u08 align)
+    void create_memory  (void *&mem_ref, size_t mem_size, size_t alignment)
     {
         UsePages = false;
 
@@ -172,7 +172,7 @@ namespace Memory {
 #   endif
         }
 
-        MEMALIGN (mem_ref, align, mem_size);
+        MEMALIGN (mem_ref, alignment, mem_size);
         if (mem_ref != NULL)
         {
             memset (mem_ref, 0x00, mem_size);
