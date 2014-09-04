@@ -1314,10 +1314,10 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (pop_count<Full> (ep_pawns) <= 2);
     if (!ep_pawns) return false;
 
-    Move ep_moves[3]
-    ,   *curr = ep_moves;
+    Move    ep_moves[3]
+        ,   *curr = ep_moves;
 
-    memset (ep_moves, MOVE_NONE, sizeof (ep_moves));
+    fill (ep_moves, ep_moves + sizeof (ep_moves) / sizeof (*ep_moves), MOVE_NONE);
     while (ep_pawns)
     {
         *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);

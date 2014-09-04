@@ -171,7 +171,7 @@ namespace Transpose {
         {
             if (ClearHash && _hash_table != NULL)
             {
-                memset (_hash_table, 0x00, size_t (_cluster_count * TTClusterSize));
+                memset (_hash_table, 0x00, size_t(_cluster_count * TTClusterSize));
                 _generation = 0;
                 sync_cout << "info string Hash cleared." << sync_endl;
             }

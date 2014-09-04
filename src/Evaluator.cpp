@@ -1342,7 +1342,7 @@ namespace Evaluate {
 
             string trace (const Position &pos)
             {
-                memset (Terms, 0x00, sizeof (Terms));
+                fill (*Terms, *Terms + sizeof (Terms) / sizeof (**Terms), SCORE_ZERO);
 
                 Value value = evaluate<true> (pos);// + TempoBonus;    // Tempo bonus = 0.07
                 value = (WHITE == pos.active ()) ? +value : -value; // White's point of view

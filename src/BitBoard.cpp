@@ -174,7 +174,7 @@ namespace BitBoard {
                     }
                     while (pop_count<Max15> (index) < 6);
 
-                    memset (attacks_bb[s], U64 (0), size*sizeof (*attacks_bb[s]));
+                    fill (attacks_bb[s], attacks_bb[s] + size, U64 (0)); //fill_n (attacks_bb[s], size, U64 (0));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.

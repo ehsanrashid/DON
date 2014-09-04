@@ -49,7 +49,7 @@ namespace MovePick {
     {
 
     private:
-        i16 _counts[TOT_PIECE][SQ_NO][2];
+        i16   _counts[TOT_PIECE][SQ_NO][2];
         Value _values[TOT_PIECE][SQ_NO];
 
     public:
@@ -59,7 +59,7 @@ namespace MovePick {
     
         inline void clear ()
         {
-            memset (_counts, 0x00, sizeof (_counts));
+            std::fill (**_counts, **_counts + sizeof (_counts) / sizeof (***_counts), 0x00);
             std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), MinValue);
         }
 

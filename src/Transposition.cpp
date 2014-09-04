@@ -40,8 +40,10 @@ namespace Transpose {
         Memory::create_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
-            void *ptr = (void *) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
+            void *ptr = (void *) ((uintptr_t(_mem) + offset) & ~uintptr_t(offset));
             _hash_table = (TTCluster *) (ptr);
+            ASSERT (0 == (uintptr_t(_hash_table) & (alignment - 1)));
+            return;
         }
 
     #else
@@ -67,18 +69,16 @@ namespace Transpose {
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-            void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
-
+            void **ptr = (void **) ((uintptr_t(mem) + offset) & ~uintptr_t(alignment - 1));
             ptr[-1]     = mem;
             _hash_table = (TTCluster *) (ptr);
+            ASSERT (0 == (uintptr_t(_hash_table) & (alignment - 1)));
+            return;
         }
-        else
-        {
-            cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
-        }
-    #endif
 
-        ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
+        cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
+    #endif
+        
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
@@ -89,8 +89,8 @@ namespace Transpose {
         if (mem_size_mb < 1         ) mem_size_mb = 1;
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
-        size_t mem_size      = mem_size_mb << 20;
-        u08 hash_bit      = BitBoard::scan_msq ((mem_size) / TTClusterSize);
+        size_t mem_size = mem_size_mb << 20;
+        u08 hash_bit    = BitBoard::scan_msq ((mem_size) / TTClusterSize);
 
         ASSERT (hash_bit < MaxHashBit);
 
