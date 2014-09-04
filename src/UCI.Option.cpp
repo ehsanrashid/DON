@@ -176,7 +176,7 @@ namespace UCI {
 
         void on_50_move_dist (const Option &opt)
         {
-            Position::_fifty_move_dist = u08(2 * i32(opt));
+            Position::_FiftyMoveDist = u08(2 * i32(opt));
         }
 
         void on_debug_log (const Option &opt)
@@ -290,7 +290,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MaxThreads, on_config_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, on_config_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -298,16 +298,16 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 0, 0, MaxSplitDepth, on_config_threadpool);
+        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool);
 
         // Game Play Options
         // -----------------
 
         // How well you want engine to play.
-        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
+        // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
-        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel);
+        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.

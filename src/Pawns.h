@@ -47,7 +47,7 @@ namespace Pawns {
         template<Color C>
         inline i32 pawns_on_squarecolor (Square s) const
         {
-            return pawns_on_sqrs[C][!(BitBoard::Liht_bb & BitBoard::Square_bb[s])];
+            return pawns_on_sqrs[C][!(BitBoard::LIHT_bb & BitBoard::SQUARE_bb[s])];
         }
         template<Color C>
         inline i32 pawns_on_center () const
@@ -86,7 +86,7 @@ namespace Pawns {
                 min_kp_dist[C] = 0;
                 if (pos.pieces<PAWN> (C))
                 {
-                    while (!(BitBoard::DistanceRings[k_sq][min_kp_dist[C]++] & pos.pieces<PAWN> (C))) {}
+                    while (!(BitBoard::DIST_RINGS[k_sq][min_kp_dist[C]++] & pos.pieces<PAWN> (C))) {}
                 }
             }
         }

@@ -124,7 +124,7 @@ namespace Threads {
         ASSERT (searching);
         ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
         ASSERT (Threadpool.split_depth <= depth);
-        ASSERT (splitpoint_threads < MaxSplitPointThreads);
+        ASSERT (splitpoint_threads < MAX_SPLIT_POINT_THREADS);
 
         // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_threads];

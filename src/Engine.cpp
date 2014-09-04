@@ -20,21 +20,21 @@ namespace Engine {
 
     namespace {
 
-        const string Name      = "DON";
+        const string NAME      = "DON";
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "";
-        const string Author    = "Ehsan Rashid";
+        const string VERSION   = "";
+        const string AUTHOR    = "Ehsan Rashid";
 
-        const i08 MONTHS = 12;
-        const string Months[MONTHS] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        const i08 MAX_MONTH = 12;
+        const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         i16 find_month (const string &month)
         { 
-            for (i08 m = 0; m < MONTHS; ++m)
+            for (i08 m = 0; m < MAX_MONTH; ++m)
             { 
-                if (month == Months[m]) return m+1;
+                if (month == MONTHS[m]) return m+1;
             }
             return 0;
         }
@@ -46,12 +46,12 @@ namespace Engine {
         ostringstream oss;
 
         if (uci) oss << "id name ";
-        oss << Name << " ";
+        oss << NAME << " ";
 
-#if defined (VERSION)
-        oss << VERSION << setfill ('0');
+#if defined (VER)
+        oss << VER << setfill ('0');
 #else
-        if (Version.empty ())
+        if (VERSION.empty ())
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
@@ -72,7 +72,7 @@ namespace Engine {
         }
         else
         {
-            oss << Version;
+            oss << VERSION;
         }
 #endif
 
@@ -93,8 +93,8 @@ namespace Engine {
 #endif
 
         oss << "\n";
-        if (uci) oss << "id author " << Author;
-        else     oss << Author << " (c) 2014";
+        if (uci) oss << "id author " << AUTHOR;
+        else     oss << AUTHOR << " (c) 2014";
         oss << "\n";
 
         return oss.str ();

@@ -152,7 +152,7 @@ namespace MovePick {
 
     private:
 
-        ValMove  moves[MaxMoves]
+        ValMove  moves[MAX_MOVES]
             ,   *cur
             ,   *end
             ,   *quiets_end

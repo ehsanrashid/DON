@@ -5,7 +5,7 @@
 
 class Position;
 
-const u08   MaxMoves   = 255;
+const u08   MAX_MOVES   = 255;
 
 namespace MoveGen {
 
@@ -54,7 +54,7 @@ namespace MoveGen {
     {
 
     private:
-        ValMove  moves[MaxMoves]
+        ValMove  moves[MAX_MOVES]
               , *cur
               , *end;
 

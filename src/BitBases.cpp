@@ -21,9 +21,9 @@ namespace BitBases {
         //inline Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
         
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const u32 MaxIndex = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * wp_sq * wk_sq * bk_sq = 196608
+        const u32 MAX_INDEX = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * wp_sq * wk_sq * bk_sq = 196608
         // Each u32 stores results of 32 positions, one per bit
-        u32 KPKBitbase[MaxIndex/32];
+        u32 KPKBitbase[MAX_INDEX/32];
 
         struct KPKPosition
         {
@@ -63,10 +63,10 @@ namespace BitBases {
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (  SquareDist[_wk_sq][_bk_sq] <= 1
+            if (  SQR_DIST[_wk_sq][_bk_sq] <= 1
                || _wk_sq == _p_sq
                || _bk_sq == _p_sq
-               || (WHITE == _active && PawnAttacks[WHITE][_p_sq] & _bk_sq)
+               || (WHITE == _active && PAWN_ATTACKS[WHITE][_p_sq] & _bk_sq)
                )
             {
                 result = INVALID;
@@ -78,8 +78,8 @@ namespace BitBases {
                     // Immediate win if a pawn can be promoted without getting captured
                     if (  _rank (_p_sq) == R_7
                        && _wk_sq != _p_sq + DEL_N
-                       && (  SquareDist[_bk_sq][_p_sq + DEL_N] > 1
-                          || PieceAttacks[KING][_wk_sq] & (_p_sq + DEL_N)
+                       && (  SQR_DIST[_bk_sq][_p_sq + DEL_N] > 1
+                          || PIECE_ATTACKS[KING][_wk_sq] & (_p_sq + DEL_N)
                           )
                        )
                     {
@@ -89,8 +89,8 @@ namespace BitBases {
                 else
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
-                    if (  !(PieceAttacks[KING][_bk_sq] & ~(PieceAttacks[KING][_wk_sq] | PawnAttacks[WHITE][_p_sq]))
-                        || (PieceAttacks[KING][_bk_sq] & ~(PieceAttacks[KING][_wk_sq]) & _p_sq)
+                    if (  !(PIECE_ATTACKS[KING][_bk_sq] & ~(PIECE_ATTACKS[KING][_wk_sq] | PAWN_ATTACKS[WHITE][_p_sq]))
+                        || (PIECE_ATTACKS[KING][_bk_sq] & ~(PIECE_ATTACKS[KING][_wk_sq]) & _p_sq)
                        )
                     {
                         result = DRAW;
@@ -99,7 +99,7 @@ namespace BitBases {
             }
         }
 
-        // A KPK bitbase index is an integer in [0, MaxIndex] range
+        // A KPK bitbase index is an integer in [0, MAX_INDEX] range
         //
         // Information is mapped in a way that minimizes the number of iterations:
         //
@@ -131,7 +131,7 @@ namespace BitBases {
 
             Result r = INVALID;
 
-            Bitboard b = PieceAttacks[KING][WHITE == C ? _wk_sq : _bk_sq];
+            Bitboard b = PIECE_ATTACKS[KING][WHITE == C ? _wk_sq : _bk_sq];
             while (b)
             {
                 r |= WHITE == C ?
@@ -163,11 +163,11 @@ namespace BitBases {
     void initialize ()
     {
         vector<KPKPosition> db;
-        db.reserve (MaxIndex);
+        db.reserve (MAX_INDEX);
 
         u32 idx;
         // Initialize db with known win / draw positions
-        for (idx = 0; idx < MaxIndex; ++idx)
+        for (idx = 0; idx < MAX_INDEX; ++idx)
         {
             db.push_back (KPKPosition (idx));
         }
@@ -178,7 +178,7 @@ namespace BitBases {
         do
         {
             repeat = false;
-            for (idx = 0; idx < MaxIndex; ++idx)
+            for (idx = 0; idx < MAX_INDEX; ++idx)
             {
                 repeat |= UNKNOWN == db[idx] && UNKNOWN != db[idx].classify (db);
             }
@@ -186,7 +186,7 @@ namespace BitBases {
         while (repeat);
 
         // Map 32 results into one KPKBitbase[] entry
-        for (idx = 0; idx < MaxIndex; ++idx)
+        for (idx = 0; idx < MAX_INDEX; ++idx)
         {
             if (WIN == db[idx])
             {

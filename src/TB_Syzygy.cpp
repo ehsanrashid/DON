@@ -91,8 +91,9 @@ this code to other chess engines.
 namespace TBSyzygy {
 
     using namespace std;
-    using namespace MoveGenerator;
-    using namespace Searcher;
+    using namespace BitBoard;
+    using namespace MoveGen;
+    using namespace Search;
 
     // CORE
     namespace {
@@ -388,7 +389,7 @@ namespace TBSyzygy {
             }
         }
 
-        char PieceChar[NONE] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
+        const char PIECE_CHAR[NONE] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
 
         void init_tb (char *filename)
         {
@@ -2106,7 +2107,7 @@ namespace TBSyzygy {
             {
                 for (i08 pc = pos.count (color, pt); pc > 0; --pc)
                 {
-                    *str++ = PieceChar[KING - pt];
+                    *str++ = PIECE_CHAR[KING - pt];
                 }
             }
 
@@ -2116,7 +2117,7 @@ namespace TBSyzygy {
             {
                 for (i08 pc = pos.count (color, pt); pc > 0; --pc)
                 {
-                    *str++ = PieceChar[KING - pt];
+                    *str++ = PIECE_CHAR[KING - pt];
                 }
             }
             
@@ -2134,7 +2135,7 @@ namespace TBSyzygy {
             {
                 for (u08 pc = 0; pc < pos.count (color, pt); ++pc)
                 {
-                    key ^= Zob._.piecesq[WHITE][pt][pc];
+                    key ^= Zob._.piece_square[WHITE][pt][pc];
                 }
             }
             color = ~color;
@@ -2142,7 +2143,7 @@ namespace TBSyzygy {
             {
                 for (u08 pc = 0; pc < pos.count (color, pt); ++pc)
                 {
-                    key ^= Zob._.piecesq[BLACK][pt][pc];
+                    key ^= Zob._.piece_square[BLACK][pt][pc];
                 }
             }
 
@@ -2162,7 +2163,7 @@ namespace TBSyzygy {
             {
                 for (u08 pc = 0; pc < pcs[color|pt]; ++pc)
                 {
-                    key ^= Zob._.piecesq[WHITE][pt][pc];
+                    key ^= Zob._.piece_square[WHITE][pt][pc];
                 }
             }
             color ^= 8;
@@ -2170,7 +2171,7 @@ namespace TBSyzygy {
             {
                 for (u08 pc = 0; pc < pcs[color|pt]; ++pc)
                 {
-                    key ^= Zob._.piecesq[BLACK][pt][pc];
+                    key ^= Zob._.piece_square[BLACK][pt][pc];
                 }
             }
 
@@ -2190,7 +2191,7 @@ namespace TBSyzygy {
             Key key = pos.matl_key ();
 
             // Test for KvK.
-            if (key == (Zob._.piecesq[WHITE][KING][0] ^ Zob._.piecesq[BLACK][KING][0]))
+            if (key == (Zob._.piece_square[WHITE][KING][0] ^ Zob._.piece_square[BLACK][KING][0]))
             {
                 return 0;
             }
@@ -2591,7 +2592,7 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
-                    if (ptype (pos.moved_piece (move)) != PAWN || pos.capture (move)
+                    if (ptype (pos.moving_piece (move)) != PAWN || pos.capture (move)
                         || !pos.legal (move, ci.pinneds))
                     {
                         continue;
@@ -2621,7 +2622,7 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     Move move = cur->move;
-                    if (pos.capture (move) || ptype (pos.moved_piece (move)) == PAWN
+                    if (pos.capture (move) || ptype (pos.moving_piece (move)) == PAWN
                         || !pos.legal (move, ci.pinneds))
                     {
                         continue;
@@ -3213,7 +3214,7 @@ namespace TBSyzygy {
 
         for (i = 1; i < NONE; ++i)
         {
-            sprintf (filename, "K%cvK", PieceChar[i]);
+            sprintf (filename, "K%cvK", PIECE_CHAR[i]);
             init_tb (filename);
         }
 
@@ -3221,7 +3222,7 @@ namespace TBSyzygy {
         {
             for (j = i; j < NONE; ++j)
             {
-                sprintf (filename, "K%cvK%c", PieceChar[i], PieceChar[j]);
+                sprintf (filename, "K%cvK%c", PIECE_CHAR[i], PIECE_CHAR[j]);
                 init_tb (filename);
             }
         }
@@ -3230,7 +3231,7 @@ namespace TBSyzygy {
         {
             for (j = i; j < NONE; ++j)
             {
-                sprintf (filename, "K%c%cvK", PieceChar[i], PieceChar[j]);
+                sprintf (filename, "K%c%cvK", PIECE_CHAR[i], PIECE_CHAR[j]);
                 init_tb (filename);
             }
         }
@@ -3241,7 +3242,7 @@ namespace TBSyzygy {
             {
                 for (k = 1; k < NONE; ++k)
                 {
-                    sprintf (filename, "K%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k]);
+                    sprintf (filename, "K%c%cvK%c", PIECE_CHAR[i], PIECE_CHAR[j], PIECE_CHAR[k]);
                     init_tb (filename);
                 }
             }
@@ -3253,7 +3254,7 @@ namespace TBSyzygy {
             {
                 for (k = j; k < NONE; ++k)
                 {
-                    sprintf (filename, "K%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k]);
+                    sprintf (filename, "K%c%c%cvK", PIECE_CHAR[i], PIECE_CHAR[j], PIECE_CHAR[k]);
                     init_tb (filename);
                 }
             }
@@ -3267,7 +3268,7 @@ namespace TBSyzygy {
                 {
                     for (l = (i == k) ? j : k; l < NONE; ++l)
                     {
-                        sprintf (filename, "K%c%cvK%c%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%cvK%c%c", PIECE_CHAR[i], PIECE_CHAR[j], PIECE_CHAR[k], PIECE_CHAR[l]);
                         init_tb (filename);
                     }
                 }
@@ -3282,7 +3283,7 @@ namespace TBSyzygy {
                 {
                     for (l = 1; l < NONE; ++l)
                     {
-                        sprintf (filename, "K%c%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%c%cvK%c", PIECE_CHAR[i], PIECE_CHAR[j], PIECE_CHAR[k], PIECE_CHAR[l]);
                         init_tb (filename);
                     }
                 }
@@ -3297,7 +3298,7 @@ namespace TBSyzygy {
                 {
                     for (l = k; l < NONE; ++l)
                     {
-                        sprintf (filename, "K%c%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%c%c%cvK", PIECE_CHAR[i], PIECE_CHAR[j], PIECE_CHAR[k], PIECE_CHAR[l]);
                         init_tb (filename);
                     }
                 }

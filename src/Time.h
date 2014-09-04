@@ -38,12 +38,14 @@ INLINE u64 system_time_msec ()
 
 namespace Time {
 
-    //enum point : u64 { MilliSec = 1000 };
+    //enum point : u64 { MILLI_SEC = 1000 };
     //INLINE point  operator-  (const point &p1, const point &p2) { return point (u64(p1) - u64(p2)); }
 
     typedef i64     point;
 
-    const point MilliSec = 1000;
+    const point MILLI_SEC         = 1000;
+    const point MINUTE_MILLI_SEC = MILLI_SEC * 60;
+    const point HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 
     INLINE point now () { return system_time_msec (); }
 
@@ -53,7 +55,7 @@ namespace Time {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        time_t time = (p / MilliSec);
+        time_t time = (p / MILLI_SEC);
         char *str_time = ctime (&time);
 
         //char str_time[26];
@@ -74,7 +76,7 @@ namespace Time {
             << &str_time[00] << " "
             << &str_time[20] << " "
             << &str_time[11] << "."
-            << std::setw (3) << (p % MilliSec);
+            << std::setw (3) << (p % MILLI_SEC);
 
 #   else
 

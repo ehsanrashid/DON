@@ -12,12 +12,12 @@ namespace Time {
 
         enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
-        const float MaxStepRatio  = 07.00f; // When in trouble, can step over reserved time with this ratio
-        const float MaxStealRatio = 00.33f; // However must not steal time from remaining moves over this ratio
+        const float MAX_STEP_RATIO  = 07.00f; // When in trouble, can step over reserved time with this ratio
+        const float MAX_STEAL_RATIO = 00.33f; // However must not steal time from remaining moves over this ratio
 
-        const float Scale    = 09.30f;
-        const float Shift    = 59.80f;
-        const float SkewRate = 00.172f;
+        const float SCALE     = 09.30f;
+        const float SHIFT     = 59.80f;
+        const float SKEW_RATE = 00.172f;
 
         u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead
 
@@ -33,15 +33,15 @@ namespace Time {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         inline float move_importance (i32 game_ply)
         {
-            return pow ((1 + exp ((game_ply - Shift) / Scale)), -SkewRate) + FLT_MIN; // Ensure non-zero
+            return pow ((1 + exp ((game_ply - SHIFT) / SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
         }
 
         template<TimeT TT>
         // remaining_time<>() calculate the time remaining
         inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
-            const float TStepRatio  = OPTIMUM_TIME == TT ? 1.0f : MaxStepRatio;
-            const float TStealRatio = MAXIMUM_TIME == TT ? 0.0f : MaxStealRatio;
+            const float TStepRatio  = OPTIMUM_TIME == TT ? 1.0f : MAX_STEP_RATIO;
+            const float TStealRatio = MAXIMUM_TIME == TT ? 0.0f : MAX_STEAL_RATIO;
 
             float  this_move_imp = move_importance (game_ply) * Slowness / 0x64; // 100
             float other_move_imp = 0.0f;

@@ -107,10 +107,10 @@ INLINE Square scan_msq (Bitboard bb)
 
 #ifdef _64BIT
 
-    const u64 DeBruijn_64 = U64 (0X03F79D71B4CB0A89);
+    const u64 DE_BRUIJN_64 = U64 (0X03F79D71B4CB0A89);
     // * @author Kim Walisch (2012)
     // * DeBruijn(U32(0x4000000)) = U64 (0X03F79D71B4CB0A89)
-    CACHE_ALIGN(8) const u08 BSF_Table[SQ_NO] =
+    CACHE_ALIGN(8) const u08 BSF_TABLE[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
         57, 49, 41, 37, 28, 16, 03, 61,
@@ -124,9 +124,9 @@ INLINE Square scan_msq (Bitboard bb)
 
 #else
 
-    const u32 DeBruijn_32 = U32 (0x783A9B23);
+    const u32 DE_BRUIJN_32 = U32 (0x783A9B23);
 
-    CACHE_ALIGN(8) const u08 BSF_Table[SQ_NO] =
+    CACHE_ALIGN(8) const u08 BSF_TABLE[SQ_NO] =
     {
         63, 30, 03, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -138,7 +138,7 @@ INLINE Square scan_msq (Bitboard bb)
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    CACHE_ALIGN(8) const u08 MSB_Table[_UI8_MAX + 1] =
+    CACHE_ALIGN(8) const u08 MSB_TABLE[_UI8_MAX + 1] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -167,8 +167,8 @@ INLINE Square  scan_lsq (Bitboard bb)
 
     if (!bb) return SQ_NO;
     u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
-    u08 index = (x * DeBruijn_64) >> 0x3A; // 58
-    return Square(BSF_Table[index]);
+    u08 index = (x * DE_BRUIJN_64) >> 0x3A; // 58
+    return Square(BSF_TABLE[index]);
 
 #else
 
@@ -176,8 +176,8 @@ INLINE Square  scan_lsq (Bitboard bb)
     // Use Matt Taylor's folding trick for 32-bit
     u64 x = bb ^ (bb - 1);
     u32 fold = u32(x ^ (x >> 32));
-    u08 index = (fold * DeBruijn_32) >> 0x1A; // 26
-    return Square(BSF_Table[index]);
+    u08 index = (fold * DE_BRUIJN_32) >> 0x1A; // 26
+    return Square(BSF_TABLE[index]);
 
 #endif
 
@@ -197,8 +197,8 @@ inline Square  scan_msq (Bitboard bb)
     bb |= bb >> 0x10;
     bb |= bb >> 0x20;
 
-    u08 index = (bb * DeBruijn_64) >> 0x3A; // 58
-    return Square(BSF_Table[index]);
+    u08 index = (bb * DE_BRUIJN_64) >> 0x3A; // 58
+    return Square(BSF_TABLE[index]);
 
 #else
 
@@ -222,7 +222,7 @@ inline Square  scan_msq (Bitboard bb)
         msb += 8;
     }
 
-    return Square(msb + MSB_Table[b]);
+    return Square(msb + MSB_TABLE[b]);
 
 #endif
 

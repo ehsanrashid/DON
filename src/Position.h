@@ -15,7 +15,7 @@ class Position;
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-extern const std::string StartingFEN;
+extern const std::string STARTUP_FEN;
 CACHE_ALIGN(64) extern Score PSQT[CLR_NO][NONE][SQ_NO];
 
 // Check the validity of FEN string
@@ -144,7 +144,7 @@ private:
 
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
-    template<bool DoCastle>
+    template<bool DO>
     void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceT PT>
@@ -152,7 +152,7 @@ private:
 
 public:
 
-    static u08 _fifty_move_dist;
+    static u08 _FiftyMoveDist;
 
     static void initialize ();
 
@@ -438,11 +438,11 @@ inline Threads::Thread* Position::thread () const { return _thread; }
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return((BitBoard::PawnAttacks[~c][s]    & _types_bb[PAWN])
-        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
+    return((BitBoard::PAWN_ATTACKS[~c][s]    & _types_bb[PAWN])
+        |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
         |  ((_types_bb[BSHP]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
         |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
-        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
+        |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const
@@ -453,12 +453,12 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (BitBoard::PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
-        |  (BitBoard::PawnAttacks[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
-        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
+    return (BitBoard::PAWN_ATTACKS[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
+        |  (BitBoard::PAWN_ATTACKS[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
+        |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
         |  ((_types_bb[BSHP]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
         |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
-        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING]);
+        |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING]);
 }
 // Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const
@@ -486,7 +486,7 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PawnPassSpan[c][s]);
+    return !((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PAWN_PASS_SPAN[c][s]);
 }
 inline bool Position::pawn_on_7thR (Color c) const
 {
@@ -538,7 +538,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
     ASSERT (EMPTY == _board[s]);
     _board[s] = (c | pt);
 
-    Bitboard bb      = BitBoard::Square_bb[s];
+    Bitboard bb      = BitBoard::SQUARE_bb[s];
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
@@ -566,7 +566,7 @@ inline void  Position::remove_piece (Square s)
     PieceT pt = ptype (p);
     _board[s] = EMPTY;
 
-    Bitboard bb      = ~BitBoard::Square_bb[s];
+    Bitboard bb      = ~BitBoard::SQUARE_bb[s];
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
@@ -596,7 +596,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _board[s1] = EMPTY;
     _board[s2] = p;
 
-    Bitboard bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
+    Bitboard bb = BitBoard::SQUARE_bb[s1] ^ BitBoard::SQUARE_bb[s2];
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
@@ -609,19 +609,19 @@ inline void  Position::  move_piece (Square s1, Square s2)
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
-template<bool DoCastle>
+template<bool DO>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
-    const bool KingSide = (king_dst > king_org);
+    const bool king_side = (king_dst > king_org);
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (_active, KingSide ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (_active, KingSide ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (DoCastle ? king_org : king_dst);
-    remove_piece (DoCastle ? rook_org : rook_dst);
-    place_piece (DoCastle ? king_dst : king_org, _active, KING);
-    place_piece (DoCastle ? rook_dst : rook_org, _active, ROOK);
+    remove_piece (DO ? king_org : king_dst);
+    remove_piece (DO ? rook_org : rook_dst);
+    place_piece (DO ? king_dst : king_org, _active, KING);
+    place_piece (DO ? rook_dst : rook_org, _active, ROOK);
 }
 
 // ----------------------------------------------
@@ -635,8 +635,8 @@ inline CheckInfo::CheckInfo (const Position &pos)
     pinneds = pos.pinneds (active);
     discoverers = pos.discoverers (active);
 
-    checking_bb[PAWN] = BitBoard::PawnAttacks[pasive][king_sq];
-    checking_bb[NIHT] = BitBoard::PieceAttacks[NIHT][king_sq];
+    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[pasive][king_sq];
+    checking_bb[NIHT] = BitBoard::PIECE_ATTACKS[NIHT][king_sq];
     checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];

@@ -43,7 +43,7 @@ namespace MoveGen {
                         if (ci != NULL)
                         {
                             if (  (BSHP == PT || ROOK == PT || QUEN == PT)
-                               && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
+                               && !(PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT])
                                )
                             {
                                 continue;
@@ -143,7 +143,7 @@ namespace MoveGen {
                 {
                     const Color C_ = WHITE == C ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (C);
-                    Bitboard attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
+                    Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (C_)] & targets;
                     serialize_moves (moves, king_sq, attacks);
                 }
 
@@ -219,14 +219,14 @@ namespace MoveGen {
                     {
                         if (ci != NULL)
                         {
-                            if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
+                            if (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                         }
 
                         if (CHECK == GT)
                         {
                             if (ci != NULL)
                             {
-                                //if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
+                                //if (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
                                 if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, ROOK);
                                 if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, QUEN);
@@ -285,7 +285,7 @@ namespace MoveGen {
                     case QUIET_CHECK:
                         if (ci != NULL)
                         {
-                            Bitboard pawn_attacks = PawnAttacks[C_][ci->king_sq];
+                            Bitboard pawn_attacks = PAWN_ATTACKS[C_][ci->king_sq];
 
                             push_1 &= pawn_attacks;
                             push_2 &= pawn_attacks;
@@ -333,9 +333,9 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
-                                Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
+                                Bitboard ep_pawns = PAWN_ATTACKS[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
                                 ASSERT (ep_pawns);
-                                ASSERT (pop_count<Max15> (ep_pawns) <= 2);
+                                ASSERT (pop_count<MAX15> (ep_pawns) <= 2);
 
                                 while (ep_pawns)
                                 {
@@ -459,7 +459,7 @@ namespace MoveGen {
             PieceT pt  = ptype (pos[org]);
             Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
 
-            if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
             serialize_moves (moves, org, attacks);
         }
@@ -485,7 +485,7 @@ namespace MoveGen {
             PieceT pt  = ptype (pos[org]);
             Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
             serialize_moves (moves, org, attacks);
         }
@@ -509,16 +509,16 @@ namespace MoveGen {
         Square check_sq;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
-        //Bitboard attacks = PieceAttacks[KING][king_sq] & ~pos.pieces (active);
+        //Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~pos.pieces (active);
         //check_sq = pop_lsq (checkers);
         //
         //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - king_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
-        //for (u08 k = 0; PieceDeltas[KING][k]; ++k)
+        //for (u08 k = 0; PIECE_DELTAS[KING][k]; ++k)
         //{
-        //    Square sq = king_sq + PieceDeltas[KING][k];
+        //    Square sq = king_sq + PIECE_DELTAS[KING][k];
         //    if (_ok (sq))
         //    {
         //        if ((attacks & sq) && pos.attackers_to (sq, ~active, mocc))
@@ -537,12 +537,12 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             ASSERT (color (pos[check_sq]) == ~active);
-            slid_attacks |= LineRay_bb[check_sq][king_sq] - check_sq;
+            slid_attacks |= RAY_LINE_bb[check_sq][king_sq] - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard attacks =  PieceAttacks[KING][king_sq]
-            & ~(pos.pieces (active) | PieceAttacks[KING][pos.king_sq (~active)] | slid_attacks);
+        Bitboard attacks =  PIECE_ATTACKS[KING][king_sq]
+            & ~(pos.pieces (active) | PIECE_ATTACKS[KING][pos.king_sq (~active)] | slid_attacks);
 
         serialize_moves (moves, king_sq, attacks);
 
@@ -554,7 +554,7 @@ namespace MoveGen {
 
         if (check_sq == SQ_NO) check_sq = scan_lsq (checkers);
         // Generates blocking evasions or captures of the checking piece
-        Bitboard targets = Between_bb[check_sq][king_sq] + check_sq;
+        Bitboard targets = BETWEEN_SQRS_bb[check_sq][king_sq] + check_sq;
 
         return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :

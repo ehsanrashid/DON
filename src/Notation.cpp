@@ -94,15 +94,12 @@ namespace Notation {
         // time to string
         const string pretty_time (u64 msecs)
         {
-            const u32 MinuteMilliSec = MilliSec * 60;
-            const u32 HourMilliSec   = MinuteMilliSec * 60;
-
-            u32 hours   = u32(msecs / HourMilliSec);
-            msecs      %= HourMilliSec;
-            u32 minutes = u32(msecs / MinuteMilliSec);
-            msecs      %= MinuteMilliSec;
-            u32 seconds = u32(msecs / MilliSec);
-            msecs      %= MilliSec;
+            u32 hours   = u32(msecs / HOUR_MILLI_SEC);
+            msecs      %= HOUR_MILLI_SEC;
+            u32 minutes = u32(msecs / MINUTE_MILLI_SEC);
+            msecs      %= MINUTE_MILLI_SEC;
+            u32 seconds = u32(msecs / MILLI_SEC);
+            msecs      %= MILLI_SEC;
             msecs      /= 10;
 
             ostringstream oss;
@@ -179,7 +176,7 @@ namespace Notation {
         MoveT mt   = mtype (m);
         if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += PieceChar[(BLACK|promote (m))]; // Lowercase
+        if (PROMOTE == mt) can += PIECE_CHAR[(BLACK|promote (m))]; // Lowercase
         return can;
     }
 
@@ -208,7 +205,7 @@ namespace Notation {
         {
             if (PAWN != pt)
             {
-                san = PieceChar[pt];
+                san = PIECE_CHAR[pt];
                 // Disambiguation if have more then one piece of type 'pt'
                 // that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
@@ -229,7 +226,7 @@ namespace Notation {
             if (PROMOTE == mt && PAWN == pt)
             {
                 san += "=";
-                san += PieceChar[promote (m)];
+                san += PIECE_CHAR[promote (m)];
             }
         }
 
@@ -284,14 +281,14 @@ namespace Notation {
         return oss.str ();
     }
 
+    const u64 K = 1000;
+    const u64 M = K*K;
+
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
     const string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
     {
-        const u64 K = 1000;
-        const u64 M = 1000000;
-
         ostringstream oss;
 
         oss << setw (4) << depth

@@ -18,9 +18,9 @@ using namespace Notation;
 
 namespace {
 
-    const u08   PosCount   = 30;
+    const u08   FEN_COUNT   = 30;
 
-    const char *DefaultFEN[PosCount] =
+    const char *DEFAULT_FEN[FEN_COUNT] =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
@@ -92,8 +92,8 @@ void benchmark (istream &is, const Position &pos)
     //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
-    if      (limit_type == "time")     limits.gameclock[WHITE].time = limits.gameclock[BLACK].time = value * MilliSec; // movetime is in ms
-    if      (limit_type == "movetime") limits.movetime = value * MilliSec; // movetime is in ms
+    if      (limit_type == "time")     limits.gameclock[WHITE].time = limits.gameclock[BLACK].time = value * MILLI_SEC; // movetime is in ms
+    if      (limit_type == "movetime") limits.movetime = value * MILLI_SEC; // movetime is in ms
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);
     //else if (limit_type == "depth")
@@ -101,7 +101,7 @@ void benchmark (istream &is, const Position &pos)
 
     if (fen_fn == "default")
     {
-        fens.assign (DefaultFEN, DefaultFEN + PosCount);
+        fens.assign (DEFAULT_FEN, DEFAULT_FEN + FEN_COUNT);
     }
     else
     if (fen_fn == "current")
@@ -173,6 +173,6 @@ void benchmark (istream &is, const Position &pos)
         << "\n===========================\n"
         << "Total time (ms) : " << time  << "\n"
         << "Nodes searched  : " << nodes << "\n"
-        << "Nodes/second    : " << nodes * MilliSec / time
+        << "Nodes/second    : " << nodes * MILLI_SEC / time
         << "\n---------------------------\n" << endl;
 }

@@ -19,8 +19,8 @@ namespace Search {
 
     using namespace Threads;
 
-    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be < MaxDepth/2
-    const u08 MinSkillMultiPV =  4;
+    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
+    const u08 MIN_SKILL_MULTIPV =  4;
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.

@@ -103,10 +103,9 @@ namespace OpeningBook {
     template<class T>
     PolyglotBook& PolyglotBook::operator<< (T &t)
     {
-        const u08 Size = sizeof (t);
-        for (u08 i = 0; i < Size && good (); ++i)
+        for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
-            u08 byte = u08(t >> (8*(Size - 1 - i)));
+            u08 byte = u08(t >> (8*(sizeof (t) - 1 - i)));
             put (byte);
         }
         return *this;

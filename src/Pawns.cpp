@@ -99,14 +99,14 @@ namespace Pawns {
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;
 
-            Bitboard center_pawns = pawns[0] & ExtCntr_bb[C];
+            Bitboard center_pawns = pawns[0] & EXT_CENTER_bb[C];
             if (center_pawns)
             {
                 Bitboard color_pawns;
-                color_pawns = center_pawns & Liht_bb;
-                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<Max15>(color_pawns) : 0);
-                color_pawns = center_pawns & Dark_bb;
-                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<Max15>(color_pawns) : 0);
+                color_pawns = center_pawns & LIHT_bb;
+                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
+                color_pawns = center_pawns & DARK_bb;
+                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
             }
             else
             {
@@ -134,16 +134,16 @@ namespace Pawns {
                 // Connector rank, for connectors pawn detection
                 Bitboard cr_bb = rank_bb (s) | sr_bb; 
 
-                Bitboard friend_adj_pawns = pawns[0] & AdjFile_bb[f];
+                Bitboard friend_adj_pawns = pawns[0] & ADJ_FILE_bb[f];
                 // Bitboard supporters, doublers, or leverers.
                 Bitboard supporters = (friend_adj_pawns & sr_bb);
                 Bitboard connectors = (friend_adj_pawns & cr_bb);
-                Bitboard doublers   = (pawns[0] & FrontSqrs_bb[C][s]);
-                Bitboard leverers   = (pawns[1] & PawnAttacks[C][s]);
-                Bitboard opposers   = (pawns[1] & FrontSqrs_bb[C][s]);
+                Bitboard doublers   = (pawns[0] & FRONT_SQRS_bb[C][s]);
+                Bitboard leverers   = (pawns[1] & PAWN_ATTACKS[C][s]);
+                Bitboard opposers   = (pawns[1] & FRONT_SQRS_bb[C][s]);
                 // Flag the pawn as passed, isolated (but not the backward one).
                 bool isolated      = !(friend_adj_pawns);
-                bool passed        = !(pawns[1] & PawnPassSpan[C][s]);
+                bool passed        = !(pawns[1] & PAWN_PASS_SPAN[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -154,7 +154,7 @@ namespace Pawns {
                 if (  passed || isolated || connectors || leverers
                    || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || (pawns[0] & PawnAttackSpan[C_][s] && !(pawns[1] & (s-PUSH)))
+                   || (pawns[0] & PAWN_ATTACK_SPAN[C_][s] && !(pawns[1] & (s-PUSH)))
                    )
                 {
                     backward = false;
@@ -165,8 +165,8 @@ namespace Pawns {
                     // Now know that there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
-                    b = PawnAttackSpan[C][s] & pos.pieces<PAWN> ();
-                    b = PawnAttackSpan[C][s] & rank_bb (scan_backmost_sq (C, b));
+                    b = PAWN_ATTACK_SPAN[C][s] & pos.pieces<PAWN> ();
+                    b = PAWN_ATTACK_SPAN[C][s] & rank_bb (scan_backmost_sq (C, b));
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
@@ -180,17 +180,17 @@ namespace Pawns {
                 bool candidate = false;
                 if (!(passed || isolated || backward || opposers)) // r > R_6
                 {
-                    Bitboard helpers = (friend_adj_pawns & PawnAttackSpan[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
+                    Bitboard helpers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
                     if (helpers)
                     {
                         Bitboard sentries = U64 (0);    // Only front enemy adj pawns
-                        candidate = ((more_than_one (helpers) ? pop_count<Max15> (friend_adj_pawns) : 1)
-                                  >= ((sentries = pawns[1] & PawnAttackSpan[C][s]) != 0 ?
-                                      (more_than_one (sentries) ? pop_count<Max15> (sentries) : 1) : 0));
+                        candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
+                                  >= ((sentries = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != 0 ?
+                                      (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));
                     }
                 }
 
-                ASSERT (passed ^ (opposers || (pawns[1] & PawnAttackSpan[C][s])));
+                ASSERT (passed ^ (opposers || (pawns[1] & PAWN_ATTACK_SPAN[C][s])));
 
                 // Score this pawn
                 Score score = SCORE_ZERO;
@@ -227,10 +227,10 @@ namespace Pawns {
                 if (doublers)
                 {
                     score -= DoubledPenalty[f]
-                            * (more_than_one (doublers) ? pop_count<Max15> (doublers) : 1)
+                            * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                             / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
-                    //Bitboard doubly_doublers = (friend_adj_pawns & PawnAttackSpan[C][s]);
+                    //Bitboard doubly_doublers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C][s]);
                     //if (doubly_doublers) score -= DoubledPenalty[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
                 else
@@ -287,8 +287,8 @@ namespace Pawns {
         const Rank kr = _rank (k_sq);
         const Bitboard front_pawns[CLR_NO] =
         {
-            pos.pieces<PAWN> (C ) & (FrontRank_bb[C][kr] | Rank_bb[kr]),
-            pos.pieces<PAWN> (C_) & (FrontRank_bb[C][kr] | Rank_bb[kr])
+            pos.pieces<PAWN> (C ) & (FRONT_RANK_bb[C][kr] | RANK_bb[kr]),
+            pos.pieces<PAWN> (C_) & (FRONT_RANK_bb[C][kr] | RANK_bb[kr])
         };
 
         Value value = KingSafetyByPawn;
@@ -301,10 +301,10 @@ namespace Pawns {
 
             Bitboard mid_pawns;
 
-            mid_pawns = front_pawns[1] & File_bb[f];
+            mid_pawns = front_pawns[1] & FILE_bb[f];
             u08 br = mid_pawns ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns)) : R_1;
             if (  kf == f
-               && EndEdge_bb & (File(f) | Rank(br))
+               && END_EDGE_bb & (File(f) | Rank(br))
                && rel_rank (C, k_sq) + 1 == br
                )
             {
@@ -312,7 +312,7 @@ namespace Pawns {
             }
             else
             {
-                mid_pawns = front_pawns[0] & File_bb[f];
+                mid_pawns = front_pawns[0] & FILE_bb[f];
                 u08 wr = mid_pawns ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
                 u08 danger = wr == R_1 ? 0 : wr + 1 != br ? 1 : 2;
                 value -= ShelterWeakness[wr] + StormDanger[danger][br];

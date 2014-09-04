@@ -142,7 +142,7 @@ namespace UCI {
             {
                 if (token == "startpos")    // Consume "startpos" or "fen" token
                 {
-                    fen = StartingFEN;
+                    fen = STARTUP_FEN;
                     cmds >> token;          // Consume "moves" token if any
                 }
                 else
@@ -374,7 +374,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
-        RootPos.setup (StartingFEN, Threadpool.main ());
+        RootPos.setup (STARTUP_FEN, Threadpool.main ());
 
         bool running = arg.empty ();
         string cmd   = arg;

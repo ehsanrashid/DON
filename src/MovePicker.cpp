@@ -65,7 +65,7 @@ namespace MovePick {
     {
         ASSERT (d > DEPTH_ZERO);
 
-        bad_captures_end = moves+MaxMoves-1;
+        bad_captures_end = moves+MAX_MOVES-1;
 
         stage = pos.checkers () ? EVASION_S1 : MAIN_S;
 
@@ -135,7 +135,7 @@ namespace MovePick {
         stage = PROBCUT;
 
         // In ProbCut generate only captures better than parent's captured piece
-        capture_threshold = PieceValue[MG][pt];
+        capture_threshold = PIECE_VALUE[MG][pt];
 
         tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
         if (  tt_move != MOVE_NONE
@@ -174,17 +174,17 @@ namespace MovePick {
             MoveT mt = mtype (m);
             if (mt == NORMAL)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
+                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
             }
             else
             if (mt == ENPASSANT)
             {
-                itr->value = PieceValue[MG][PAWN];
+                itr->value = PIECE_VALUE[MG][PAWN];
             }
             else
             if (mt == PROMOTE)
             {
-                itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
+                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN];
             }
         }
     }
@@ -220,17 +220,17 @@ namespace MovePick {
                 MoveT mt = mtype (m);
                 if (mt == NORMAL)
                 {
-                    itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + HistoryStats::MaxValue;
                 }
                 else
                 if (mt == ENPASSANT)
                 {
-                    itr->value = PieceValue[MG][PAWN] + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
                 else
                 if (mt == PROMOTE)
                 {
-                    itr->value = PieceValue[MG][ptype (pos[dst_sq (m)])] + PieceValue[MG][promote (m)] - PieceValue[MG][PAWN] + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
             }
             else
@@ -348,7 +348,7 @@ namespace MovePick {
 
         case BAD_CAPTURE_S1:
             // Just pick them in reverse order to get MVV/LVA ordering
-            cur = moves+MaxMoves-1;
+            cur = moves+MAX_MOVES-1;
             end = bad_captures_end;
             return;
 

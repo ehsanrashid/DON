@@ -279,7 +279,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
-      <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -325,7 +325,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -386,7 +386,7 @@
       <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LPAGES;POPCNT;BSFQ;PREFETCH;WIN64;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LPAGES;ABM;BSFQ;PREFETCH;WIN64;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -399,7 +399,7 @@
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>/analyze:stacksize32788</AdditionalOptions>
-      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -438,7 +438,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <MinimalRebuild>false</MinimalRebuild>
-      <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
@@ -483,7 +483,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
-      <UndefinePreprocessorDefinitions>BM2;VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -550,7 +550,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LPAGES;POPCNT;BSFQ;PREFETCH;WIN64;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>LPAGES;ABM;BSFQ;PREFETCH;WIN64;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -562,7 +562,7 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>/analyze:stacksize32788</AdditionalOptions>
-      <UndefinePreprocessorDefinitions>VERSION;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>BM2;VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -601,6 +601,7 @@
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
+    <ClCompile Include="src\TB_Syzygy.cpp" />
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
@@ -633,6 +634,7 @@
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\RKISS.h" />
     <ClInclude Include="src\Searcher.h" />
+    <ClInclude Include="src\TB_Syzygy.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Time.h" />

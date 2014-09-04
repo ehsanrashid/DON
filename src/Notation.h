@@ -40,7 +40,7 @@ namespace Notation {
 //inline std::basic_ostream<CharT, Traits>&
 //    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 //{
-//    os << ColorChar[c];
+//    os << COLOR_CHAR[c];
 //    return os;
 //}
 
@@ -80,7 +80,7 @@ namespace Notation {
 //inline std::basic_ostream<CharT, Traits>&
 //    operator<< (std::basic_ostream<CharT, Traits> &os, const Piece p)
 //{
-//    os << PieceChar[p];
+//    os << PIECE_CHAR[p];
 //    return os;
 //}
 
