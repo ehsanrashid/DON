@@ -871,7 +871,7 @@ namespace Search {
 
                 singular_ext_node =
                        !RootNode
-                    && depth >= (PVNode ? 6*i16(ONE_MOVE) : 8*i16(ONE_MOVE))    // TODO::
+                    && depth >= 8*i16(ONE_MOVE)
                     && tt_move != MOVE_NONE
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN

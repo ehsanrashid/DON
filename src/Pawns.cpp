@@ -7,63 +7,63 @@ namespace Pawns {
 
     namespace {
 
-        const i16 PawnFileValue[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
+        const i16 PAWN_FILE_WEIGHTS[F_NO] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
     #define S(mg, eg) mk_score(mg, eg)
 
         // Doubled pawn penalty by file
-        const Score DoubledPenalty[F_NO] =
+        const Score PAWN_DOUBLED_SCORES[F_NO] =
         {
             S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
         };
 
         // Isolated pawn penalty by [!opposers][file]
-        const Score IsolatedPenalty[2][F_NO] =
+        const Score PAWN_ISOLATED_SCORES[2][F_NO] =
         {
             {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)},
             {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)}
         };
 
         // Backward pawn penalty by [!opposers][file]
-        const Score BackwardPenalty[2][F_NO] =
+        const Score PAWN_BACKWARD_SCORES[2][F_NO] =
         {
             {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)},
             {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)}
         };
 
         // Candidate passed pawn bonus by [rank]
-        const Score CandidateBonus[R_NO] =
+        const Score PAWN_CANDIDATE_SCORES[R_NO] =
         {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Levers bonus by [rank]
-        const Score LeverBonus[R_NO] = 
+        const Score PAWN_LEVER_SCORES[R_NO] = 
         {
                                  // S(+ 8,+ 8), S(+15,+15), S(+30,+30), S(+50,+50)
             S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
-        /**/  Score ConnectedBonus[F_NO][R_NO];
+        /**/  Score PAWN_CONNECTED_SCORES[F_NO][R_NO];
 
-        const Score FileSpanBonus      = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
-        const Score UnstoppableBonus   = S(+ 0,+20); // Bonus for pawn going to promote
-        const Score UnsupportedPenalty = S(+20,+10); // Penalty for Unsupported pawn
+        const Score PAWN_SPAN_SCORE         = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
+        const Score PAWN_UNSTOPPABLE_SCORE = S(+ 0,+20); // Bonus for pawn going to promote
+        const Score PAWN_SUPPORTED_SCORE   = S(+20,+10); // Penalty for Unsupported pawn
 
     #undef S
 
     #define V Value
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
-        const Value ShelterWeakness[R_NO] =
+        const Value SHELTER_WEAKNESS_VALUES[R_NO] =
         {
             V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+101), V(+101), V(+  0)
         };
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-        const Value StormDanger[3][R_NO] =
+        const Value STORM_DANGER_VALUES[3][R_NO] =
         {
             { V(+ 0),  V(+66), V(+130), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
@@ -73,7 +73,7 @@ namespace Pawns {
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KingSafetyByPawn = V(+263);
+        const Value PAWN_KING_SAFETY_VALUE = V(+263);
 
     #undef V
 
@@ -197,41 +197,41 @@ namespace Pawns {
 
                 if (connectors)
                 {
-                    score += ConnectedBonus[f][r];
+                    score += PAWN_CONNECTED_SCORES[f][r];
                 }
                 if (r > R_4 && leverers)
                 {
-                    score += LeverBonus[r]; //* (supporters ? 1 : 2); // TODO::
+                    score += PAWN_LEVER_SCORES[r]; //* (supporters ? 1 : 2); // TODO::
                 }
 
                 if (isolated)
                 {
-                    score -= IsolatedPenalty[!opposers][f];
+                    score -= PAWN_ISOLATED_SCORES[!opposers][f];
                 }
                 else
                 {
-                    if (!supporters)
+                    if (supporters)
                     {
-                        score -= UnsupportedPenalty;
+                        score += PAWN_SUPPORTED_SCORE * (more_than_one (supporters) ? 2 : 1);
                     }
                     if (backward)
                     {
-                        score -= BackwardPenalty[!opposers][f];
+                        score -= PAWN_BACKWARD_SCORES[!opposers][f];
                     }
                     if (candidate)
                     {
-                        score += CandidateBonus[r];
+                        score += PAWN_CANDIDATE_SCORES[r];
                     }
                 }
                 
                 if (doublers)
                 {
-                    score -= DoubledPenalty[f]
+                    score -= PAWN_DOUBLED_SCORES[f]
                             * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                             / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
                     //Bitboard doubly_doublers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C][s]);
-                    //if (doubly_doublers) score -= DoubledPenalty[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //if (doubly_doublers) score -= PAWN_DOUBLED_SCORES[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
                 else
                 {
@@ -265,7 +265,7 @@ namespace Pawns {
             {
                 i32 span = e->semiopen_files[C] ^ 0xFF;
                 e->pawn_span[C] = u08(scan_msq (span)) - u08(scan_lsq (span));
-                pawn_score += FileSpanBonus * i32(e->pawn_span[C]);
+                pawn_score += PAWN_SPAN_SCORE * i32(e->pawn_span[C]);
             }
             else
             {
@@ -291,7 +291,7 @@ namespace Pawns {
             pos.pieces<PAWN> (C_) & (FRONT_RANK_bb[C][kr] | RANK_bb[kr])
         };
 
-        Value value = KingSafetyByPawn;
+        Value value = PAWN_KING_SAFETY_VALUE;
 
         const File kf = _file (k_sq);
         const i08 ckf = min (max (kf, F_B), F_G);
@@ -315,7 +315,7 @@ namespace Pawns {
                 mid_pawns = front_pawns[0] & FILE_bb[f];
                 u08 wr = mid_pawns ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
                 u08 danger = wr == R_1 ? 0 : wr + 1 != br ? 1 : 2;
-                value -= ShelterWeakness[wr] + StormDanger[danger][br];
+                value -= SHELTER_WEAKNESS_VALUES[wr] + STORM_DANGER_VALUES[danger][br];
             }
         }
 
@@ -329,7 +329,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C]|unstopped_pawns[C];
-        return unstoppable_pawns ? UnstoppableBonus * i32(rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
+        return unstoppable_pawns ? PAWN_UNSTOPPABLE_SCORE * i32(rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
                                   SCORE_ZERO;
     }
 
@@ -365,8 +365,8 @@ namespace Pawns {
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
-                i32 value = 1 * r * (r-1) * (r-2) + PawnFileValue[f] * (r/2 + 1);
-                ConnectedBonus[f][r] = mk_score (value, value);
+                i32 value = 1 * r * (r-1) * (r-2) + PAWN_FILE_WEIGHTS[f] * (r/2 + 1);
+                PAWN_CONNECTED_SCORES[f][r] = mk_score (value, value);
             }
         }
     }
