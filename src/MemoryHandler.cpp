@@ -66,7 +66,6 @@ namespace Memory {
         //    LocalFree (lpvMessageBuffer);
         //
         //    dwError = GetLastError ();
-        //    Engine::exit (dwError);
         //}
 
         VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
@@ -163,11 +162,9 @@ namespace Memory {
                 }
                 //perror ("shmat: Shared memory attach failure");
                 //shmctl (shmid1, IPC_RMID, NULL);
-                //Engine::exit (EXIT_FAILURE);
                 return;
             }
             //perror ("shmget: Shared memory get failure");
-            //Engine::exit (EXIT_FAILURE);
 
 #   endif
         }
@@ -181,7 +178,6 @@ namespace Memory {
         }
 
         cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
-        //Engine::exit (EXIT_FAILURE);
     }
 
     void   free_memory  (void *mem)

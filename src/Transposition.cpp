@@ -30,7 +30,6 @@ namespace Transpose {
 
     void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
     {
-
         ASSERT (0 == (alignment & (alignment - 1)));
         ASSERT (0 == (mem_size  & (alignment - 1)));
 
@@ -61,15 +60,10 @@ namespace Transpose {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        u08 offset = max<i08> (alignment, sizeof (void *));
+        size_t offset = max (alignment, sizeof (void *));
 
         void *mem = calloc (mem_size + offset, 1);
-        if (mem == NULL)
-        {
-            cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
-            //Engine::exit (EXIT_FAILURE);
-        }
-        else
+        if (mem != NULL)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
@@ -78,10 +72,13 @@ namespace Transpose {
             ptr[-1]     = mem;
             _hash_table = (TTCluster *) (ptr);
         }
+        else
+        {
+            cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
+        }
     #endif
 
         ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
-
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
