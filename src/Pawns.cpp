@@ -197,7 +197,7 @@ namespace Pawns {
 
                 if (connectors)
                 {
-                    score += PAWN_CONNECTED_SCORE[f][r] * (more_than_one (connectors) ? 2 : 1);
+                    score += PAWN_CONNECTED_SCORE[f][r];// * (more_than_one (connectors) ? 2 : 1); // TODO::
                 }
                 if (r > R_4 && leverers)
                 {
@@ -229,7 +229,7 @@ namespace Pawns {
                     score -= PAWN_DOUBLED_SCORE[f]
                             * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                             / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
-                    
+                    // TODO::
                     //Bitboard doubly_doublers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C][s]);
                     //if (doubly_doublers) score -= PAWN_DOUBLED_SCORE[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
