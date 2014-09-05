@@ -14,7 +14,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard DIST_RINGS[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     CACHE_ALIGN(64) Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
@@ -250,7 +250,7 @@ namespace BitBoard {
                     u08 dRank = F_R_DIST[r1][r2];
 
                     SQR_DIST[s1][s2]  = max (dFile , dRank);
-                    DIST_RINGS[s1][SQR_DIST[s1][s2] - 1] += Square(s2);
+                    DIST_RINGS_bb[s1][SQR_DIST[s1][s2] - 1] += Square(s2);
                 }
             }
         }
