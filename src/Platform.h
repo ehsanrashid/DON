@@ -72,18 +72,20 @@ typedef        uint64_t    u64;
 #endif
 
 // Windows or MinGW
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-#   ifdef _WIN64
-#       ifndef BIT64
-#           define BIT64
-#       endif
-#       ifndef BSFQ
-#           define BSFQ
-#       endif
-#   endif
-
-#endif
+//#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+//
+//// Auto make 64-bit compiles
+//// (disabled as on 64-bit machine we want to make 32-bit compiles)
+////#   ifdef _WIN64
+////#       ifndef BIT64
+////#           define BIT64
+////#       endif
+////#       ifndef BSFQ
+////#           define BSFQ
+////#       endif
+////#   endif
+//
+//#endif
 
 #undef INLINE
 
