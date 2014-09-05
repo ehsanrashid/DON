@@ -26,6 +26,13 @@
 #   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 #   pragma warning (disable: 6326) // Constant comparison
 
+// Auto make 64-bit compiles
+#ifdef _WIN64
+#   ifndef BIT64
+#       define BIT64
+#   endif
+#endif
+
 // MSVC does not support <inttypes.h>
 //#   include <stdint.h>
 //typedef         int8_t     i08;
@@ -79,9 +86,6 @@ typedef        uint64_t    u64;
 ////#   ifdef _WIN64
 ////#       ifndef BIT64
 ////#           define BIT64
-////#       endif
-////#       ifndef BSFQ
-////#           define BSFQ
 ////#       endif
 ////#   endif
 //
