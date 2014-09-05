@@ -317,7 +317,7 @@ namespace Evaluate {
                 if (pos.count<QUEN> ())
                 {
                     Rank ekr = rel_rank (C_, ek_sq);
-                    ei.king_ring[C_] = king_attacks | (DIST_RINGS[ek_sq][1] &
+                    ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
                                                                (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
                                                                 ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq)) :
                                                                             (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C][ek_sq]|rank_bb (ek_sq))
@@ -330,7 +330,7 @@ namespace Evaluate {
 
                 if (king_attacks & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_attacks|DIST_RINGS[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
+                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_attacks|DIST_RINGS_bb[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
                     ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
                     ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KING_ATTACK_WEIGHT[PAWN];
                 }

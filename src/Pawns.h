@@ -86,7 +86,7 @@ namespace Pawns {
                 min_kp_dist[C] = 0;
                 if (pos.pieces<PAWN> (C))
                 {
-                    while (!(BitBoard::DIST_RINGS[k_sq][min_kp_dist[C]++] & pos.pieces<PAWN> (C))) {}
+                    while (!(BitBoard::DIST_RINGS_bb[k_sq][min_kp_dist[C]++] & pos.pieces<PAWN> (C))) {}
                 }
             }
         }

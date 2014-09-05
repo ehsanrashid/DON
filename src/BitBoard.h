@@ -147,7 +147,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard DIST_RINGS[SQ_NO][F_NO];
+    CACHE_ALIGN(64) extern Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
