@@ -106,17 +106,17 @@ namespace BitBoard {
 
             attacks_bb[SQ_A1] = table_bb;
 
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
                 // Board edges are not considered in the relevant occupancies
-                Bitboard edges = board_edges (s);
+                Bitboard edges = board_edges (Square(s));
 
                 // Given a square 's', the mask is the bitboard of sliding attacks from 's'
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = sliding_attacks (deltas, s);
+                Bitboard moves = sliding_attacks (deltas, Square(s));
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
@@ -140,9 +140,9 @@ namespace BitBoard {
                 {
 #               ifndef BM2
                     occupancy[size] = occ;
-                    reference[size] = sliding_attacks (deltas, s, occ);
+                    reference[size] = sliding_attacks (deltas, Square(s), occ);
 #               else
-                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
+                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, Square(s), occ);
 #               endif
 
                     ++size;
@@ -158,7 +158,7 @@ namespace BitBoard {
                 }
 
 #           ifndef BM2
-                u16 booster = MAGIC_BOOSTERS[_rank (s)];
+                u16 booster = MAGIC_BOOSTERS[_rank (Square(s))];
 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until found the one that passes the verification test.
@@ -182,7 +182,7 @@ namespace BitBoard {
                     // effect of verifying the magic.
                     for (i = 0; i < size; ++i)
                     {
-                        Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
+                        Bitboard &attacks = attacks_bb[s][m_index (Square(s), occupancy[i])];
 
                         if (attacks && (attacks != reference[i]))
                         {
