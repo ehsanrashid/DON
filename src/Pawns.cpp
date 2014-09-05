@@ -197,7 +197,7 @@ namespace Pawns {
 
                 if (connectors)
                 {
-                    score += PAWN_CONNECTED_SCORES[f][r];
+                    score += PAWN_CONNECTED_SCORES[f][r] * (more_than_one (connectors) ? 2 : 1);
                 }
                 if (r > R_4 && leverers)
                 {
