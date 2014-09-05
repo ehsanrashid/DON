@@ -138,7 +138,7 @@ INLINE Square scan_msq (Bitboard bb)
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    CACHE_ALIGN(8) const u08 MSB_TABLE[_UI8_MAX + 1] =
+    CACHE_ALIGN(8) const u08 MSB_TABLE[256] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

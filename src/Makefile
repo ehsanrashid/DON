@@ -94,7 +94,6 @@ ifeq ($(ARCH),x86-32)
 	arch = i386
 	pfch = yes
 	sse  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH),general-64)
@@ -170,7 +169,7 @@ endif
 ifeq ($(COMP),gcc)
 	comp= gcc
 	CXX = g++
-	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
+	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
 	LDFLAGS  += -Wl,--no-as-needed
 endif
 
@@ -230,8 +229,10 @@ endif
 
 ### 3.5 Optimization
 ifeq ($(optimize),yes)
+
 	ifeq ($(comp),gcc)
 		CXXFLAGS += -O3
+
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(arch),i386)
 				CXXFLAGS += -mdynamic-no-pic
@@ -240,6 +241,7 @@ ifeq ($(optimize),yes)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
+
 		ifeq ($(arch),armv7)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
@@ -248,6 +250,7 @@ ifeq ($(optimize),yes)
 	ifeq ($(comp),mingw)
 		CXXFLAGS += -O3
 	endif
+
 	ifeq ($(comp),icc)
 		ifeq ($(UNAME),Darwin)
 			CXXFLAGS += -fast -mdynamic-no-pic
@@ -258,6 +261,7 @@ ifeq ($(optimize),yes)
 
 	ifeq ($(comp),clang)
 		CXXFLAGS += -O3
+
 		ifeq ($(UNAME),Darwin)
 			ifeq ($(bm2),no)
 				CXXFLAGS += -flto
@@ -281,20 +285,21 @@ endif
 ### 3.7 Prefetch
 ifeq ($(pfch),yes)
 	CXXFLAGS += -DPREFETCH
+
+	ifeq ($(sse),yes)
+		CXXFLAGS += -msse
+		DEPENDFLAGS += -msse
+	endif
 endif
 
 ### 3.8 Bitscans
 ifeq ($(bsfq),yes)
 	CXXFLAGS += -DBSFQ
 endif
-ifeq ($(sse),yes)
-	CXXFLAGS += -msse
-	DEPENDFLAGS += -msse
-endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
-	CXXFLAGS += -DABM -msse3 -mpopcnt
+	CXXFLAGS += -DABM -msse3 -mpopcnt 
 endif
 
 ### 3.10 BM2 (Bit Manipulation 2)

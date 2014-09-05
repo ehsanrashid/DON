@@ -125,7 +125,7 @@ namespace {
     // which can be quite slow.
 #ifdef PREFETCH
 
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 

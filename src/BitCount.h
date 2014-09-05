@@ -33,7 +33,7 @@ const BitCountT MAX15 = CNT_HW_POPCNT;
 
 #   ifdef __INTEL_COMPILER
 
-#       include <nmmintrin.h> 
+#       include <nmmintrin.h>
 // Intel header for  SSE4.1 or SSE4.2 intrinsics.
 // _mm_popcnt_u64() & _mm_popcnt_u32()
 
@@ -90,7 +90,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 template<>
 INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
-    //// Assembly code by Heinz van Saanen
+    // Assembly code by Heinz van Saanen
     //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
     //return bb;
     return __builtin_popcountll (bb);
