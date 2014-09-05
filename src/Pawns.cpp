@@ -12,40 +12,40 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Doubled pawn penalty by file
-        const Score PAWN_DOUBLED_SCORES[F_NO] =
+        const Score PAWN_DOUBLED_SCORE[F_NO] =
         {
             S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
         };
 
         // Isolated pawn penalty by [!opposers][file]
-        const Score PAWN_ISOLATED_SCORES[2][F_NO] =
+        const Score PAWN_ISOLATED_SCORE[2][F_NO] =
         {
             {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)},
             {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)}
         };
 
         // Backward pawn penalty by [!opposers][file]
-        const Score PAWN_BACKWARD_SCORES[2][F_NO] =
+        const Score PAWN_BACKWARD_SCORE[2][F_NO] =
         {
             {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)},
             {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)}
         };
 
         // Candidate passed pawn bonus by [rank]
-        const Score PAWN_CANDIDATE_SCORES[R_NO] =
+        const Score PAWN_CANDIDATE_SCORE[R_NO] =
         {
             S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Levers bonus by [rank]
-        const Score PAWN_LEVER_SCORES[R_NO] = 
+        const Score PAWN_LEVER_SCORE[R_NO] = 
         {
                                  // S(+ 8,+ 8), S(+15,+15), S(+30,+30), S(+50,+50)
             S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
-        /**/  Score PAWN_CONNECTED_SCORES[F_NO][R_NO];
+        /**/  Score PAWN_CONNECTED_SCORE[F_NO][R_NO];
 
         const Score PAWN_SPAN_SCORE         = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
         const Score PAWN_UNSTOPPABLE_SCORE = S(+ 0,+20); // Bonus for pawn going to promote
@@ -197,16 +197,16 @@ namespace Pawns {
 
                 if (connectors)
                 {
-                    score += PAWN_CONNECTED_SCORES[f][r] * (more_than_one (connectors) ? 2 : 1);
+                    score += PAWN_CONNECTED_SCORE[f][r] * (more_than_one (connectors) ? 2 : 1);
                 }
                 if (r > R_4 && leverers)
                 {
-                    score += PAWN_LEVER_SCORES[r]; //* (supporters ? 1 : 2); // TODO::
+                    score += PAWN_LEVER_SCORE[r]; //* (supporters ? 1 : 2); // TODO::
                 }
 
                 if (isolated)
                 {
-                    score -= PAWN_ISOLATED_SCORES[!opposers][f];
+                    score -= PAWN_ISOLATED_SCORE[!opposers][f];
                 }
                 else
                 {
@@ -216,22 +216,22 @@ namespace Pawns {
                     }
                     if (backward)
                     {
-                        score -= PAWN_BACKWARD_SCORES[!opposers][f];
+                        score -= PAWN_BACKWARD_SCORE[!opposers][f];
                     }
                     if (candidate)
                     {
-                        score += PAWN_CANDIDATE_SCORES[r];
+                        score += PAWN_CANDIDATE_SCORE[r];
                     }
                 }
                 
                 if (doublers)
                 {
-                    score -= PAWN_DOUBLED_SCORES[f]
+                    score -= PAWN_DOUBLED_SCORE[f]
                             * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
                             / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
                     
                     //Bitboard doubly_doublers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C][s]);
-                    //if (doubly_doublers) score -= PAWN_DOUBLED_SCORES[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //if (doubly_doublers) score -= PAWN_DOUBLED_SCORE[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
                 }
                 else
                 {
@@ -366,7 +366,7 @@ namespace Pawns {
             for (i08 f = F_A; f <= F_H; ++f)
             {
                 i32 value = 1 * r * (r-1) * (r-2) + PAWN_FILE_WEIGHTS[f] * (r/2 + 1);
-                PAWN_CONNECTED_SCORES[f][r] = mk_score (value, value);
+                PAWN_CONNECTED_SCORE[f][r] = mk_score (value, value);
             }
         }
     }

@@ -132,9 +132,9 @@ namespace Evaluate {
             S(+318,+  0)  // King Safety
         };
 
-        // MOBILITY_SCORES[PieceT][attacked] contains bonuses for middle and end game,
+        // MOBILITY_SCORE[PieceT][attacked] contains bonuses for middle and end game,
         // indexed by piece type and number of attacked squares not occupied by friendly pieces.
-        const Score MOBILITY_SCORES[NONE][28] =
+        const Score MOBILITY_SCORE[NONE][28] =
         {
             {},
             // Knights
@@ -166,9 +166,9 @@ namespace Evaluate {
             {}
         };
 
-        // THREAT_SCORES[attacking][attacked] contains bonuses according to
+        // THREAT_SCORE[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
-        const Score THREAT_SCORES[NONE][TOTL] =
+        const Score THREAT_SCORE[NONE][TOTL] =
         {
             { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Protected attacked by Minor
             { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Knight
@@ -178,9 +178,9 @@ namespace Evaluate {
             {}
         };
 
-        // PAWN_THREATEN_SCORES[PieceT] contains a penalty according to
+        // PAWN_THREATEN_SCORE[PieceT] contains a penalty according to
         // which piece type is attacked by an enemy pawn.
-        const Score PAWN_THREATEN_SCORES[NONE] =
+        const Score PAWN_THREATEN_SCORE[NONE] =
         {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
@@ -209,9 +209,9 @@ namespace Evaluate {
 
     #define V Value
 
-        // OUTPOST_VALUES[Square] contains bonus of outpost,
+        // OUTPOST_VALUE[Square] contains bonus of outpost,
         // indexed by square (from white's point of view).
-        const Value OUTPOST_VALUES[2][SQ_NO] =
+        const Value OUTPOST_VALUE[2][SQ_NO] =
         {   // A      B      C      D      E      F      G      H
             // Knights
            {V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
@@ -235,24 +235,24 @@ namespace Evaluate {
 
     #undef V
 
-        // The SPACE_MASKS[Color] contains the area of the board which is considered
+        // The SPACE_MASK[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
         // based on how many squares inside this area are safe and available for
         // friendly minor pieces.
-        const Bitboard SPACE_MASKS[CLR_NO] =
+        const Bitboard SPACE_MASK[CLR_NO] =
         {
             ((FC_bb | FD_bb | FE_bb | FF_bb) & (R2_bb | R3_bb | R4_bb)),
             ((FC_bb | FD_bb | FE_bb | FF_bb) & (R7_bb | R6_bb | R5_bb))
         };
 
         // King danger constants and variables. The king danger scores are taken
-        // from the KING_DANGERS[]. Various little "meta-bonuses" measuring
+        // from the KING_DANGER[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
-        // is used as an index to KING_DANGERS[].
+        // is used as an index to KING_DANGER[].
         const u08 MAX_ATTACK_UNITS = 100;
-        // KING_DANGERS[attack_units] contains the king danger weighted score
+        // KING_DANGER[attack_units] contains the king danger weighted score
         // indexed by a calculated integer number.
-        Score KING_DANGERS[MAX_ATTACK_UNITS];
+        Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK_WEIGHT[PieceT] contains king attack weights by piece type
         const i32   KING_ATTACK_WEIGHT[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
@@ -382,7 +382,7 @@ namespace Evaluate {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.pin_attacked_by[C_][PAWN] & s)
                 {
-                    score -= PAWN_THREATEN_SCORES[PT];
+                    score -= PAWN_THREATEN_SCORE[PT];
                 }
 
                 // Special extra evaluation for pieces
@@ -399,7 +399,7 @@ namespace Evaluate {
                     if (!(pos.pieces<PAWN> (C_) & PAWN_ATTACKS[C][s]))
                     {
                         // Initial bonus based on square
-                        Value value = OUTPOST_VALUES[0][rel_sq (C, s)];
+                        Value value = OUTPOST_VALUE[0][rel_sq (C, s)];
 
                         // Increase bonus if supported by pawn, especially if the opponent has
                         // no minor piece which can exchange the outpost piece.
@@ -453,7 +453,7 @@ namespace Evaluate {
                     if (!(pos.pieces<PAWN> (C_) & PAWN_ATTACKS[C][s]))
                     {
                         // Initial bonus based on square
-                        Value value = OUTPOST_VALUES[1][rel_sq (C, s)];
+                        Value value = OUTPOST_VALUE[1][rel_sq (C, s)];
 
                         // Increase bonus if supported by pawn, especially if the opponent has
                         // no minor piece which can exchange the outpost piece.
@@ -590,7 +590,7 @@ namespace Evaluate {
 
                 Bitboard mobile = attacks & mobility_area;
                 i32 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
-                mobility += MOBILITY_SCORES[PT][mob];
+                mobility += MOBILITY_SCORE[PT][mob];
 
                 if (ROOK == PT)
                 {
@@ -687,7 +687,7 @@ namespace Evaluate {
                      | ei.pin_attacked_by[C ][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
-                // index to the KING_DANGERS[] array. The initial value is based on the
+                // index to the KING_DANGER[] array. The initial value is based on the
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
@@ -810,12 +810,12 @@ namespace Evaluate {
                 //    attack_units += 1;
                 //}
 
-                // To index KING_DANGERS[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
+                // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
 
-                // Finally, extract the king danger score from the KING_DANGERS[]
+                // Finally, extract the king danger score from the KING_DANGER[]
                 // array and subtract the score from evaluation.
-                score -= KING_DANGERS[attack_units];
+                score -= KING_DANGER[attack_units];
 
                 if (ei.king_zone_attacks_count[C_] >= 3)
                 {
@@ -860,10 +860,10 @@ namespace Evaluate {
 
             if (protected_enemies)
             {
-                score += ((protected_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORES[0][QUEN] :
-                          (protected_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORES[0][ROOK] :
-                          (protected_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORES[0][BSHP] :
-                                                                      THREAT_SCORES[0][NIHT]);
+                score += ((protected_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORE[0][QUEN] :
+                          (protected_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORE[0][ROOK] :
+                          (protected_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORE[0][BSHP] :
+                                                                      THREAT_SCORE[0][NIHT]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
@@ -875,11 +875,11 @@ namespace Evaluate {
                     Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
                     if (threaten_enemies)
                     {
-                        score += ((threaten_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORES[pt][QUEN] :
-                                  (threaten_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORES[pt][ROOK] :
-                                  (threaten_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORES[pt][BSHP] :
-                                  (threaten_enemies & pos.pieces<NIHT> ()) ? THREAT_SCORES[pt][NIHT] :
-                                                                             THREAT_SCORES[pt][PAWN]);
+                        score += ((threaten_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORE[pt][QUEN] :
+                                  (threaten_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORE[pt][ROOK] :
+                                  (threaten_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORE[pt][BSHP] :
+                                  (threaten_enemies & pos.pieces<NIHT> ()) ? THREAT_SCORE[pt][NIHT] :
+                                                                             THREAT_SCORE[pt][PAWN]);
                     }
                 }
 
@@ -1101,15 +1101,15 @@ namespace Evaluate {
             const Color C_ = WHITE == C ? BLACK : WHITE;
 
             // Find the safe squares for our pieces inside the area defined by
-            // SPACE_MASKS[]. A square is unsafe if it is attacked by an enemy
+            // SPACE_MASK[]. A square is unsafe if it is attacked by an enemy
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
-                  SPACE_MASKS[C]
+                  SPACE_MASK[C]
                 & ~pos.pieces<PAWN> (C)//~ei.pi->blocked_pawns[C]
                 & ~ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
-            // Since SPACE_MASKS[C] is fully on our half of the board
+            // Since SPACE_MASK[C] is fully on our half of the board
             ASSERT (u32(safe_space >> (WHITE == C ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
@@ -1405,12 +1405,12 @@ namespace Evaluate {
         const i32 MAX_SLOPE  =   30;
         const i32 PEAK_VALUE = 1280;
 
-        KING_DANGERS[0] = SCORE_ZERO;
+        KING_DANGER[0] = SCORE_ZERO;
         i32 mg = 0;
         for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
             mg = min (min (i32(0.4*i*i), mg + MAX_SLOPE), PEAK_VALUE);
-            KING_DANGERS[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
+            KING_DANGER[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
         }
     }
 
