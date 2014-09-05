@@ -301,7 +301,7 @@ namespace BitBoard {
         // Parallel bits extract (pext)
         return u16(_pext_u64 (occ, B_MASK_bb[s]));
 #else
-#   ifdef _64BIT
+#   ifdef BIT64
         return u16(((occ & B_MASK_bb[s]) * B_MAGIC_bb[s]) >> B_SHIFT[s]);
 #   else
         u32 lo = (u32(occ >> 0x00) & u32(B_MASK_bb[s] >> 0x00)) * u32(B_MAGIC_bb[s] >> 0x00);
@@ -318,7 +318,7 @@ namespace BitBoard {
         // Parallel bits extract (pext)
         return u16(_pext_u64 (occ, R_MASK_bb[s]));
 #else
-#   ifdef _64BIT
+#   ifdef BIT64
         return u16(((occ & R_MASK_bb[s]) * R_MAGIC_bb[s]) >> R_SHIFT[s]);
 #   else
         u32 lo = (u32(occ >> 0x00) & u32(R_MASK_bb[s] >> 0x00)) * u32(R_MAGIC_bb[s] >> 0x00);

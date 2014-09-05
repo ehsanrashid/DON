@@ -20,7 +20,7 @@ INLINE Square scan_lsq (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef _64BIT
+#ifdef BIT64
     _BitScanForward64 (&index, bb);
 #else
     if (u32(bb))
@@ -41,7 +41,7 @@ INLINE Square scan_msq (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef _64BIT
+#ifdef BIT64
     _BitScanReverse64 (&index, bb);
 #else
     if (u32(bb >> 32))
@@ -62,7 +62,7 @@ INLINE Square scan_msq (Bitboard bb)
 
 INLINE Square scan_lsq (Bitboard bb)
 {
-#ifdef _64BIT
+#ifdef BIT64
     return Square(__builtin_ctzll (bb));
 #else
     return Square((bb & 0x00000000FFFFFFFF) ?
@@ -73,7 +73,7 @@ INLINE Square scan_lsq (Bitboard bb)
 
 INLINE Square scan_msq (Bitboard bb)
 {
-#ifdef _64BIT
+#ifdef BIT64
     return Square(63 ^ __builtin_clzll (bb));
 #else
     return Square(63 ^ ((bb & 0xFFFFFFFF00000000) ?
@@ -105,7 +105,7 @@ INLINE Square scan_msq (Bitboard bb)
 
 #else   // ifndef BSFQ
 
-#ifdef _64BIT
+#ifdef BIT64
 
     const u64 DE_BRUIJN_64 = U64 (0X03F79D71B4CB0A89);
     // * @author Kim Walisch (2012)
@@ -163,7 +163,7 @@ INLINE Square scan_msq (Bitboard bb)
 INLINE Square  scan_lsq (Bitboard bb)
 {
 
-#ifdef _64BIT
+#ifdef BIT64
 
     if (!bb) return SQ_NO;
     u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
@@ -186,7 +186,7 @@ INLINE Square  scan_lsq (Bitboard bb)
 inline Square  scan_msq (Bitboard bb)
 {
 
-#ifdef _64BIT
+#ifdef BIT64
 
     if (!bb) return SQ_NO;
     // set all bits including the MS1B and below

@@ -75,8 +75,8 @@ typedef        uint64_t    u64;
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   ifdef _WIN64
-#       ifndef _64BIT
-#           define _64BIT
+#       ifndef BIT64
+#           define BIT64
 #       endif
 #       ifndef BSFQ
 #           define BSFQ

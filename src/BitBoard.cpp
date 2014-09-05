@@ -61,7 +61,7 @@ namespace BitBoard {
 //            bb ^= (bb - 1);
 //
 //            return
-//#       ifdef _64BIT
+//#       ifdef BIT64
 //                (bb * DE_BRUIJN_64) >> 58;
 //#       else
 //                ((u32(bb) ^ u32(bb >> 32)) * DE_BRUIJN_32) >> 26;
@@ -91,7 +91,7 @@ namespace BitBoard {
 
 #   ifndef BM2
             const u16 MAGIC_BOOSTERS[R_NO] =
-#       ifdef _64BIT
+#       ifdef BIT64
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
 #       else
             { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
@@ -122,7 +122,7 @@ namespace BitBoard {
 
 #           ifndef BM2
                 shift[s] =
-#               ifdef _64BIT
+#               ifdef BIT64
                     64
 #               else
                     32

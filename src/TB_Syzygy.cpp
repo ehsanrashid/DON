@@ -112,7 +112,7 @@ namespace TBSyzygy {
 
         struct TBHashEntry;
 
-#ifdef _64BIT
+#ifdef BIT64
         typedef u64 base_t;
 #else
         typedef u32 base_t;
@@ -1631,7 +1631,7 @@ namespace TBSyzygy {
                 d->base[i] = (d->base[i + 1] + d->offset[i] - d->offset[i + 1]) / 2;
             }
 
-#ifdef _64BIT
+#ifdef BIT64
             for (i = 0; i < h; ++i)
             {
                 d->base[i] <<= 64 - (min_len + i);
@@ -1932,7 +1932,7 @@ namespace TBSyzygy {
             u08  *symlen  = d->symlen;
             i32   sym, bitcnt;
 
-#ifdef _64BIT
+#ifdef BIT64
 
             u64 code = swap64 (*((u64 *) ptr));
 

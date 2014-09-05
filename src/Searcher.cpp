@@ -1544,17 +1544,17 @@ namespace Search {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
 
-                        Move root_move = RootMoves[0].pv[0];
+                        Move best_move = RootMoves[0].pv[0];
                         // Take less time for recaptures if good
                         bool recapture_good = false;
                         if (  RootMoves.best_move_change < 0.05f
                            && cap_pt != NONE
                            && last_move != MOVE_NONE
-                           && dst_sq (last_move) == dst_sq (root_move)
+                           && dst_sq (last_move) == dst_sq (best_move)
                            )
                         {
-                            PieceT org_pt = ptype (RootPos[org_sq (root_move)]);
-                            PieceT dst_pt = ptype (RootPos[dst_sq (root_move)]);
+                            PieceT org_pt = ptype (RootPos[org_sq (best_move)]);
+                            PieceT dst_pt = ptype (RootPos[dst_sq (best_move)]);
                             if (org_pt == KING) org_pt = QUEN;
 
                             recapture_good = dst_pt != NONE // && dst_pt != cap_pt // && org_pt != KING
@@ -2081,7 +2081,7 @@ namespace Threads {
                     && !Signals.root_failedlow
                     && time > TimeMgr.available_time () * (RootMoves.best_move_change < 1.0e-4f ? 50 : 75) / 100 // TODO::
                     )
-                 ) 
+                 )
               )
            || (Limits.movetime && time  >= Limits.movetime)
            || (Limits.nodes    && nodes >= Limits.nodes)
@@ -2173,7 +2173,7 @@ namespace Threads {
                     {
                         Thread *thread = Threadpool[t];
                         const u08 size = thread->splitpoint_threads; // Local copy
-                        sp = (size > 0) ? &thread->splitpoints[size - 1] : NULL;
+                        sp = size > 0 ? &thread->splitpoints[size - 1] : NULL;
 
                         if (  sp != NULL
                            && (sp)->slave_searching

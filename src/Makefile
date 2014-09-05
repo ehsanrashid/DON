@@ -55,7 +55,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
 # os      = (name)    ---                  --- Target operating system
-# bits    = 64/32     --- -D_64BIT         --- 64/32-bit operating system
+# bits    = 64/32     --- -DBIT64         --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
@@ -275,7 +275,7 @@ endif
 
 ### 3.6 Bits
 ifeq ($(bits),64)
-	CXXFLAGS += -D_64BIT
+	CXXFLAGS += -DBIT64
 endif
 
 ### 3.7 Prefetch

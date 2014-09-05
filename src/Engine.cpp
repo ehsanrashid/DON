@@ -76,7 +76,7 @@ namespace Engine {
         }
 #endif
 
-#ifdef _64BIT
+#ifdef BIT64
         oss << " x64";
 #else
         oss << " w32";

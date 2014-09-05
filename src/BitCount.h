@@ -42,7 +42,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     //if (!bb) return 0;
 
-#       ifdef _64BIT
+#       ifdef BIT64
     {
         return u08(_mm_popcnt_u64 (bb));
     }
@@ -62,7 +62,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 {
     //if (!bb) return 0;
 
-#      ifdef _64BIT
+#      ifdef BIT64
     {
         return u08(__popcnt64 (bb));
     }
@@ -75,7 +75,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 
 #   endif
 
-//#elif defined(_WIN32) && defined(_64BIT)
+//#elif defined(_WIN32) && defined(BIT64)
 //
 //#   include <intrin.h> // MSVC popcnt and  __popcnt()
 //
@@ -117,7 +117,7 @@ INLINE u08 pop_count<CNT_HW_POPCNT> (Bitboard bb)
 //
 //#   else
 
-#       ifdef _64BIT
+#       ifdef BIT64
 
 const BitCountT FULL  = CNT_64_FULL;
 const BitCountT MAX15 = CNT_64_MAX15;
