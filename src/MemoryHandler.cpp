@@ -46,62 +46,62 @@ namespace Memory {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        //VOID error_exit (const LPSTR lpAPI, DWORD dwError)
+        //void exit_error (const LPSTR api_lp, DWORD error_code)
         //{
-        //    LPSTR lpvMessageBuffer = NULL;
+        //    LPSTR msg_buffer_lp = NULL;
         //
         //    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
         //                     FORMAT_MESSAGE_FROM_SYSTEM |
         //                     FORMAT_MESSAGE_IGNORE_INSERTS,
-        //                     NULL, dwError,
+        //                     NULL, error_code,
         //                     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-        //                     lpvMessageBuffer, 0, NULL);
+        //                     msg_buffer_lp, 0, NULL);
         //
         //    //... now display this string
-        //    _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
-        //    _tprintf (TEXT ("       error code = %lu.\n"), dwError);
-        //    _tprintf (TEXT ("       message    = %s.\n"), lpvMessageBuffer);
+        //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_lp);
+        //    _tprintf (TEXT ("       error code = %lu.\n"), error_code);
+        //    _tprintf (TEXT ("       message    = %s.\n") , msg_buffer_lp);
         //
         //    // Free the buffer allocated by the system
-        //    LocalFree (lpvMessageBuffer);
+        //    LocalFree (msg_buffer_lp);
         //
-        //    dwError = GetLastError ();
+        //    error_code = GetLastError ();
         //}
 
-        VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
+        void setup_privilege (const LPSTR privilege_lp, BOOL enable)
         {
-            HANDLE hToken;
+            HANDLE token_handle;
             // Open process token
-            if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
+            if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
-                //error_exit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
+                //exit_error (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
-            TOKEN_PRIVILEGES tp;
+            TOKEN_PRIVILEGES token_priv;
             // Enable or Disable privilege
-            tp.PrivilegeCount = 1;
-            tp.Privileges[0].Attributes = (bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
+            token_priv.PrivilegeCount = 1;
+            token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
             // Get the luid
-            if (!LookupPrivilegeValue (NULL, lpPrivilege, &tp.Privileges[0].Luid))
+            if (!LookupPrivilegeValue (NULL, privilege_lp, &token_priv.Privileges[0].Luid))
             {
-                //error_exit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
+                //exit_error (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
 
-            //BOOL bStatus = 
-            AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
+            //BOOL status = 
+            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, (PTOKEN_PRIVILEGES) NULL, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
-            // So always check for the last dwError value.
-            //DWORD dwError = GetLastError ();
-            //if (!bStatus || (dwError != ERROR_SUCCESS))
+            // So always check for the last error_code value.
+            //DWORD error_code = GetLastError ();
+            //if (!status || error_code != ERROR_SUCCESS)
             //{
-            //    error_exit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
+            //    exit_error (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
             //}
 
             // Close the handle
-            if (!CloseHandle (hToken))
+            if (!CloseHandle (token_handle))
             {
-                //error_exit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
+                //exit_error (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
             }
         }
 
