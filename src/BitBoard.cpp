@@ -38,13 +38,13 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard  B_MAGIC_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  R_MAGIC_bb[SQ_NO];
 
-    CACHE_ALIGN(8) u08       B_SHIFT   [SQ_NO];
-    CACHE_ALIGN(8) u08       R_SHIFT   [SQ_NO];
+    CACHE_ALIGN(8) u08         B_SHIFT   [SQ_NO];
+    CACHE_ALIGN(8) u08         R_SHIFT   [SQ_NO];
 #endif
 
     // FILE & RANK distance
     CACHE_ALIGN(8) u08 F_R_DIST[F_NO][R_NO];
-    CACHE_ALIGN(8) u08   SQR_DIST[SQ_NO][SQ_NO];
+    CACHE_ALIGN(8) u08 SQR_DIST[SQ_NO][SQ_NO];
 
     namespace {
 

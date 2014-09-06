@@ -152,10 +152,10 @@ namespace Transpose {
             free_aligned_memory ();
         }
 
-        //inline u64 entries () const
-        //{
-        //    return (_cluster_count * ClusterEntries);
-        //}
+        inline u64 entries () const
+        {
+            return (_cluster_count * ClusterEntries);
+        }
 
         // Returns size in MB
         inline u32 size () const

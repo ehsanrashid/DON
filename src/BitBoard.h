@@ -166,8 +166,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard   B_MAGIC_bb[SQ_NO];
     CACHE_ALIGN(64) extern Bitboard   R_MAGIC_bb[SQ_NO];
 
-    CACHE_ALIGN(8) extern u08        B_SHIFT   [SQ_NO];
-    CACHE_ALIGN(8) extern u08        R_SHIFT   [SQ_NO];
+    CACHE_ALIGN(8) extern u08          B_SHIFT   [SQ_NO];
+    CACHE_ALIGN(8) extern u08          R_SHIFT   [SQ_NO];
 #endif
 
     CACHE_ALIGN(8) extern u08 F_R_DIST[F_NO][R_NO];

@@ -87,6 +87,8 @@ namespace Engine {
 #endif
 #ifdef ABM
         oss << "-ABM";
+#elif POP
+        oss << "-POP";
 #endif
 #ifdef LPAGES
         oss << "-LP";
@@ -104,14 +106,7 @@ namespace Engine {
     {
         cout << Engine::info (false) << endl;
 
-#ifdef ABM
-        //cout << "info string ABM available." << endl;
-#endif
-#ifdef BM2
-        //cout << "info string BM2 available." << endl;
-#endif
 #ifdef LPAGES
-        //cout << "info string LARGE PAGES available." << endl;
         Memory::initialize ();
 #endif
 
