@@ -554,10 +554,15 @@ extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
 inline char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
+inline bool white_spaces (const std::string &str)
+{
+    return str.find_first_not_of (" \t\n") == std::string::npos;
+}
+
 inline void trim (std::string &str)
 {
-    std::size_t pb = str.find_first_not_of (' ');
-    std::size_t pe = str.find_last_not_of (' ');
+    std::size_t pb = str.find_first_not_of (" \t\n");
+    std::size_t pe = str.find_last_not_of (" \t\n");
     pb = pb == std::string::npos ? 0 : pb;
     pe = pe == std::string::npos ? pb : pe - pb + 1;
     str = str.substr (pb, pe);

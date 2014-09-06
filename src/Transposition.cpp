@@ -26,7 +26,7 @@ namespace Transpose {
 
     const u32 TranspositionTable::DefTTSize   = 16;
 
-    bool TranspositionTable::ClearHash = true;
+    bool TranspositionTable::ClearHash        = true;
 
     void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
     {
@@ -90,7 +90,7 @@ namespace Transpose {
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
         size_t mem_size = mem_size_mb << 20;
-        u08 hash_bit    = BitBoard::scan_msq ((mem_size) / TTClusterSize);
+        u08 hash_bit    = BitBoard::scan_msq (mem_size / TTClusterSize);
 
         ASSERT (hash_bit < MaxHashBit);
 

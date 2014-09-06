@@ -77,13 +77,13 @@ void benchmark (istream &is, const Position &pos)
     vector<string> fens;
 
     // Assign default values to missing arguments
-    string hash       = (is >> token) ? token : to_string (TranspositionTable::DefTTSize);
-    string threads    = (is >> token) ? token : "1";
-    string limit_val  = (is >> token) ? token : "13";
-    string limit_type = (is >> token) ? token : "depth";
-    string fen_fn     = (is >> token) ? token : "default";
+    string hash       = (is >> token) && !white_spaces (token) ? token : to_string (TranspositionTable::DefTTSize);
+    string threads    = (is >> token) && !white_spaces (token) ? token : "1";
+    string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
+    string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
+    string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
     string boolean    = "false";
-
+    
     Options["Hash"]    = hash;
     Options["Never Clear Hash"] = boolean;
     Options["Threads"] = threads;
@@ -118,8 +118,9 @@ void benchmark (istream &is, const Position &pos)
             return;
         }
 
+        //ifs.seekg (0, ios::beg);
         string fen;
-        while (getline (ifs, fen))
+        while (!ifs.eof () && getline (ifs, fen, '\n'))
         {
             if (!fen.empty ())
             {
