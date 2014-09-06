@@ -36,7 +36,7 @@ namespace std {
             return _strmbuf;
         }
 
-        inline int_type write (int_type c, const Elem prefix[])
+        inline int_type write (int_type c, const Elem *prefix)
         {
             static int_type last_ch = '\n';
             
