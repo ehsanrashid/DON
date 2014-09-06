@@ -49,10 +49,10 @@ namespace BitBoard {
     namespace {
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
-//        const u64 DE_BRUIJN_64 = 0x3F79D71B4CB0A89ULL;
-//        const u32 DE_BRUIJN_32 = 0x783A9B23;
+//        const u64 DE_BRUIJN_64 = U64(0x3F79D71B4CB0A89);
+//        const u32 DE_BRUIJN_32 = U32(0x783A9B23);
 //
-//        CACHE_ALIGN (8) i08 MSB_TABLE[_UI8_MAX + 1];
+//        CACHE_ALIGN (8) i08 MSB_TABLE[UCHAR_MAX + 1];
 //        CACHE_ALIGN (8) Square BSF_TABLE[SQ_NO];
 //
 //        INLINE unsigned bsf_index (Bitboard bb)
@@ -70,19 +70,19 @@ namespace BitBoard {
 
         // max moves for rook from any corner square (LINEAR)
         // 2 ^ 12 = 4096 = 0x1000
-        const u16 MAX_LMOVES =   U32 (0x1000);
+        const u16 MAX_LMOVES =   U32(0x1000);
 
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const u32 MAX_BMOVES = U32 (0x1480);
+        const u32 MAX_BMOVES = U32(0x1480);
 
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const u32 MAX_RMOVES = U32 (0x19000);
+        const u32 MAX_RMOVES = U32(0x19000);
 
         CACHE_ALIGN(64) Bitboard B_TABLE_bb[MAX_BMOVES];
         CACHE_ALIGN(64) Bitboard R_TABLE_bb[MAX_RMOVES];
@@ -135,7 +135,7 @@ namespace BitBoard {
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
                 u32 size     = 0;
-                Bitboard occ = U64 (0);
+                Bitboard occ = U64(0);
                 do
                 {
 #               ifndef BM2
@@ -174,7 +174,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    fill (attacks_bb[s], attacks_bb[s] + size, U64 (0)); //fill_n (attacks_bb[s], size, U64 (0));
+                    fill (attacks_bb[s], attacks_bb[s] + size, U64(0)); //fill_n (attacks_bb[s], size, U64(0));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -222,7 +222,7 @@ namespace BitBoard {
         //    BSF_TABLE[bsf_index (SQUARE_bb[s] = 1ULL << s)] = s;
         //    BSF_TABLE[bsf_index (SQUARE_bb[s])] = s;
         //}
-        //for (Bitboard b = 1; b < 256; ++b)
+        //for (Bitboard b = 1; b <= UCHAR_MAX; ++b)
         //{
         //    MSB_TABLE[b] = more_than_one (b) ? MSB_TABLE[b - 1] : scan_lsq (b);
         //}
@@ -327,7 +327,7 @@ namespace BitBoard {
                 if (NONE == pt) continue;
 
                 BETWEEN_SQRS_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
-                RAY_LINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,       U64 (0)) & attacks_bb (Piece(pt), s2,       U64 (0))) + s1 + s2;
+                RAY_LINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,       U64(0)) & attacks_bb (Piece(pt), s2,       U64(0))) + s1 + s2;
             }
         }
 

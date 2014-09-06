@@ -640,7 +640,7 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
-    checking_bb[KING] = U64 (0);
+    checking_bb[KING] = U64(0);
 }
 
 #endif // _POSITION_H_INC_

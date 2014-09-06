@@ -105,7 +105,7 @@ namespace Search {
         std::vector<Move> pv;
 
         RootMove (Move m = MOVE_NONE)
-            : nodes (U64 (0))
+            : nodes (U64(0))
         {
             value[0] = -VALUE_INFINITE;
             value[1] = -VALUE_INFINITE;
@@ -156,7 +156,7 @@ namespace Search {
         
         //u64 game_nodes () const
         //{
-        //    u64 nodes = U64 (0);
+        //    u64 nodes = U64(0);
         //    for (const_iterator itr = begin (); itr != end (); ++itr)
         //    {
         //        nodes += itr->nodes;

@@ -36,7 +36,7 @@ public:
         u32 learn;
 
         PBEntry ()
-            : key (U64 (0))
+            : key (U64(0))
             , move (MOVE_NONE)
             , weight (0)
             , learn (0)

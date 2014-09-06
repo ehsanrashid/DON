@@ -94,8 +94,8 @@ namespace Pawns {
 
             e->pawns_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
             //e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
-            e->passed_pawns   [C] = U64 (0);
-            e->unstopped_pawns[C] = U64 (0);
+            e->passed_pawns   [C] = U64(0);
+            e->unstopped_pawns[C] = U64(0);
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;
 
@@ -183,7 +183,7 @@ namespace Pawns {
                     Bitboard helpers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
                     if (helpers)
                     {
-                        Bitboard sentries = U64 (0);    // Only front enemy adj pawns
+                        Bitboard sentries = U64(0);    // Only front enemy adj pawns
                         candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
                                   >= ((sentries = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != 0 ?
                                       (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));

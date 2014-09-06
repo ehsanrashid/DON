@@ -12,6 +12,8 @@
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want the executable to run on some very old machines.
 /// -DBSFQ      | Add runtime support for use of Bitscans asm-instruction.
+/// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
+///             | For compiling requires hardware without ABM support.
 /// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
 ///             | For compiling requires hardware with ABM support.
 /// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
@@ -25,13 +27,6 @@
 #   pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
 #   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 #   pragma warning (disable: 6326) // Constant comparison
-
-// Auto make 64-bit compiles
-#ifdef _WIN64
-#   ifndef BIT64
-#       define BIT64
-#   endif
-#endif
 
 // MSVC does not support <inttypes.h>
 //#   include <stdint.h>
@@ -79,17 +74,19 @@ typedef        uint64_t    u64;
 #endif
 
 // Windows or MinGW
-//#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-//
-//// Auto make 64-bit compiles
-//// (disabled as on 64-bit machine we want to make 32-bit compiles)
-////#   ifdef _WIN64
-////#       ifndef BIT64
-////#           define BIT64
-////#       endif
-////#   endif
-//
-//#endif
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+
+// Auto make 64-bit compiles
+#   ifdef _WIN64
+#       ifndef BIT64
+#           define BIT64
+#       endif
+#       ifndef BSFQ
+#           define BSFQ
+#       endif
+#   endif
+
+#endif
 
 #undef INLINE
 

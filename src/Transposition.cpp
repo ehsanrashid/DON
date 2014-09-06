@@ -22,7 +22,7 @@ namespace Transpose {
     // 4 MB
     const u32 TranspositionTable::MinTTSize   = 4;
     // 1048576 MB (1024 GB) (1 TB)
-    const u32 TranspositionTable::MaxTTSize   = (U64 (1) << (MaxHashBit-1 - 20)) * TTClusterSize;
+    const u32 TranspositionTable::MaxTTSize   = (U64(1) << (MaxHashBit-1 - 20)) * TTClusterSize;
 
     const u32 TranspositionTable::DefTTSize   = 16;
 

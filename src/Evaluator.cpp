@@ -307,7 +307,7 @@ namespace Evaluate {
             ei.king_ring_attackers_count [C ] = 0;
             ei.king_ring_attackers_weight[C ] = 0;
             ei.king_zone_attacks_count   [C ] = 0;
-            ei.king_ring                 [C_] = U64 (0);
+            ei.king_ring                 [C_] = U64(0);
 
             // Init king safety tables only if going to use them
             if (  //pos.count<QUEN> () &&
@@ -347,8 +347,8 @@ namespace Evaluate {
             const Bitboard occ   = pos.pieces ();
             const Bitboard pinneds = ei.pinneds[C];
 
-            ei.ful_attacked_by[C][PT] = U64 (0);
-            ei.pin_attacked_by[C][PT] = U64 (0);
+            ei.ful_attacked_by[C][PT] = U64(0);
+            ei.pin_attacked_by[C][PT] = U64(0);
 
             Score score = SCORE_ZERO;
             
@@ -951,7 +951,7 @@ namespace Evaluate {
 
                     if (not_pinned)
                     {
-                        Bitboard pawnR7_capture = U64 (0);
+                        Bitboard pawnR7_capture = U64(0);
 
                         // If the pawn is free to advance, increase bonus
                         if (  pos.empty (block_sq)
@@ -1002,7 +1002,7 @@ namespace Evaluate {
                                     Bitboard pawns_on_R7    = (pos.pieces<PAWN> (C) - s) & rel_rank_bb (C, R_7);
                                     Bitboard pawnR7_attacks = (pawns_on_R7) ? shift_del<WHITE == C ? DEL_NE : DEL_SW> (pawns_on_R7)
                                                                             | shift_del<WHITE == C ? DEL_NW : DEL_SE> (pawns_on_R7) :
-                                                                              U64 (0);
+                                                                              U64(0);
 
                                     safe_squares = queen_squares & ( pawnR7_attacks
                                                                    | ei.pin_attacked_by[C ][NIHT]
@@ -1152,8 +1152,8 @@ namespace Evaluate {
             ei.pi  = Pawns::probe (pos, thread->pawns_table);
             score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCT]);
 
-            ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64 (0);
-            ei.ful_attacked_by[BLACK][NONE] = ei.pin_attacked_by[BLACK][NONE] = U64 (0);
+            ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64(0);
+            ei.ful_attacked_by[BLACK][NONE] = ei.pin_attacked_by[BLACK][NONE] = U64(0);
             // Initialize attack and king safety bitboards
             init_evaluation<WHITE> (pos, ei);
             init_evaluation<BLACK> (pos, ei);

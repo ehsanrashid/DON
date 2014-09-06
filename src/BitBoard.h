@@ -11,34 +11,34 @@
 
 namespace BitBoard {
 
-    const Bitboard FA_bb = U64 (0x0101010101010101);
-    const Bitboard FB_bb = FA_bb << 1;//U64 (0x0202020202020202);
-    const Bitboard FC_bb = FA_bb << 2;//U64 (0x0404040404040404);
-    const Bitboard FD_bb = FA_bb << 3;//U64 (0x0808080808080808);
-    const Bitboard FE_bb = FA_bb << 4;//U64 (0x1010101010101010);
-    const Bitboard FF_bb = FA_bb << 5;//U64 (0x2020202020202020);
-    const Bitboard FG_bb = FA_bb << 6;//U64 (0x4040404040404040);
-    const Bitboard FH_bb = FA_bb << 7;//U64 (0x8080808080808080);
+    const Bitboard FA_bb = U64(0x0101010101010101);
+    const Bitboard FB_bb = FA_bb << 1;//U64(0x0202020202020202);
+    const Bitboard FC_bb = FA_bb << 2;//U64(0x0404040404040404);
+    const Bitboard FD_bb = FA_bb << 3;//U64(0x0808080808080808);
+    const Bitboard FE_bb = FA_bb << 4;//U64(0x1010101010101010);
+    const Bitboard FF_bb = FA_bb << 5;//U64(0x2020202020202020);
+    const Bitboard FG_bb = FA_bb << 6;//U64(0x4040404040404040);
+    const Bitboard FH_bb = FA_bb << 7;//U64(0x8080808080808080);
 
-    const Bitboard R1_bb = U64 (0x00000000000000FF);
-    const Bitboard R2_bb = R1_bb << (8 * 1);//U64 (0x000000000000FF00);
-    const Bitboard R3_bb = R1_bb << (8 * 2);//U64 (0x0000000000FF0000);
-    const Bitboard R4_bb = R1_bb << (8 * 3);//U64 (0x00000000FF000000);
-    const Bitboard R5_bb = R1_bb << (8 * 4);//U64 (0x000000FF00000000);
-    const Bitboard R6_bb = R1_bb << (8 * 5);//U64 (0x0000FF0000000000);
-    const Bitboard R7_bb = R1_bb << (8 * 6);//U64 (0x00FF000000000000);
-    const Bitboard R8_bb = R1_bb << (8 * 7);//U64 (0xFF00000000000000);
+    const Bitboard R1_bb = U64(0x00000000000000FF);
+    const Bitboard R2_bb = R1_bb << (8 * 1);//U64(0x000000000000FF00);
+    const Bitboard R3_bb = R1_bb << (8 * 2);//U64(0x0000000000FF0000);
+    const Bitboard R4_bb = R1_bb << (8 * 3);//U64(0x00000000FF000000);
+    const Bitboard R5_bb = R1_bb << (8 * 4);//U64(0x000000FF00000000);
+    const Bitboard R6_bb = R1_bb << (8 * 5);//U64(0x0000FF0000000000);
+    const Bitboard R7_bb = R1_bb << (8 * 6);//U64(0x00FF000000000000);
+    const Bitboard R8_bb = R1_bb << (8 * 7);//U64(0xFF00000000000000);
 
-    const Bitboard R1_bb_ = ~R1_bb;//U64 (0xFFFFFFFFFFFFFF00);    // 56 Not RANK-1
-    const Bitboard R8_bb_ = ~R8_bb;//U64 (0x00FFFFFFFFFFFFFF);    // 56 Not RANK-8
-    const Bitboard FA_bb_ = ~FA_bb;//U64 (0xFEFEFEFEFEFEFEFE);    // 56 Not FILE-A
-    const Bitboard FH_bb_ = ~FH_bb;//U64 (0x7F7F7F7F7F7F7F7F);    // 56 Not FILE-H
+    const Bitboard R1_bb_ = ~R1_bb;//U64(0xFFFFFFFFFFFFFF00);    // 56 Not RANK-1
+    const Bitboard R8_bb_ = ~R8_bb;//U64(0x00FFFFFFFFFFFFFF);    // 56 Not RANK-8
+    const Bitboard FA_bb_ = ~FA_bb;//U64(0xFEFEFEFEFEFEFEFE);    // 56 Not FILE-A
+    const Bitboard FH_bb_ = ~FH_bb;//U64(0x7F7F7F7F7F7F7F7F);    // 56 Not FILE-H
 
-    const Bitboard D18_bb = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
-    const Bitboard D81_bb = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
+    const Bitboard D18_bb = U64(0x8040201008040201);             // 08 DIAG-18 squares.
+    const Bitboard D81_bb = U64(0x0102040810204080);             // 08 DIAG-81 squares.
 
-    const Bitboard LIHT_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard DARK_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
+    const Bitboard LIHT_bb = U64(0x55AA55AA55AA55AA);            // 32 LIGHT squares.
+    const Bitboard DARK_bb = U64(0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
     const Bitboard CORNER_bb    = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
     const Bitboard FILE_EDGE_bb = (FA_bb | FH_bb);
@@ -257,9 +257,9 @@ namespace BitBoard {
     // Rotate LEFT  (toward MSB)
     inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
-    inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64 (0))
+    inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64(0))
     {
-        Bitboard slid_attacks = U64 (0);
+        Bitboard slid_attacks = U64(0);
         u08 i = 0;
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
@@ -353,7 +353,7 @@ namespace BitBoard {
                (QUEN == pt) ? attacks_bb<BSHP> (s, occ)
                             | attacks_bb<ROOK> (s, occ) :
                (NIHT == pt || KING == pt) ? PIECE_ATTACKS[pt][s] :
-               U64 (0);
+               U64(0);
     }
 
     extern void initialize ();

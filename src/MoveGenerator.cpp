@@ -264,7 +264,7 @@ namespace MoveGen {
                 default:      enemies = pos.pieces (C_);           break;
                 }
 
-                Bitboard empties = U64 (0);
+                Bitboard empties = U64(0);
                 // Pawn single-push and double-push, no promotions
                 if (CAPTURE != GT)
                 {
@@ -420,7 +420,7 @@ namespace MoveGen {
             CAPTURE == GT ?  pos.pieces (~active) :
             QUIET   == GT ? ~pos.pieces () :
             RELAX   == GT ? ~pos.pieces (active) :
-            U64 (0);
+            U64(0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets) :
@@ -529,7 +529,7 @@ namespace MoveGen {
         //}
 
         check_sq = SQ_NO;
-        Bitboard slid_attacks = U64 (0);
+        Bitboard slid_attacks = U64(0);
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.

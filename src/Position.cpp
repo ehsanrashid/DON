@@ -683,7 +683,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
         | (PIECE_ATTACKS[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP]))
         ) &  _color_bb[~king_c];
 
-    Bitboard chk_blockers = U64 (0);
+    Bitboard chk_blockers = U64(0);
     while (pinners)
     {
         Bitboard blocker = BETWEEN_SQRS_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
@@ -1572,7 +1572,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     // Update checkers bitboard: piece must be already moved due to attacks_bb()
-    _si->checkers = U64 (0);
+    _si->checkers = U64(0);
     if (ci != NULL)
     {
         if (mtype (m) == NORMAL)

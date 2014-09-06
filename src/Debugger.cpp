@@ -7,8 +7,8 @@ namespace Debug {
 
     namespace {
 
-        u64 Hits[2] = { U64 (0), U64 (0) },
-            Mean[2] = { U64 (0), U64 (0) };
+        u64 Hits[2] = { U64(0), U64(0) },
+            Mean[2] = { U64(0), U64(0) };
     }
 
     void dbg_hits_on (bool h, bool c)

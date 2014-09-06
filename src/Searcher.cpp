@@ -956,7 +956,7 @@ namespace Search {
                     ++legals;
                 }
 
-                //u64 nodes = U64 (0);
+                //u64 nodes = U64(0);
 
                 if (RootNode)
                 {
@@ -1610,7 +1610,7 @@ namespace Search {
         template<bool RootNode>
         u64 perft (Position &pos, Depth depth)
         {
-            u64 leaf_nodes = U64 (0);
+            u64 leaf_nodes = U64(0);
 
             StateInfo si;
             CheckInfo ci (pos);

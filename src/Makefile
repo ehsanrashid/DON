@@ -59,6 +59,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
+# pop     = yes/no    ---                  --- Use Internal POP Count Table
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
 # lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
@@ -74,8 +75,9 @@ optimize= yes
 os   = any
 bits = 32
 pfch = no
-bsfq = no
 sse  = no
+pop  = no
+bsfq = no
 abm  = no
 bm2  = no
 lpg  = no
@@ -96,6 +98,23 @@ ifeq ($(ARCH),x86-32)
 	sse  = yes
 endif
 
+ifeq ($(ARCH),general-32-pop)
+	arch = any
+	pop  = yes
+endif
+
+ifeq ($(ARCH),x86-32-old-pop)
+	arch = i386
+	pop  = yes
+endif
+
+ifeq ($(ARCH),x86-32-pop)
+	arch = i386
+	pfch = yes
+	sse  = yes
+	pop  = yes
+endif
+
 ifeq ($(ARCH),general-64)
 	arch = any
 	bits = 64
@@ -106,8 +125,25 @@ ifeq ($(ARCH),x86-64)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	bsfq = yes
 	sse  = yes
+	bsfq = yes
+	lpg  = yes
+endif
+
+ifeq ($(ARCH),general-64-pop)
+	arch = any
+	bits = 64
+	lpg  = yes
+	pop  = yes
+endif
+
+ifeq ($(ARCH),x86-64-pop)
+	arch = x86_64
+	bits = 64
+	pfch = yes
+	sse  = yes
+	pop  = yes
+	bsfq = yes
 	lpg  = yes
 endif
 
@@ -115,8 +151,8 @@ ifeq ($(ARCH),x86-64-abm)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	bsfq = yes
 	sse  = yes
+	bsfq = yes
 	abm  = yes
 	lpg  = yes
 endif
@@ -125,8 +161,8 @@ ifeq ($(ARCH),x86-64-bm2)
 	arch = x86_64
 	bits = 64
 	pfch = yes
-	bsfq = yes
 	sse  = yes
+	bsfq = yes
 	abm  = yes
 	bm2  = yes
 	lpg  = yes
@@ -149,6 +185,25 @@ ifeq ($(ARCH),armv7)
 	bsfq = yes
 endif
 
+ifeq ($(ARCH),ppc-32-pop)
+	arch = ppc
+	pop  = yes
+	lpg  = yes
+endif
+
+ifeq ($(ARCH),ppc-64-pop)
+	arch = ppc64
+	bits = 64
+	pop  = yes
+	lpg  = yes
+endif
+
+ifeq ($(ARCH),armv7-pop)
+	arch = armv7
+	pfch = yes
+	pop  = yes
+	bsfq = yes
+endif
 
 ### ==========================================================================
 ### Section 3. Low-level configuration
@@ -316,7 +371,9 @@ ifeq ($(lpg),yes)
 endif
 
 ### 3.12
-# CXXFLAGS += -DPOP
+ifeq ($(pop),yes)
+	CXXFLAGS += -DPOP
+endif
 
 ### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw.
 ### This is a mix of compile and link time options because the lto link phase
@@ -359,11 +416,19 @@ help:
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
+	@echo "general-32-pop          > unspecified 32-bit with POP"
+	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
+	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
+	@echo "general-64-pop          > unspecified 64-bit with POP"
+	@echo "x86-64-pop              > x86 64-bit with POP"
 	@echo "x86-64-abm              > x86 64-bit with ABM support"
 	@echo "x86-64-bm2              > x86 64-bit with BM2 support"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "ppc-64                  > PPC 64-bit"
 	@echo "armv7                   > ARMv7 32-bit"
+	@echo "ppc-32-pop              > PPC 32-bit with POP"
+	@echo "ppc-64-pop              > PPC 64-bit with POP"
+	@echo "armv7-pop               > ARMv7 32-bit with POP"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
@@ -441,6 +506,7 @@ config-sanity:
 	@echo "bits    : '$(bits)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
+	@echo "pop     : '$(pop)'"
 	@echo "bsfq    : '$(bsfq)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
@@ -462,6 +528,7 @@ config-sanity:
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
+	@test "$(pop)" = "yes" || test "$(pop)" = "no"
 	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"

@@ -61,10 +61,10 @@ public:
 // initialize given seed and scramble a few rounds
 inline void RKISS::initialize (u32 seed)
 {
-    A = U64 (0xF1EA5EED);
+    A = U64(0xF1EA5EED);
     B =
     C =
-    D = U64 (0xD4E12C77);
+    D = U64(0xD4E12C77);
 
     // PRNG sequence should be not deterministic
     // Scramble a few rounds
