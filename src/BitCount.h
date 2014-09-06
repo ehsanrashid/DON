@@ -20,9 +20,8 @@ template<BitCountT>
 INLINE u08 pop_count (Bitboard bb);
 
 // Determine at compile time the best pop_count<> specialization 
-// according if platform is 32 or 64 bit,
-// the maximum number of nonzero bits to count
-// and if hardware popcnt instruction is available.
+// according if platform is 32-bit or 64-bit, and if hardware popcnt instruction is available.
+// return the maximum number of nonzero bits to count
 
 #ifdef ABM
 

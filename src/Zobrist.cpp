@@ -16,7 +16,7 @@ namespace Zobrist {
 
     void Zob::initialize (RKISS &rk)
     {
-        for (u16 i = 0; i < ZobristSize; ++i)
+        for (u16 i = 0; i < ZOB_SIZE; ++i)
         {
             zobrist[i] = rk.rand64 ();
         }

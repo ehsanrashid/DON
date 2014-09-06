@@ -11,7 +11,7 @@ namespace Zobrist {
     // 2*6*64 + 2*2 + 8 + 1
     //    768 +   4 + 8 + 1
     //                  781
-    const u16 ZobristSize = 781;
+    const u16 ZOB_SIZE = 781;
 
     //const Key PG_MATL_KEY = U64(0xB76D8438E5D28230);
     //const Key PG_PAWN_KEY = U64(0x37FC40DA841E1692);
@@ -25,14 +25,14 @@ namespace Zobrist {
     {
     public:
         //CACHE_ALIGN(64)
-        Key zobrist[ZobristSize];
+        Key zobrist[ZOB_SIZE];
 
         struct
         {
             CACHE_ALIGN(64) Key piece_square[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
             CACHE_ALIGN(16) Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]
             CACHE_ALIGN(16) Key en_passant  [F_NO];                 // [ENPASSANT FILE]
-            Key mover_side;                         // COLOR
+            Key mover_side;                                         // COLOR
         } _;
 
     public:
