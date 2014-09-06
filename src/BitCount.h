@@ -89,7 +89,16 @@ INLINE u08 pop_count<CNT_HW> (Bitboard bb)
     // Assembly code by Heinz van Saanen
     //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
     //return bb;
-    return __builtin_popcountll (bb);
+#   ifdef BIT64
+    {
+        return u08(__builtin_popcountll (bb));
+    }
+#   else
+    {
+        return u08(__builtin_popcountl (bb) + __builtin_popcountl (bb >> 32));
+        //return u08(__builtin_popcountll (bb));
+    }
+#   endif
 }
 
 #endif

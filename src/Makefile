@@ -115,6 +115,13 @@ ifeq ($(ARCH),x86-32-pop)
 	pop  = yes
 endif
 
+ifeq ($(ARCH),x86-32-abm)
+	arch = i386
+	pfch = yes
+	sse  = yes
+	abm  = yes
+endif
+
 ifeq ($(ARCH),general-64)
 	arch = any
 	bits = 64
@@ -411,14 +418,15 @@ help:
 	@echo ""
 	@echo "Supported architectures:"
 	@echo "------------------------"
+	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "general-32              > unspecified 32-bit"
 	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
+	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
 	@echo "general-32-pop          > unspecified 32-bit with POP"
 	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
-	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
+	@echo "x86-32-abm              > x86 32-bit with SSE support & ABM support"
 	@echo "general-64-pop          > unspecified 64-bit with POP"
 	@echo "x86-64-pop              > x86 64-bit with POP"
 	@echo "x86-64-abm              > x86 64-bit with ABM support"
