@@ -368,6 +368,8 @@ namespace UCI {
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // How slow you want engine to play, 100 is neutral
         Options["Slowness"]                     << Option (+ 85,+ 10,+ 1000);
+        
+        Options["Capture Time Adjustment"]      << Option (+ 50,+  0,+ 100);
 
         // Debug Options
         // -------------

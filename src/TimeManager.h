@@ -31,8 +31,8 @@ namespace Time {
         inline u32 maximum_time   () const { return _maximum_time; }
 
         inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
-        inline void recapture   (bool recapture_good)     { _recapture_factor   = 1.0f - recapture_good * 0.85f; }
-    
+        inline void recapture (float capture_adjustment) { _recapture_factor = 1.0f - capture_adjustment; }
+
         void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     
     };

@@ -66,6 +66,8 @@ namespace Search {
 
         TimeManager TimeMgr;
 
+        float NormalCaptureAdjustment;
+
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
 
@@ -1360,7 +1362,7 @@ namespace Search {
             FollowupMoveStats.clear ();
             
             PieceT cap_pt  = RootPos.capture_type ();
-            Move last_move = RootPos.last_move ();
+            //Move last_move = RootPos.last_move ();
 
             u08 level = u08(i32(Options["Skill Level"]));
             Skill skill (level);
@@ -1543,27 +1545,40 @@ namespace Search {
                     {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
-
-                        Move best_move = RootMoves[0].pv[0];
+                        
+                        iteration_time = now () - SearchTime;
                         // Take less time for recaptures if good
-                        bool recapture_good = false;
+                        float capture_adjustment = 0.0f;
                         if (  RootMoves.best_move_change < 0.05f
-                           && cap_pt != NONE
-                           && last_move != MOVE_NONE
-                           && dst_sq (last_move) == dst_sq (best_move)
+                           && iteration_time > TimeMgr.available_time () * 10 / 100
                            )
                         {
+                            Move best_move = RootMoves[0].pv[0];
                             PieceT org_pt = ptype (RootPos[org_sq (best_move)]);
                             PieceT dst_pt = ptype (RootPos[dst_sq (best_move)]);
                             if (org_pt == KING) org_pt = QUEN;
 
-                            recapture_good = dst_pt != NONE // && dst_pt != cap_pt // && org_pt != KING
-                                && (  PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
-                                   || abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
-                                   //|| PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][cap_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT // King capturing must be check further here
-                                   );
+                            if (dst_pt != NONE)
+                            {
+                                if (  cap_pt != NONE && cap_pt != dst_pt
+                                   && (       PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                                      || abs (PIECE_VALUE[MG][cap_pt] - PIECE_VALUE[MG][dst_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
+                                      )
+                                   )
+                                {
+                                    //capture_adjustment = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
+                                    capture_adjustment = (0.05f - RootMoves.best_move_change) * 18.18; // Easy recapture
+                                }
+                                else
+                                if (  RootMoves.best_move_change < 0.01f
+                                   && iteration_time > TimeMgr.available_time () * 30 / 100
+                                   )
+                                {
+                                    capture_adjustment = NormalCaptureAdjustment; // Normal capture
+                                }
+                            }
                         }
-                        TimeMgr.recapture (recapture_good);
+                        TimeMgr.recapture (capture_adjustment);
                     }
 
                     // If there is only one legal move available or 
@@ -1970,6 +1985,8 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
+        NormalCaptureAdjustment = i32(Options["Capture Time Adjustment"]) / 100;
+
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
         u08 mc; // move count
@@ -1997,8 +2014,8 @@ namespace Search {
             {
                 float    pv_red = 0.00f + log (float(hd)) * log (float(mc)) / 3.00f;
                 float nonpv_red = 0.33f + log (float(hd)) * log (float(mc)) / 2.25f;
-                Reductions[1][1][hd][mc] =    pv_red >= 1.0 ? u08(   pv_red*i16(ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = nonpv_red >= 1.0 ? u08(nonpv_red*i16(ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =    pv_red >= 1.0f ? u08(   pv_red*i16(ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = nonpv_red >= 1.0f ? u08(nonpv_red*i16(ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
