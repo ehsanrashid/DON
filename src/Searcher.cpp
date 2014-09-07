@@ -66,7 +66,7 @@ namespace Search {
 
         TimeManager TimeMgr;
 
-        float NormalCaptureAdjustment;
+        float   CaptureAdjustment;
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
@@ -1578,7 +1578,7 @@ namespace Search {
                                    && iteration_time > TimeMgr.available_time () * 30 / 100
                                    )
                                 {
-                                    capture_adjustment = NormalCaptureAdjustment; // Normal capture
+                                    capture_adjustment = CaptureAdjustment; // Normal capture
                                 }
                             }
                         }
@@ -1989,7 +1989,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        NormalCaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
+        CaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
