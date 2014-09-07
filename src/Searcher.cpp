@@ -33,20 +33,20 @@ namespace Search {
 
         const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(4) Value FutilityMargins[FutilityMarginDepth];  // [depth]
+        CACHE_ALIGN(16) Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
         const Depth           RazorDepth = Depth(4*i16(ONE_MOVE));
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(4) Value RazorMargins[RazorDepth];              // [depth]
+        CACHE_ALIGN(16) Value RazorMargins[RazorDepth];              // [depth]
 
         const Depth           FutilityMoveCountDepth = Depth(16*i16(ONE_MOVE));
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
+        CACHE_ALIGN(16) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
 
         const Depth           ReductionDepth     = Depth(32*i16(ONE_MOVE));
         const u08             ReductionMoveCount = 64;
         // Reductions lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(16) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
@@ -873,7 +873,7 @@ namespace Search {
 
                 singular_ext_node =
                        !RootNode
-                    && depth >= 8*i16(ONE_MOVE)
+                    && depth >= (PVNode ? 6*i16(ONE_MOVE) : 8*i16(ONE_MOVE))
                     && tt_move != MOVE_NONE
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN
@@ -891,7 +891,11 @@ namespace Search {
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval);
+                || ((ss-0)->static_eval >= (ss-2)->static_eval)
+                || (  (ss-1)->current_move != MOVE_NULL
+                   && (ss-0)->static_eval != VALUE_NONE
+                   && (ss-0)->static_eval > -(ss-1)->static_eval
+                   );
 
             Thread *thread  = pos.thread ();
             point time;
