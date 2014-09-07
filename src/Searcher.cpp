@@ -858,7 +858,7 @@ namespace Search {
                     {
                         Depth iid_depth = depth - (PVNode ? 2*i16(ONE_MOVE) : 2*i16(ONE_MOVE) + depth/4); // IID Reduced Depth
 
-                        search_depth<PVNode ? PV : NonPV, false, true> (pos, ss, alpha, beta, iid_depth, true);
+                        search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                         tte = TT.retrieve (posi_key);
                         if (tte != NULL)
@@ -1567,7 +1567,7 @@ namespace Search {
                                    )
                                 {
                                     //capture_adjustment = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
-                                    capture_adjustment = (0.05f - RootMoves.best_move_change) * 18.18; // Easy recapture
+                                    capture_adjustment = (0.05f - RootMoves.best_move_change) * 18.18f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
@@ -1880,7 +1880,7 @@ namespace Search {
             {
                 Threadpool.auto_save        = new_thread<TimerThread> ();
                 Threadpool.auto_save->task  = auto_save_hash;
-                Threadpool.auto_save->resolution = auto_save_time*60*MILLI_SEC;
+                Threadpool.auto_save->resolution = auto_save_time*MINUTE_MILLI_SEC;
                 Threadpool.auto_save->start ();
                 Threadpool.auto_save->notify_one ();
             }
@@ -1985,7 +1985,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        NormalCaptureAdjustment = i32(Options["Capture Time Adjustment"]) / 100;
+        NormalCaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
