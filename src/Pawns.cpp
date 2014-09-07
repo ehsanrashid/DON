@@ -17,18 +17,18 @@ namespace Pawns {
             S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
         };
 
-        // Isolated pawn penalty by [!opposers][file]
+        // Isolated pawn penalty by [opposed][file]
         const Score PAWN_ISOLATED_SCORE[2][F_NO] =
         {
-            {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)},
-            {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)}
+            {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)},
+            {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)}
         };
 
-        // Backward pawn penalty by [!opposers][file]
+        // Backward pawn penalty by [opposed][file]
         const Score PAWN_BACKWARD_SCORE[2][F_NO] =
         {
-            {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)},
-            {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)}
+            {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)},
+            {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)}
         };
 
         // Candidate passed pawn bonus by [rank]
@@ -131,19 +131,19 @@ namespace Pawns {
 
                 // Supporter rank
                 Bitboard sr_bb = rank_bb (s-PUSH);
-                // Connector rank, for connectors pawn detection
+                // Connector rank, for connected pawn detection
                 Bitboard cr_bb = rank_bb (s) | sr_bb; 
 
                 Bitboard friend_adj_pawns = pawns[0] & ADJ_FILE_bb[f];
-                // Bitboard supporters, doublers, or leverers.
-                Bitboard supporters = (friend_adj_pawns & sr_bb);
-                Bitboard connectors = (friend_adj_pawns & cr_bb);
-                Bitboard doublers   = (pawns[0] & FRONT_SQRS_bb[C][s]);
-                Bitboard leverers   = (pawns[1] & PAWN_ATTACKS[C][s]);
-                Bitboard opposers   = (pawns[1] & FRONT_SQRS_bb[C][s]);
-                // Flag the pawn as passed, isolated (but not the backward one).
-                bool isolated      = !(friend_adj_pawns);
-                bool passed        = !(pawns[1] & PAWN_PASS_SPAN[C][s]);
+                // Flag the pawn as supported, connected, levered, opposed, isolated and passed, (but not the backward one).
+                bool supported = (friend_adj_pawns & sr_bb);
+                bool connected = (friend_adj_pawns & cr_bb);
+                bool levered   = (pawns[1] & PAWN_ATTACKS[C][s]);
+                bool opposed   = (pawns[1] & FRONT_SQRS_bb[C][s]);
+                bool isolated  = !(friend_adj_pawns);
+                bool passed    = !(pawns[1] & PAWN_PASS_SPAN[C][s]);
+                // Bitboard doublers
+                Bitboard doublers = (pawns[0] & FRONT_SQRS_bb[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -151,7 +151,7 @@ namespace Pawns {
                 // If the rank is greater then Rank 6
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // Then it cannot be backward either.
-                if (  passed || isolated || connectors || leverers
+                if (  passed || isolated || connected || levered
                    || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
                    || (pawns[0] & PAWN_ATTACK_SPAN[C_][s] && !(pawns[1] & (s-PUSH)))
@@ -178,7 +178,7 @@ namespace Pawns {
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
                 bool candidate = false;
-                if (!(passed || isolated || backward || opposers)) // r > R_6
+                if (!(passed || isolated || backward || opposed)) // r > R_6
                 {
                     Bitboard helpers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
                     if (helpers)
@@ -190,33 +190,33 @@ namespace Pawns {
                     }
                 }
 
-                ASSERT (passed ^ (opposers || (pawns[1] & PAWN_ATTACK_SPAN[C][s])));
+                ASSERT (passed ^ (opposed || (pawns[1] & PAWN_ATTACK_SPAN[C][s])));
 
                 // Score this pawn
                 Score score = SCORE_ZERO;
 
-                if (connectors)
+                if (connected)
                 {
-                    score += PAWN_CONNECTED_SCORE[f][r];// * (more_than_one (connectors) ? 2 : 1); // TODO::
+                    score += PAWN_CONNECTED_SCORE[f][r];
                 }
-                if (r > R_4 && leverers)
+                if (r > R_4 && levered)
                 {
-                    score += PAWN_LEVER_SCORE[r]; //* (supporters ? 1 : 2); // TODO::
+                    score += PAWN_LEVER_SCORE[r]; //* (supported ? 2 : 1); // TODO::
                 }
 
                 if (isolated)
                 {
-                    score -= PAWN_ISOLATED_SCORE[!opposers][f];
+                    score -= PAWN_ISOLATED_SCORE[opposed][f];
                 }
                 else
                 {
-                    if (supporters)
+                    if (!supported)
                     {
-                        score += PAWN_SUPPORTED_SCORE * (more_than_one (supporters) ? 2 : 1);
+                        score -= PAWN_SUPPORTED_SCORE;
                     }
                     if (backward)
                     {
-                        score -= PAWN_BACKWARD_SCORE[!opposers][f];
+                        score -= PAWN_BACKWARD_SCORE[opposed][f];
                     }
                     if (candidate)
                     {
@@ -242,7 +242,7 @@ namespace Pawns {
                     {
                         e->passed_pawns   [C] += s;
                     }
-                    if (candidate || (r == R_6 && !opposers))
+                    if (candidate || (r == R_6 && !opposed))
                     {
                         e->unstopped_pawns[C] += s;
                     }

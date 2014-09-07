@@ -283,7 +283,7 @@ namespace MovePick {
             }
 
             // Be sure counter moves are not MOVE_NONE & different from killer moves
-            //if (counter_moves)
+            if (counter_moves != NULL)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = counter_moves[i];
@@ -301,7 +301,7 @@ namespace MovePick {
             }
             
             // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
-            //if (followup_moves)
+            if (followup_moves != NULL)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = followup_moves[i];

@@ -891,11 +891,7 @@ namespace Search {
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval)
-                || (  (ss-1)->current_move != MOVE_NULL
-                   && (ss-0)->static_eval != VALUE_NONE
-                   && (ss-0)->static_eval > -(ss-1)->static_eval
-                   );
+                || ((ss-0)->static_eval >= (ss-2)->static_eval);
 
             Thread *thread  = pos.thread ();
             point time;
@@ -916,10 +912,8 @@ namespace Search {
                 }
             }
 
-            Move *cm = CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
-            Move *fm = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
-            Move counter_moves[] = { cm[0], cm[1] };
-            Move followup_moves[] = { fm[0], fm[1] };
+            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL;
+            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
@@ -1135,7 +1129,7 @@ namespace Search {
                         }
 
                         if (  reduction_depth > DEPTH_ZERO
-                           && (move == counter_moves[0] || move == counter_moves[1])
+                           && counter_moves != NULL && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
                             reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
