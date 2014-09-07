@@ -185,7 +185,7 @@ namespace Evaluate {
             S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0)
         };
         
-        const Score KNIGHT_PAWNS_SCORE            = S(+ 8,+10); // Penalty for knight with less pawns
+        //const Score KNIGHT_PAWNS_SCORE            = S(+ 8,+10); // Penalty for knight with less pawns
 
         const Score BISHOP_PAWNS_SCORE            = S(+ 8,+12); // Penalty for bishop with more pawns on same color
         const Score BISHOP_TRAPPED_SCORE          = S(+50,+40); // Penalty for bishop trapped with pawns
@@ -589,7 +589,7 @@ namespace Evaluate {
                 }
 
                 Bitboard mobile = attacks & mobility_area;
-                i32 mob = mobile ? pop_count<(QUEN != PT) ? MAX15 : FULL> (mobile) : 0;
+                i32 mob = mobile ? pop_count<QUEN != PT ? MAX15 : FULL> (mobile) : 0;
                 mobility += MOBILITY_SCORE[PT][mob];
 
                 if (ROOK == PT)
@@ -1286,12 +1286,9 @@ namespace Evaluate {
             ASSERT (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
             ASSERT (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
-            ScaleFactor scale_fac;
-
             Color strong_side = (eg > VALUE_DRAW) ? WHITE : BLACK;
-
             // Scale winning side if position is more drawish than it appears
-            scale_fac = (strong_side == WHITE) ?
+            ScaleFactor scale_fac = (strong_side == WHITE) ?
                 ei.mi->scale_factor<WHITE> (pos) :
                 ei.mi->scale_factor<BLACK> (pos);
 
