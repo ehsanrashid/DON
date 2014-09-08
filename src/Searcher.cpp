@@ -1548,7 +1548,7 @@ namespace Search {
                         // Take less time for recaptures if good
                         float capture_factor = 0.0f;
                         if (  RootMoves.best_move_change < 0.05f
-                           && iteration_time > TimeMgr.available_time () * 10 / 100
+                           && iteration_time > TimeMgr.available_time () * 20 / 100
                            )
                         {
                             Move best_move = RootMoves[0].pv[0];
@@ -1564,12 +1564,11 @@ namespace Search {
                                       )
                                    )
                                 {
-                                    //capture_factor = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
                                     capture_factor = (0.05f - RootMoves.best_move_change) * 16.32f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
-                                   && iteration_time > TimeMgr.available_time () * 30 / 100
+                                   && iteration_time > TimeMgr.available_time () * 50 / 100
                                    )
                                 {
                                     capture_factor = CaptureFactor; // Normal capture
