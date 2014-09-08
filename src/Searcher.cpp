@@ -1565,7 +1565,7 @@ namespace Search {
                                    )
                                 {
                                     //capture_factor = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
-                                    capture_factor = (0.05f - RootMoves.best_move_change) * 18.18f; // Easy recapture
+                                    capture_factor = (0.05f - RootMoves.best_move_change) * 16.32f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
