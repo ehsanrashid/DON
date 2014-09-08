@@ -171,18 +171,17 @@ namespace MovePick {
         {
             Move m = itr->move;
 
-            MoveT mt = mtype (m);
-            if (mt == NORMAL)
+            if (mtype (m) == NORMAL)
             {
                 itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
             }
             else
-            if (mt == ENPASSANT)
+            if (mtype (m) == ENPASSANT)
             {
                 itr->value = PIECE_VALUE[MG][PAWN];
             }
             else
-            if (mt == PROMOTE)
+            if (mtype (m) == PROMOTE)
             {
                 itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN];
             }
@@ -217,18 +216,17 @@ namespace MovePick {
             else
             if (pos.capture (m))
             {
-                MoveT mt = mtype (m);
-                if (mt == NORMAL)
+                if (mtype (m) == NORMAL)
                 {
                     itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + HistoryStats::MaxValue;
                 }
                 else
-                if (mt == ENPASSANT)
+                if (mtype (m) == ENPASSANT)
                 {
                     itr->value = PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
                 else
-                if (mt == PROMOTE)
+                if (mtype (m) == PROMOTE)
                 {
                     itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
