@@ -22,16 +22,16 @@ namespace Time {
         u32   _maximum_time;
 
         float _instability_factor;
-        float _recapture_factor;
+        float _capture_factor;
 
     public:
 
-        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * _recapture_factor * 0.71f); }
+        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * _capture_factor * 0.71f); }
     
         inline u32 maximum_time   () const { return _maximum_time; }
 
         inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
-        inline void recapture (float capture_adjustment) { _recapture_factor = 1.0f - capture_adjustment; }
+        inline void capturability (float capture_factor) { _capture_factor = 1.0f - capture_factor; }
 
         void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     

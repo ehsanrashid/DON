@@ -369,7 +369,7 @@ namespace UCI {
         // How slow you want engine to play, 100 is neutral
         Options["Slowness"]                     << Option (+ 86,+ 10,+ 1000);
         
-        Options["Capture Adjustment"]           << Option (+ 35,+  0,+ 100);
+        Options["Capture Factor"]               << Option (+ 35,+  0,+ 100);
 
         // Debug Options
         // -------------

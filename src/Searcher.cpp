@@ -66,7 +66,7 @@ namespace Search {
 
         TimeManager TimeMgr;
 
-        float   CaptureAdjustment;
+        float   CaptureFactor;
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
@@ -1546,7 +1546,7 @@ namespace Search {
                         
                         iteration_time = now () - SearchTime;
                         // Take less time for recaptures if good
-                        float capture_adjustment = 0.0f;
+                        float capture_factor = 0.0f;
                         if (  RootMoves.best_move_change < 0.05f
                            && iteration_time > TimeMgr.available_time () * 10 / 100
                            )
@@ -1564,19 +1564,19 @@ namespace Search {
                                       )
                                    )
                                 {
-                                    //capture_adjustment = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
-                                    capture_adjustment = (0.05f - RootMoves.best_move_change) * 18.18f; // Easy recapture
+                                    //capture_factor = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
+                                    capture_factor = (0.05f - RootMoves.best_move_change) * 18.18f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
                                    && iteration_time > TimeMgr.available_time () * 30 / 100
                                    )
                                 {
-                                    capture_adjustment = CaptureAdjustment; // Normal capture
+                                    capture_factor = CaptureFactor; // Normal capture
                                 }
                             }
                         }
-                        TimeMgr.recapture (capture_adjustment);
+                        TimeMgr.capturability (capture_factor);
                     }
 
                     // If there is only one legal move available or 
@@ -1983,7 +1983,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        CaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
+        CaptureFactor = i32(Options["Capture Factor"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
