@@ -167,9 +167,10 @@ namespace MovePick {
     // some SEE calls in case get a cutoff (idea from Pablo Vazquez).
     void MovePicker::value<CAPTURE> ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
 
             if (mtype (m) == NORMAL)
             {
@@ -191,9 +192,10 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET>   ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
             itr->value = history.value (pos[org_sq (m)], dst_sq (m));
         }
     }
@@ -204,9 +206,10 @@ namespace MovePick {
     // moves with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
 
             Value gain_value = pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
