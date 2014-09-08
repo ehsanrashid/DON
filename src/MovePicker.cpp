@@ -507,7 +507,7 @@ namespace MovePick {
                 do
                 {
                     move = pick_best (cur++, end)->move;
-                    if (move != tt_move && recapture_sq == dst_sq (move))
+                    if (/*move != tt_move &&*/ recapture_sq == dst_sq (move))
                     {
                         return move;
                     }
