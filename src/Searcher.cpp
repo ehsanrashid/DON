@@ -2216,7 +2216,7 @@ namespace Threads {
                             (sp)->mutex.unlock ();
                             Threadpool.mutex.unlock ();
 
-                            if (searching)
+                            //if (searching)
                             break; // Just a single attempt
                         }
                     }
