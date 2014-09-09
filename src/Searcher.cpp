@@ -1566,19 +1566,19 @@ namespace Search {
                             {
                                 if (  cap_pt != NONE && cap_pt != dst_pt
                                    && (       PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
-                                      || abs (PIECE_VALUE[MG][cap_pt] - PIECE_VALUE[MG][dst_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
+                                      || abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
                                       )
                                    )
                                 {
-                                    capture_factor = (0.05f - RootMoves.best_move_change) * 16.32f; // Easy recapture
+                                    capture_factor = (0.05f - RootMoves.best_move_change) * CaptureFactor; // Easy recapture
                                 }
-                                else
-                                if (  RootMoves.best_move_change < 0.01f
-                                   && iteration_time > TimeMgr.available_time () * 50 / 100
-                                   )
-                                {
-                                    capture_factor = CaptureFactor; // Normal capture
-                                }
+                                //else
+                                //if (  RootMoves.best_move_change < 0.01f
+                                //   && iteration_time > TimeMgr.available_time () * 50 / 100
+                                //   )
+                                //{
+                                //    capture_factor = CaptureFactor; // Normal capture
+                                //}
                             }
                         }
                         TimeMgr.capturability (capture_factor);

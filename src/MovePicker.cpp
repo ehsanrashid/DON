@@ -429,7 +429,7 @@ namespace MovePick {
                 {
                     move = *kcur++;
                     if (  move != MOVE_NONE
-                       //&& move != tt_move // Not needed as filter out tt_move at move generation 
+                       && move != tt_move // Not needed as filter out tt_move at move generation 
                        && pos.pseudo_legal (move)
                        && !pos.capture (move)
                        )

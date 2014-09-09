@@ -47,7 +47,7 @@ namespace Pawns {
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
         /**/  Score PAWN_CONNECTED_SCORE[F_NO][R_NO];
 
-        const Score PAWN_SPAN_SCORE         = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
+        const Score PAWN_SPAN_SCORE        = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
         const Score PAWN_UNSTOPPABLE_SCORE = S(+ 0,+20); // Bonus for pawn going to promote
         const Score PAWN_SUPPORTED_SCORE   = S(+20,+10); // Penalty for Unsupported pawn
 
