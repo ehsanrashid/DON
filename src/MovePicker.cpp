@@ -273,7 +273,7 @@ namespace MovePick {
             {
                 m = ss->killer_moves[i];
                 if (  m != MOVE_NONE
-                   && m != tt_move
+                   //&& m != tt_move
                    && m != kcur[0]
                    )
                 {
@@ -284,12 +284,12 @@ namespace MovePick {
             }
 
             // Be sure counter moves are not MOVE_NONE & different from killer moves
-            if (counter_moves != NULL)
+            //if (counter_moves != NULL)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = counter_moves[i];
                 if (  m != MOVE_NONE
-                   && m != tt_move
+                   //&& m != tt_move
                    && m != kcur[0]
                    && m != kcur[1]
                    && m != kcur[2]
@@ -302,12 +302,12 @@ namespace MovePick {
             }
             
             // Be sure followup moves are not MOVE_NONE & different from killer & counter moves
-            if (followup_moves != NULL)
+            //if (followup_moves != NULL)
             for (i08 i = 0; i < 2; ++i)
             {
                 m = followup_moves[i];
                 if (  m != MOVE_NONE
-                   && m != tt_move
+                   //&& m != tt_move
                    && m != kcur[0]
                    && m != kcur[1]
                    && m != kcur[2]
@@ -446,29 +446,31 @@ namespace MovePick {
                 do
                 {
                     move = (cur++)->move;
-                    if (move != tt_move)
+                    if (  move != tt_move
+                       && (  !(killers_org & org_sq (move))
+                          || !(killers_dst & dst_sq (move))
+                          )
+                       )
                     {
-                        if (  !(killers_org & org_sq (move))
-                           || !(killers_dst & dst_sq (move))
-                           )
-                        {
-                            return move;
-                        }
-                        if (killers_size == 0 || (move != killers[0]
-                           && (killers_size == 1 || (move != killers[1]
-                              && (killers_size == 2 || (move != killers[2]
-                                 && (killers_size == 3 || (move != killers[3]
-                                    && (killers_size == 4 || (move != killers[4] 
-                                       && (killers_size == 5 || (move != killers[5])))
-                                       ))
-                                    ))
-                                 ))
-                              ))
-                           )
-                        {
-                            return move;
-                        }
+                        return move;
                     }
+                    if (  move != tt_move
+                       && (killers_size == 0 || (move != killers[0]
+                          && (killers_size == 1 || (move != killers[1]
+                             && (killers_size == 2 || (move != killers[2]
+                                && (killers_size == 3 || (move != killers[3]
+                                   && (killers_size == 4 || (move != killers[4] 
+                                      && (killers_size == 5 || (move != killers[5]))
+                                      ))
+                                   ))
+                                ))
+                             ))
+                          ))
+                       )
+                    {
+                        return move;
+                    }
+                    
                 }
                 while (cur < end);
                 break;
@@ -507,7 +509,7 @@ namespace MovePick {
                 do
                 {
                     move = pick_best (cur++, end)->move;
-                    if (/*move != tt_move &&*/ recapture_sq == dst_sq (move))
+                    if (move != tt_move && recapture_sq == dst_sq (move))
                     {
                         return move;
                     }

@@ -893,11 +893,11 @@ namespace Search {
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval)
-                || (  (ss-1)->current_move != MOVE_NULL
-                   && (ss-0)->static_eval != VALUE_NONE
-                   && (ss-0)->static_eval > -(ss-1)->static_eval
-                   );
+                || ((ss-0)->static_eval >= (ss-2)->static_eval);
+                //|| (  (ss-1)->current_move != MOVE_NULL
+                //   && (ss-0)->static_eval != VALUE_NONE
+                //   && (ss-0)->static_eval > -(ss-1)->static_eval
+                //   );
 
             Thread *thread  = pos.thread ();
             point time;
@@ -918,8 +918,8 @@ namespace Search {
                 }
             }
 
-            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL;
-            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
+            Move *counter_moves  =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
+            Move *followup_moves = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
@@ -1135,7 +1135,7 @@ namespace Search {
                         }
 
                         if (  reduction_depth > DEPTH_ZERO
-                           && counter_moves != NULL && (move == counter_moves[0] || move == counter_moves[1])
+                           && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
                             reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
@@ -1413,22 +1413,22 @@ namespace Search {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
+                        //if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
                         {
                             window[0] =
                             window[1] =
-                                Value(16);
+                                //Value(16);
                                 //Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12);
-                                //Value(dep < 12*i16(ONE_MOVE) ? 20 - dep/4 : 14); // Decreasing window
+                                Value(dep < 16*i16(ONE_MOVE) ? 22 - dep/4 : 14); // Decreasing window
 
                             bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                             bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                         }
-                        else
-                        {
-                            if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                            if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
-                        }
+                        //else
+                        //{
+                        //    if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
+                        //    if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
+                        //}
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,

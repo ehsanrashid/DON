@@ -369,10 +369,10 @@ namespace MoveGen {
         INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            if (pos.count<NIHT> (C)) Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            if (pos.count<BSHP> (C)) Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            if (pos.count<ROOK> (C)) Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            if (pos.count<QUEN> (C)) Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (C))*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (C))*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (C))*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (C))*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, C, KING>::generate (moves, pos, targets, ci);
 
             return moves;
