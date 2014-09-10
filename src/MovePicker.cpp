@@ -274,7 +274,10 @@ namespace MovePick {
                 m = ss->killer_moves[i];
                 if (  m != MOVE_NONE
                    //&& m != tt_move
-                   && m != kcur[0]
+                   && (  !(killers_org & org_sq (m))
+                      || !(killers_dst & dst_sq (m))
+                      || (m != kcur[0])
+                      )
                    )
                 {
                     *(kend++) = m;
@@ -290,9 +293,13 @@ namespace MovePick {
                 m = counter_moves[i];
                 if (  m != MOVE_NONE
                    //&& m != tt_move
-                   && m != kcur[0]
-                   && m != kcur[1]
-                   && m != kcur[2]
+                   && (  !(killers_org & org_sq (m))
+                      || !(killers_dst & dst_sq (m))
+                      || (  m != kcur[0]
+                         && m != kcur[1]
+                         && m != kcur[2]
+                         )
+                      )
                    )
                 {
                     *(kend++) = m;
@@ -308,11 +315,15 @@ namespace MovePick {
                 m = followup_moves[i];
                 if (  m != MOVE_NONE
                    //&& m != tt_move
-                   && m != kcur[0]
-                   && m != kcur[1]
-                   && m != kcur[2]
-                   && m != kcur[3]
-                   && m != kcur[4]
+                   && (  !(killers_org & org_sq (m))
+                      || !(killers_dst & dst_sq (m))
+                      || (  m != kcur[0]
+                         && m != kcur[1]
+                         && m != kcur[2]
+                         && m != kcur[3]
+                         && m != kcur[4]
+                         )
+                      )
                    )
                 {
                     *(kend++) = m;
@@ -446,26 +457,22 @@ namespace MovePick {
                 do
                 {
                     move = (cur++)->move;
+
                     if (  move != tt_move
                        && (  !(killers_org & org_sq (move))
                           || !(killers_dst & dst_sq (move))
-                          )
-                       )
-                    {
-                        return move;
-                    }
-                    if (  move != tt_move
-                       && (killers_size == 0 || (move != killers[0]
-                          && (killers_size == 1 || (move != killers[1]
-                             && (killers_size == 2 || (move != killers[2]
-                                && (killers_size == 3 || (move != killers[3]
-                                   && (killers_size == 4 || (move != killers[4] 
-                                      && (killers_size == 5 || (move != killers[5]))
+                          || (  killers_size == 0 || (move != killers[0]
+                             && (  killers_size == 1 || (move != killers[1]
+                                && (  killers_size == 2 || (move != killers[2]
+                                   && (  killers_size == 3 || (move != killers[3]
+                                      && (  killers_size == 4 || (move != killers[4] 
+                                         && (killers_size == 5 || (move != killers[5]))
+                                         ))
                                       ))
                                    ))
                                 ))
                              ))
-                          ))
+                          ) 
                        )
                     {
                         return move;
