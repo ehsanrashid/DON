@@ -1413,22 +1413,12 @@ namespace Search {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        //if (abs (RootMoves[PVIndex].value[1]) < VALUE_KNOWN_WIN)
-                        {
-                            window[0] =
-                            window[1] =
-                                //Value(16);
-                                //Value(dep < 24*i16(ONE_MOVE) ? 18 - dep/8 : 12);
-                                Value(dep < 16*i16(ONE_MOVE) ? 22 - dep/4 : 14); // Decreasing window
+                        window[0] =
+                        window[1] =
+                            Value(dep < 16*i16(ONE_MOVE) ? 22 - dep/4 : 14); // Decreasing window
 
-                            bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
-                            bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
-                        }
-                        //else
-                        //{
-                        //    if (RootMoves[PVIndex].value[1] <= -VALUE_KNOWN_WIN) { bound [0] = -VALUE_INFINITE; bound [1] = Value(16); };
-                        //    if (RootMoves[PVIndex].value[1] >= +VALUE_KNOWN_WIN) { bound [1] = +VALUE_INFINITE; bound [0] = Value(16); };
-                        //}
+                        bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
+                        bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
@@ -1562,26 +1552,19 @@ namespace Search {
                             PieceT dst_pt = ptype (RootPos[dst_sq (best_move)]);
                             if (org_pt == KING) org_pt = QUEN;
 
-                            if (dst_pt != NONE)
+                            if (  dst_pt != NONE && cap_pt != NONE && cap_pt != dst_pt
+                               && (  abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT     
+                                  ||      PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                                  )
+                               )
                             {
-                                if (  cap_pt != NONE && cap_pt != dst_pt
-                                   && (       PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
-                                      || abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT
-                                      )
-                                   )
-                                {
-                                    capture_factor = (0.05f - RootMoves.best_move_change) * CaptureFactor; // Easy recapture
-                                }
-                                //else
-                                //if (  RootMoves.best_move_change < 0.01f
-                                //   && iteration_time > TimeMgr.available_time () * 50 / 100
-                                //   )
-                                //{
-                                //    capture_factor = CaptureFactor; // Normal capture
-                                //}
+                                capture_factor = (0.05f - RootMoves.best_move_change) * CaptureFactor; // Easy recapture
                             }
+                            
                         }
+                        
                         TimeMgr.capturability (capture_factor);
+
                     }
 
                     // If there is only one legal move available or 

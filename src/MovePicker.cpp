@@ -465,14 +465,14 @@ namespace MovePick {
                              && (  killers_size == 1 || (move != killers[1]
                                 && (  killers_size == 2 || (move != killers[2]
                                    && (  killers_size == 3 || (move != killers[3]
-                                      && (  killers_size == 4 || (move != killers[4] 
+                                      && (  killers_size == 4 || (move != killers[4]
                                          && (killers_size == 5 || (move != killers[5]))
                                          ))
                                       ))
                                    ))
                                 ))
                              ))
-                          ) 
+                          )
                        )
                     {
                         return move;
