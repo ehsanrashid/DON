@@ -68,7 +68,7 @@ namespace MovePick {
             Piece p     = pos[org_sq (m)];
             Square s    = dst_sq (m);
 
-            i16 cnt = _counts[p][s][0] + d*d;
+            i16 cnt = _counts[p][s][0] + d;
             if (cnt > 2000)
             {
                 cnt /= 2;
@@ -83,7 +83,7 @@ namespace MovePick {
             Piece p     = pos[org_sq (m)];
             Square s    = dst_sq (m);
 
-            i16 cnt = _counts[p][s][1] + d*d;
+            i16 cnt = _counts[p][s][1] + d;
             if (cnt > 2000)
             {
                 cnt /= 2;
@@ -99,7 +99,7 @@ namespace MovePick {
             {
                 i16 succ = _counts[p][s][0];
                 i16 fail = _counts[p][s][1];
-                _values[p][s] = (succ + fail > 0) ? MaxValue * i32((succ-fail) / (succ+fail)) : VALUE_ZERO;
+                _values[p][s] = (succ + fail > 0) ? (MaxValue * (succ-fail)) / (succ+fail) : VALUE_ZERO;
             }
 
             return _values[p][s];

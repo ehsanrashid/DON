@@ -171,11 +171,12 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            HistoryStatistics.success (pos, move, depth);
+            i16 cnt = i16(depth)*i16(depth);
+            HistoryStatistics.success (pos, move, cnt);
             for (u08 i = 0; i < quiets; ++i)
             {
                 Move m = quiet_moves[i];
-                if (m != move) HistoryStatistics.failure (pos, m, depth);
+                if (m != move) HistoryStatistics.failure (pos, m, cnt);
             }
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
@@ -1465,7 +1466,7 @@ namespace Search {
                         {
                             window[0] *= 1.365f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            if (window[1] > 1) window[1] *= 0.925f;
+                            if (window[1] > 1) window[1] *= 0.935f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
@@ -1476,7 +1477,7 @@ namespace Search {
                         {
                             window[1] *= 1.365f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            if (window[0] > 1) window[0] *= 0.925f;
+                            if (window[0] > 1) window[0] *= 0.935f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                         }
                         else
