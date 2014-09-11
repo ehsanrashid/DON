@@ -326,14 +326,11 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
-                                Bitboard ep_pawns = PAWN_ATTACKS[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
-                                ASSERT (ep_pawns);
-                                ASSERT (pop_count<MAX15> (ep_pawns) <= 2);
+                                Bitboard ep_attacks = PAWN_ATTACKS[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
+                                ASSERT (ep_attacks);
+                                ASSERT (pop_count<MAX15> (ep_attacks) <= 2);
 
-                                while (ep_pawns)
-                                {
-                                    (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
-                                }
+                                while (ep_attacks) { (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                             }
                         }
                     }

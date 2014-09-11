@@ -1323,8 +1323,8 @@ namespace Search {
                 }
                 else
                 // Quiet best move: Update history, killer, counter & followup moves
-                if (  best_value >= beta
-                   && !in_check
+                if (  !in_check
+                   && best_value >= beta
                    && best_move != MOVE_NONE
                    && !pos.capture_or_promotion (best_move)
                    )
