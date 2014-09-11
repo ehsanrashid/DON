@@ -7,14 +7,6 @@ namespace MoveGen {
     using namespace std;
     using namespace BitBoard;
 
-#undef serialize_moves
-#undef serialize_pawnmoves
-
-    // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define serialize_moves(moves, org, attacks)       while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
-    // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define serialize_pawnmoves(moves, delta, attacks) while (attacks) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
-
     namespace {
 
         template<GenT GT, Color C, PieceT PT>
@@ -61,7 +53,7 @@ namespace MoveGen {
                         if (ci != NULL) attacks &= ci->checking_bb[PT];
                     }
 
-                    serialize_moves (moves, s, attacks);
+                    while (attacks) { (moves++)->move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
                 }
             }
 
@@ -144,7 +136,8 @@ namespace MoveGen {
                     const Color C_ = WHITE == C ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (C);
                     Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (C_)] & targets;
-                    serialize_moves (moves, king_sq, attacks);
+                    
+                    while (attacks) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
                 }
 
                 if (CAPTURE != GT)
@@ -308,9 +301,9 @@ namespace MoveGen {
 
                     default: break;
                     }
-
-                    serialize_pawnmoves (moves, Delta (PUSH << 0), push_1);
-                    serialize_pawnmoves (moves, Delta (PUSH << 1), push_2);
+                    
+                    while (push_1) { Square dst = pop_lsq (push_1); (moves++)->move = mk_move<NORMAL> (dst - PUSH, dst); }
+                    while (push_2) { Square dst = pop_lsq (push_2); (moves++)->move = mk_move<NORMAL> (dst - PUSH-PUSH, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if (QUIET != GT && QUIET_CHECK != GT)
@@ -318,8 +311,8 @@ namespace MoveGen {
                     Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
                     Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
 
-                    serialize_pawnmoves (moves, LCAP, l_attacks);
-                    serialize_pawnmoves (moves, RCAP, r_attacks);
+                    while (l_attacks) { Square dst = pop_lsq (l_attacks); (moves++)->move = mk_move<NORMAL> (dst - LCAP, dst); }
+                    while (r_attacks) { Square dst = pop_lsq (r_attacks); (moves++)->move = mk_move<NORMAL> (dst - RCAP, dst); }
 
                     Square ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
@@ -461,7 +454,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            serialize_moves (moves, org, attacks);
+            while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
@@ -487,7 +480,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            serialize_moves (moves, org, attacks);
+            while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -544,7 +537,7 @@ namespace MoveGen {
         Bitboard attacks =  PIECE_ATTACKS[KING][king_sq]
             & ~(pos.pieces (active) | PIECE_ATTACKS[KING][pos.king_sq (~active)] | slid_attacks);
 
-        serialize_moves (moves, king_sq, attacks);
+        while (attacks) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (more_than_one (checkers) || pos.count<NONE> (active) <= 1)
@@ -590,8 +583,5 @@ namespace MoveGen {
 
         return end;
     }
-
-#undef serialize_moves
-#undef serialize_pawnmoves
 
 }
