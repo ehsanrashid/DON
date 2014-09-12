@@ -695,12 +695,12 @@ namespace Evaluate {
                     + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
                     + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     + 3 * (undefended ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
-                    + 2 * (ei.pinneds[C] != 0) // King pinned piece
+                    + 2 * (ei.pinneds[C] != U64(0)) // King pinned piece
                     - i32(value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (C_);
-                if (undefended)
+                if (undefended != U64(0))
                 {
                     Bitboard undefended_attacked;
                     if (pos.count<QUEN> (C_))
@@ -709,13 +709,13 @@ namespace Evaluate {
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[C_][QUEN];
                         Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][KING];
-                        while (undefended_attacked)
+                        while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             Bitboard attackers = 0;
                             if (  (unsafe & sq)
                                || (  pos.count<QUEN> (C_) > 1
-                                  && (attackers = pos.pieces<QUEN> (C_) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq])) != 0
+                                  && (attackers = pos.pieces<QUEN> (C_) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq])) != U64(0)
                                   && more_than_one (attackers)
                                   && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != 0
                                   && more_than_one (attackers)
@@ -734,15 +734,15 @@ namespace Evaluate {
                         // Consider only squares where the enemy rook gives check
                         undefended_attacked &= PIECE_ATTACKS[ROOK][fk_sq];
                         Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING];
-                        while (undefended_attacked)
+                        while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             Bitboard attackers = 0;
                             if (  (unsafe & sq)
                                || (  pos.count<ROOK> (C_) > 1
-                                  && (attackers = pos.pieces<ROOK> (C_) & PIECE_ATTACKS[ROOK][sq]) != 0
+                                  && (attackers = pos.pieces<ROOK> (C_) & PIECE_ATTACKS[ROOK][sq]) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != 0
+                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -759,18 +759,18 @@ namespace Evaluate {
                         // Consider only squares where the enemy bishop gives check
                         undefended_attacked &= PIECE_ATTACKS[BSHP][fk_sq];
                         Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING];
-                        while (undefended_attacked)
+                        while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             Bitboard bishops = 0;
                             Bitboard attackers = 0;
                             if (  (unsafe & sq)
                                || (  pos.count<BSHP> (C_) > 1
-                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != 0
+                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != U64(0)
                                   && more_than_one (bishops)
-                                  && (attackers = pos.pieces<BSHP> (C_) & PIECE_ATTACKS[BSHP][sq]) != 0
+                                  && (attackers = pos.pieces<BSHP> (C_) & PIECE_ATTACKS[BSHP][sq]) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != 0
+                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -908,7 +908,7 @@ namespace Evaluate {
             Score score = SCORE_ZERO;
 
             Bitboard passed_pawns = ei.pi->passed_pawns[C];
-            while (passed_pawns)
+            while (passed_pawns != U64(0))
             {
                 const Square s = pop_lsq (passed_pawns);
                 ASSERT (pos.passed_pawn (C, s));
@@ -1125,7 +1125,7 @@ namespace Evaluate {
         // evaluate<>()
         inline Value evaluate (const Position &pos)
         {
-            ASSERT (!pos.checkers ());
+            ASSERT (pos.checkers () == U64(0));
 
             Thread *thread = pos.thread ();
 

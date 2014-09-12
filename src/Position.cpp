@@ -211,7 +211,7 @@ bool Position::draw () const
     }
     /*
     // Draw by Material?
-    if (  !_types_bb[PAWN]
+    if (  _types_bb[PAWN] == U64(0)
        && _si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP
        )
     {
@@ -220,7 +220,7 @@ bool Position::draw () const
     */
     /*
     // Draw by Stalemate?
-    if (  !_si->checkers
+    if (  _si->checkers == U64(0)
        //&& game_phase () < PHASE_MIDGAME - 50
        && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
@@ -233,7 +233,7 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     // Not in check or in check have legal moves 
     if (  _FiftyMoveDist <= _si->clock50
-       && (!_si->checkers || MoveList<LEGAL> (*this).size ())
+       && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size ())
        )
     {
         return true;
@@ -326,7 +326,7 @@ bool Position::ok (i08 *step) const
         {
             for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
+                if (_piece_count[c][pt] != pop_count<MAX15> (_color_bb[c]&_types_bb[pt]))
                 {
                     return false;
                 }
@@ -403,8 +403,8 @@ bool Position::ok (i08 *step) const
                 Bitboard bishops = colors & _types_bb[BSHP];
                 u08 bishop_count[CLR_NO] =
                 {
-                    pop_count<FULL> (LIHT_bb & bishops),
-                    pop_count<FULL> (DARK_bb & bishops),
+                    pop_count<MAX15> (LIHT_bb & bishops),
+                    pop_count<MAX15> (DARK_bb & bishops),
                 };
 
                 if (  (_piece_count[c][PAWN]
@@ -455,7 +455,7 @@ bool Position::ok (i08 *step) const
     if (step && ++(*step), test_king_capture)
     {
         if (  (attackers_to (_piece_list[~_active][KING][0], _active))
-           || (pop_count<FULL> (_si->checkers)) > 2
+           || (pop_count<MAX15> (_si->checkers)) > 2
            )
         {
             return false;
@@ -564,7 +564,7 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
 Phase Position::game_phase () const
 {
     Value npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
-    return Phase (((npm - VALUE_ENDGAME) * PHASE_MIDGAME) / (VALUE_MIDGAME - VALUE_ENDGAME));
+    return Phase ((npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
 // see() is a Static Exchange Evaluator (SEE):
@@ -610,7 +610,7 @@ Value Position::see      (Move m) const
     // If the opponent has no attackers are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
-    if (stm_attackers)
+    if (stm_attackers != U64(0))
     {
         // The destination square is defended, which makes things rather more
         // difficult to compute. Proceed by building up a "swap list" containing
@@ -684,7 +684,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
         ) &  _color_bb[~king_c];
 
     Bitboard chk_blockers = U64(0);
-    while (pinners)
+    while (pinners != U64(0))
     {
         Bitboard blocker = BETWEEN_SQRS_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (blocker && !more_than_one (blocker))

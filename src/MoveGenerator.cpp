@@ -53,7 +53,7 @@ namespace MoveGen {
                         if (ci != NULL) attacks &= ci->checking_bb[PT];
                     }
 
-                    while (attacks) { (moves++)->move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
+                    while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
                 }
             }
 
@@ -76,10 +76,10 @@ namespace MoveGen {
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
                 ASSERT (EVASION != GT);
-                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
+                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
                 
                 //if (EVASION == GT) return;
-                //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
+                //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers () != U64(0)) return;
 
                 const Color C_ = WHITE == C ? BLACK : WHITE;
 
@@ -137,12 +137,12 @@ namespace MoveGen {
                     Square king_sq = pos.king_sq (C);
                     Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (C_)] & targets;
                     
-                    while (attacks) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
+                    while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
                 }
 
                 if (CAPTURE != GT)
                 {
-                    if (pos.can_castle (C) && !pos.checkers ())
+                    if (pos.can_castle (C) && pos.checkers () == U64(0))
                     {
                         CheckInfo cc;
                         if (ci == NULL)
@@ -189,7 +189,7 @@ namespace MoveGen {
                 ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
 
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
-                while (promotes)
+                while (promotes != U64(0))
                 {
                     Square dst = pop_lsq (promotes);
                     Square org = dst - D;
@@ -302,8 +302,8 @@ namespace MoveGen {
                     default: break;
                     }
                     
-                    while (push_1) { Square dst = pop_lsq (push_1); (moves++)->move = mk_move<NORMAL> (dst - PUSH, dst); }
-                    while (push_2) { Square dst = pop_lsq (push_2); (moves++)->move = mk_move<NORMAL> (dst - PUSH-PUSH, dst); }
+                    while (push_1 != U64(0)) { Square dst = pop_lsq (push_1); (moves++)->move = mk_move<NORMAL> (dst - PUSH, dst); }
+                    while (push_2 != U64(0)) { Square dst = pop_lsq (push_2); (moves++)->move = mk_move<NORMAL> (dst - PUSH-PUSH, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if (QUIET != GT && QUIET_CHECK != GT)
@@ -311,8 +311,8 @@ namespace MoveGen {
                     Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
                     Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
 
-                    while (l_attacks) { Square dst = pop_lsq (l_attacks); (moves++)->move = mk_move<NORMAL> (dst - LCAP, dst); }
-                    while (r_attacks) { Square dst = pop_lsq (r_attacks); (moves++)->move = mk_move<NORMAL> (dst - RCAP, dst); }
+                    while (l_attacks != U64(0)) { Square dst = pop_lsq (l_attacks); (moves++)->move = mk_move<NORMAL> (dst - LCAP, dst); }
+                    while (r_attacks != U64(0)) { Square dst = pop_lsq (r_attacks); (moves++)->move = mk_move<NORMAL> (dst - RCAP, dst); }
 
                     Square ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
@@ -330,7 +330,7 @@ namespace MoveGen {
                                 ASSERT (ep_attacks);
                                 ASSERT (pop_count<MAX15> (ep_attacks) <= 2);
 
-                                while (ep_attacks) { (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
+                                while (ep_attacks != U64(0)) { (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                             }
                         }
                     }
@@ -402,7 +402,7 @@ namespace MoveGen {
     inline ValMove* generate (ValMove *moves, const Position &pos)
     {
         ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
-        ASSERT (!pos.checkers ());
+        ASSERT (pos.checkers () == U64(0));
 
         Color active = pos.active ();
 
@@ -436,14 +436,14 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<QUIET_CHECK> (ValMove *moves, const Position &pos)
     {
-        ASSERT (!pos.checkers ());
+        ASSERT (pos.checkers () == U64(0));
 
         Color active    = pos.active ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        while (discovers != U64(0))
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
@@ -451,7 +451,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
@@ -469,7 +469,7 @@ namespace MoveGen {
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
         Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        while (discovers != U64(0))
         {
             Square org = pop_lsq (discovers);
             PieceT pt  = ptype (pos[org]);
@@ -477,7 +477,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -523,7 +523,7 @@ namespace MoveGen {
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
-        while (sliders)
+        while (sliders != U64(0))
         {
             check_sq = pop_lsq (sliders);
             ASSERT (color (pos[check_sq]) == ~active);
@@ -534,7 +534,7 @@ namespace MoveGen {
         Bitboard attacks =  PIECE_ATTACKS[KING][king_sq]
             & ~(pos.pieces (active) | PIECE_ATTACKS[KING][pos.king_sq (~active)] | slid_attacks);
 
-        while (attacks) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
+        while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (more_than_one (checkers) || pos.count<NONE> (active) <= 1)
@@ -555,7 +555,7 @@ namespace MoveGen {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () ?
+        ValMove *end = pos.checkers () != U64(0) ?
             generate<EVASION> (moves, pos) :
             generate<RELAX  > (moves, pos);
 
@@ -566,7 +566,7 @@ namespace MoveGen {
         while (cur != end)
         {
             Move m = cur->move;
-            if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
+            if (  (ENPASSANT == mtype (m) || pinneds != U64(0) || (org_sq (m) == king_sq))
                 && !pos.legal (m, pinneds)
                )
             {

@@ -123,7 +123,7 @@ namespace Search {
                 // RootMoves are already sorted by score in descending order
                 const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
                 const Value weakness = Value(MAX_DEPTH - 2 * level);
-                Value max_v = -VALUE_INFINITE;
+                Value max_value = -VALUE_INFINITE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -141,9 +141,9 @@ namespace Search {
                     v += (weakness * i32(RootMoves[0].value[0] - v)
                       +   variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2));
 
-                    if (max_v < v)
+                    if (max_value < v)
                     {
-                        max_v = v;
+                        max_value = v;
                         move = RootMoves[i].pv[0];
                     }
                 }
@@ -1388,7 +1388,7 @@ namespace Search {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++dep <= MAX_DEPTH && (!Limits.depth || dep <= Limits.depth))
+            while (++dep <= MAX_DEPTH && (Limits.depth == 0 || dep <= Limits.depth))
             {
                 // Requested to stop?
                 if (Signals.force_stop) break;
@@ -1755,14 +1755,11 @@ namespace Search {
     {
         best_move_change = 0.0f;
         clear ();
-        for (MoveList<LEGAL> itr (pos); *itr != MOVE_NONE; ++itr)
+        for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
         {
-            Move m = *itr;
-            if (  root_moves.empty ()
-               || count (root_moves.begin (), root_moves.end (), m)
-               )
+            if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), *ms))
             {
-                push_back (RootMove (m));
+                push_back (RootMove (*ms));
             }
         }
     }
@@ -1814,7 +1811,7 @@ namespace Search {
 
         MateSearch = bool(Limits.mate);
 
-        if (RootSize)
+        if (RootSize != 0)
         {
             string book_fn = string(Options["Book File"]);
             if (!book_fn.empty () && !Limits.infinite && !MateSearch)
@@ -1829,9 +1826,7 @@ namespace Search {
                 if (Book.is_open ())
                 {
                     Move book_move = Book.probe_move (RootPos, bool(Options["Best Book Move"]));
-                    if (  book_move != MOVE_NONE
-                       && count (RootMoves.begin (), RootMoves.end (), book_move)
-                       )
+                    if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
                         goto finish;
@@ -1973,7 +1968,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        CaptureFactor = i32(Options["Capture Factor"]) / 100;
+        CaptureFactor = (float) i32(Options["Capture Factor"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
@@ -2045,7 +2040,7 @@ namespace Threads {
         }
 
         u64 nodes = 0;
-        if (Limits.nodes)
+        if (Limits.nodes != 0)
         {
             Threadpool.mutex.lock ();
 
@@ -2088,8 +2083,8 @@ namespace Threads {
                     )
                  )
               )
-           || (Limits.movetime && time  >= Limits.movetime)
-           || (Limits.nodes    && nodes >= Limits.nodes)
+           || (Limits.movetime != 0 && time  >= Limits.movetime)
+           || (Limits.nodes    != 0 && nodes >= Limits.nodes)
            )
         {
             Signals.force_stop = true;
