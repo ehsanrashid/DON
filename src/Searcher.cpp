@@ -1465,9 +1465,9 @@ namespace Search {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.365f;
+                            window[0] *= 1.345f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            if (window[1] > 1) window[1] *= 0.935f;
+                            if (window[1] > 1) window[1] *= 0.955f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
@@ -1476,9 +1476,9 @@ namespace Search {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.365f;
+                            window[1] *= 1.345f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            if (window[0] > 1) window[0] *= 0.935f;
+                            if (window[0] > 1) window[0] *= 0.955f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                         }
                         else
