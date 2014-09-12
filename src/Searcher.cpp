@@ -898,6 +898,7 @@ namespace Search {
                 //|| (  (ss-1)->current_move != MOVE_NULL
                 //   && (ss-0)->static_eval != VALUE_NONE
                 //   && (ss-0)->static_eval > -(ss-1)->static_eval
+                //   && pos.capture_type () == NONE
                 //   );
 
             Thread *thread  = pos.thread ();

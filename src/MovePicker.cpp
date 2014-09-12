@@ -273,7 +273,7 @@ namespace MovePick {
             {
                 m = ss->killer_moves[i];
                 if (  m != MOVE_NONE
-                   //&& m != tt_move
+                   && m != tt_move
                    && (  !(killers_org & org_sq (m))
                       || !(killers_dst & dst_sq (m))
                       || (m != kcur[0])
@@ -292,7 +292,7 @@ namespace MovePick {
             {
                 m = counter_moves[i];
                 if (  m != MOVE_NONE
-                   //&& m != tt_move
+                   && m != tt_move
                    && (  !(killers_org & org_sq (m))
                       || !(killers_dst & dst_sq (m))
                       || (  m != kcur[0]
@@ -314,7 +314,7 @@ namespace MovePick {
             {
                 m = followup_moves[i];
                 if (  m != MOVE_NONE
-                   //&& m != tt_move
+                   && m != tt_move
                    && (  !(killers_org & org_sq (m))
                       || !(killers_dst & dst_sq (m))
                       || (  m != kcur[0]
@@ -440,7 +440,7 @@ namespace MovePick {
                 {
                     move = *kcur++;
                     if (  move != MOVE_NONE
-                       && move != tt_move // Not needed as filter out tt_move at move generation 
+                       //&& move != tt_move // Not needed as filter out tt_move at move generation 
                        && pos.pseudo_legal (move)
                        && !pos.capture (move)
                        )
