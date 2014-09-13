@@ -224,7 +224,7 @@ bool Position::draw () const
        //&& game_phase () < PHASE_MIDGAME - 50
        && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
-       && !MoveList<LEGAL> (*this).size ()
+       && MoveList<LEGAL> (*this).size () == 0
        )
     {
         return true;

@@ -67,7 +67,7 @@ namespace MovePick {
 
         bad_captures_end = moves+MAX_MOVES-1;
 
-        stage = pos.checkers () ? EVASION_S1 : MAIN_S;
+        stage = pos.checkers () != U64(0) ? EVASION_S1 : MAIN_S;
 
         tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
         end += tt_move != MOVE_NONE;
@@ -85,7 +85,7 @@ namespace MovePick {
     {
         ASSERT (d <= DEPTH_ZERO);
 
-        if (pos.checkers ())
+        if (pos.checkers () != U64(0))
         {
             stage = EVASION_S1;
         }
@@ -130,7 +130,7 @@ namespace MovePick {
         , followup_moves (NULL)
         , depth (DEPTH_ZERO)
     {
-        ASSERT (!pos.checkers ());
+        ASSERT (pos.checkers () == U64(0));
 
         stage = PROBCUT;
 

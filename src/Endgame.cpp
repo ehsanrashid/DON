@@ -145,7 +145,7 @@ namespace EndGame {
     Value Endgame<KXK>::operator() (const Position &pos) const
     {
         ASSERT (verify_material (pos, _weak_side, VALUE_ZERO, 0));
-        ASSERT (!pos.checkers ()); // Eval is never called when in check
+        ASSERT (pos.checkers () == U64(0)); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
         if (_weak_side == pos.active () && MoveList<LEGAL> (pos).size () == 0)

@@ -273,7 +273,7 @@ namespace Search {
             const bool    PVNode = NT == PV;
 
             ASSERT (NT == PV || NT == NonPV);
-            ASSERT (IN_CHECK == !!pos.checkers ());
+            ASSERT (IN_CHECK == (pos.checkers () != U64(0)));
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth <= DEPTH_ZERO);
@@ -563,7 +563,7 @@ namespace Search {
                 , best_value  = -VALUE_INFINITE;
 
             // Step 1. Initialize node
-            bool in_check = pos.checkers ();
+            bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
             SplitPoint *splitpoint;
@@ -1911,7 +1911,7 @@ namespace Search {
             sync_cout
                 << "info"
                 << " depth " << 0
-                << " score " << pretty_score (RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW)
+                << " score " << pretty_score (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
                 << sync_endl;
 
             RootMoves.push_back (RootMove (MOVE_NONE));
@@ -1921,7 +1921,7 @@ namespace Search {
                 LogFile logfile (SearchLog);
 
                 logfile
-                    << pretty_pv (RootPos, 0, RootPos.checkers () ? -VALUE_MATE : VALUE_DRAW, 0, &RootMoves[0].pv[0]) << "\n"
+                    << pretty_pv (RootPos, 0, RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW, 0, &RootMoves[0].pv[0]) << "\n"
                     << "Time (ms)  : " << 0        << "\n"
                     << "Nodes (N)  : " << 0        << "\n"
                     << "Speed (N/s): " << 0        << "\n"
