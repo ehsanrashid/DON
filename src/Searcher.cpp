@@ -1859,7 +1859,7 @@ namespace Search {
             Threadpool.max_ply = 0;
 
             u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
-            if (auto_save_time)
+            if (auto_save_time > 0)
             {
                 Threadpool.auto_save        = new_thread<TimerThread> ();
                 Threadpool.auto_save->task  = auto_save_hash;
@@ -1875,7 +1875,7 @@ namespace Search {
 
             Threadpool.timer->stop ();
 
-            if (auto_save_time)
+            if (auto_save_time > 0)
             {
                 Threadpool.auto_save->stop ();
                 Threadpool.auto_save->kill ();
