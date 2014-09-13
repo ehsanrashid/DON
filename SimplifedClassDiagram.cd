@@ -1,0 +1,830 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="Threads::Thread">
+    <Position X="12" Y="21.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AEgAACIAAQAAAAAAAAAEAAAAQBAAIABAAAAAAAAQIgA=</HashCode>
+      <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="splitpoints" />
+      <Field Name="material_table" />
+      <Field Name="pawns_table" />
+      <Field Name="active_pos" />
+      <Field Name="active_splitpoint" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Position">
+    <Position X="19.75" Y="14.5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AkoAAwJPAQQACBmwVYepIAEjgbFLHoRwDBg0JCAgJyA=</HashCode>
+      <FileName>src\Position.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_sb" />
+      <Field Name="_si" />
+      <Field Name="_active" />
+      <Field Name="_thread" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="_board" />
+      <Field Name="_color_bb" />
+      <Field Name="_types_bb" />
+      <Field Name="_piece_list" />
+      <Field Name="_castle_mask" />
+      <Field Name="_castle_rook" />
+      <Field Name="_castle_path" />
+      <Field Name="_king_path" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="OpeningBook::PolyglotBook" Collapsed="true">
+    <Position X="28.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAABAAEgACAACAqCAAwAAAAAACAAAAIBEEEAAASA=</HashCode>
+      <FileName>src\PolyglotBook.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MovePick::MovePicker">
+    <Position X="9.75" Y="11.25" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AhABAAkGAgAAgEAAgAAAAIQAQgAACCIQAAAgIUAQEgA=</HashCode>
+      <FileName>src\MovePicker.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="cur" />
+      <Field Name="end" />
+      <Field Name="quiets_end" />
+      <Field Name="bad_captures_end" />
+      <Field Name="pos" />
+      <Field Name="history" />
+      <Field Name="ss" />
+      <Field Name="counter_moves" />
+      <Field Name="followup_moves" />
+      <Field Name="kcur" />
+      <Field Name="kend" />
+      <Field Name="killers_org" />
+      <Field Name="killers_dst" />
+      <Field Name="tt_move" />
+      <Field Name="depth" />
+      <Field Name="recapture_sq" />
+      <Field Name="capture_threshold" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="moves" />
+      <Field Name="killers" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="Transpose::TranspositionTable">
+    <Position X="25.25" Y="16" Width="2.75" />
+    <TypeIdentifier>
+      <HashCode>JkgAAIAMCICAAAAEiIAgIAAABAAAIAEBAyAAAASAAAA=</HashCode>
+      <FileName>src\Transposition.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_hash_table" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Time::TimeManager">
+    <Position X="24.5" Y="8.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>ARAAAgAAAAAAAAgAAAEAAAAAAIEAAAACAgAAAAAAAAA=</HashCode>
+      <FileName>src\TimeManager.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_optimum_time" />
+      <Field Name="_maximum_time" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
+    <Position X="22.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIAAAAAAggAIAAAAAAACAAQAAQAAAIgAAAA=</HashCode>
+      <FileName>src\tiebuffer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
+    <Position X="13" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQEwggAEAAI=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\vector</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Search::RootMoveList">
+    <Position X="12.75" Y="5.75" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EndGame::EndgameBase&lt;T&gt;" Collapsed="true">
+    <Position X="16.75" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQAAEAAAAAAAAAAAAACAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RKISS" Collapsed="true">
+    <Position X="30" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAIAAAAAAACAAAAEAAAAAAAAAACAAACAApAEAAAA=</HashCode>
+      <FileName>src\RKISS.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MoveGen::MoveList&lt;GT&gt;" Collapsed="true">
+    <Position X="31.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABAAAAAAAAAAAAAAQIEIAAAAAAQAAQAAAAAgAAQAAAA=</HashCode>
+      <FileName>src\MoveGenerator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::width_prec" Collapsed="true">
+    <Position X="31.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAAAAAAAAAAAAAEAAAAAAAABAAAAAAAAAAAAgAAAA=</HashCode>
+      <FileName>src\manipulator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::manip_infra&lt;T, C&gt;" Collapsed="true">
+    <Position X="30" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAgAAAAAAIAAAAAAAAAAAAAABAA=</HashCode>
+      <FileName>src\manipulator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Debug::LogFile">
+    <Position X="16.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAQAAAA=</HashCode>
+      <FileName>src\Debugger.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Debug::DebugLogger">
+    <Position X="19.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAIAAEAAAAgAAAAAAAAAYBgAAAAAAAAAAAQAAA=</HashCode>
+      <FileName>src\Debugger.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_fstm" />
+      <Field Name="_inbuf" />
+      <Field Name="_outbuf" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="UCI::Option" Collapsed="true">
+    <Position X="33.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABAAAAAAAAAAAAQEkACgKAAAAAAQAABAAAAoAAAAAAA=</HashCode>
+      <FileName>src\UCI.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EndGame::Endgame&lt;ET, T&gt;" Collapsed="true">
+    <Position X="16.75" Y="8.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAEAAIAACAABAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EndGame::Endgames" Collapsed="true">
+    <Position X="28.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAEAAAAIAAAAAAAAAAAAAAAAAgAAAAAAAQABACAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="StateInfo">
+    <Position X="16.25" Y="16.25" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAQAEAAAEAAgAAQAAAAAhAAAAAAAQAAgAAAAAIAI=</HashCode>
+      <FileName>src\Position.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="psq_score" />
+      <Field Name="matl_key" />
+      <Field Name="pawn_key" />
+      <Field Name="castle_rights" />
+      <Field Name="en_passant_sq" />
+      <Field Name="posi_key" />
+      <Field Name="last_move" />
+      <Field Name="capture_type" />
+      <Field Name="checkers" />
+      <Field Name="p_si" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="non_pawn_matl" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="CheckInfo">
+    <Position X="8.75" Y="20.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAAAAAAAAAAAAAAAABAIAAAAAAAAggAAAAAAA=</HashCode>
+      <FileName>src\Position.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="pinneds" />
+      <Field Name="discoverers" />
+      <Field Name="king_sq" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="checking_bb" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="MovePick::GainStats">
+    <Position X="3.5" Y="6.75" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAEACA=</HashCode>
+      <FileName>src\MovePicker.h</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Field Name="_values" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="MovePick::HistoryStats" Collapsed="true">
+    <Position X="6.75" Y="13.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAgAAAAAAAAAAIAAACIAAAAgABAAACA=</HashCode>
+      <FileName>src\MovePicker.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MovePick::MoveStats">
+    <Position X="6" Y="16.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAIAAAAQAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>src\MovePicker.h</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Field Name="_moves" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Transpose::TTEntry">
+    <Position X="29" Y="13.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
+      <FileName>src\Transposition.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Transpose::TTCluster">
+    <Position X="25.75" Y="14.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEAA=</HashCode>
+      <FileName>src\Transposition.h</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Field Name="entry" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Castling&lt;C, CS&gt;">
+    <Position X="15.75" Y="26.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="Right" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="GameClock" Collapsed="true">
+    <Position X="7" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABIAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HashTable&lt;Entry, Size&gt;">
+    <Position X="15.25" Y="22.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgAAAAAgAAAAAAAAAAAAEAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_table" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="Material::Entry">
+    <Position X="15.5" Y="10.5" Width="3.75" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAAAgAAEQBAAAAAAAAAAQAIAAAAAgAAABAAAIAA=</HashCode>
+      <FileName>src\Material.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="matl_key" />
+      <Field Name="matl_score" />
+      <Field Name="evaluation_func" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
+    <Position X="12.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::binary_nullfunctor&lt;T&gt;" Collapsed="true">
+    <Position X="13" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::no_case_less_comparer" Collapsed="true">
+    <Position X="17.5" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::no_case_more_comparer" Collapsed="true">
+    <Position X="19.75" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::no_case_equal_comparer" Collapsed="true">
+    <Position X="15.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\functor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Threads::SplitPoint">
+    <Position X="6.5" Y="10.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>QACCAAAAAMAQAAAAAAAABIAEEBAAAAAQAAAQIAAAIQA=</HashCode>
+      <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="ss" />
+      <Field Name="pos" />
+      <Field Name="master" />
+      <Field Name="beta" />
+      <Field Name="depth" />
+      <Field Name="node_type" />
+      <Field Name="mutex" />
+      <Field Name="movepicker" />
+      <Field Name="alpha" />
+      <Field Name="best_value" />
+      <Field Name="best_move" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="Search::LimitsT">
+    <Position X="10" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAAAAAEAABEQAAAAAABAAAAAAAAIAAMAAAIAI=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="root_moves" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="gameclock" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Search::SignalsT" Collapsed="true">
+    <Position X="33.5" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAEAAAAAAAAACAAAAAAAAAAAAAABAAAAAAAAAE=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Search::RootMove">
+    <Position X="7" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAEAAAAAAAAAAAABgAAAAAAAACACAAAAAAAQIAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="pv" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="value" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Search::Stack">
+    <Position X="8.5" Y="17.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAQAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="current_move" />
+      <Field Name="exclude_move" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="killer_moves" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Threads::Mutex" Collapsed="true">
+    <Position X="6.25" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAIAAEAAAAAAgAAAAAAAAAAAAAAAAAAAgAAAAAQA=</HashCode>
+      <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MoveGen::ValMove">
+    <Position X="1.5" Y="11.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAEAAAAAAAAAAAACAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="move" />
+      <Field Name="value" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="std::unary_function&lt;_Arg, _Result&gt;" Collapsed="true">
+    <Position X="12.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\xstddef</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="std::binary_function&lt;_Arg1, _Arg2, _Result&gt;" Collapsed="true">
+    <Position X="16.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\xstddef</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Pawns::Entry" Collapsed="true">
+    <Position X="9.5" Y="22" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgMAAQAgAAAAIAAAAAAAAANAAMAAAgAAEAAQAoEAgAA=</HashCode>
+      <FileName>src\Pawns.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BitBases::`anonymous-namespace'::KPKPosition" Collapsed="true">
+    <Position X="31.75" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAAAAAAEAABAAAAAAAAAAgAABBAAAQAAAAgAA=</HashCode>
+      <FileName>src\BitBases.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::eg_fun&lt;false&gt;" Collapsed="true">
+    <Position X="28.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="EndGame::eg_fun&lt;true&gt;" Collapsed="true">
+    <Position X="30" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Evaluate::`anonymous-namespace'::EvalInfo">
+    <Position X="11.75" Y="18.5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAIAABAAAAAAAIAAAAAAAQgCAAQAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="mi" />
+      <Field Name="pi" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Field Name="ful_attacked_by" />
+      <Field Name="pin_attacked_by" />
+      <Field Name="pinneds" />
+      <Field Name="king_ring" />
+    </ShowAsCollectionAssociation>
+  </Struct>
+  <Struct Name="Evaluate::`anonymous-namespace'::Weight" Collapsed="true">
+    <Position X="28.25" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Typedef Name="StateInfoStack" Collapsed="true">
+    <Position X="31.75" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Position.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="Key" Collapsed="true">
+    <Position X="16.75" Y="14.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="Bitboard" Collapsed="true">
+    <Position X="12.75" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="Material::Table" Collapsed="true">
+    <Position X="14.75" Y="24.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Material.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="std::tie_buf" Collapsed="true">
+    <Position X="22.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\tiebuffer.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="std::tie_wbuf" Collapsed="true">
+    <Position X="22.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\tiebuffer.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="Time::point" Collapsed="true">
+    <Position X="25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Time.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="StateInfoStackPtr" Collapsed="true">
+    <Position X="33.5" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="Pawns::Table" Collapsed="true">
+    <Position X="11.75" Y="24.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Pawns.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="u08" Collapsed="true">
+    <Position X="28.25" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="i08" Collapsed="true">
+    <Position X="30" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="i16" Collapsed="true">
+    <Position X="31.75" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="u16" Collapsed="true">
+    <Position X="30" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="i32" Collapsed="true">
+    <Position X="33.5" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="u32" Collapsed="true">
+    <Position X="21.75" Y="9.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="i64" Collapsed="true">
+    <Position X="25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="u64" Collapsed="true">
+    <Position X="13.75" Y="15.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Platform.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="UCI::OptionMap" Collapsed="true">
+    <Position X="30" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\UCI.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="UCI::cmdstream" Collapsed="true">
+    <Position X="28.25" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\UCI.cpp</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="BitBoard::`anonymous-namespace'::Indexer" Collapsed="true">
+    <Position X="28.25" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\BitBoard.cpp</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="std::ofstream" Collapsed="true">
+    <Position X="16.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>c:\program files (x86)\microsoft visual studio 11.0\vc\include\iosfwd</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Enum Name="File" Collapsed="true">
+    <Position X="33.5" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAAAAACAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Rank" Collapsed="true">
+    <Position X="33.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Diag" Collapsed="true">
+    <Position X="28.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAOB/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Color" Collapsed="true">
+    <Position X="20.75" Y="13" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAABA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Square" Collapsed="true">
+    <Position X="10" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>fgAAAAAAAIAAAACAXyAAAADA7xcIAAAABPr9AADw+4U=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Delta" Collapsed="true">
+    <Position X="33.5" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>SgAAAQAAAAAAAAAAAAIAAAkCggQAAAAAAAAAAACAABA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="CSide" Collapsed="true">
+    <Position X="31.75" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="CRight" Collapsed="true">
+    <Position X="15.75" Y="20.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAABIAAAABBAAgAABIAAAAEAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="PieceT" Collapsed="true">
+    <Position X="16.75" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAAAAAAARAAAAAAAAAggAAAIAAAAABEAAg=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Piece" Collapsed="true">
+    <Position X="20.75" Y="29" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIAAgAQMAAAgAwRTAAAAIAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="MoveT" Collapsed="true">
+    <Position X="30" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAAEAAAAAAIAAAAAAEAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Move" Collapsed="true">
+    <Position X="10" Y="16" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAACAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Value" Collapsed="true">
+    <Position X="9" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAAQAwAAQAQgIAgAAQEAEBAAIMDAQAAAAAAAAAAACAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Score" Collapsed="true">
+    <Position X="13.75" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Depth" Collapsed="true">
+    <Position X="7" Y="15.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAMAAAAAACAAAgAAAAgAAAAAAAAAAAAAAAAAAACAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Bound" Collapsed="true">
+    <Position X="30" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAACAAAAAAAAAAEAAAAAAAAAAAAQAAACAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Phase" Collapsed="true">
+    <Position X="31.75" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQEAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAoAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="ScaleFactor" Collapsed="true">
+    <Position X="30" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAACABAAAAAAAAAAAAAAAAAAAAAAAACAgAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SyncT" Collapsed="true">
+    <Position X="31.75" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="BitBoard::BitCountT" Collapsed="true">
+    <Position X="28.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAABAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\BitCount.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Search::NodeT" Collapsed="true">
+    <Position X="4.25" Y="11.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAAgAAAAAAAAAAAAAAAAAAQAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="MoveGen::GenT" Collapsed="true">
+    <Position X="28.25" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CBAAABAAEAAAAAAAAAAAAAAAAIAAAAAAAAAEACAAAAA=</HashCode>
+      <FileName>src\MoveGenerator.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="BitBases::`anonymous-namespace'::Result" Collapsed="true">
+    <Position X="28.25" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAgBAAAAAAAAAAAAAAAEAAABAAAAAAAAAABAA=</HashCode>
+      <FileName>src\BitBases.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="EndGame::EndgameT" Collapsed="true">
+    <Position X="30" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAACAARAAAAAAEDAgBCKIABAQQABAIAAAAE=</HashCode>
+      <FileName>src\Endgame.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluate::`anonymous-namespace'::EvalWeightT" Collapsed="true">
+    <Position X="31.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAgAAAgAAAAAEACAAAAAABAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluate::`anonymous-namespace'::Tracer::TermT" Collapsed="true">
+    <Position X="33.5" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAEAAgQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Consolas" Size="8.25" />
+</ClassDiagram>
