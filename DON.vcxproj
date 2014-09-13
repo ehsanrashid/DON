@@ -655,6 +655,7 @@
     <None Include="IncludeFileDependencies.dgml">
       <SubType>Designer</SubType>
     </None>
+    <None Include="SimplifedClassDiagram.cd" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />
     <None Include="src\make-clean.bat" />
