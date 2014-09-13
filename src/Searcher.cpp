@@ -1696,7 +1696,7 @@ namespace Search {
             pos.undo_move ();
             --ply;
         }
-        while (ply);
+        while (ply != 0);
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
     }
@@ -1738,7 +1738,7 @@ namespace Search {
             pos.undo_move ();
             --ply;
         }
-        while (ply);
+        while (ply != 0);
     }
 
     string RootMove::info_pv (const Position &pos) const
@@ -1968,7 +1968,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        CaptureFactor = (float) i32(Options["Capture Factor"]) / 100;
+        CaptureFactor = float(i32(Options["Capture Factor"])) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
@@ -1995,10 +1995,10 @@ namespace Search {
         {
             for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
-                float    pv_red = 0.00f + log (float(hd)) * log (float(mc)) / 3.00f;
-                float nonpv_red = 0.33f + log (float(hd)) * log (float(mc)) / 2.25f;
-                Reductions[1][1][hd][mc] =    pv_red >= 1.0f ? u08(   pv_red*i16(ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = nonpv_red >= 1.0f ? u08(nonpv_red*i16(ONE_MOVE)) : 0;
+                float  pv_red = 0.00f + log (float(hd)) * log (float(mc)) / 3.00f;
+                float npv_red = 0.33f + log (float(hd)) * log (float(mc)) / 2.25f;
+                Reductions[1][1][hd][mc] =  pv_red >= 1.0f ? u08( pv_red*i16(ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = npv_red >= 1.0f ? u08(npv_red*i16(ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];

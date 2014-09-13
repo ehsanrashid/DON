@@ -2291,7 +2291,7 @@ namespace TBSyzygy {
                     if (i < NONE) p[i++] = pop_lsq (bb) ^ mirror; else
                         break;
                 }
-                while (bb);
+                while (bb != U64(0));
                 i32 f   = pawn_file (tbep, p);
                 u08 *pc = tbep->file[f].pieces[bside];
                 for (; i < tbe->num;)

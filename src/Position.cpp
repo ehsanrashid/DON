@@ -643,7 +643,7 @@ Value Position::see      (Move m) const
 
             ++depth;
         }
-        while (stm_attackers);
+        while (stm_attackers != U64(0));
 
         // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
@@ -1310,17 +1310,17 @@ bool Position::can_en_passant (Square ep_sq) const
     if (!((_color_bb[pasive]&_types_bb[PAWN]) & cap)) return false;
     //if ((pasive | PAWN) != _board[cap]) return false;
 
-    Bitboard ep_pawns = PAWN_ATTACKS[pasive][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
-    ASSERT (pop_count<FULL> (ep_pawns) <= 2);
-    if (!ep_pawns) return false;
+    Bitboard ep_attacks = PAWN_ATTACKS[pasive][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
+    ASSERT (pop_count<FULL> (ep_attacks) <= 2);
+    if (!ep_attacks) return false;
 
     Move    ep_moves[3]
         ,   *curr = ep_moves;
 
     fill (ep_moves, ep_moves + sizeof (ep_moves) / sizeof (*ep_moves), MOVE_NONE);
-    while (ep_pawns)
+    while (ep_attacks != U64(0))
     {
-        *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
+        *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq);
     }
 
     // Check en-passant is legal for the position
@@ -1350,7 +1350,7 @@ Score Position::compute_psq_score () const
 {
     Score score  = SCORE_ZERO;
     Bitboard occ = _types_bb[NONE];
-    while (occ)
+    while (occ != U64(0))
     {
         Square s = pop_lsq (occ);
         score += PSQT[color (_board[s])][ptype (_board[s])][s];
@@ -1565,7 +1565,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     {
         Bitboard b = cr;
         _si->castle_rights &= ~cr;
-        while (b)
+        while (b != U64(0))
         {
             p_key ^= Zob._.castle_right[0][pop_lsq (b)];
         }
@@ -1889,7 +1889,7 @@ Position::operator string () const
     }
 
     Bitboard occ = _types_bb[NONE];
-    while (occ)
+    while (occ != U64(0))
     {
         Square s = pop_lsq (occ);
         i08 r = _rank (s);
@@ -1907,9 +1907,9 @@ Position::operator string () const
 
     oss << "Checkers: ";
     Bitboard chkrs = checkers ();
-    if (chkrs)
+    if (chkrs != U64(0))
     {
-        while (chkrs)
+        while (chkrs != U64(0))
         {
             Square chk = pop_lsq (chkrs);
             oss << PIECE_CHAR[ptype (_board[chk])] << to_string (chk) << " ";
