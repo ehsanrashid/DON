@@ -1,7 +1,7 @@
 #ifndef _DEBUGGER_H_INC_
 #define _DEBUGGER_H_INC_
 
-#include <iostream>
+#include <fstream>
 
 #include "noncopyable.h"
 #include "tiebuffer.h"

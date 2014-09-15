@@ -16,11 +16,12 @@ namespace std {
         // Don't Implement these functions.
     
     private:  // emphasize the following members are private
-
-        noncopyable (const noncopyable &);              // = delete;
         
         template<class T>
-        T& operator= (const noncopyable &) { return T(); }
+        noncopyable (const T&);              // = delete;
+        
+        template<class T>
+        T& operator= (const T&) { return T (); }
         //noncopyable& operator= (const noncopyable &); // = delete;
 
     };

@@ -291,10 +291,10 @@ namespace Search {
             if ((ss)->ply > MAX_DEPTH) return IN_CHECK ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            Value old_alpha = PVNode ? alpha : -VALUE_INFINITE;
+            Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
 
             // Transposition table lookup
-            Key posi_key;
+            Key posi_key;// = U64(0);
             const TTEntry *tte;
             Move  tt_move    = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -525,7 +525,7 @@ namespace Search {
                 posi_key,
                 best_move,
                 qs_depth,
-                PVNode && old_alpha < best_value ? BND_EXACT : BND_UPPER,
+                PVNode && pv_alpha < best_value ? BND_EXACT : BND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -552,8 +552,8 @@ namespace Search {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
-            Key   posi_key = U64(0);
-            const TTEntry *tte = NULL;
+            Key   posi_key;// = U64(0);
+            const TTEntry *tte;// = NULL;
             Move  tt_move     = MOVE_NONE;
             Value tt_value    = VALUE_NONE;
             Depth tt_depth    = DEPTH_NONE;
@@ -565,7 +565,7 @@ namespace Search {
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint = NULL;
+            SplitPoint *splitpoint;// = NULL;
             Move  move
                 , exclude_move = MOVE_NONE
                 , best_move    = MOVE_NONE;
@@ -1540,14 +1540,10 @@ namespace Search {
                     // Time adjustments
                     if (aspiration && MultiPV == 1)
                     {
-                        // Take in account some extra time if the best move has changed
-                        TimeMgr.instability (RootMoves.best_move_change);
                         
-                        iteration_time = now () - SearchTime;
-                        // Take less time for recaptures if good
                         float capture_factor = 0.0f;
                         if (  RootMoves.best_move_change < 0.05f
-                           && iteration_time > TimeMgr.available_time () * 20 / 100
+                           && (iteration_time = now () - SearchTime) > TimeMgr.available_time () * 20 / 100
                            )
                         {
                             Move best_move = RootMoves[0].pv[0];
@@ -1565,7 +1561,10 @@ namespace Search {
                             }
                             
                         }
-                        
+
+                        // Take in account some extra time if the best move has changed
+                        TimeMgr.instability (RootMoves.best_move_change);
+                        // Take less time for recaptures if good
                         TimeMgr.capturability (capture_factor);
 
                     }

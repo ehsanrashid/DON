@@ -340,10 +340,10 @@ namespace UCI {
         Options["Fixed Contempt"]               << Option (   0,-100,+100);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 20,   0,+900);
+        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 40,   0,+1000);
+        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -367,7 +367,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // How slow you want engine to play, 100 is neutral
-        Options["Slowness"]                     << Option (+ 86,+ 10,+ 1000);
+        Options["Slowness"]                     << Option (+ 90,+ 10,+ 1000);
         
         Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
 
