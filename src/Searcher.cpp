@@ -1551,9 +1551,9 @@ namespace Search {
                             PieceT dst_pt = ptype (RootPos[dst_sq (best_move)]);
                             if (org_pt == KING) org_pt = QUEN;
 
-                            if (  dst_pt != NONE && cap_pt != NONE && cap_pt != dst_pt
-                               && (  abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT     
-                                  ||      PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                            if (  dst_pt != NONE && cap_pt != NONE //&& cap_pt != dst_pt
+                               && (  abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MARGIN     
+                                  ||      PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MARGIN
                                   )
                                )
                             {
@@ -1564,7 +1564,7 @@ namespace Search {
 
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
-                        // Take less time for recaptures if good
+                        // Take less time for captures if the capture is good
                         TimeMgr.capturability (capture_factor);
 
                     }
@@ -1809,7 +1809,7 @@ namespace Search {
                 << endl;
         }
 
-        MateSearch = bool(Limits.mate);
+        MateSearch = Limits.mate != 0;
 
         if (RootSize != 0)
         {

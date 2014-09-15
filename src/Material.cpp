@@ -210,7 +210,7 @@ namespace Material {
             };
 
             if (  npm[WHITE] + npm[BLACK] == VALUE_ZERO
-               && pos.pieces<PAWN> ()
+               && pos.pieces<PAWN> () != U64(0)
                )
             {
                 if (  pos.count<PAWN> (BLACK) == 0
@@ -293,7 +293,7 @@ namespace Material {
                 }
             };
 
-            Value value = Value(i16((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));
+            Value value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4);
             e->matl_score = mk_score (value, value);
         }
 
