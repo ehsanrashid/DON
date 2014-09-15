@@ -777,7 +777,7 @@ namespace Search {
                                     Depth R = depth/4 + 3*i16(ONE_MOVE);
                                     if (abs (beta) < VALUE_KNOWN_WIN)
                                     {
-                                        R += (i32(static_eval - beta)*i16(ONE_MOVE))/i32(VALUE_MG_PAWN);
+                                        R += min (depth/4, (i32(static_eval - beta)*ONE_MOVE)/i32(VALUE_MG_PAWN));
                                     }
 
                                     Depth rdepth = depth - R;
@@ -807,6 +807,9 @@ namespace Search {
                                         {
                                             return null_value;
                                         }
+
+                                        //rdepth = depth - min (R, 2*depth/3);
+                                        rdepth = max (1*depth/3, rdepth);
 
                                         // Do verification search at high depths
                                         Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
