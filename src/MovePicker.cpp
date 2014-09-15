@@ -41,7 +41,7 @@ namespace MovePick {
         // normally are the possible captures.
         inline ValMove* pick_best (ValMove *begin, ValMove *end)
         {
-            std::swap (*begin, *std::max_element (begin, end));
+            swap (*begin, *max_element (begin, end));
             return begin;
         }
 
@@ -265,7 +265,7 @@ namespace MovePick {
         case KILLER_S1:
             kcur = kend = killers;
             // Killer moves usually come right after the hash move and (good) captures
-            std::fill (killers, killers + sizeof (killers) / sizeof (*killers), MOVE_NONE);
+            fill (killers, killers + sizeof (killers) / sizeof (*killers), MOVE_NONE);
             // Init killers bitboards to shortcut move's validity check later on
             killers_org = killers_dst = U64(0);
             Move m;

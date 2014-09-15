@@ -291,8 +291,7 @@ namespace Search {
             if ((ss)->ply > MAX_DEPTH) return IN_CHECK ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            Value old_alpha;
-            if (PVNode) old_alpha = alpha;
+            Value old_alpha = PVNode ? alpha : -VALUE_INFINITE;
 
             // Transposition table lookup
             Key posi_key;
@@ -553,7 +552,7 @@ namespace Search {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
-            Key   posi_key;
+            Key   posi_key = U64(0);
             const TTEntry *tte = NULL;
             Move  tt_move     = MOVE_NONE;
             Value tt_value    = VALUE_NONE;
@@ -566,7 +565,7 @@ namespace Search {
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint;
+            SplitPoint *splitpoint = NULL;
             Move  move
                 , exclude_move = MOVE_NONE
                 , best_move    = MOVE_NONE;
@@ -775,10 +774,13 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic (variable) reduction based on depth and value
-                                    Depth rdepth = depth -
-                                                 ( 3*i16(ONE_MOVE)
-                                                 + depth/4
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32(static_eval - beta)/i32(VALUE_MG_PAWN)*ONE_MOVE : DEPTH_ZERO));
+                                    Depth R = depth/4 + 3*i16(ONE_MOVE);
+                                    if (abs (beta) < VALUE_KNOWN_WIN)
+                                    {
+                                        R += (i32(static_eval - beta)*i16(ONE_MOVE))/i32(VALUE_MG_PAWN);
+                                    }
+
+                                    Depth rdepth = depth - R;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -849,7 +851,6 @@ namespace Search {
                                     if (value >= rbeta) return value;
                                 }
                             }
-
                         }
                     }
 
@@ -1436,7 +1437,7 @@ namespace Search {
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
                         //RootMoves.sort_end (PVIndex);
-                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
+                        stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
@@ -1492,7 +1493,7 @@ namespace Search {
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (PVIndex + 1);
-                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+                    stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
 
                     if (  PVIndex + 1 == PVLimit
                        || iteration_time > INFO_INTERVAL

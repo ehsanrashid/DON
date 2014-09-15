@@ -88,7 +88,7 @@ namespace Memory {
             }
 
             //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, (PTOKEN_PRIVILEGES) NULL, 0);
+            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, static_cast<PTOKEN_PRIVILEGES>(NULL), 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.
@@ -190,7 +190,6 @@ namespace Memory {
             
             if (VirtualFree (mem, 0, MEM_RELEASE))
             {
-                ;
             }
 
 #   else   // Linux - Unix

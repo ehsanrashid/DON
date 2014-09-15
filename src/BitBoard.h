@@ -359,7 +359,7 @@ namespace BitBoard {
     extern void initialize ();
 
 #ifndef NDEBUG
-    extern const std::string pretty (Bitboard bb, char p = 'o');
+    extern std::string pretty (Bitboard bb, char p = 'o');
 #endif
 
 }

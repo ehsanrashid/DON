@@ -102,9 +102,9 @@ namespace Engine {
         return oss.str ();
     }
 
-    void run (const std::string &arg)
+    void run (const string &arg)
     {
-        cout << Engine::info (false) << endl;
+        cout << info (false) << endl;
 
 #ifdef LPAGES
         Memory::initialize ();

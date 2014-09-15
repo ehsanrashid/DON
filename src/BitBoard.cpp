@@ -340,7 +340,7 @@ namespace BitBoard {
 
     // pretty() returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
-    const string pretty (Bitboard bb, char p)
+    string pretty (Bitboard bb, char p)
     {
         string sbb;
         sbb = " /---------------\\\n";

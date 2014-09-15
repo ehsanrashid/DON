@@ -20,7 +20,7 @@ namespace std {
         noncopyable (const noncopyable &);              // = delete;
         
         template<class T>
-        T& operator= (const noncopyable &);
+        T& operator= (const noncopyable &) { return T(); }
         //noncopyable& operator= (const noncopyable &); // = delete;
 
     };

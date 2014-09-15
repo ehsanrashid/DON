@@ -309,7 +309,7 @@ namespace MoveGen {
                 if (QUIET != GT && QUIET_CHECK != GT)
                 {
                     Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
-                    Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
+                    Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;
 
                     while (l_attacks != U64(0)) { Square dst = pop_lsq (l_attacks); (moves++)->move = mk_move<NORMAL> (dst - LCAP, dst); }
                     while (r_attacks != U64(0)) { Square dst = pop_lsq (r_attacks); (moves++)->move = mk_move<NORMAL> (dst - RCAP, dst); }

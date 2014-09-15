@@ -31,9 +31,6 @@ namespace Search {
     //  - Ponder while is opponent's side to move.
     struct LimitsT
     {
-
-    private:
-
     public:
 
         GameClock gameclock[CLR_NO];

@@ -963,13 +963,13 @@ bool Position::legal        (Move m, Bitboard pinned) const
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
-    else
+    
     if (mtype (m) == CASTLE)
     {
         // Castling moves are checked for legality during move generation.
         return (KING == ptype (_board[org]));
     }
-    else
+    
     if (mtype (m) == ENPASSANT)
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
@@ -1026,7 +1026,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return   PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
               && attacks_bb<ROOK> (rook_dst, (occ - org - rook_org + dst + rook_dst)) & ci.king_sq;
     }
-    else
+    
     if (mtype (m) == ENPASSANT)
     {
         // En passant capture with check ?
@@ -1039,7 +1039,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
                || attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))
                );
     }
-    else
+    
     if (mtype (m) == PROMOTE)
     {
         // Promotion with check ?

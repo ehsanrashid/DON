@@ -212,8 +212,6 @@ namespace Threads {
     class TimerThread
         : public ThreadBase
     {
-    private:
-
     public:
         // This is the minimum interval in msec between two check_time() calls
         bool run;

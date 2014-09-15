@@ -73,7 +73,8 @@ namespace Time {
         // and search times to maximum values
         _instability_factor = 1.0f;
         _capture_factor     = 1.0f;
-        _optimum_time       = _maximum_time = max (gameclock.time, MinimumThinkingTime);
+        _optimum_time = _maximum_time
+            = max (gameclock.time, MinimumThinkingTime);
 
         u08 tot_movestogo = movestogo ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
