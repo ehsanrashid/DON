@@ -562,8 +562,8 @@ inline bool white_spaces (const std::string &str)
 
 inline void trim (std::string &str)
 {
-    std::size_t pb = str.find_first_not_of (" \t\n");
-    std::size_t pe = str.find_last_not_of (" \t\n");
+    size_t pb = str.find_first_not_of (" \t\n");
+    size_t pe = str.find_last_not_of (" \t\n");
     pb = pb == std::string::npos ? 0 : pb;
     pe = pe == std::string::npos ? pb : pe - pb + 1;
     str = str.substr (pb, pe);
@@ -571,13 +571,13 @@ inline void trim (std::string &str)
 
 inline void remove_extension (std::string &filename)
 {
-    std::size_t last_dot = filename.find_last_of ('.');
-    filename = (last_dot == std::string::npos) ? filename : filename.substr (0, last_dot); 
+    size_t last_dot = filename.find_last_of ('.');
+    filename = last_dot == std::string::npos ? filename : filename.substr (0, last_dot); 
 }
 
 inline void convert_path (std::string &path)
 {
-    std::replace (path.begin (), path.end (), '\\', '/');
+    std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
 
 CACHE_ALIGN(8) extern const Value PIECE_VALUE[PHASE_NO][TOTL];

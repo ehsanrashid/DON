@@ -68,7 +68,7 @@ namespace Notation {
         }
 
         // value to string
-        const string pretty_value (Value v, const Position &pos)
+        string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
 
@@ -92,7 +92,7 @@ namespace Notation {
         }
 
         // time to string
-        const string pretty_time (u64 msecs)
+        string pretty_time (u64 msecs)
         {
             u32 hours   = u32(msecs / HOUR_MILLI_SEC);
             msecs      %= HOUR_MILLI_SEC;
@@ -165,7 +165,7 @@ namespace Notation {
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
     // Internally castle moves are always coded as "king captures rook".
-    const string move_to_can (Move m, bool c960)
+    string move_to_can (Move m, bool c960)
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
@@ -182,7 +182,7 @@ namespace Notation {
 
     // move_to_san(m, pos) takes a position and a legal move as input
     // and returns its short algebraic notation representation.
-    const string move_to_san (Move m, Position &pos)
+    string move_to_san (Move m, Position &pos)
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
@@ -246,12 +246,12 @@ namespace Notation {
     // TODO::
     //// move_to_lan(m, pos) takes a position and a legal move as input
     //// and returns its long algebraic notation representation.
-    //const string move_to_lan (Move m, Position &pos)
+    //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
     //    return lan;
     //}
-    //const string move_to_fan (Move m, Position &pos)
+    //string move_to_fan (Move m, Position &pos)
     //{
     //    string fan;
     //    return fan;
@@ -263,7 +263,7 @@ namespace Notation {
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.
     //            If the engine is getting mated use negative values for y.
-    const string pretty_score (Value v, Value alpha, Value beta)
+    string pretty_score (Value v, Value alpha, Value beta)
     {
         ostringstream oss;
 
@@ -287,7 +287,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    const string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
+    string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
     {
         ostringstream oss;
 

@@ -133,8 +133,8 @@ namespace EndGame {
     template<EndgameT ET>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<ET>*) NULL)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
-        map ((Endgame<ET>*) NULL)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
+        map (static_cast<Endgame<ET>*>(NULL))[key<WHITE> (code)] = new Endgame<ET> (WHITE);
+        map (static_cast<Endgame<ET>*>(NULL))[key<BLACK> (code)] = new Endgame<ET> (BLACK);
     }
 
     template<>

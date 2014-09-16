@@ -120,12 +120,12 @@ namespace OpeningBook {
     PolyglotBook::PolyglotBook ()
         : fstream ()
         , _book_fn ("")
-        , _mode (ios_base::openmode (0))
+        , _mode (openmode (0))
         , _size_book (0)
     {}
 
-    PolyglotBook::PolyglotBook (const string &book_fn, ios_base::openmode mode)
-        : fstream (book_fn.c_str (), mode|ios_base::binary)
+    PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
+        : fstream (book_fn.c_str (), mode|binary)
         , _book_fn (book_fn)
         , _mode (mode)
         , _size_book (0)
@@ -140,10 +140,10 @@ namespace OpeningBook {
     // mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
-    bool PolyglotBook::open (const string &book_fn, ios_base::openmode mode)
+    bool PolyglotBook::open (const string &book_fn, openmode mode)
     {
         close ();
-        fstream::open (book_fn.c_str (), mode|ios_base::binary);
+        fstream::open (book_fn.c_str (), mode|binary);
         clear (); // Reset any error flag to allow retry open()
         _book_fn = book_fn;
         _mode    = mode;
@@ -341,7 +341,7 @@ namespace OpeningBook {
 
     string PolyglotBook::read_entries (const Position &pos)
     {
-        if (!fstream::is_open () || !(_mode & ios_base::in)) return "";
+        if (!fstream::is_open () || !(_mode & in)) return "";
 
         Key key = ZobPG.compute_posi_key (pos);
 
@@ -380,9 +380,9 @@ namespace OpeningBook {
         return oss.str ();
     }
 
-    void PolyglotBook::insert_entry (const PolyglotBook::PBEntry &pbe)
+    void PolyglotBook::insert_entry (const PBEntry &pbe)
     {
-        if (!fstream::is_open () || !(_mode & ios_base::out)) return;
+        if (!fstream::is_open () || !(_mode & out)) return;
 
         u64 index = find_index (pbe.key);
         if (ERROR_INDEX == index)

@@ -51,7 +51,7 @@ namespace Search {
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
         {
-            return (Depth) Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)];
+            return Depth (Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
         const u08   MAX_QUIETS      = 64;
@@ -565,7 +565,7 @@ namespace Search {
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint;// = NULL;
+            SplitPoint *splitpoint = SP_NODE ? (ss)->splitpoint : NULL;
             Move  move
                 , exclude_move = MOVE_NONE
                 , best_move    = MOVE_NONE;
@@ -575,7 +575,6 @@ namespace Search {
 
             if (SP_NODE)
             {
-                splitpoint  = (ss)->splitpoint;
                 best_value  = splitpoint->best_value;
                 best_move   = splitpoint->best_move;
 
@@ -899,11 +898,6 @@ namespace Search {
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
-                //|| (  (ss-1)->current_move != MOVE_NULL
-                //   && (ss-0)->static_eval != VALUE_NONE
-                //   && (ss-0)->static_eval > -(ss-1)->static_eval
-                //   && pos.capture_type () == NONE
-                //   );
 
             Thread *thread  = pos.thread ();
             point time;
@@ -2034,7 +2028,7 @@ namespace Threads {
         if (now_time - last_time >= MILLI_SEC)
         {
             last_time = now_time;
-            Debug::dbg_print ();
+            dbg_print ();
         }
 
         if (Limits.ponder || Signals.force_stop)

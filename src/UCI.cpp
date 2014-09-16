@@ -388,7 +388,7 @@ namespace UCI {
             cmds >> skipws >> token;
 
             if      (token.empty ())        continue;
-            else if (token == "uci")        exe_uci ();
+            if      (token == "uci")        exe_uci ();
             else if (token == "ucinewgame") { /*TT.clear ();*/ } // Obsolete command
             else if (token == "isready")    exe_isready ();
             else if (token == "register")   exe_register (cmds);
