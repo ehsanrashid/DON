@@ -24,7 +24,7 @@ namespace Time {
         u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time at clock, in milliseconds.
         u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
         u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
-        i32 Slowness              = 90; // Slowliness, in %age.
+        i32 MoveSlowness          = 90; // Slowliness, in %age.
 
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
@@ -42,7 +42,7 @@ namespace Time {
             const float TStepRatio  = OPTIMUM_TIME == TT ? 1.0f : MAX_STEP_RATIO;
             const float TStealRatio = MAXIMUM_TIME == TT ? 0.0f : MAX_STEAL_RATIO;
 
-            float  this_move_imp = move_importance (game_ply) * Slowness / 0x64; // 100
+            float  this_move_imp = move_importance (game_ply) * MoveSlowness / 0x64; // 100
             float other_move_imp = 0.0f;
             for (u08 i = 1; i < movestogo; ++i)
             {
@@ -66,7 +66,7 @@ namespace Time {
         //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
         //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
         //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
-        Slowness             = i32(Options["Slowness"]);
+        MoveSlowness          = i32(Options["Move Slowness"]);
 
         // Initialize:
         // instability factor to 1.0

@@ -372,7 +372,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Slowness"]                     << Option (+ 90,+ 10,+ 1000);
+        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000);
         
         Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
 
