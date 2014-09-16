@@ -169,7 +169,7 @@ namespace UCI {
                     Move m = move_from_can (token, RootPos);
                     if (MOVE_NONE == m)
                     {
-                        cerr << "ERROR: illegal Move '" + token << "'" << endl;
+                        cerr << "ERROR: Illegal Move '" + token << "'" << endl;
                         break;
                     }
                     
