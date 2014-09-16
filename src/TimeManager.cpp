@@ -19,13 +19,12 @@ namespace Time {
         const float SHIFT     = 59.80f;
         const float SKEW_RATE = 00.172f;
 
-        u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead
-
-        u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time (in ms) at clock
-        u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves
-        u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time (in ms) for each remaining move
-        u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time (in ms) before doing the move
-        i32 Slowness              = 80; // Slowliness, in %age.
+        u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead, in num of moves.
+        u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves, in num of moves.
+        u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time at clock, in milliseconds.
+        u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+        u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
+        i32 Slowness              = 90; // Slowliness, in %age.
 
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
@@ -61,8 +60,10 @@ namespace Time {
     void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
     {
         // Read uci parameters
-        //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
+        // -------------------
+        //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
         //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
+        //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
         //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
         //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
         Slowness             = i32(Options["Slowness"]);

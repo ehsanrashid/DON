@@ -361,12 +361,17 @@ namespace UCI {
         Options["Space"]                        << Option ( 0,-1000,+1000, on_change_evaluation);
         Options["King Safety"]                  << Option ( 0,-1000,+1000, on_change_evaluation);
 
+        //// Plan time management at most this many moves ahead, in num of moves.
+        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100);
+        //// Be prepared to always play at least this many moves, in num of moves.
+        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100);
+        //// Always attempt to keep at least this much time at clock, in milliseconds.
         //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
-        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 50);
+        //// Attempt to keep at least this much time for each remaining move, in milliseconds.
         //Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
-        // How slow you want engine to play, 100 is neutral
+        // How slow you want engine to play, 100 is neutral, in %age.
         Options["Slowness"]                     << Option (+ 90,+ 10,+ 1000);
         
         Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
