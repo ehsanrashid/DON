@@ -23,7 +23,7 @@ namespace Time {
         u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves, in num of moves.
         u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time at clock, in milliseconds.
         u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-        u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
+        u32 MinimumMoveTime       = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
         i32 MoveSlowness          = 90; // Slowliness, in %age.
         bool Ponder               = true;
 
@@ -68,12 +68,12 @@ namespace Time {
         _capture_factor     = 1.0f;
         _optimum_time =
         _maximum_time =
-            max (gameclock.time, MinimumThinkingTime);
+            max (gameclock.time, MinimumMoveTime);
 
-        u08 tot_movestogo = movestogo ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        movestogo = movestogo != 0 ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
         // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-        for (u08 hyp_movestogo = 1; hyp_movestogo <= tot_movestogo; ++hyp_movestogo)
+        for (u08 hyp_movestogo = 1; hyp_movestogo <= movestogo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time =
@@ -84,8 +84,8 @@ namespace Time {
 
             hyp_time = max (0, hyp_time);
 
-            u32 opt_time = MinimumThinkingTime + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
-            u32 max_time = MinimumThinkingTime + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
+            u32 opt_time = MinimumMoveTime + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
+            u32 max_time = MinimumMoveTime + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
 
             _optimum_time = min (opt_time, _optimum_time);
             _maximum_time = min (max_time, _maximum_time);
@@ -104,7 +104,7 @@ namespace Time {
         //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
         //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
         //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
-        //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
+        //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
         MoveSlowness          = i32(Options["Move Slowness"]);
         Ponder                = bool(Options["Ponder"]);
     }

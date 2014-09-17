@@ -370,7 +370,7 @@ namespace UCI {
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
         //Options["Emergency Move Time"]          << Option ( 30, 0, 5000, on_config_timemanager);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000, on_config_timemanager);
+        //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, on_config_timemanager);
         // How slow you want engine to play, 100 is neutral, in %age.
         Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, on_config_timemanager);
         // Whether or not the engine should analyze when it is the opponent's turn.
