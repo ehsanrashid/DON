@@ -773,11 +773,10 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic (variable) reduction based on depth and value
-                                    Depth R = depth/4 + 3*i16(ONE_MOVE);
-                                    if (abs (beta) < VALUE_KNOWN_WIN)
-                                    {
-                                        R += min (depth/4, (i32(static_eval - beta)*ONE_MOVE)/i32(VALUE_MG_PAWN));
-                                    }
+                                    Depth R = Depth(
+                                             + 3*i16(ONE_MOVE)
+                                             + 1*i16(depth)/4
+                                             + min (i32(static_eval - beta)/VALUE_MG_PAWN, 3)*i16(ONE_MOVE));
 
                                     Depth rdepth = depth - R;
 
@@ -806,9 +805,6 @@ namespace Search {
                                         {
                                             return null_value;
                                         }
-
-                                        //rdepth = depth - min (R, 2*depth/3);
-                                        rdepth = max (1*depth/3, rdepth);
 
                                         // Do verification search at high depths
                                         Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
