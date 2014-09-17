@@ -15,7 +15,6 @@ namespace Time {
     //increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
     class TimeManager
     {
-
     private:
 
         u32   _optimum_time;

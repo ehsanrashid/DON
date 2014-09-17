@@ -806,9 +806,11 @@ namespace Search {
                                             return null_value;
                                         }
 
+                                        rdepth = max (2*depth/3, rdepth);
+
                                         // Do verification search at high depths
-                                        Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
-                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        Value veri_value = //rdepth < 1*i16(ONE_MOVE) ?
+                                            //search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         if (veri_value >= beta) return null_value;

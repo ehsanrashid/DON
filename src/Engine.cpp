@@ -49,33 +49,26 @@ namespace Engine {
         if (uci) oss << "id name ";
         oss << NAME << " ";
 
+        oss << setfill ('0');
 #if defined (VER)
-        oss << setfill ('0') << VER << setfill (' ');
+        oss << VER;
 #else
         if (VERSION.empty ())
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
-
-            string month
-                ,  day
-                ,  year;
-
-            iss >> month
-                >> day
-                >> year;
-
-            oss << setfill ('0')
-                << setw (2) << (day) //<< '-'
-                << setw (2) << (find_month (month)) //<< '-'
-                << setw (2) << (year.substr (2))
-                << setfill (' ');
+            string month, day, year;
+            iss >> month >> day >> year;
+            oss << setw (2) << (day)
+                << setw (2) << (find_month (month))
+                << setw (2) << (year.substr (2));
         }
         else
         {
-            oss << setfill ('0') << VERSION << setfill (' ');
+            oss << VERSION;
         }
 #endif
+        oss << setfill (' ');
 
 #ifdef BIT64
         oss << " x64";
