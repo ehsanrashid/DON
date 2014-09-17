@@ -37,6 +37,8 @@ namespace Time {
     
     };
 
+    extern void configure ();
+
 }
 
 #endif // _TIME_MANAGER_H_INC_

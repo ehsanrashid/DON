@@ -260,11 +260,12 @@ namespace Threads {
     {
         max_ply = 0;
         push_back (new_thread<MainThread> ());
-        configure ();
-        timer           = new_thread<TimerThread> ();
-        timer->task     = check_time;
-        timer->resolution = TimerResolution;
-        auto_save        = NULL;
+        
+        timer_th         = new_thread<TimerThread> ();
+        timer_th->task  = check_time;
+        timer_th->resolution = TimerResolution;
+        
+        auto_save_th    = NULL;
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
@@ -272,8 +273,10 @@ namespace Threads {
     // the threads before to free ThreadPool object.
     void ThreadPool::deinitialize ()
     {
-        delete_thread (timer); // As first because check_time() accesses threads data
-        if (Threadpool.auto_save) delete_thread (auto_save);
+        if (Threadpool.auto_save_th) delete_thread (auto_save_th);
+
+        delete_thread (timer_th); // As first because check_time() accesses threads data
+
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);

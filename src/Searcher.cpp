@@ -1858,26 +1858,26 @@ namespace Search {
             u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
             if (auto_save_time > 0)
             {
-                Threadpool.auto_save        = new_thread<TimerThread> ();
-                Threadpool.auto_save->task  = auto_save_hash;
-                Threadpool.auto_save->resolution = auto_save_time*MINUTE_MILLI_SEC;
-                Threadpool.auto_save->start ();
-                Threadpool.auto_save->notify_one ();
+                Threadpool.auto_save_th        = new_thread<TimerThread> ();
+                Threadpool.auto_save_th->task  = auto_save_hash;
+                Threadpool.auto_save_th->resolution = auto_save_time*MINUTE_MILLI_SEC;
+                Threadpool.auto_save_th->start ();
+                Threadpool.auto_save_th->notify_one ();
             }
 
-            Threadpool.timer->start ();
-            Threadpool.timer->notify_one (); // Wake up the recurring timer
+            Threadpool.timer_th->start ();
+            Threadpool.timer_th->notify_one (); // Wake up the recurring timer
 
             search_iter_deepening (); // Let's start searching !
 
-            Threadpool.timer->stop ();
+            Threadpool.timer_th->stop ();
 
             if (auto_save_time > 0)
             {
-                Threadpool.auto_save->stop ();
-                Threadpool.auto_save->kill ();
-                delete_thread (Threadpool.auto_save);
-                Threadpool.auto_save = NULL;
+                Threadpool.auto_save_th->stop ();
+                Threadpool.auto_save_th->kill ();
+                delete_thread (Threadpool.auto_save_th);
+                Threadpool.auto_save_th = NULL;
             }
 
             if (!SearchLog.empty ())

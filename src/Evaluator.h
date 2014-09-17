@@ -10,12 +10,11 @@ namespace Evaluate {
     // Tempo bonus. Must be visible to search.
     const Value TempoBonus = Value(17);
 
-    extern void initialize ();
+    extern std::string trace (const Position &pos);
 
     extern Value evaluate    (const Position &pos);
 
-    extern std::string trace (const Position &pos);
-            
+    extern void configure ();
 }
 
 #endif // _EVALUATOR_H_INC_

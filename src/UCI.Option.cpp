@@ -8,6 +8,7 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
+#include "TimeManager.h"
 #include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
@@ -169,9 +170,14 @@ namespace UCI {
             Threadpool.configure ();
         }
         
-        void on_change_evaluation (const Option &)
+        void on_config_evaluation (const Option &)
         {
-            Evaluate::initialize ();
+            Evaluate::configure ();
+        }
+
+        void on_config_timemanager (const Option &)
+        {
+            Time::configure ();
         }
 
         void on_50_move_dist (const Option &opt)
@@ -309,12 +315,6 @@ namespace UCI {
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
         Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
 
-        // Whether or not the engine should analyze when it is the opponent's turn.
-        // Default true.
-        //
-        // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (true);
-
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
         // Default 1, Min 1, Max 50.
@@ -358,23 +358,28 @@ namespace UCI {
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
-        Options["Space"]                        << Option ( 0,-1000,+1000, on_change_evaluation);
-        Options["King Safety"]                  << Option ( 0,-1000,+1000, on_change_evaluation);
+        Options["Space"]                        << Option ( 0,-1000,+1000, on_config_evaluation);
+        Options["King Safety"]                  << Option ( 0,-1000,+1000, on_config_evaluation);
 
         //// Plan time management at most this many moves ahead, in num of moves.
-        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100);
+        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, on_config_timemanager);
         //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100);
+        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, on_config_timemanager);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000);
+        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, on_config_timemanager);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000);
+        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000, on_config_timemanager);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000);
+        //Options["Minimum Thinking Time"]        << Option ( 20, 0, 5000, on_config_timemanager);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000);
-        
-        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
+        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, on_config_timemanager);
+        // Whether or not the engine should analyze when it is the opponent's turn.
+        // Default true.
+        //
+        // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
+        Options["Ponder"]                       << Option (true, on_config_timemanager);
+
+        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000, on_config_timemanager);
 
         // Debug Options
         // -------------

@@ -1391,7 +1391,7 @@ namespace Evaluate {
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
     // and setup king danger tables.
-    void initialize ()
+    void configure ()
     {
         Weights[MOBILITY   ] = weight_option (0                          , INTERNAL_WEIGHTS[MOBILITY   ]);
         Weights[PAWN_STRUCT] = weight_option (0                          , INTERNAL_WEIGHTS[PAWN_STRUCT]);

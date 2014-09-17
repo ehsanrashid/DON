@@ -289,8 +289,8 @@ namespace Threads {
     public:
         Mutex       mutex;
         Condition   sleep_condition;
-        TimerThread *timer;
-        TimerThread *auto_save;
+        TimerThread *timer_th;
+        TimerThread *auto_save_th;
 
         Depth   split_depth;
         u08     max_ply;

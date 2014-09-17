@@ -25,6 +25,7 @@ namespace Time {
         u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
         u32 MinimumThinkingTime   = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
         i32 MoveSlowness          = 90; // Slowliness, in %age.
+        bool Ponder               = true;
 
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
@@ -59,23 +60,15 @@ namespace Time {
 
     void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
     {
-        // Read uci parameters
-        // -------------------
-        //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
-        //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
-        //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
-        //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
-        //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
-        MoveSlowness          = i32(Options["Move Slowness"]);
-
-        // Initialize:
+        // Initializes:
         // instability factor to 1.0
         // recapture factor to 1.0
         // and search times to maximum values
         _instability_factor = 1.0f;
         _capture_factor     = 1.0f;
-        _optimum_time = _maximum_time
-            = max (gameclock.time, MinimumThinkingTime);
+        _optimum_time =
+        _maximum_time =
+            max (gameclock.time, MinimumThinkingTime);
 
         u08 tot_movestogo = movestogo ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
@@ -98,10 +91,22 @@ namespace Time {
             _maximum_time = min (max_time, _maximum_time);
         }
 
-        if (bool(Options["Ponder"])) _optimum_time += _optimum_time / 4;
+        if (Ponder) _optimum_time += _optimum_time / 4;
 
         // Make sure that _optimum_time is not over _maximum_time
         _optimum_time = min (_maximum_time, _optimum_time);
+    }
+
+    // Read uci parameters
+    void configure ()
+    {
+        //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
+        //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
+        //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
+        //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
+        //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
+        MoveSlowness          = i32(Options["Move Slowness"]);
+        Ponder                = bool(Options["Ponder"]);
     }
 
 }

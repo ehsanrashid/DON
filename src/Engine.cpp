@@ -12,6 +12,7 @@
 #include "Transposition.h"
 #include "Debugger.h"
 #include "Thread.h"
+#include "TimeManager.h"
 #include "Notation.h"
 
 namespace Engine {
@@ -49,7 +50,7 @@ namespace Engine {
         oss << NAME << " ";
 
 #if defined (VER)
-        oss << VER << setfill ('0');
+        oss << setfill ('0') << VER << setfill (' ');
 #else
         if (VERSION.empty ())
         {
@@ -72,7 +73,7 @@ namespace Engine {
         }
         else
         {
-            oss << VERSION;
+            oss << setfill ('0') << VERSION << setfill (' ');
         }
 #endif
 
@@ -119,10 +120,12 @@ namespace Engine {
         BitBases ::initialize ();
         Search ::initialize ();
         Pawns    ::initialize ();
-        Evaluate ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        
+        Threadpool.configure ();
+        Evaluate ::configure ();
+        Time     ::configure ();
+
         TT.auto_size (i32(Options["Hash"]), true);
 
         cout << endl;

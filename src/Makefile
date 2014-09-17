@@ -377,7 +377,7 @@ ifeq ($(lpg),yes)
 	CXXFLAGS += -DLPAGES
 endif
 
-### 3.12
+### 3.12 Pop Tables
 ifeq ($(pop),yes)
 	CXXFLAGS += -DPOP
 endif
@@ -396,6 +396,10 @@ ifeq ($(comp),gcc)
 		endif
 	endif
 	endif
+endif
+
+ifneq ($(VER),)
+	CXXFLAGS += -DVER=$(VER)
 endif
 
 ### ==========================================================================
