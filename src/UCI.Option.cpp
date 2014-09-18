@@ -188,7 +188,7 @@ namespace UCI {
         void on_debug_log (const Option &opt)
         {
             Debug::log_debug (false);
-            if (!string(opt).empty ()) Debug::log_debug (true);
+            if (!white_spaces (string(opt))) Debug::log_debug (true);
         }
 
     }
