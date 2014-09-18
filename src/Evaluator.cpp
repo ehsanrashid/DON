@@ -7,7 +7,6 @@
 #include "Pawns.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
-#include "UCI.h"
 
 namespace Evaluate {
 
@@ -15,6 +14,7 @@ namespace Evaluate {
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace Threads;
+    using namespace UCI;
 
     namespace {
 
@@ -110,7 +110,7 @@ namespace Evaluate {
 
         }
 
-        enum EvalWeightT { MOBILITY, PAWN_STRUCT, PASSED_PAWN, SPACE, KING_SAFETY, EVAL_NO };
+        enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY, EVAL_NO };
         
         struct Weight { i32 mg, eg; };
         
@@ -1150,7 +1150,7 @@ namespace Evaluate {
 
             // Probe the pawn hash table
             ei.pi  = Pawns::probe (pos, thread->pawns_table);
-            score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCT]);
+            score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCTURE]);
 
             ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64(0);
             ei.ful_attacked_by[BLACK][NONE] = ei.pin_attacked_by[BLACK][NONE] = U64(0);
@@ -1206,7 +1206,7 @@ namespace Evaluate {
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Weight mobility
-            score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[MOBILITY]);
+            score += apply_weight (mobility[WHITE] - mobility[BLACK], Weights[PIECE_MOBILITY]);
 
             // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
@@ -1253,7 +1253,7 @@ namespace Evaluate {
                 space[WHITE] = evaluate_space<WHITE> (pos, ei);
                 space[BLACK] = evaluate_space<BLACK> (pos, ei);
 
-                score += apply_weight ((space[WHITE] - space[BLACK])*space_weight, Weights[SPACE]);
+                score += apply_weight ((space[WHITE] - space[BLACK])*space_weight, Weights[SPACE_ACTIVITY]);
             }
 
             // In case of tracing add each evaluation contributions for both white and black
@@ -1264,16 +1264,16 @@ namespace Evaluate {
                 Tracer::add_term (Tracer::IMBALANCE, ei.mi->matl_score);
 
                 Tracer::add_term (Tracer::MOBILITY
-                    , apply_weight (mobility[WHITE], Weights[MOBILITY])
-                    , apply_weight (mobility[BLACK], Weights[MOBILITY]));
+                    , apply_weight (mobility[WHITE], Weights[PIECE_MOBILITY])
+                    , apply_weight (mobility[BLACK], Weights[PIECE_MOBILITY]));
 
                 Tracer::add_term (Tracer::PASSED_PAWN
                     , apply_weight (passed_pawn[WHITE], Weights[PASSED_PAWN])
                     , apply_weight (passed_pawn[BLACK], Weights[PASSED_PAWN]));
 
                 Tracer::add_term (Tracer::SPACE
-                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[SPACE])
-                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[SPACE]));
+                    , apply_weight (space[WHITE] ? space[WHITE] * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY])
+                    , apply_weight (space[BLACK] ? space[BLACK] * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY]));
 
                 Tracer::add_term (Tracer::TOTAL    , score);
 
@@ -1357,11 +1357,11 @@ namespace Evaluate {
                 format_row (ss, "Bishop"        , BSHP);
                 format_row (ss, "Rook"          , ROOK);
                 format_row (ss, "Queen"         , QUEN);
-                format_row (ss, "Mobility"      , MOBILITY);
                 format_row (ss, "King Safety"   , KING);
-                format_row (ss, "Threat"        , THREAT);
+                format_row (ss, "Piece Mobility", MOBILITY);
+                format_row (ss, "Piece Threat"  , THREAT);
                 format_row (ss, "Passed Pawn"   , PASSED_PAWN);
-                format_row (ss, "Space"         , SPACE);
+                format_row (ss, "Space Activity", SPACE);
                 ss  << "---------------------+-------------+-------------+--------------\n";
                 format_row (ss, "Total"         , TOTAL);
                 ss  << "\n"
@@ -1391,13 +1391,13 @@ namespace Evaluate {
 
     // initialize() computes evaluation weights from the corresponding UCI parameters
     // and setup king danger tables.
-    void configure ()
+    void configure (const Option &)
     {
-        Weights[MOBILITY   ] = weight_option (0                          , INTERNAL_WEIGHTS[MOBILITY   ]);
-        Weights[PAWN_STRUCT] = weight_option (0                          , INTERNAL_WEIGHTS[PAWN_STRUCT]);
-        Weights[PASSED_PAWN] = weight_option (0                          , INTERNAL_WEIGHTS[PASSED_PAWN]);
-        Weights[SPACE      ] = weight_option (i32(Options["Space"      ]), INTERNAL_WEIGHTS[SPACE      ]);
-        Weights[KING_SAFETY] = weight_option (i32(Options["King Safety"]), INTERNAL_WEIGHTS[KING_SAFETY]);
+        Weights[PIECE_MOBILITY] = weight_option (0                             , INTERNAL_WEIGHTS[PIECE_MOBILITY ]);
+        Weights[PAWN_STRUCTURE] = weight_option (0                             , INTERNAL_WEIGHTS[PAWN_STRUCTURE ]);
+        Weights[PASSED_PAWN   ] = weight_option (0                             , INTERNAL_WEIGHTS[PASSED_PAWN    ]);
+        Weights[SPACE_ACTIVITY] = weight_option (i32(Options["Space Activity"]), INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
+        Weights[KING_SAFETY   ] = weight_option (i32(Options["King Safety"   ]), INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
         const i32 MAX_SLOPE  =   30;
         const i32 PEAK_VALUE = 1280;

@@ -2,6 +2,7 @@
 #define _TIME_MANAGER_H_INC_
 
 #include "Type.h"
+#include "UCI.h"
 
 namespace Time {
 
@@ -36,7 +37,7 @@ namespace Time {
     
     };
 
-    extern void configure ();
+    extern void configure (const UCI::Option &);
 
 }
 

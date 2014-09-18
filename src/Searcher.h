@@ -4,6 +4,7 @@
 #include <cstring>
 #include <memory>
 
+#include "UCI.h"
 #include "Type.h"
 #include "Time.h"
 #include "Position.h"
@@ -180,6 +181,8 @@ namespace Search {
 
     };
 
+    extern bool                  Chess960;
+
     extern LimitsT               Limits;
     extern SignalsT volatile     Signals;
 
@@ -190,15 +193,20 @@ namespace Search {
     extern Time::point           SearchTime;
     
     extern OpeningBook::PolyglotBook Book;
-    
+
     extern u64 perft (Position &pos, Depth depth);
 
     extern void think ();
 
     extern void initialize ();
 
-    extern void configure ();
-    extern void set_level (u08 lvl);
+    extern void configure_multipv (const UCI::Option &);
+    extern void configure_book (const UCI::Option &);
+    extern void configure_contempt (const UCI::Option &);
+    extern void auto_save_hash (const UCI::Option &);
+    extern void level_skill (const UCI::Option &opt);
+    extern void search_log (const UCI::Option &opt);
+
 }
 
 #endif // SEARCHER_H_INC_

@@ -4,7 +4,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include "UCI.h"
 #include "TimeManager.h"
 #include "Transposition.h"
 #include "MoveGenerator.h"
@@ -28,6 +27,7 @@ namespace Search {
     using namespace Evaluate;
     using namespace Notation;
     using namespace Debug;
+    using namespace UCI;
 
     namespace {
 
@@ -63,7 +63,9 @@ namespace Search {
 
         Color   RootColor;
         i32     RootPly;
+
         u08     RootSize   // RootMove Count
+            ,   MultiPV
             ,   PVLimit
             ,   PVIndex;
 
@@ -77,10 +79,14 @@ namespace Search {
             ,   ContemptValue;
 
         float   CaptureFactor;
+        
+        string HashFile;
+        u16    AutoSaveTime;
 
-        bool    MateSearch;
+        string BookFile;
+        bool   BestBookMove;
 
-        string  SearchLog;
+        string SearchLog;
 
         struct Skill
         {
@@ -91,20 +97,7 @@ namespace Search {
 
         public:
 
-            Skill ()
-            {
-                set_level (MAX_SKILL_LEVEL);
-            }
-
-            explicit Skill (u08 lvl)
-            {
-                set_level (lvl);
-            }
-
-           ~Skill ()
-            {
-                swap_skillmove ();
-            }
+            explicit Skill (u08 lvl=MAX_SKILL_LEVEL) { set_level (lvl); }
 
             void set_level (u08 lvl)
             {
@@ -115,7 +108,7 @@ namespace Search {
 
             u08 candidates_size () const { return candidates; }
 
-            bool time_to_pick (i16 depth) const { return (depth == (1 + level)); }
+            bool can_pick_move (i16 depth) const { return depth == (1 + level); }
 
             // When playing with a strength handicap, choose best move among the first 'candidates'
             // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -157,16 +150,18 @@ namespace Search {
                 return move;
             }
 
-            void swap_skillmove ()
+            void play_move ()
             {
-                if (candidates) // Swap best PV line with the sub-optimal one
-                {
-                    swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
-                }
+                // Swap best PV line with the sub-optimal one
+                swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
+                move = MOVE_NONE;
             }
+
         };
 
         Skill SkillLevel;
+
+        bool    MateSearch;
 
         // Gain statistics
         GainStats    GainStatistics;
@@ -490,8 +485,8 @@ namespace Search {
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
-                                -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
-                                -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
+                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
+                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
 
                 pos.undo_move ();
 
@@ -830,6 +825,8 @@ namespace Search {
                                         {
                                             return null_value;
                                         }
+
+                                        rdepth += ONE_MOVE;
 
                                         // Do verification search at high depths
                                         Value ver_value = rdepth < 1*i16(ONE_MOVE) ?
@@ -1392,8 +1389,7 @@ namespace Search {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            u08 MultiPV = min (max (u08(i32(Options["MultiPV"])), SkillLevel.candidates_size ()), RootSize);
-            PVLimit = MultiPV;
+            PVLimit = min (max (MultiPV, SkillLevel.candidates_size ()), RootSize);
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1526,7 +1522,7 @@ namespace Search {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (SkillLevel.candidates_size () && SkillLevel.time_to_pick (dep))
+                if (SkillLevel.candidates_size () != 0 && SkillLevel.can_pick_move (dep))
                 {
                     Move m = SkillLevel.pick_move ();
                     if (MOVE_NONE != m)
@@ -1553,7 +1549,7 @@ namespace Search {
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Time adjustments
-                    if (aspiration && MultiPV == 1)
+                    if (aspiration && PVLimit == 1)
                     {
 
                         float capture_factor = 0.0f;
@@ -1621,7 +1617,7 @@ namespace Search {
 
             }
 
-            SkillLevel.swap_skillmove ();
+            if (SkillLevel.candidates_size () != 0) SkillLevel.play_move ();
         }
 
         // perft<>() is our utility to verify move generation. All the leaf nodes
@@ -1662,6 +1658,8 @@ namespace Search {
         }
 
     } // namespace
+
+    bool                Chess960 = false;
 
     LimitsT             Limits;
     SignalsT volatile   Signals;
@@ -1794,18 +1792,6 @@ namespace Search {
         RootPly   = RootPos.game_ply ();
         RootSize  = RootMoves.size ();
 
-        SearchLog = string(Options["Search Log"]);
-        if (!white_spaces (SearchLog))
-        {
-            trim (SearchLog);
-            if (!white_spaces (SearchLog))
-            {
-                convert_path (SearchLog);
-                remove_extension (SearchLog);
-                if (!white_spaces (SearchLog)) SearchLog += ".txt";
-            }
-            if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
-        }
         if (!white_spaces (SearchLog))
         {
             LogFile logfile (SearchLog);
@@ -1829,19 +1815,18 @@ namespace Search {
 
         if (RootSize != 0)
         {
-            string book_fn = string(Options["Book File"]);
-            if (!white_spaces (book_fn) && !Limits.infinite && !MateSearch)
+            if (!white_spaces (BookFile) && !Limits.infinite && !MateSearch)
             {
-                trim (book_fn);
-                convert_path (book_fn);
+                trim (BookFile);
+                convert_path (BookFile);
 
-                if (!Book.is_open () && !white_spaces (book_fn))
+                if (!Book.is_open () && !white_spaces (BookFile))
                 {
-                    Book.open (book_fn, ios_base::in|ios_base::binary);
+                    Book.open (BookFile, ios_base::in|ios_base::binary);
                 }
                 if (Book.is_open ())
                 {
-                    Move book_move = Book.probe_move (RootPos, bool(Options["Best Book Move"]));
+                    Move book_move = Book.probe_move (RootPos, BestBookMove);
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
@@ -1869,12 +1854,11 @@ namespace Search {
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
 
-            u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
-            if (auto_save_time > 0)
+            if (AutoSaveTime > 0)
             {
                 Threadpool.auto_save_th        = new_thread<TimerThread> ();
-                Threadpool.auto_save_th->task  = auto_save_hash;
-                Threadpool.auto_save_th->resolution = auto_save_time*MINUTE_MILLI_SEC;
+                Threadpool.auto_save_th->task  = auto_save;
+                Threadpool.auto_save_th->resolution = AutoSaveTime*MINUTE_MILLI_SEC;
                 Threadpool.auto_save_th->start ();
                 Threadpool.auto_save_th->notify_one ();
             }
@@ -1886,7 +1870,7 @@ namespace Search {
 
             Threadpool.timer_th->stop ();
 
-            if (auto_save_time > 0)
+            if (AutoSaveTime > 0)
             {
                 Threadpool.auto_save_th->stop ();
                 Threadpool.auto_save_th->kill ();
@@ -1979,7 +1963,10 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        configure ();
+        configure_multipv (Option());
+        auto_save_hash (Option());
+        configure_book (Option());
+        configure_contempt (Option());
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
@@ -2027,18 +2014,52 @@ namespace Search {
         }
     }
 
-    void configure ()
+    void configure_multipv (const Option &)
+    {
+        MultiPV        = u08(i32(Options["MultiPV"]));
+        //i32 MultiPV_cp= i32(Options["MultiPV_cp"]);
+    }
+    
+    void configure_book (const Option &)
+    {
+        Book.close ();
+        BookFile     = string(Options["Book File"]);
+        BestBookMove = bool(Options["Best Book Move"]);
+    }
+
+    void configure_contempt (const Option &)
     {
         FixedContempt = i16(i32(Options["Fixed Contempt"]));
         ContemptTime  = i16(i32(Options["Timed Contempt (sec)"]));
         ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
         CaptureFactor = float(i32(Options["Capture Factor"])) / 100;
-
     }
 
-    void set_level (u08 lvl)
+    void auto_save_hash (const Option &)
     {
-        SkillLevel.set_level(lvl);
+        HashFile     = string(Options["Hash File"]);
+        AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
+    }
+
+    void level_skill (const Option &opt)
+    {
+        SkillLevel.set_level(u08(i32(opt)));
+    }
+
+    void search_log (const Option &opt)
+    {
+        SearchLog = string(opt);
+        if (!white_spaces (SearchLog))
+        {
+            trim (SearchLog);
+            if (!white_spaces (SearchLog))
+            {
+                convert_path (SearchLog);
+                remove_extension (SearchLog);
+                if (!white_spaces (SearchLog)) SearchLog += ".txt";
+            }
+            if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
+        }
     }
 }
 
@@ -2115,10 +2136,9 @@ namespace Threads {
         }
     }
 
-    void auto_save_hash ()
+    void auto_save ()
     {
-        string hash_fn = string(Options["Hash File"]);
-        TT.save (hash_fn);
+        TT.save (HashFile);
     }
 
     // Thread::idle_loop() is where the thread is parked when it has no work to do
@@ -2229,7 +2249,6 @@ namespace Threads {
 
             // Grab the lock to avoid races with Thread::notify_one()
             mutex.lock ();
-
             // If master and all slaves have finished then exit idle_loop()
             if (splitpoint != NULL && splitpoint->slaves_mask.none ())
             {
@@ -2248,7 +2267,7 @@ namespace Threads {
             {
                 sleep_condition.wait (mutex);
             }
-
+            // Release the lock
             mutex.unlock ();
 
         }

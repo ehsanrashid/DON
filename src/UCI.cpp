@@ -158,7 +158,7 @@ namespace UCI {
             }
             else return;
             
-            RootPos.setup (fen, Threadpool.main (), bool(Options["UCI_Chess960"]));
+            RootPos.setup (fen, Threadpool.main (), Chess960);
             
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
             

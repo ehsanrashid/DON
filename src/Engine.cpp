@@ -32,9 +32,9 @@ namespace Engine {
         const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         i16 find_month (const string &month)
-        { 
+        {
             for (i08 m = 0; m < MAX_MONTH; ++m)
-            { 
+            {
                 if (month == MONTHS[m]) return m+1;
             }
             return 0;
@@ -111,13 +111,12 @@ namespace Engine {
         Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
-        Search ::initialize ();
+        Search   ::initialize ();
         Pawns    ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        Threadpool.configure ();
-        Evaluate ::configure ();
-        Time     ::configure ();
+        Evaluate ::configure (UCI::Option());
+        Time     ::configure (UCI::Option());
 
         TT.auto_size (i32(Options["Hash"]), true);
 

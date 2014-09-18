@@ -131,7 +131,6 @@ void benchmark (istream &is, const Position &pos)
         ifs.close ();
     }
     
-    bool  chess960 = bool(Options["UCI_Chess960"]);
     u64   nodes    = 0;
     point time     = now ();
 
@@ -140,7 +139,7 @@ void benchmark (istream &is, const Position &pos)
     u16 total = fens.size ();
     for (u16 i = 0; i < total; ++i)
     {
-        Position root_pos (fens[i], Threadpool.main (), chess960, false);
+        Position root_pos (fens[i], Threadpool.main (), Chess960, false);
 
         cerr
             << "\n---------------\n" 

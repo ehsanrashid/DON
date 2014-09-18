@@ -2,6 +2,7 @@
 #define _EVALUATOR_H_INC_
 
 #include "Type.h"
+#include "UCI.h"
 
 class Position;
 
@@ -14,7 +15,7 @@ namespace Evaluate {
 
     extern Value evaluate    (const Position &pos);
 
-    extern void configure ();
+    extern void configure (const UCI::Option &);
 }
 
 #endif // _EVALUATOR_H_INC_

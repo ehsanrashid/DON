@@ -13,6 +13,7 @@ namespace Threads {
     using namespace std;
     using namespace MoveGen;
     using namespace Search;
+    using namespace UCI;
 
     namespace {
 
@@ -266,6 +267,8 @@ namespace Threads {
         timer_th->resolution = TimerResolution;
         
         auto_save_th    = NULL;
+
+        configure ();
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
@@ -371,4 +374,9 @@ namespace Threads {
         main_th->mutex.unlock ();
     }
 
+
+    void configure_threadpool (const Option &)
+    {
+        Threadpool.configure ();
+    }
 }

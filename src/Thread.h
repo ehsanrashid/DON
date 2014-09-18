@@ -81,7 +81,7 @@ namespace Threads {
     const u08 MAX_SPLIT_DEPTH         =  15; // Maximum Split Depth
     
     extern void check_time ();
-    extern void auto_save_hash ();
+    extern void auto_save ();
 
     template<class T>
     extern T* new_thread ();
@@ -302,16 +302,17 @@ namespace Threads {
         void   initialize ();
         void deinitialize ();
 
-        void configure ();
-
         Thread* available_slave (const Thread *master) const;
 
         void start_thinking (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
 
         void wait_for_think_finished ();
 
+        void configure ();
+
     };
 
+    void configure_threadpool (const UCI::Option &);
 }
 
 inline u32 cpu_count ()

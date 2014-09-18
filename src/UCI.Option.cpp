@@ -160,36 +160,6 @@ namespace UCI {
             TT.load (hash_fn);
         }
 
-        void on_change_book (const Option &)
-        {
-            Book.close ();
-        }
-
-        void on_set_level (const Option &opt)
-        {
-            Search::set_level(u08(i32(opt)));
-        }
-
-        void on_config_threadpool (const Option &)
-        {
-            Threadpool.configure ();
-        }
-        
-        void on_config_evaluation (const Option &)
-        {
-            Evaluate::configure ();
-        }
-
-        void on_config_timemanager (const Option &)
-        {
-            Time::configure ();
-        }
-
-        void on_config_search (const Option &)
-        {
-            Search::configure ();            
-        }
-
         void on_50_move_dist (const Option &opt)
         {
             Position::_FiftyMoveDist = u08(2 * i32(opt));
@@ -201,6 +171,10 @@ namespace UCI {
             if (!white_spaces (string(opt))) Debug::log_debug (true);
         }
 
+        void on_uci_chess960 (const Option &opt)
+        {
+            Search::Chess960 = bool(opt);
+        }
     }
 
     void   initialize ()
@@ -261,9 +235,9 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option ("Hash.dat");
+        Options["Hash File"]                    << Option ("Hash.dat", Search::auto_save_hash);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60);
+        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60, Search::auto_save_hash);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -287,10 +261,10 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option ("", on_change_book);
+        Options["Book File"]                    << Option ("", Search::configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               << Option (true);
+        Options["Best Book Move"]               << Option (true, Search::configure_book);
 
 
         // End-Game Table Bases Options
@@ -306,7 +280,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, on_config_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, Threads::configure_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -314,7 +288,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, on_config_threadpool);
+        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, Threads::configure_threadpool);
 
         // Game Play Options
         // -----------------
@@ -323,14 +297,14 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, on_set_level);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::level_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option ( 1, 1, 50);
+        Options["MultiPV"]                      << Option ( 1, 1, 50, Search::configure_multipv);
 
         // TODO::
         // Limit the multi-PV analysis to moves within a range of the best move.
@@ -339,7 +313,7 @@ namespace UCI {
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1);
+        //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1, Search::configure_multipv);
 
         // Changes playing style.
         // ----------------------
@@ -347,13 +321,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (   0,-100,+100, on_config_search);
+        Options["Fixed Contempt"]               << Option (   0,-100,+100, Search::configure_contempt);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, on_config_search);
+        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, Search::configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, on_config_search);
+        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, Search::configure_contempt);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -368,35 +342,35 @@ namespace UCI {
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
-        Options["Space"]                        << Option ( 0,-1000,+1000, on_config_evaluation);
-        Options["King Safety"]                  << Option ( 0,-1000,+1000, on_config_evaluation);
+        Options["Space Activity"]               << Option ( 0,-1000,+1000, Evaluate::configure);
+        Options["King Safety"]                  << Option ( 0,-1000,+1000, Evaluate::configure);
 
-        //// Plan time management at most this many moves ahead, in num of moves.
-        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, on_config_timemanager);
-        //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, on_config_timemanager);
-        //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, on_config_timemanager);
-        //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000, on_config_timemanager);
-        //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, on_config_timemanager);
+        // Plan time management at most this many moves ahead, in num of moves.
+        Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, Time::configure);
+        // Be prepared to always play at least this many moves, in num of moves.
+        Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, Time::configure);
+        // Always attempt to keep at least this much time at clock, in milliseconds.
+        Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, Time::configure);
+        // Attempt to keep at least this much time for each remaining move, in milliseconds.
+        Options["Emergency Move Time"]          << Option ( 30, 0, 5000, Time::configure);
+        // The minimum amount of time to analyze, in milliseconds.
+        Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, on_config_timemanager);
+        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (true, on_config_timemanager);
+        Options["Ponder"]                       << Option (true, Time::configure);
 
-        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000, on_config_search);
+        Options["Capture Factor"]               << Option (+ 1638,+  0,+ 2000, Search::configure_contempt);
 
         // Debug Options
         // -------------
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", on_debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option ("");
+        Options["Search Log"]                   << Option ("", Search::search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options
@@ -406,7 +380,7 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        Options["UCI_Chess960"]                 << Option (false);
+        Options["UCI_Chess960"]                 << Option (Search::Chess960);
         
         // Weaken engine.
         //Options["UCI_LimitStrength"]            << Option (false);
