@@ -379,7 +379,7 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (true, on_config_timemanager);
 
-        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000, on_config_timemanager);
+        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
 
         // Debug Options
         // -------------
