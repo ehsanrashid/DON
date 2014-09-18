@@ -165,6 +165,11 @@ namespace UCI {
             Book.close ();
         }
 
+        void on_set_level (const Option &opt)
+        {
+            Search::set_level(u08(i32(opt)));
+        }
+
         void on_config_threadpool (const Option &)
         {
             Threadpool.configure ();
@@ -318,7 +323,7 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, on_set_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.

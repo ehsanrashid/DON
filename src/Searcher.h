@@ -188,7 +188,7 @@ namespace Search {
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;
-
+    
     extern OpeningBook::PolyglotBook Book;
     
     extern u64 perft (Position &pos, Depth depth);
@@ -196,7 +196,9 @@ namespace Search {
     extern void think ();
 
     extern void initialize ();
+
     extern void configure ();
+    extern void set_level (u08 lvl);
 }
 
 #endif // SEARCHER_H_INC_
