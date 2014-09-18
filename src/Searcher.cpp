@@ -54,6 +54,9 @@ namespace Search {
             return Depth (Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
+        const Depth NullDepth = Depth(2*i16(ONE_MOVE));
+        const Value NullMargin = VALUE_ZERO;
+
         const u08   MAX_QUIETS      = 64;
 
         const point INFO_INTERVAL   = 3000; // 3 sec
@@ -768,29 +771,33 @@ namespace Search {
                                 }
 
                                 // Step 8. Null move search with verification search
-                                if (  depth >= 2*i16(ONE_MOVE)
-                                   && static_eval >= beta // - NullMoveMargin
+                                if (  depth >= NullDepth
+                                   && static_eval - beta >= -NullMargin
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
 
-                                    i32 beta_scale = i32(static_eval - beta)/VALUE_MG_PAWN;
+                                    Value rbeta  = beta;
+                                    Value ralpha = rbeta-1;
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
                                     Depth R = 3*ONE_MOVE
-                                             + 1*depth/4
-                                             + min (beta_scale, 3)*ONE_MOVE;
+                                             + 1*depth/4;
+                                             //+ min (eval_scale, 3)*ONE_MOVE;
+                                            if (abs (rbeta) < VALUE_KNOWN_WIN)
+                                            {
+                                                R += i32(static_eval - rbeta)*ONE_MOVE/VALUE_MG_PAWN; // evaluation scale
+                                            }
 
-                                    Value rbeta  = beta;
                                     Depth rdepth = depth - R;
 
                                     // Do null move
                                     pos.do_null_move (si);
 
-                                    // Null window (alpha, beta) = (beta-1, beta):
+                                    // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < 1*i16(ONE_MOVE) ?
-                                        -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -rbeta+1, DEPTH_ZERO) :
-                                        -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                                        -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -ralpha, DEPTH_ZERO) :
+                                        -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -ralpha, rdepth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -804,19 +811,16 @@ namespace Search {
                                         }
                                         // Don't do zugzwang verification search at low depths
                                         if (  depth < 12*i16(ONE_MOVE)
-                                           && abs (rbeta) < VALUE_KNOWN_WIN
+                                           && abs (beta) < VALUE_KNOWN_WIN
                                            )
                                         {
                                             return null_value;
                                         }
 
-                                        //rbeta  = beta + Value(beta_scale * VALUE_MG_PAWN/2);
-                                        //rdepth = depth - min (R, 5*ONE_MOVE);
-
                                         // Do verification search at high depths
                                         Value ver_value = rdepth < 1*i16(ONE_MOVE) ?
-                                            search_quien<NonPV, false>        (pos, ss, rbeta-1, rbeta, DEPTH_ZERO) :
-                                            search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, rdepth, false);
+                                            search_quien<NonPV, false>        (pos, ss, ralpha, rbeta, DEPTH_ZERO) :
+                                            search_depth<NonPV, false, false> (pos, ss, ralpha, rbeta, rdepth, false);
 
                                         if (ver_value >= rbeta) return null_value;
                                     }
