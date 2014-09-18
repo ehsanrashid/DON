@@ -196,7 +196,7 @@ namespace Search {
     extern void think ();
 
     extern void initialize ();
-
+    extern void configure ();
 }
 
 #endif // SEARCHER_H_INC_

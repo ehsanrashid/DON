@@ -180,6 +180,11 @@ namespace UCI {
             Time::configure ();
         }
 
+        void on_config_search (const Option &)
+        {
+            Search::configure ();            
+        }
+
         void on_50_move_dist (const Option &opt)
         {
             Position::_FiftyMoveDist = u08(2 * i32(opt));
@@ -337,13 +342,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (   0,-100,+100);
+        Options["Fixed Contempt"]               << Option (   0,-100,+100, on_config_search);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900);
+        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, on_config_search);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000);
+        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, on_config_search);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -379,7 +384,7 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (true, on_config_timemanager);
 
-        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000);
+        Options["Capture Factor"]               << Option (+ 1632,+  0,+ 2000, on_config_search);
 
         // Debug Options
         // -------------
