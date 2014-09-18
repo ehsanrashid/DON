@@ -70,17 +70,17 @@ namespace Debug {
             if (!_fstm.is_open ())
             {
                 _log_fn = std::string(Options["Debug Log"]);
-                if (!_log_fn.empty ())
+                if (!white_spaces (_log_fn))
                 {
                     trim (_log_fn);
-                    if (!_log_fn.empty ())
+                    if (!white_spaces (_log_fn))
                     {
                         convert_path (_log_fn);
                         remove_extension (_log_fn);
-                        if (!_log_fn.empty ()) _log_fn += ".txt";
+                        if (!white_spaces (_log_fn)) _log_fn += ".txt";
                     }
                 }
-                if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
+                if (white_spaces (_log_fn)) _log_fn = "DebugLog.txt";
             
                 _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;

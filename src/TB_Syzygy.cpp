@@ -3144,7 +3144,7 @@ namespace TBSyzygy {
         }
 
         //path = "C:/RTB6/wdl;C:/RTB6/dtz";
-        if (path.empty ()) return;
+        if (white_spaces (path)) return;
         
         u32 length = path.length ();
         convert_path (path);

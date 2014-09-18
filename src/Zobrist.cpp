@@ -112,7 +112,7 @@ namespace Zobrist {
     // Hash key of the FEN
     Key Zob::compute_fen_key (const string &fen, bool c960) const
     {
-        if (fen.empty ()) return U64(0);
+        if (white_spaces (fen)) return U64(0);
         Key fen_key = U64(0);
         File kf[CLR_NO] = {F_NO, F_NO};
 

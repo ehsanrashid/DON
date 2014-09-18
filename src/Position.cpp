@@ -32,7 +32,7 @@ const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 
 bool _ok (const string &fen, bool c960, bool full)
 {
-    if (fen.empty ()) return false;
+    if (white_spaces (fen)) return false;
     Position pos (fen, NULL, c960, full);
     return pos.ok ();
 }
@@ -1126,7 +1126,7 @@ void Position::clear ()
 //    It starts at 1, and is incremented after Black's move.
 bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 {
-    if (f.empty ()) return false;
+    if (white_spaces (f)) return false;
     istringstream iss (f);
     iss >> noskipws;
 
@@ -1778,7 +1778,7 @@ void Position::flip ()
     for (i08 rank = R_8; rank >= R_1; --rank)
     {
         getline (ss, s, rank > R_1 ? '/' : ' ');
-        fen_.insert (0, s + (fen_.empty () ? " " : "/"));
+        fen_.insert (0, s + (white_spaces (fen_) ? " " : "/"));
     }
     // 2. Active color
     ss >> s;

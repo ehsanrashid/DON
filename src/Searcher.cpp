@@ -1526,7 +1526,7 @@ namespace Search {
 
                 iteration_time = now () - SearchTime;
 
-                if (!SearchLog.empty ())
+                if (!white_spaces (SearchLog))
                 {
                     LogFile logfile (SearchLog);
                     logfile << pretty_pv (RootPos, dep, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
@@ -1783,18 +1783,18 @@ namespace Search {
         RootSize  = RootMoves.size ();
 
         SearchLog = string(Options["Search Log"]);
-        if (!SearchLog.empty ())
+        if (!white_spaces (SearchLog))
         {
             trim (SearchLog);
-            if (!SearchLog.empty ())
+            if (!white_spaces (SearchLog))
             {
                 convert_path (SearchLog);
                 remove_extension (SearchLog);
-                if (!SearchLog.empty ()) SearchLog += ".txt";
+                if (!white_spaces (SearchLog)) SearchLog += ".txt";
             }
-            if (SearchLog.empty ()) SearchLog = "SearchLog.txt";
+            if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
         }
-        if (!SearchLog.empty ())
+        if (!white_spaces (SearchLog))
         {
             LogFile logfile (SearchLog);
 
@@ -1818,12 +1818,12 @@ namespace Search {
         if (RootSize != 0)
         {
             string book_fn = string(Options["Book File"]);
-            if (!book_fn.empty () && !Limits.infinite && !MateSearch)
+            if (!white_spaces (book_fn) && !Limits.infinite && !MateSearch)
             {
                 trim (book_fn);
                 convert_path (book_fn);
 
-                if (!Book.is_open () && !book_fn.empty ())
+                if (!Book.is_open () && !white_spaces (book_fn))
                 {
                     Book.open (book_fn, ios_base::in|ios_base::binary);
                 }
@@ -1887,7 +1887,7 @@ namespace Search {
                 Threadpool.auto_save_th = NULL;
             }
 
-            if (!SearchLog.empty ())
+            if (!white_spaces (SearchLog))
             {
                 LogFile logfile (SearchLog);
 
@@ -1920,7 +1920,7 @@ namespace Search {
 
             RootMoves.push_back (RootMove (MOVE_NONE));
 
-            if (!SearchLog.empty ())
+            if (!white_spaces (SearchLog))
             {
                 LogFile logfile (SearchLog);
 

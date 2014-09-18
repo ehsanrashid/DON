@@ -11,7 +11,7 @@ namespace {
         string arg;
         for (i32 i = 1; i < argc; ++i)
         {
-            arg += string (" ", !arg.empty ()) + argv[i];
+            arg += string (" ", !white_spaces (arg)) + argv[i];
         }
         return arg;
     }

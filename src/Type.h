@@ -557,7 +557,7 @@ inline char toggle_case (unsigned char c) { return char (islower (c) ? toupper (
 
 inline bool white_spaces (const std::string &str)
 {
-    return str.find_first_not_of (" \t\n") == std::string::npos;
+    return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
 }
 
 inline void trim (std::string &str)

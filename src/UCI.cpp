@@ -60,14 +60,14 @@ namespace UCI {
                     // consume "value" token
                     while (cmds >> token && token != "value")
                     {
-                        name += string (" ", !name.empty ()) + token;
+                        name += string (" ", !white_spaces (name)) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
                     while (cmds >> token)
                     {
-                        value += string (" ", !value.empty ()) + token;
+                        value += string (" ", !white_spaces (value)) + token;
                     }
 
                     if (Options.count (name) > 0)
@@ -109,14 +109,14 @@ namespace UCI {
                     // consume "value" token
                     while (cmds >> token && token != "code")
                     {
-                        name += string (" ", !name.empty ()) + token;
+                        name += string (" ", !white_spaces (name)) + token;
                     }
 
                     string code;
                     // Read code (can contain spaces)
                     while (cmds >> token)
                     {
-                        code += string (" ", !code.empty ()) + token;
+                        code += string (" ", !white_spaces (code)) + token;
                     }
                     //cout << name << "\n" << code << endl;
                 }
@@ -150,7 +150,7 @@ namespace UCI {
                     if (token != "fen") fen += token;
                     while (cmds >> token && token != "moves") // Consume "moves" token if any
                     {
-                        fen += string (" ", !fen.empty ()) + token;
+                        fen += string (" ", !white_spaces (fen)) + token;
                     }
                     //ASSERT (_ok (fen));
                     //if (!_ok (fen)) return;
@@ -376,7 +376,7 @@ namespace UCI {
     {
         RootPos.setup (STARTUP_FEN, Threadpool.main ());
 
-        bool running = arg.empty ();
+        bool running = white_spaces (arg);
         string cmd   = arg;
         string token;
         do
@@ -387,7 +387,7 @@ namespace UCI {
             cmdstream cmds (cmd);
             cmds >> skipws >> token;
 
-            if      (token.empty ())        continue;
+            if      (white_spaces (token)) continue;
             if      (token == "uci")        exe_uci ();
             else if (token == "ucinewgame") { /*TT.clear ();*/ } // Obsolete command
             else if (token == "isready")    exe_isready ();

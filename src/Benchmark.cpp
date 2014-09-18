@@ -122,7 +122,7 @@ void benchmark (istream &is, const Position &pos)
         string fen;
         while (!ifs.eof () && getline (ifs, fen, '\n'))
         {
-            if (!fen.empty ())
+            if (!white_spaces (fen))
             {
                 fens.push_back (fen);
             }

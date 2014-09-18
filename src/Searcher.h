@@ -101,7 +101,7 @@ namespace Search {
         u64   nodes;
         std::vector<Move> pv;
 
-        RootMove (Move m = MOVE_NONE)
+        explicit RootMove (Move m = MOVE_NONE)
             : nodes (U64(0))
         {
             value[0] = -VALUE_INFINITE;

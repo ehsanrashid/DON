@@ -206,7 +206,7 @@ namespace Transpose {
     void TranspositionTable::save (string &hash_fn)
     {
         convert_path (hash_fn);
-        if (hash_fn.empty ()) return;
+        if (white_spaces (hash_fn)) return;
         ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
         if (!ofhash.is_open ()) return;
         ofhash << (*this);
@@ -217,7 +217,7 @@ namespace Transpose {
     void TranspositionTable::load (string &hash_fn)
     {
         convert_path (hash_fn);
-        if (hash_fn.empty ()) return;
+        if (white_spaces (hash_fn)) return;
         ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
         if (!ifhash.is_open ()) return;
         ifhash >> (*this);

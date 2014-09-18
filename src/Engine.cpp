@@ -53,7 +53,7 @@ namespace Engine {
 #if defined (VER)
         oss << VER;
 #else
-        if (VERSION.empty ())
+        if (white_spaces (VERSION))
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);

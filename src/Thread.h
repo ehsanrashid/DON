@@ -223,7 +223,7 @@ namespace Threads {
         void start () { run = true ; }
         void stop  () { run = false; }
 
-        virtual void idle_loop ();
+        virtual void idle_loop () override;
 
     };
 
@@ -252,7 +252,7 @@ namespace Threads {
 
         Thread ();
 
-        virtual void idle_loop ();
+        virtual void idle_loop () override;
 
         bool cutoff_occurred () const;
 
@@ -274,7 +274,7 @@ namespace Threads {
 
         MainThread () : thinking (false) {}
 
-        virtual void idle_loop ();
+        virtual void idle_loop () override;
 
     };
 
