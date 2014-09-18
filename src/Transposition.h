@@ -235,20 +235,20 @@ namespace Transpose {
         {
                 u32 mem_size_mb = tt.size ();
                 u08 dummy = 0;
-                os.write ((const CharT *) &mem_size_mb   , sizeof (mem_size_mb));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &tt._cluster_count , sizeof (tt._cluster_count));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &dummy, sizeof (dummy));
-                os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
+                os.write (static_cast<const CharT *>(&mem_size_mb)   , sizeof (mem_size_mb));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&tt._cluster_count) , sizeof (tt._cluster_count));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&dummy), sizeof (dummy));
+                os.write (static_cast<const CharT *>(&tt._generation), sizeof (tt._generation));
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {
-                    os.write ((const CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                    os.write (static_cast<const CharT *>(tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
                 }
                 return os;
         }
@@ -260,22 +260,22 @@ namespace Transpose {
                 u32 mem_size_mb;
                 u08 generation;
                 u08 dummy;
-                is.read ((CharT *) &mem_size_mb  , sizeof (mem_size_mb));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &tt._cluster_count, sizeof (tt._cluster_count));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &dummy, sizeof (dummy));
-                is.read ((CharT *) &generation   , sizeof (generation));
+                is.read (static_cast<CharT *>(&mem_size_mb)  , sizeof (mem_size_mb));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&tt._cluster_count), sizeof (tt._cluster_count));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&dummy), sizeof (dummy));
+                is.read (static_cast<CharT *>(&generation)   , sizeof (generation));
                 tt.resize (mem_size_mb);
                 tt._generation = (generation > 0 ? generation - 4 : 0);
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {
-                    is.read ((CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                    is.read (static_cast<CharT *>(tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
                 }
                 return is;
         }
