@@ -478,8 +478,8 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
-                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
-                -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
+                                -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
+                                -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
 
                 pos.undo_move ();
 
@@ -784,12 +784,12 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
                                     Depth R = 3*ONE_MOVE
-                                        + 1*depth/4;
-                                    //+ min (eval_scale, 3)*ONE_MOVE;
-                                    if (abs (rbeta) < VALUE_KNOWN_WIN)
-                                    {
-                                        R += i32(static_eval - rbeta)*ONE_MOVE/VALUE_MG_PAWN; // evaluation scale
-                                    }
+                                            + 1*depth/4;
+                                            //+ min (eval_scale, 3)*ONE_MOVE;
+                                            if (abs (rbeta) < VALUE_KNOWN_WIN)
+                                            {
+                                                R += i32(static_eval - rbeta)*ONE_MOVE/VALUE_MG_PAWN; // evaluation scale
+                                            }
 
                                     Depth rdepth = depth - R;
 
@@ -798,8 +798,8 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < 1*i16(ONE_MOVE) ?
-                                        -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -ralpha, DEPTH_ZERO) :
-                                    -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -ralpha, rdepth, !cut_node);
+                                                    -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -ralpha, DEPTH_ZERO) :
+                                                    -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -ralpha, rdepth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -821,8 +821,8 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
                                         // Do verification search at high depths
                                         Value ver_value = rdepth < 1*i16(ONE_MOVE) ?
-                                            search_quien<NonPV, false>        (pos, ss, ralpha, rbeta, DEPTH_ZERO) :
-                                            search_depth<NonPV, false, false> (pos, ss, ralpha, rbeta, rdepth, false);
+                                                    search_quien<NonPV, false>        (pos, ss, ralpha, rbeta, DEPTH_ZERO) :
+                                                    search_depth<NonPV, false, false> (pos, ss, ralpha, rbeta, rdepth, false);
 
                                         if (ver_value >= rbeta) return null_value;
                                     }
@@ -1193,9 +1193,9 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
                         value =
                             new_depth < 1*i16(ONE_MOVE) ?
                             gives_check ?
-                            -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                        -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                        -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
+                                -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                            -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                     }
                 }
 
@@ -1212,9 +1212,9 @@ DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
                         value =
                             new_depth < 1*i16(ONE_MOVE) ?
                             gives_check ?
-                            -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                        -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                        -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
+                                -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                            -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
