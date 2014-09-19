@@ -24,7 +24,7 @@ namespace Time {
         u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
         u32 MinimumMoveTime       = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
         i32 MoveSlowness          = 90; // Slowliness, in %age.
-        bool Ponder               = true;
+        bool Ponder               = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".

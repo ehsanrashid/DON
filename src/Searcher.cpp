@@ -31,22 +31,26 @@ namespace Search {
 
     namespace {
 
-        const Depth           FutilityMarginDepth = Depth(7*i16(PLY_ONE));
+        const Depth FutilityMarginDepth = Depth(7*i16(PLY_ONE));
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value FutilityMargins[FutilityMarginDepth];  // [depth]
+        CACHE_ALIGN(16)
+        Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
-        const Depth           RazorDepth = Depth(4*i16(PLY_ONE));
+        const Depth RazorDepth = Depth(4*i16(PLY_ONE));
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(16) Value RazorMargins[RazorDepth];              // [depth]
+        CACHE_ALIGN(16)
+        Value RazorMargins[RazorDepth];              // [depth]
 
-        const Depth           FutilityMoveCountDepth = Depth(16*i16(PLY_ONE));
+        const Depth FutilityMoveCountDepth = Depth(16*i16(PLY_ONE));
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
+        CACHE_ALIGN(16)
+        u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
 
-        const Depth           ReductionDepth     = Depth(32*i16(PLY_ONE));
-        const u08             ReductionMoveCount = 64;
+        const Depth ReductionDepth     = Depth(32*i16(PLY_ONE));
+        const u08   ReductionMoveCount = 64;
         // Reductions lookup table (initialized at startup)
-        CACHE_ALIGN(16) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(16)
+        u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
@@ -54,12 +58,12 @@ namespace Search {
             return Depth (Reductions[PVNode][imp][min (d/i32(PLY_ONE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
-        const Depth           NullDepth     = Depth(2*i16(PLY_ONE));
-        const Value           NullMargin    = VALUE_ZERO;
+        const Depth NullDepth     = Depth(2*i16(PLY_ONE));
+        const Value NullMargin    = VALUE_ZERO;
 
-        const u08   MAX_QUIETS      = 64;
+        const u08   MAX_QUIETS    = 64;
 
-        const point INFO_INTERVAL   = 3000; // 3 sec
+        const point INFO_INTERVAL = 3000; // 3 sec
 
         Color   RootColor;
         i32     RootPly;
