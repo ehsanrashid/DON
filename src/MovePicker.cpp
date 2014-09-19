@@ -352,7 +352,7 @@ namespace MovePick {
         case QUIET_2_S1:
             cur = end;
             end = quiets_end;
-            if (depth >= 3*i16(ONE_MOVE))
+            if (depth >= 3*i16(PLY_ONE))
             {
                 insertion_sort (cur, end);
             }

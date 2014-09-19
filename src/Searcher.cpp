@@ -31,19 +31,19 @@ namespace Search {
 
     namespace {
 
-        const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
+        const Depth           FutilityMarginDepth = Depth(7*i16(PLY_ONE));
         // Futility margin lookup table (initialized at startup)
         CACHE_ALIGN(16) Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
-        const Depth           RazorDepth = Depth(4*i16(ONE_MOVE));
+        const Depth           RazorDepth = Depth(4*i16(PLY_ONE));
         // Razoring margin lookup table (initialized at startup)
         CACHE_ALIGN(16) Value RazorMargins[RazorDepth];              // [depth]
 
-        const Depth           FutilityMoveCountDepth = Depth(16*i16(ONE_MOVE));
+        const Depth           FutilityMoveCountDepth = Depth(16*i16(PLY_ONE));
         // Futility move count lookup table (initialized at startup)
         CACHE_ALIGN(16) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
 
-        const Depth           ReductionDepth     = Depth(32*i16(ONE_MOVE));
+        const Depth           ReductionDepth     = Depth(32*i16(PLY_ONE));
         const u08             ReductionMoveCount = 64;
         // Reductions lookup table (initialized at startup)
         CACHE_ALIGN(16) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
@@ -51,11 +51,11 @@ namespace Search {
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
         {
-            return Depth (Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
+            return Depth (Reductions[PVNode][imp][min (d/i32(PLY_ONE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
-        const Depth NullDepth = Depth(2*i16(ONE_MOVE));
-        const Value NullMargin = VALUE_ZERO;
+        const Depth           NullDepth     = Depth(2*i16(PLY_ONE));
+        const Value           NullMargin    = VALUE_ZERO;
 
         const u08   MAX_QUIETS      = 64;
 
@@ -278,7 +278,7 @@ namespace Search {
         template<NodeT NT, bool IN_CHECK>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
-        // when the remaining depth is ZERO (to be more precise, less than ONE_MOVE).
+        // when the remaining depth is ZERO (to be more precise, less than PLY_ONE).
         inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = NT == PV;
@@ -485,8 +485,8 @@ namespace Search {
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
-                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
-                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE));
+                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(PLY_ONE)) :
+                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(PLY_ONE));
 
                 pos.undo_move ();
 
@@ -739,8 +739,8 @@ namespace Search {
                            && !pos.pawn_on_7thR (pos.active ())
                            )
                         {
-                            if (  depth <= 1*i16(ONE_MOVE)
-                               && static_eval + RazorMargins[3*i16(ONE_MOVE)] <= alpha
+                            if (  depth <= 1*i16(PLY_ONE)
+                               && static_eval + RazorMargins[3*i16(PLY_ONE)] <= alpha
                                )
                             {
                                 return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
@@ -790,12 +790,12 @@ namespace Search {
                                     Value ralpha = rbeta-1;
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
-                                    Depth R = 3*ONE_MOVE
+                                    Depth R = 3*PLY_ONE
                                             + 1*depth/4;
-                                            //+ min (eval_scale, 3)*ONE_MOVE;
+                                            //+ min (eval_scale, 3)*PLY_ONE;
                                             if (abs (rbeta) < VALUE_KNOWN_WIN)
                                             {
-                                                R += i32(static_eval - rbeta)*ONE_MOVE/VALUE_MG_PAWN; // evaluation scale
+                                                R += i32(static_eval - rbeta)*PLY_ONE/VALUE_MG_PAWN; // evaluation scale
                                             }
 
                                     Depth rdepth = depth - R;
@@ -804,7 +804,7 @@ namespace Search {
                                     pos.do_null_move (si);
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
-                                    Value null_value = rdepth < 1*i16(ONE_MOVE) ?
+                                    Value null_value = rdepth < 1*i16(PLY_ONE) ?
                                         -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -ralpha, DEPTH_ZERO) :
                                         -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -ralpha, rdepth, !cut_node);
 
@@ -819,17 +819,17 @@ namespace Search {
                                             null_value = rbeta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (  depth < 12*i16(ONE_MOVE)
+                                        if (  depth < 12*i16(PLY_ONE)
                                            && abs (beta) < VALUE_KNOWN_WIN
                                            )
                                         {
                                             return null_value;
                                         }
 
-                                        rdepth += ONE_MOVE;
+                                        rdepth += PLY_ONE;
 
                                         // Do verification search at high depths
-                                        Value ver_value = rdepth < 1*i16(ONE_MOVE) ?
+                                        Value ver_value = rdepth < 1*i16(PLY_ONE) ?
                                             search_quien<NonPV, false>        (pos, ss, ralpha, rbeta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, ralpha, rbeta, rdepth, false);
 
@@ -842,13 +842,13 @@ namespace Search {
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
-                            if (  depth >= RazorDepth + 1*i16(ONE_MOVE)
+                            if (  depth >= RazorDepth + 1*i16(PLY_ONE)
                                && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                )
                             {
                                 Depth rdepth = depth - RazorDepth;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                //ASSERT (rdepth >= 1*i16(ONE_MOVE));
+                                //ASSERT (rdepth >= 1*i16(PLY_ONE));
                                 //ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
@@ -876,11 +876,11 @@ namespace Search {
 
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
-                       && depth >= (PVNode ? 5*i16(ONE_MOVE) : 8*i16(ONE_MOVE))     // IID Activation Depth
+                       && depth >= (PVNode ? 5*i16(PLY_ONE) : 8*i16(PLY_ONE))     // IID Activation Depth
                        && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta))   // IID Margin
                        )
                     {
-                        Depth iid_depth = depth - 2*i16(ONE_MOVE) - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
+                        Depth iid_depth = depth - 2*i16(PLY_ONE) - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
 
                         search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
@@ -897,13 +897,13 @@ namespace Search {
 
                 singular_ext_node =
                        !RootNode
-                    && depth >= (PVNode ? 6*i16(ONE_MOVE) : 8*i16(ONE_MOVE))
+                    && depth >= (PVNode ? 6*i16(PLY_ONE) : 8*i16(PLY_ONE))
                     && tt_move != MOVE_NONE
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN
                     && abs (tt_value) < VALUE_KNOWN_WIN
                     && tt_bound & BND_LOWER
-                    && tt_depth >= depth-3*i16(ONE_MOVE);
+                    && tt_depth >= depth-3*i16(PLY_ONE);
 
             }
 
@@ -929,7 +929,7 @@ namespace Search {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << u16(depth)/i16(ONE_MOVE)
+                            << " depth " << u16(depth)/i16(PLY_ONE)
                             << " time "  << time
                             << sync_endl;
                     }
@@ -995,7 +995,7 @@ namespace Search {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << u16(depth)/i16(ONE_MOVE)
+                                //<< " depth "          << u16(depth)/i16(PLY_ONE)
                                 << " currmovenumber " << setw (2) << u16(legals + PVIndex)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
                                 << " time "           << time
@@ -1021,7 +1021,7 @@ namespace Search {
                 // Step 13. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
                 {
-                    ext = 1*ONE_MOVE;
+                    ext = 1*PLY_ONE;
                 }
 
                 // Singular extension(SE) search.
@@ -1043,11 +1043,11 @@ namespace Search {
                     value = search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
                     (ss)->exclude_move = MOVE_NONE;
 
-                    if (value < rbeta) ext = 1*ONE_MOVE;
+                    if (value < rbeta) ext = 1*PLY_ONE;
                 }
 
                 // Update the current move (this must be done after singular extension search)
-                Depth new_depth = depth - 1*i16(ONE_MOVE) + ext;
+                Depth new_depth = depth - 1*i16(PLY_ONE) + ext;
 
                 // Step 14. Pruning at shallow depth (exclude PV nodes)
                 if (!PVNode && !MateSearch)
@@ -1132,7 +1132,7 @@ namespace Search {
                     bool full_depth_search = true;
                     // Step 16. Reduced depth search (LMR).
                     // If the move fails high will be re-searched at full depth.
-                    if (  depth >= 3*i16(ONE_MOVE)
+                    if (  depth >= 3*i16(PLY_ONE)
                        && move != tt_move
                        && move != (ss)->killer_moves[0]
                        && move != (ss)->killer_moves[1]
@@ -1144,19 +1144,19 @@ namespace Search {
 
                         if (!PVNode && cut_node)
                         {
-                            reduction_depth += 1*ONE_MOVE;
+                            reduction_depth += 1*PLY_ONE;
                         }
                         else
                         if (HistoryStatistics.value (pos[dst_sq (move)], dst_sq (move)) < VALUE_ZERO)
                         {
-                            reduction_depth += 1*ONE_PLY;
+                            reduction_depth += 1*PLY_HALF;
                         }
 
                         if (  reduction_depth > DEPTH_ZERO
                            && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
-                            reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
+                            reduction_depth = max (reduction_depth - 1*i16(PLY_ONE), DEPTH_ZERO);
                         }
 
                         // Decrease reduction for moves that escape a capture
@@ -1168,12 +1168,12 @@ namespace Search {
                             // Reverse move
                             if (pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO)
                             {
-                                reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
+                                reduction_depth = max (reduction_depth - 1*i16(PLY_ONE), DEPTH_ZERO);
                             }
                         }
 
                         if (SP_NODE) alpha = splitpoint->alpha;
-                        Depth reduced_depth = max (new_depth - reduction_depth, 1*ONE_MOVE);
+                        Depth reduced_depth = max (new_depth - reduction_depth, 1*PLY_ONE);
                         // Search with reduced depth
                         value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                         // Multi Re-search
@@ -1181,10 +1181,10 @@ namespace Search {
                         {
                             i32 t = 1 << i;
                             // Re-search at intermediate depth if reduction is very high
-                            if (alpha < value && reduction_depth >= 4*t*i16(ONE_MOVE))
+                            if (alpha < value && reduction_depth >= 4*t*i16(PLY_ONE))
                             {
                                 if (SP_NODE) alpha = splitpoint->alpha;
-                                reduced_depth = max (new_depth - reduction_depth/(1*t*i16(ONE_MOVE)), 1*ONE_MOVE);
+                                reduced_depth = max (new_depth - reduction_depth/(1*t*i16(PLY_ONE)), 1*PLY_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                             }
@@ -1200,7 +1200,7 @@ namespace Search {
                         if (SP_NODE) alpha = splitpoint->alpha;
 
                         value =
-                            new_depth < 1*i16(ONE_MOVE) ?
+                            new_depth < 1*i16(PLY_ONE) ?
                                 gives_check ?
                                     -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
                                     -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
@@ -1219,7 +1219,7 @@ namespace Search {
                     if (move_pv || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
-                            new_depth < 1*i16(ONE_MOVE) ?
+                            new_depth < 1*i16(PLY_ONE) ?
                                 gives_check ?
                                     -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                     -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
@@ -1415,9 +1415,9 @@ namespace Search {
                     RootMoves[i].value[1] = RootMoves[i].value[0];
                 }
 
-                const bool aspiration = dep > 2*i16(ONE_MOVE);
+                const bool aspiration = dep > 2*i16(PLY_ONE);
 
-                //PVLimit = dep <= 5*i16(ONE_MOVE) ? min (max (MultiPV, MIN_SKILL_MULTIPV), RootSize) : MultiPV;
+                //PVLimit = dep <= 5*i16(PLY_ONE) ? min (max (MultiPV, MIN_SKILL_MULTIPV), RootSize) : MultiPV;
                 // MultiPV loop. Perform a full root search for each PV line
                 for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
                 {
@@ -1429,7 +1429,7 @@ namespace Search {
                     {
                         window[0] =
                         window[1] =
-                            Value(dep < 16*i16(ONE_MOVE) ? 22 - dep/4 : 14); // Decreasing window
+                            Value(dep < 16*i16(PLY_ONE) ? 22 - dep/4 : 14); // Decreasing window
 
                         bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
                         bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
@@ -1439,7 +1439,7 @@ namespace Search {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
+                        best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*PLY_ONE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1594,7 +1594,7 @@ namespace Search {
                     // Have found a "mate in <x>"?
                     if (  MateSearch
                        && best_value >= VALUE_MATES_IN_MAX_PLY
-                       && VALUE_MATE - best_value <= Limits.mate*i16(ONE_MOVE)
+                       && VALUE_MATE - best_value <= Limits.mate*i16(PLY_ONE)
                        )
                     {
                         stop = true;
@@ -1632,7 +1632,7 @@ namespace Search {
             for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
                 u64 inter_nodes;
-                if (RootNode && depth <= 1*i16(ONE_MOVE))
+                if (RootNode && depth <= 1*i16(PLY_ONE))
                 {
                     inter_nodes = 1;
                 }
@@ -1640,7 +1640,7 @@ namespace Search {
                 {
                     Move m = *ms;
                     pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
-                    inter_nodes = depth <= 2*i16(ONE_MOVE) ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-1*i16(ONE_MOVE));
+                    inter_nodes = depth <= 2*i16(PLY_ONE) ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-1*i16(PLY_ONE));
                     pos.undo_move ();
                 }
 
@@ -1968,8 +1968,8 @@ namespace Search {
         configure_book (Option());
         configure_contempt (Option());
 
-        u08 d;  // depth (ONE_PLY == 2)
-        u08 hd; // half depth (ONE_PLY == 1)
+        u08 d;  // depth (PLY_HALF == 2)
+        u08 hd; // half depth (PLY_HALF == 1)
         u08 mc; // move count
         // Initialize lookup tables
         for (d = 0; d < RazorDepth; ++d)
@@ -1989,26 +1989,26 @@ namespace Search {
 
         Reductions[0][0][0][0] = Reductions[0][1][0][0] = Reductions[1][0][0][0] = Reductions[1][1][0][0] = 0;
         // Initialize reductions lookup table
-        for (hd = 1; hd < ReductionDepth; ++hd) // half-depth (ONE_PLY == 1)
+        for (hd = 1; hd < ReductionDepth; ++hd) // half-depth (PLY_HALF == 1)
         {
             for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
                 float  pv_red = 0.00f + log (float(hd)) * log (float(mc)) / 3.00f;
                 float npv_red = 0.33f + log (float(hd)) * log (float(mc)) / 2.25f;
-                Reductions[1][1][hd][mc] =  pv_red >= 1.0f ? u08( pv_red*i16(ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = npv_red >= 1.0f ? u08(npv_red*i16(ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =  pv_red >= 1.0f ? u08( pv_red*i16(PLY_ONE)) : 0;
+                Reductions[0][1][hd][mc] = npv_red >= 1.0f ? u08(npv_red*i16(PLY_ONE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
                 // Smoother transition for LMR
-                if (Reductions[0][0][hd][mc] > 2*i16(ONE_MOVE))
+                if (Reductions[0][0][hd][mc] > 2*i16(PLY_ONE))
                 {
-                    Reductions[0][0][hd][mc] += 1*i16(ONE_MOVE);
+                    Reductions[0][0][hd][mc] += 1*i16(PLY_ONE);
                 }
                 else
-                if (Reductions[0][0][hd][mc] > 1*i16(ONE_MOVE))
+                if (Reductions[0][0][hd][mc] > 1*i16(PLY_ONE))
                 {
-                    Reductions[0][0][hd][mc] += 1*i32(ONE_PLY);
+                    Reductions[0][0][hd][mc] += 1*i32(PLY_HALF);
                 }
             }
         }

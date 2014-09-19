@@ -218,15 +218,15 @@ enum Score : i32 { SCORE_ZERO = 0 };
 
 enum Depth : i16
 {
-    ONE_PLY             =  1,
-    ONE_MOVE            =  2 * i16(ONE_PLY),
+    PLY_HALF            =  1,
+    PLY_ONE             =  2 * i16(PLY_HALF),
 
-    DEPTH_ZERO          =  0 * i16(ONE_MOVE),
-    DEPTH_QS_CHECKS     =  0 * i16(ONE_MOVE),
-    DEPTH_QS_NO_CHECKS  = -1 * i16(ONE_MOVE),
-    DEPTH_QS_RECAPTURES = -5 * i16(ONE_MOVE),
+    DEPTH_ZERO          =  0 * i16(PLY_ONE),
+    DEPTH_QS_CHECKS     =  0 * i16(PLY_ONE),
+    DEPTH_QS_NO_CHECKS  = -1 * i16(PLY_ONE),
+    DEPTH_QS_RECAPTURES = -5 * i16(PLY_ONE),
 
-    DEPTH_NONE          = -6 * i16(ONE_MOVE)
+    DEPTH_NONE          = -6 * i16(PLY_ONE)
 };
 
 enum Bound : u08
