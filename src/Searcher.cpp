@@ -23,7 +23,7 @@ namespace Search {
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace MovePick;
-    using namespace Transpose;
+    using namespace Transposition;
     using namespace Evaluate;
     using namespace Notation;
     using namespace Debug;

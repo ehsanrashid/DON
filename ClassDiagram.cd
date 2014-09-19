@@ -50,7 +50,7 @@
       <FileName>src\noncopyable.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Transpose::TranspositionTable">
+  <Class Name="Transposition::TranspositionTable">
     <Position X="22" Y="26.5" Width="2.75" />
     <TypeIdentifier>
       <HashCode>JkgAAIAMCICAAAAEiIAgIAAABAAAIAEBAyAAAASAAAA=</HashCode>
@@ -325,7 +325,7 @@
       <Field Name="_table" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="Transpose::TTEntry">
+  <Struct Name="Transposition::TTEntry">
     <Position X="25.75" Y="23.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
@@ -491,7 +491,7 @@
       <Field Name="pv" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="Transpose::TTCluster">
+  <Struct Name="Transposition::TTCluster">
     <Position X="22.5" Y="24.75" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEAA=</HashCode>

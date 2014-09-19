@@ -8,7 +8,7 @@
 #include "MemoryHandler.h"
 #include "UCI.h"
 
-namespace Transpose {
+namespace Transposition {
 
     // Transposition Entry needs 10 byte to be stored
     //
@@ -284,6 +284,6 @@ namespace Transpose {
 
 }
 
-extern Transpose::TranspositionTable TT; // Global Transposition Table
+extern Transposition::TranspositionTable TT; // Global Transposition Table
 
 #endif // _TRANSPOSITION_H_INC_

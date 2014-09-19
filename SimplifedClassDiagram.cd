@@ -76,10 +76,12 @@
         <Point X="7.042" Y="7.719" Type="JumpEnd" />
         <Point X="6.458" Y="7.719" Type="JumpStart" />
         <Point X="6.292" Y="7.719" Type="JumpEnd" />
-        <Point X="5.99" Y="7.719" Type="JumpStart" />
+        <Point X="6.146" Y="7.719" Type="JumpStart" />
         <Point X="5.823" Y="7.719" Type="JumpEnd" />
-        <Point X="5.794" Y="7.719" Type="JumpStart" />
-        <Point X="5.627" Y="7.719" Type="JumpEnd" />
+        <Point X="5.349" Y="7.719" Type="JumpStart" />
+        <Point X="5.182" Y="7.719" Type="JumpEnd" />
+        <Point X="3.896" Y="7.719" Type="JumpStart" />
+        <Point X="3.729" Y="7.719" Type="JumpEnd" />
         <Point X="3.625" Y="7.719" />
         <Point X="3.625" Y="11" />
       </Path>
@@ -104,16 +106,16 @@
       <Field Name="killers_dst" />
       <Field Name="tt_move" />
       <Field Name="depth" />
-      <Field Name="capture_threshold" />
       <Field Name="recapture_sq" />
+      <Field Name="capture_threshold" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="moves" />
       <Field Name="killers" />
     </ShowAsCollectionAssociation>
   </Class>
-  <Class Name="Transpose::TranspositionTable">
-    <Position X="7.5" Y="26.75" Width="2.75" />
+  <Class Name="Transposition::TranspositionTable">
+    <Position X="6.75" Y="26.75" Width="2.75" />
     <TypeIdentifier>
       <HashCode>JkgAAIAMCICAAAAEiIAgIAAABAAAIAEBAyAAAASAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
@@ -232,9 +234,9 @@
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
+      <Field Name="_fstm" />
       <Field Name="_inbuf" />
       <Field Name="_outbuf" />
-      <Field Name="_fstm" />
     </ShowAsAssociation>
   </Class>
   <Class Name="UCI::Option" Collapsed="true">
@@ -309,43 +311,12 @@
   </Class>
   <Struct Name="StateInfo">
     <Position X="16.25" Y="8.75" Width="1.5" />
-    <AssociationLine Name="last_move" Type="Move" ManuallyRouted="true">
-      <Path>
-        <Point X="16.5" Y="9.873" />
-        <Point X="16.5" Y="10.123" />
-        <Point X="15" Y="10.123" />
-        <Point X="15" Y="15.885" />
-        <Point X="14.49" Y="15.885" Type="JumpStart" />
-        <Point X="14.323" Y="15.885" Type="JumpEnd" />
-        <Point X="13.333" Y="15.885" Type="JumpStart" />
-        <Point X="13.167" Y="15.885" Type="JumpEnd" />
-        <Point X="10.583" Y="15.885" Type="JumpStart" />
-        <Point X="10.417" Y="15.885" Type="JumpEnd" />
-        <Point X="8.396" Y="15.885" Type="JumpStart" />
-        <Point X="8.229" Y="15.885" Type="JumpEnd" />
-        <Point X="8.083" Y="15.885" Type="JumpStart" />
-        <Point X="7.917" Y="15.885" Type="JumpEnd" />
-        <Point X="7.771" Y="15.885" Type="JumpStart" />
-        <Point X="7.604" Y="15.885" Type="JumpEnd" />
-        <Point X="7.388" Y="15.885" />
-        <Point X="7.388" Y="10.251" />
-        <Point X="7.371" Y="10.251" Type="JumpStart" />
-        <Point X="7.042" Y="10.251" Type="JumpEnd" />
-        <Point X="6.458" Y="10.251" Type="JumpStart" />
-        <Point X="6.292" Y="10.251" Type="JumpEnd" />
-        <Point X="6.224" Y="10.251" Type="JumpStart" />
-        <Point X="6.057" Y="10.251" Type="JumpEnd" />
-        <Point X="5.99" Y="10.251" Type="JumpStart" />
-        <Point X="5.823" Y="10.251" Type="JumpEnd" />
-        <Point X="5.75" Y="10.251" />
-      </Path>
-    </AssociationLine>
     <AssociationLine Name="non_pawn_matl" Type="Value" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="16.25" Y="9.344" />
         <Point X="15" Y="9.344" />
         <Point X="15" Y="15.885" />
-        <Point X="14.49" Y="15.885" Type="JumpStart" />
+        <Point X="14.489" Y="15.885" Type="JumpStart" />
         <Point X="14.323" Y="15.885" Type="JumpEnd" />
         <Point X="13.333" Y="15.885" Type="JumpStart" />
         <Point X="13.167" Y="15.885" Type="JumpEnd" />
@@ -363,11 +334,41 @@
         <Point X="5.625" Y="13.252" />
       </Path>
     </AssociationLine>
+    <AssociationLine Name="last_move" Type="Move" ManuallyRouted="true">
+      <Path>
+        <Point X="16.5" Y="9.873" />
+        <Point X="16.5" Y="10.123" />
+        <Point X="15" Y="10.123" />
+        <Point X="15" Y="15.885" />
+        <Point X="14.489" Y="15.885" Type="JumpStart" />
+        <Point X="14.323" Y="15.885" Type="JumpEnd" />
+        <Point X="13.333" Y="15.885" Type="JumpStart" />
+        <Point X="13.167" Y="15.885" Type="JumpEnd" />
+        <Point X="10.583" Y="15.885" Type="JumpStart" />
+        <Point X="10.417" Y="15.885" Type="JumpEnd" />
+        <Point X="8.396" Y="15.885" Type="JumpStart" />
+        <Point X="8.229" Y="15.885" Type="JumpEnd" />
+        <Point X="8.083" Y="15.885" Type="JumpStart" />
+        <Point X="7.917" Y="15.885" Type="JumpEnd" />
+        <Point X="7.771" Y="15.885" Type="JumpStart" />
+        <Point X="7.604" Y="15.885" Type="JumpEnd" />
+        <Point X="7.388" Y="15.885" />
+        <Point X="7.388" Y="10.251" />
+        <Point X="7.371" Y="10.251" Type="JumpStart" />
+        <Point X="7.042" Y="10.251" Type="JumpEnd" />
+        <Point X="6.458" Y="10.251" Type="JumpStart" />
+        <Point X="6.292" Y="10.251" Type="JumpEnd" />
+        <Point X="6.146" Y="10.251" Type="JumpStart" />
+        <Point X="5.823" Y="10.251" Type="JumpEnd" />
+        <Point X="5.75" Y="10.251" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AgAAAQAEAAAEAAgAAQAAAAAhAAAAAAAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
+      <Field Name="non_pawn_matl" />
       <Field Name="psq_score" />
       <Field Name="matl_key" />
       <Field Name="pawn_key" />
@@ -378,7 +379,6 @@
       <Field Name="capture_type" />
       <Field Name="checkers" />
       <Field Name="p_si" />
-      <Field Name="non_pawn_matl" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="CheckInfo">
@@ -402,6 +402,8 @@
       <Path>
         <Point X="3.312" Y="16" />
         <Point X="3.312" Y="15.625" />
+        <Point X="4.823" Y="15.625" Type="JumpStart" />
+        <Point X="4.99" Y="15.625" Type="JumpEnd" />
         <Point X="5.125" Y="15.625" />
         <Point X="5.125" Y="13.252" />
       </Path>
@@ -434,14 +436,14 @@
       <Field Name="_moves" />
     </ShowAsCollectionAssociation>
   </Struct>
-  <Struct Name="Transpose::TTEntry">
+  <Struct Name="Transposition::TTEntry">
     <Position X="11" Y="29" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Transpose::TTCluster">
+  <Struct Name="Transposition::TTCluster">
     <Position X="11" Y="27" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEAA=</HashCode>
@@ -552,13 +554,13 @@
       <Field Name="master" />
       <Field Name="beta" />
       <Field Name="depth" />
+      <Field Name="node_type" />
       <Field Name="mutex" />
       <Field Name="movepicker" />
       <Field Name="parent_splitpoint" />
       <Field Name="alpha" />
       <Field Name="best_value" />
       <Field Name="best_move" />
-      <Field Name="node_type" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Search::LimitsT">
@@ -663,8 +665,6 @@
       <Path>
         <Point X="22.438" Y="8.75" />
         <Point X="22.438" Y="6.501" />
-        <Point X="21.302" Y="6.501" Type="JumpStart" />
-        <Point X="21.135" Y="6.501" Type="JumpEnd" />
         <Point X="20.25" Y="6.501" />
       </Path>
     </AssociationLine>
@@ -673,19 +673,19 @@
         <Point X="22.25" Y="11.047" />
         <Point X="22.083" Y="11.047" Type="JumpStart" />
         <Point X="21.917" Y="11.047" Type="JumpEnd" />
-        <Point X="21.302" Y="11.047" Type="JumpStart" />
-        <Point X="21.135" Y="11.047" Type="JumpEnd" />
+        <Point X="18.708" Y="11.047" Type="JumpStart" />
+        <Point X="18.542" Y="11.047" Type="JumpEnd" />
         <Point X="17.99" Y="11.047" Type="JumpStart" />
         <Point X="17.823" Y="11.047" Type="JumpEnd" />
-        <Point X="17.626" Y="11.047" Type="JumpStart" />
-        <Point X="17.459" Y="11.047" Type="JumpEnd" />
+        <Point X="17.615" Y="11.047" Type="JumpStart" />
+        <Point X="17.448" Y="11.047" Type="JumpEnd" />
         <Point X="17.333" Y="11.047" Type="JumpStart" />
-        <Point X="17.127" Y="11.047" Type="JumpEnd" />
-        <Point X="16.907" Y="11.047" Type="JumpStart" />
-        <Point X="16.741" Y="11.047" Type="JumpEnd" />
+        <Point X="17.104" Y="11.047" Type="JumpEnd" />
+        <Point X="16.927" Y="11.047" Type="JumpStart" />
+        <Point X="16.76" Y="11.047" Type="JumpEnd" />
         <Point X="15" Y="11.047" />
         <Point X="15" Y="16.26" />
-        <Point X="14.49" Y="16.26" Type="JumpStart" />
+        <Point X="14.489" Y="16.26" Type="JumpStart" />
         <Point X="14.323" Y="16.26" Type="JumpEnd" />
         <Point X="13.333" Y="16.26" Type="JumpStart" />
         <Point X="13.167" Y="16.26" Type="JumpEnd" />
@@ -741,7 +741,7 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Evaluate::`anonymous-namespace'::EvalInfo">
-    <Position X="21" Y="4.25" Width="3.25" />
+    <Position X="21.5" Y="4.25" Width="3.25" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAQAAIAABAAAAAAAIAAAAAAAQgCAAQAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
@@ -767,7 +767,7 @@
   <Struct Name="Search::`anonymous-namespace'::Skill" Collapsed="true">
     <Position X="26.5" Y="3.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>EAAAAAAAAAAAAFCgIAAAAAAAAAEAAAAAACAAAAAAAAA=</HashCode>
+      <HashCode>FAAAIAAAAAAAAECAIAAAAAAAEAEAAAAAACAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
   </Struct>
@@ -1062,7 +1062,7 @@
   <Enum Name="Depth" Collapsed="true">
     <Position X="8.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAMAAAAAACAAAgAAAAgAAAAAAAAAAAAAAAAAAACAA=</HashCode>
+      <HashCode>AAAIMAAAAAACAIAgAAAAgAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1132,7 +1132,7 @@
   <Enum Name="Evaluate::`anonymous-namespace'::EvalWeightT" Collapsed="true">
     <Position X="30" Y="5.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IAAAgAAAgAAAAAEACAAAAAABAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAgAAAgAAAAAAAAAAAAAABAAAABAAAAAAAACAAIAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
