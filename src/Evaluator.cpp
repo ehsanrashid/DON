@@ -166,16 +166,14 @@ namespace Evaluate {
             {}
         };
 
+        enum ThreatT { MINOR, MAJOR, ROYAL, NO_THREAT };
         // THREAT_SCORE[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
-        const Score THREAT_SCORE[NONE][TOTL] =
+        const Score THREAT_SCORE[NO_THREAT][TOTL] =
         {
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Protected attacked by Minor
-            { S(+ 7,+39), S(+24,+49), S(+25,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Knight
-            { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Bishop
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Rook
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Queen
-            { S(+ 0,+64), S(+ 0,+128), }
+            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Minor
+            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Major
+            { S(+ 0,+64), S(+0,+128), S(+ 0,+ 0), S(+ 0,+  0), S(+ 0,+  0)  }  // Royal
         };
 
         // PAWN_THREATEN_SCORE[PieceT] contains a penalty according to
@@ -859,32 +857,40 @@ namespace Evaluate {
 
             if (protected_pieces != U64(0))
             {
-                score += ((protected_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[0][QUEN] :
-                          (protected_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[0][ROOK] :
-                          (protected_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[0][BSHP] :
-                                                                      THREAT_SCORE[0][NIHT]);
+                score += ((protected_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[MINOR][QUEN] :
+                          (protected_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[MINOR][ROOK] :
+                          (protected_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[MINOR][BSHP] :
+                                                                      THREAT_SCORE[MINOR][NIHT]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
             if (weak_pieces != U64(0))
             {
                 // Threaten pieces
-                for (i08 pt = NIHT; pt <= QUEN; ++pt)
+                Bitboard threaten_pieces;
+
+                threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][BSHP]);
+                if (threaten_pieces != U64(0))
                 {
-                    Bitboard threaten_pieces = weak_pieces & ei.pin_attacked_by[C][pt];
-                    if (threaten_pieces != U64(0))
-                    {
-                        score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[pt][QUEN] :
-                                  (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[pt][ROOK] :
-                                  (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[pt][BSHP] :
-                                  (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[pt][NIHT] :
-                                                                             THREAT_SCORE[pt][PAWN]);
-                    }
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[MINOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[MINOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[MINOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[MINOR][NIHT] :
+                                                                        THREAT_SCORE[MINOR][PAWN]);
+                }
+                threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][ROOK]|ei.pin_attacked_by[C][QUEN]);
+                if (threaten_pieces != U64(0))
+                {
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[MAJOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[MAJOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[MAJOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[MAJOR][NIHT] :
+                                                                        THREAT_SCORE[MAJOR][PAWN]);
                 }
 
                 // Threaten pawns by King
-                Bitboard threaten_pawns = weak_pieces & pos.pieces<PAWN>(C_) & ei.pin_attacked_by[C][KING];
-                if (threaten_pawns != U64(0)) score += more_than_one (threaten_pawns) ? THREAT_SCORE[KING][1] : THREAT_SCORE[KING][0]; 
+                threaten_pieces = weak_pieces & pos.pieces<PAWN>(C_) & ei.pin_attacked_by[C][KING];
+                if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? THREAT_SCORE[ROYAL][1] : THREAT_SCORE[ROYAL][0]; 
 
                 // Hanging pieces
                 Bitboard hanging_pieces = weak_pieces & ~ei.pin_attacked_by[C_][NONE];
