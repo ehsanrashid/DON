@@ -204,7 +204,7 @@ namespace Search {
     extern void configure_book (const UCI::Option &);
     extern void configure_contempt (const UCI::Option &);
     extern void auto_save_hash (const UCI::Option &);
-    extern void level_skill (const UCI::Option &opt);
+    extern void change_level (const UCI::Option &opt);
     extern void search_log (const UCI::Option &opt);
 
 }

@@ -297,7 +297,7 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::level_skill);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::change_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -345,16 +345,16 @@ namespace UCI {
         Options["Space Activity"]               << Option ( 0,-1000,+1000, Evaluate::configure);
         Options["King Safety"]                  << Option ( 0,-1000,+1000, Evaluate::configure);
 
-        // Plan time management at most this many moves ahead, in num of moves.
-        Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, Time::configure);
-        // Be prepared to always play at least this many moves, in num of moves.
-        Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, Time::configure);
-        // Always attempt to keep at least this much time at clock, in milliseconds.
-        Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, Time::configure);
-        // Attempt to keep at least this much time for each remaining move, in milliseconds.
-        Options["Emergency Move Time"]          << Option ( 30, 0, 5000, Time::configure);
-        // The minimum amount of time to analyze, in milliseconds.
-        Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
+        //// Plan time management at most this many moves ahead, in num of moves.
+        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, Time::configure);
+        //// Be prepared to always play at least this many moves, in num of moves.
+        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, Time::configure);
+        //// Always attempt to keep at least this much time at clock, in milliseconds.
+        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, Time::configure);
+        //// Attempt to keep at least this much time for each remaining move, in milliseconds.
+        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000, Time::configure);
+        //// The minimum amount of time to analyze, in milliseconds.
+        //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
         Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
@@ -380,7 +380,7 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        Options["UCI_Chess960"]                 << Option (Search::Chess960);
+        Options["UCI_Chess960"]                 << Option (Search::Chess960, on_uci_chess960);
         
         // Weaken engine.
         //Options["UCI_LimitStrength"]            << Option (false);

@@ -99,11 +99,11 @@ namespace Time {
     // Read uci parameters
     void configure (const Option &)
     {
-        MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
-        EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
-        EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
-        EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
-        MinimumMoveTime      = i32(Options["Minimum Move Time"]);
+        //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
+        //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
+        //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
+        //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
+        //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
         MoveSlowness          = i32(Options["Move Slowness"]);
         Ponder                = bool(Options["Ponder"]);
     }

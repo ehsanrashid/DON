@@ -158,12 +158,12 @@ namespace Search {
             {
                 // Swap best PV line with the sub-optimal one
                 swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
-                move = MOVE_NONE;
             }
 
         };
 
-        Skill SkillLevel;
+        u08   Level = MAX_SKILL_LEVEL;
+        Skill Skills (Level);
 
         bool    MateSearch;
 
@@ -1366,6 +1366,7 @@ namespace Search {
             return best_value;
         }
 
+        CACHE_ALIGN(32) Stack Stacks[MAX_DEPTH_6];
         // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -1375,8 +1376,7 @@ namespace Search {
         // you want the computer to think rather than how deep you want it to think. 
         inline void search_iter_deepening ()
         {
-            Stack stack[MAX_DEPTH_6]
-                , *ss = stack+2; // To allow referencing (ss-2)
+            Stack *ss = Stacks+2; // To allow referencing (ss-2)
 
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
@@ -1388,12 +1388,12 @@ namespace Search {
             FollowupMoveStats.clear ();
 
             PieceT cap_pt  = RootPos.capture_type ();
-            //Move last_move = RootPos.last_move ();
 
+            Skills.set_level (Level);
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            PVLimit = min (max (MultiPV, SkillLevel.candidates_size ()), RootSize);
+            PVLimit = min (max (MultiPV, Skills.candidates_size ()), RootSize);
 
             Value best_value = VALUE_ZERO
                 , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
@@ -1526,13 +1526,9 @@ namespace Search {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (SkillLevel.candidates_size () != 0 && SkillLevel.can_pick_move (dep))
+                if (Skills.candidates_size () != 0 && Skills.can_pick_move (dep))
                 {
-                    Move m = SkillLevel.pick_move ();
-                    if (MOVE_NONE != m)
-                    {
-                        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), m));
-                    }
+                    Skills.play_move ();
                 }
 
                 iteration_time = now () - SearchTime;
@@ -1621,7 +1617,7 @@ namespace Search {
 
             }
 
-            if (SkillLevel.candidates_size () != 0) SkillLevel.play_move ();
+            if (Skills.candidates_size () != 0) Skills.play_move ();
         }
 
         // perft<>() is our utility to verify move generation. All the leaf nodes
@@ -2045,9 +2041,9 @@ namespace Search {
         AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
     }
 
-    void level_skill (const Option &opt)
+    void change_level (const Option &opt)
     {
-        SkillLevel.set_level(u08(i32(opt)));
+        Level = u08(i32(opt));
     }
 
     void search_log (const Option &opt)

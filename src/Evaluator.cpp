@@ -175,7 +175,7 @@ namespace Evaluate {
             { S(+ 7,+39), S(+23,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Un-Protected attacked by Bishop
             { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Rook
             { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Un-Protected attacked by Queen
-            {}
+            { S(+ 0,+64), S(+ 0,+128), }
         };
 
         // PAWN_THREATEN_SCORE[PieceT] contains a penalty according to
@@ -844,48 +844,51 @@ namespace Evaluate {
             Bitboard enemies = pos.pieces (C_);
 
             // Enemies protected by pawn and attacked by minors
-            Bitboard protected_enemies = 
-                   enemies
-                & ~pos.pieces<PAWN> (C_)
+            Bitboard protected_pieces = 
+                   (enemies ^ pos.pieces<PAWN> (C_))
                 &  ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]);
 
             // Enemies not defended by pawn and attacked by any piece
-            Bitboard weak_enemies = 
+            Bitboard weak_pieces = 
                    enemies
                 & ~ei.pin_attacked_by[C_][PAWN]
                 &  ei.pin_attacked_by[C ][NONE];
             
             Score score = SCORE_ZERO;
 
-            if (protected_enemies)
+            if (protected_pieces != U64(0))
             {
-                score += ((protected_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORE[0][QUEN] :
-                          (protected_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORE[0][ROOK] :
-                          (protected_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORE[0][BSHP] :
+                score += ((protected_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[0][QUEN] :
+                          (protected_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[0][ROOK] :
+                          (protected_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[0][BSHP] :
                                                                       THREAT_SCORE[0][NIHT]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
-            if (weak_enemies)
+            if (weak_pieces != U64(0))
             {
-                // Threaten enemies
+                // Threaten pieces
                 for (i08 pt = NIHT; pt <= QUEN; ++pt)
                 {
-                    Bitboard threaten_enemies = weak_enemies & ei.pin_attacked_by[C][pt];
-                    if (threaten_enemies)
+                    Bitboard threaten_pieces = weak_pieces & ei.pin_attacked_by[C][pt];
+                    if (threaten_pieces != U64(0))
                     {
-                        score += ((threaten_enemies & pos.pieces<QUEN> ()) ? THREAT_SCORE[pt][QUEN] :
-                                  (threaten_enemies & pos.pieces<ROOK> ()) ? THREAT_SCORE[pt][ROOK] :
-                                  (threaten_enemies & pos.pieces<BSHP> ()) ? THREAT_SCORE[pt][BSHP] :
-                                  (threaten_enemies & pos.pieces<NIHT> ()) ? THREAT_SCORE[pt][NIHT] :
+                        score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[pt][QUEN] :
+                                  (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[pt][ROOK] :
+                                  (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[pt][BSHP] :
+                                  (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[pt][NIHT] :
                                                                              THREAT_SCORE[pt][PAWN]);
                     }
                 }
 
-                // Hanging enemies
-                Bitboard hanging_enemies = weak_enemies & ~ei.pin_attacked_by[C_][NONE];
-                if (hanging_enemies) score += HANGING_SCORE * (more_than_one (hanging_enemies) ? pop_count<MAX15> (hanging_enemies) : 1);
+                // Threaten pawns by King
+                Bitboard threaten_pawns = weak_pieces & pos.pieces<PAWN>(C_) & ei.pin_attacked_by[C][KING];
+                if (threaten_pawns != U64(0)) score += more_than_one (threaten_pawns) ? THREAT_SCORE[KING][1] : THREAT_SCORE[KING][0]; 
+
+                // Hanging pieces
+                Bitboard hanging_pieces = weak_pieces & ~ei.pin_attacked_by[C_][NONE];
+                if (hanging_pieces != U64(0)) score += HANGING_SCORE * (more_than_one (hanging_pieces) ? pop_count<MAX15> (hanging_pieces) : 1);
             }
 
             if (Trace)
@@ -1248,7 +1251,7 @@ namespace Evaluate {
             // Evaluate space for both sides, only in middle-game.
             i32 space[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             Score space_weight = ei.mi->space_weight;
-            if (space_weight)
+            if (space_weight != SCORE_ZERO)
             {
                 space[WHITE] = evaluate_space<WHITE> (pos, ei);
                 space[BLACK] = evaluate_space<BLACK> (pos, ei);
