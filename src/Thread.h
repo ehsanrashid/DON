@@ -80,7 +80,7 @@ namespace Threads {
     const u08 MAX_SPLIT_POINT_THREADS =   8; // Maximum Threads per Splitpoint
     const u08 MAX_SPLIT_DEPTH         =  15; // Maximum Split Depth
     
-    extern void check_time ();
+    extern void check_limits ();
     extern void auto_save ();
 
     template<class T>
@@ -213,9 +213,8 @@ namespace Threads {
         : public ThreadBase
     {
     public:
-        // This is the minimum interval in msec between two check_time() calls
         bool run;
-        i32 resolution;
+        i32 resolution; // This is the minimum interval in msec between two check_limits() calls
         void (*task) ();
 
         TimerThread () : run (false) {}

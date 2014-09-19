@@ -22,7 +22,7 @@ namespace MovePick {
             STOP
         };
 
-        // Our insertion sort in the range [begin, end], guaranteed to be stable, as is needed
+        // Insertion sort in the range [begin, end], guaranteed to be stable, as is needed
         inline void insertion_sort (ValMove *begin, ValMove *end)
         {
             for (ValMove *p = begin+1; p < end; ++p)
@@ -34,15 +34,6 @@ namespace MovePick {
                 }
                 *q = t;
             }
-        }
-
-        // Picks and moves to the front the best move in the range [begin, end],
-        // it is faster than sorting all the moves in advance when moves are few, as
-        // normally are the possible captures.
-        inline ValMove* pick_best (ValMove *begin, ValMove *end)
-        {
-            swap (*begin, *max_element (begin, end));
-            return begin;
         }
 
     }
@@ -146,7 +137,6 @@ namespace MovePick {
         }
         end += tt_move != MOVE_NONE;
     }
-
 
     // value() assign a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
@@ -421,7 +411,7 @@ namespace MovePick {
             case CAPTURE_S1:
                 do
                 {
-                    move = pick_best (cur++, end)->move;
+                    move = pick_best ()->move;
                     if (move != tt_move)
                     {
                         if (pos.see_sign (move) >= VALUE_ZERO)
@@ -491,7 +481,7 @@ namespace MovePick {
             case CAPTURE_S4:
                 do
                 {
-                    move = pick_best (cur++, end)->move;
+                    move = pick_best ()->move;
                     if (move != tt_move)
                     {
                         return move;
@@ -503,7 +493,7 @@ namespace MovePick {
             case CAPTURE_S5:
                 do
                 {
-                    move = pick_best (cur++, end)->move;
+                    move = pick_best ()->move;
                     if (move != tt_move && pos.see (move) > capture_threshold)
                     {
                         return move;
@@ -515,7 +505,7 @@ namespace MovePick {
             case CAPTURE_S6:
                 do
                 {
-                    move = pick_best (cur++, end)->move;
+                    move = pick_best ()->move;
                     if (move != tt_move && recapture_sq == dst_sq (move))
                     {
                         return move;

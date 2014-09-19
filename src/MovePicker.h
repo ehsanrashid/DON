@@ -197,6 +197,15 @@ namespace MovePick {
         MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
         MovePicker (const Position&, HistoryStats&, Move,        PieceT);
 
+        // Picks and moves to the front the best move in the range [cur, end],
+        // it is faster than sorting all the moves in advance when moves are few, as
+        // normally are the possible captures.
+        inline ValMove* pick_best ()
+        {
+            std::swap (*cur, *std::max_element (cur, end));
+            return cur++;
+        }
+
         template<bool SPNode>
         Move next_move ();
 

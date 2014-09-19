@@ -101,7 +101,8 @@ namespace Search {
 
         public:
 
-            explicit Skill (u08 lvl=MAX_SKILL_LEVEL) { set_level (lvl); }
+            Skill () : level (0), candidates (0), move (MOVE_NONE) {}
+            explicit Skill (u08 lvl) { set_level (lvl); }
 
             void set_level (u08 lvl)
             {
@@ -163,7 +164,7 @@ namespace Search {
         };
 
         u08   Level = MAX_SKILL_LEVEL;
-        Skill Skills (Level);
+        Skill Skills;
 
         bool    MateSearch;
 
@@ -1721,7 +1722,7 @@ namespace Search {
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
-        
+
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         const TTEntry *tte;
@@ -2065,10 +2066,11 @@ namespace Search {
 
 namespace Threads {
 
-    // check_time() is called by the timer thread when the timer triggers.
+    // check_limits() is called by the timer thread when the timer triggers.
     // It is used to print debug info and, more importantly,
-    // to detect when out of available time and thus stop the search.
-    void check_time ()
+    // to detect when out of available time or reached limits
+    // and thus stop the search.
+    void check_limits ()
     {
         static point last_time = now ();
 
@@ -2165,12 +2167,12 @@ namespace Threads {
 
                 Threadpool.mutex.unlock ();
 
-                Stack stack[MAX_DEPTH_6]
-                    , *ss = stack+2; // To allow referencing (ss-2)
-
                 Position pos (*(sp)->pos, this);
 
+                Stack stack[MAX_DEPTH_6]
+                    , *ss = stack+2; // To allow referencing (ss-2)
                 memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
+
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint
