@@ -786,18 +786,15 @@ namespace Search {
 
                                 // Step 8. Null move search with verification search
                                 if (  depth >= NullDepth
-                                   && static_eval - beta >= -NullMargin
+                                   && static_eval + NullMargin >= beta
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
 
-                                    Value rbeta  = beta;
-                                    Value ralpha = rbeta-1;
-
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
                                     Depth R = 3*PLY_ONE
                                             + depth*0.28f
-                                            + min (i32(static_eval - rbeta)/VALUE_MG_PAWN, 3)*PLY_ONE;
+                                            + min (i32(static_eval - beta)/VALUE_MG_PAWN, 3)*PLY_ONE;
                                     
                                     Depth rdepth = depth - R;
 
@@ -806,18 +803,18 @@ namespace Search {
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < 1*i16(PLY_ONE) ?
-                                        -search_quien<NonPV, false>        (pos, ss+1, -rbeta, -ralpha, DEPTH_ZERO) :
-                                        -search_depth<NonPV, false, false> (pos, ss+1, -rbeta, -ralpha, rdepth, !cut_node);
+                                        -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                        -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
 
-                                    if (null_value >= rbeta)
+                                    if (null_value >= beta)
                                     {
                                         // Do not return unproven mate scores
                                         if (null_value >= VALUE_MATES_IN_MAX_PLY)
                                         {
-                                            null_value = rbeta;
+                                            null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
                                         if (  depth < 12*i16(PLY_ONE)
@@ -831,10 +828,10 @@ namespace Search {
 
                                         // Do verification search at high depths
                                         Value ver_value = rdepth < 1*i16(PLY_ONE) ?
-                                            search_quien<NonPV, false>        (pos, ss, ralpha, rbeta, DEPTH_ZERO) :
-                                            search_depth<NonPV, false, false> (pos, ss, ralpha, rbeta, rdepth, false);
+                                            search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                            search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
-                                        if (ver_value >= rbeta) return null_value;
+                                        if (ver_value >= beta) return null_value;
                                     }
                                 }
                             }
