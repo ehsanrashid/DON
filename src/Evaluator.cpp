@@ -308,23 +308,14 @@ namespace Evaluate {
             ei.king_ring                 [C_] = U64(0);
 
             // Init king safety tables only if going to use them
-            if (  //pos.count<QUEN> () &&
-                  pos.non_pawn_material (C) >= VALUE_MG_QUEN + VALUE_MG_PAWN
-               )
+            if (pos.non_pawn_material (C) >= VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
-                if (pos.count<QUEN> ())
-                {
-                    Rank ekr = rel_rank (C_, ek_sq);
-                    ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
-                                                               (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
-                                                                ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq)) :
-                                                                            (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C][ek_sq]|rank_bb (ek_sq))
-                                                               ));
-                }
-                else
-                {
-                    ei.king_ring[C_] = king_attacks & (file_bb (ek_sq)|rank_bb (ek_sq));
-                }
+                Rank ekr = rel_rank (C_, ek_sq);
+                ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
+                                                            (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
+                                                             ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq)) :
+                                                                         (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C][ek_sq]|rank_bb (ek_sq))
+                                                            ));
 
                 if (king_attacks & ei.pin_attacked_by[C][PAWN])
                 {
@@ -694,6 +685,7 @@ namespace Evaluate {
                     + 3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     + 3 * (undefended ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
                     + 2 * (ei.pinneds[C] != U64(0)) // King pinned piece
+                    + 15 * pos.count<QUEN>(C_)
                     - i32(value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
@@ -868,7 +860,7 @@ namespace Evaluate {
             {
                 // Threaten pieces
                 Bitboard threaten_pieces;
-
+                // Threaten pieces by Minor
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][BSHP]);
                 if (threaten_pieces != U64(0))
                 {
@@ -878,6 +870,7 @@ namespace Evaluate {
                               (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[MINOR][NIHT] :
                                                                         THREAT_SCORE[MINOR][PAWN]);
                 }
+                // Threaten pieces by Major
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][ROOK]|ei.pin_attacked_by[C][QUEN]);
                 if (threaten_pieces != U64(0))
                 {
@@ -888,8 +881,8 @@ namespace Evaluate {
                                                                         THREAT_SCORE[MAJOR][PAWN]);
                 }
 
-                // Threaten pawns by King
-                threaten_pieces = weak_pieces & pos.pieces<PAWN>(C_) & ei.pin_attacked_by[C][KING];
+                // Threaten pieces by King
+                threaten_pieces = weak_pieces & ei.pin_attacked_by[C][KING];
                 if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? THREAT_SCORE[ROYAL][1] : THREAT_SCORE[ROYAL][0]; 
 
                 // Hanging pieces

@@ -796,13 +796,9 @@ namespace Search {
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
                                     Depth R = 3*PLY_ONE
-                                            + 1*depth/4;
-                                            //+ min (eval_scale, 3)*PLY_ONE;
-                                            if (abs (rbeta) < VALUE_KNOWN_WIN)
-                                            {
-                                                R += i32(static_eval - rbeta)*PLY_ONE/VALUE_MG_PAWN; // evaluation scale
-                                            }
-
+                                            + depth*0.28f
+                                            + min (i32(static_eval - rbeta)/VALUE_MG_PAWN, 3)*PLY_ONE;
+                                    
                                     Depth rdepth = depth - R;
 
                                     // Do null move
