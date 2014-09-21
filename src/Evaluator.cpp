@@ -137,24 +137,24 @@ namespace Evaluate {
         const Score MOBILITY_SCORE[NONE][28] =
         {
             {},
-            // Knights
+            // Knight
             {
                 S(-65,-50), S(-42,-30), S(- 9,-10), S(+ 3,  0), S(+15,+10),
                 S(+27,+20), S(+37,+28), S(+42,+31), S(+44,+33)
             },
-            // Bishops
+            // Bishop
             {
                 S(-52,-47), S(-28,-23), S(+ 6,+ 1), S(+20,+15), S(+34,+29),
                 S(+48,+43), S(+60,+55), S(+68,+63), S(+74,+68), S(+77,+72),
                 S(+80,+75), S(+82,+77), S(+84,+79), S(+86,+81)
             },
-            // Rooks
+            // Rook
             {
                 S(-47,- 53), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
                 S(+13,+ 48), S(+18,+ 64), S(+22,+ 80), S(+26,+ 96), S(+29,+109),
                 S(+31,+115), S(+33,+119), S(+35,+122), S(+36,+123), S(+37,+124),
             },
-            // Queens
+            // Queen
             {
                 S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
                 S(+11,+19), S(+13,+29), S(+18,+38), S(+20,+40), S(+21,+41),
@@ -163,7 +163,11 @@ namespace Evaluate {
                 S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
                 S(+25,+41), S(+25,+41), S(+25,+41)
             },
-            {}
+            // King
+            {
+                S(  0,-32), S(  0,-16), S(  0,  0), S(  0,+12), S(  0,+21),
+                S(  0,+27), S(  0,+30), S(  0,+31), S(  0,+32)
+            }
         };
 
         enum ThreatT { MINOR, MAJOR, ROYAL, THREAT_NO };
@@ -578,7 +582,7 @@ namespace Evaluate {
                 }
 
                 Bitboard mobile = attacks & mobility_area;
-                i32 mob = mobile ? pop_count<QUEN != PT ? MAX15 : FULL> (mobile) : 0;
+                i32 mob = mobile != U64(0) ? pop_count<QUEN != PT ? MAX15 : FULL> (mobile) : 0;
                 mobility += MOBILITY_SCORE[PT][mob];
 
                 if (ROOK == PT)
@@ -693,7 +697,7 @@ namespace Evaluate {
                 if (undefended != U64(0))
                 {
                     Bitboard undefended_attacked;
-                    if (pos.count<QUEN> (C_))
+                    if (pos.count<QUEN> (C_) > 0)
                     {
                         // Analyse enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
@@ -716,7 +720,7 @@ namespace Evaluate {
                             }
                         }
                     }
-                    if (pos.count<ROOK> (C_))
+                    if (pos.count<ROOK> (C_) > 0)
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy rooks...
@@ -741,7 +745,7 @@ namespace Evaluate {
                             }
                         }
                     }
-                    if (pos.count<BSHP> (C_))
+                    if (pos.count<BSHP> (C_) > 0)
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy bishop...
@@ -807,13 +811,13 @@ namespace Evaluate {
                 // array and subtract the score from evaluation.
                 score -= KING_DANGER[attack_units];
 
-                if (ei.king_zone_attacks_count[C_] >= 3)
-                {
-                    // King mobility is good in the endgame
-                    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.ful_attacked_by[C_][NONE]);
-                    u08 mob = mobile ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
-                    if (mob < 3) score -= mk_score (0, 10 * (9 - mob*mob));
-                }
+                //if (ei.king_zone_attacks_count[C_] >= 3)
+                //{
+                //    // King mobility is good in the endgame
+                //    Bitboard mobile = ei.ful_attacked_by[C][KING] & ~(pos.pieces<PAWN> (C) | ei.ful_attacked_by[C_][NONE]);
+                //    u08 mob = mobile != U64(0) ? more_than_one (mobile) ? pop_count<MAX15> (mobile) : 1 : 0;
+                //    if (mob < 3) score -= mk_score (0, 10 * (9 - mob*mob));
+                //}
             }
 
             if (Trace)

@@ -128,15 +128,15 @@ namespace Pawns {
                 // This file cannot be semi-open
                 e->semiopen_files[C] &= ~(1 << f);
 
-                // Supporter rank
-                Bitboard sr_bb = rank_bb (s-PUSH);
-                // Connector rank, for connected pawn detection
-                Bitboard cr_bb = rank_bb (s) | sr_bb; 
+                // Supporters rank
+                Bitboard sup_rank = rank_bb (s-PUSH);
+                // Connectors rank, for connected pawns detection
+                //Bitboard con_rank = sup_rank | rank_bb (s);
 
                 Bitboard friend_adj_pawns = pawns[0] & ADJ_FILE_bb[f];
                 // Flag the pawn as supported, connected, levered, opposed, isolated and passed, (but not the backward one).
-                bool supported = (friend_adj_pawns & sr_bb);
-                bool connected = (friend_adj_pawns & cr_bb);
+                bool supported = (friend_adj_pawns & sup_rank);
+                bool connected = (friend_adj_pawns & (sup_rank | rank_bb (s)));
                 bool levered   = (pawns[1] & PAWN_ATTACKS[C][s]);
                 bool opposed   = (pawns[1] & FRONT_SQRS_bb[C][s]);
                 bool isolated  = !(friend_adj_pawns);
@@ -183,9 +183,9 @@ namespace Pawns {
                     if (helpers != U64(0))
                     {
                         Bitboard guarders = U64(0);    // Only front enemy adj pawns
-                        candidate = (more_than_one (helpers) ? pop_count<MAX15> (helpers) : 1)
-                                  >= ((guarders = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != U64(0) ?
-                                     (more_than_one (guarders) ? pop_count<MAX15> (guarders) : 1) : 0);
+                        candidate = ((more_than_one (helpers) ? pop_count<MAX15> (helpers) : 1)
+                                 >= ((guarders = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != U64(0) ?
+                                      more_than_one (guarders) ? pop_count<MAX15> (guarders) : 1 : 0));
                     }
                 }
 
@@ -200,7 +200,7 @@ namespace Pawns {
                 }
                 if (r > R_4 && levered)
                 {
-                    score += PAWN_LEVER_SCORE[r]; //* (supported ? 2 : 1); // TODO::
+                    score += PAWN_LEVER_SCORE[r];
                 }
 
                 if (isolated)
@@ -328,8 +328,9 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         Bitboard unstoppable_pawns = passed_pawns[C]|unstopped_pawns[C];
-        return unstoppable_pawns ? PAWN_UNSTOPPABLE_SCORE * i32(rel_rank (C, scan_frntmost_sq(C, unstoppable_pawns))) :
-                                  SCORE_ZERO;
+        return unstoppable_pawns != U64(0) ?
+            PAWN_UNSTOPPABLE_SCORE * i32(rel_rank (C, scan_frntmost_sq (C, unstoppable_pawns))) :
+            SCORE_ZERO;
     }
 
     // explicit template instantiations
