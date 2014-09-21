@@ -59,7 +59,7 @@ namespace Search {
         }
 
         const Depth NullDepth     = Depth(2*i16(PLY_ONE));
-        const Value NullMargin    = VALUE_ZERO;
+        const Value NullMargin    = Value(10);//VALUE_ZERO;
 
         const u08   MAX_QUIETS    = 64;
 
@@ -793,8 +793,9 @@ namespace Search {
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
                                     Depth R = 3*PLY_ONE
-                                            + depth*0.28f
-                                            + min (i32(static_eval - beta)/VALUE_MG_PAWN, 3)*PLY_ONE;
+                                            + depth*0.28f;
+                                            if (abs(beta) < VALUE_KNOWN_WIN)
+                                                R += i32(static_eval - beta)*PLY_ONE/VALUE_MG_PAWN;
                                     
                                     Depth rdepth = depth - R;
 
@@ -823,8 +824,6 @@ namespace Search {
                                         {
                                             return null_value;
                                         }
-
-                                        rdepth += PLY_ONE;
 
                                         // Do verification search at high depths
                                         Value ver_value = rdepth < 1*i16(PLY_ONE) ?
@@ -874,7 +873,7 @@ namespace Search {
 
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
-                       && depth >= (PVNode ? 5*i16(PLY_ONE) : 8*i16(PLY_ONE))     // IID Activation Depth
+                       && depth >= (PVNode ? 5*i16(PLY_ONE) : 8*i16(PLY_ONE))       // IID Activation Depth
                        && (PVNode || ((ss)->static_eval + VALUE_EG_PAWN >= beta))   // IID Margin
                        )
                     {
@@ -1371,11 +1370,9 @@ namespace Search {
         inline void search_iter_deepening ()
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
-
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
             TT.new_gen ();
-
             GainStatistics.clear ();
             HistoryStatistics.clear ();
             CounterMoveStats.clear ();

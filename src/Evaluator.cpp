@@ -702,12 +702,12 @@ namespace Evaluate {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard attackers = 0;
+                            Bitboard attackers = U64(0);
                             if (  (unsafe & sq)
                                || (  pos.count<QUEN> (C_) > 1
                                   && (attackers = pos.pieces<QUEN> (C_) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq])) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != 0
+                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -727,7 +727,7 @@ namespace Evaluate {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard attackers = 0;
+                            Bitboard attackers = U64(0);
                             if (  (unsafe & sq)
                                || (  pos.count<ROOK> (C_) > 1
                                   && (attackers = pos.pieces<ROOK> (C_) & PIECE_ATTACKS[ROOK][sq]) != U64(0)
@@ -752,8 +752,8 @@ namespace Evaluate {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard bishops = 0;
-                            Bitboard attackers = 0;
+                            Bitboard bishops = U64(0);
+                            Bitboard attackers = U64(0);
                             if (  (unsafe & sq)
                                || (  pos.count<BSHP> (C_) > 1
                                   && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != U64(0)

@@ -180,12 +180,12 @@ namespace Pawns {
                 if (!(passed || isolated || backward || opposed)) // r > R_6
                 {
                     Bitboard helpers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
-                    if (helpers)
+                    if (helpers != U64(0))
                     {
-                        Bitboard sentries = U64(0);    // Only front enemy adj pawns
-                        candidate = ((more_than_one (helpers) ? pop_count<MAX15> (friend_adj_pawns) : 1)
-                                  >= ((sentries = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != 0 ?
-                                      (more_than_one (sentries) ? pop_count<MAX15> (sentries) : 1) : 0));
+                        Bitboard guarders = U64(0);    // Only front enemy adj pawns
+                        candidate = (more_than_one (helpers) ? pop_count<MAX15> (helpers) : 1)
+                                  >= ((guarders = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != U64(0) ?
+                                     (more_than_one (guarders) ? pop_count<MAX15> (guarders) : 1) : 0);
                     }
                 }
 
@@ -223,7 +223,7 @@ namespace Pawns {
                     }
                 }
                 
-                if (doublers)
+                if (doublers != U64(0))
                 {
                     score -= PAWN_DOUBLED_SCORE[f]
                             * (more_than_one (doublers) ? pop_count<MAX15> (doublers) : 1)
