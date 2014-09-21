@@ -1034,17 +1034,17 @@ namespace Search {
                    )
                 {
                     //ASSERT (tt_value != VALUE_NONE);
-                    Value rbeta = tt_value - i32(depth); // TODO::
+                    Value rbeta = tt_value - i32(depth);
 
                     (ss)->exclude_move = move;
                     value = search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
                     (ss)->exclude_move = MOVE_NONE;
 
-                    if (value < rbeta) ext = 1*PLY_ONE;
+                    if (value < rbeta) ext = PLY_ONE;
                 }
 
                 // Update the current move (this must be done after singular extension search)
-                Depth new_depth = depth - 1*i16(PLY_ONE) + ext;
+                Depth new_depth = depth - PLY_ONE + ext;
 
                 // Step 14. Pruning at shallow depth (exclude PV nodes)
                 if (!PVNode && !MateSearch)
@@ -1052,7 +1052,7 @@ namespace Search {
                     if (  !capture_or_promotion
                        && !in_check
                        && !dangerous
-                       && move != tt_move // Already implicit in the next condition // TODO::
+                       //&& move != tt_move // Already implicit in the next condition
                        && best_value > VALUE_MATED_IN_MAX_PLY
                        )
                     {
@@ -1233,8 +1233,8 @@ namespace Search {
                 if (SP_NODE)
                 {
                     splitpoint->mutex.lock ();
-                    best_value = splitpoint->best_value;
                     alpha      = splitpoint->alpha;
+                    best_value = splitpoint->best_value;
                 }
                 
                 // Finished searching the move. If a stop or a cutoff occurred,
