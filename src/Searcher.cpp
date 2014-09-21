@@ -59,7 +59,6 @@ namespace Search {
         }
 
         const Depth NullDepth     = Depth(2*i16(PLY_ONE));
-        const Value NullMargin    = Value(10);//VALUE_ZERO;
 
         const u08   MAX_QUIETS    = 64;
 
@@ -786,7 +785,7 @@ namespace Search {
 
                                 // Step 8. Null move search with verification search
                                 if (  depth >= NullDepth
-                                   && static_eval + NullMargin >= beta
+                                   && static_eval >= beta
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
