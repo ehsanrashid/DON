@@ -1170,6 +1170,7 @@ namespace Search {
                         }
 
                         if (SP_NODE) alpha = splitpoint->alpha;
+
                         Depth reduced_depth = max (new_depth - reduction_depth, 1*PLY_ONE);
                         // Search with reduced depth
                         value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1180,7 +1181,6 @@ namespace Search {
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 4*t*i16(PLY_ONE))
                             {
-                                if (SP_NODE) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/(1*t*i16(PLY_ONE)), 1*PLY_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
