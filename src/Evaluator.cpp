@@ -640,15 +640,15 @@ namespace Evaluate {
                 {
                     value = ei.pi->shelter_storm[C][CS_NO];
 
-                    if (  pos.can_castle (Castling<C, CS_K>::Right)
-                       && !pos.castle_impeded (Castling<C, CS_K>::Right)
+                    if (    pos.can_castle (Castling<C, CS_K>::Right)
+                       && ! pos.castle_impeded (Castling<C, CS_K>::Right)
                        && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
                         value = max (value, ei.pi->shelter_storm[C][CS_K]);
                     }
-                    if (  pos.can_castle (Castling<C, CS_Q>::Right)
-                       && !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                    if (    pos.can_castle (Castling<C, CS_Q>::Right)
+                       && ! pos.castle_impeded (Castling<C, CS_Q>::Right)
                        && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
                        )
                     {
@@ -778,8 +778,8 @@ namespace Evaluate {
 
                 // Analyse the enemy's safe distance checks for sliders and knights
                 const Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
-                const Bitboard rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
-                const Bitboard bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
+                const Bitboard rook_check = (pos.count<ROOK>(C_) + pos.count<QUEN> (C_)) > 0 ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
+                const Bitboard bshp_check = (pos.count<BSHP>(C_) + pos.count<QUEN> (C_)) > 0 ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
 
                 Bitboard safe_check;
                 // Enemy queen safe checks
