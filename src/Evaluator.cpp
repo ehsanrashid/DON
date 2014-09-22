@@ -306,28 +306,29 @@ namespace Evaluate {
             ei.ful_attacked_by[C_][KING] = king_attacks;
             ei.pin_attacked_by[C_][KING] = king_attacks;
             
-            ei.king_ring_attackers_count [C ] = 0;
-            ei.king_ring_attackers_weight[C ] = 0;
-            ei.king_zone_attacks_count   [C ] = 0;
-            ei.king_ring                 [C_] = U64(0);
+            
 
             // Init king safety tables only if going to use them
-            if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
-            {
-                Rank ekr = rel_rank (C_, ek_sq);
-                ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
-                                                            (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
-                                                             ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq)) :
-                                                                         (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C][ek_sq]|rank_bb (ek_sq))
-                                                            ));
+            Rank ekr = rel_rank (C_, ek_sq);
+            ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
+                                                        (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
+                                                            ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq)) :
+                                                                        (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C][ek_sq]|rank_bb (ek_sq))
+                                                        ));
 
-                if (king_attacks & ei.pin_attacked_by[C][PAWN])
-                {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_attacks|DIST_RINGS_bb[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
-                    ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
-                    ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KING_ATTACK_WEIGHT[PAWN];
-                }
+            if (king_attacks & ei.pin_attacked_by[C][PAWN])
+            {
+                Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> ((king_attacks|DIST_RINGS_bb[ek_sq][1]) & (rank_bb (ek_sq)|rank_bb (ek_sq + PULL)));
+                ei.king_ring_attackers_count [C] = more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1;
+                ei.king_ring_attackers_weight[C] = ei.king_ring_attackers_count [C]*KING_ATTACK_WEIGHT[PAWN];
             }
+            else
+            {
+                ei.king_ring_attackers_count [C ] = 0;
+                ei.king_ring_attackers_weight[C ] = 0;
+            }
+
+            ei.king_zone_attacks_count   [C ] = 0;
         }
 
         template<Color C, PieceT PT, bool Trace>
@@ -671,7 +672,7 @@ namespace Evaluate {
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
-                    ei.ful_attacked_by[C ][KING] // King zone
+                    ei.ful_attacked_by[C ][KING] // King-zone
                   & ei.ful_attacked_by[C_][NONE]
                   & ~( ei.pin_attacked_by[C ][PAWN]
                      | ei.pin_attacked_by[C ][NIHT]
@@ -711,7 +712,7 @@ namespace Evaluate {
                                || (  pos.count<QUEN> (C_) > 1
                                   && (attackers = pos.pieces<QUEN> (C_) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq])) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != U64(0)
+                                  && (attackers = attackers & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_)))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -736,7 +737,7 @@ namespace Evaluate {
                                || (  pos.count<ROOK> (C_) > 1
                                   && (attackers = pos.pieces<ROOK> (C_) & PIECE_ATTACKS[ROOK][sq]) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != U64(0)
+                                  && (attackers = attackers & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -756,15 +757,14 @@ namespace Evaluate {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            Bitboard bishops = U64(0);
                             Bitboard attackers = U64(0);
                             if (  (unsafe & sq)
                                || (  pos.count<BSHP> (C_) > 1
-                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != U64(0)
-                                  && more_than_one (bishops)
-                                  && (attackers = pos.pieces<BSHP> (C_) & PIECE_ATTACKS[BSHP][sq]) != U64(0)
+                                  && (attackers = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != U64(0)
                                   && more_than_one (attackers)
-                                  && (attackers = pos.pieces<BSHP> (C_) & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != U64(0)
+                                  && (attackers = attackers & PIECE_ATTACKS[BSHP][sq]) != U64(0)
+                                  && more_than_one (attackers)
+                                  && (attackers = attackers & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_))) != U64(0)
                                   && more_than_one (attackers)
                                   )
                                )
@@ -776,25 +776,23 @@ namespace Evaluate {
                     // Knight can't give contact check but safe distance check
                 }
 
-                // Analyse the enemy's safe distance checks for sliders and knights
+                // Analyse the enemies safe distance checks for sliders and knights
                 const Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
-                const Bitboard rook_check = (pos.count<ROOK>(C_) + pos.count<QUEN> (C_)) > 0 ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
-                const Bitboard bshp_check = (pos.count<BSHP>(C_) + pos.count<QUEN> (C_)) > 0 ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
+                const Bitboard rook_check = (ei.pin_attacked_by[C_][ROOK]|ei.pin_attacked_by[C_][QUEN]) != U64(0) ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
+                const Bitboard bshp_check = (ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][QUEN]) != U64(0) ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
 
+                // Enemies safe-checks
                 Bitboard safe_check;
-                // Enemy queen safe checks
+                // Queens safe-checks
                 safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK_WEIGHT[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy rooks safe checks
+                // Rooks safe-checks
                 safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK_WEIGHT[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy bishops safe checks
+                // Bishops safe-checks
                 safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK_WEIGHT[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
-
-                // Enemy knights safe checks
+                // Knights safe-checks
                 safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK_WEIGHT[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 

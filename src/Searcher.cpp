@@ -454,7 +454,6 @@ namespace Search {
                         // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
                         if (  futility_base < beta
                            && pos.see (move) <= VALUE_ZERO
-                           //&& depth < DEPTH_ZERO        // TODO::
                            )
                         {
                             best_value = max (futility_base, best_value);
@@ -489,8 +488,8 @@ namespace Search {
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
                 Value value = gives_check ?
-                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(PLY_ONE)) :
-                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-1*i16(PLY_ONE));
+                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-i16(PLY_ONE)) :
+                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-i16(PLY_ONE));
 
                 pos.undo_move ();
 
@@ -803,7 +802,7 @@ namespace Search {
                                     pos.do_null_move (si);
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
-                                    Value null_value = rdepth < 1*i16(PLY_ONE) ?
+                                    Value null_value = rdepth < PLY_ONE ?
                                         -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
                                         -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
@@ -826,7 +825,7 @@ namespace Search {
                                         }
 
                                         // Do verification search at high depths
-                                        Value ver_value = rdepth < 1*i16(PLY_ONE) ?
+                                        Value ver_value = rdepth < PLY_ONE ?
                                             search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
@@ -839,13 +838,13 @@ namespace Search {
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
-                            if (  depth >= RazorDepth + 1*i16(PLY_ONE)
+                            if (  depth >= RazorDepth+i16(PLY_ONE)
                                && abs (beta) < VALUE_MATES_IN_MAX_PLY
                                )
                             {
                                 Depth rdepth = depth - RazorDepth;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                //ASSERT (rdepth >= 1*i16(PLY_ONE));
+                                //ASSERT (rdepth >= i16(PLY_ONE));
                                 //ASSERT (rbeta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
@@ -1001,7 +1000,7 @@ namespace Search {
                     }
                 }
 
-                // Step 12. Decide the new search depth
+                // Decide the new search depth
                 Depth ext = DEPTH_ZERO;
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
@@ -1015,7 +1014,7 @@ namespace Search {
                     || NORMAL != mt
                     || pos.advanced_pawn_push (move);
 
-                // Step 13. Extend the move which seems dangerous like ...checks etc.
+                // Step 12. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
                 {
                     ext = 1*PLY_ONE;
@@ -1046,7 +1045,7 @@ namespace Search {
                 // Update the current move (this must be done after singular extension search)
                 Depth new_depth = depth - PLY_ONE + ext;
 
-                // Step 14. Pruning at shallow depth (exclude PV nodes)
+                // Step 13. Pruning at shallow depth (exclude PV nodes)
                 if (!PVNode && !MateSearch)
                 {
                     if (  !capture_or_promotion
@@ -1120,14 +1119,14 @@ namespace Search {
                 bool move_pv = PVNode && (1 == legals);
                 (ss)->current_move = move;
 
-                // Step 15. Make the move
+                // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                // Step 16, 17.
+                // Step 15, 16.
                 if (!move_pv)
                 {
                     bool full_depth_search = true;
-                    // Step 16. Reduced depth search (LMR).
+                    // Step 15. Reduced depth search (LMR).
                     // If the move fails high will be re-searched at full depth.
                     if (  depth >= 3*i16(PLY_ONE)
                        && move != tt_move
@@ -1153,7 +1152,7 @@ namespace Search {
                            && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
-                            reduction_depth = max (reduction_depth - 1*i16(PLY_ONE), DEPTH_ZERO);
+                            reduction_depth = max (reduction_depth-i16(PLY_ONE), DEPTH_ZERO);
                         }
 
                         // Decrease reduction for moves that escape a capture
@@ -1165,7 +1164,7 @@ namespace Search {
                             // Reverse move
                             if (pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO)
                             {
-                                reduction_depth = max (reduction_depth - 1*i16(PLY_ONE), DEPTH_ZERO);
+                                reduction_depth = max (reduction_depth-i16(PLY_ONE), DEPTH_ZERO);
                             }
                         }
 
@@ -1191,7 +1190,7 @@ namespace Search {
                         full_depth_search = alpha < value && reduced_depth < new_depth;
                     }
 
-                    // Step 17. Full depth search, when LMR is skipped or fails high
+                    // Step 16. Full depth search, when LMR is skipped or fails high
                     if (full_depth_search)
                     {
                         if (SP_NODE) alpha = splitpoint->alpha;
@@ -1224,12 +1223,12 @@ namespace Search {
                     }
                 }
 
-                // Step 18. Undo move
+                // Step 17. Undo move
                 pos.undo_move ();
 
                 ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-                // Step 19. Check for new best move
+                // Step 18. Check for new best move
                 if (SP_NODE)
                 {
                     splitpoint->mutex.lock ();
@@ -1295,7 +1294,7 @@ namespace Search {
                     }
                 }
 
-                // Step 20. Check for splitting the search (at non-splitpoint node)
+                // Step 19. Check for splitting the search (at non-splitpoint node)
                 if (!SP_NODE)
                 {
                     if (  Threadpool.split_depth <= depth
@@ -1321,7 +1320,7 @@ namespace Search {
                 }
             }
 
-            // Step 21. Check for checkmate and stalemate
+            // Step 20. Check for checkmate and stalemate
             if (!SP_NODE)
             {
                 // All possible moves have been searched and if there are no legal moves,
