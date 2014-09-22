@@ -689,7 +689,7 @@ namespace Evaluate {
                     +  3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     +  3 * (undefended != U64(0) ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
                     +  2 * (ei.pinneds[C] != U64(0)) // King pinned piece
-                    + 15 * (pos.count<QUEN>(C_) - 1)
+                    - 15 * (pos.count<QUEN>(C_) == 0)
                     - i32(value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
